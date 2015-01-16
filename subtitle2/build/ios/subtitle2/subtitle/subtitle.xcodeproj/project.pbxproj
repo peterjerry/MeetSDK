@@ -1,0 +1,396 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 46;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		22259EB01A5A2E8F00B9CF8C /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 22259EAF1A5A2E8F00B9CF8C /* Foundation.framework */; };
+		2225A00F1A5BD7CD00B9CF8C /* simpletextsubtitle.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 2225A00C1A5BD7CD00B9CF8C /* simpletextsubtitle.cpp */; };
+		2225A0101A5BD7CD00B9CF8C /* stssegment.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 2225A00D1A5BD7CD00B9CF8C /* stssegment.cpp */; };
+		2225A0111A5BD7CD00B9CF8C /* subtitle.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 2225A00E1A5BD7CD00B9CF8C /* subtitle.cpp */; };
+		2225A05A1A5D27BE00B9CF8C /* libtinyxml2.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 2225A0181A5BD87D00B9CF8C /* libtinyxml2.a */; };
+		2225A05B1A5D27CA00B9CF8C /* libass.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 2225A0231A5BD8F900B9CF8C /* libass.a */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		2225A0171A5BD87D00B9CF8C /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 2225A0121A5BD87D00B9CF8C /* tinyxml2.xcodeproj */;
+			proxyType = 2;
+			remoteGlobalIDString = 22259F1F1A5A313900B9CF8C;
+			remoteInfo = tinyxml2;
+		};
+		2225A01B1A5BD8A900B9CF8C /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 2225A0121A5BD87D00B9CF8C /* tinyxml2.xcodeproj */;
+			proxyType = 1;
+			remoteGlobalIDString = 22259F1E1A5A313900B9CF8C;
+			remoteInfo = tinyxml2;
+		};
+		2225A0221A5BD8F900B9CF8C /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 2225A01D1A5BD8F900B9CF8C /* ass.xcodeproj */;
+			proxyType = 2;
+			remoteGlobalIDString = 22259FCB1A5BD6DC00B9CF8C;
+			remoteInfo = ass;
+		};
+		2225A0261A5BD90100B9CF8C /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 2225A01D1A5BD8F900B9CF8C /* ass.xcodeproj */;
+			proxyType = 1;
+			remoteGlobalIDString = 22259FCA1A5BD6DC00B9CF8C;
+			remoteInfo = ass;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		22259EAA1A5A2E8F00B9CF8C /* CopyFiles */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "include/$(PRODUCT_NAME)";
+			dstSubfolderSpec = 16;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
+/* Begin PBXFileReference section */
+		22259EAC1A5A2E8F00B9CF8C /* libsubtitle.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = libsubtitle.a; sourceTree = BUILT_PRODUCTS_DIR; };
+		22259EAF1A5A2E8F00B9CF8C /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = System/Library/Frameworks/Foundation.framework; sourceTree = SDKROOT; };
+		22259EB31A5A2E8F00B9CF8C /* subtitle-Prefix.pch */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "subtitle-Prefix.pch"; sourceTree = "<group>"; };
+		22259EBD1A5A2E8F00B9CF8C /* XCTest.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = XCTest.framework; path = Library/Frameworks/XCTest.framework; sourceTree = DEVELOPER_DIR; };
+		22259EC01A5A2E9000B9CF8C /* UIKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = UIKit.framework; path = Library/Frameworks/UIKit.framework; sourceTree = DEVELOPER_DIR; };
+		22259F4B1A5A31AD00B9CF8C /* libexpat.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libexpat.a; path = "../../Build/Products/Debug-iphoneos/libexpat.a"; sourceTree = "<group>"; };
+		22259F4C1A5A31AD00B9CF8C /* libfontconfig.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libfontconfig.a; path = "../../Build/Products/Debug-iphoneos/libfontconfig.a"; sourceTree = "<group>"; };
+		22259F4D1A5A31AD00B9CF8C /* libfreetype.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libfreetype.a; path = "../../Build/Products/Debug-iphoneos/libfreetype.a"; sourceTree = "<group>"; };
+		22259F4E1A5A31AD00B9CF8C /* liblibass.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = liblibass.a; path = "../../Build/Products/Debug-iphoneos/liblibass.a"; sourceTree = "<group>"; };
+		22259F4F1A5A31AD00B9CF8C /* libtinyxml2.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libtinyxml2.a; path = "../../Build/Products/Debug-iphoneos/libtinyxml2.a"; sourceTree = "<group>"; };
+		2225A00C1A5BD7CD00B9CF8C /* simpletextsubtitle.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = simpletextsubtitle.cpp; path = ../../../../../src/subtitle/simpletextsubtitle.cpp; sourceTree = "<group>"; };
+		2225A00D1A5BD7CD00B9CF8C /* stssegment.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = stssegment.cpp; path = ../../../../../src/subtitle/stssegment.cpp; sourceTree = "<group>"; };
+		2225A00E1A5BD7CD00B9CF8C /* subtitle.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = subtitle.cpp; path = ../../../../../src/subtitle/subtitle.cpp; sourceTree = "<group>"; };
+		2225A0121A5BD87D00B9CF8C /* tinyxml2.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = tinyxml2.xcodeproj; path = ../tinyxml2/tinyxml2.xcodeproj; sourceTree = "<group>"; };
+		2225A01D1A5BD8F900B9CF8C /* ass.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = ass.xcodeproj; path = ../ass/ass.xcodeproj; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		22259EA91A5A2E8F00B9CF8C /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				2225A05B1A5D27CA00B9CF8C /* libass.a in Frameworks */,
+				2225A05A1A5D27BE00B9CF8C /* libtinyxml2.a in Frameworks */,
+				22259EB01A5A2E8F00B9CF8C /* Foundation.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		22259EA31A5A2E8F00B9CF8C = {
+			isa = PBXGroup;
+			children = (
+				2225A01D1A5BD8F900B9CF8C /* ass.xcodeproj */,
+				2225A0121A5BD87D00B9CF8C /* tinyxml2.xcodeproj */,
+				22259EB11A5A2E8F00B9CF8C /* subtitle */,
+				22259EAE1A5A2E8F00B9CF8C /* Frameworks */,
+				22259EAD1A5A2E8F00B9CF8C /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		22259EAD1A5A2E8F00B9CF8C /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				22259EAC1A5A2E8F00B9CF8C /* libsubtitle.a */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		22259EAE1A5A2E8F00B9CF8C /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				22259F4B1A5A31AD00B9CF8C /* libexpat.a */,
+				22259F4C1A5A31AD00B9CF8C /* libfontconfig.a */,
+				22259F4D1A5A31AD00B9CF8C /* libfreetype.a */,
+				22259F4E1A5A31AD00B9CF8C /* liblibass.a */,
+				22259F4F1A5A31AD00B9CF8C /* libtinyxml2.a */,
+				22259EAF1A5A2E8F00B9CF8C /* Foundation.framework */,
+				22259EBD1A5A2E8F00B9CF8C /* XCTest.framework */,
+				22259EC01A5A2E9000B9CF8C /* UIKit.framework */,
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
+		22259EB11A5A2E8F00B9CF8C /* subtitle */ = {
+			isa = PBXGroup;
+			children = (
+				2225A00C1A5BD7CD00B9CF8C /* simpletextsubtitle.cpp */,
+				2225A00D1A5BD7CD00B9CF8C /* stssegment.cpp */,
+				2225A00E1A5BD7CD00B9CF8C /* subtitle.cpp */,
+				22259EB21A5A2E8F00B9CF8C /* Supporting Files */,
+			);
+			path = subtitle;
+			sourceTree = "<group>";
+		};
+		22259EB21A5A2E8F00B9CF8C /* Supporting Files */ = {
+			isa = PBXGroup;
+			children = (
+				22259EB31A5A2E8F00B9CF8C /* subtitle-Prefix.pch */,
+			);
+			name = "Supporting Files";
+			sourceTree = "<group>";
+		};
+		2225A0131A5BD87D00B9CF8C /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				2225A0181A5BD87D00B9CF8C /* libtinyxml2.a */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		2225A01E1A5BD8F900B9CF8C /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				2225A0231A5BD8F900B9CF8C /* libass.a */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		22259EAB1A5A2E8F00B9CF8C /* subtitle */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 22259ECF1A5A2E9000B9CF8C /* Build configuration list for PBXNativeTarget "subtitle" */;
+			buildPhases = (
+				22259EA81A5A2E8F00B9CF8C /* Sources */,
+				22259EA91A5A2E8F00B9CF8C /* Frameworks */,
+				22259EAA1A5A2E8F00B9CF8C /* CopyFiles */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				2225A0271A5BD90100B9CF8C /* PBXTargetDependency */,
+				2225A01C1A5BD8A900B9CF8C /* PBXTargetDependency */,
+			);
+			name = subtitle;
+			productName = subtitle;
+			productReference = 22259EAC1A5A2E8F00B9CF8C /* libsubtitle.a */;
+			productType = "com.apple.product-type.library.static";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		22259EA41A5A2E8F00B9CF8C /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				LastUpgradeCheck = 0510;
+				ORGANIZATIONNAME = pplive;
+			};
+			buildConfigurationList = 22259EA71A5A2E8F00B9CF8C /* Build configuration list for PBXProject "subtitle" */;
+			compatibilityVersion = "Xcode 3.2";
+			developmentRegion = English;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+			);
+			mainGroup = 22259EA31A5A2E8F00B9CF8C;
+			productRefGroup = 22259EAD1A5A2E8F00B9CF8C /* Products */;
+			projectDirPath = "";
+			projectReferences = (
+				{
+					ProductGroup = 2225A01E1A5BD8F900B9CF8C /* Products */;
+					ProjectRef = 2225A01D1A5BD8F900B9CF8C /* ass.xcodeproj */;
+				},
+				{
+					ProductGroup = 2225A0131A5BD87D00B9CF8C /* Products */;
+					ProjectRef = 2225A0121A5BD87D00B9CF8C /* tinyxml2.xcodeproj */;
+				},
+			);
+			projectRoot = "";
+			targets = (
+				22259EAB1A5A2E8F00B9CF8C /* subtitle */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXReferenceProxy section */
+		2225A0181A5BD87D00B9CF8C /* libtinyxml2.a */ = {
+			isa = PBXReferenceProxy;
+			fileType = archive.ar;
+			path = libtinyxml2.a;
+			remoteRef = 2225A0171A5BD87D00B9CF8C /* PBXContainerItemProxy */;
+			sourceTree = BUILT_PRODUCTS_DIR;
+		};
+		2225A0231A5BD8F900B9CF8C /* libass.a */ = {
+			isa = PBXReferenceProxy;
+			fileType = archive.ar;
+			path = libass.a;
+			remoteRef = 2225A0221A5BD8F900B9CF8C /* PBXContainerItemProxy */;
+			sourceTree = BUILT_PRODUCTS_DIR;
+		};
+/* End PBXReferenceProxy section */
+
+/* Begin PBXSourcesBuildPhase section */
+		22259EA81A5A2E8F00B9CF8C /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				2225A0101A5BD7CD00B9CF8C /* stssegment.cpp in Sources */,
+				2225A0111A5BD7CD00B9CF8C /* subtitle.cpp in Sources */,
+				2225A00F1A5BD7CD00B9CF8C /* simpletextsubtitle.cpp in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		2225A01C1A5BD8A900B9CF8C /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			name = tinyxml2;
+			targetProxy = 2225A01B1A5BD8A900B9CF8C /* PBXContainerItemProxy */;
+		};
+		2225A0271A5BD90100B9CF8C /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			name = ass;
+			targetProxy = 2225A0261A5BD90100B9CF8C /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		22259ECD1A5A2E9000B9CF8C /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++0x";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				GCC_C_LANGUAGE_STANDARD = gnu99;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_SYMBOLS_PRIVATE_EXTERN = NO;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 7.1;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = iphoneos;
+			};
+			name = Debug;
+		};
+		22259ECE1A5A2E9000B9CF8C /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++0x";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = YES;
+				ENABLE_NS_ASSERTIONS = NO;
+				GCC_C_LANGUAGE_STANDARD = gnu99;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 7.1;
+				SDKROOT = iphoneos;
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		22259ED01A5A2E9000B9CF8C /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ARCHS = "$(ARCHS_STANDARD)";
+				DSTROOT = /tmp/subtitle.dst;
+				GCC_PRECOMPILE_PREFIX_HEADER = YES;
+				GCC_PREFIX_HEADER = "subtitle/subtitle-Prefix.pch";
+				LIBRARY_SEARCH_PATHS = (
+					"$(inherited)",
+					"/Users/zenzhang/Documents/Build/Products/Debug-iphoneos",
+				);
+				OTHER_LDFLAGS = "-ObjC";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				USER_HEADER_SEARCH_PATHS = "../../../../src/subtitle ../../../../src/tinyxml2 ../../../../src/libass";
+				VALID_ARCHS = "arm64 armv7 armv7s x86_64 i386";
+			};
+			name = Debug;
+		};
+		22259ED11A5A2E9000B9CF8C /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ARCHS = "$(ARCHS_STANDARD)";
+				DSTROOT = /tmp/subtitle.dst;
+				GCC_PRECOMPILE_PREFIX_HEADER = YES;
+				GCC_PREFIX_HEADER = "subtitle/subtitle-Prefix.pch";
+				LIBRARY_SEARCH_PATHS = (
+					"$(inherited)",
+					"/Users/zenzhang/Documents/Build/Products/Debug-iphoneos",
+				);
+				OTHER_LDFLAGS = "-ObjC";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				USER_HEADER_SEARCH_PATHS = "../../../../src/subtitle ../../../../src/tinyxml2 ../../../../src/libass";
+				VALID_ARCHS = "arm64 armv7 armv7s x86_64 i386";
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		22259EA71A5A2E8F00B9CF8C /* Build configuration list for PBXProject "subtitle" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				22259ECD1A5A2E9000B9CF8C /* Debug */,
+				22259ECE1A5A2E9000B9CF8C /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		22259ECF1A5A2E9000B9CF8C /* Build configuration list for PBXNativeTarget "subtitle" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				22259ED01A5A2E9000B9CF8C /* Debug */,
+				22259ED11A5A2E9000B9CF8C /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = 22259EA41A5A2E8F00B9CF8C /* Project object */;
+}

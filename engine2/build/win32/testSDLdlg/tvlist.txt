@@ -1,0 +1,14 @@
+测试片子
+http://127.0.0.1:9006/record.m3u8?type=pplive3&playlink=38701%3Fft%3D1%26name%3D6699b6ab460a415ea7d0dfab96195baf%26svrhost%3D60.55.12.168%3A80%26svrtime%3D1421216679%26delaytime%3D0%26bitrate%3D400%26interval%3D5%26bwtype%3D0%26sdkmode%3D0%26livepath%3D%2Flive%26begin_time%3D1421029885%26end_time%3D1421042495%26type%3Dipptv%26platform%3Daph%26appplt%3Daph%26appid%3DPPTVIBOBO%26appver%3D2.0.2&realtime=low&serialnum=1
+rtsp 广西卫视
+rtsp://127.0.0.1:5154/play.es?type=pplive3&playlink=300178%3Fft%3D1%26bwtype%3D0%26platform%3Dandroid3%26type%3Dphone.android.vip%26bitrate%3D1200
+rtsp 江苏卫视
+rtsp://127.0.0.1:5154/play.es?type=pplive3&playlink=300163%3Fft%3D1%26bwtype%3D0%26platform%3Dandroid3%26type%3Dphone.android.vip
+测试 hls
+http://172.16.204.106/test/hls/009/600000/index.m3u8
+rtsp 新闻综合 5min
+rtsp://127.0.0.1:5154/play.es?type=pplive3&playlink=300156%3Fft%3D1%26bwtype%3D0%26platform%3Dandroid3%26type%3Dphone.android.vip%26delaytime%3D0%26begin_time%3D1416823200%26end_time%3D1416825000
+myFTP
+ftp://u455123614.wnpllrzodiac:daqiao1@ftp.iloveyaya.zz.vc/test/[SumiSora][Mayoi_Neko_OVERRUN][BDRip][SP][04][BIG5][PSP_480P].mp4
+xxxxx
+http://127.0.0.1:9006/record.m3u8?type=ppvod2&playlink=17275701%3Fft%3D0%26bwtype%3D0%26platform%3Dandroid3%26type%3Dphone.android

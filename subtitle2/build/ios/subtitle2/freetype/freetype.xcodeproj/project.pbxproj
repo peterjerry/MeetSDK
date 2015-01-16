@@ -1,0 +1,337 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 46;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		22259D7C1A5A237500B9CF8C /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 22259D7B1A5A237500B9CF8C /* Foundation.framework */; };
+		22259F5F1A5BD43A00B9CF8C /* pshinter.c in Sources */ = {isa = PBXBuildFile; fileRef = 22259F5E1A5BD43900B9CF8C /* pshinter.c */; };
+		22259F691A5BD47C00B9CF8C /* ftbase.c in Sources */ = {isa = PBXBuildFile; fileRef = 22259F601A5BD47C00B9CF8C /* ftbase.c */; };
+		22259F6A1A5BD47C00B9CF8C /* ftbbox.c in Sources */ = {isa = PBXBuildFile; fileRef = 22259F611A5BD47C00B9CF8C /* ftbbox.c */; };
+		22259F6B1A5BD47C00B9CF8C /* ftbitmap.c in Sources */ = {isa = PBXBuildFile; fileRef = 22259F621A5BD47C00B9CF8C /* ftbitmap.c */; };
+		22259F6C1A5BD47C00B9CF8C /* ftgasp.c in Sources */ = {isa = PBXBuildFile; fileRef = 22259F631A5BD47C00B9CF8C /* ftgasp.c */; };
+		22259F6D1A5BD47C00B9CF8C /* ftglyph.c in Sources */ = {isa = PBXBuildFile; fileRef = 22259F641A5BD47C00B9CF8C /* ftglyph.c */; };
+		22259F6E1A5BD47C00B9CF8C /* ftinit.c in Sources */ = {isa = PBXBuildFile; fileRef = 22259F651A5BD47C00B9CF8C /* ftinit.c */; };
+		22259F6F1A5BD47C00B9CF8C /* ftstroke.c in Sources */ = {isa = PBXBuildFile; fileRef = 22259F661A5BD47C00B9CF8C /* ftstroke.c */; };
+		22259F701A5BD47C00B9CF8C /* ftsystem.c in Sources */ = {isa = PBXBuildFile; fileRef = 22259F671A5BD47C00B9CF8C /* ftsystem.c */; };
+		22259F711A5BD47C00B9CF8C /* ftxf86.c in Sources */ = {isa = PBXBuildFile; fileRef = 22259F681A5BD47C00B9CF8C /* ftxf86.c */; };
+		22259F731A5BD4AD00B9CF8C /* raster.c in Sources */ = {isa = PBXBuildFile; fileRef = 22259F721A5BD4AD00B9CF8C /* raster.c */; };
+		22259F751A5BD4C400B9CF8C /* cff.c in Sources */ = {isa = PBXBuildFile; fileRef = 22259F741A5BD4C400B9CF8C /* cff.c */; };
+		22259F771A5BD4D900B9CF8C /* sfnt.c in Sources */ = {isa = PBXBuildFile; fileRef = 22259F761A5BD4D900B9CF8C /* sfnt.c */; };
+		22259F791A5BD4F600B9CF8C /* smooth.c in Sources */ = {isa = PBXBuildFile; fileRef = 22259F781A5BD4F600B9CF8C /* smooth.c */; };
+		22259F7B1A5BD50D00B9CF8C /* psnames.c in Sources */ = {isa = PBXBuildFile; fileRef = 22259F7A1A5BD50D00B9CF8C /* psnames.c */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		22259D761A5A237500B9CF8C /* CopyFiles */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "include/$(PRODUCT_NAME)";
+			dstSubfolderSpec = 16;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
+/* Begin PBXFileReference section */
+		22259D781A5A237500B9CF8C /* libfreetype.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = libfreetype.a; sourceTree = BUILT_PRODUCTS_DIR; };
+		22259D7B1A5A237500B9CF8C /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = System/Library/Frameworks/Foundation.framework; sourceTree = SDKROOT; };
+		22259D7F1A5A237500B9CF8C /* freetype-Prefix.pch */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "freetype-Prefix.pch"; sourceTree = "<group>"; };
+		22259D891A5A237500B9CF8C /* XCTest.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = XCTest.framework; path = Library/Frameworks/XCTest.framework; sourceTree = DEVELOPER_DIR; };
+		22259D8C1A5A237500B9CF8C /* UIKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = UIKit.framework; path = Library/Frameworks/UIKit.framework; sourceTree = DEVELOPER_DIR; };
+		22259F5E1A5BD43900B9CF8C /* pshinter.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = pshinter.c; path = ../../../../../src/freetype/src/pshinter/pshinter.c; sourceTree = "<group>"; };
+		22259F601A5BD47C00B9CF8C /* ftbase.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = ftbase.c; path = ../../../../../src/freetype/src/base/ftbase.c; sourceTree = "<group>"; };
+		22259F611A5BD47C00B9CF8C /* ftbbox.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = ftbbox.c; path = ../../../../../src/freetype/src/base/ftbbox.c; sourceTree = "<group>"; };
+		22259F621A5BD47C00B9CF8C /* ftbitmap.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = ftbitmap.c; path = ../../../../../src/freetype/src/base/ftbitmap.c; sourceTree = "<group>"; };
+		22259F631A5BD47C00B9CF8C /* ftgasp.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = ftgasp.c; path = ../../../../../src/freetype/src/base/ftgasp.c; sourceTree = "<group>"; };
+		22259F641A5BD47C00B9CF8C /* ftglyph.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = ftglyph.c; path = ../../../../../src/freetype/src/base/ftglyph.c; sourceTree = "<group>"; };
+		22259F651A5BD47C00B9CF8C /* ftinit.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = ftinit.c; path = ../../../../../src/freetype/src/base/ftinit.c; sourceTree = "<group>"; };
+		22259F661A5BD47C00B9CF8C /* ftstroke.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = ftstroke.c; path = ../../../../../src/freetype/src/base/ftstroke.c; sourceTree = "<group>"; };
+		22259F671A5BD47C00B9CF8C /* ftsystem.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = ftsystem.c; path = ../../../../../src/freetype/src/base/ftsystem.c; sourceTree = "<group>"; };
+		22259F681A5BD47C00B9CF8C /* ftxf86.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = ftxf86.c; path = ../../../../../src/freetype/src/base/ftxf86.c; sourceTree = "<group>"; };
+		22259F721A5BD4AD00B9CF8C /* raster.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = raster.c; path = ../../../../../src/freetype/src/raster/raster.c; sourceTree = "<group>"; };
+		22259F741A5BD4C400B9CF8C /* cff.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = cff.c; path = ../../../../../src/freetype/src/cff/cff.c; sourceTree = "<group>"; };
+		22259F761A5BD4D900B9CF8C /* sfnt.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = sfnt.c; path = ../../../../../src/freetype/src/sfnt/sfnt.c; sourceTree = "<group>"; };
+		22259F781A5BD4F600B9CF8C /* smooth.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = smooth.c; path = ../../../../../src/freetype/src/smooth/smooth.c; sourceTree = "<group>"; };
+		22259F7A1A5BD50D00B9CF8C /* psnames.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = psnames.c; path = ../../../../../src/freetype/src/psnames/psnames.c; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		22259D751A5A237500B9CF8C /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				22259D7C1A5A237500B9CF8C /* Foundation.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		22259D6F1A5A237500B9CF8C = {
+			isa = PBXGroup;
+			children = (
+				22259D7D1A5A237500B9CF8C /* freetype */,
+				22259D7A1A5A237500B9CF8C /* Frameworks */,
+				22259D791A5A237500B9CF8C /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		22259D791A5A237500B9CF8C /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				22259D781A5A237500B9CF8C /* libfreetype.a */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		22259D7A1A5A237500B9CF8C /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				22259D7B1A5A237500B9CF8C /* Foundation.framework */,
+				22259D891A5A237500B9CF8C /* XCTest.framework */,
+				22259D8C1A5A237500B9CF8C /* UIKit.framework */,
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
+		22259D7D1A5A237500B9CF8C /* freetype */ = {
+			isa = PBXGroup;
+			children = (
+				22259F7A1A5BD50D00B9CF8C /* psnames.c */,
+				22259F781A5BD4F600B9CF8C /* smooth.c */,
+				22259F761A5BD4D900B9CF8C /* sfnt.c */,
+				22259F741A5BD4C400B9CF8C /* cff.c */,
+				22259F721A5BD4AD00B9CF8C /* raster.c */,
+				22259F601A5BD47C00B9CF8C /* ftbase.c */,
+				22259F611A5BD47C00B9CF8C /* ftbbox.c */,
+				22259F621A5BD47C00B9CF8C /* ftbitmap.c */,
+				22259F631A5BD47C00B9CF8C /* ftgasp.c */,
+				22259F641A5BD47C00B9CF8C /* ftglyph.c */,
+				22259F651A5BD47C00B9CF8C /* ftinit.c */,
+				22259F661A5BD47C00B9CF8C /* ftstroke.c */,
+				22259F671A5BD47C00B9CF8C /* ftsystem.c */,
+				22259F681A5BD47C00B9CF8C /* ftxf86.c */,
+				22259F5E1A5BD43900B9CF8C /* pshinter.c */,
+				22259D7E1A5A237500B9CF8C /* Supporting Files */,
+			);
+			path = freetype;
+			sourceTree = "<group>";
+		};
+		22259D7E1A5A237500B9CF8C /* Supporting Files */ = {
+			isa = PBXGroup;
+			children = (
+				22259D7F1A5A237500B9CF8C /* freetype-Prefix.pch */,
+			);
+			name = "Supporting Files";
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		22259D771A5A237500B9CF8C /* freetype */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 22259D9B1A5A237600B9CF8C /* Build configuration list for PBXNativeTarget "freetype" */;
+			buildPhases = (
+				22259D741A5A237500B9CF8C /* Sources */,
+				22259D751A5A237500B9CF8C /* Frameworks */,
+				22259D761A5A237500B9CF8C /* CopyFiles */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = freetype;
+			productName = freetype;
+			productReference = 22259D781A5A237500B9CF8C /* libfreetype.a */;
+			productType = "com.apple.product-type.library.static";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		22259D701A5A237500B9CF8C /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				LastUpgradeCheck = 0510;
+				ORGANIZATIONNAME = pplive;
+			};
+			buildConfigurationList = 22259D731A5A237500B9CF8C /* Build configuration list for PBXProject "freetype" */;
+			compatibilityVersion = "Xcode 3.2";
+			developmentRegion = English;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+			);
+			mainGroup = 22259D6F1A5A237500B9CF8C;
+			productRefGroup = 22259D791A5A237500B9CF8C /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				22259D771A5A237500B9CF8C /* freetype */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXSourcesBuildPhase section */
+		22259D741A5A237500B9CF8C /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				22259F6D1A5BD47C00B9CF8C /* ftglyph.c in Sources */,
+				22259F7B1A5BD50D00B9CF8C /* psnames.c in Sources */,
+				22259F771A5BD4D900B9CF8C /* sfnt.c in Sources */,
+				22259F6E1A5BD47C00B9CF8C /* ftinit.c in Sources */,
+				22259F791A5BD4F600B9CF8C /* smooth.c in Sources */,
+				22259F6F1A5BD47C00B9CF8C /* ftstroke.c in Sources */,
+				22259F711A5BD47C00B9CF8C /* ftxf86.c in Sources */,
+				22259F751A5BD4C400B9CF8C /* cff.c in Sources */,
+				22259F5F1A5BD43A00B9CF8C /* pshinter.c in Sources */,
+				22259F6C1A5BD47C00B9CF8C /* ftgasp.c in Sources */,
+				22259F6A1A5BD47C00B9CF8C /* ftbbox.c in Sources */,
+				22259F731A5BD4AD00B9CF8C /* raster.c in Sources */,
+				22259F701A5BD47C00B9CF8C /* ftsystem.c in Sources */,
+				22259F691A5BD47C00B9CF8C /* ftbase.c in Sources */,
+				22259F6B1A5BD47C00B9CF8C /* ftbitmap.c in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		22259D991A5A237600B9CF8C /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++0x";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				GCC_C_LANGUAGE_STANDARD = gnu99;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_SYMBOLS_PRIVATE_EXTERN = NO;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 7.1;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = iphoneos;
+			};
+			name = Debug;
+		};
+		22259D9A1A5A237600B9CF8C /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++0x";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = YES;
+				ENABLE_NS_ASSERTIONS = NO;
+				GCC_C_LANGUAGE_STANDARD = gnu99;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 7.1;
+				SDKROOT = iphoneos;
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		22259D9C1A5A237600B9CF8C /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = YES;
+				ARCHS = "$(ARCHS_STANDARD)";
+				DSTROOT = /tmp/freetype.dst;
+				GCC_PRECOMPILE_PREFIX_HEADER = YES;
+				GCC_PREFIX_HEADER = "freetype/freetype-Prefix.pch";
+				OTHER_CFLAGS = (
+					"-DDARWIN_NO_CARBON",
+					"-DFT2_BUILD_LIBRARY",
+				);
+				OTHER_LDFLAGS = "-ObjC";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				USER_HEADER_SEARCH_PATHS = ../../../../src/freetype/include;
+				VALID_ARCHS = "arm64 armv7 armv7s x86_64 i386";
+			};
+			name = Debug;
+		};
+		22259D9D1A5A237600B9CF8C /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = YES;
+				ARCHS = "$(ARCHS_STANDARD)";
+				DSTROOT = /tmp/freetype.dst;
+				GCC_PRECOMPILE_PREFIX_HEADER = YES;
+				GCC_PREFIX_HEADER = "freetype/freetype-Prefix.pch";
+				OTHER_CFLAGS = (
+					"-DDARWIN_NO_CARBON",
+					"-DFT2_BUILD_LIBRARY",
+				);
+				OTHER_LDFLAGS = "-ObjC";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				USER_HEADER_SEARCH_PATHS = ../../../../src/freetype/include;
+				VALID_ARCHS = "arm64 armv7 armv7s x86_64 i386";
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		22259D731A5A237500B9CF8C /* Build configuration list for PBXProject "freetype" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				22259D991A5A237600B9CF8C /* Debug */,
+				22259D9A1A5A237600B9CF8C /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		22259D9B1A5A237600B9CF8C /* Build configuration list for PBXNativeTarget "freetype" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				22259D9C1A5A237600B9CF8C /* Debug */,
+				22259D9D1A5A237600B9CF8C /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = 22259D701A5A237500B9CF8C /* Project object */;
+}

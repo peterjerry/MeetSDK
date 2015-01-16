@@ -1,0 +1,120 @@
+sumsung pad crash bug
+----------01-15 13:59:54.490: I/FFRender(10350): mSurface width 854, height 480, stride 854(BAD!!!!!!!!)
+54.450: I/MyPreView(10350): wWidth: 800; wHeight: 512; vWidth: 854; vHeight: 480
+01-15 13:59:54.450: I/MyPreView(10350): scale: 0.936768
+01-15 13:59:54.450: I/MyPreView(10350): width: 800; height: 449
+01-15 13:59:54.455: I/MyPreView(10350): onMeasure(1): width: 800; height: 449
+01-15 13:59:54.455: I/MyPreView(10350): setMeasuredDimension: width: 800, height: 449
+01-15 13:59:54.460: I/Neon-FFStream(10350): got GOP duration: 3350(msec)
+01-15 13:59:54.475: I/ClipList(10350): Java: onInfo: 901 0
+01-15 13:59:54.475: I/ClipList(10350): Java: onInfo: 903 0
+01-15 13:59:54.480: I/Neon-FFPlayer(10350): video_clock: 80, audio_clock: 0, delay: -80(msec)
+01-15 13:59:54.485: I/FFRender(10350): frame->data: 0x6141e830,0x61038e30,0x61107e30
+01-15 13:59:54.485: I/FFRender(10350): frame->linesize: 896,448,448
+01-15 13:59:54.485: I/FFRender(10350): frame->width: 854, frame->height: 480
+01-15 13:59:54.490: I/FFRender(10350): mSurface width 854, height 480, stride 854
+01-15 13:59:54.495: I/FFRender(10350): before i420_rgb_neon
+01-15 13:59:54.495: A/libc(10350): Fatal signal 7 (SIGBUS) at 0x00000000 (code=128), thread 10392 (live.meetplayer)
+01-15 13:59:54.595: I/DEBUG(20141): *** *** *** *** *** *** *** *** *** *** *** *** *** *** *** ***
+01-15 13:59:54.595: I/DEBUG(20141): Build fingerprint: 'samsung/kona3gzc/kona3g:4.1.2/JZO54K/N5100ZCBMH1:user/release-keys'
+01-15 13:59:54.595: I/DEBUG(20141): pid: 10350, tid: 10392, name: live.meetplayer  >>> com.pplive.meetplayer <<<
+01-15 13:59:54.595: I/DEBUG(20141): signal 7 (SIGBUS), code 128 (?), fault addr 00000000
+01-15 13:59:54.670: I/DEBUG(20141):     r0 624a3040  r1 624a3d58  r2 00000360  r3 000001e0
+01-15 13:59:54.670: I/DEBUG(20141):     r4 6141e840  r5 6141ebc0  r6 61038e38  r7 61107e38
+01-15 13:59:54.670: I/DEBUG(20141):     r8 00000380  r9 00100000  sl ffffffd8  fp 00000020
+01-15 13:59:54.670: I/DEBUG(20141):     ip 00000360  sp 5e8bcd90  lr 00000d58  pc 5eefb6e0  cpsr 20000010
+01-15 13:59:54.670: I/DEBUG(20141):     d0  4a4a4a4a4a4a4a4a  d1  7373737373737373
+01-15 13:59:54.670: I/DEBUG(20141):     d2  0e0e0e0e0e0e0e0e  d3  2222222222222222
+01-15 13:59:54.670: I/DEBUG(20141):     d4  8787878787878787  d5  3ba3198a2e000000
+01-15 13:59:54.670: I/DEBUG(20141):     d6  c200c200c200c200  d7  c200c200c200c200
+01-15 13:59:54.670: I/DEBUG(20141):     d8  1380138013801380  d9  1380138013801380
+01-15 13:59:54.670: I/DEBUG(20141):     d10 b800b800b800b800  d11 b800b800b800b800
+01-15 13:59:54.670: I/DEBUG(20141):     d12 f8cef8cef8cef8ce  d13 f941f941f941f941
+01-15 13:59:54.670: I/DEBUG(20141):     d14 fbdcfbdcfbdcfbce  d15 fbbafbbafbbafbba
+01-15 13:59:54.670: I/DEBUG(20141):     d16 ffb8ffb8ffb8003f  d17 ffb8ffb8ffb8ffb8
+01-15 13:59:54.670: I/DEBUG(20141):     d18 123e123e1288123e  d19 12b112b112b112b1
+01-15 13:59:54.670: I/DEBUG(20141):     d20 154c154c1596153e  d21 152a152a152a152a
+01-15 13:59:54.670: I/DEBUG(20141):     d22 19281928197219af  d23 1928192819281928
+01-15 13:59:54.670: I/DEBUG(20141):     d24 494949494a4c4935  d25 5555555556595541
+01-15 13:59:54.670: I/DEBUG(20141):     d26 6565656566686753  d27 ffffffffffffffff
+01-15 13:59:54.670: I/DEBUG(20141):     d28 4b4b4b4b4b4b4b4b  d29 5555555555555555
+01-15 13:59:54.670: I/DEBUG(20141):     d30 6565656565656565  d31 ffffffffffffffff
+01-15 13:59:54.670: I/DEBUG(20141):     scr 60000013
+01-15 13:59:54.670: I/DEBUG(20141): backtrace:
+01-15 13:59:54.670: I/DEBUG(20141):     #00  pc 000566e0  /data/data/com.pplive.meetplayer/lib/libplayer_neon.so
+01-15 13:59:54.670: I/DEBUG(20141):     #01  pc 00000d54  <unknown>
+01-15 13:59:54.670: I/DEBUG(20141): stack:
+01-15 13:59:54.670: I/DEBUG(20141):          5e8bcd50  5789fbf0  
+01-15 13:59:54.670: I/DEBUG(20141):          5e8bcd54  5789fbf0  
+01-15 13:59:54.670: I/DEBUG(20141):          5e8bcd58  5e8bcd84  
+01-15 13:59:54.670: I/DEBUG(20141):          5e8bcd5c  5789fbf0  
+01-15 13:59:54.670: I/DEBUG(20141):          5e8bcd60  41fff370  /dev/ashmem/dalvik-heap (deleted)
+01-15 13:59:54.670: I/DEBUG(20141):          5e8bcd64  41fff328  /dev/ashmem/dalvik-heap (deleted)
+01-15 13:59:54.670: I/DEBUG(20141):          5e8bcd68  5e8bcd84  
+01-15 13:59:54.670: I/DEBUG(20141):          5e8bcd6c  41fff328  /dev/ashmem/dalvik-heap (deleted)
+01-15 13:59:54.670: I/DEBUG(20141):          5e8bcd70  414ed24d  /data/data/com.pplive.meetplayer/lib/libmeet.so
+01-15 13:59:54.670: I/DEBUG(20141):          5e8bcd74  40940f71  /system/lib/libdvm.so
+01-15 13:59:54.670: I/DEBUG(20141):          5e8bcd78  41fff370  /dev/ashmem/dalvik-heap (deleted)
+01-15 13:59:54.670: I/DEBUG(20141):          5e8bcd7c  40941dcf  /system/lib/libdvm.so
+01-15 13:59:54.670: I/DEBUG(20141):          5e8bcd80  58a875e0  
+01-15 13:59:54.670: I/DEBUG(20141):          5e8bcd84  5789fbf0  
+
+
+
+
+
+
+
+--------------------------S39H good version
+------------------------mSurface width 854, height 480, stride 864 (stride is 864!!!)
+1-15 14:29:30.659: I/AudioPlayer(6508): audio player thread started
+01-15 14:29:30.659: I/OpenSLesPlayer(6508): and_osles play()
+01-15 14:29:30.668: W/OpenSLesPlayer(6508): audio data underflow 8192 0, fill mute(cnt 0)
+01-15 14:29:30.669: W/OpenSLesPlayer(6508): audio data underflow 8192 0, fill mute(cnt 1)
+01-15 14:29:30.699: I/Neon-FFPlayer(6508): video sync done!
+01-15 14:29:30.752: I/Neon-FFStream(6508): got GOP duration: 3350(msec)
+01-15 14:29:30.764: I/Neon-FFPlayer(6508): video_clock: 80, audio_clock: 0, delay: -80(msec)
+01-15 14:29:30.779: I/FFRender(6508): frame->data: 0x61941830,0x6000fed0,0x61b70980
+01-15 14:29:30.780: I/FFRender(6508): frame->linesize: 896,448,448
+01-15 14:29:30.781: I/FFRender(6508): frame->width: 854, frame->height: 480
+01-15 14:29:30.782: I/FFRender(6508): mSurface width 854, height 480, stride 864
+01-15 14:29:30.783: I/FFRender(6508): before i420_rgb_neon 0x62c64000
+01-15 14:29:30.788: I/FFRender(6508): after i420_rgb_neon
+01-15 14:29:30.832: I/MyPreView(6508): onMeasure(0): widthMeasureSpec: AT_MOST, heightMeasureSpec: AT_MOST
+01-15 14:29:30.832: I/MyPreView(6508): onMeasure(0): LayoutWidth: 540, LayoutHeight: 355
+01-15 14:29:30.832: I/MyPreView(6508): FULL_SCREEN_BY_SCALE
+01-15 14:29:30.832: I/MyPreView(6508): wWidth: 540; wHeight: 355; vWidth: 854; vHeight: 480
+01-15 14:29:30.832: I/MyPreView(6508): scale: 0.632318
+01-15 14:29:30.832: I/MyPreView(6508): width: 540; height: 303
+01-15 14:29:30.833: I/MyPreView(6508): onMeasure(1): width: 540; height: 303
+01-15 14:29:30.833: I/MyPreView(6508): setMeasuredDimension: width: 540, height: 303
+01-15 14:29:30.833: I/MyPreView(6508): onMeasure(0): widthMeasureSpec: EXACTLY, heightMeasureSpec: AT_MOST
+01-15 14:29:30.833: I/MyPreView(6508): onMeasure(0): LayoutWidth: 540, LayoutHeight: 355
+01-15 14:29:30.833: I/MyPreView(6508): FULL_SCREEN_BY_SCALE
+01-15 14:29:30.833: I/MyPreView(6508): wWidth: 540; wHeight: 355; vWidth: 854; vHeight: 480
+01-15 14:29:30.834: I/MyPreView(6508): scale: 0.632318
+01-15 14:29:30.834: I/MyPreView(6508): width: 540; height: 303
+01-15 14:29:30.834: I/MyPreView(6508): onMeasure(1): width: 540; height: 303
+01-15 14:29:30.834: I/MyPreView(6508): setMeasuredDimension: width: 540, height: 303
+01-15 14:29:30.851: I/ClipList(6508): Java: onInfo: 901 0
+01-15 14:29:30.851: I/ClipList(6508): Java: onInfo: 903 0
+01-15 14:29:30.851: I/ClipList(6508): Java: onInfo: 902 24
+01-15 14:29:30.851: I/ClipList(6508): Java: onInfo: 904 7
+01-15 14:29:30.905: I/FFRender(6508): before i420_rgb_neon 0x62f36000
+01-15 14:29:30.909: I/FFRender(6508): after i420_rgb_neon
+01-15 14:29:30.919: I/FFRender(6508): before i420_rgb_neon 0x6318d000
+01-15 14:29:30.924: I/FFRender(6508): after i420_rgb_neon
+01-15 14:29:30.933: I/FFRender(6508): before i420_rgb_neon 0x63401000
+01-15 14:29:30.948: I/FFRender(6508): after i420_rgb_neon
+01-15 14:29:30.975: I/FFRender(6508): before i420_rgb_neon 0x62c64000
+01-15 14:29:30.979: I/FFRender(6508): after i420_rgb_neon
+01-15 14:29:30.983: I/FFRender(6508): before i420_rgb_neon 0x62f36000
+01-15 14:29:30.986: I/FFRender(6508): after i420_rgb_neon
+01-15 14:29:30.991: I/Neon-FFPlayer(6508): drop frame: video late by 276 ms, mDiscardLevel:8, mDiscardCount:2
+01-15 14:29:30.995: I/Neon-FFPlayer(6508): drop frame: video late by 276 ms, mDiscardLevel:8, mDiscardCount:2
+01-15 14:29:31.017: I/ClipList(6508): Java: onInfo: 906 184
+01-15 14:29:31.017: I/ClipList(6508): Java: onInfo: 907 276
+01-15 14:29:31.018: I/ClipList(6508): Java: onInfo: 907 276
+01-15 14:29:31.025: I/Neon-FFPlayer(6508): drop frame: video late by 276 ms, mDiscardLevel:8, mDiscardCount:2
+01-15 14:29:31.054: I/Neon-FFPlayer(6508): drop frame: video late by 323 ms, mDiscardLevel:8, mDiscardCount:3
+01-15 14:29:31.055: I/Neon-FFPlayer(6508): drop frame: video late b

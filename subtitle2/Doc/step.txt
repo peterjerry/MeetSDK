@@ -1,0 +1,15 @@
+------------android-------------------
+expat         ->
+					->fontconfig ->libass
+freetype(ft2) ->
+
+------------ios----------------------
+automake autoconf libtool configure->make install
+pkg-config ?  ./configure  --with-internal-glib
+
+				 fribidi   ->	
+freetype(ft2) ->fontconfig -> libass
+
+fontconfig ? 
+export MACOSX_DEPLOYMENT_TARGET=10.8
+./configure --with-old-mac-fonts CFLAGS="-Os -arch i386 -arch x86_64"

@@ -1,0 +1,464 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 46;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		22259DCD1A5A2A4900B9CF8C /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 22259DCC1A5A2A4900B9CF8C /* Foundation.framework */; };
+		22259F921A5BD58A00B9CF8C /* fcatomic.c in Sources */ = {isa = PBXBuildFile; fileRef = 22259F7C1A5BD58A00B9CF8C /* fcatomic.c */; };
+		22259F931A5BD58A00B9CF8C /* fcblanks.c in Sources */ = {isa = PBXBuildFile; fileRef = 22259F7D1A5BD58A00B9CF8C /* fcblanks.c */; };
+		22259F941A5BD58A00B9CF8C /* fccache.c in Sources */ = {isa = PBXBuildFile; fileRef = 22259F7E1A5BD58A00B9CF8C /* fccache.c */; };
+		22259F951A5BD58A00B9CF8C /* fccfg.c in Sources */ = {isa = PBXBuildFile; fileRef = 22259F7F1A5BD58A00B9CF8C /* fccfg.c */; };
+		22259F961A5BD58A00B9CF8C /* fccharset.c in Sources */ = {isa = PBXBuildFile; fileRef = 22259F801A5BD58A00B9CF8C /* fccharset.c */; };
+		22259F971A5BD58A00B9CF8C /* fcdbg.c in Sources */ = {isa = PBXBuildFile; fileRef = 22259F811A5BD58A00B9CF8C /* fcdbg.c */; };
+		22259F981A5BD58A00B9CF8C /* fcdefault.c in Sources */ = {isa = PBXBuildFile; fileRef = 22259F821A5BD58A00B9CF8C /* fcdefault.c */; };
+		22259F991A5BD58A00B9CF8C /* fcdir.c in Sources */ = {isa = PBXBuildFile; fileRef = 22259F831A5BD58A00B9CF8C /* fcdir.c */; };
+		22259F9A1A5BD58A00B9CF8C /* fcformat.c in Sources */ = {isa = PBXBuildFile; fileRef = 22259F841A5BD58A00B9CF8C /* fcformat.c */; };
+		22259F9B1A5BD58A00B9CF8C /* fcfreetype.c in Sources */ = {isa = PBXBuildFile; fileRef = 22259F851A5BD58A00B9CF8C /* fcfreetype.c */; };
+		22259F9C1A5BD58A00B9CF8C /* fcfs.c in Sources */ = {isa = PBXBuildFile; fileRef = 22259F861A5BD58A00B9CF8C /* fcfs.c */; };
+		22259F9D1A5BD58A00B9CF8C /* fcinit.c in Sources */ = {isa = PBXBuildFile; fileRef = 22259F871A5BD58A00B9CF8C /* fcinit.c */; };
+		22259F9E1A5BD58A00B9CF8C /* fclang.c in Sources */ = {isa = PBXBuildFile; fileRef = 22259F881A5BD58A00B9CF8C /* fclang.c */; };
+		22259F9F1A5BD58A00B9CF8C /* fclist.c in Sources */ = {isa = PBXBuildFile; fileRef = 22259F891A5BD58A00B9CF8C /* fclist.c */; };
+		22259FA01A5BD58A00B9CF8C /* fcmatch.c in Sources */ = {isa = PBXBuildFile; fileRef = 22259F8A1A5BD58A00B9CF8C /* fcmatch.c */; };
+		22259FA11A5BD58A00B9CF8C /* fcmatrix.c in Sources */ = {isa = PBXBuildFile; fileRef = 22259F8B1A5BD58A00B9CF8C /* fcmatrix.c */; };
+		22259FA21A5BD58A00B9CF8C /* fcname.c in Sources */ = {isa = PBXBuildFile; fileRef = 22259F8C1A5BD58A00B9CF8C /* fcname.c */; };
+		22259FA31A5BD58A00B9CF8C /* fcpat.c in Sources */ = {isa = PBXBuildFile; fileRef = 22259F8D1A5BD58A00B9CF8C /* fcpat.c */; };
+		22259FA41A5BD58A00B9CF8C /* fcserialize.c in Sources */ = {isa = PBXBuildFile; fileRef = 22259F8E1A5BD58A00B9CF8C /* fcserialize.c */; };
+		22259FA51A5BD58A00B9CF8C /* fcstr.c in Sources */ = {isa = PBXBuildFile; fileRef = 22259F8F1A5BD58A00B9CF8C /* fcstr.c */; };
+		22259FA61A5BD58A00B9CF8C /* fcxml.c in Sources */ = {isa = PBXBuildFile; fileRef = 22259F901A5BD58A00B9CF8C /* fcxml.c */; };
+		22259FA71A5BD58A00B9CF8C /* ftglue.c in Sources */ = {isa = PBXBuildFile; fileRef = 22259F911A5BD58A00B9CF8C /* ftglue.c */; };
+		2225A04E1A5D267C00B9CF8C /* libexpat.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 2225A02E1A5BD93400B9CF8C /* libexpat.a */; };
+		2225A04F1A5D267C00B9CF8C /* libfreetype.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 2225A0391A5BD96800B9CF8C /* libfreetype.a */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		2225A02D1A5BD93400B9CF8C /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 2225A0281A5BD93400B9CF8C /* expat.xcodeproj */;
+			proxyType = 2;
+			remoteGlobalIDString = 22259D2E1A5A1FC000B9CF8C;
+			remoteInfo = expat;
+		};
+		2225A0311A5BD93D00B9CF8C /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 2225A0281A5BD93400B9CF8C /* expat.xcodeproj */;
+			proxyType = 1;
+			remoteGlobalIDString = 22259D2D1A5A1FC000B9CF8C;
+			remoteInfo = expat;
+		};
+		2225A0381A5BD96800B9CF8C /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 2225A0331A5BD96800B9CF8C /* freetype.xcodeproj */;
+			proxyType = 2;
+			remoteGlobalIDString = 22259D781A5A237500B9CF8C;
+			remoteInfo = freetype;
+		};
+		2225A03C1A5BD96C00B9CF8C /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 2225A0331A5BD96800B9CF8C /* freetype.xcodeproj */;
+			proxyType = 1;
+			remoteGlobalIDString = 22259D771A5A237500B9CF8C;
+			remoteInfo = freetype;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		22259DC71A5A2A4900B9CF8C /* CopyFiles */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "include/$(PRODUCT_NAME)";
+			dstSubfolderSpec = 16;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
+/* Begin PBXFileReference section */
+		22259DC91A5A2A4900B9CF8C /* libfontconfig.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = libfontconfig.a; sourceTree = BUILT_PRODUCTS_DIR; };
+		22259DCC1A5A2A4900B9CF8C /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = System/Library/Frameworks/Foundation.framework; sourceTree = SDKROOT; };
+		22259DD01A5A2A4900B9CF8C /* fontconfig-Prefix.pch */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "fontconfig-Prefix.pch"; sourceTree = "<group>"; };
+		22259DDA1A5A2A4900B9CF8C /* XCTest.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = XCTest.framework; path = Library/Frameworks/XCTest.framework; sourceTree = DEVELOPER_DIR; };
+		22259DDD1A5A2A4900B9CF8C /* UIKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = UIKit.framework; path = Library/Frameworks/UIKit.framework; sourceTree = DEVELOPER_DIR; };
+		22259F7C1A5BD58A00B9CF8C /* fcatomic.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = fcatomic.c; path = ../../../../../src/fontconfig/src/fcatomic.c; sourceTree = "<group>"; };
+		22259F7D1A5BD58A00B9CF8C /* fcblanks.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = fcblanks.c; path = ../../../../../src/fontconfig/src/fcblanks.c; sourceTree = "<group>"; };
+		22259F7E1A5BD58A00B9CF8C /* fccache.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = fccache.c; path = ../../../../../src/fontconfig/src/fccache.c; sourceTree = "<group>"; };
+		22259F7F1A5BD58A00B9CF8C /* fccfg.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = fccfg.c; path = ../../../../../src/fontconfig/src/fccfg.c; sourceTree = "<group>"; };
+		22259F801A5BD58A00B9CF8C /* fccharset.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = fccharset.c; path = ../../../../../src/fontconfig/src/fccharset.c; sourceTree = "<group>"; };
+		22259F811A5BD58A00B9CF8C /* fcdbg.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = fcdbg.c; path = ../../../../../src/fontconfig/src/fcdbg.c; sourceTree = "<group>"; };
+		22259F821A5BD58A00B9CF8C /* fcdefault.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = fcdefault.c; path = ../../../../../src/fontconfig/src/fcdefault.c; sourceTree = "<group>"; };
+		22259F831A5BD58A00B9CF8C /* fcdir.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = fcdir.c; path = ../../../../../src/fontconfig/src/fcdir.c; sourceTree = "<group>"; };
+		22259F841A5BD58A00B9CF8C /* fcformat.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = fcformat.c; path = ../../../../../src/fontconfig/src/fcformat.c; sourceTree = "<group>"; };
+		22259F851A5BD58A00B9CF8C /* fcfreetype.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = fcfreetype.c; path = ../../../../../src/fontconfig/src/fcfreetype.c; sourceTree = "<group>"; };
+		22259F861A5BD58A00B9CF8C /* fcfs.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = fcfs.c; path = ../../../../../src/fontconfig/src/fcfs.c; sourceTree = "<group>"; };
+		22259F871A5BD58A00B9CF8C /* fcinit.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = fcinit.c; path = ../../../../../src/fontconfig/src/fcinit.c; sourceTree = "<group>"; };
+		22259F881A5BD58A00B9CF8C /* fclang.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = fclang.c; path = ../../../../../src/fontconfig/src/fclang.c; sourceTree = "<group>"; };
+		22259F891A5BD58A00B9CF8C /* fclist.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = fclist.c; path = ../../../../../src/fontconfig/src/fclist.c; sourceTree = "<group>"; };
+		22259F8A1A5BD58A00B9CF8C /* fcmatch.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = fcmatch.c; path = ../../../../../src/fontconfig/src/fcmatch.c; sourceTree = "<group>"; };
+		22259F8B1A5BD58A00B9CF8C /* fcmatrix.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = fcmatrix.c; path = ../../../../../src/fontconfig/src/fcmatrix.c; sourceTree = "<group>"; };
+		22259F8C1A5BD58A00B9CF8C /* fcname.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = fcname.c; path = ../../../../../src/fontconfig/src/fcname.c; sourceTree = "<group>"; };
+		22259F8D1A5BD58A00B9CF8C /* fcpat.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = fcpat.c; path = ../../../../../src/fontconfig/src/fcpat.c; sourceTree = "<group>"; };
+		22259F8E1A5BD58A00B9CF8C /* fcserialize.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = fcserialize.c; path = ../../../../../src/fontconfig/src/fcserialize.c; sourceTree = "<group>"; };
+		22259F8F1A5BD58A00B9CF8C /* fcstr.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = fcstr.c; path = ../../../../../src/fontconfig/src/fcstr.c; sourceTree = "<group>"; };
+		22259F901A5BD58A00B9CF8C /* fcxml.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = fcxml.c; path = ../../../../../src/fontconfig/src/fcxml.c; sourceTree = "<group>"; };
+		22259F911A5BD58A00B9CF8C /* ftglue.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = ftglue.c; path = ../../../../../src/fontconfig/src/ftglue.c; sourceTree = "<group>"; };
+		2225A0281A5BD93400B9CF8C /* expat.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = expat.xcodeproj; path = ../expat/expat.xcodeproj; sourceTree = "<group>"; };
+		2225A0331A5BD96800B9CF8C /* freetype.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = freetype.xcodeproj; path = ../freetype/freetype.xcodeproj; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		22259DC61A5A2A4900B9CF8C /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				2225A04E1A5D267C00B9CF8C /* libexpat.a in Frameworks */,
+				2225A04F1A5D267C00B9CF8C /* libfreetype.a in Frameworks */,
+				22259DCD1A5A2A4900B9CF8C /* Foundation.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		22259DC01A5A2A4900B9CF8C = {
+			isa = PBXGroup;
+			children = (
+				2225A0331A5BD96800B9CF8C /* freetype.xcodeproj */,
+				2225A0281A5BD93400B9CF8C /* expat.xcodeproj */,
+				22259DCE1A5A2A4900B9CF8C /* fontconfig */,
+				22259DCB1A5A2A4900B9CF8C /* Frameworks */,
+				22259DCA1A5A2A4900B9CF8C /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		22259DCA1A5A2A4900B9CF8C /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				22259DC91A5A2A4900B9CF8C /* libfontconfig.a */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		22259DCB1A5A2A4900B9CF8C /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				22259DCC1A5A2A4900B9CF8C /* Foundation.framework */,
+				22259DDA1A5A2A4900B9CF8C /* XCTest.framework */,
+				22259DDD1A5A2A4900B9CF8C /* UIKit.framework */,
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
+		22259DCE1A5A2A4900B9CF8C /* fontconfig */ = {
+			isa = PBXGroup;
+			children = (
+				22259F7C1A5BD58A00B9CF8C /* fcatomic.c */,
+				22259F7D1A5BD58A00B9CF8C /* fcblanks.c */,
+				22259F7E1A5BD58A00B9CF8C /* fccache.c */,
+				22259F7F1A5BD58A00B9CF8C /* fccfg.c */,
+				22259F801A5BD58A00B9CF8C /* fccharset.c */,
+				22259F811A5BD58A00B9CF8C /* fcdbg.c */,
+				22259F821A5BD58A00B9CF8C /* fcdefault.c */,
+				22259F831A5BD58A00B9CF8C /* fcdir.c */,
+				22259F841A5BD58A00B9CF8C /* fcformat.c */,
+				22259F851A5BD58A00B9CF8C /* fcfreetype.c */,
+				22259F861A5BD58A00B9CF8C /* fcfs.c */,
+				22259F871A5BD58A00B9CF8C /* fcinit.c */,
+				22259F881A5BD58A00B9CF8C /* fclang.c */,
+				22259F891A5BD58A00B9CF8C /* fclist.c */,
+				22259F8A1A5BD58A00B9CF8C /* fcmatch.c */,
+				22259F8B1A5BD58A00B9CF8C /* fcmatrix.c */,
+				22259F8C1A5BD58A00B9CF8C /* fcname.c */,
+				22259F8D1A5BD58A00B9CF8C /* fcpat.c */,
+				22259F8E1A5BD58A00B9CF8C /* fcserialize.c */,
+				22259F8F1A5BD58A00B9CF8C /* fcstr.c */,
+				22259F901A5BD58A00B9CF8C /* fcxml.c */,
+				22259F911A5BD58A00B9CF8C /* ftglue.c */,
+				22259DCF1A5A2A4900B9CF8C /* Supporting Files */,
+			);
+			path = fontconfig;
+			sourceTree = "<group>";
+		};
+		22259DCF1A5A2A4900B9CF8C /* Supporting Files */ = {
+			isa = PBXGroup;
+			children = (
+				22259DD01A5A2A4900B9CF8C /* fontconfig-Prefix.pch */,
+			);
+			name = "Supporting Files";
+			sourceTree = "<group>";
+		};
+		2225A0291A5BD93400B9CF8C /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				2225A02E1A5BD93400B9CF8C /* libexpat.a */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		2225A0341A5BD96800B9CF8C /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				2225A0391A5BD96800B9CF8C /* libfreetype.a */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		22259DC81A5A2A4900B9CF8C /* fontconfig */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 22259DEC1A5A2A4900B9CF8C /* Build configuration list for PBXNativeTarget "fontconfig" */;
+			buildPhases = (
+				22259DC51A5A2A4900B9CF8C /* Sources */,
+				22259DC61A5A2A4900B9CF8C /* Frameworks */,
+				22259DC71A5A2A4900B9CF8C /* CopyFiles */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				2225A03D1A5BD96C00B9CF8C /* PBXTargetDependency */,
+				2225A0321A5BD93D00B9CF8C /* PBXTargetDependency */,
+			);
+			name = fontconfig;
+			productName = fontconfig;
+			productReference = 22259DC91A5A2A4900B9CF8C /* libfontconfig.a */;
+			productType = "com.apple.product-type.library.static";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		22259DC11A5A2A4900B9CF8C /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				LastUpgradeCheck = 0510;
+				ORGANIZATIONNAME = pplive;
+			};
+			buildConfigurationList = 22259DC41A5A2A4900B9CF8C /* Build configuration list for PBXProject "fontconfig" */;
+			compatibilityVersion = "Xcode 3.2";
+			developmentRegion = English;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+			);
+			mainGroup = 22259DC01A5A2A4900B9CF8C;
+			productRefGroup = 22259DCA1A5A2A4900B9CF8C /* Products */;
+			projectDirPath = "";
+			projectReferences = (
+				{
+					ProductGroup = 2225A0291A5BD93400B9CF8C /* Products */;
+					ProjectRef = 2225A0281A5BD93400B9CF8C /* expat.xcodeproj */;
+				},
+				{
+					ProductGroup = 2225A0341A5BD96800B9CF8C /* Products */;
+					ProjectRef = 2225A0331A5BD96800B9CF8C /* freetype.xcodeproj */;
+				},
+			);
+			projectRoot = "";
+			targets = (
+				22259DC81A5A2A4900B9CF8C /* fontconfig */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXReferenceProxy section */
+		2225A02E1A5BD93400B9CF8C /* libexpat.a */ = {
+			isa = PBXReferenceProxy;
+			fileType = archive.ar;
+			path = libexpat.a;
+			remoteRef = 2225A02D1A5BD93400B9CF8C /* PBXContainerItemProxy */;
+			sourceTree = BUILT_PRODUCTS_DIR;
+		};
+		2225A0391A5BD96800B9CF8C /* libfreetype.a */ = {
+			isa = PBXReferenceProxy;
+			fileType = archive.ar;
+			path = libfreetype.a;
+			remoteRef = 2225A0381A5BD96800B9CF8C /* PBXContainerItemProxy */;
+			sourceTree = BUILT_PRODUCTS_DIR;
+		};
+/* End PBXReferenceProxy section */
+
+/* Begin PBXSourcesBuildPhase section */
+		22259DC51A5A2A4900B9CF8C /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				22259FA61A5BD58A00B9CF8C /* fcxml.c in Sources */,
+				22259F9C1A5BD58A00B9CF8C /* fcfs.c in Sources */,
+				22259FA11A5BD58A00B9CF8C /* fcmatrix.c in Sources */,
+				22259FA21A5BD58A00B9CF8C /* fcname.c in Sources */,
+				22259F971A5BD58A00B9CF8C /* fcdbg.c in Sources */,
+				22259FA31A5BD58A00B9CF8C /* fcpat.c in Sources */,
+				22259FA41A5BD58A00B9CF8C /* fcserialize.c in Sources */,
+				22259F981A5BD58A00B9CF8C /* fcdefault.c in Sources */,
+				22259F9B1A5BD58A00B9CF8C /* fcfreetype.c in Sources */,
+				22259FA01A5BD58A00B9CF8C /* fcmatch.c in Sources */,
+				22259F9E1A5BD58A00B9CF8C /* fclang.c in Sources */,
+				22259F991A5BD58A00B9CF8C /* fcdir.c in Sources */,
+				22259F9A1A5BD58A00B9CF8C /* fcformat.c in Sources */,
+				22259F9D1A5BD58A00B9CF8C /* fcinit.c in Sources */,
+				22259F9F1A5BD58A00B9CF8C /* fclist.c in Sources */,
+				22259F951A5BD58A00B9CF8C /* fccfg.c in Sources */,
+				22259FA51A5BD58A00B9CF8C /* fcstr.c in Sources */,
+				22259F921A5BD58A00B9CF8C /* fcatomic.c in Sources */,
+				22259F961A5BD58A00B9CF8C /* fccharset.c in Sources */,
+				22259FA71A5BD58A00B9CF8C /* ftglue.c in Sources */,
+				22259F941A5BD58A00B9CF8C /* fccache.c in Sources */,
+				22259F931A5BD58A00B9CF8C /* fcblanks.c in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		2225A0321A5BD93D00B9CF8C /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			name = expat;
+			targetProxy = 2225A0311A5BD93D00B9CF8C /* PBXContainerItemProxy */;
+		};
+		2225A03D1A5BD96C00B9CF8C /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			name = freetype;
+			targetProxy = 2225A03C1A5BD96C00B9CF8C /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		22259DEA1A5A2A4900B9CF8C /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++0x";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				GCC_C_LANGUAGE_STANDARD = gnu99;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_SYMBOLS_PRIVATE_EXTERN = NO;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 7.1;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = iphoneos;
+			};
+			name = Debug;
+		};
+		22259DEB1A5A2A4900B9CF8C /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++0x";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = YES;
+				ENABLE_NS_ASSERTIONS = NO;
+				GCC_C_LANGUAGE_STANDARD = gnu99;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 7.1;
+				SDKROOT = iphoneos;
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		22259DED1A5A2A4900B9CF8C /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = YES;
+				ARCHS = "$(ARCHS_STANDARD)";
+				DSTROOT = /tmp/fontconfig.dst;
+				GCC_PRECOMPILE_PREFIX_HEADER = YES;
+				GCC_PREFIX_HEADER = "fontconfig/fontconfig-Prefix.pch";
+				OTHER_CFLAGS = (
+					"-DFC_DEFAULT_FONTS=\\\"/system/fonts\\\"",
+					"-DFC_CACHEDIR=\\\"/sdcard/.fccache\\\"",
+					"-DFONTCONFIG_PATH=\\\"/sdcard/.fcconfig\\\"",
+				);
+				OTHER_LDFLAGS = "-ObjC";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				USER_HEADER_SEARCH_PATHS = "../../../../src/fontconfig ../../../../src/expat/lib ../../../../src/freetype/include";
+				VALID_ARCHS = "arm64 armv7 armv7s x86_64 i386";
+			};
+			name = Debug;
+		};
+		22259DEE1A5A2A4900B9CF8C /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = YES;
+				ARCHS = "$(ARCHS_STANDARD)";
+				DSTROOT = /tmp/fontconfig.dst;
+				GCC_PRECOMPILE_PREFIX_HEADER = YES;
+				GCC_PREFIX_HEADER = "fontconfig/fontconfig-Prefix.pch";
+				OTHER_CFLAGS = (
+					"-DFC_DEFAULT_FONTS=\\\"/system/fonts\\\"",
+					"-DFC_CACHEDIR=\\\"/sdcard/.fccache\\\"",
+					"-DFONTCONFIG_PATH=\\\"/sdcard/.fcconfig\\\"",
+				);
+				OTHER_LDFLAGS = "-ObjC";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				USER_HEADER_SEARCH_PATHS = "../../../../src/fontconfig ../../../../src/expat/lib ../../../../src/freetype/include";
+				VALID_ARCHS = "arm64 armv7 armv7s x86_64 i386";
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		22259DC41A5A2A4900B9CF8C /* Build configuration list for PBXProject "fontconfig" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				22259DEA1A5A2A4900B9CF8C /* Debug */,
+				22259DEB1A5A2A4900B9CF8C /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		22259DEC1A5A2A4900B9CF8C /* Build configuration list for PBXNativeTarget "fontconfig" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				22259DED1A5A2A4900B9CF8C /* Debug */,
+				22259DEE1A5A2A4900B9CF8C /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = 22259DC11A5A2A4900B9CF8C /* Project object */;
+}
