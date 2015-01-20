@@ -2073,8 +2073,9 @@ static int handle_invoke(URLContext *s, RTMPPacket *pkt)
         if ((ret = handle_invoke_status(s, pkt)) < 0)
             return ret;
     } else if (ff_amf_match_string(pkt->data, pkt->size, "onBWDone")) {
-        if ((ret = gen_check_bw(s, rt)) < 0)
-            return ret;
+        // 2015.1.20 guoliangma comment out to work around server capabilities
+		//if ((ret = gen_check_bw(s, rt)) < 0)
+        //    return ret;
     } else if (ff_amf_match_string(pkt->data, pkt->size, "releaseStream") ||
                ff_amf_match_string(pkt->data, pkt->size, "FCPublish")     ||
                ff_amf_match_string(pkt->data, pkt->size, "publish")       ||
