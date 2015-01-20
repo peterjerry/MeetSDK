@@ -16,7 +16,10 @@
 
 #define TAG "subtitle-jni"
 
-namespace android {
+#if defined(__cplusplus)
+#define	__BEGIN_DECLS		extern "C" {
+#define	__END_DECLS		}
+#endif
 
 struct field_t {
 	jfieldID context;
@@ -130,7 +133,9 @@ jboolean setSegment(JNIEnv* env, STSSegment* src, jobject target)
 	return true;
 }
 
-__BEGIN_DECLS
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 /*
  * Class:     android_pplive_media_subtitle_SimpleSubTitleParser
@@ -300,6 +305,8 @@ Java_android_pplive_media_subtitle_SimpleSubTitleParser_native_1next(JNIEnv *env
 	return false;
 }
 
-__END_DECLS
-
+#ifdef __cplusplus
 }
+#endif
+
+

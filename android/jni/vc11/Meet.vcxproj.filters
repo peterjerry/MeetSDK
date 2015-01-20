@@ -35,19 +35,16 @@
     <Text Include="ReadMe.txt" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\meet\android_media_MediaPlayer.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="..\meet\android_ppmedia_subtitle_SimpleSubTitleParser.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="..\meet\JNIHelp.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\meet\PPBox_Util.cpp">
+    <ClCompile Include="..\meet\pplog.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\meet\pplog.cpp">
+    <ClCompile Include="..\meet\SimpleSubTitleParser.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\meet\FFMediaPlayer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -56,6 +53,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\meet\pplog.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\engine2\platform\autolock.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

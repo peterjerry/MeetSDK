@@ -116,26 +116,12 @@ public class MediaPlayer implements MediaPlayerInterface {
 	
 	public MediaPlayer(DecodeMode mode) {
 		mDecodeMode = mode;
-		
-		setupLooper();
 	}
 	
 	public DecodeMode getDecodeMode() {
 		return mDecodeMode;
 	}
 	
-	private void setupLooper() {
-		Looper looper;
-		
-		if ((looper = Looper.myLooper()) != null) {
-			mEventHandler = new EventHandler(this, looper);
-		} else if ((looper = Looper.getMainLooper()) != null) {
-			mEventHandler = new EventHandler(this, looper);
-		} else {
-			mEventHandler = null;
-		}
-	}
-
 	@Override
 	public int flags() throws IllegalStateException {
 		if (mPlayer != null) {
@@ -1016,74 +1002,12 @@ public class MediaPlayer implements MediaPlayerInterface {
 	public static final int MEDIA_INFO_TEST_DECODE_FPS		= 903;
 	public static final int MEDIA_INFO_TEST_RENDER_FPS		= 904;
 	
-	public static final int MEDIA_INFO_TEST_RENDER_FRAME	= 905;
-	public static final int MEDIA_INFO_TEST_LATENCY_MSEC	= 906;
+	public static final int MEDIA_INFO_TEST_RENDER_FRAME		= 905;
+	public static final int MEDIA_INFO_TEST_LATENCY_MSEC		= 906;
 	public static final int MEDIA_INFO_TEST_DROP_FRAME		= 907;
 	public static final int MEDIA_INFO_TEST_IO_BITRATE		= 921;
-	public static final int MEDIA_INFO_TEST_MEDIA_BITRATE	= 922;
+	public static final int MEDIA_INFO_TEST_MEDIA_BITRATE		= 922;
 
 	public static final int MEDIA_INFO_TEST_PLAYER_TYPE		= 911;
 	
-	protected EventHandler mEventHandler;
-	
-	protected class EventHandler extends Handler {
-		private MediaPlayer mMediaPlayer;
-		
-		public EventHandler(MediaPlayer mp, Looper looper) {
-			super(looper);
-			mMediaPlayer = mp;
-		}
-		
-		@Override
-		public void handleMessage(Message msg) {
-			switch (msg.what) {
-				case MEDIA_PREPARED: {
-					if (mOnPreparedListener != null) {
-						mOnPreparedListener.onPrepared(mMediaPlayer);
-					}
-					return;
-				}
-				case MEDIA_PLAYBACK_COMPLETE: {
-					if (mOnCompletionListener != null) {
-						mOnCompletionListener.onCompletion(mMediaPlayer);
-					}
-					return;
-				}
-				case MEDIA_BUFFERING_UPDATE: {
-					if (mOnBufferingUpdateListener != null) {
-						mOnBufferingUpdateListener.onBufferingUpdate(mMediaPlayer, msg.arg1 /* percent */);
-					}
-					return;
-				}
-				case MEDIA_SEEK_COMPLETE: {
-					if (mOnSeekCompleteListener != null) {
-						mOnSeekCompleteListener.onSeekComplete(mMediaPlayer);
-					}
-					return;
-				}
-				case MEDIA_SET_VIDEO_SIZE: {
-					if (mOnVideoSizeChangedListener != null) {
-						mOnVideoSizeChangedListener.onVideoSizeChanged(mMediaPlayer, msg.arg1 /* width */, msg.arg2 /* height */);
-					}
-					return;
-				}
-				case MEDIA_ERROR: {
-					if (mOnErrorListener != null) {
-						mOnErrorListener.onError(mMediaPlayer, msg.what, msg.arg1 /* extra */);
-					}
-					return;
-				}
-				case MEDIA_INFO: {
-					if (mOnInfoListener != null) {
-						mOnInfoListener.onInfo(mMediaPlayer, msg.arg1, msg.arg2);
-					}
-					return;
-				}
-				default: {
-				    LogUtils.error("Unknown message type " + msg.what);
-					return;
-				}
-			}
-		}
-	}
 }

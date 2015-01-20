@@ -11,6 +11,8 @@ import android.net.Uri;
 import android.view.Surface;
 import android.view.SurfaceHolder;
 import android.graphics.Bitmap;
+import android.os.Handler;
+import android.os.Looper;
 import android.os.Message;
 import android.os.Parcel;
 import android.os.PowerManager;
@@ -30,6 +32,16 @@ public class FFMediaPlayer implements MediaPlayerInterface {
 
 	private int mNativeContext; // accessed by native methods
 	private int mListenerContext; // accessed by native methods
+	private static MediaPlayer mPlayer;
+	
+	private MediaPlayer.OnBufferingUpdateListener 	mOnBufferingUpdateListener 	= null;
+	private MediaPlayer.OnCompletionListener 		mOnCompletionListener 		= null;
+	private MediaPlayer.OnErrorListener 			mOnErrorListener 			= null;
+	private MediaPlayer.OnInfoListener 				mOnInfoListener 			= null;
+	private MediaPlayer.OnPreparedListener 			mOnPreparedListener 		= null;
+	private MediaPlayer.OnSeekCompleteListener 		mOnSeekCompleteListener 	= null;
+	private MediaPlayer.OnVideoSizeChangedListener mOnVideoSizeChangedListener = null;
+	private MediaPlayer.OnTimedTextListener			mOnTimedTextListener		= null;
 	
 	private static String libPath = "";
 	private static boolean libLoaded = false;
@@ -78,6 +90,7 @@ public class FFMediaPlayer implements MediaPlayerInterface {
 	
 	public FFMediaPlayer(MediaPlayer mp) {
 		native_setup(new WeakReference<MediaPlayer>(mp), true); // always true to use ffplay
+		mPlayer = mp;
 	}
 	
 	// capability
@@ -157,8 +170,8 @@ public class FFMediaPlayer implements MediaPlayerInterface {
 			return;
 		}
 
-		if (mp.mEventHandler != null) {			
-			Message msg = mp.mEventHandler.obtainMessage(what, arg1, arg2, obj);
+		if (mEventHandler != null) {			
+			Message msg = mEventHandler.obtainMessage(what, arg1, arg2, obj);
 			msg.sendToTarget();
 		}
 
@@ -237,12 +250,16 @@ public class FFMediaPlayer implements MediaPlayerInterface {
 	@Override
 	public void prepare() throws IOException, IllegalStateException {
 		// TODO Auto-generated method stub
+		createPlayerCallbackHandler();
+		
 		_prepare();
 	}
 
 	@Override
 	public void prepareAsync() throws IllegalStateException {
 		// TODO Auto-generated method stub
+		createPlayerCallbackHandler();
+		
 		_prepareAsync();
 	}
 
@@ -356,58 +373,117 @@ public class FFMediaPlayer implements MediaPlayerInterface {
 	
 	@Override
 	public void setOnBufferingUpdateListener(OnBufferingUpdateListener listener) {
-		// TODO Auto-generated method stub
-		
+		mOnBufferingUpdateListener = listener;
 	}
 
 	@Override
 	public void setOnCompletionListener(OnCompletionListener listener) {
-		// TODO Auto-generated method stub
-		
+		mOnCompletionListener = listener;
 	}
 
 	@Override
 	public void setOnErrorListener(OnErrorListener listener) {
-		// TODO Auto-generated method stub
-		
+		mOnErrorListener = listener;
 	}
 
 	@Override
 	public void setOnInfoListener(OnInfoListener listener) {
-		// TODO Auto-generated method stub
-		
+		mOnInfoListener = listener;
 	}
 
 	@Override
 	public void setOnPreparedListener(OnPreparedListener listener) {
-		// TODO Auto-generated method stub
-		
+		mOnPreparedListener = listener;
 	}
 
 	@Override
 	public void setOnSeekCompleteListener(OnSeekCompleteListener listener) {
-		// TODO Auto-generated method stub
-		
+		mOnSeekCompleteListener = listener;
 	}
 
 	@Override
-	public void setOnVideoSizeChangedListener(
-			OnVideoSizeChangedListener listener) {
-		// TODO Auto-generated method stub
-		
+	public void setOnVideoSizeChangedListener(OnVideoSizeChangedListener listener) {
+		mOnVideoSizeChangedListener = listener;
 	}
 
 	@Override
 	public void setOnTimedTextListener(OnTimedTextListener listener) {
-		// TODO Auto-generated method stub
-		
+		mOnTimedTextListener = listener;
 	}
 	
 	@Override
 	public DecodeMode getDecodeMode() {
 		return DecodeMode.SW;
 	}
+	
+	private static Handler mEventHandler;
+	
+	private void createPlayerCallbackHandler() {
 
+		if (mEventHandler != null) {
+			mEventHandler = null;
+		}
+
+		Looper looper = Looper.myLooper();
+
+		if (looper == null) {
+			looper = Looper.getMainLooper();
+		}
+
+		mEventHandler = new Handler(looper) {
+			@Override
+			public void handleMessage(Message msg) {
+				switch (msg.what) {
+				case MediaPlayer.MEDIA_PREPARED:
+					if (mOnPreparedListener != null) {
+						mOnPreparedListener.onPrepared(mPlayer);
+					}
+					return;
+					
+				case MediaPlayer.MEDIA_PLAYBACK_COMPLETE:
+					if (mOnCompletionListener != null) {
+						mOnCompletionListener.onCompletion(mPlayer);
+					}
+					return;
+					
+				case MediaPlayer.MEDIA_BUFFERING_UPDATE:
+					if (mOnBufferingUpdateListener != null) {
+						mOnBufferingUpdateListener.onBufferingUpdate(mPlayer, msg.arg1 /* percent */);
+					}
+					return;
+
+				case MediaPlayer.MEDIA_SEEK_COMPLETE:
+					if (mOnSeekCompleteListener != null) {
+						mOnSeekCompleteListener.onSeekComplete(mPlayer);
+					}
+					return;
+
+				case MediaPlayer.MEDIA_SET_VIDEO_SIZE:
+					if (mOnVideoSizeChangedListener != null) {
+						mOnVideoSizeChangedListener.onVideoSizeChanged(mPlayer, msg.arg1 /* width */, msg.arg2 /* height */);
+					}
+					return;
+
+				case MediaPlayer.MEDIA_ERROR:
+					if (mOnErrorListener != null) {
+						mOnErrorListener.onError(mPlayer, msg.arg1, msg.arg2);
+					}
+					return;
+
+				case MediaPlayer.MEDIA_INFO:
+					if (mOnInfoListener != null) {
+						mOnInfoListener.onInfo(mPlayer, msg.arg1, msg.arg2);
+					}
+					return;
+
+				default:
+				    LogUtils.error("Unknown message type " + msg.what);
+					return;
+				} // end of switch
+			} // end of handleMessage()
+		};
+	}
+		
 	private native void _setDataSource(String path) throws IOException,
 			IllegalArgumentException, IllegalStateException;
 			
