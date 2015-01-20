@@ -13,8 +13,6 @@
 #include "packetqueue.h"
 #include "ffstream.h"
 
-//using namespace android;
-
 struct AVStream;
 struct AVFrame;
 class AudioRender;

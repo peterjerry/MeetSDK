@@ -6,8 +6,7 @@
 #include <jni.h>
 #include <android/log.h>
 
-
-#include "subtitle/subtitle.h"
+#include "subtitle.h"
 
 #define MAX_SIZE 1024
 

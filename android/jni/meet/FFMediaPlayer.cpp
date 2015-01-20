@@ -1,31 +1,23 @@
 /*
- * Copyright (C) 2012 Roger Shen  rogershen@pptv.com
+ * Copyright (C) 2015 Michael ma guoliangma@pptv.com
  *
  */
 
-#include <sys/system_properties.h>
-
 #include <stdio.h>
-#include <assert.h>
-#include <limits.h>
-#include <unistd.h>
-#include <fcntl.h>
+#include <stdlib.h> // for atoi
+#include <fcntl.h> // for access R_OK
 #include <jni.h>
-#include <dlfcn.h>
+#include <dlfcn.h> // for dlopen ...
+#include <cpu-features.h>
+#include <sys/system_properties.h> // for __system_property_get
 
 #define LOG_TAG "JNI-MediaPlayer"
 #include "pplog.h"
-
-//#include "libcutils/cpufeatures/cpu-features.h"
-#include <cpu-features.h>
-
-#include "include-pp/utils/threads.h"
-#include "include-pp/nativehelper/JNIHelp.h"
-#include "include-pp/PPBox_Util.h"
-
+#include "platform/autolock.h"
 #include "platform/platforminfo.h"
+#include "subtitle.h"
+#include "player/player.h"
 
-//#define OS_ANDROID
 #define USE_NDK_SURFACE_REF
 
 #define COMPATIBILITY_HARDWARE_DECODE	1
@@ -37,15 +29,8 @@
 #define LEVEL_SOFTWARE_HD2				4 // LEVEL_SOFTWARE_CHAOQING
 #define LEVEL_SOFTWARE_BD				5 // LEVEL_SOFTWARE_LANGUANG
 
-namespace android {
-#include "subtitle/subtitle.h"
-#include "player/player.h"
-}
-// ----------------------------------------------------------------------------
-
-using namespace android;
-
-// ----------------------------------------------------------------------------
+#define LOG_FATAL_IF(cond, ...) if (cond) { PPLOGE(__VA_ARGS__); return -1;}
+#define NELEM(x) ((int) (sizeof(x) / sizeof((x)[0])))
 
 struct fields_t {
 	jfieldID    context;
@@ -59,30 +44,27 @@ struct fields_t {
 
 static fields_t fields;
 
-static Mutex sLock;
+static pthread_mutex_t sLock;
 
 static bool sInited = false;
 
-namespace android
-{
+class Surface;
 
-	class Surface;
+JavaVM *gs_jvm = NULL;
 
-	JavaVM *gs_jvm = NULL;
+PlatformInfo* gPlatformInfo = NULL;
 
-	PlatformInfo* gPlatformInfo = NULL;
+static void* player_handle_software = NULL;
+static void* player_handle_hardware = NULL;
 
-	bool START_P2P = false;
+// new
+typedef IPlayer* (*GET_PLAYER_FUN) (void*);
 
-	static void* player_handle_software = NULL;
-	static void* player_handle_hardware = NULL;
+GET_PLAYER_FUN getPlayerFun = NULL; // function to NEW player instance
 
-	// new
-	typedef IPlayer* (*GET_PLAYER_FUN) (void*);
+static int jniThrowException(JNIEnv* env, const char* className, const char* msg);
 
-	GET_PLAYER_FUN getPlayerFun = NULL; // function to NEW player instance
-
-	// util method
+// util method
 #define vstrcat(first, ...) (vstrcat_impl(first, __VA_ARGS__, (char*)NULL))
 
 static
@@ -124,7 +106,7 @@ static char* jstr2cstr(JNIEnv* env, const jstring jstr)
 		const char* tmp = env->GetStringUTFChars(jstr, NULL);
 		const size_t len = strlen(tmp) + 1;
 		cstr = (char*)malloc(len);
-		bzero(cstr, len);
+		memset(cstr, 0, len);
 		snprintf(cstr, len, "%s", tmp);
 		env->ReleaseStringUTFChars(jstr, tmp);
 	}
@@ -236,13 +218,10 @@ int getParcelFileDescriptorFDPP(JNIEnv* env, jobject object)
 	jclass clazz = env->FindClass("java/io/FileDescriptor");
 	LOG_FATAL_IF(clazz == NULL, "Unable to find class java.io.FileDescriptor");
 	jfieldID descriptor = env->GetFieldID(clazz, "descriptor", "I");
-	LOG_FATAL_IF(descriptor == NULL,
-			"Unable to find descriptor field in java.io.FileDescriptor");
+	LOG_FATAL_IF(descriptor == NULL, "Unable to find descriptor field in java.io.FileDescriptor");
 
 	return env->GetIntField(object, descriptor);
 }
-
-}// end of namespace android
 
 // ----------------------------------------------------------------------------
 // ref-counted object for callbacks
@@ -302,14 +281,14 @@ static Surface* get_surface(JNIEnv* env, jobject clazz)
 
 static IPlayer* getMediaPlayer(JNIEnv* env, jobject thiz)
 {
-	Mutex::Autolock l(sLock);
+	AutoLock l(&sLock);
 	IPlayer* p = (IPlayer*)env->GetIntField(thiz, fields.context);
 	return p;
 }
 
 static IPlayer* setMediaPlayer(JNIEnv* env, jobject thiz, IPlayer* player)
 {
-	Mutex::Autolock l(sLock);
+	AutoLock l(&sLock);
 	IPlayer* old = (IPlayer*)env->GetIntField(thiz, fields.context);
 	env->SetIntField(thiz, fields.context, (int)player);
 	return old;
@@ -399,23 +378,22 @@ void android_media_MediaPlayer_setDataSourceFD(JNIEnv *env, jobject thiz, jobjec
 		jniThrowException(env, "java/lang/IllegalArgumentException", NULL);
 		return;
 	}
-	//int fd = getParcelFileDescriptorFD(env, fileDescriptor);
 	int fd = getParcelFileDescriptorFDPP(env, fileDescriptor);
-	PPLOGV("setDataSourceFD: fd %d", fd);
+	PPLOGI("setDataSourceFD: fd %d", fd);
 	process_media_player_call( env, thiz, mp->setDataSource(fd, offset, length), "java/io/IOException", "setDataSourceFD failed." );
 }
 
 static void setVideoSurface(IPlayer* mp, JNIEnv *env, jobject thiz, jobject surface)
 {
-	LOGI("setVideoSurface()");
+	PPLOGI("setVideoSurface()");
 #ifdef USE_NDK_SURFACE_REF
-	LOGI("setVideoSurface: use java side surface");
+	PPLOGI("setVideoSurface: use java side surface");
 	if (NULL != surface) {
 		gPlatformInfo->javaSurface = env->NewGlobalRef(surface);
 		mp->setVideoSurface((void*)gPlatformInfo->javaSurface);
 	}
 #else
-	LOGI("setVideoSurface: use member variable surface");
+	PPLOGI("setVideoSurface: use member variable surface");
 	jobject surf = env->GetObjectField(thiz, fields.surface);
 
 	if (surf != NULL) {
@@ -426,7 +404,7 @@ static void setVideoSurface(IPlayer* mp, JNIEnv *env, jobject thiz, jobject surf
 		mp->setVideoSurface((void*)native_surface);
 	}
 	else {
-		LOGE("setVideoSurface is NULL");
+		PPLOGE("setVideoSurface is NULL");
 	}
 #endif
 }
@@ -434,7 +412,7 @@ static void setVideoSurface(IPlayer* mp, JNIEnv *env, jobject thiz, jobject surf
 static
 void android_media_MediaPlayer_setVideoSurface(JNIEnv *env, jobject thiz, jobject surface)
 {
-	LOGI("android_media_MediaPlayer_setVideoSurface()");
+	PPLOGI("android_media_MediaPlayer_setVideoSurface()");
 	IPlayer* mp = getMediaPlayer(env, thiz);
 	if (mp == NULL ) {
 		jniThrowException(env, "java/lang/IllegalStateException", NULL);
@@ -812,6 +790,8 @@ char* getCStringFromJavaStaticStringField(JNIEnv* env, const char* clazz_name, c
 static
 void android_media_MediaPlayer_native_init(JNIEnv *env, jobject thiz, jboolean startP2PEngine)
 {
+	(void)startP2PEngine;
+
 	PPLOGI("native_init");
 
 	if (sInited)
@@ -863,31 +843,6 @@ void android_media_MediaPlayer_native_init(JNIEnv *env, jobject thiz, jboolean s
 		PPLOGI("APP_PATH: %s", gPlatformInfo->app_path);
 		PPLOGI("LIB_PATH: %s", gPlatformInfo->lib_path);
 		PPLOGI("PPBOX_LIB_NAME: %s", gPlatformInfo->ppbox_lib_name);
-		PPLOGI("START_P2P: %d", START_P2P);
-	}
-
-	START_P2P = startP2PEngine;
-
-	if(START_P2P)
-	{
-		char envSetting[STRLEN] = {0};
-		//strncpy(envSetting, "TMPDIR=", 7);
-		if(strlen(gPlatformInfo->app_path) > 0)
-		{
-			snprintf(envSetting, STRLEN, "TMPDIR=%s", gPlatformInfo->app_path);
-
-			putenv(envSetting);
-
-			char* p = NULL;
-			if(p = getenv("TMPDIR"))
-			{
-				PPLOGI("TMPDIR: %s", p);
-			}
-			else
-			{
-				PPLOGE("cannot get TMPDIR");
-			}
-		}
 	}
 
 	jclass clazz = env->FindClass("android/pplive/media/player/FFMediaPlayer");
@@ -1163,274 +1118,9 @@ android_media_MediaPlayer_native_suspend_resume(
 	return isSuspend ? mp->suspend() : mp->resume();
 }
 
-// ----------------------------------------------------------------------------
-
-enum DeviceCompability
-{
-	UNKNOWN,
-	SUPPORTED,
-	UNSUPPORTED,
-};
-
-class CompatibilityTestHelper: public MediaPlayerListener
-{
-	public:
-		CompatibilityTestHelper()
-		{
-			PPLOGD("CompatibilityTestHelper constructor");
-			mVideoTestComplete = false;
-			mAudioTestComplete = false;
-			mIsVideoCompatible = false;
-			mIsAudioCompatible = false;
-		}
-
-		~CompatibilityTestHelper()
-		{
-			PPLOGD("CompatibilityTestHelper destructor");
-		}
-
-		void notify(int msg, int ext1, int ext2)
-		{
-			switch (msg) {
-				case MEDIA_COMPATIBILITY_TEST_COMPLETE:
-					if (ext1 == 0) //video
-					{
-						//Awesomeplayer thread runs here.
-						PPLOGI("Awesomeplayer test complete result: %d", ext2);
-						if(ext2 == true)
-						{
-							mIsVideoCompatible = true;
-						}
-						mVideoTestComplete = true;
-						Mutex::Autolock autoLock(mLock);
-						mConditionVideoTestComplete.signal();
-					}
-					else if(ext1 == 1) //audio
-					{
-						//Audioplayer thread runs here.
-						PPLOGI("Audioplayer test complete result: %d", ext2);
-						if(ext2 == true)
-						{
-							mIsAudioCompatible = true;
-						}
-						mAudioTestComplete = true;
-						Mutex::Autolock autoLock(mLock);
-						mConditionAudioTestComplete.signal();
-					}
-					else
-					{
-						//do nothing.
-					}
-				default:
-					return;
-			}
-		}
-
-		bool waitComplete()
-		{
-			//UI thread blocks here.
-			int timePassed = 0; //in micro sec.
-			int timeOut = 5000; //10 sec. generally test costs less than 1sec.
-			while(!mVideoTestComplete && timePassed < timeOut)
-			{
-				Mutex::Autolock autoLock(mLock);
-				mConditionVideoTestComplete.waitRelative(mLock, 1000000000);//1sec
-				timePassed += 1000;
-			}
-
-			while(!mAudioTestComplete && timePassed < timeOut)
-			{
-				Mutex::Autolock autoLock(mLock);
-				mConditionAudioTestComplete.waitRelative(mLock, 1000000000);//1sec
-				timePassed += 1000;
-			}
-
-			if(mIsVideoCompatible && mIsAudioCompatible)
-				return true;
-			else
-				return false;
-		}
-
-		DeviceCompability ReadDeviceCompatibilityResult(bool run)
-		{
-			//return SUPPORTED;
-
-			if(run)
-			{
-				//set device to be incompatible until device is tested as success, then update it.
-				//SaveDeviceCompatibilityResult(false);
-				return UNKNOWN;
-			}
-			else
-			{
-				FILE *pFile;
-				const char fileName[] = "player.data";
-
-				char szData[100] = {0};
-				bzero(szData, 100);
-				char* filePath = vstrcat(gPlatformInfo->app_path, fileName);
-
-				PPLOGD("open file %s", filePath);
-
-				pFile = fopen(filePath, "r");
-				free(filePath);
-
-				if(pFile == NULL)
-				{
-					PPLOGE("open file %s failed", filePath);
-					return UNSUPPORTED;
-				}
-				PPLOGD("open file %s success", filePath);
-
-				fread(szData, 1, 100, pFile);
-
-				// Close file
-				fclose(pFile);
-
-				if(!strncmp(szData, "DeviceCompatibilityResult:1", 27))
-				{
-					return SUPPORTED;
-				}
-				else if(!strncmp(szData, "DeviceCompatibilityResult:0", 27))
-				{
-					return UNSUPPORTED;
-				}
-				else
-				{
-					return UNSUPPORTED;
-				}
-			}
-
-		}
-
-		void SaveDeviceCompatibilityResult(bool isDeviceCompatible)
-		{
-			//todo:
-
-			FILE *pFile;
-			const char fileName[] = "player.data";
-			char* filePath = vstrcat(gPlatformInfo->app_path, fileName);
-
-			PPLOGD("open file %s", filePath);
-
-			pFile=fopen(filePath, "w");
-			if(pFile==NULL)
-			{
-				PPLOGE("open file %s failed", filePath);
-				return;
-			}
-
-			PPLOGD("open file %s success", filePath);
-
-			char szData[100] = {0};
-			bzero(szData, 100);
-
-			PPLOGD("SaveDeviceCompatibilityResult:%d", isDeviceCompatible);
-
-			if(isDeviceCompatible)
-			{
-				sprintf(szData, "DeviceCompatibilityResult:1");
-			}
-			else
-			{
-				sprintf(szData, "DeviceCompatibilityResult:0");
-			}
-
-			fwrite(szData, 1, 27, pFile);
-
-			// Close file
-			fclose(pFile);
-		}
-
-	private:
-		bool mVideoTestComplete;
-		bool mAudioTestComplete;
-		bool mIsVideoCompatible;
-		bool mIsAudioCompatible;
-
-		Mutex mLock;
-		Condition mConditionVideoTestComplete;
-		Condition mConditionAudioTestComplete;
-};
-
 static bool native_checkCompatibility_hardware(Surface* native_surface)
 {
-	if (native_surface == NULL)
-	{
-		PPLOGE("Surface is NULL for test");
-		return false;
-	}
-
-	// TODO: need to support other version
-	if(strncmp(gPlatformInfo->release_version, "2.3", strlen("2.3")) != 0 &&
-			strncmp(gPlatformInfo->release_version, "2.2", strlen("2.2")) != 0 &&
-			strncmp(gPlatformInfo->release_version, "4.0", strlen("4.0")) != 0  )
-	{
-		PPLOGE("Incompatible android version:%s", gPlatformInfo->release_version);
-		return false;
-	}
-
-	//IPlayer takes responsibility to release test helper.
-	CompatibilityTestHelper* helper = new CompatibilityTestHelper();
-
-	//init
-	if(!loadPlayerLib(false)) return false;
-
-	IPlayer* mp = getPlayerFun((void*)gPlatformInfo);
-
-	if(mp == NULL) return false;
-
-	//check audio/video decoder
-	mp->setVideoSurface((void*)native_surface);
-
-	char* samplePath = vstrcat(gPlatformInfo->app_path, "lib/libsample.so");
-	PPLOGI("Load lib %s", samplePath);
-	mp->setDataSource(samplePath);
-
-	free(samplePath);
-
-	mp->setListener(helper);
-	if(mp->prepare() != OK)
-	{
-		PPLOGE("checkCompatibility prepare failed");
-		goto ERROR;
-	}
-	//this could be blocked, the caller should check its timeout.
-	if(mp->startCompatibilityTest() != OK)
-	{
-		PPLOGE("checkCompatibility startCompatibilityTest failed");
-		goto ERROR;
-	}
-
-	//wait for testing result in limited time.
-	if(!(helper->waitComplete()))
-	{
-		PPLOGE("checkCompatibility waitComplete failed");
-		goto ERROR;
-	}
-
-	//uninit, mp will be destoryed automatically.
-	mp->stopCompatibilityTest();
-
-	//save test result
-	//helper->SaveDeviceCompatibilityResult(true);
-
-	//release mediaplayer
-	mp->stop();
-	PPLOGD("Delete IPlayer");
-	delete mp;
-
-	return true;//OK
-
-ERROR:
-
-	PPLOGD("Delete IPlayer");
-	delete mp;
-	//mp->stopCompatibilityTest();
-	unloadPlayerLib(&player_handle_hardware);
-	//save test result
-	//helper->SaveDeviceCompatibilityResult(false);
-	return false;
+	return true;
 }
 
 static bool native_checkCompatibility_software()
@@ -1904,6 +1594,45 @@ static int register_android_media_MediaPlayer(JNIEnv *env)
 
 }
 
+/*
+ * Throw an exception with the specified class and an optional message.
+ *
+ * If an exception is currently pending, we log a warning message and
+ * clear it.
+ *
+ * Returns 0 if the specified exception was successfully thrown.  (Some
+ * sort of exception will always be pending when this returns.)
+ */
+static int jniThrowException(JNIEnv* env, const char* className, const char* msg)
+{
+    jclass exceptionClass;
+
+    if (env->ExceptionCheck()) {
+        /* TODO: consider creating the new exception with this as "cause" */
+        char buf[256];
+
+        jthrowable exception = env->ExceptionOccurred();
+        env->ExceptionClear();
+    }
+
+    exceptionClass = env->FindClass(className);
+    if (exceptionClass == NULL) {
+        LOGE("Unable to find exception class %s\n", className);
+        /* ClassNotFoundException now pending */
+        return -1;
+    }
+
+    int result = 0;
+    if (env->ThrowNew(exceptionClass, msg) != JNI_OK) {
+        LOGE("Failed throwing '%s' '%s'\n", className, msg);
+        /* an exception, most likely OOM, will now be pending */
+        result = -1;
+    }
+
+    env->DeleteLocalRef(exceptionClass);
+    return result;
+}
+
 jint JNI_OnLoad(JavaVM* vm, void* reserved)
 {
 	PPLOGI("JNI_OnLoad");
@@ -1931,6 +1660,8 @@ jint JNI_OnLoad(JavaVM* vm, void* reserved)
 	gs_jvm = vm;
 
     pplog_init();
+	
+	pthread_mutex_init(&sLock, NULL);
 
 	/* success -- return valid version number */
 	result = JNI_VERSION_1_4;
@@ -1954,6 +1685,8 @@ void JNI_OnUnload(JavaVM* vm, void* reserved)
 	}
 
 	pplog_close();
+
+	pthread_mutex_destroy(&sLock);
 }
 
 

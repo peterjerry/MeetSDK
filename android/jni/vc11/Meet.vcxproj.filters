@@ -16,9 +16,6 @@
     <Filter Include="res">
       <UniqueIdentifier>{8e62eb99-6807-40a5-9e37-fbac862bd5d5}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Source Files\jni">
-      <UniqueIdentifier>{f69fd3e9-4e13-48df-90ca-604f08b90c58}</UniqueIdentifier>
-    </Filter>
   </ItemGroup>
   <ItemGroup>
     <Xml Include="..\res\layout\activity_init.xml">
@@ -38,30 +35,27 @@
     <Text Include="ReadMe.txt" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\meet\jni\android_media_MediaPlayer.cpp">
-      <Filter>Source Files\jni</Filter>
+    <ClCompile Include="..\meet\android_media_MediaPlayer.cpp">
+      <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\meet\jni\android_ppmedia_PPMediaExtractor.cpp">
-      <Filter>Source Files\jni</Filter>
+    <ClCompile Include="..\meet\android_ppmedia_subtitle_SimpleSubTitleParser.cpp">
+      <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\meet\jni\android_ppmedia_subtitle_SimpleSubTitleParser.cpp">
-      <Filter>Source Files\jni</Filter>
+    <ClCompile Include="..\meet\JNIHelp.c">
+      <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\meet\jni\JNIHelp.c">
-      <Filter>Source Files\jni</Filter>
+    <ClCompile Include="..\meet\PPBox_Util.cpp">
+      <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\meet\jni\PPBox_Util.cpp">
-      <Filter>Source Files\jni</Filter>
-    </ClCompile>
-    <ClCompile Include="..\meet\jni\pplog.cpp">
-      <Filter>Source Files\jni</Filter>
+    <ClCompile Include="..\meet\pplog.cpp">
+      <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\meet\jni\pplivelog.h">
+    <ClInclude Include="..\meet\pplivelog.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\meet\jni\pplog.h">
+    <ClInclude Include="..\meet\pplog.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

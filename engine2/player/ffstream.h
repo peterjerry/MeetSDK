@@ -30,8 +30,6 @@
 /* calc video realtime fps and bps time unit */
 #define MAX_CALC_SEC 3
 
-//using namespace android;
-
 struct AVFormatContext;
 struct AVStream;
 struct AVSubtitle;

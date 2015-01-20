@@ -5,12 +5,14 @@ BUILD_NATIVEWINDOOW		:= 1
 #BUILD_RENDER_RGB565		:= 1
 
 ifeq ($(TARGET_ARCH_ABI),armeabi)
-FFMPEG_PATH		:= ../../../foundation/output/android/neon
+FFMPEG_PATH		:= ../../../../foundation/output/android/neon
 else
-FFMPEG_PATH		:= ../../../foundation/output/android/x86
+FFMPEG_PATH		:= ../../../../foundation/output/android/x86
 endif
+
 PLAYERPATH		:= ../../../player
 PLATFORMPATH	:= ../../../platform
+SUBTITLEPATH	:= ../../../../subtitle2/output/android
 
 include $(CLEAR_VARS)
 LOCAL_MODULE 	:= ffmpeg
@@ -24,7 +26,7 @@ LOCAL_SRC_FILES := $(FFMPEG_PATH)/lib/liblenthevcdec.so
 
 include $(CLEAR_VARS)
 LOCAL_MODULE			:= player_neon
-LOCAL_C_INCLUDES		:= $(LOCAL_PATH)/$(FFMPEG_PATH)/include \
+LOCAL_C_INCLUDES		:= $(LOCAL_PATH)/$(FFMPEG_PATH)/include $(LOCAL_PATH)/$(SUBTITLEPATH)/include \
 	$(LOCAL_PATH)/$(PLATFORMPATH) $(LOCAL_PATH)/$(PLATFORMPATH)/yuv2rgb $(LOCAL_PATH)/$(PLAYERPATH) 
 LOCAL_CFLAGS    		:= -Wall -DNDK_BUILD=1 -DUSE_NDK_SURFACE_REF -DUSE_AV_FILTER -DTEST_PERFORMANCE -DTEST_PERFORMANCE_BITRATE #-DNO_AUDIO_PLAY 
 MY_SRC_PLAYER_FILES 	:= ffstream.cpp audioplayer.cpp audiorender.cpp ffplayer.cpp ffrender.cpp filesource.cpp

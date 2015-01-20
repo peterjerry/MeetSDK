@@ -145,8 +145,9 @@ public class ClipListActivity extends Activity implements
 	private SimpleSubTitleParser mSubtitleParser;
 	private TextView mSubtitleTextView;
 	private String mSubtitleText;
+	private Thread mSubtitleThread;
 	private boolean mSubtitleSeeking = false;
-	private boolean mSubtitleClosed = false;
+	private boolean mIsSubtitleUsed;
 	
 	private List mHttpFileList;
 	private List mHttpFolderList;
@@ -893,20 +894,17 @@ public class ClipListActivity extends Activity implements
 		
 		if (mPlayer != null) {
 			mStoped = true;
-			if (mSubtitleParser != null) {
-				// waiting for subtitle is closed
-				while (true) {
-					try {
-						Thread.sleep(1000);
-					} catch (InterruptedException e) {
-						// TODO Auto-generated catch block
-						e.printStackTrace();
-					}
-					
-					if (mSubtitleClosed == true)
-						break;
+			if (mIsSubtitleUsed) {
+				mSubtitleThread.interrupt();
+				
+				try {
+					mSubtitleThread.join();
+				} catch (InterruptedException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
 				}
 			}
+			
 			mPlayer.stop();
 			mPlayer.release();
 			mPlayer = null;
@@ -925,6 +923,13 @@ public class ClipListActivity extends Activity implements
 			start_fullscreen_play(uri, mPlayerImpl);
 		}
 		else {
+			MediaInfo info;
+			File file = new File(path);
+			info = MeetSDK.getMediaDetailInfo(file);
+			if (info.getAudioChannels() > 1)
+				btnSelectAudioTrack.setVisibility(View.VISIBLE);
+			else
+				btnSelectAudioTrack.setVisibility(View.INVISIBLE);
 			// force refresh a new surface
 			mPreview.setVisibility(View.GONE);
 			mPreview.setVisibility(View.VISIBLE);
@@ -1382,7 +1387,6 @@ public class ClipListActivity extends Activity implements
 				String string_res;
 
 				if (info != null) {
-					Log.e(TAG, "aaaaaa: " + info.toString());
 					string_res = String.format("%dx%d %s", 
 							info.getWidth(), info.getHeight(), msecToString(info.getDuration()));
 					Log.d(TAG, "Java: media info: " + string_res);
@@ -1952,8 +1956,14 @@ public class ClipListActivity extends Activity implements
 		Log.i(TAG, String.format("Java: subtitle onPrepared() %s, %s", success?"done":"failed", msg));
 		
 		if (success) {
-			UpdateSubtitleThread th = new UpdateSubtitleThread();
-			th.start();
+			mSubtitleThread = new Thread(new Runnable(){
+				@Override
+				public void run() {
+					display_subtitle_thr();
+				}
+			});
+			mSubtitleThread.start();
+			mIsSubtitleUsed = true;
 			
 			mSubtitleTextView.setVisibility(View.VISIBLE);
 		}
@@ -1962,75 +1972,72 @@ public class ClipListActivity extends Activity implements
 		}
 	}
 	
-	private class UpdateSubtitleThread extends Thread
-    {
-        @Override
-        public void run() {
-            Log.i(TAG, "Java: subtitle thread worked...");
+	private void display_subtitle_thr() {
+        Log.i(TAG, "Java: subtitle thread worked...");
 
-            final int SLEEP_MSEC = 100;
-            SubTitleSegment seg;
-            long from_msec, to_msec;
-            long sleep_msec, hold_msec;
-            
-            mSubtitleClosed = false;
-            
-            while(true) {
-                if (!mPlayer.isPlaying() || mSubtitleSeeking) {
-                	try {
- 						Thread.sleep(SLEEP_MSEC);
- 					} catch (InterruptedException e) {
- 						// TODO Auto-generated catch block
- 						e.printStackTrace();
- 					}
-                	
-                	continue;
-                }
+        final int SLEEP_MSEC = 100;
+        SubTitleSegment seg;
+        long from_msec, to_msec;
+        long sleep_msec, hold_msec;
+        
+        while (true) {
+            if (!mPlayer.isPlaying() || mSubtitleSeeking) {
+            	try {
+					Thread.sleep(SLEEP_MSEC);
+				} catch (InterruptedException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+					break;
+				}
             	
-                if (mQuit || mStoped)
-                    break;
+            	continue;
+            }
+        	
+            if (mQuit || mStoped)
+                break;
+        
+            seg = mSubtitleParser.next();
+            mSubtitleText = seg.getData();
+            from_msec = seg.getFromTime();
+            to_msec = seg.getToTime();
+            sleep_msec = from_msec - mPlayer.getCurrentPosition();
+            hold_msec = to_msec - from_msec;
+            Log.i(TAG, String.format("Java: subtitle frome %s, to %s,sleep %d, hold %d, %s", 
+            	seg.getFromTime(), seg.getToTime(), sleep_msec, hold_msec,
+            	seg.getData()));            
+
+            if (sleep_msec > 5) {
+                try {
+					Thread.sleep(sleep_msec);
+				} catch (InterruptedException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+					break;
+				}
+            }
             
-                seg = mSubtitleParser.next();
-                mSubtitleText = seg.getData();
-                from_msec = seg.getFromTime();
-                to_msec = seg.getToTime();
-                sleep_msec = from_msec - mPlayer.getCurrentPosition();
-                hold_msec = to_msec - from_msec;
-                Log.i(TAG, String.format("Java: subtitle frome %s, to %s,sleep %d, hold %d, %s", 
-                	seg.getFromTime(), seg.getToTime(), sleep_msec, hold_msec,
-                	seg.getData()));
-                
-                if (sleep_msec > 5) {
-	                try {
-						Thread.sleep(sleep_msec);
+            //if (!mSubtitleSeeking) {
+            	// render it now!
+            	mHandler.sendEmptyMessage(MSG_DISPLAY_SUBTITLE);    
+
+            	if (hold_msec > 5) {
+                	try {
+						Thread.sleep(hold_msec);
 					} catch (InterruptedException e) {
 						// TODO Auto-generated catch block
 						e.printStackTrace();
+						break;
 					}
                 }
                 
-                //if (!mSubtitleSeeking) {
-                	// render it now!
-                	mHandler.sendEmptyMessage(MSG_DISPLAY_SUBTITLE);
-                	
-                	if (hold_msec > 5) {
-                    	try {
-    						Thread.sleep(hold_msec);
-    					} catch (InterruptedException e) {
-    						// TODO Auto-generated catch block
-    						e.printStackTrace();
-    					}
-                    }
-                    
-                    mHandler.sendEmptyMessage(MSG_HIDE_SUBTITLE);
-                //}
-            }
-            
-            mSubtitleParser.close();
-            mSubtitleParser = null;
-            mSubtitleClosed = true;
-            Log.i(TAG, "Java: subtitle thread end...");
+                mHandler.sendEmptyMessage(MSG_HIDE_SUBTITLE);
+            //}
         }
+        
+        mHandler.sendEmptyMessage(MSG_HIDE_SUBTITLE);
+        mSubtitleParser.close();
+        mSubtitleParser = null;
+        Log.i(TAG, "Java: subtitle thread end...");
     }
 
 	@Override

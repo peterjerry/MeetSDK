@@ -24,7 +24,7 @@
 #include "utils.h"
 #include "ffsourcebase.h"
 
-#include "../subtitle/subtitle.h"
+#include "subtitle.h"
 
 #define FF_PLAYER_MIN_BUFFER_SECONDS_LOCAL_FILE			1 //sec
 #if defined(_MSC_VER) || defined(__CYGWIN__)

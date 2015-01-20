@@ -110,11 +110,6 @@
 				<filename name="**/*.so" />
 			</fileset>
 		</copy>
-		<copy todir="${sdk.dir}/libs/armeabi" overwrite="true" verbose="true">
-			<filelist dir="${jni.dir}/meet/prebuilt">
-				<file name="libsample.so" />
-			</filelist>
-		</copy>
 	</target>
 
 	<target name="-set-release-mode">

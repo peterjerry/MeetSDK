@@ -51,7 +51,7 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
       <Optimization>Disabled</Optimization>
-      <AdditionalIncludeDirectories>..\..\..\engine2;..\meet;D:\Software\android-ndk-r9d\platforms\android-9\arch-x86\usr\include;D:\Software\android-ndk-r9d\sources\cpufeatures</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\..\..\engine2;..\..\..\subtitle2\output\android\include;..\meet;D:\Software\android-ndk-r9d\platforms\android-9\arch-x86\usr\include;D:\Software\android-ndk-r9d\sources\cpufeatures</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <MinimalRebuild>true</MinimalRebuild>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
@@ -95,16 +95,15 @@
     <Text Include="ReadMe.txt" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\meet\jni\android_media_MediaPlayer.cpp" />
-    <ClCompile Include="..\meet\jni\android_ppmedia_PPMediaExtractor.cpp" />
-    <ClCompile Include="..\meet\jni\android_ppmedia_subtitle_SimpleSubTitleParser.cpp" />
-    <ClCompile Include="..\meet\jni\JNIHelp.c" />
-    <ClCompile Include="..\meet\jni\PPBox_Util.cpp" />
-    <ClCompile Include="..\meet\jni\pplog.cpp" />
+    <ClCompile Include="..\meet\android_media_MediaPlayer.cpp" />
+    <ClCompile Include="..\meet\android_ppmedia_subtitle_SimpleSubTitleParser.cpp" />
+    <ClCompile Include="..\meet\JNIHelp.c" />
+    <ClCompile Include="..\meet\PPBox_Util.cpp" />
+    <ClCompile Include="..\meet\pplog.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\meet\jni\pplivelog.h" />
-    <ClInclude Include="..\meet\jni\pplog.h" />
+    <ClInclude Include="..\meet\pplivelog.h" />
+    <ClInclude Include="..\meet\pplog.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

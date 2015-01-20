@@ -4,15 +4,11 @@
 
 #define LOG_BUF_SIZE	2048
 
-namespace android {
-	extern JavaVM* gs_jvm;
-}
+extern JavaVM* gs_jvm;
 
 jclass gs_clazz;
 jmethodID gs_mid_log;
 static int gs_inited = 0;
-
-using namespace android;
 
 int java_log(int level, const char* tag, const char* msg);
 

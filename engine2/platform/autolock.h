@@ -22,4 +22,5 @@ public:
 private:
     pthread_mutex_t* mLock;
 };
-#endif
+
+#endif // FF_AUTOLOCK_H
