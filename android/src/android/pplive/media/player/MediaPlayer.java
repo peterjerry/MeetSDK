@@ -933,16 +933,19 @@ public class MediaPlayer implements MediaPlayerInterface {
     }
 	
 	// event
-	protected final static int MEDIA_NOP = 0; // interface test message
-	protected final static int MEDIA_PREPARED = 1;
-	protected final static int MEDIA_PLAYBACK_COMPLETE = 2;
-	protected final static int MEDIA_BUFFERING_UPDATE = 3;
-	protected final static int MEDIA_SEEK_COMPLETE = 4;
-	protected final static int MEDIA_SET_VIDEO_SIZE = 5;
-	
-	protected final static int MEDIA_ERROR = 100;
-	protected final static int MEDIA_INFO = 200;
-	
+    /* Do not change these values without updating their counterparts
+     * in include/media/mediaplayer.h!
+     */
+    protected static final int MEDIA_NOP = 0; // interface test message
+    protected static final int MEDIA_PREPARED = 1;
+    protected static final int MEDIA_PLAYBACK_COMPLETE = 2;
+    protected static final int MEDIA_BUFFERING_UPDATE = 3;
+    protected static final int MEDIA_SEEK_COMPLETE = 4;
+    protected static final int MEDIA_SET_VIDEO_SIZE = 5;
+    protected static final int MEDIA_TIMED_TEXT = 99;
+    protected static final int MEDIA_ERROR = 100;
+    protected static final int MEDIA_INFO = 200;
+    
 	/**
 	 * Unspecified media player info.
 	 * 

@@ -139,7 +139,7 @@
 		<zip destfile="${dist.dir}/${SdkName}_debug_${sdk.version}.zip" basedir="${sdk.dir}" />
 	</target>
 
-	<target name="release" depends="clean, -set-release-mode, sdk, -symbol" >
+	<target name="release" depends="clean, -set-release-mode, sdk" >
 		<mkdir dir="${dist.dir}" />
 		<zip destfile="${dist.dir}/${SdkName}_${sdk.version}.zip" basedir="${sdk.dir}" />
 	</target>

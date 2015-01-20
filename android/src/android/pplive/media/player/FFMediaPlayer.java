@@ -174,7 +174,6 @@ public class FFMediaPlayer implements MediaPlayerInterface {
 			Message msg = mEventHandler.obtainMessage(what, arg1, arg2, obj);
 			msg.sendToTarget();
 		}
-
 	}
 	
 	// play procedure
@@ -297,6 +296,8 @@ public class FFMediaPlayer implements MediaPlayerInterface {
 	public void reset() {
 		// TODO Auto-generated method stub
 		_reset();
+		// make sure none of the listeners get called anymore
+        mEventHandler.removeCallbacksAndMessages(null);
 	}
 
 	//Returns the width of the video.
@@ -416,74 +417,88 @@ public class FFMediaPlayer implements MediaPlayerInterface {
 		return DecodeMode.SW;
 	}
 	
-	private static Handler mEventHandler;
-	
 	private void createPlayerCallbackHandler() {
-
-		if (mEventHandler != null) {
-			mEventHandler = null;
-		}
-
-		Looper looper = Looper.myLooper();
-
-		if (looper == null) {
-			looper = Looper.getMainLooper();
-		}
-
-		mEventHandler = new Handler(looper) {
-			@Override
-			public void handleMessage(Message msg) {
-				switch (msg.what) {
-				case MediaPlayer.MEDIA_PREPARED:
-					if (mOnPreparedListener != null) {
-						mOnPreparedListener.onPrepared(mPlayer);
-					}
-					return;
-					
-				case MediaPlayer.MEDIA_PLAYBACK_COMPLETE:
-					if (mOnCompletionListener != null) {
-						mOnCompletionListener.onCompletion(mPlayer);
-					}
-					return;
-					
-				case MediaPlayer.MEDIA_BUFFERING_UPDATE:
-					if (mOnBufferingUpdateListener != null) {
-						mOnBufferingUpdateListener.onBufferingUpdate(mPlayer, msg.arg1 /* percent */);
-					}
-					return;
-
-				case MediaPlayer.MEDIA_SEEK_COMPLETE:
-					if (mOnSeekCompleteListener != null) {
-						mOnSeekCompleteListener.onSeekComplete(mPlayer);
-					}
-					return;
-
-				case MediaPlayer.MEDIA_SET_VIDEO_SIZE:
-					if (mOnVideoSizeChangedListener != null) {
-						mOnVideoSizeChangedListener.onVideoSizeChanged(mPlayer, msg.arg1 /* width */, msg.arg2 /* height */);
-					}
-					return;
-
-				case MediaPlayer.MEDIA_ERROR:
-					if (mOnErrorListener != null) {
-						mOnErrorListener.onError(mPlayer, msg.arg1, msg.arg2);
-					}
-					return;
-
-				case MediaPlayer.MEDIA_INFO:
-					if (mOnInfoListener != null) {
-						mOnInfoListener.onInfo(mPlayer, msg.arg1, msg.arg2);
-					}
-					return;
-
-				default:
-				    LogUtils.error("Unknown message type " + msg.what);
-					return;
-				} // end of switch
-			} // end of handleMessage()
-		};
+		Looper looper;
+	    if ((looper = Looper.myLooper()) != null) {
+	        mEventHandler = new EventHandler(mPlayer, looper);
+	    } else if ((looper = Looper.getMainLooper()) != null) {
+	        mEventHandler = new EventHandler(mPlayer, looper);
+	    } else {
+	        mEventHandler = null;
+	    }
 	}
+	
+	private static EventHandler mEventHandler;
 		
+	private class EventHandler extends Handler
+    {
+        private MediaPlayer mMediaPlayer;
+
+        public EventHandler(MediaPlayer mp, Looper looper) {
+            super(looper);
+            mMediaPlayer = mp;
+        }
+
+        @Override
+        public void handleMessage(Message msg) {
+        	
+            switch(msg.what) {
+            case MediaPlayer.MEDIA_PREPARED:
+				if (mOnPreparedListener != null) {
+					mOnPreparedListener.onPrepared(mPlayer);
+				}
+				return;
+				
+			case MediaPlayer.MEDIA_PLAYBACK_COMPLETE:
+				if (mOnCompletionListener != null) {
+					mOnCompletionListener.onCompletion(mPlayer);
+				}
+				return;
+				
+			case MediaPlayer.MEDIA_BUFFERING_UPDATE:
+				if (mOnBufferingUpdateListener != null) {
+					mOnBufferingUpdateListener.onBufferingUpdate(mPlayer, msg.arg1 /* percent */);
+				}
+				return;
+
+			case MediaPlayer.MEDIA_SEEK_COMPLETE:
+				if (mOnSeekCompleteListener != null) {
+					mOnSeekCompleteListener.onSeekComplete(mPlayer);
+				}
+				return;
+
+			case MediaPlayer.MEDIA_SET_VIDEO_SIZE:
+				if (mOnVideoSizeChangedListener != null) {
+					mOnVideoSizeChangedListener.onVideoSizeChanged(mPlayer, msg.arg1 /* width */, msg.arg2 /* height */);
+				}
+				return;
+
+			case MediaPlayer.MEDIA_ERROR:
+				if (mOnErrorListener != null) {
+					mOnErrorListener.onError(mPlayer, msg.arg1, msg.arg2);
+				}
+				return;
+
+			case MediaPlayer.MEDIA_INFO:
+				if (mOnInfoListener != null) {
+					mOnInfoListener.onInfo(mPlayer, msg.arg1, msg.arg2);
+				}
+				return;
+				
+            case MediaPlayer.MEDIA_TIMED_TEXT:
+                // todo
+                return;
+
+            case MediaPlayer.MEDIA_NOP: // interface test message - ignore
+                break;
+
+            default:
+            	LogUtils.error("Unknown message type " + msg.what);
+				return;
+            }
+        }
+    }
+	
 	private native void _setDataSource(String path) throws IOException,
 			IllegalArgumentException, IllegalStateException;
 			
