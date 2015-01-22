@@ -16,7 +16,6 @@ class ISubtitles;
 #define MAX_CHANNEL_CNT 8
 #define SAFE_DELETE(p)       { if(p) { delete (p);     (p)=NULL; } }
 
-//视频媒体信息
 typedef struct MediaInfo {
 	int32_t duration_ms; //in millisecond 
 	long long size_byte; //in byte
@@ -59,13 +58,18 @@ typedef struct MediaInfo {
         size_byte(0),
         width(0),
         height(0),
+
         format_name(NULL),
         videocodec_name(NULL),
+
         thumbnail_width(0),
         thumbnail_height(0),
         thumbnail(NULL),
+
         audio_channels(0),
         video_channels(0),
+		subtitle_channels(0),
+
         channels(0) {
 			for(int i=0 ; i<MAX_CHANNEL_CNT ; i++) {
 				audio_streamIndexs[i]		= -1;
@@ -121,7 +125,7 @@ typedef struct TrackInfo {
 	char*		language;
 } TrackInfo;
 
-//播放器回调状态分类
+// player callback
 enum media_event_type {
     MEDIA_NOP               = 0, // interface test message
     MEDIA_PREPARED          = 1,
@@ -134,7 +138,7 @@ enum media_event_type {
     MEDIA_COMPATIBILITY_TEST_COMPLETE              = 300,
 };
 
-//播放器回调信息详细分类
+// player callback info detail
 enum media_info_type {
     MEDIA_INFO_UNKNOWN				= 1,
     MEDIA_INFO_VIDEO_TRACK_LAGGING	= 700,
@@ -174,7 +178,7 @@ enum {
 	MEDIA_TRACK_TYPE_VIDEO		= 0x00000001, // api 16
 };
 
-//播放器错误分类
+// player callback error detail
 enum media_error_type {
     MEDIA_ERROR_UNKNOWN 							= 1,
     MEDIA_ERROR_SERVER_DIED 						= 100,
@@ -218,13 +222,13 @@ public:
 class IPlayer
 {
 public:
-	//播放器初始化接口
+	// init
 	virtual status_t setDataSource(const char *url) = 0;
 	virtual status_t setVideoSurface(void* surface) = 0;
 	virtual status_t prepare() = 0;
 	virtual status_t prepareAsync() = 0;
 
-	//播放器控制接口
+	// controll
 	virtual status_t start() = 0;
 	virtual status_t stop() = 0;
 	virtual status_t pause() = 0;
@@ -232,10 +236,10 @@ public:
 	virtual status_t selectAudioChannel(int32_t index){return -1;} 
 	virtual	status_t setISubtitle(ISubtitles* subtitle){return -1;}
 
-	//播放器状态回调接口
+	// listener
 	virtual status_t setListener(MediaPlayerListener* listener) = 0;
 
-	//播放器状态获取接口
+	// query
 	virtual status_t	getVideoWidth(int *w) = 0;
 	virtual status_t	getVideoHeight(int *h) = 0;
 	virtual status_t	getCurrentPosition(int *msec) = 0;
@@ -250,7 +254,7 @@ public:
 	
 	virtual ~IPlayer() {}
 
-	//下面是不常用的接口
+	// rare used
 	
 #ifdef __ANDROID__
 	virtual status_t startCompatibilityTest() = 0;

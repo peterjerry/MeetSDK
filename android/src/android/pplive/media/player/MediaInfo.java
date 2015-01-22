@@ -65,10 +65,12 @@ public class MediaInfo {
 	}
 	
 	// common
+	@Deprecated
 	public void setChannels(String channelName, int index) {
 		mChannels.put(Integer.valueOf(index), channelName);
 	}
 
+	@Deprecated
 	public HashMap<Integer, String> getChannels() {
 		return mChannels;
 	}

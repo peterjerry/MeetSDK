@@ -172,10 +172,6 @@ public class VideoPlayerActivity extends Activity {
 		mVideoView.start();
 	}
 
-	private void switchDisplayMode() {
-		mVideoView.switchDisplayMode();
-	}
-
 	private MediaPlayer.OnCompletionListener mCompletionListener = new MediaPlayer.OnCompletionListener() {
 		public void onCompletion(MediaPlayer mp) {
 			Log.d(TAG, "MEDIA_PLAYBACK_COMPLETE");
@@ -235,8 +231,9 @@ public class VideoPlayerActivity extends Activity {
 		@Override
 		public boolean onDoubleTap(MotionEvent event) {
 			
-			Log.d(TAG, "onDoubleTap!!!");
-			switchDisplayMode();
+			Log.i(TAG, "onDoubleTap!!!");
+			if (mVideoView != null)
+				mVideoView.switchDisplayMode();
 			
 			return true;
 		}

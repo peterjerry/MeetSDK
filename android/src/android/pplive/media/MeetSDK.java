@@ -208,6 +208,7 @@ public final class MeetSDK {
 		return path;
 	}
 
+	@Deprecated
 	public static boolean isOMXSurface(String url) {
 
 		if (url == null) {
@@ -261,10 +262,10 @@ public final class MeetSDK {
 							}
 						}
 						
-						if (audioChannelsInfo.size() > 0)
-							isOMXSurface = "aac".equals(audioChannelsInfo.get(0).getCodecName()) && "h264".equals(info.getVideoCodecName());
-						else
-							isOMXSurface = false;
+						if ("h264".equals(info.getVideoCodecName())) {
+							if (audioChannelsInfo.size() == 0 || "aac".equals(audioChannelsInfo.get(0).getCodecName()))
+								isOMXSurface = true;
+						}
 					}
 				}
 			} catch (LinkageError e) {
@@ -278,6 +279,7 @@ public final class MeetSDK {
 		return isOMXSurface;
 	}
 
+	@Deprecated
 	public static boolean isOMXSurface(Context ctx, Uri uri) {
 		if (null == ctx || null == uri) {
 			return false;

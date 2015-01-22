@@ -7,6 +7,7 @@ public class MeetPlayerHelper {
 	
 	private MeetPlayerHelper() {}
 	
+	// all method are static function
 	public static Bitmap createVideoThumbnail(String mediaFilePath, int kind) {
 		return FFMediaPlayer.createVideoThumbnail(mediaFilePath, kind);
 	}

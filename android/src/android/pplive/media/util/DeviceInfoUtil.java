@@ -31,6 +31,10 @@ public class DeviceInfoUtil {
     public static String getSystemVersion() {
         return VERSION.RELEASE;
     }
+    
+    public static int getSystemVersionInt() {
+    	return VERSION.SDK_INT;
+    }
 
     public static String getTotalMemory() {
         BufferedReader br = null;

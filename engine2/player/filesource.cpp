@@ -41,7 +41,7 @@ int64_t FileSource::read_seek(uint64_t offset, int whence)
 	if (mFile == NULL)
 		return -1;
 
-	return fseek(mFile, offset, whence);
+	return fseek(mFile, (long)offset, whence);
 }
 
 int64_t FileSource::get_size()

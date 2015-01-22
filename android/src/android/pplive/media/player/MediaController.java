@@ -60,7 +60,12 @@ public abstract class MediaController extends RelativeLayout {
         boolean canSeekBackward();
 
         boolean canSeekForward();
-
+        
+        //int getDisplayMode();
+        
+        //void setDisplayMode(int mode);
+        
+        //void switchDisplayMode();
     }
 
 }

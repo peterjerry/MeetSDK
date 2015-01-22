@@ -208,8 +208,13 @@ status_t FFStream::selectAudioChannel(int32_t index)
 		return ERROR;
 	}
 
-	LOGI("audio channel change from #%d to #%d", mAudioStreamIndex, index);
+	if (mAudioStreamIndex == index) {
+		LOGI("audio channel is already in use: #%d", mAudioStreamIndex);
+		return OK;
+	}
 
+	LOGI("audio channel change from #%d to #%d", mAudioStreamIndex, index);
+	
 	mAudioStreamIndex = index;
 	mAudioStream = mMovieFile->streams[mAudioStreamIndex];
 
@@ -688,10 +693,9 @@ void FFStream::run()
 		if(mStatus == FFSTREAM_PAUSED || mReachEndStream) {
 			// loop when "pause"
 			// wait for exit when "eof"
-            int64_t waitUs = 10000ll;//10ms
             struct timespec ts;
             ts.tv_sec = 0;
-            ts.tv_nsec = waitUs * 1000ll;
+            ts.tv_nsec = 10000000; // 10 msec
             AutoLock autoLock(&mLock);
 #if defined(__CYGWIN__) || defined(_MSC_VER)
 			int64_t now_usec = getNowUs();
@@ -898,10 +902,9 @@ void FFStream::run()
                     av_free_packet(pPacket);
                 av_free(pPacket);
 
-                int64_t waitUs = 10000ll;//10ms
                 struct timespec ts;
                 ts.tv_sec = 0;
-                ts.tv_nsec = waitUs * 1000ll;
+                ts.tv_nsec = 10000000; // 10 msec
 				AutoLock autoLock(&mLock);
 #if defined(__CYGWIN__) || defined(_MSC_VER)
 				int64_t now_usec = getNowUs();
@@ -931,10 +934,10 @@ void FFStream::run()
 				AVStream *st;
 				st = mMovieFile->streams[pPacket->stream_index];
 				if (st->pts_wrap_behavior == AV_PTS_WRAP_ADD_OFFSET &&
-					pPacket->pts > (1ULL << st->pts_wrap_bits))
+					pPacket->pts > (int64_t)(1ULL << st->pts_wrap_bits))
 						pPacket->pts -= (1ULL << st->pts_wrap_bits);
 				else if (st->pts_wrap_behavior == AV_PTS_WRAP_SUB_OFFSET &&
-					pPacket->pts < (1ULL << st->pts_wrap_bits))
+					pPacket->pts < (int64_t)(1ULL << st->pts_wrap_bits))
 						pPacket->pts += (1ULL << st->pts_wrap_bits);
 			}
 #endif
@@ -1007,7 +1010,7 @@ void FFStream::run()
 						int i = 0;
 						for (; i < MAX_CALC_SEC; i++)
 							sum += m_read_bytes[i];
-						m_real_bit_rate = ((double)sum / (double)MAX_CALC_SEC) * 8.0f / 1024.0f;
+						m_real_bit_rate = (int)(((double)sum / (double)MAX_CALC_SEC) * 8.0f / 1024.0f);
 						notifyListener_l(MEDIA_INFO, MEDIA_INFO_TEST_MEDIA_BITRATE, m_real_bit_rate);
 					} while (0);
 					/* clear. */

@@ -293,7 +293,7 @@ status_t AudioRender::render(AVFrame* audioFrame)//int16_t* buffer, uint32_t buf
 #endif
 		uint32_t sampleInCount = audioFrame->nb_samples;
 		LOGD("sampleInCount:%d", sampleInCount);
-		int sampleOutCount = av_rescale_rnd(
+		int sampleOutCount = (int)av_rescale_rnd(
 			swr_get_delay(mConvertCtx, mSampleRate) + sampleInCount,
 			mSampleRateOutput,
 			mSampleRate,

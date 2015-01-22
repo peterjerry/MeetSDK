@@ -89,8 +89,17 @@ public class FFMediaPlayer implements MediaPlayerInterface {
 	}
 	
 	public FFMediaPlayer(MediaPlayer mp) {
-		native_setup(new WeakReference<MediaPlayer>(mp), true); // always true to use ffplay
+		native_setup(new WeakReference<FFMediaPlayer>(this), true); // always true to use ffplay
 		mPlayer = mp;
+		
+		Looper looper;
+	    if ((looper = Looper.myLooper()) != null) {
+	        mEventHandler = new EventHandler(mPlayer, looper);
+	    } else if ((looper = Looper.getMainLooper()) != null) {
+	        mEventHandler = new EventHandler(mPlayer, looper);
+	    } else {
+	        mEventHandler = null;
+	    }
 	}
 	
 	// capability
@@ -165,13 +174,13 @@ public class FFMediaPlayer implements MediaPlayerInterface {
 	 */
 	private static void postEventFromNative(Object mediaplayer_ref, int what,
 			int arg1, int arg2, Object obj) {
-		MediaPlayer mp = (MediaPlayer) ((WeakReference<?>) mediaplayer_ref).get();
+		FFMediaPlayer mp = (FFMediaPlayer) ((WeakReference<?>) mediaplayer_ref).get();
 		if (mp == null) {
 			return;
 		}
 
-		if (mEventHandler != null) {			
-			Message msg = mEventHandler.obtainMessage(what, arg1, arg2, obj);
+		if (mp.mEventHandler != null) {			
+			Message msg = mp.mEventHandler.obtainMessage(what, arg1, arg2, obj);
 			msg.sendToTarget();
 		}
 	}
@@ -249,16 +258,12 @@ public class FFMediaPlayer implements MediaPlayerInterface {
 	@Override
 	public void prepare() throws IOException, IllegalStateException {
 		// TODO Auto-generated method stub
-		createPlayerCallbackHandler();
-		
 		_prepare();
 	}
 
 	@Override
 	public void prepareAsync() throws IllegalStateException {
 		// TODO Auto-generated method stub
-		createPlayerCallbackHandler();
-		
 		_prepareAsync();
 	}
 
@@ -290,6 +295,9 @@ public class FFMediaPlayer implements MediaPlayerInterface {
 	public void release() {
 		// TODO Auto-generated method stub
 		_release();
+		// make sure none of the listeners get called anymore
+		// 2015.1.20 guoliangma solve "quick" new-open when another is in "preparing" state
+        mEventHandler.removeCallbacksAndMessages(null);
 	}
 
 	@Override
@@ -417,18 +425,7 @@ public class FFMediaPlayer implements MediaPlayerInterface {
 		return DecodeMode.SW;
 	}
 	
-	private void createPlayerCallbackHandler() {
-		Looper looper;
-	    if ((looper = Looper.myLooper()) != null) {
-	        mEventHandler = new EventHandler(mPlayer, looper);
-	    } else if ((looper = Looper.getMainLooper()) != null) {
-	        mEventHandler = new EventHandler(mPlayer, looper);
-	    } else {
-	        mEventHandler = null;
-	    }
-	}
-	
-	private static EventHandler mEventHandler;
+	private EventHandler mEventHandler;
 		
 	private class EventHandler extends Handler
     {

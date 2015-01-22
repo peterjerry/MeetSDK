@@ -22,7 +22,7 @@
 			android:textSize="18sp" />
 			
 		<TextView
-			android:id="@+id/tv_file_ext"
+			android:id="@+id/tv_mediainfo"
 			android:layout_width="fill_parent"
 			android:layout_height="wrap_content"
 			android:textColor="#ff6347"

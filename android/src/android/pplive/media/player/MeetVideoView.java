@@ -107,23 +107,34 @@ public class MeetVideoView extends SurfaceView implements MediaPlayerControl {
 
     @Override
     protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
-        //Log.i("@@@@", "onMeasure");
         int width = getDefaultSize(mVideoWidth, widthMeasureSpec);
         int height = getDefaultSize(mVideoHeight, heightMeasureSpec);
+
         if (mVideoWidth > 0 && mVideoHeight > 0) {
-            if ( mVideoWidth * height  > width * mVideoHeight ) {
-                //Log.i("@@@", "image too tall, correcting");
-                height = width * mVideoHeight / mVideoWidth;
-            } else if ( mVideoWidth * height  < width * mVideoHeight ) {
-                //Log.i("@@@", "image too wide, correcting");
-                width = height * mVideoWidth / mVideoHeight;
-            } else {
-                //Log.i("@@@", "aspect ratio is correct: " +
-                        //width+"/"+height+"="+
-                        //mVideoWidth+"/"+mVideoHeight);
+            switch (mDisplayMode) {
+            case SCREEN_CENTER:
+                width = mVideoWidth;
+                height = mVideoHeight;
+                break;
+            case SCREEN_FIT:
+                if (mVideoWidth * height > width * mVideoHeight) {
+                    height = width * mVideoHeight / mVideoWidth;
+                } else if (mVideoWidth * height < width * mVideoHeight) {
+                    width = height * mVideoWidth / mVideoHeight;
+                }
+            case SCREEN_FILL:
+                if (mVideoWidth * height > width * mVideoHeight) {
+                    width = height * mVideoWidth / mVideoHeight;
+                } else if (mVideoWidth * height < width * mVideoHeight) {
+                    height = width * mVideoHeight / mVideoWidth;
+                }
+            case SCREEN_STRETCH:
+                /* Do nothing */
+                break;
+            default:
+                break;
             }
         }
-        //Log.i("@@@@@@@@@@", "setting size: " + width + 'x' + height);
         setMeasuredDimension(width, height);
     }
 
@@ -241,11 +252,12 @@ public class MeetVideoView extends SurfaceView implements MediaPlayerControl {
         // called start() previously
         release(false);
         try {
-            mMediaPlayer = new MediaPlayer();
+            mMediaPlayer = new MediaPlayer(mDecodeMode);
             mMediaPlayer.setOnPreparedListener(mPreparedListener);
             mMediaPlayer.setOnVideoSizeChangedListener(mSizeChangedListener);
             mDuration = -1;
             mMediaPlayer.setOnCompletionListener(mCompletionListener);
+            mMediaPlayer.setOnSeekCompleteListener(mSeekCompleteListener);
             mMediaPlayer.setOnErrorListener(mErrorListener);
             mMediaPlayer.setOnInfoListener(/*mOnInfoListener*/mInfoListener);
             mMediaPlayer.setOnBufferingUpdateListener(mBufferingUpdateListener);
@@ -313,6 +325,7 @@ public class MeetVideoView extends SurfaceView implements MediaPlayerControl {
             }
             mVideoWidth = mp.getVideoWidth();
             mVideoHeight = mp.getVideoHeight();
+            LogUtils.info("onPrepared: width: " + mVideoWidth + ", height: " + mVideoHeight);
 
             int seekToPosition = mSeekWhenPrepared;  // mSeekWhenPrepared may be changed after seekTo() call
             if (seekToPosition != 0) {
@@ -647,12 +660,21 @@ public class MeetVideoView extends SurfaceView implements MediaPlayerControl {
 
         return DecodeMode.UNKNOWN;
     }
+    
+    public void selectAudioChannel(int index){
+        mAudioChannel = index;
+        if (mMediaPlayer != null) {
+        	mMediaPlayer.selectTrack(mAudioChannel);
+        	mAudioChannel = -1;
+        }
+    }
 
 	public int getDisplayMode() {
 		return mDisplayMode;
 	}
 
 	public void setDisplayMode(int mode) {
+		LogUtils.info(String.format("setDisplayerMode %d", mode));
 		mDisplayMode = mode;
         requestLayout();
 	}
@@ -661,11 +683,4 @@ public class MeetVideoView extends SurfaceView implements MediaPlayerControl {
 		setDisplayMode((mDisplayMode + 1) % 4);
 	}
 	
-	public void selectAudioChannel(int index){
-        mAudioChannel = index;
-        if (mMediaPlayer != null) {
-        	mMediaPlayer.selectTrack(mAudioChannel);
-        	mAudioChannel = -1;
-        }
-    }
 }

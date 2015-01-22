@@ -19,7 +19,7 @@ import android.os.Looper;
 import android.os.Message;
 import android.os.PowerManager;
 import android.provider.MediaStore;
-
+import android.pplive.media.MeetSDK;
 import android.pplive.media.util.LogUtils;
 import android.pplive.media.subtitle.SimpleSubTitleParser;
 
@@ -140,7 +140,7 @@ public class MediaPlayer implements MediaPlayerInterface {
 	public void setDataSource(Context context, Uri uri, Map<String, String> headers)
 		throws IllegalStateException, IOException,
 			IllegalArgumentException, SecurityException {
-		mPath = Uri2String(context, uri);
+		mPath = MeetSDK.Uri2String(context, uri);
 	}
 	
 	@Override
@@ -169,33 +169,6 @@ public class MediaPlayer implements MediaPlayerInterface {
 			IllegalArgumentException, IllegalStateException {
 		LogUtils.error("MediaPlayer setDataSource(fd) is not supported");
 		throw new IllegalStateException("MediaPlayer setDataSource(fd) is not supported");
-	}
-	
-	private static String Uri2String(Context ctx, Uri uri) {
-
-		if (null == ctx || null == uri) {
-			return null;
-		}
-
-		String schema = uri.getScheme();
-		String path = null;
-
-		if ("content".equalsIgnoreCase(schema)) {
-			String[] proj = { MediaStore.Video.Media.DATA };
-			Cursor cursor = ctx.getContentResolver().query(uri, proj, null, null, null);
-			if (cursor != null && cursor.moveToFirst()) {
-				int column_index = cursor.getColumnIndexOrThrow(MediaStore.Video.Media.DATA);
-				path = cursor.getString(column_index);
-				cursor.close();
-			}
-		}
-		else if ("file".equalsIgnoreCase(schema)) {
-			path = uri.getPath();
-		}
-		else {
-			path = uri.toString();
-		}
-		return path;
 	}
 	
 	@Override
@@ -227,14 +200,20 @@ public class MediaPlayer implements MediaPlayerInterface {
 		    throw new IllegalStateException("Media Path is not set.");
 		}
 		
-		if (DecodeMode.AUTO == mDecodeMode)
-			mDecodeMode = DecodeMode.SW;
+		if (DecodeMode.AUTO == mDecodeMode) {
+			if (MeetSDK.isOMXSurface(mPath))
+				mDecodeMode = DecodeMode.HW_SYSTEM;
+			else
+				mDecodeMode = DecodeMode.SW;
+			//mDecodeMode = PlayerPolicy.getDeviceCapabilities(mPath);
+		}
 		
 		mPlayer = mDecodeMode.newInstance(this);
 		
 		if (null == mPlayer)
 			throw new IllegalStateException("failed to create new instance of MediaPlayer");
-				
+			
+		// fixme!!!
 		//if (null != mHolder)
 		//	mDecodeMode.setSurfaceType(mHolder);
 		

@@ -1,15 +1,11 @@
 package com.pplive.meetplayer.ui;
 
-import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.OutputStream;
 import java.io.UnsupportedEncodingException;
 import java.net.HttpURLConnection;
-import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLEncoder;
 import java.text.SimpleDateFormat;
@@ -18,8 +14,10 @@ import java.util.Arrays;
 import java.util.Comparator;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 
 import android.app.Activity;
 import android.app.ProgressDialog;
@@ -30,28 +28,19 @@ import android.view.ContextThemeWrapper;
 import android.graphics.PixelFormat;
 import android.os.Bundle;
 import android.os.Environment;
-import android.os.Looper;
-import android.util.Base64;
 import android.util.Log;
-import android.view.KeyEvent;
-import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.SubMenu;
 import android.view.MenuItem;
 import android.view.SurfaceHolder;
-import android.view.SurfaceHolder.Callback;
-import android.view.SurfaceView;
 import android.view.View;
-import android.view.ViewGroup;
 import android.view.View.MeasureSpec;
 import android.widget.AbsListView;
 import android.widget.AbsListView.OnScrollListener;
 import android.widget.AdapterView;
 import android.widget.Button;
-import android.widget.CheckBox;
 import android.widget.EditText;
 import android.widget.ListView;
-import android.widget.SimpleAdapter;
 import android.widget.ProgressBar;
 import android.widget.LinearLayout;
 import android.widget.RelativeLayout;
@@ -67,7 +56,6 @@ import android.view.ViewGroup.LayoutParams;
 import android.widget.TextView;
 import android.graphics.Color;
 import android.util.DisplayMetrics; // for display width and height
-import android.content.pm.ActivityInfo;
 import android.content.DialogInterface;
 import android.app.AlertDialog;
 import android.app.Dialog;
@@ -77,7 +65,9 @@ import com.pplive.meetplayer.util.AtvUtils;
 import com.pplive.meetplayer.util.DownloadAsyncTask;
 import com.pplive.meetplayer.util.FeedBackFactory;
 import com.pplive.meetplayer.util.LogcatHelper;
-import com.pplive.meetplayer.util.UploadUtil;
+
+
+
 
 
 
@@ -90,6 +80,7 @@ import android.pplive.media.player.MediaInfo;
 import android.pplive.media.subtitle.SimpleSubTitleParser;
 import android.pplive.media.subtitle.SubTitleParser;
 import android.pplive.media.subtitle.SubTitleSegment;
+import android.pplive.media.player.TrackInfo;
 import android.provider.MediaStore;
 import android.database.Cursor;
 
@@ -156,8 +147,6 @@ public class ClipListActivity extends Activity implements
 	private LinearLayout mControllerLayout 		= null;
 	private TextView mTextViewInfo 				= null;
 	
-	private static final int SEEKBAR_RANGE 		= 1000;
-	
 	private int decode_fps 						= 0;
 	private int render_fps 						= 0;
 	private int decode_avg_msec 				= 0;
@@ -218,9 +207,9 @@ public class ClipListActivity extends Activity implements
 	
 	private final static String HTTP_UPDATE_APK_URL = "http://172.16.204.106/test/test/";
 	
-	private final String[] from = { "filename", "ext", "folder", "filesize", "resolution", "thumb" };
+	private final String[] from = { "filename", "mediainfo", "folder", "filesize", "resolution", "thumb" };
 	
-	private final int[] to = { R.id.tv_filename, R.id.tv_file_ext, R.id.tv_folder, 
+	private final int[] to = { R.id.tv_filename, R.id.tv_mediainfo, R.id.tv_folder, 
 			R.id.tv_filesize, R.id.tv_resolution, R.id.iv_thumb };
 	
 	private final boolean USE_BREAKPAD = false;
@@ -343,7 +332,7 @@ public class ClipListActivity extends Activity implements
 		this.mMediaController = new MyMediaController(this);
 		
 		mControllerLayout = new LinearLayout(this);
-		mControllerLayout.setLayoutParams(new LayoutParams(LayoutParams.FILL_PARENT,
+		mControllerLayout.setLayoutParams(new LayoutParams(LayoutParams.MATCH_PARENT,
 				LayoutParams.WRAP_CONTENT));
 		mControllerLayout.setOrientation(LinearLayout.VERTICAL);
 		mTextViewInfo = new TextView(this);
@@ -351,7 +340,7 @@ public class ClipListActivity extends Activity implements
 		mTextViewInfo.setTextSize(18);
 		mTextViewInfo.setText("play info");
 		mControllerLayout.addView(mTextViewInfo);
-		addContentView(mControllerLayout, new LayoutParams(LayoutParams.FILL_PARENT,
+		addContentView(mControllerLayout, new LayoutParams(LayoutParams.MATCH_PARENT,
 				LayoutParams.WRAP_CONTENT));
 		
 		if (Environment.getExternalStorageState().equals(Environment.MEDIA_MOUNTED)) {
@@ -925,11 +914,40 @@ public class ClipListActivity extends Activity implements
 		else {
 			MediaInfo info;
 			File file = new File(path);
-			info = MeetSDK.getMediaDetailInfo(file);
-			if (info.getAudioChannels() > 1)
-				btnSelectAudioTrack.setVisibility(View.VISIBLE);
-			else
+			if (file.exists()) {
+				info = MeetSDK.getMediaDetailInfo(file);
+				if (info != null) {
+					ArrayList<TrackInfo> audioTrackList = info.getAudioChannelsInfo();
+					for (TrackInfo trackInfo : audioTrackList) {
+						Log.i(TAG, String.format("Java： audio Trackinfo: streamindex #%d id %d, codec %s, lang %s, title %s", 
+							trackInfo.getStreamIndex(), 
+							trackInfo.getId(), 
+							trackInfo.getCodecName(), 
+							trackInfo.getLanguage(),
+							trackInfo.getTitle()));
+					}
+					
+					if (info.getAudioChannels() > 1)
+						btnSelectAudioTrack.setVisibility(View.VISIBLE);
+					else
+						btnSelectAudioTrack.setVisibility(View.INVISIBLE);
+					
+					ArrayList<TrackInfo> subtitleTrackList = info.getSubtitleChannelsInfo();
+					for (TrackInfo trackInfo : subtitleTrackList) {
+						Log.i(TAG, String.format("Java： subtitle Trackinfo: streamindex #%d id %d, codec %s, lang %s, title %s", 
+							trackInfo.getStreamIndex(), 
+							trackInfo.getId(), 
+							trackInfo.getCodecName(), 
+							trackInfo.getLanguage(),
+							trackInfo.getTitle()));
+					}
+				}
+				
+			}
+			else {
 				btnSelectAudioTrack.setVisibility(View.INVISIBLE);
+			}
+			
 			// force refresh a new surface
 			mPreview.setVisibility(View.GONE);
 			mPreview.setVisibility(View.VISIBLE);
@@ -944,12 +962,12 @@ public class ClipListActivity extends Activity implements
 			mPlayer.setDisplay(mHolder);
 			mPlayer.setAudioStreamType(AudioManager.STREAM_MUSIC);
 			mPlayer.setScreenOnWhilePlaying(true);
-			mPlayer.setOnPreparedListener(ClipListActivity.this);
-			mPlayer.setOnVideoSizeChangedListener(ClipListActivity.this);
-			mPlayer.setOnCompletionListener(ClipListActivity.this);
-			mPlayer.setOnErrorListener(ClipListActivity.this);
-			mPlayer.setOnBufferingUpdateListener(ClipListActivity.this);
-			mPlayer.setOnInfoListener(ClipListActivity.this);
+			mPlayer.setOnPreparedListener(this);
+			mPlayer.setOnVideoSizeChangedListener(this);
+			mPlayer.setOnCompletionListener(this);
+			mPlayer.setOnErrorListener(this);
+			mPlayer.setOnBufferingUpdateListener(this);
+			mPlayer.setOnInfoListener(this);
 
 			mStoped = false;
 			
@@ -1016,7 +1034,7 @@ public class ClipListActivity extends Activity implements
 			
 			HashMap<String, Object> map = new HashMap<String, Object>();
 			map.put("filename", foldername);
-			map.put("ext", "N/A");
+			map.put("mediainfo", "N/A");
 			map.put("folder", HTTP_SERVER_URL);
 			map.put("filesize", "N/A");
 			map.put("modify", "N/A");
@@ -1039,7 +1057,7 @@ public class ClipListActivity extends Activity implements
 			
 			HashMap<String, Object> map = new HashMap<String, Object>();
 			map.put("filename", filename);
-			map.put("ext", "N/A");
+			map.put("mediainfo", "N/A");
 			map.put("folder", HTTP_SERVER_URL);
 			map.put("filesize", "N/A");
 			map.put("modify", "N/A");
@@ -1405,9 +1423,9 @@ public class ClipListActivity extends Activity implements
 					Log.w(TAG, "video: " + path + " cannot get media info");
 				}
 				
-				HashMap map = new HashMap<String, Object>();
+				HashMap<String, Object> map = new HashMap<String, Object>();
 				map.put("filename", title);
-				map.put("ext", GetFileExt(path));
+				map.put("mediainfo", QueryMediaInfo(file));
 				map.put("folder", GetFileFolder(path));
 				map.put("filesize", filesize);
 				map.put("modify", dateFormat.format(new Date(modTime)));
@@ -1421,9 +1439,9 @@ public class ClipListActivity extends Activity implements
 		}
 		else {
 			// add parent folder ".." line
-			HashMap parent_folder = new HashMap<String, Object>();
+			HashMap<String, Object> parent_folder = new HashMap<String, Object>();
 			parent_folder.put("filename", "..");
-			parent_folder.put("ext", "N/A");
+			parent_folder.put("mediainfo", "N/A");
 			parent_folder.put("folder", "N/A");
 			parent_folder.put("filesize", "N/A");
 			parent_folder.put("resolution", "N/A");
@@ -1454,9 +1472,9 @@ public class ClipListActivity extends Activity implements
 						MediaInfo info = MeetSDK.getMediaDetailInfo(file);
 
 						if (info != null) {
-							HashMap map = new HashMap<String, Object>();
+							HashMap<String, Object> map = new HashMap<String, Object>();
 							map.put("filename", file.getName());
-							map.put("ext", GetFileExt(file.getAbsolutePath()));
+							map.put("mediainfo", QueryMediaInfo(file));
 							map.put("folder", GetFileFolder(file.getAbsolutePath()));
 							map.put("filesize", filesize);
 							map.put("modify", dateFormat.format(new Date(modTime)));
@@ -1484,9 +1502,9 @@ public class ClipListActivity extends Activity implements
 						}
 					}
 					else if(file.isDirectory() && !file.isHidden()) {
-						HashMap map = new HashMap<String, Object>();
+						HashMap<String, Object> map = new HashMap<String, Object>();
 						map.put("filename", file.getName());
-						map.put("ext", "N/A");
+						map.put("mediainfo", "N/A");
 						map.put("folder", "N/A");
 						map.put("filesize", "N/A");
 						map.put("modify", "N/A");
@@ -1509,6 +1527,63 @@ public class ClipListActivity extends Activity implements
 				Log.e(TAG, "file path is empty");
 			}
 		}
+	}
+	
+	private String QueryMediaInfo(File file) {
+		if(file == null || !file.exists())
+			return "N/A";
+		
+		MediaInfo info = MeetSDK.getMediaDetailInfo(file);
+		
+		StringBuffer sbMediaInfo = new StringBuffer();
+
+		sbMediaInfo.append("ext:");
+		sbMediaInfo.append(GetFileExt(file.getAbsolutePath()));
+		
+		if (info == null) {
+			Log.w(TAG, "video: " + file.getAbsolutePath() + " cannot get media info");
+			return sbMediaInfo.toString();
+		}
+		sbMediaInfo.append(", f:");
+		sbMediaInfo.append(info.getFormatName());
+		ArrayList<TrackInfo> audiolist = info.getAudioChannelsInfo();
+		for (int i=0;i<audiolist.size();i++) {
+			sbMediaInfo.append(", a:");
+			TrackInfo item = audiolist.get(i);
+			sbMediaInfo.append(item.getCodecName());
+			sbMediaInfo.append("(");
+			
+			if(item.getTitle() != null) {
+				sbMediaInfo.append(item.getTitle());
+			}
+			else if(item.getLanguage() != null) {
+				sbMediaInfo.append(item.getLanguage());
+			}
+			else {
+				sbMediaInfo.append("默认");
+			}
+			sbMediaInfo.append(")|");
+		}
+		ArrayList<TrackInfo> subtitlelist = info.getSubtitleChannelsInfo();
+		for (int i=0;i<subtitlelist.size();i++) {
+			sbMediaInfo.append(", s:");
+			TrackInfo item = subtitlelist.get(i);
+			sbMediaInfo.append(item.getCodecName());
+			sbMediaInfo.append("(");
+			
+			if(item.getTitle() != null) {
+				sbMediaInfo.append(item.getTitle());
+			}
+			else if(item.getLanguage() != null) {
+				sbMediaInfo.append(item.getLanguage());
+			}
+			else {
+				sbMediaInfo.append("默认");
+			}
+			sbMediaInfo.append(")|");
+		}
+		
+		return sbMediaInfo.toString();
 	}
 	
 	private String GetFileExt(String path) {
@@ -1614,8 +1689,7 @@ public class ClipListActivity extends Activity implements
 	@Override
 	public boolean onInfo(MediaPlayer mp, int what, int extra) {
 		// TODO Auto-generated method stub
-		if (MediaPlayer.MEDIA_INFO_TEST_RENDER_FRAME != what)
-			Log.i(TAG, "Java: onInfo: " + what + " " + extra);
+		Log.d(TAG, "Java: onInfo: " + what + " " + extra);
 		
 		if ((MediaPlayer.MEDIA_INFO_BUFFERING_START == what) && !mIsBuffering) {
 			mBufferingProgressBar.setVisibility(View.VISIBLE);

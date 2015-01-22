@@ -641,13 +641,15 @@ void android_media_MediaPlayer_setAudioStreamType(JNIEnv *env, jobject thiz, int
 static
 void android_media_MediaPlayer_selectAudioChannel(JNIEnv *env, jobject thiz, int index)
 {
-	PPLOGD("selectAudioChannel: %d", index);
+	PPLOGI("selectAudioChannel: %d", index);
 	IPlayer* mp = getMediaPlayer(env, thiz);
 	if (mp == NULL ) {
 		PPLOGE("player is null, selectAudioChannel failed");
 		return;
 	}
-	process_media_player_call( env, thiz, mp->selectAudioChannel(index) , NULL, NULL );
+
+	if (OK != mp->selectAudioChannel(index))
+		PPLOGW("failed to set audio channel %d", index);
 }
 
 static
@@ -1330,18 +1332,9 @@ android_media_MediaPlayer_native_getMediaDetailInfo(JNIEnv *env, jobject thiz, j
 		jmethodID midSetSubtitleChannelInfo = env->GetMethodID(clazz, 
 			"setSubtitleChannelsInfo", "(IILjava/lang/String;Ljava/lang/String;Ljava/lang/String;)V");
 			
-		jmethodID midSetChnnels = env->GetMethodID(clazz,"setChannels","(Ljava/lang/String;I)V");
+		//jmethodID midSetChnnels = env->GetMethodID(clazz,"setChannels","(Ljava/lang/String;I)V");
 		jmethodID construction_id = env->GetMethodID(clazz, "<init>", "()V");
 		jobject obj = env->NewObject(clazz, construction_id);
-		for(int i=0; i<native_info.channels; i++) {
-			if (native_info.audio_languages[i] && strlen(native_info.audio_languages[i]) != 0) {
-				if (native_info.audio_titles[i] && strlen(native_info.audio_titles[i]) != 0)
-					env->CallVoidMethod(info, midSetChnnels, env->NewStringUTF(native_info.audio_titles[i]), i);
-				else
-					env->CallVoidMethod(info, midSetChnnels, env->NewStringUTF(native_info.audio_languages[i]), i);
-			}
-
-		}
 		
 		// 2015.1.9 guoliangma added
 		env->SetIntField(info, f_audio_channels, native_info.audio_channels);

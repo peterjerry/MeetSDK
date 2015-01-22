@@ -78,8 +78,8 @@ const char* url_list[PROG_MAX_NUM] = {
 	_T("http://172.16.204.106/test/hls/600000/index.m3u8"),
 	_T("http://172.16.204.106/test/hls/600000/noend.m3u8"),
 	_T("D:\\Archive\\media\\[圣斗士星矢Ω].[hysub]Saint.Seiya.Omega_11_[GB_mp4][480p].mp4"),
-	//_T("D:\\Archive\\media\\mv\\G.NA_Secret.mp4"),
-	_T("D:\\Archive\\media\\dragon_trainer_4audio.mkv"),
+	_T("D:\\Archive\\media\\mv\\G.NA_Secret.mp4"),
+	//_T("D:\\Archive\\media\\dragon_trainer_4audio.mkv"),
 
 	_T("http://zb.v.qq.com:1863/?progid=1975434150"),
 	_T("http://zb.v.qq.com:1863/?progid=3900155972"),

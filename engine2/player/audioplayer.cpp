@@ -393,10 +393,9 @@ void AudioPlayer::run()
         {
             LOGD("AudioPlayer is paused");
             AutoLock autoLock(&mLock);
-			int64_t waitUs = 10000ll;//10ms
 			struct timespec ts;
             ts.tv_sec = 0;
-            ts.tv_nsec = waitUs * 1000ll;
+            ts.tv_nsec = 10000000;//10 msec
 #if defined(__CYGWIN__) || defined(_MSC_VER)
 			int64_t now_usec = getNowUs();
 			int64_t now_sec = now_usec / 1000000;
@@ -433,7 +432,7 @@ void AudioPlayer::run()
         	            mOutputBufferingStartMs = getNowMs();
             		    LOGD("render after");
                         
-                        mAvePacketDurationMs = (mAvePacketDurationMs * 4+(pPacket->duration * 1000 * av_q2d(mAudioContext->time_base)))/5;
+                        mAvePacketDurationMs = (mAvePacketDurationMs * 4 + (int64_t)(pPacket->duration * 1000 * av_q2d(mAudioContext->time_base))) / 5;
                        	mPositionTimeMediaMs = (int64_t)(pPacket->pts * 1000 * av_q2d(mAudioContext->time_base));
                         LOGD("audio frame pts: %lld", mPositionTimeMediaMs);
                     }
@@ -456,10 +455,9 @@ void AudioPlayer::run()
     		else if(ret == FFSTREAM_ERROR_BUFFERING)
     		{
 		        LOGD("audio queue no data");
-                int64_t waitUs = 10000ll;//10ms
 				struct timespec ts;
 				ts.tv_sec = 0;
-				ts.tv_nsec = waitUs * 1000ll;
+				ts.tv_nsec = 10000000; // 10 msec
 #if defined(__CYGWIN__) || defined(_MSC_VER)
 				int64_t now_usec = getNowUs();
 				int64_t now_sec = now_usec / 1000000;

@@ -1146,8 +1146,8 @@ bool FFPlayer::render_frame()
 	if (getNowMs() - mRenderGapStartTimeMs > 1000) {
 		notifyListener_l(MEDIA_INFO, MEDIA_INFO_TEST_RENDER_AVG_MSEC, (int)mAveRenderTimeMs);
 		int64_t duration = getNowMs() - mTotalStartTimeMs;
-		if(duration > 0)
-			notifyListener_l(MEDIA_INFO, MEDIA_INFO_TEST_RENDER_FPS, (int)((double)(mRenderedFrames * 1000) / (double)duration) + 0.3f);
+		if (duration > 0)
+			notifyListener_l(MEDIA_INFO, MEDIA_INFO_TEST_RENDER_FPS, (int)(mRenderedFrames * 1000 / (double)duration + 0.3f));
 		mRenderGapStartTimeMs = getNowMs();
 	}
 #endif
@@ -1376,7 +1376,7 @@ void FFPlayer::onVideoImpl()
 #ifdef NO_AUDIO_PLAY
 	next_event_delay = 0;
 #else
-	next_event_delay = mVideoGapMs - mFrameDelay - mAveVideoDecodeTimeMs; // if video is early, mFrameDelay is negative, sleep here
+	next_event_delay = mVideoGapMs - mFrameDelay - (int32_t)mAveVideoDecodeTimeMs; // if video is early, mFrameDelay is negative, sleep here
 	if (next_event_delay < 0)
 		next_event_delay = 0;
 	LOGD("next_delay %d", next_event_delay);
@@ -2287,7 +2287,7 @@ status_t FFPlayer::decode_l(AVPacket *packet)
 		if (duration <= 0)
 			duration = 1;
 		notifyListener_l(MEDIA_INFO, MEDIA_INFO_TEST_DECODE_FPS, 
-			(int)((double)(mDecodedFrames * 1000) / (double)duration) + 0.3f);
+			(int)(mDecodedFrames * 1000 / (double)duration + 0.3f));
 		mGapStartTimeMs = getNowMs();
 	}
 #endif
@@ -3171,8 +3171,6 @@ bool FFPlayer::getMediaDetailInfo(const char* url, MediaInfo* info)
 {
     if (url == NULL || info == NULL)
 		return false;
-
-	memset(info, 0, sizeof(MediaInfo));
 
     struct stat buf;
     int32_t iresult = stat(url, &buf);

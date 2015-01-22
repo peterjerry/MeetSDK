@@ -10,7 +10,7 @@ import android.util.Log;
 
 public class Utils { 
 
-    final static String TAG = "ppmedia/Utils";
+    final static String TAG = "pplive/Utils";
 
 	public static void sleep(long timeout, TimeUnit unit) {
 		try {
