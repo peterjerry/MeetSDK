@@ -71,6 +71,7 @@ import com.pplive.meetplayer.util.LogcatHelper;
 
 
 
+
 // for thread
 import android.os.Handler;  
 import android.os.Message;
@@ -81,6 +82,7 @@ import android.pplive.media.subtitle.SimpleSubTitleParser;
 import android.pplive.media.subtitle.SubTitleParser;
 import android.pplive.media.subtitle.SubTitleSegment;
 import android.pplive.media.player.TrackInfo;
+import android.pplive.media.player.MediaPlayer.DecodeMode;
 import android.provider.MediaStore;
 import android.database.Cursor;
 
@@ -126,6 +128,7 @@ public class ClipListActivity extends Activity implements
 	private boolean mIsBuffering 				= false;
 	private boolean mStoped					= false;
 	private boolean mQuit						= false;
+	private boolean mHomed						= false;
 	
 	private String mPlayUrl;
 	private int mAudioTrackNum = 4;
@@ -409,9 +412,6 @@ public class ClipListActivity extends Activity implements
 		MediaSDK.startP2PEngine(gid, pid, auth);
 				
 		mHolder = mPreview.getHolder();
-		// 2014.12.11 fix 2.3.x device black screen(audio is o.k.) problem
-		//mHolder.setType(SurfaceHolder.SURFACE_TYPE_PUSH_BUFFERS);
-		mHolder.setFormat(PixelFormat.RGBX_8888/*RGB_565*/);
 		mHolder.addCallback(this);
 
 		this.lv_filelist = (ListView) findViewById(R.id.lv_filelist);
@@ -834,12 +834,12 @@ public class ClipListActivity extends Activity implements
 		mIsOMXSurface = MeetSDK.isOMXSurface(path);
 		Log.i(TAG, "Java: mIsOMXSurface: " + mIsOMXSurface);
 		
-		MediaPlayer.DecodeMode dec_mode = MediaPlayer.DecodeMode.AUTO;
+		DecodeMode dec_mode = DecodeMode.UNKNOWN;
 		if (0 == mPlayerImpl) {
-			dec_mode = MediaPlayer.DecodeMode.AUTO;
+			dec_mode = DecodeMode.AUTO;
 		}
 		else if (1 == mPlayerImpl) {
-			dec_mode = MediaPlayer.DecodeMode.HW_SYSTEM;
+			dec_mode = DecodeMode.HW_SYSTEM;
 		}
 		else if (2 == mPlayerImpl) {
 			boolean canPlay = false;
@@ -865,13 +865,13 @@ public class ClipListActivity extends Activity implements
 				return -1;
 			}
 			
-			dec_mode = MediaPlayer.DecodeMode.SW;
+			dec_mode = DecodeMode.SW;
 		}									
 		else if (3 == mPlayerImpl) {
-			dec_mode = MediaPlayer.DecodeMode.SW;
+			dec_mode = DecodeMode.SW;
 		}
 		else if (4 == mPlayerImpl) {
-			dec_mode = MediaPlayer.DecodeMode.SW;
+			dec_mode = DecodeMode.SW;
 		}
 		else {
 			Toast.makeText(ClipListActivity.this, "invalid player implement: " + Integer.toString(mPlayerImpl), 
@@ -948,9 +948,27 @@ public class ClipListActivity extends Activity implements
 				btnSelectAudioTrack.setVisibility(View.INVISIBLE);
 			}
 			
+			if (DecodeMode.AUTO == dec_mode) {
+				if (MeetSDK.isOMXSurface(path))
+					dec_mode = DecodeMode.HW_SYSTEM;
+				else
+					dec_mode = DecodeMode.SW;
+				//mDecodeMode = PlayerPolicy.getDeviceCapabilities(mPath);
+			}
+			
 			// force refresh a new surface
-			mPreview.setVisibility(View.GONE);
+			mPreview.setVisibility(View.INVISIBLE);
+			
+			if (DecodeMode.HW_SYSTEM == dec_mode) {
+				mHolder.setType(SurfaceHolder.SURFACE_TYPE_PUSH_BUFFERS);
+			}
+			else if (DecodeMode.SW == dec_mode){
+				mHolder.setType(SurfaceHolder.SURFACE_TYPE_NORMAL);
+				mHolder.setFormat(PixelFormat.RGBX_8888/*RGB_565*/);
+			}
+			
 			mPreview.setVisibility(View.VISIBLE);
+			
 			mPlayer = new MediaPlayer(dec_mode);
 			
 			mPreview.BindInstance(mMediaController, mPlayer);
@@ -959,7 +977,7 @@ public class ClipListActivity extends Activity implements
 			mPlayer.setDisplay(null);
 			mPlayer.reset();
 
-			mPlayer.setDisplay(mHolder);
+			mPlayer.setDisplay(mPreview.getHolder());
 			mPlayer.setAudioStreamType(AudioManager.STREAM_MUSIC);
 			mPlayer.setScreenOnWhilePlaying(true);
 			mPlayer.setOnPreparedListener(this);
@@ -970,6 +988,7 @@ public class ClipListActivity extends Activity implements
 			mPlayer.setOnInfoListener(this);
 
 			mStoped = false;
+			mHomed = false;
 			
 			boolean succeed = true;
 			try {
@@ -1545,10 +1564,18 @@ public class ClipListActivity extends Activity implements
 			return sbMediaInfo.toString();
 		}
 		sbMediaInfo.append(", f:");
-		sbMediaInfo.append(info.getFormatName());
+		sbMediaInfo.append(info.getFormatName().substring(0, 6));
+		
+		if (info.getVideoCodecName() != null) {
+			sbMediaInfo.append(", v:");
+			sbMediaInfo.append(info.getVideoCodecName());
+		}
+		
 		ArrayList<TrackInfo> audiolist = info.getAudioChannelsInfo();
-		for (int i=0;i<audiolist.size();i++) {
+		if (audiolist.size() > 0) {
 			sbMediaInfo.append(", a:");
+		}
+		for (int i=0;i<audiolist.size();i++) {
 			TrackInfo item = audiolist.get(i);
 			sbMediaInfo.append(item.getCodecName());
 			sbMediaInfo.append("(");
@@ -1565,8 +1592,10 @@ public class ClipListActivity extends Activity implements
 			sbMediaInfo.append(")|");
 		}
 		ArrayList<TrackInfo> subtitlelist = info.getSubtitleChannelsInfo();
-		for (int i=0;i<subtitlelist.size();i++) {
+		if (subtitlelist.size() > 0) {
 			sbMediaInfo.append(", s:");
+		}
+		for (int i=0;i<subtitlelist.size();i++) {
 			TrackInfo item = subtitlelist.get(i);
 			sbMediaInfo.append(item.getCodecName());
 			sbMediaInfo.append("(");
@@ -1712,7 +1741,7 @@ public class ClipListActivity extends Activity implements
 			else if(MediaPlayer.PLAYER_IMPL_TYPE_PP_PLAYER == extra)
 				str_player_type = "PP Player";
 			else
-				str_player_type = "Known Player";
+				str_player_type = "Unknown Player";
 			Toast.makeText(ClipListActivity.this, str_player_type, Toast.LENGTH_SHORT).show();
 		}
 		else if(MediaPlayer.MEDIA_INFO_TEST_DECODE_AVG_MSEC == what) {
@@ -1782,15 +1811,15 @@ public class ClipListActivity extends Activity implements
 	public void onPrepared(MediaPlayer mp) {
 		// TODO Auto-generated method stub
 		Log.i(TAG, "onPrepared");
-
+		
 		render_frame_num = 0;
 		decode_drop_frame = 0;
 		
 		//if (mListLocalFile)
 		//	mPlayer.setLooping(true);
 		
-		Log.i(TAG, String.format("Java: width %d, height %d", mp.getVideoWidth(), mp.getVideoHeight()));
-		mp.start();
+		Log.i(TAG, String.format("Java: width %d, height %d", mPlayer.getVideoWidth(), mPlayer.getVideoHeight()));
+		mPlayer.start();
 		
 		attachMediaController();
 		
@@ -1954,6 +1983,7 @@ public class ClipListActivity extends Activity implements
 		Log.i(TAG, "Java: onResume()");
 		
 		mQuit = false;
+		
 		mLayout.getLayoutParams().height = preview_height;
 		mLayout.requestLayout(); //or invalidate();
 		
@@ -1982,9 +2012,14 @@ public class ClipListActivity extends Activity implements
 
 		Log.i(TAG, "Java: onStop()");
 
-		if(this.isFinishing() && mPlayer != null) {
-			mQuit = true;
-			mPlayer.stop();
+		if (isFinishing()) {
+			if (mPlayer != null) {
+				mQuit = true;
+				mPlayer.stop();
+			}
+		}
+		else {
+			mHomed = true;
 		}
 	}
 	
@@ -2004,18 +2039,10 @@ public class ClipListActivity extends Activity implements
 	@Override
 	public void surfaceCreated(SurfaceHolder holder) {
 		// TODO Auto-generated method stub
-		Log.i(TAG, "Java: surfaceCreated()");
-		
-		if (mPlayer != null) {
-			//mPlayer.resume();
-			mHolder = holder;
-			// 2014.12.11 fix 2.3.x device black screen(audio is o.k.) problem
-			//mHolder.setType(SurfaceHolder.SURFACE_TYPE_PUSH_BUFFERS);
-			mHolder.setFormat(PixelFormat.RGBX_8888/*RGB_565*/);
-			mPlayer.setDisplay(mHolder);
-			Log.i(TAG, "Java: setDisplay()");
+		Log.i(TAG, String.format("Java: surfaceCreated() %s", holder.toString()));
+		if (mPlayer != null && mHomed) {
+			mPlayer.setDisplay(holder);
 			mPlayer.start();
-			Log.i(TAG, "Java: start()");
 		}
 	}
 

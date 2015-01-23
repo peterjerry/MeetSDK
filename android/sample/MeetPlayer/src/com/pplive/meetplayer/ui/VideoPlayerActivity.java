@@ -38,6 +38,7 @@ public class VideoPlayerActivity extends Activity {
 	private static final String TAG = "VideoPlayerActivity";
 
 	private Uri mUri = null;
+	private DecodeMode mDecodeMode;
 	private MeetVideoView mVideoView = null;
 	private MyMediaController mController;
 	private ProgressBar mBufferingProgressBar = null;
@@ -57,6 +58,22 @@ public class VideoPlayerActivity extends Activity {
 		
 		Intent intent = getIntent();
 		mUri = intent.getData();
+		int type = intent.getIntExtra("impl", 0);
+		switch(type) {
+		case 0:
+			mDecodeMode = DecodeMode.AUTO;
+			break;
+		case 1:
+			mDecodeMode = DecodeMode.HW_SYSTEM;
+			break;
+		case 3:
+			mDecodeMode = DecodeMode.SW;
+			break;
+		default:
+			Log.w(TAG, String.format("Java: unknown DecodeMode: %d", type));
+			mDecodeMode = DecodeMode.SW;
+			break;
+		}
 		Log.i(TAG, "Java: mUri " + mUri.toString());
 
 		setContentView(R.layout.activity_video_player);
@@ -131,39 +148,16 @@ public class VideoPlayerActivity extends Activity {
 		Log.i(TAG,"Step: setupPlayer()");
 
 		mController = (MyMediaController) findViewById(R.id.video_controller);
-		if (mController == null)
-			Log.e(TAG, "is null aaaaaaaaa");
 		mVideoView = (MeetVideoView) findViewById(R.id.surface_view);
 		//mVideoView.setVisibility(View.VISIBLE);
 		
-		mVideoView.setDecodeMode(DecodeMode.SW);
+		mVideoView.setDecodeMode(DecodeMode.SW/*mDecodeMode*/);
 		mVideoView.setVideoURI(mUri);
 		mController.setMediaPlayer(mVideoView);
 		mVideoView.setOnCompletionListener(mCompletionListener);
 		mVideoView.setOnErrorListener(mErrorListener);
 		mVideoView.setOnInfoListener(mInfoListener);
 		mVideoView.setOnPreparedListener(mPreparedListener);
-		
-		/*File tempFile = new File(mUri.getPath());
-		if (tempFile.isFile()) {
-			MediaInfo mInfo = MeetSDK.getMediaDetailInfo(tempFile);
-			if (null != mInfo) {
-				if (mInfo.getChannels() != null) {
-					Toast.makeText(this, String.format("audio channel: %d", mInfo.getAudioChannels()), 3000).show();
-					HashMap<Integer, String> map = mInfo.getChannels();
-	
-					Log.i(TAG, "channels info: ");
-					Iterator<Entry<Integer, String>> iter = map.entrySet().iterator();
-					while (iter.hasNext()) {
-					  Map.Entry entry = (Map.Entry) iter.next();
-					  int key = (Integer) entry.getKey();
-					  String val = (String) entry.getValue();
-					  Toast.makeText(this, val + "=" + String.valueOf(key), 3000).show();
-					  Log.i(TAG, String.format("%s = %d", val, key));
-				  }
-				}
-			}
-		}*/
 
 		mBufferingProgressBar = (ProgressBar) findViewById(R.id.progressbar_buffering);
 		if(mBufferingProgressBar == null)
@@ -201,6 +195,19 @@ public class VideoPlayerActivity extends Activity {
 			} else if ((what == MediaPlayer.MEDIA_INFO_BUFFERING_END) && mIsBuffering) {
 				mBufferingProgressBar.setVisibility(View.GONE);
 				mIsBuffering = false;
+			} else if (MediaPlayer.MEDIA_INFO_TEST_PLAYER_TYPE == what) {
+				String str_player_type;
+				if (MediaPlayer.PLAYER_IMPL_TYPE_SYSTEM_PLAYER == extra)
+					str_player_type = "System Player";
+				else if(MediaPlayer.PLAYER_IMPL_TYPE_NU_PLAYER == extra)
+					str_player_type = "Nu Player";
+				else if(MediaPlayer.PLAYER_IMPL_TYPE_FF_PLAYER == extra)
+					str_player_type = "FF Player";
+				else if(MediaPlayer.PLAYER_IMPL_TYPE_PP_PLAYER == extra)
+					str_player_type = "PP Player";
+				else
+					str_player_type = "Unknown Player";
+				Toast.makeText(VideoPlayerActivity.this, str_player_type, Toast.LENGTH_SHORT).show();
 			}
 			
 			return true;
