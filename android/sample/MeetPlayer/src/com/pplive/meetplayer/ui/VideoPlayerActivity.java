@@ -149,9 +149,10 @@ public class VideoPlayerActivity extends Activity {
 
 		mController = (MyMediaController) findViewById(R.id.video_controller);
 		mVideoView = (MeetVideoView) findViewById(R.id.surface_view);
-		//mVideoView.setVisibility(View.VISIBLE);
 		
-		mVideoView.setDecodeMode(DecodeMode.SW/*mDecodeMode*/);
+		mVideoView.setVisibility(View.INVISIBLE);
+		
+		mVideoView.setDecodeMode(mDecodeMode);
 		mVideoView.setVideoURI(mUri);
 		mController.setMediaPlayer(mVideoView);
 		mVideoView.setOnCompletionListener(mCompletionListener);
@@ -159,6 +160,8 @@ public class VideoPlayerActivity extends Activity {
 		mVideoView.setOnInfoListener(mInfoListener);
 		mVideoView.setOnPreparedListener(mPreparedListener);
 
+		mVideoView.setVisibility(View.VISIBLE);
+		
 		mBufferingProgressBar = (ProgressBar) findViewById(R.id.progressbar_buffering);
 		if(mBufferingProgressBar == null)
 			Log.e(TAG, "mBufferingProgressBar is null");

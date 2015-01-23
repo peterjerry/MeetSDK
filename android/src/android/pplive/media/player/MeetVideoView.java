@@ -13,6 +13,7 @@ import android.view.SurfaceView;
 import android.view.View;
 import android.view.accessibility.AccessibilityEvent;
 import android.view.accessibility.AccessibilityNodeInfo;
+import android.pplive.media.MeetSDK;
 import android.pplive.media.util.LogUtils;
 import android.pplive.media.player.MediaController.MediaPlayerControl;
 import android.pplive.media.player.MediaPlayer;
@@ -183,12 +184,7 @@ public class MeetVideoView extends SurfaceView implements MediaPlayerControl {
     private void initVideoView() {
         mVideoWidth = 0;
         mVideoHeight = 0;
-        SurfaceHolder holder = getHolder();
-        // guoliangma added MUST SET to support ffplay!
-        holder.setFormat(PixelFormat.RGBX_8888/*RGB_565*/);
-        
-        holder.addCallback(mSHCallback);
-        holder.setType(SurfaceHolder.SURFACE_TYPE_PUSH_BUFFERS);
+        getHolder().addCallback(mSHCallback);
         setFocusable(true);
         setFocusableInTouchMode(true);
         requestFocus();
@@ -248,6 +244,13 @@ public class MeetVideoView extends SurfaceView implements MediaPlayerControl {
         i.putExtra("command", "pause");
         mContext.sendBroadcast(i);
 
+        if (DecodeMode.AUTO == mDecodeMode) {
+        	if (MeetSDK.isOMXSurface(mContext, mUri))
+        		mDecodeMode = DecodeMode.HW_SYSTEM;
+        	else
+        		mDecodeMode = DecodeMode.SW;
+        }
+        
         // we shouldn't clear the target state, because somebody might have
         // called start() previously
         release(false);
@@ -651,6 +654,10 @@ public class MeetVideoView extends SurfaceView implements MediaPlayerControl {
 	// 2015.1.13 guoliangma added
 	public void setDecodeMode(DecodeMode mode) {
         mDecodeMode = mode;
+        
+        if (null != mDecodeMode) {
+            mDecodeMode.setSurfaceType(getHolder());
+        }
     }
 
     public DecodeMode getDecodeMode() {
