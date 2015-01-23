@@ -7,7 +7,7 @@ import android.pplive.media.player.MediaPlayer.DecodeMode;
 import android.pplive.media.util.DeviceInfoUtil;
 import android.pplive.media.util.LogUtils;
 
-class PlayerPolicy {
+public class PlayerPolicy {
 
 	private static final String TAG = "pplive/PlayerPolicy";
 	

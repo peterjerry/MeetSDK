@@ -1564,7 +1564,10 @@ public class ClipListActivity extends Activity implements
 			return sbMediaInfo.toString();
 		}
 		sbMediaInfo.append(", f:");
-		sbMediaInfo.append(info.getFormatName().substring(0, 6));
+		String strFormat = info.getFormatName();
+		if (strFormat.length() > 6)
+			strFormat = strFormat.substring(0, 6);
+		sbMediaInfo.append(strFormat);
 		
 		if (info.getVideoCodecName() != null) {
 			sbMediaInfo.append(", v:");

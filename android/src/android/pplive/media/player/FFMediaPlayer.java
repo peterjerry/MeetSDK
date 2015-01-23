@@ -25,7 +25,7 @@ import android.pplive.media.player.MediaPlayer.OnErrorListener;
 import android.pplive.media.player.MediaPlayer.OnInfoListener;
 import android.pplive.media.player.MediaPlayer.OnPreparedListener;
 import android.pplive.media.player.MediaPlayer.OnSeekCompleteListener;
-import android.pplive.media.player.MediaPlayer.OnTimedTextListener;
+//import android.pplive.media.player.MediaPlayer.OnTimedTextListener;
 import android.pplive.media.player.MediaPlayer.OnVideoSizeChangedListener;
 
 public class FFMediaPlayer implements MediaPlayerInterface {
@@ -41,7 +41,7 @@ public class FFMediaPlayer implements MediaPlayerInterface {
 	private MediaPlayer.OnPreparedListener 			mOnPreparedListener 		= null;
 	private MediaPlayer.OnSeekCompleteListener 		mOnSeekCompleteListener 	= null;
 	private MediaPlayer.OnVideoSizeChangedListener mOnVideoSizeChangedListener = null;
-	private MediaPlayer.OnTimedTextListener			mOnTimedTextListener		= null;
+	//private MediaPlayer.OnTimedTextListener			mOnTimedTextListener		= null;
 	
 	private static String libPath = "";
 	private static boolean libLoaded = false;
@@ -250,12 +250,6 @@ public class FFMediaPlayer implements MediaPlayerInterface {
 	}
 
 	@Override
-	public void setSurface(Surface surface) {
-		// TODO Auto-generated method stub
-		_setVideoSurface(surface);
-	}
-
-	@Override
 	public void prepare() throws IOException, IllegalStateException {
 		// TODO Auto-generated method stub
 		_prepare();
@@ -415,10 +409,10 @@ public class FFMediaPlayer implements MediaPlayerInterface {
 		mOnVideoSizeChangedListener = listener;
 	}
 
-	@Override
+	/*@Override
 	public void setOnTimedTextListener(OnTimedTextListener listener) {
 		mOnTimedTextListener = listener;
-	}
+	}*/
 	
 	@Override
 	public DecodeMode getDecodeMode() {

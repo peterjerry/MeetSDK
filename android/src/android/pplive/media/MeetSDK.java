@@ -17,10 +17,12 @@ import android.net.Uri;
 import android.os.Build;
 import android.os.Environment;
 import android.pplive.media.config.Config;
+import android.pplive.media.player.MediaPlayer.DecodeMode;
 import android.pplive.media.player.TrackInfo;
 import android.pplive.media.player.MediaInfo;
 import android.pplive.media.player.MeetPlayerHelper;
 import android.pplive.media.player.FFMediaPlayer;
+import android.pplive.media.player.PlayerPolicy;
 import android.pplive.media.util.DiskLruCache;
 import android.pplive.media.util.LogUtils;
 import android.pplive.media.util.UrlUtil;
@@ -208,6 +210,10 @@ public final class MeetSDK {
 		return path;
 	}
 
+	public DecodeMode getPlayerType(String url) {
+		return PlayerPolicy.getDeviceCapabilities(url);
+	}
+	
 	@Deprecated
 	public static boolean isOMXSurface(String url) {
 

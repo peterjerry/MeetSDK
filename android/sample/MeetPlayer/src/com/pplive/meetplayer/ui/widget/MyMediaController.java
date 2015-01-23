@@ -179,8 +179,9 @@ public class MyMediaController extends MediaController {
 	}
 	
 	private static final int sDefaultTimeout = 5000;
-    private static final int FADE_OUT = 1;
-    private static final int SHOW_PROGRESS = 2;
+    private static final int FADE_OUT 		= 1;
+    private static final int SHOW 			= 2;
+    private static final int UPDATE_PROGRESS 	= 3;
 	
     public boolean isShowing() {
     	return mIsShowing;
@@ -195,7 +196,7 @@ public class MyMediaController extends MediaController {
 	}
 	
 	public void show(int timeout) {
-		mHandler.sendEmptyMessage(SHOW_PROGRESS);
+		mHandler.sendEmptyMessage(SHOW);
 
         Message msg = mHandler.obtainMessage(FADE_OUT);
         if (timeout != 0) {
@@ -215,18 +216,20 @@ public class MyMediaController extends MediaController {
                 	mControllerView.setVisibility(View.INVISIBLE);
                 	mIsShowing = false;
                     break;
-                case SHOW_PROGRESS:
+                case SHOW:
                 	mControllerView.setVisibility(View.VISIBLE);
+                	mHandler.sendEmptyMessage(UPDATE_PROGRESS);
                 	mIsShowing = true;
-                	updateVolumeProgress();
-                    pos = setProgress();
-                    // keep UI always show up
-                    if (isShowing() && mPlayer.isPlaying()) {
-                        msg = obtainMessage(SHOW_PROGRESS);
-                        // update progress bar in 0-1000 msec(random)
-                        sendMessageDelayed(msg, MAX_RANDGE - (pos % MAX_RANDGE));
-                    }
                     break;
+               case UPDATE_PROGRESS:
+            	   updateVolumeProgress();
+                   pos = setProgress();
+                   // keep UI always show up
+                   if (isShowing() && mPlayer.isPlaying()) {
+                       msg = obtainMessage(UPDATE_PROGRESS);
+                       sendMessageDelayed(msg, 500);
+                   }
+            	   break;
                default:
             	   Log.w(TAG, "unknown msg: " + msg.what);
             	   break;
@@ -321,14 +324,14 @@ public class MyMediaController extends MediaController {
 			
 			show(sDefaultTimeout);
 			
-			mHandler.sendEmptyMessage(SHOW_PROGRESS);
+			mHandler.sendEmptyMessage(UPDATE_PROGRESS);
 		}
 		
 		@Override
 		public void onStartTrackingTouch(SeekBar seekBar) {
 			show(3600000);
 			
-			mHandler.removeMessages(SHOW_PROGRESS);
+			mHandler.removeMessages(UPDATE_PROGRESS);
 		}
 		
 		@Override
