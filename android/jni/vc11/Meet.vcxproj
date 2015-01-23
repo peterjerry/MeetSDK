@@ -95,6 +95,7 @@
     <Text Include="ReadMe.txt" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="..\meet\cpuext.cpp" />
     <ClCompile Include="..\meet\FFMediaPlayer.cpp" />
     <ClCompile Include="..\meet\JNIHelp.c" />
     <ClCompile Include="..\meet\pplog.cpp" />

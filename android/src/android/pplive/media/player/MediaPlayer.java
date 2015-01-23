@@ -61,9 +61,9 @@ public class MediaPlayer implements MediaPlayerInterface {
 	
 	// seek capability
 	public static final int CAN_SEEK_BACKWARD 	= 1;
-	public static final int CAN_SEEK_FORWARD 	= 2;
+	public static final int CAN_SEEK_FORWARD 		= 2;
 	public static final int CAN_PAUSE 			= 4;
-	public static final int CAN_SEEK 			= 8;
+	public static final int CAN_SEEK 				= 8;
 	
 	public static final int PLAYER_IMPL_TYPE_SYSTEM_PLAYER	= 10001;
 	public static final int PLAYER_IMPL_TYPE_NU_PLAYER		= 10002;
@@ -174,14 +174,15 @@ public class MediaPlayer implements MediaPlayerInterface {
 	@Override
 	public void setDisplay(SurfaceHolder sh) {
 		if (null != sh) {
-			mHolder = sh;
-			mSurface = sh.getSurface();
+			mHolder		= sh;
+			mSurface	= sh.getSurface();
 		}
 	}
 	
 	@Override
 	public void setSurface(Surface surface) {
-		mSurface = surface;
+		mHolder		= null;
+		mSurface	= surface;
 	}
 	
 	private void setSurface() {

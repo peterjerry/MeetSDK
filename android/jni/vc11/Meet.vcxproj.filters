@@ -47,6 +47,9 @@
     <ClCompile Include="..\meet\FFMediaPlayer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\meet\cpuext.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\meet\pplivelog.h">

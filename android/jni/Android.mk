@@ -26,7 +26,7 @@ include $(PREBUILT_SHARED_LIBRARY)
 ########################[libmeet]########################
 include $(CLEAR_VARS)
 LOCAL_C_INCLUDES 		:= meet $(ENGINE_BASE) $(SUBTITLE_BASE)/output/android/include
-MY_SRC_FILES 			:= FFMediaPlayer.cpp
+MY_SRC_FILES 			:= FFMediaPlayer.cpp cpuext.cpp
 LOCAL_SRC_FILES 		:= $(addprefix $(JNI_BASE)/, $(MY_SRC_FILES))
 LOCAL_STATIC_LIBRARIES 	:= pplog cpufeatures
 LOCAL_LDLIBS 			:= -llog

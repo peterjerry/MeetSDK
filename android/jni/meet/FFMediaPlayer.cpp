@@ -17,6 +17,7 @@
 #include "platform/platforminfo.h"
 #include "subtitle.h"
 #include "player/player.h"
+#include "cpuext.h" // for get_cpu_freq()
 
 #define USE_NDK_SURFACE_REF
 
@@ -1163,8 +1164,7 @@ jboolean android_media_MediaPlayer_native_checkCompatibility(JNIEnv *env, jobjec
 
 static int android_getCpuFreq()
 {
-	// fix me!
-	return 2000000;
+	return get_cpu_freq();
 }
 
 static
@@ -1180,9 +1180,11 @@ jint android_media_MediaPlayer_native_checkSoftwareDecodeLevel()
         int cpuCount = android_getCpuCount();
         int cpuFreq = android_getCpuFreq();
 
+		PPLOGI("cpuinfo count %d, freq %d(%.2f GHz)", cpuCount, cpuFreq, (double)cpuFreq / 1000000);
+
         if(cpuCount >= 4)// 4 cores
         {
-            level = LEVEL_SOFTWARE_SD;
+            level = LEVEL_SOFTWARE_BD;
         }
         else if(cpuCount >= 2 && cpuFreq >= 1400000) // cpu:1.4G, 2 cores
         {
