@@ -1,1 +1,19 @@
 cross-platform player for android IOS win32
+
+build guide:
+1) android
+cd foundation/build/android
+config.sh neon
+build.sh neon
+merge.sh neon
+copy to output/android
+
+cd subtitle2/build/android
+ndk-build
+copy to output/android
+
+cd engine2/build/android
+ndk build
+
+cd android
+ant release

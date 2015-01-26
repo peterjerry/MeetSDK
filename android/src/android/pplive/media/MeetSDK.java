@@ -139,6 +139,10 @@ public final class MeetSDK {
 	public static String getVersion() {
 		return Config.getVersion();
 	}
+	
+	public static String getNativeVersion() {
+		return FFMediaPlayer.native_getVersion();
+	}
 
 	public static String getBestCodec(String appPath) {
 		String codec = null;

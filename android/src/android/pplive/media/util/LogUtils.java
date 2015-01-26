@@ -57,6 +57,7 @@ public class LogUtils {
             BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(infopath)));
             StringBuffer sb = new StringBuffer();
             sb.append("MeetSDK version:").append(MeetSDK.getVersion()).append("\n");
+			sb.append("MeetSDK native_version:").append(MeetSDK.getNativeVersion()).append("\n");
             sb.append("Android version:").append(DeviceInfoUtil.getSystemVersion()).append("\n");
             sb.append("CPU cores:").append(DeviceInfoUtil.getCpuCoresNum()).append("\n");
             sb.append("CPU Freq:").append(DeviceInfoUtil.getCpuFreq()).append("\n");

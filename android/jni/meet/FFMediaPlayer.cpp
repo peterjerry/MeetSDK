@@ -13,6 +13,7 @@
 
 #define LOG_TAG "JNI-MediaPlayer"
 #include "pplog.h"
+#include "version.h" // for auto version
 #include "platform/autolock.h"
 #include "platform/platforminfo.h"
 #include "subtitle.h"
@@ -1525,6 +1526,12 @@ jint android_media_MediaPlayer_native_getCpuArchNumber()
 	return android_getCpuCount();
 }
 
+static
+jstring android_media_MediaPlayer_native_getVersion(JNIEnv *env, jobject thiz)
+{
+	return cstr2jstr(env, MEET_NATIVE_VERISON);
+}
+
 // ----------------------------------------------------------------------------
 
 static JNINativeMethod gMethods[] = {
@@ -1578,6 +1585,7 @@ static JNINativeMethod gMethods[] = {
 	{"native_getTrackInfo", 	"()[Landroid/media/MediaPlayer$TrackInfo;",	(void *)android_media_MediaPlayer_native_getTrackInfo},
 	{"native_checkSoftwareDecodeLevel",	"()I",(void *)android_media_MediaPlayer_native_checkSoftwareDecodeLevel},
 	{"native_getCpuArchNumber",	"()I",(void *)android_media_MediaPlayer_native_getCpuArchNumber},
+	{"native_getVersion",	"()Ljava/lang/String;",(void *)android_media_MediaPlayer_native_getVersion},
 };
 
 

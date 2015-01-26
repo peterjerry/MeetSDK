@@ -307,6 +307,8 @@ public class FFMediaPlayer implements MediaPlayerInterface {
 		// make sure none of the listeners get called anymore
         mEventHandler.removeCallbacksAndMessages(null);
 	}
+	
+	public static native String native_getVersion();
 
 	//Returns the width of the video.
 	@Override
