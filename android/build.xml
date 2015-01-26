@@ -162,14 +162,15 @@
 			</fileset>
 		</copy>
 		<copy file="${sdk.dir}/jars/${JarName}.jar" tofile="${sample.dir}/libs/${JarName}.jar" filtering="true" overwrite="true" />
+	</target>
+	
+	<target name="sample" >
 		<exec dir="${sample.dir}" executable="cmd" os="Windows 7"> <arg line="/c install_apk.bat"/> </exec>
 	</target>
 	
-	<target name="sample" depends="release, updatesdk" >
-	</target>
+	<target name="sampleall" depends="release, updatesdk, sample" />
 	
-	<target name="samplejava" depends="java, updatesdk" >
-	</target>
+	<target name="samplejava" depends="java, updatesdk, sample" />
 
 	<target name="clean" >
 		<delete dir="${obj.dir}" />

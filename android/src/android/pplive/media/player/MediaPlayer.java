@@ -70,6 +70,10 @@ public class MediaPlayer implements MediaPlayerInterface {
 	public static final int PLAYER_IMPL_TYPE_FF_PLAYER		= 10003;
 	public static final int PLAYER_IMPL_TYPE_PP_PLAYER		= 10004;
 	
+	/**
+	 * @author guoliangma
+	 *
+	 */
 	@SuppressWarnings("deprecation") // avoid setType warning
     public enum DecodeMode {
         HW_SYSTEM {
@@ -116,6 +120,10 @@ public class MediaPlayer implements MediaPlayerInterface {
 		this(DecodeMode.SW);
 	}
 	
+	/**
+	 * @param mode valid value: DecodeMode.SW, DecodeMode.HW_SYSTEM
+	 * @param mode invalid value: DecodeMode.AUTO(should use MeetSDK.isOMXSurface to decide mode first)
+	 */
 	public MediaPlayer(DecodeMode mode) {
 		mDecodeMode = mode;
 	}

@@ -227,15 +227,26 @@ public class MeetVideoView extends SurfaceView implements MediaPlayerControl {
     private void openVideo() {
         if (mUri == null || mSurfaceHolder == null) {
             // not ready for playback just yet, will try again later
-        	LogUtils.info("openVideo() not ready for playback");
-        	if (mUri == null)
-        		LogUtils.info("mUri is null");
-        	else
-        		LogUtils.info("mSurfaceHolder is null");
+        	LogUtils.debug("openVideo() not ready for playback");
+        	if (mUri == null) {
+        		LogUtils.debug("mUri is null");
+        	}
+        	else {
+        		LogUtils.debug("mSurfaceHolder is null");
+        		
+        		// 2015.1.16 guoliangma added
+                if (DecodeMode.AUTO == mDecodeMode) {
+                	if (MeetSDK.isOMXSurface(mContext, mUri))
+                		mDecodeMode = DecodeMode.HW_SYSTEM;
+                	else
+                		mDecodeMode = DecodeMode.SW;
+                }	
+                mDecodeMode.setSurfaceType(getHolder());
+        	}
         	
         	return;
         }
-		
+
 		LogUtils.info("openVideo()");
 		
         // Tell the music playback service to pause
@@ -244,13 +255,6 @@ public class MeetVideoView extends SurfaceView implements MediaPlayerControl {
         i.putExtra("command", "pause");
         mContext.sendBroadcast(i);
 
-        if (DecodeMode.AUTO == mDecodeMode) {
-        	if (MeetSDK.isOMXSurface(mContext, mUri))
-        		mDecodeMode = DecodeMode.HW_SYSTEM;
-        	else
-        		mDecodeMode = DecodeMode.SW;
-        }
-        
         // we shouldn't clear the target state, because somebody might have
         // called start() previously
         release(false);
@@ -654,10 +658,6 @@ public class MeetVideoView extends SurfaceView implements MediaPlayerControl {
 	// 2015.1.13 guoliangma added
 	public void setDecodeMode(DecodeMode mode) {
         mDecodeMode = mode;
-        
-        if (null != mDecodeMode) {
-            mDecodeMode.setSurfaceType(getHolder());
-        }
     }
 
     public DecodeMode getDecodeMode() {

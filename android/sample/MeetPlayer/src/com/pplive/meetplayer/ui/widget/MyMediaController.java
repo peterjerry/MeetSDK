@@ -178,9 +178,9 @@ public class MyMediaController extends MediaController {
 		}
 	}
 	
-	private static final int sDefaultTimeout = 5000;
-    private static final int FADE_OUT 		= 1;
-    private static final int SHOW 			= 2;
+	private static final int sDefaultTimeout 	= 5000;
+    private static final int FADE_OUT 			= 1;
+    private static final int SHOW 				= 2;
     private static final int UPDATE_PROGRESS 	= 3;
 	
     public boolean isShowing() {

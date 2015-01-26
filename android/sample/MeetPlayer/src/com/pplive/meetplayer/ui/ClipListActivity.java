@@ -412,6 +412,8 @@ public class ClipListActivity extends Activity implements
 		MediaSDK.startP2PEngine(gid, pid, auth);
 				
 		mHolder = mPreview.getHolder();
+		mHolder.setType(SurfaceHolder.SURFACE_TYPE_NORMAL);
+		mHolder.setFormat(PixelFormat.RGBX_8888/*RGB_565*/);
 		mHolder.addCallback(this);
 
 		this.lv_filelist = (ListView) findViewById(R.id.lv_filelist);
@@ -725,13 +727,17 @@ public class ClipListActivity extends Activity implements
 		Log.i(TAG, String.format("Java: use %d msec to get snapshot, begin to save png", elapsed));
 		
 		begin_time = System.currentTimeMillis();
-		String save_folder;
+		String save_folder = Environment.getExternalStorageDirectory().getPath() + "/test2/snapshot/";
+		File folder = new File(save_folder);
+		if (!folder.exists()) {
+			folder.mkdir();
+		}
+		
 		Date date = new Date(begin_time);
 		SimpleDateFormat dateFmt = new SimpleDateFormat("yyyy-MM-dd");
 		String timestring = dateFmt.format(date);
 		
 		String picName = String.format("%s_%d.jpg", timestring, begin_time);
-		save_folder = Environment.getExternalStorageDirectory().getPath() + "/test2/";
 		File f = new File(save_folder, picName);
 		if (f.exists()) {
 		   f.delete();

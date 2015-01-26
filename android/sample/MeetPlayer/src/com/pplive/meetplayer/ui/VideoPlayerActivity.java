@@ -58,8 +58,10 @@ public class VideoPlayerActivity extends Activity {
 		
 		Intent intent = getIntent();
 		mUri = intent.getData();
-		int type = intent.getIntExtra("impl", 0);
-		switch(type) {
+		int impl = intent.getIntExtra("impl", 0);
+		Log.i(TAG, String.format("Java player impl: %d", impl));
+		
+		switch(impl) {
 		case 0:
 			mDecodeMode = DecodeMode.AUTO;
 			break;
@@ -70,7 +72,7 @@ public class VideoPlayerActivity extends Activity {
 			mDecodeMode = DecodeMode.SW;
 			break;
 		default:
-			Log.w(TAG, String.format("Java: unknown DecodeMode: %d", type));
+			Log.w(TAG, String.format("Java: unknown DecodeMode: %d", impl));
 			mDecodeMode = DecodeMode.SW;
 			break;
 		}
