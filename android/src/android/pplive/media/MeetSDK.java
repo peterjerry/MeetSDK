@@ -142,6 +142,7 @@ public final class MeetSDK {
 		return Config.getVersion();
 	}
 
+	@Deprecated
 	public static String getBestCodec(String appPath) {
 		String codec = null;
 		try {
@@ -296,7 +297,10 @@ public final class MeetSDK {
 		return isOMXSurface(path);
 	}
 
+	@Deprecated
 	public static boolean setSurfaceType(Context ctx, SurfaceHolder holder, Uri uri) {
+		return false;
+		/*
 		if (holder == null || uri == null) {
 
 			return false;
@@ -321,27 +325,28 @@ public final class MeetSDK {
 			path = uri.toString();
 		}
 
-		// Log.d(TAG, "url: " + url);
 		boolean isOMXSurface = isOMXSurface(path);
 		setSurfaceType(holder, isOMXSurface);
 		return isOMXSurface;
+		*/
 	}
 
+	@Deprecated
 	public interface SurfaceTypeDecider {
 		public boolean isOMXSurface();
 	}
 
+	@Deprecated
 	public static void setSurfaceType(SurfaceHolder holder, SurfaceTypeDecider decider) {
 		setSurfaceType(holder, decider.isOMXSurface());
 	}
 
-	@SuppressWarnings("deprecation")
+	@Deprecated
 	public static void setSurfaceType(SurfaceHolder holder, boolean isOMXSurface) {
+		/*
 		if (isOMXSurface) {
-			// Log.d(TAG, "surface push buffer");
 			holder.setType(SurfaceHolder.SURFACE_TYPE_PUSH_BUFFERS);
 		} else {
-			// Log.d(TAG, "surface normal");
 			holder.setType(SurfaceHolder.SURFACE_TYPE_NORMAL);
 			holder.setFormat(PixelFormat.RGBX_8888);
 			if(FullScreenWidth > 0 && FullScreenHeight > 0)
@@ -349,6 +354,7 @@ public final class MeetSDK {
 			    holder.setFixedSize(FullScreenWidth, FullScreenHeight);
 			}
 		}
+		*/
 	}
 
 	/**
@@ -387,7 +393,6 @@ public final class MeetSDK {
 		return bitmap;
 	}
 	
-
 	public synchronized static Bitmap createImageThumbnail(ContentResolver cr, int origId, String filePath, int kind) {
 
         Bitmap bitmap = null;
@@ -481,6 +486,13 @@ public final class MeetSDK {
 		return bitmap;
 	}
 	
+	public static boolean setLogPath()
+    {
+		String DEFAULT_LOGFILE = "/pptv/tmp/outputlog.log";
+        return LogUtils.init(Environment.getExternalStorageDirectory() + DEFAULT_LOGFILE, 
+        		Environment.getExternalStorageDirectory() + "/pptv/tmp/");
+    }
+	
     public static boolean setLogPath(String logfile)
     {
         return LogUtils.init(logfile, Environment.getExternalStorageDirectory() + "/pptv/tmp/");
@@ -496,14 +508,17 @@ public final class MeetSDK {
         LogUtils.makeUploadLog();
     }
 
+    @Deprecated
     public static void setPlayerStatus(int code)
     {
         status = code;
     }
 
+    @Deprecated
     public static int getPlayerStatus()
     {
         return status;
     }
+    
 	private MeetSDK() {}
 }

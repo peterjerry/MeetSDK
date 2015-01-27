@@ -25,6 +25,7 @@ import android.widget.Toast;
 
 import com.pplive.meetplayer.R;
 import com.pplive.meetplayer.ui.widget.MyMediaController;
+import com.pplive.meetplayer.util.Util;
 import com.pplive.sdk.MediaSDK;
 
 import android.pplive.media.MeetSDK;
@@ -152,8 +153,6 @@ public class VideoPlayerActivity extends Activity {
 		mController = (MyMediaController) findViewById(R.id.video_controller);
 		mVideoView = (MeetVideoView) findViewById(R.id.surface_view);
 		
-		mVideoView.setVisibility(View.INVISIBLE);
-		
 		mVideoView.setDecodeMode(mDecodeMode);
 		mVideoView.setVideoURI(mUri);
 		mController.setMediaPlayer(mVideoView);
@@ -161,8 +160,6 @@ public class VideoPlayerActivity extends Activity {
 		mVideoView.setOnErrorListener(mErrorListener);
 		mVideoView.setOnInfoListener(mInfoListener);
 		mVideoView.setOnPreparedListener(mPreparedListener);
-
-		mVideoView.setVisibility(View.VISIBLE);
 		
 		mBufferingProgressBar = (ProgressBar) findViewById(R.id.progressbar_buffering);
 		if(mBufferingProgressBar == null)
@@ -250,6 +247,16 @@ public class VideoPlayerActivity extends Activity {
 			return true;
 		}
 		
+		@Override
+		public void onLongPress(MotionEvent e) {
+			Log.i(TAG, "onLongPress!!!");
+			if (mVideoView != null) {
+				mVideoView.stopPlayback();
+				
+				mVideoView.setVideoURI(mUri);
+				mVideoView.start();
+			}
+		}
 	});
 	
 	@Override
