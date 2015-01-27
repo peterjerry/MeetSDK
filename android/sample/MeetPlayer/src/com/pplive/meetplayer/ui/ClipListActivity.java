@@ -1,8 +1,10 @@
 package com.pplive.meetplayer.ui;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
+import java.io.FileReader;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.HttpURLConnection;
@@ -65,6 +67,8 @@ import com.pplive.meetplayer.util.AtvUtils;
 import com.pplive.meetplayer.util.DownloadAsyncTask;
 import com.pplive.meetplayer.util.FeedBackFactory;
 import com.pplive.meetplayer.util.LogcatHelper;
+
+
 
 
 // for thread
@@ -195,7 +199,7 @@ public class ClipListActivity extends Activity implements
 	
 	private final static String home_folder		= "/test2";
 	
-	private final static String QUICK_TEST_PLAYLINK = "http://172.16.204.104/200438.mp4";
+	private final static String QUICK_TEST_PLAYLINK = "http://172.16.204.104/11.mkv";
 	
 	private final static String H265_TEST_PLAYLINK = "http://127.0.0.1:9106/record.m3u8?type=pplive3&playlink=300146%3fft%3D2%26type%3dphone.android%26h265%3d2";
 	//"http://127.0.0.1:9106/record.m3u8?type=ppvod2&playlink=12110607%3fft%3d3%26type%3dclient.vip%26param%3duserType%253D1%26h265%3d1%26bwtype%3d2";
@@ -537,13 +541,37 @@ public class ClipListActivity extends Activity implements
 		this.btnPPboxSel.setOnClickListener(new Button.OnClickListener() {
 			@Override
 			public void onClick(View view) {
-				final int ppbox_playlink[] = {8888888, 99999999, 18139131, 10110649, 17054339, 17461610, 17631361, 17611359, 
+				final ArrayList<String> list_title = new ArrayList<String>();
+				final ArrayList<String> list_url = new ArrayList<String>();
+				
+				list_title.add("阿森纳");
+				list_title.add("韩国傻瓜");
+				list_title.add("恋爱的技术");
+				list_title.add("约会专家");
+				list_title.add("恋爱相对论");
+				list_title.add("后遗症");
+				list_title.add("吉林卫视");
+				list_title.add("新娱乐");
+				list_title.add("东方电影");
+				list_title.add("新闻综合");
+				list_title.add("东方购物");
+				list_title.add("电视剧");
+				list_title.add("星尚");
+				list_title.add("第一财经");
+				
+				final int fixed_size = list_title.size();
+
+				LoadTvList(list_title, list_url);
+				
+				final String[] ppbox_clipname = (String[])list_title.toArray(new String[list_title.size()]);  
+				
+				final int ppbox_playlink[] = {18139131, 10110649, 17054339, 17461610, 17631361, 17611359, 
 					300176, 300151, 300149, 300156, 300254, 300153, 300155, 300154};
-				final String ppbox_clipname[] = {"h265测试", "快速测试", "阿森纳", "韩国傻瓜", "恋爱的技术", "约会专家", "恋爱相对论", "后遗症", 
-					"吉林卫视", "新娱乐" , "东方电影", "新闻综合", "东方购物", "电视剧", "星尚", "第一财经"};
-				final int ppbox_type[] = {0, 0, 0, 0, 0, 0, 0, 0, 
+				//final String ppbox_clipname[] = {"h265测试", "快速测试", "阿森纳", "韩国傻瓜", "恋爱的技术", "约会专家", "恋爱相对论", "后遗症", 
+				//	"吉林卫视", "新娱乐" , "东方电影", "新闻综合", "东方购物", "电视剧", "星尚", "第一财经"};
+				final int ppbox_type[] = {0, 0, 0, 0, 0, 0, 
 					1, 1, 1, 1, 1, 1, 1, 1}; //0-vod.m3u8, 1-play.m3u8
-				final int ppbox_ft[] = {2, 2, 2, 2, 2, 2, 3, 2, 
+				final int ppbox_ft[] = {2, 2, 2, 2, 3, 2, 
 					1, 1, 1, 1, 1, 1, 1, 1};//2-超清, 3-bd
 				
 				Dialog choose_ppbox_res_dlg = new AlertDialog.Builder(ClipListActivity.this)
@@ -551,26 +579,36 @@ public class ClipListActivity extends Activity implements
 					.setSingleChoiceItems(ppbox_clipname, -1, /*default selection item number*/
 						new DialogInterface.OnClickListener(){
 						public void onClick(DialogInterface dialog, int whichButton) {
-							et_playlink.setText(String.valueOf(ppbox_playlink[whichButton]));
-							//et_bw_type.setText("3");
-							et_ft.setText(String.valueOf(ppbox_ft[whichButton]));
-							if (0 == ppbox_type[whichButton]) {
-								play_type = MEET_PLAY_TYPE.PPTV_VOD_TYPE;
+							if (whichButton < fixed_size) {
+								et_playlink.setText(String.valueOf(ppbox_playlink[whichButton]));
+								et_ft.setText(String.valueOf(ppbox_ft[whichButton]));
+								if (0 == ppbox_type[whichButton]) {
+									play_type = MEET_PLAY_TYPE.PPTV_VOD_TYPE;
+								}
+								else {
+									play_type = MEET_PLAY_TYPE.PPTV_LIVE_TYPE;
+								}
+								
+								Log.i(TAG, String.format("Java: choose %d %s %d", 
+										whichButton, ppbox_clipname[whichButton], ppbox_playlink[whichButton]));
 							}
 							else {
-								play_type = MEET_PLAY_TYPE.PPTV_LIVE_TYPE;
+								String url = list_url.get(whichButton - fixed_size);
+								Log.i(TAG, String.format("Java: choose #%d title: %s, url: %s", 
+										whichButton, list_title.get(whichButton), url));
+								
+								start_player(url);
 							}
 								
-							if (whichButton == 0) {
+							/*if (whichButton == 0) {
 								start_player(H265_TEST_PLAYLINK);
 							}
 							else if(whichButton == 1) {
 								start_player(QUICK_TEST_PLAYLINK);
-							}
+							}*/
 							
 							dialog.cancel();
-							Log.i(TAG, String.format("Java: choose %d %s %d", 
-									whichButton, ppbox_clipname[whichButton], ppbox_playlink[whichButton]));
+							
 						}
 					})
 					.setNegativeButton("Cancel",
@@ -697,6 +735,50 @@ public class ClipListActivity extends Activity implements
 				}
 			}
 		});
+	}
+	
+	private void LoadTvList(ArrayList<String> list_title, ArrayList<String> list_url) {
+		String str_tvlist = Environment.getExternalStorageDirectory().getAbsolutePath() + "/tvlist.txt";
+		File file = new File(str_tvlist);
+		if (file.exists()) {
+		    FileInputStream fin = null;
+		    
+			try {
+			    fin = new FileInputStream(file);
+			    
+			    byte[] buf = new byte[fin.available()];
+			    
+		    	fin.read(buf);
+		    	String s = new String(buf);
+
+			    int pos = 0;
+			    while (true) {
+			    	int comma = s.indexOf(',', pos);
+			    	int newline = s.indexOf('\n', pos);
+			    	if (comma == -1)
+			    		break;
+			    	if (newline == -1)
+			    		newline = s.length();
+			    	
+			    	String title = s.substring(pos, comma);
+			    	String url = s.substring(comma + 1, newline);
+			    	Log.i(TAG, String.format("Java: filecontext title: %s url: %s", title, url));
+			    	list_title.add(title);
+			    	list_url.add(url);
+			    	pos = newline + 1;
+			    }
+			    
+			    fin.close();
+			      
+			} catch (FileNotFoundException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+			catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		}
 	}
 	
 	private void TakeSnapShot() {

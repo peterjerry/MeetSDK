@@ -62,21 +62,20 @@ public class PlayerPolicy {
 	private static DecodeMode getDeviceCapabilitiesCommon(
 			String url, String formatName, String videoCodecName, String audioCodecName) {
 		
-		LogUtils.info(String.format("Java: getDeviceCapabilitiesCommon %s %s %s %s", 
-				url, formatName, videoCodecName, audioCodecName));
+		if (null == url || url.equals(""))
+			return DecodeMode.SW;
 		
 		int AndroidSystemVersion = DeviceInfoUtil.getSystemVersionInt();
-		LogUtils.info(String.format("Java: android version %d", AndroidSystemVersion));
 		
 		// audio
-		String[] audioformats = new String[]{"flac", "mp3", "ogg", "wav", "mid", "amr"};
+		final String[] audioformats = {"flac", "mp3", "ogg", "wav", "mid", "amr"};
 		for (String temp : audioformats) {
 			if (url.toLowerCase().endsWith(temp))
 				return DecodeMode.HW_SYSTEM;
 		}
 		
 		// image
-		String[] imageformats = new String[]{"bmp", "jpeg", "jpg", "png", "gif"};
+		final String[] imageformats = {"bmp", "jpeg", "jpg", "png", "gif"};
 		for (String temp : imageformats) {
 			if (url.toLowerCase().endsWith(temp))
 				return DecodeMode.HW_SYSTEM;
@@ -115,15 +114,18 @@ public class PlayerPolicy {
 	
 	private static DecodeMode getDeviceCapabilitiesPPBoxMini(
 			String url, String formatName, String videoCodecName, String audioCodecName) {
+		if (null == url || url.equals(""))
+			return DecodeMode.SW;
+		
 		// audio
-		String[] audioformats = new String[]{"flac", "mp3", "ogg", "wav", "mid", "amr", "ape", "pcm"};
+		final String[] audioformats = {"flac", "mp3", "ogg", "wav", "mid", "amr", "ape", "pcm"};
 		for (String temp : audioformats) {
 			if (url.toLowerCase().endsWith(temp))
 				return DecodeMode.HW_SYSTEM;
 		}
 		
 		// image
-		String[] imageformats = new String[]{"bmp", "jpeg", "jpg", "png", "gif"};
+		final String[] imageformats = {"bmp", "jpeg", "jpg", "png", "gif"};
 		for (String temp : imageformats) {
 			if (url.toLowerCase().endsWith(temp))
 				return DecodeMode.HW_SYSTEM;
