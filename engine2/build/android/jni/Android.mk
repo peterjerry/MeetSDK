@@ -28,7 +28,7 @@ include $(CLEAR_VARS)
 LOCAL_MODULE			:= player_neon
 LOCAL_C_INCLUDES		:= $(LOCAL_PATH)/$(FFMPEG_PATH)/include $(LOCAL_PATH)/$(SUBTITLEPATH)/include \
 	$(LOCAL_PATH)/$(PLATFORMPATH) $(LOCAL_PATH)/$(PLATFORMPATH)/yuv2rgb $(LOCAL_PATH)/$(PLAYERPATH) 
-LOCAL_CFLAGS    		:= -Wall -DNDK_BUILD=1 -DUSE_NDK_SURFACE_REF -DUSE_AV_FILTER -DTEST_PERFORMANCE -DTEST_PERFORMANCE_BITRATE #-DNO_AUDIO_PLAY 
+LOCAL_CFLAGS    		:= -Wall -DNDK_BUILD=1 -DUSE_NDK_SURFACE_REF -DTEST_PERFORMANCE -DTEST_PERFORMANCE_BITRATE #-DNO_AUDIO_PLAY -DUSE_AV_FILTER 
 MY_SRC_PLAYER_FILES 	:= ffstream.cpp audioplayer.cpp audiorender.cpp ffplayer.cpp ffrender.cpp filesource.cpp
 MY_SRC_PLATFORM_FILES	:= audiotrack_android.c \
 	surface_android.cpp log_android.c packetqueue.cpp list.cpp loop.cpp utils.cpp

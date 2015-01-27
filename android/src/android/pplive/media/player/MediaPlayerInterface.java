@@ -20,7 +20,7 @@ import android.pplive.media.player.MediaPlayer.OnErrorListener;
 import android.pplive.media.player.MediaPlayer.OnInfoListener;
 import android.pplive.media.player.MediaPlayer.OnPreparedListener;
 import android.pplive.media.player.MediaPlayer.OnSeekCompleteListener;
-import android.pplive.media.player.MediaPlayer.OnTimedTextListener;
+//import android.pplive.media.player.MediaPlayer.OnTimedTextListener;
 import android.pplive.media.player.MediaPlayer.OnVideoSizeChangedListener;
 
 public interface MediaPlayerInterface {
@@ -46,8 +46,6 @@ public interface MediaPlayerInterface {
 			IllegalArgumentException, IllegalStateException;
 			
 	public abstract void setDisplay(SurfaceHolder sh);
-
-	public abstract void setSurface(Surface surface);
 	
 	public abstract int flags() throws IllegalStateException;
 	
@@ -84,10 +82,6 @@ public interface MediaPlayerInterface {
 	public abstract boolean isLooping();
 
 	public abstract void setLooping (boolean looping);
-	
-	//public abstract void setScreenOnWhilePlaying(boolean screenOn);
-
-	//public abstract void setWakeMode(Context context, int mode);
 
 	public abstract void setAudioStreamType(int streamType);
 	
@@ -120,7 +114,7 @@ public interface MediaPlayerInterface {
 
 	public abstract void setOnVideoSizeChangedListener(OnVideoSizeChangedListener listener);
 
-	public abstract void setOnTimedTextListener(OnTimedTextListener listener);
+	//public abstract void setOnTimedTextListener(OnTimedTextListener listener);
 	
 	public abstract DecodeMode getDecodeMode();
 }

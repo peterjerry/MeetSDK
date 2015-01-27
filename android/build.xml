@@ -18,6 +18,7 @@
 	<property name="sdk.dir" location="sdk" />
 	<property name="dist.dir" location="dist" />
 	<property name="symbol.dir" location="syms" />
+	<property name="sample.dir" location="sample/MeetPlayer" />
 
 	<tstamp>
 		<format property="build.timestamp" pattern="yyyyMMddHHmm" />
@@ -153,6 +154,23 @@
 		<mkdir dir="${dist.dir}" />
 		<zip destfile="${dist.dir}/${SdkName}_${sdk.version}.zip" basedir="${sdk.dir}" />
 	</target>
+	
+	<target name="updatesdk" >
+		<copy todir="${sample.dir}/libs" overwrite="true" verbose="true">
+			<fileset dir="${libs.dir}">
+				<filename name="**/*.so" />
+			</fileset>
+		</copy>
+		<copy file="${sdk.dir}/jars/${JarName}.jar" tofile="${sample.dir}/libs/${JarName}.jar" filtering="true" overwrite="true" />
+	</target>
+	
+	<target name="sample" >
+		<exec dir="${sample.dir}" executable="cmd" os="Windows 7"> <arg line="/c install_apk.bat"/> </exec>
+	</target>
+	
+	<target name="sampleall" depends="release, updatesdk, sample" />
+	
+	<target name="samplejava" depends="java, updatesdk, sample" />
 
 	<target name="clean" >
 		<delete dir="${obj.dir}" />

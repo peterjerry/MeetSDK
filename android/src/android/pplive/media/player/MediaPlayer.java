@@ -70,6 +70,10 @@ public class MediaPlayer implements MediaPlayerInterface {
 	public static final int PLAYER_IMPL_TYPE_FF_PLAYER		= 10003;
 	public static final int PLAYER_IMPL_TYPE_PP_PLAYER		= 10004;
 	
+	/**
+	 * @author guoliangma
+	 *
+	 */
 	@SuppressWarnings("deprecation") // avoid setType warning
     public enum DecodeMode {
         HW_SYSTEM {
@@ -81,6 +85,7 @@ public class MediaPlayer implements MediaPlayerInterface {
         SW {
             @Override
             public MediaPlayerInterface newInstance(MediaPlayer mp) {
+            	LogUtils.info("use ffplayer");
                 return new FFMediaPlayer(mp);
             }
             
@@ -93,6 +98,7 @@ public class MediaPlayer implements MediaPlayerInterface {
         AUTO, UNKNOWN;
 
         public MediaPlayerInterface newInstance(MediaPlayer mp) {
+        	LogUtils.info("use system player");
             return new SystemMediaPlayer(mp);
         }
         
@@ -102,7 +108,7 @@ public class MediaPlayer implements MediaPlayerInterface {
     }
 	
 	private MediaPlayerInterface mPlayer = null;
-	private DecodeMode mDecodeMode = DecodeMode.AUTO;
+	private DecodeMode mDecodeMode = DecodeMode.SW;
 	private Surface mSurface = null;
 	private SurfaceHolder mHolder = null;
 
@@ -111,9 +117,13 @@ public class MediaPlayer implements MediaPlayerInterface {
 	private boolean mStayAwake = false;
 
 	public MediaPlayer() {
-		this(DecodeMode.AUTO);
+		this(DecodeMode.SW);
 	}
 	
+	/**
+	 * @param mode valid value: DecodeMode.SW, DecodeMode.HW_SYSTEM
+	 * @param mode invalid value: DecodeMode.AUTO(should use MeetSDK.isOMXSurface to decide mode first)
+	 */
 	public MediaPlayer(DecodeMode mode) {
 		mDecodeMode = mode;
 	}
@@ -177,17 +187,13 @@ public class MediaPlayer implements MediaPlayerInterface {
 			mHolder		= sh;
 			mSurface	= sh.getSurface();
 		}
-	}
-	
-	@Override
-	public void setSurface(Surface surface) {
-		mHolder		= null;
-		mSurface	= surface;
+		
+		setSurface();
 	}
 	
 	private void setSurface() {
-		if (null != mPlayer && null != mSurface)
-			mPlayer.setSurface(mSurface);
+		if (null != mPlayer && null != mHolder)
+			mPlayer.setDisplay(mHolder);
 	}
 	
 	private void setupMediaPlayer() throws IllegalStateException {
@@ -202,21 +208,14 @@ public class MediaPlayer implements MediaPlayerInterface {
 		}
 		
 		if (DecodeMode.AUTO == mDecodeMode) {
-			if (MeetSDK.isOMXSurface(mPath))
-				mDecodeMode = DecodeMode.HW_SYSTEM;
-			else
-				mDecodeMode = DecodeMode.SW;
-			//mDecodeMode = PlayerPolicy.getDeviceCapabilities(mPath);
+			LogUtils.error("DecodeMode = AUTO is invalid");
+		    throw new IllegalStateException("invalid DecodeMode");
 		}
 		
 		mPlayer = mDecodeMode.newInstance(this);
 		
 		if (null == mPlayer)
 			throw new IllegalStateException("failed to create new instance of MediaPlayer");
-			
-		// fixme!!!
-		//if (null != mHolder)
-		//	mDecodeMode.setSurfaceType(mHolder);
 		
 		try {
 			mPlayer.setDataSource(mPath);
@@ -758,7 +757,7 @@ public class MediaPlayer implements MediaPlayerInterface {
 	 * Interface definition of a callback to be invoked when a timed text is
 	 * available for display.
 	 */
-	public interface OnTimedTextListener {
+	//public interface OnTimedTextListener {
 		/**
 		 * Called to indicate an avaliable timed text
 		 * 
@@ -768,10 +767,10 @@ public class MediaPlayer implements MediaPlayerInterface {
 		 *            the timed text sample which contains the text needed to be
 		 *            displayed and the display format.
 		 */
-		public void onTimedText(MediaPlayer mp, TimedText text);
-	}
+	//	public void onTimedText(MediaPlayer mp, TimedText text);
+	//}
 	
-	private OnTimedTextListener mOnTimedTextListener;
+	/*private OnTimedTextListener mOnTimedTextListener;
 	@Override
 	public void setOnTimedTextListener(OnTimedTextListener listener) {
 		mOnTimedTextListener = listener;
@@ -780,7 +779,7 @@ public class MediaPlayer implements MediaPlayerInterface {
 		if (mPlayer != null) {
 			mPlayer.setOnTimedTextListener(mOnTimedTextListener);
 		}
-	}
+	}*/
 
 	@Override
 	public TrackInfo[] getTrackInfo() throws IllegalStateException {

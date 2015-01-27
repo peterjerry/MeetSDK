@@ -5,6 +5,8 @@ import java.lang.reflect.Method;
 import android.annotation.SuppressLint;
 import android.media.TimedText;
 import android.util.Log;
+import android.view.Surface;
+import android.view.SurfaceHolder;
 import android.graphics.Bitmap;
 import android.pplive.media.subtitle.SimpleSubTitleParser;
 import android.pplive.media.util.LogUtils;
@@ -15,7 +17,7 @@ import android.pplive.media.player.MediaPlayer.OnErrorListener;
 import android.pplive.media.player.MediaPlayer.OnInfoListener;
 import android.pplive.media.player.MediaPlayer.OnPreparedListener;
 import android.pplive.media.player.MediaPlayer.OnSeekCompleteListener;
-import android.pplive.media.player.MediaPlayer.OnTimedTextListener;
+//import android.pplive.media.player.MediaPlayer.OnTimedTextListener;
 import android.pplive.media.player.MediaPlayer.OnVideoSizeChangedListener;
 
 @SuppressLint("NewApi")
@@ -72,6 +74,11 @@ public class SystemMediaPlayer extends android.media.MediaPlayer implements
 		}
 		
 		return cap;
+	}
+	
+	@Override
+	public void setDisplay(SurfaceHolder sh) {
+		super.setDisplay(sh);
 	}
 	
 	@Override
@@ -279,7 +286,7 @@ public class SystemMediaPlayer extends android.media.MediaPlayer implements
 		super.setOnVideoSizeChangedListener(mSystemOnVideoSizeChangedListener);
 	}
 
-	private MediaPlayer.OnTimedTextListener mOnTimedTextListener = null;
+	/*private MediaPlayer.OnTimedTextListener mOnTimedTextListener = null;
 	private android.media.MediaPlayer.OnTimedTextListener mSystemOnTimedTextListener = new OnTimedTextListener() {
 
 		@Override
@@ -298,7 +305,7 @@ public class SystemMediaPlayer extends android.media.MediaPlayer implements
 			MediaPlayer.OnTimedTextListener listener) {
 		mOnTimedTextListener = listener;
 		super.setOnTimedTextListener(mSystemOnTimedTextListener);
-	}
+	}*/
 
 	@Override
 	public DecodeMode getDecodeMode() {

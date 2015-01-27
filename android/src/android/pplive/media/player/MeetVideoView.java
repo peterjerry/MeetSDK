@@ -13,6 +13,7 @@ import android.view.SurfaceView;
 import android.view.View;
 import android.view.accessibility.AccessibilityEvent;
 import android.view.accessibility.AccessibilityNodeInfo;
+import android.pplive.media.MeetSDK;
 import android.pplive.media.util.LogUtils;
 import android.pplive.media.player.MediaController.MediaPlayerControl;
 import android.pplive.media.player.MediaPlayer;
@@ -65,7 +66,8 @@ public class MeetVideoView extends SurfaceView implements MediaPlayerControl {
 	
 	private int mDisplayMode = SCREEN_FIT;
 	
-	private DecodeMode mDecodeMode = DecodeMode.HW_SYSTEM;
+	private DecodeMode mDecodeMode = DecodeMode.AUTO;
+	private DecodeMode mDecodeModeImpl;
 	private Context mContext;
 	private int mAudioChannel = -1; // default
 	// end of guoliangma added
@@ -183,12 +185,7 @@ public class MeetVideoView extends SurfaceView implements MediaPlayerControl {
     private void initVideoView() {
         mVideoWidth = 0;
         mVideoHeight = 0;
-        SurfaceHolder holder = getHolder();
-        // guoliangma added MUST SET to support ffplay!
-        holder.setFormat(PixelFormat.RGBX_8888/*RGB_565*/);
-        
-        holder.addCallback(mSHCallback);
-        holder.setType(SurfaceHolder.SURFACE_TYPE_PUSH_BUFFERS);
+        getHolder().addCallback(mSHCallback);
         setFocusable(true);
         setFocusableInTouchMode(true);
         requestFocus();
@@ -212,7 +209,19 @@ public class MeetVideoView extends SurfaceView implements MediaPlayerControl {
         mUri = uri;
         mHeaders = headers;
         mSeekWhenPrepared = 0;
-        openVideo();
+        // 2015.1.27 guoliangma
+        //openVideo();
+        mDecodeModeImpl = mDecodeMode;
+        if (DecodeMode.AUTO == mDecodeModeImpl) {
+        	if (MeetSDK.isOMXSurface(mContext, mUri))
+        		mDecodeModeImpl = DecodeMode.HW_SYSTEM;
+        	else
+        		mDecodeModeImpl = DecodeMode.SW;
+        }
+        setVisibility(View.INVISIBLE);
+        mDecodeModeImpl.setSurfaceType(getHolder());
+        setVisibility(View.VISIBLE);
+        
         requestLayout();
         invalidate();
     }
@@ -229,17 +238,16 @@ public class MeetVideoView extends SurfaceView implements MediaPlayerControl {
     }
 
     private void openVideo() {
-        if (mUri == null || mSurfaceHolder == null) {
+		if (mUri == null || mSurfaceHolder == null) {
             // not ready for playback just yet, will try again later
-        	LogUtils.info("openVideo() not ready for playback");
+        	LogUtils.debug("openVideo() not ready for playback");
         	if (mUri == null)
-        		LogUtils.info("mUri is null");
+        		LogUtils.debug("mUri is null");
         	else
-        		LogUtils.info("mSurfaceHolder is null");
-        	
+        		LogUtils.debug("mSurfaceHolder is null");
         	return;
         }
-		
+
 		LogUtils.info("openVideo()");
 		
         // Tell the music playback service to pause
@@ -252,7 +260,7 @@ public class MeetVideoView extends SurfaceView implements MediaPlayerControl {
         // called start() previously
         release(false);
         try {
-            mMediaPlayer = new MediaPlayer(mDecodeMode);
+            mMediaPlayer = new MediaPlayer(mDecodeModeImpl);
             mMediaPlayer.setOnPreparedListener(mPreparedListener);
             mMediaPlayer.setOnVideoSizeChangedListener(mSizeChangedListener);
             mDuration = -1;
