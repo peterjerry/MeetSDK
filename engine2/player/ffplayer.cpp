@@ -2803,11 +2803,6 @@ int64_t FFPlayer::getFramePTS_l(AVFrame* frame)
     return pts;
 }
 
-/*status_t FFPlayer::setPlayRate(double rate)
-{
-	return INVALID_OPERATION;
-}*/
-
 #ifdef __ANDROID__
 status_t FFPlayer::startCompatibilityTest()
 {
@@ -2816,7 +2811,7 @@ status_t FFPlayer::startCompatibilityTest()
     AVFormatContext* movieFile = avformat_alloc_context();
     const int maxLen = 300;
     const char* fileName = "lib/libsample.so";
-    int32_t pathLen = strlen("/data/data/com.pplive.androidphone")+strlen(fileName)+1;
+    int32_t pathLen = strlen("/data/data/com.pplive.androidphone") + strlen(fileName)+1;
     if(pathLen >= maxLen) return ERROR;
     char path[maxLen];
     memset(path, 0, maxLen);
@@ -2958,10 +2953,8 @@ status_t FFPlayer::startCompatibilityTest()
     }
     return ret;
 }
-
 #endif
 
-#if defined(__ANDROID__) || defined(_MSC_VER)
 status_t FFPlayer::getBufferingTime(int *msec)
 {
     if(mDataStream != NULL)
@@ -2974,7 +2967,6 @@ status_t FFPlayer::getBufferingTime(int *msec)
         return OK;
     }
 }
-#endif
 
 bool FFPlayer::getMediaInfo(const char* url, MediaInfo* info)
 {
@@ -3728,15 +3720,6 @@ SnapShot * FFPlayer::getSnapShot(int width, int height, int fmt, int msec)
 
 	LOGI("getSnapShot() done! %dx%d(stride %d, fmt %d)", ss->width, ss->height, ss->stride, ss->picture_fmt);
 	return ss;
-}
-
-bool FFPlayer::getTrackInfo(TrackInfo** info, int *max_num)
-{
-	if (!mDataStream) {
-		return false;
-	}
-
-	return mDataStream->getTrackInfo(info, max_num);
 }
 
 static int open_codec_context(int *stream_idx,

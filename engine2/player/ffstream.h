@@ -107,13 +107,12 @@ public:
 
 	URL_TYPE getURLType(){return mUrlType;}
 
-	bool getTrackInfo(TrackInfo** info, int *max_num);
-
 	REALTIME_LEVEL getRealtimeLevel(){return mRealtimeLevel;}
-#if defined(__ANDROID__) || defined(_MSC_VER)
+
 	status_t getBufferingTime(int *msec);
-#endif
+
 	status_t refresh();
+
 	status_t disableStream(int32_t streamIndex);
 	
 private:

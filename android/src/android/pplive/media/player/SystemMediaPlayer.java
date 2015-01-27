@@ -39,7 +39,9 @@ public class SystemMediaPlayer extends android.media.MediaPlayer implements
 		mMediaPlayer = mp;
 	}
 	
+	@Override
 	public int getBufferingTime() {
+		//not implement in system player
 	    return 0;
 	}
 	

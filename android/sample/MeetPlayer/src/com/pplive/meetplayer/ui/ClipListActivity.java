@@ -67,11 +67,6 @@ import com.pplive.meetplayer.util.FeedBackFactory;
 import com.pplive.meetplayer.util.LogcatHelper;
 
 
-
-
-
-
-
 // for thread
 import android.os.Handler;  
 import android.os.Message;
@@ -124,7 +119,6 @@ public class ClipListActivity extends Activity implements
 	
 	private boolean mIsPreview					= true;
 	
-	private boolean mIsOMXSurface 				= false;
 	private boolean mIsBuffering 				= false;
 	private boolean mStoped					= false;
 	private boolean mQuit						= false;
@@ -133,7 +127,7 @@ public class ClipListActivity extends Activity implements
 	private String mPlayUrl;
 	private int mAudioTrackNum = 4;
 	private int mAudioChannel = 1;
-	private int mPlayerImpl = 3;
+	private int mPlayerImpl = 0;
 	
 	// subtitle
 	private SimpleSubTitleParser mSubtitleParser;
@@ -836,9 +830,6 @@ public class ClipListActivity extends Activity implements
 		
 		setTitle(path);
 		Log.i(TAG, "Java: clipname: " + mPlayUrl);
-			
-		mIsOMXSurface = MeetSDK.isOMXSurface(path);
-		Log.i(TAG, "Java: mIsOMXSurface: " + mIsOMXSurface);
 		
 		DecodeMode dec_mode = DecodeMode.UNKNOWN;
 		if (0 == mPlayerImpl) {
@@ -955,11 +946,8 @@ public class ClipListActivity extends Activity implements
 			}
 			
 			if (DecodeMode.AUTO == dec_mode) {
-				if (MeetSDK.isOMXSurface(path))
-					dec_mode = DecodeMode.HW_SYSTEM;
-				else
-					dec_mode = DecodeMode.SW;
-				//mDecodeMode = PlayerPolicy.getDeviceCapabilities(mPath);
+				dec_mode = MeetSDK.getPlayerType(mPlayUrl);
+				Log.i(TAG, "Java: dec_mode " + dec_mode.toString());
 			}
 			
 			// force refresh a new surface

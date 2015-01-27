@@ -11,8 +11,10 @@ public class PlayerPolicy {
 
 	private static final String TAG = "pplive/PlayerPolicy";
 	
-	private static final String PPBOX_MODEL_NAME = "mt8127_box_p1v1";
-	
+	private static final String PPBOX_MINI_MODEL_NAME = "mt8127_box_p1v1";
+	private static final String BUILDID_PPBOX1S = "ppbox1s";
+	private static final String BUILDID_PPBOXMINI = "ppboxmini";
+
 	@Deprecated
 	public static DecodeMode getDeviceCapabilities(Uri uri) {
 		// fix me
@@ -20,13 +22,19 @@ public class PlayerPolicy {
 	}
 	
 	public static DecodeMode getDeviceCapabilities(String url) {
-		MediaInfo info;
-
-		info = MeetPlayerHelper.getMediaDetailInfo(url);
-		if (info == null)
-			return DecodeMode.UNKNOWN;
+		LogUtils.info("Java: getDeviceCapabilities " + url);
 		
-		int AndroidSystemVersion = DeviceInfoUtil.getSystemVersionInt();
+		if (!url.startsWith("/") && !url.startsWith("file://")) {
+			// network stream use ffplay
+			return DecodeMode.SW;
+		}
+		
+		MediaInfo info = MeetPlayerHelper.getMediaDetailInfo(url);
+		if (info == null) {
+			LogUtils.info("Java: failed to get media info");
+			return DecodeMode.SW;
+		}
+		
 		String formatName = info.getFormatName();
 		String videoCodecName = info.getVideoCodecName();
 		String audioCodecName = null;
@@ -35,34 +43,51 @@ public class PlayerPolicy {
 			audioCodecName = audiolist.get(0).getCodecName();
 		}
 		
-		if (!url.startsWith("/")) {
-			// network stream use ffplay
-			return DecodeMode.SW;
-		}
+		String buildString = android.os.Build.ID;
 		
-		if (PPBOX_MODEL_NAME == DeviceInfoUtil.getModel()) {
+		if (buildString.startsWith(BUILDID_PPBOXMINI)) {
+			LogUtils.info("use ppbox getDeviceCapabilitiesPPBoxMini");
+			return getDeviceCapabilitiesPPBoxMini(url, formatName, videoCodecName, audioCodecName);
+		}
+		else if(buildString.startsWith(BUILDID_PPBOX1S)) {
 			LogUtils.info("use ppbox getDeviceCapabilitiesPPBox");
 			return getDeviceCapabilitiesPPBox(url, formatName, videoCodecName, audioCodecName);
 		}
-
+		else {
+			LogUtils.info("use ppbox getDeviceCapabilitiesCommon");
+			return getDeviceCapabilitiesCommon(url, formatName, videoCodecName, audioCodecName);
+		}
+	}
+	
+	private static DecodeMode getDeviceCapabilitiesCommon(
+			String url, String formatName, String videoCodecName, String audioCodecName) {
+		
+		LogUtils.info(String.format("Java: getDeviceCapabilitiesCommon %s %s %s %s", 
+				url, formatName, videoCodecName, audioCodecName));
+		
+		int AndroidSystemVersion = DeviceInfoUtil.getSystemVersionInt();
+		LogUtils.info(String.format("Java: android version %d", AndroidSystemVersion));
+		
 		// audio
-		if ("flac" == formatName || "mp3" == formatName || "ogg" == formatName ||
-				"wav" == formatName || "mid" == formatName || "amr" == formatName) {
-			return DecodeMode.HW_SYSTEM;
+		String[] audioformats = new String[]{"flac", "mp3", "ogg", "wav", "mid", "amr"};
+		for (String temp : audioformats) {
+			if (url.toLowerCase().endsWith(temp))
+				return DecodeMode.HW_SYSTEM;
 		}
 		
 		// image
-		if ("bmp" == formatName || "jpeg" == formatName ||
-			"png" == formatName || "gif" == formatName) {
-			return DecodeMode.HW_SYSTEM;
+		String[] imageformats = new String[]{"bmp", "jpeg", "jpg", "png", "gif"};
+		for (String temp : imageformats) {
+			if (url.toLowerCase().endsWith(temp))
+				return DecodeMode.HW_SYSTEM;
 		}
 		
 		if (AndroidSystemVersion >= 14 /* 4.0+ */ ) { 
 			// video
 			if (url.endsWith("mp4") || url.endsWith("3gp") ||
-				"mpegts" == formatName || url.endsWith("mkv")) {
-				if ((null == videoCodecName || "h263" == videoCodecName || "h264" == videoCodecName) && 
-					(null == audioCodecName || "aac" == audioCodecName)) {
+				formatName.equals("mpegts") || url.endsWith("mkv")) {
+				if ((null == videoCodecName || videoCodecName.equals("h263") || videoCodecName.equals("h264")) && 
+					(null == audioCodecName || audioCodecName.equals("aac"))) {
 					return DecodeMode.HW_SYSTEM;
 				}
 			}
@@ -70,16 +95,16 @@ public class PlayerPolicy {
 		else if (AndroidSystemVersion >= 11 /* < 3.0 */) {
 			// video
 			if (url.endsWith("mp4") || url.endsWith("3gp")) {
-				if ((null == videoCodecName || "h263" == videoCodecName || "h264" == videoCodecName) && 
-					(null == audioCodecName || "aac" == audioCodecName)) {
-					return DecodeMode.HW_SYSTEM;
-				}
+				if ((null == videoCodecName || videoCodecName.equals("h263") || videoCodecName.equals("h264")) && 
+						(null == audioCodecName || audioCodecName.equals("aac"))) {
+						return DecodeMode.HW_SYSTEM;
+					}
 			}
 		}
 		else { /* 2.0 */
 			// video
 			if (url.endsWith("3gp")) {
-				if ((null == videoCodecName || "h263" == videoCodecName) && null == audioCodecName) {
+				if ((null == videoCodecName || videoCodecName.equals("h263")) && null == audioCodecName) {
 					return DecodeMode.HW_SYSTEM;
 				}
 			}
@@ -88,35 +113,41 @@ public class PlayerPolicy {
 		return DecodeMode.SW;
 	}
 	
-	private static DecodeMode getDeviceCapabilitiesPPBox(
+	private static DecodeMode getDeviceCapabilitiesPPBoxMini(
 			String url, String formatName, String videoCodecName, String audioCodecName) {
-		// video
-		if (url.endsWith("mp4") || url.endsWith("3gp") || "mpegts" == formatName ||
-				url.endsWith("flv")) {
-			if (("h263" == videoCodecName || "h264" == videoCodecName || 
-				"hevc" == videoCodecName || "mpeg4" == videoCodecName ||
-				"xvid" == videoCodecName || "divx" == videoCodecName) 
-				&& 
-				(null == audioCodecName || "aac" == audioCodecName || 
-				"vorbis" == audioCodecName || "wma" == audioCodecName)) {
-				return DecodeMode.HW_SYSTEM;
-			}
-		}
-		
 		// audio
-		if ("mp3" == formatName || "flac" == formatName || 
-			"vorbis" == formatName || "ape" == formatName || 
-			"amr" == formatName || "mid" == formatName ||
-			"pcm" == formatName || "wav" == formatName) {
-			return DecodeMode.HW_SYSTEM;
+		String[] audioformats = new String[]{"flac", "mp3", "ogg", "wav", "mid", "amr", "ape", "pcm"};
+		for (String temp : audioformats) {
+			if (url.toLowerCase().endsWith(temp))
+				return DecodeMode.HW_SYSTEM;
 		}
 		
 		// image
-		if ("bmp" == formatName || "jpeg" == formatName ||
-			"png" == formatName || "gif" == formatName) {
-			return DecodeMode.HW_SYSTEM;
+		String[] imageformats = new String[]{"bmp", "jpeg", "jpg", "png", "gif"};
+		for (String temp : imageformats) {
+			if (url.toLowerCase().endsWith(temp))
+				return DecodeMode.HW_SYSTEM;
+		}
+		
+		// video
+		if (url.endsWith("mp4") || url.endsWith("3gp") || formatName.equals("mpegts") ||
+				url.endsWith("flv")) {
+			if ((null == videoCodecName || 
+				 videoCodecName.equals("h263") ||  videoCodecName.equals("h264") || 
+				 videoCodecName.equals("hevc") ||  videoCodecName.equals("mpeg4") ||
+				 videoCodecName.equals("xvid") ||  videoCodecName.equals("divx")) 
+				 && 
+				 (null == audioCodecName || audioCodecName.equals("aac") || 
+				 audioCodecName.equals("vorbis") || audioCodecName.equals("wma"))) {
+				return DecodeMode.HW_SYSTEM;
+			}
 		}
 
 		return DecodeMode.SW;
+	}
+	
+	private static DecodeMode getDeviceCapabilitiesPPBox(
+			String url, String formatName, String videoCodecName, String audioCodecName) {
+		return getDeviceCapabilitiesCommon(url, formatName, videoCodecName, audioCodecName);
 	}
 }

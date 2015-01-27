@@ -329,6 +329,7 @@ public class FFMediaPlayer implements MediaPlayerInterface {
 	public native int getDuration();
 	
 	//return buffering time in milliseconds
+	@Override
 	public native int getBufferingTime();
 	
 	public native int flags() throws IllegalStateException;

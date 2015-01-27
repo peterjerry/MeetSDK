@@ -63,26 +63,30 @@ public:
     bool isPlaying();
 #ifdef __ANDROID__ 
 	status_t startCompatibilityTest();
+
 	void stopCompatibilityTest(){}
 #endif
-#if defined(__ANDROID__) || defined(_MSC_VER)
+
 	status_t getBufferingTime(int *msec);
-#endif
-    status_t startP2PEngine(){return OK;}
-    void stopP2PEngine(){}
-	void disconnect(){}
+
 	status_t suspend();
+
     status_t resume();
+
 	//status_t setPlayRate(double rate);
 	
     void notify(int32_t msg, int32_t ext1 = 0, int32_t ext2 = 0);
 
 	bool getMediaInfo(const char* url, MediaInfo* info);
+
 	bool getMediaDetailInfo(const char* url, MediaInfo* info);
+
 	bool getThumbnail(const char* url, MediaInfo* info);
+
 	bool getThumbnail2(const char* url, MediaInfo* info);
+
 	SnapShot* getSnapShot(int width, int height, int fmt, int msec = -1);
-	bool getTrackInfo(TrackInfo** info, int *max_num);
+
 	status_t setISubtitle(ISubtitles* subtitle);
 
 	static void onPrepare(void *opaque);

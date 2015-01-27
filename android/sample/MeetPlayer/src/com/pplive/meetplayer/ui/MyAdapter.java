@@ -36,7 +36,7 @@ public class MyAdapter extends SimpleAdapter {
     
 	@Override
     public void setViewImage(ImageView view, String value) {
-		Log.i(TAG, "Java: setViewImage: " + value);
+		Log.d(TAG, "Java: setViewImage: " + value);
 		
 		super.setViewImage(view, value);
 		
@@ -44,13 +44,13 @@ public class MyAdapter extends SimpleAdapter {
 				
 		//new ThumbNailTask().execute(value); // async task will cause thumbnail mismatch	
 		
-		Log.i(TAG, "Java: setViewImage: start: " + value + ", scrolling:" + mScrolling);
+		Log.d(TAG, "Java: setViewImage: start: " + value + ", scrolling:" + mScrolling);
 		if (mScrolling)
 			view.setImageResource(R.drawable.clip);
 		else
 			((ImageView)view).setImageBitmap(MeetSDK.createVideoThumbnail(value, Thumbnails.MICRO_KIND)); 
 		
-		Log.i(TAG, "Java: setViewImage: stop: " + value);
+		Log.d(TAG, "Java: setViewImage: stop: " + value);
 		
 		// system thumnnail
         /*Bitmap bitmap = getVideoThumb(value);
@@ -72,7 +72,7 @@ public class MyAdapter extends SimpleAdapter {
         @Override  
         protected Bitmap doInBackground(String... params) {  
             //第二个执行方法,onPreExecute()执行完后执行  
-			Log.i(TAG, "Java: to get thumbnail: " + params[0]);
+			Log.d(TAG, "Java: to get thumbnail: " + params[0]);
             return MeetSDK.createVideoThumbnail(params[0], Thumbnails.MICRO_KIND); 
         }  
   

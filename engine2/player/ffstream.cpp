@@ -1227,7 +1227,6 @@ void FFStream::notifyListener_l(int msg, int ext1, int ext2)
     mListener->notify(msg, ext1, ext2);
 }
 
-#if defined(__ANDROID__) || defined(_MSC_VER)
 status_t FFStream::getBufferingTime(int *msec)
 {
     if(mBufferSize <= 0 || mVideoQueue.count() == 0) {
@@ -1241,7 +1240,6 @@ status_t FFStream::getBufferingTime(int *msec)
     //LOGI("buffering time: %d[ms]", *msec);
     return OK;
 }
-#endif
 
 int64_t FFStream::getDurationMs()
 {
@@ -1284,38 +1282,6 @@ status_t FFStream::disableStream(int32_t streamIndex)
     return OK;
 }
 
-bool FFStream::getTrackInfo(TrackInfo** info, int *max_num)
-{
-	if (NULL == info || *max_num < 1) {
-		LOGE("track info is empty");
-		return false;
-	}
 
-	/*for (int i = 0; i < (int)mStreamsCount; i++) {
-		(*(info + i))->type = MEDIA_TRACK_TYPE_UNKNOWN;
-
-		if (mMovieFile->streams[i]->codec->codec_type == AVMEDIA_TYPE_AUDIO) {
-			(*(info + i))->type = MEDIA_TRACK_TYPE_AUDIO;
-			(*(info + i))->fmt.channels	= mMovieFile->streams[i]->codec->channels;
-			(*(info + i))->fmt.sample_rate= mMovieFile->streams[i]->codec->sample_rate;
-			(*(info + i))->fmt.sample_fmt	= mMovieFile->streams[i]->codec->sample_fmt;
-		}
-		else if (mMovieFile->streams[i]->codec->codec_type == AVMEDIA_TYPE_VIDEO) {
-			(*(info + i))->type			= MEDIA_TRACK_TYPE_VIDEO;
-			(*(info + i))->fmt.width		= mMovieFile->streams[i]->codec->width;
-			(*(info + i))->fmt.height		= mMovieFile->streams[i]->codec->height;
-			(*(info + i))->fmt.pixel_fmt	= mMovieFile->streams[i]->codec->pix_fmt;
-		}
-		else if (mMovieFile->streams[i]->codec->codec_type == AVMEDIA_TYPE_SUBTITLE) {
-			(*(info + i))->type = MEDIA_TRACK_TYPE_SUBTITLE;
-		}
-		else {
-			LOGW("unknown stream: %d", mMovieFile->streams[i]->codec->codec_type);
-		}
-	}*/
-
-	*max_num = mStreamsCount;
-	return true;
-}
 
 

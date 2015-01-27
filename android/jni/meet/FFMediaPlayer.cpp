@@ -890,23 +890,12 @@ static void unloadPlayerLib(void** handler)
 }
 
 static
-bool loadPlayerLib(bool generalPlayer) // use ffplay if ture, use ppplayer if false(decode ppbox demux data from API call)
+bool loadPlayerLib(bool generalPlayer) // use ffplay if true, use ppplayer if false(decode ppbox demux data from API call)
 {
 	PPLOGI("loadPlayerLib");
 
 	void** player_handle = NULL; // handle to shared library
-	if (generalPlayer) {
-		// force load sw handle
-		if (player_handle_hardware)
-			unloadPlayerLib(&player_handle_hardware);
-		player_handle = &player_handle_software;
-	}
-	else {
-		// force load hw handle
-		if (player_handle_software)
-			unloadPlayerLib(&player_handle_software);
-		player_handle = &player_handle_hardware;
-	}
+	player_handle = &player_handle_software;
 
 	if (*player_handle && getPlayerFun) {// already loaded
 		PPLOGI("lib already loaded");
@@ -923,89 +912,37 @@ bool loadPlayerLib(bool generalPlayer) // use ffplay if ture, use ppplayer if fa
 
 	// load player lib
 	if (*player_handle == NULL) {
-		if (generalPlayer) {
-			PPLOGI("using ffplay");
-			uint64_t cpuFeatures = android_getCpuFeatures();
-			const char* libName = getCodecLibName(cpuFeatures); //libplayer_neon.so
+		PPLOGI("using ffplay");
+		uint64_t cpuFeatures = android_getCpuFeatures();
+		const char* libName = getCodecLibName(cpuFeatures); //libplayer_neon.so
 
-			do {
-				//0. try to load from specified lib path
-				if (strcmp(gPlatformInfo->lib_path, "") != 0) {
-					libPath = vstrcat(gPlatformInfo->lib_path, libName);
-					PPLOGI("Load lib #1: %s", libPath);
-					*player_handle = loadLibrary(libPath);
-					if(!player_handle)
-						PPLOGW("step0 loadLibrary failed: %s", libPath);
-					free(libPath);
-					if (*player_handle)
-						break;
-				}
-
-				//1. try to load from app lib path
-				libPath = vstrcat(gPlatformInfo->app_path, "lib/", libName);
+		do {
+			//0. try to load from specified lib path
+			if (strcmp(gPlatformInfo->lib_path, "") != 0) {
+				libPath = vstrcat(gPlatformInfo->lib_path, libName);
 				PPLOGI("Load lib #1: %s", libPath);
 				*player_handle = loadLibrary(libPath);
 				if(!player_handle)
-					PPLOGW("step1 loadLibrary failed: %s", libPath);
+					PPLOGW("step0 loadLibrary failed: %s", libPath);
 				free(libPath);
 				if (*player_handle)
 					break;
-
-				//2. try to load from app player path
-				libPath = vstrcat(gPlatformInfo->app_path, "player/lib/", libName);
-				PPLOGI("Load lib #2: %s", libPath);
-				*player_handle = loadLibrary(libPath);
-				if(!player_handle)
-					PPLOGW("step2 loadLibrary failed: %s", libPath);
-				free(libPath);
-				if (*player_handle)
-					break;
-
-				//3. ppbox load system/lib
-				libPath = vstrcat("/system/lib/", libName);
-				PPLOGI("Load lib %s", libPath);
-				*player_handle = loadLibrary(libPath);
-				if(!player_handle)
-					PPLOGW("step3 loadLibrary failed: %s", libPath);
-				free(libPath);
-				if (*player_handle)
-					break;
-
-				/*
-				//4. try armv6_vfp codec
-				libPath = vstrcat(gPlatformInfo->app_path, "lib/libplayer_v6_vfp.so");
-				PPLOGI("Load lib %s", libPath);
-				*player_handle = loadLibrary(libPath);
-				if(!player_handle)
-					PPLOGW("step4 loadLibrary failed: %s", libPath);
-				free(libPath);*/
-
-			}while(0);
-
-			if (NULL == *player_handle) {
-				PPLOGE("oops: all loadlibrary try failed");
-				return false;
-			}
-		}
-		else
-		{
-			PPLOGI("using ppplay");
-			const char* libName = NULL;
-			if (!strncmp(gPlatformInfo->release_version, "4.", strlen("4."))) {
-				libName = "lib/libppplayer_a14.so";
-			} else {
-				libName = "lib/libppplayer.so";
 			}
 
-			libPath = vstrcat(gPlatformInfo->app_path, libName);
-			PPLOGI("Load lib %s", libPath);
+			//1. try to load from app lib path
+			libPath = vstrcat(gPlatformInfo->app_path, "lib/", libName);
+			PPLOGI("Load lib #1: %s", libPath);
 			*player_handle = loadLibrary(libPath);
+			if(!player_handle)
+				PPLOGW("step1 loadLibrary failed: %s", libPath);
 			free(libPath);
+			if (*player_handle)
+				break;
+		}while(0);
 
-			if (NULL == *player_handle) {
-				PPLOGE("failed to load ppplay lib");
-				return false;
-			}
+		if (NULL == *player_handle) {
+			PPLOGE("oops: all loadlibrary try failed");
+			return false;
 		}
 	}
 

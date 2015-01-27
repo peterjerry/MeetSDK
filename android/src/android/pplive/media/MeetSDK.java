@@ -215,7 +215,7 @@ public final class MeetSDK {
 		return path;
 	}
 
-	public DecodeMode getPlayerType(String url) {
+	public static DecodeMode getPlayerType(String url) {
 		return PlayerPolicy.getDeviceCapabilities(url);
 	}
 	

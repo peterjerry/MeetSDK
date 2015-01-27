@@ -107,24 +107,6 @@ typedef struct SnapShot {
 	uint8_t*	picture_data;
 } SnapShot;
 
-typedef struct MediaFormat {
-	// for video
-	int32_t		width;
-	int32_t		height;
-	int32_t		pixel_fmt;
-	int32_t		frame_rate;
-	// for audio
-	int32_t		channels;
-	int32_t		sample_rate;
-	int32_t		sample_fmt;
-} MediaFormat;
-
-typedef struct TrackInfo {
-	MediaFormat	fmt;
-	int32_t		type;
-	char*		language;
-} TrackInfo;
-
 // player callback
 enum media_event_type {
     MEDIA_NOP               = 0, // interface test message
@@ -224,16 +206,24 @@ class IPlayer
 public:
 	// init
 	virtual status_t setDataSource(const char *url) = 0;
+
 	virtual status_t setVideoSurface(void* surface) = 0;
+
 	virtual status_t prepare() = 0;
+
 	virtual status_t prepareAsync() = 0;
 
 	// controll
 	virtual status_t start() = 0;
+
 	virtual status_t stop() = 0;
+
 	virtual status_t pause() = 0;
+
 	virtual status_t seekTo(int msec) = 0;
+
 	virtual status_t selectAudioChannel(int32_t index){return -1;} 
+
 	virtual	status_t setISubtitle(ISubtitles* subtitle){return -1;}
 
 	// listener
@@ -241,15 +231,23 @@ public:
 
 	// query
 	virtual status_t	getVideoWidth(int *w) = 0;
+
 	virtual status_t	getVideoHeight(int *h) = 0;
+
 	virtual status_t	getCurrentPosition(int *msec) = 0;
+
 	virtual status_t	getDuration(int *msec) = 0;
+
 	virtual status_t	getProcessBytes(int64_t *len) = 0;
+
 	virtual bool		getMediaInfo(const char* url, MediaInfo* info){return false;} 
+
 	virtual bool		getMediaDetailInfo(const char* url, MediaInfo* info){return false;}
+
 	virtual bool		getThumbnail(const char* url, MediaInfo* info){return false;}
+
 	virtual SnapShot*	getSnapShot(int width, int height, int fmt, int msec = -1){return NULL;}
-	virtual bool getTrackInfo(TrackInfo* info, int *max_num){return false;}
+
 	virtual int			flags() = 0;
 	
 	virtual ~IPlayer() {}
@@ -259,21 +257,30 @@ public:
 #ifdef __ANDROID__
 	virtual status_t startCompatibilityTest() = 0;
 	virtual void stopCompatibilityTest() = 0;
-	virtual status_t getBufferingTime(int *msec) = 0;
 #endif
-	virtual status_t startP2PEngine() = 0;
-	virtual void stopP2PEngine() = 0;
+
+	virtual status_t getBufferingTime(int *msec) = 0;
+
 	virtual status_t reset() = 0;
+
 	virtual status_t setAudioStreamType(int type) = 0;
+
 	virtual status_t setLooping(int loop) = 0;
+
 	virtual bool isLooping() = 0;
+
 	virtual status_t setVolume(float leftVolume, float rightVolume) = 0;
+
 	virtual bool isPlaying() = 0;
+
 	virtual status_t setDataSource(int fd, int64_t offset, int64_t length) = 0;
+
 	virtual void notify(int msg, int ext1, int ext2) = 0;
-	virtual void disconnect() = 0;
+
 	virtual status_t suspend() = 0;
+
 	virtual status_t resume() = 0;
+
 	//virtual status_t setPlayRate(double rate) = 0;
 };
 
