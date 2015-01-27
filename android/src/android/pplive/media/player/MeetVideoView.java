@@ -225,7 +225,9 @@ public class MeetVideoView extends SurfaceView implements MediaPlayerControl {
     }
 
     private void openVideo() {
-        if (mUri == null || mSurfaceHolder == null) {
+		DecodeMode mode = mDecodeMode;
+        
+		if (mUri == null || mSurfaceHolder == null) {
             // not ready for playback just yet, will try again later
         	LogUtils.debug("openVideo() not ready for playback");
         	if (mUri == null) {
@@ -235,13 +237,13 @@ public class MeetVideoView extends SurfaceView implements MediaPlayerControl {
         		LogUtils.debug("mSurfaceHolder is null");
         		
         		// 2015.1.16 guoliangma added
-                if (DecodeMode.AUTO == mDecodeMode) {
+                if (DecodeMode.AUTO == mode) {
                 	if (MeetSDK.isOMXSurface(mContext, mUri))
-                		mDecodeMode = DecodeMode.HW_SYSTEM;
+                		mode = DecodeMode.HW_SYSTEM;
                 	else
-                		mDecodeMode = DecodeMode.SW;
+                		mode = DecodeMode.SW;
                 }	
-                mDecodeMode.setSurfaceType(getHolder());
+                mode.setSurfaceType(getHolder());
         	}
         	
         	return;
@@ -259,7 +261,7 @@ public class MeetVideoView extends SurfaceView implements MediaPlayerControl {
         // called start() previously
         release(false);
         try {
-            mMediaPlayer = new MediaPlayer(mDecodeMode);
+            mMediaPlayer = new MediaPlayer(mode);
             mMediaPlayer.setOnPreparedListener(mPreparedListener);
             mMediaPlayer.setOnVideoSizeChangedListener(mSizeChangedListener);
             mDuration = -1;

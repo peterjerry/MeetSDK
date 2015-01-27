@@ -201,7 +201,7 @@ public class ClipListActivity extends Activity implements
 	
 	private final static String home_folder		= "/test2";
 	
-	private final static String QUICK_TEST_PLAYLINK = "http://127.0.0.1:9106/record.m3u8?type=pplive3&playlink=38701%3Fft%3D1%26name%3D6699b6ab460a415ea7d0dfab96195baf%26svrhost%3D60.55.12.168%3A80%26svrtime%3D1421216679%26delaytime%3D0%26bitrate%3D400%26interval%3D5%26bwtype%3D0%26sdkmode%3D0%26livepath%3D%2Flive%26begin_time%3D1421029885%26end_time%3D1421042495%26type%3Dipptv%26platform%3Daph%26appplt%3Daph%26appid%3DPPTVIBOBO%26appver%3D2.0.2&realtime=low&serialnum=1";
+	private final static String QUICK_TEST_PLAYLINK = "http://172.16.204.104/200438.mp4";
 	
 	private final static String H265_TEST_PLAYLINK = "http://127.0.0.1:9106/record.m3u8?type=pplive3&playlink=300146%3fft%3D2%26type%3dphone.android%26h265%3d2";
 	//"http://127.0.0.1:9106/record.m3u8?type=ppvod2&playlink=12110607%3fft%3d3%26type%3dclient.vip%26param%3duserType%253D1%26h265%3d1%26bwtype%3d2";
