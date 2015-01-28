@@ -21,6 +21,8 @@ public class Util {
 		MediaSDK.libPath = libPath;
 		MediaSDK.logPath = "/data/data/com.pplive.meetplayer/cache";
 		MediaSDK.logOn = false;
+		MediaSDK.setConfig("", "HttpManager", "addr", "127.0.0.1:9106+");
+		MediaSDK.setConfig("", "RtspManager", "addr", "127.0.0.1:5156+");
 		
 		long ret = -1;
 

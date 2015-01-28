@@ -78,7 +78,8 @@ const char* url_list[PROG_MAX_NUM] = {
 	_T("http://172.16.204.106/test/hls/600000/index.m3u8"),
 	_T("http://172.16.204.106/test/hls/600000/noend.m3u8"),
 	_T("D:\\Archive\\media\\[圣斗士星矢Ω].[hysub]Saint.Seiya.Omega_11_[GB_mp4][480p].mp4"),
-	_T("D:\\Archive\\media\\mv\\G.NA_Secret.mp4"),
+	_T("D:\\Archive\\media\\test\\liuyan\\PPBOX-3178_有严重的噪音_80M.mpg"),
+	//_T("D:\\Archive\\media\\mv\\G.NA_Secret.mp4"),
 	//_T("D:\\Archive\\media\\dragon_trainer_4audio.mkv"),
 
 	_T("http://zb.v.qq.com:1863/?progid=1975434150"),
@@ -265,7 +266,7 @@ BOOL CtestSDLdlgDlg::OnInitDialog()
 
 	mComboURL.SetCurSel(4/*PPTV_HLS_URL_OFFSET + 3*/);
 
-	mCheckLooping.SetCheck(TRUE);
+	//mCheckLooping.SetCheck(TRUE);
 
 	DragAcceptFiles(TRUE);
 
@@ -459,12 +460,13 @@ void CtestSDLdlgDlg::OnBnClickedStart()
 	status_t status;
 
 	if (mPlayer) {
+		KillTimer(0);
+
 		LOGI("before call player stop");
 		mPlayer->stop();
 		LOGI("after call player stop");
 		delete mPlayer;
 		mPlayer = NULL;
-		KillTimer(0);
 
 		if (mSurface2) {
 			SDL_FreeSurface(mSurface2);
@@ -510,9 +512,6 @@ void CtestSDLdlgDlg::OnBnClickedStart()
 	}
 
 	mPlayer = new FFPlayer;
-	MediaInfo info;
-	mPlayer->getMediaDetailInfo(mUrl.GetBuffer(0), &info);
-
 	mPlayer->setListener(this);
 	mPlayer->setDataSource(mUrl.GetBuffer(0));
 	status = mPlayer->prepareAsync();
@@ -807,15 +806,7 @@ bool CtestSDLdlgDlg::OnPrepared()
 
 	if (mCheckLooping.GetCheck())
 		mPlayer->setLooping(1);
-
-	/*TrackInfo *pTI = new TrackInfo[8];
-	memset(pTI, 0, sizeof(TrackInfo) * 8);
-	int num = 8;
-	if (mPlayer->getTrackInfo(&pTI, &num)) {
-		for(int i=0;i<num;i++) {
-			LOGI("type %d", pTI[i].type);
-		}
-	}*/
+	mPlayer->seekTo(10000); // 10 sec
 
 	mPlayer->getDuration(&mDuration);
 	mPlayer->getVideoWidth(&mWidth);
@@ -943,10 +934,36 @@ bool CtestSDLdlgDlg::startP2P()
 	return true;
 }
 
+void CtestSDLdlgDlg::Cleanup()
+{
+	LOGI("Cleanup()");
+
+	KillTimer(0);
+
+	if (mPlayer) {
+		LOGI("stop player");
+		mPlayer->stop();
+		delete mPlayer;
+		mPlayer = NULL;
+	}
+
+	if (mSurface2) {
+		LOGI("free sdl surface");
+		SDL_FreeSurface(mSurface2);
+		mSurface2 = NULL;
+	}
+
+	LOGI("SDL_Quit()");
+	SDL_Quit();
+
+	LOGI("PPBOX_StopP2PEngine()");
+	PPBOX_StopP2PEngine();
+}
+
 void CtestSDLdlgDlg::OnDestroy()
 {
 	__super::OnDestroy();
 
 	// TODO: 在此处添加消息处理程序代码
-	PPBOX_StopP2PEngine();
+	Cleanup();
 }

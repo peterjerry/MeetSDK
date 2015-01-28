@@ -80,6 +80,7 @@ private:
 	int64_t getSec();
 	void drawBuffering();
 	bool OnPrepared();
+	void Cleanup();
 public:
 	afx_msg void OnLButtonUp(UINT nFlags, CPoint point);
 	afx_msg void OnKeyUp(UINT nChar, UINT nRepCnt, UINT nFlags);

@@ -11,7 +11,7 @@
 #endif
 #if defined(__CYGWIN__) || defined(_MSC_VER)
 #include "sdl.h"
-#define SDL_AUDIO_BUFFER_SIZE	1024
+#define SDL_AUDIO_BUFFER_SIZE	4096
 #define FIFO_BUFFER_SIZE		65536
 #endif
 
@@ -198,15 +198,6 @@ status_t AudioRender::open(int sampleRate,
 			LOGI("mChannelLayoutOutput:%lld", mChannelLayoutOutput);
 			LOGI("mChannelsOutput:%d", mChannelsOutput);
 
-			/*
-			mConvertCtx = swr_alloc();
-			av_opt_set_int(mConvertCtx, "in_channel_layout", mChannelLayout, 0);
-			av_opt_set_int(mConvertCtx, "out_channel_layout", mChannelLayoutOutput, 0);
-			av_opt_set_int(mConvertCtx, "in_sample_rate", mSampleRate, 0);
-			av_opt_set_int(mConvertCtx, "out_sample_rate", mSampleRateOutput, 0);
-			av_opt_set_sample_fmt(mConvertCtx, "in_sample_fmt", mSampleFormat, 0);
-			av_opt_set_sample_fmt(mConvertCtx, "out_sample_fmt", mSampleFormatOutput, 0);
-			*/
 			mConvertCtx = swr_alloc_set_opts(mConvertCtx,
 				mChannelLayoutOutput,
 				mSampleFormatOutput,
@@ -286,8 +277,7 @@ status_t AudioRender::render(AVFrame* audioFrame)//int16_t* buffer, uint32_t buf
 {
 	void* audio_buffer = NULL;
 	uint32_t audio_buffer_size = 0;
-	if(mConvertCtx != NULL)
-	{
+	if (mConvertCtx != NULL) {
 #ifndef NDEBUG
 		int64_t begin_decode = getNowMs();
 #endif
@@ -321,7 +311,10 @@ status_t AudioRender::render(AVFrame* audioFrame)//int16_t* buffer, uint32_t buf
 	else
 	{
 		audio_buffer = audioFrame->data[0];
-		audio_buffer_size = audioFrame->linesize[0];
+		// 2015.1.28 guoliangma fix noisy audio play problem 
+		// some clip linesize is bigger than actual data size
+		// e.g. linesize[0] = 2048 and nb_samples = 502
+		audio_buffer_size = audioFrame->nb_samples * mChannels * mBitPerSample / 8;
 	}
 
 	int32_t size = 0;
@@ -335,7 +328,7 @@ status_t AudioRender::render(AVFrame* audioFrame)//int16_t* buffer, uint32_t buf
 			break;
 		}
 
-		SDL_Delay(10); // 50msec
+		SDL_Delay(10); // 10msec
 		count++;
 	}
 

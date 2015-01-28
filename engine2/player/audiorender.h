@@ -7,8 +7,6 @@
 #if defined(__CYGWIN__) || defined(_MSC_VER)
 #include "sdl.h"
 #include "fifobuffer.h"
-#define SDL_AUDIO_BUFFER_SIZE	1024
-#define FIFO_BUFFER_SIZE		65536
 #endif
 
 #define AVCODEC_MAX_AUDIO_FRAME_SIZE 192000 // 1 second of 48khz 32bit audio

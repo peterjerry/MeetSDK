@@ -4,7 +4,6 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
-import java.io.FileReader;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.HttpURLConnection;
@@ -16,10 +15,8 @@ import java.util.Arrays;
 import java.util.Comparator;
 import java.util.Date;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 
 import android.app.Activity;
 import android.app.ProgressDialog;
@@ -70,6 +67,8 @@ import com.pplive.meetplayer.util.LogcatHelper;
 
 
 
+
+import com.pplive.meetplayer.util.Util;
 
 // for thread
 import android.os.Handler;  
@@ -141,8 +140,8 @@ public class ClipListActivity extends Activity implements
 	private boolean mSubtitleSeeking = false;
 	private boolean mIsSubtitleUsed;
 	
-	private List mHttpFileList;
-	private List mHttpFolderList;
+	private List<URL> mHttpFileList;
+	private List<URL> mHttpFolderList;
 	private boolean mListLocalFile				= true;
 	
 	private LinearLayout mControllerLayout 		= null;
@@ -199,10 +198,7 @@ public class ClipListActivity extends Activity implements
 	
 	private final static String home_folder		= "/test2";
 	
-	private final static String QUICK_TEST_PLAYLINK = "http://172.16.204.104/11.mkv";
-	
-	private final static String H265_TEST_PLAYLINK = "http://127.0.0.1:9106/record.m3u8?type=pplive3&playlink=300146%3fft%3D2%26type%3dphone.android%26h265%3d2";
-	//"http://127.0.0.1:9106/record.m3u8?type=ppvod2&playlink=12110607%3fft%3d3%26type%3dclient.vip%26param%3duserType%253D1%26h265%3d1%26bwtype%3d2";
+	//private final static String H265_TEST_PLAYLINK = "http://127.0.0.1:9106/record.m3u8?type=pplive3&playlink=300146%3fft%3D2%26type%3dphone.android%26h265%3d2";
 
 	private final static String HTTP_SERVER_URL = "http://172.16.204.106/test/testcase/";
 	
@@ -362,52 +358,22 @@ public class ClipListActivity extends Activity implements
                 BreakpadUtil.registerBreakpad(new File(getCacheDir().getAbsolutePath()));
                 mRegisterBreakpad = true;
             }
-            catch (Throwable e)
+            catch (Exception e)
             {
                 Log.e(TAG, e.toString());
             }
         }
 		
-		LogcatHelper helper = LogcatHelper.getInstance();
-		helper.init(this);
-		AtvUtils.sContext = this;
-		FeedBackFactory.sContext = this;
-
-		MeetSDK.setAppRootDir(getCacheDir().getParentFile().getAbsolutePath() + "/");
-		if (android.os.Build.CPU_ABI == "x86")
-    		MeetSDK.setPPBoxLibName("libppbox-android-x86-gcc44-mt-1.1.0.so");
-    	else
-    		MeetSDK.setPPBoxLibName("libppbox-armandroid-r4-gcc44-mt-1.1.0.so");
+		initFeedback();
 		
-		// upload util will upload /data/data/pacake_name/Cache/xxx
-		// so must NOT change path
-		MeetSDK.setLogPath(
-				getCacheDir().getAbsolutePath() + "/meetplayer.log", 
-				getCacheDir().getParentFile().getAbsolutePath() + "/");
-		// /data/data/com.svox.pico/
-		if (MeetSDK.initSDK(this, "") == false) {
+		if (initMeetSDK() == false) {
 			Toast.makeText(this, "failed to load meet lib", 
 				Toast.LENGTH_SHORT).show();
 			finish();
 			return;
 		}
 		
-		String gid = "13";//12
-		String pid = "162";//161
-		String auth = "08ae1acd062ea3ab65924e07717d5994";
-
-		File cacheDirFile	= ClipListActivity.this.getCacheDir();
-		String dataDir		= cacheDirFile.getParentFile().getAbsolutePath();
-		String libDir		=  dataDir + "/lib";
-		String logDir		= cacheDirFile.getAbsolutePath(); //Environment.getExternalStorageDirectory().getPath() + "/pptv";
-		
-		MediaSDK.libPath = libDir;
-		MediaSDK.logPath = logDir;
-		MediaSDK.logOn = false;
-		MediaSDK.setConfig("", "HttpManager", "addr", "127.0.0.1:9106+");
-		MediaSDK.setConfig("", "RtspManager", "addr", "127.0.0.1:5156+");
-		
-		MediaSDK.startP2PEngine(gid, pid, auth);
+		Util.startP2PEngine(this);
 				
 		mHolder = mPreview.getHolder();
 		mHolder.setType(SurfaceHolder.SURFACE_TYPE_NORMAL);
@@ -1543,7 +1509,10 @@ public class ClipListActivity extends Activity implements
 
 				for (File file : files) {
 					String fileName = file.getName();
-					if (file.isFile() && !file.isHidden()) // fileName.endsWith(".mov")
+					if (fileName.endsWith("srt") || fileName.endsWith("ass"))
+						continue;
+					
+					if (file.isFile() && !file.isHidden())
 					{
 						long modTime = file.lastModified();
 
@@ -2093,6 +2062,23 @@ public class ClipListActivity extends Activity implements
 		else {
 			mHomed = true;
 		}
+	}
+	
+	private boolean initMeetSDK() {
+		// upload util will upload /data/data/pacake_name/Cache/xxx
+		// so must NOT change path
+		MeetSDK.setLogPath(
+				getCacheDir().getAbsolutePath() + "/meetplayer.log", 
+				getCacheDir().getParentFile().getAbsolutePath() + "/");
+		// /data/data/com.svox.pico/
+		return MeetSDK.initSDK(this, "");
+	}
+	
+	private void initFeedback() {
+		LogcatHelper helper = LogcatHelper.getInstance();
+		helper.init(this);
+		AtvUtils.sContext = this;
+		FeedBackFactory.sContext = this;
 	}
 	
     private void attachMediaController() {
