@@ -15,14 +15,27 @@ public class PlayerPolicy {
 	private static final String BUILDID_PPBOX1S = "ppbox1s";
 	private static final String BUILDID_PPBOXMINI = "ppboxmini";
 
-	@Deprecated
 	public static DecodeMode getDeviceCapabilities(Uri uri) {
-		// fix me
-		return DecodeMode.SW;
+		if (null == uri) {
+			return DecodeMode.SW;
+		}
+
+		String schema = uri.getScheme();
+		String path = null;
+		
+		if ("file".equalsIgnoreCase(schema))
+			path = uri.getPath();
+		else
+			path = uri.toString();
+		
+		return getDeviceCapabilities(path);
 	}
 	
 	public static DecodeMode getDeviceCapabilities(String url) {
 		LogUtils.info("Java: getDeviceCapabilities " + url);
+		
+		if (null == url || url.equals(""))
+			return DecodeMode.SW;
 		
 		if (!url.startsWith("/") && !url.startsWith("file://")) {
 			// network stream use ffplay
@@ -31,7 +44,7 @@ public class PlayerPolicy {
 		
 		MediaInfo info = MeetPlayerHelper.getMediaDetailInfo(url);
 		if (info == null) {
-			LogUtils.info("Java: failed to get media info");
+			LogUtils.warn("Java: failed to get media info");
 			return DecodeMode.SW;
 		}
 		
@@ -45,26 +58,25 @@ public class PlayerPolicy {
 		
 		String buildString = android.os.Build.ID;
 		
+		LogUtils.info(String.format("Java: getDeviceCapabilities url %s, format %s, video %s, audio %s", 
+				url, formatName, videoCodecName, audioCodecName));
+		
 		if (buildString.startsWith(BUILDID_PPBOXMINI)) {
-			LogUtils.info("use ppbox getDeviceCapabilitiesPPBoxMini");
+			LogUtils.info("Java: use getDeviceCapabilitiesPPBoxMini");
 			return getDeviceCapabilitiesPPBoxMini(url, formatName, videoCodecName, audioCodecName);
 		}
 		else if(buildString.startsWith(BUILDID_PPBOX1S)) {
-			LogUtils.info("use ppbox getDeviceCapabilitiesPPBox");
+			LogUtils.info("Java: use getDeviceCapabilitiesPPBox");
 			return getDeviceCapabilitiesPPBox(url, formatName, videoCodecName, audioCodecName);
 		}
 		else {
-			LogUtils.info("use ppbox getDeviceCapabilitiesCommon");
+			LogUtils.info("Java: use getDeviceCapabilitiesCommon");
 			return getDeviceCapabilitiesCommon(url, formatName, videoCodecName, audioCodecName);
 		}
 	}
 	
 	private static DecodeMode getDeviceCapabilitiesCommon(
 			String url, String formatName, String videoCodecName, String audioCodecName) {
-		
-		if (null == url || url.equals(""))
-			return DecodeMode.SW;
-		
 		int AndroidSystemVersion = DeviceInfoUtil.getSystemVersionInt();
 		
 		// audio

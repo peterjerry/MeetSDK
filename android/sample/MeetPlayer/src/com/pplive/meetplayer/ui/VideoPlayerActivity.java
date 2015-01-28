@@ -39,7 +39,7 @@ public class VideoPlayerActivity extends Activity {
 	private static final String TAG = "VideoPlayerActivity";
 
 	private Uri mUri = null;
-	private DecodeMode mDecodeMode;
+	private DecodeMode mDecodeMode = DecodeMode.AUTO;
 	private MeetVideoView mVideoView = null;
 	private MyMediaController mController;
 	private ProgressBar mBufferingProgressBar = null;

@@ -599,13 +599,6 @@ public class ClipListActivity extends Activity implements
 								
 								start_player(url);
 							}
-								
-							/*if (whichButton == 0) {
-								start_player(H265_TEST_PLAYLINK);
-							}
-							else if(whichButton == 1) {
-								start_player(QUICK_TEST_PLAYLINK);
-							}*/
 							
 							dialog.cancel();
 							

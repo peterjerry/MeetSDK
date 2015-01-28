@@ -212,13 +212,9 @@ public class MeetVideoView extends SurfaceView implements MediaPlayerControl {
         // 2015.1.27 guoliangma
         //openVideo();
         mDecodeModeImpl = mDecodeMode;
-        if (DecodeMode.AUTO == mDecodeModeImpl) {
-        	mDecodeModeImpl = MeetSDK.getPlayerType(mUri.toString());
-        	/*if (MeetSDK.isOMXSurface(mContext, mUri))
-        		mDecodeModeImpl = DecodeMode.HW_SYSTEM;
-        	else
-        		mDecodeModeImpl = DecodeMode.SW;*/
-        }
+        if (DecodeMode.AUTO == mDecodeModeImpl)
+        	mDecodeModeImpl = MeetSDK.getPlayerType(mUri);
+        
         setVisibility(View.INVISIBLE);
         mDecodeModeImpl.setSurfaceType(getHolder());
         setVisibility(View.VISIBLE);

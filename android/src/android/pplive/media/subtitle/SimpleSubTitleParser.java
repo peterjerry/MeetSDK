@@ -11,10 +11,57 @@ public class SimpleSubTitleParser implements Handler.Callback, SubTitleParser {
 	private static final int WHAT_SEEKTO 		= 9002;
 	private static final int WHAT_CLOSE 		= 9003;
 	
-	private static boolean sLoadLibSuccess = false;
+	private static String slibPath = "";
+	private static boolean slibLoaded = false;
+	public static boolean initParser(String path) {
+		LogUtils.info("initParser()");
+		
+		if (!slibLoaded) {
+			if (path != null) {
+				slibPath = path;
+				
+				if (!slibPath.equals("") && !slibPath.endsWith("/"))
+					slibPath += "/";
+			}
+			
+			try {
+				String loader = "subtitle-jni";
+				
+				if (slibPath != null && !slibPath.equals("")) {
+					String full_name;
+					full_name = slibPath + "lib" + loader + ".so";
+					LogUtils.info("System.load() try load: " + full_name);
+					System.load(full_name);
+					LogUtils.info("System.load() " + full_name + " done!");
+				}
+				else {
+					LogUtils.info("System.loadLibrary() try load subtitle");
+					System.loadLibrary(loader);
+					LogUtils.info("System.loadLibrary() subtitle loaded");
+				}
+				
+				native_init();
+				
+				slibLoaded = true;
+				
+			}
+			catch (SecurityException e) {
+				e.printStackTrace();
+				LogUtils.error("subtitle SecurityException: " + e.toString());
+			} catch (UnsatisfiedLinkError e) {
+				e.printStackTrace();
+				LogUtils.error("subtitle UnsatisfiedLinkError: " + e.toString());
+			} catch (IllegalStateException e) {
+				e.printStackTrace();
+				LogUtils.error("subtitle IllegalStateException: " + e.toString());
+			}
+		}
+		
+		return slibLoaded;
+	}
 	
 	private static boolean isLoadLibSuccess() {
-		return sLoadLibSuccess;
+		return slibLoaded;
 	}
 	
 	private SubTitleSegment mSegment;
@@ -124,22 +171,4 @@ public class SimpleSubTitleParser implements Handler.Callback, SubTitleParser {
 	private native void native_seekTo(long msec);
 	
 	private native void native_close();
-	
-	static {
-		try {
-			System.loadLibrary("subtitle-jni");
-			native_init();
-			
-			sLoadLibSuccess = true;
-		} catch (SecurityException e) {
-			e.printStackTrace();
-			LogUtils.error("subtitle SecurityException");
-		} catch (UnsatisfiedLinkError e) {
-			e.printStackTrace();
-			LogUtils.error("subtitle UnsatisfiedLinkError");
-		} catch (IllegalStateException e) {
-			e.printStackTrace();
-			LogUtils.error("subtitle IllegalStateException");
-		}
-	}
 }

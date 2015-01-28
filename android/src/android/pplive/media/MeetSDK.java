@@ -23,6 +23,7 @@ import android.pplive.media.player.MediaInfo;
 import android.pplive.media.player.MeetPlayerHelper;
 import android.pplive.media.player.FFMediaPlayer;
 import android.pplive.media.player.PlayerPolicy;
+import android.pplive.media.subtitle.SimpleSubTitleParser;
 import android.pplive.media.util.DiskLruCache;
 import android.pplive.media.util.LogUtils;
 import android.pplive.media.util.UrlUtil;
@@ -66,10 +67,12 @@ public final class MeetSDK {
     private static int FullScreenHeight = 0;
 	private static int status = 0;
 	
+	@Deprecated
 	static public void setAppRootDir(String dir) {
 		AppRootDir = dir;
 	}
 	
+	@Deprecated
 	static public String getAppRootDir() {
 		return AppRootDir;
 	}
@@ -90,7 +93,10 @@ public final class MeetSDK {
 	
 	public static boolean initSDK(Context ctx, String path) {
 		AppRootDir = "/data/data/" + ctx.getPackageName() + "/";
-		return FFMediaPlayer.initPlayer(path);
+		
+		boolean retPlayer = FFMediaPlayer.initPlayer(path);
+		boolean retParser = SimpleSubTitleParser.initParser(path);
+		return (retPlayer && retParser);
 	}
 
 	public static boolean checkCompatibility(Surface surface) {
@@ -215,8 +221,12 @@ public final class MeetSDK {
 		return path;
 	}
 
-	public static DecodeMode getPlayerType(String url) {
-		return PlayerPolicy.getDeviceCapabilities(url);
+	public static DecodeMode getPlayerType(Uri uri) {
+		return PlayerPolicy.getDeviceCapabilities(uri);
+	}
+	
+	public static DecodeMode getPlayerType(String path) {
+		return PlayerPolicy.getDeviceCapabilities(path);
 	}
 	
 	@Deprecated
