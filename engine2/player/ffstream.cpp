@@ -68,7 +68,7 @@ FFStream::FFStream()
     mDelaying			= false;
     mRefreshed			= false;
 	mLooping			= false;
-	mStartTime			= 0;
+	mStartTimeMs		= 0;
     mGopDuration		= FF_PLAYER_DEFAULT_GOP_DURATION;
     mGopStart			= 0;
     mGopEnd				= 0;
@@ -480,9 +480,12 @@ AVFormatContext* FFStream::open(char* uri)
         return NULL;
     }
 
-	mStartTime = mMovieFile->start_time;
+	if (TYPE_LOCAL_FILE == mUrlType)
+		mStartTimeMs = mMovieFile->start_time * 1000 / AV_TIME_BASE;
+	else
+		mStartTimeMs = 0;
 
-    mStatus			= FFSTREAM_PREPARED;
+    mStatus	= FFSTREAM_PREPARED;
 	
     return mMovieFile;
 }
@@ -542,11 +545,15 @@ status_t FFStream::stop()
 status_t FFStream::seek(int64_t seekTimeMs, int incr)
 {
     AutoLock autoLock(&mLock);
-    mSeekTimeMs			= seekTimeMs;
+    mSeekTimeMs			= seekTimeMs + mStartTimeMs;
     mSeeking			= true;
     mReachEndStream		= false;
 	mSeekFlag			= incr < 0 ? AVSEEK_FLAG_BACKWARD : 0;
-	LOGI("seekTimeMs %lld(%lld sec), incr %d", seekTimeMs, seekTimeMs / 1000, incr);
+#ifdef _MSC_VER
+	LOGI("seekTimeMs %I64d(%I64d sec)(final seek_time %I64d msec), incr %d", seekTimeMs, seekTimeMs / 1000, mSeekTimeMs, incr);
+#else
+	LOGI("seekTimeMs %lld(%lld sec)(final seek_time %lld msec), incr %d", seekTimeMs, seekTimeMs / 1000, mSeekTimeMs, incr);
+#endif
     pthread_cond_signal(&mCondition);
     return OK;
 }
@@ -596,7 +603,7 @@ status_t FFStream::getPacket(int32_t streamIndex, AVPacket** packet)
 				// support looping
 				if (mLooping) {
 					LOGI("looping is on, seek to begin of the clip(audio eof)");
-					mSeekTimeMs			= mStartTime  * 1000 / AV_TIME_BASE;
+					mSeekTimeMs			= mStartTimeMs;
 					mSeeking			= true;
 					mReachEndStream		= false;
 					mSeekFlag			= AVSEEK_FLAG_BACKWARD;
@@ -639,7 +646,7 @@ status_t FFStream::getPacket(int32_t streamIndex, AVPacket** packet)
 				// support looping
 				if (mLooping) {
 					LOGI("looping is on, seek to begin of the clip(video eof)");
-					mSeekTimeMs			= mStartTime  * 1000 / AV_TIME_BASE;
+					mSeekTimeMs			= mStartTimeMs;
 					mSeeking			= true;
 					mReachEndStream		= false;
 					mSeekFlag			= AVSEEK_FLAG_BACKWARD;

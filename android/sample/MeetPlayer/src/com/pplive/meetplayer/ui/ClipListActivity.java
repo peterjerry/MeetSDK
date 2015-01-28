@@ -2023,7 +2023,7 @@ public class ClipListActivity extends Activity implements
 		
 		Log.i(TAG, "Java: onResume()");
 		
-		mQuit = false;
+		//mQuit = false;
 		
 		mLayout.getLayoutParams().height = preview_height;
 		mLayout.requestLayout(); //or invalidate();
@@ -2055,7 +2055,20 @@ public class ClipListActivity extends Activity implements
 
 		if (isFinishing()) {
 			if (mPlayer != null) {
-				mQuit = true;
+				//mQuit = true;
+				mStoped = true;
+				
+				if (mIsSubtitleUsed) {
+					mSubtitleThread.interrupt();
+					
+					try {
+						mSubtitleThread.join();
+					} catch (InterruptedException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					}
+				}
+				
 				mPlayer.stop();
 			}
 		}
@@ -2147,67 +2160,7 @@ public class ClipListActivity extends Activity implements
         boolean isDropItem = false;
         
         while (true) {
-            /*if (!mPlayer.isPlaying()) {
-            	try {
-            		wait(SLEEP_MSEC);
-				} catch (InterruptedException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
-					if (mSubtitleSeeking)
-						continue;
-					
-					break;
-				}
-
-            	continue;
-            }
-        	
-            if (mQuit || mStoped)
-                break;
-        
-            seg = mSubtitleParser.next();
-            mSubtitleText = seg.getData();
-            from_msec = seg.getFromTime();
-            to_msec = seg.getToTime();
-            sleep_msec = from_msec - mPlayer.getCurrentPosition();
-            hold_msec = to_msec - from_msec;
-            Log.i(TAG, String.format("Java: subtitle frome %s, to %s,sleep %d, hold %d, %s", 
-            	seg.getFromTime(), seg.getToTime(), sleep_msec, hold_msec,
-            	seg.getData()));            
-
-            if (sleep_msec > 5) {
-                try {
-					wait(sleep_msec);
-				} catch (InterruptedException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
-					if (mSubtitleSeeking)
-						continue;
-					
-					break;
-				}
-            }
-            
-            // render it now!
-        	mHandler.sendEmptyMessage(MSG_DISPLAY_SUBTITLE);    
-
-        	if (hold_msec > 5) {
-            	try {
-            		wait(hold_msec);
-				} catch (InterruptedException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
-					if (mSubtitleSeeking)
-						continue;
-					
-					break;
-				}
-            }
-            
-            mHandler.sendEmptyMessage(MSG_HIDE_SUBTITLE);
-            */
-        	
-        	if (mQuit || mStoped)
+        	if (/*mQuit || */mStoped)
                 break;
         	
         	if (isDisplay) {

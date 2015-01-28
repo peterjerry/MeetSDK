@@ -87,7 +87,7 @@ public:
 
 	int64_t getCachedDurationMs(){return mCachedDurationMs;}
 
-	int64_t getStartTime(){return mStartTime;}
+	int64_t getStartTime(){return mStartTimeMs;}
 
 	int64_t getTotalReadBytes(){return m_total_read_bytes;}
 
@@ -153,7 +153,7 @@ private:
 	bool mDelaying;
 	bool mRefreshed;
 	bool mLooping;
-	int64_t mStartTime; // pts for loop play
+	int64_t mStartTimeMs; // pts for loop play
 	int64_t mGopDuration; // mGopEnd - mGopStart
 	int64_t mGopStart;// video I frame pts
 	int64_t mGopEnd;// video next I frame pts

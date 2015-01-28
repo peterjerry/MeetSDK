@@ -78,7 +78,7 @@ const char* url_list[PROG_MAX_NUM] = {
 	_T("http://172.16.204.106/test/hls/600000/index.m3u8"),
 	_T("http://172.16.204.106/test/hls/600000/noend.m3u8"),
 	_T("D:\\Archive\\media\\[圣斗士星矢Ω].[hysub]Saint.Seiya.Omega_11_[GB_mp4][480p].mp4"),
-	_T("D:\\Archive\\media\\test\\liuyan\\PPBOX-3178_有严重的噪音_80M.mpg"),
+	_T("D:\\11.ts"),
 	//_T("D:\\Archive\\media\\mv\\G.NA_Secret.mp4"),
 	//_T("D:\\Archive\\media\\dragon_trainer_4audio.mkv"),
 
@@ -806,7 +806,6 @@ bool CtestSDLdlgDlg::OnPrepared()
 
 	if (mCheckLooping.GetCheck())
 		mPlayer->setLooping(1);
-	mPlayer->seekTo(10000); // 10 sec
 
 	mPlayer->getDuration(&mDuration);
 	mPlayer->getVideoWidth(&mWidth);

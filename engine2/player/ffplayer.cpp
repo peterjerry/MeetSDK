@@ -804,28 +804,35 @@ status_t FFPlayer::getVideoHeight(int32_t *h)
 
 status_t FFPlayer::getCurrentPosition(int32_t* positionMs)
 {
-	if (mSeekingEventPending ||mSeeking )
-    {
-        *positionMs = (int32_t)mSeekTimeMs;
+	int64_t pos = 0;
+
+	if (mSeekingEventPending || mSeeking) {
+        pos = mSeekTimeMs;
     }
     else
     {
-        if(mVideoStream != NULL)
-        {
+        if (mVideoStream != NULL) {
             //get video time
-            *positionMs = (int32_t)mVideoTimeMs;
+            pos = mVideoTimeMs;
         }
-        else if(mAudioPlayer != NULL)
-        {
+        else if (mAudioPlayer != NULL) {
             //get audio time
-            *positionMs = (int32_t)mAudioPlayer->getMediaTimeMs();
+            pos = mAudioPlayer->getMediaTimeMs();
         }
-        else
-        {
+        else {
+			*positionMs = 0;
             LOGE("No available time reference");
 			return ERROR;
         }
     }
+
+	if (mDataStream) {
+		int64_t start = mDataStream->getStartTime();
+		if (pos > start)
+			pos -= start;
+	}
+	
+	*positionMs = (int32_t)pos;
     return OK;
 }
 
