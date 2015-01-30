@@ -281,7 +281,7 @@ status_t AudioRender::render(AVFrame* audioFrame)//int16_t* buffer, uint32_t buf
 #ifndef NDEBUG
 		int64_t begin_decode = getNowMs();
 #endif
-		uint32_t sampleInCount = audioFrame->nb_samples;
+		int32_t sampleInCount = audioFrame->nb_samples;
 		LOGD("sampleInCount:%d", sampleInCount);
 		int sampleOutCount = (int)av_rescale_rnd(
 			swr_get_delay(mConvertCtx, mSampleRate) + sampleInCount,
@@ -291,7 +291,7 @@ status_t AudioRender::render(AVFrame* audioFrame)//int16_t* buffer, uint32_t buf
 
 		int sampleCountOutput = swr_convert(mConvertCtx,
 			(uint8_t**)(&mSamples), (int)sampleOutCount,
-			(const uint8_t**)(audioFrame->extended_data), (int)sampleInCount);
+			(const uint8_t**)(audioFrame->extended_data), sampleInCount);
 		if (sampleCountOutput < 0) {
 			LOGE("Audio convert sampleformat(%d) failed, ret %d", mSampleFormat, sampleCountOutput);
 			return ERROR;

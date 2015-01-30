@@ -102,6 +102,10 @@ public class PlayerPolicy {
 					return DecodeMode.HW_SYSTEM;
 				}
 			}
+			
+			// audio
+			if (url.endsWith("ape"))
+				return DecodeMode.HW_SYSTEM;
 		}
 		else if (AndroidSystemVersion >= 11 /* < 3.0 */) {
 			// video

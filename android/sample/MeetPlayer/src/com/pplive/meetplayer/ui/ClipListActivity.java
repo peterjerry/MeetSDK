@@ -15,8 +15,11 @@ import java.util.Arrays;
 import java.util.Comparator;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Random;
 
 import android.app.Activity;
 import android.app.ProgressDialog;
@@ -50,6 +53,8 @@ import android.os.Build;
 import android.media.AudioManager;
 import android.graphics.Bitmap;
 import android.net.Uri;
+import android.net.wifi.WifiInfo;
+import android.net.wifi.WifiManager;
 import android.os.AsyncTask;
 import android.view.ViewGroup.LayoutParams;
 import android.widget.TextView;
@@ -63,12 +68,15 @@ import com.pplive.meetplayer.R;
 import com.pplive.meetplayer.util.AtvUtils;
 import com.pplive.meetplayer.util.DownloadAsyncTask;
 import com.pplive.meetplayer.util.FeedBackFactory;
+import com.pplive.meetplayer.util.IDlnaCallback;
 import com.pplive.meetplayer.util.LogcatHelper;
-
-
-
-
 import com.pplive.meetplayer.util.Util;
+import com.pplive.dlna.DLNASdk;
+
+
+
+
+
 
 // for thread
 import android.os.Handler;  
@@ -140,6 +148,11 @@ public class ClipListActivity extends Activity implements
 	private boolean mSubtitleSeeking = false;
 	private boolean mIsSubtitleUsed;
 	
+	// dlna
+	private DLNASdk mDLNA;
+	private IDlnaCallback mDLNAcallback;
+	private final static int DLNA_LISTEN_PORT = 8787;
+	
 	private List<URL> mHttpFileList;
 	private List<URL> mHttpFolderList;
 	private boolean mListLocalFile				= true;
@@ -178,6 +191,7 @@ public class ClipListActivity extends Activity implements
 	final static int QUIT 						= Menu.FIRST + 3;
 	final static int OPTION 					= Menu.FIRST + 4;
 	final static int OPTION_PREVIEW			= Menu.FIRST + 11;
+	final static int OPTION_DLNA_LIST			= Menu.FIRST + 12;
 	
 	private ListView lv_filelist 				= null;
 	List<Map<String, Object>> list_clips		= null;
@@ -196,7 +210,7 @@ public class ClipListActivity extends Activity implements
 	
 	private File mCurrentFolder					= null;
 	
-	private final static String home_folder		= "/test2";
+	private final static String home_folder		= "";//"/test2";
 	
 	//private final static String H265_TEST_PLAYLINK = "http://127.0.0.1:9106/record.m3u8?type=pplive3&playlink=300146%3fft%3D2%26type%3dphone.android%26h265%3d2";
 
@@ -371,6 +385,11 @@ public class ClipListActivity extends Activity implements
 				Toast.LENGTH_SHORT).show();
 			finish();
 			return;
+		}
+		
+		if (initDLNA() == false) {
+			Toast.makeText(this, "failed to load meet lib", 
+				Toast.LENGTH_SHORT).show();
 		}
 		
 		Util.startP2PEngine(this);
@@ -1685,14 +1704,81 @@ public class ClipListActivity extends Activity implements
 		return file_folder;
 	}
 
-	private void upload_crash_report(int type)
-	{	
+	private void upload_crash_report(int type) {	
 		MeetSDK.makePlayerlog();
 		
 		FeedBackFactory fbf = new FeedBackFactory(
 				 Integer.toString(type), "123456", false, false);
 		fbf.asyncFeedBack();
 	}
+	
+	private void push_to_dmr() {
+		int dev_num = mDLNAcallback.mDeviceMap.size();
+		
+		if (dev_num == 0) {
+			Log.i(TAG, "Java: dlna no dlna device found");
+			Toast.makeText(this, "no dlna device found", Toast.LENGTH_SHORT).show();
+			return;
+		}
+		
+		ArrayList<String> dev_list = new ArrayList<String>();
+		ArrayList<String> uuid_list = new ArrayList<String>();
+		for (Object obj : mDLNAcallback.mDeviceMap.keySet()){
+	          Object name = mDLNAcallback.mDeviceMap.get(obj);
+	          Log.d(TAG, "Java: dlna [dlna dev] uuid: " + obj.toString() + " name: " + name.toString());
+	          uuid_list.add(obj.toString());
+	          dev_list.add(name.toString());
+	    }
+		
+		final String[] str_uuid_list = (String[])uuid_list.toArray(new String[uuid_list.size()]);
+		final String[] str_dev_list = (String[])dev_list.toArray(new String[dev_list.size()]);
+		
+		Dialog choose_device_dlg = new AlertDialog.Builder(ClipListActivity.this)
+		.setTitle("Select device to push")
+		.setSingleChoiceItems(str_dev_list, -1, /*default selection item number*/
+			new DialogInterface.OnClickListener(){
+			public void onClick(DialogInterface dialog, int whichButton) {
+				
+				String uuid = str_uuid_list[whichButton];
+				String name = str_dev_list[whichButton];
+				String uri;
+				if (mPlayUrl.startsWith("/") || mPlayUrl.startsWith("file://")) 
+					uri = mDLNA.GetServerFileUrl(mPlayUrl);
+				else
+					uri = mPlayUrl;
+				if (uri.indexOf("127.0.0.1") != -1) { 
+				    WifiManager wifiManager = (WifiManager) getSystemService(Context.WIFI_SERVICE);  
+				    if (!wifiManager.isWifiEnabled()) {  
+				    wifiManager.setWifiEnabled(true);    
+				    }  
+				    WifiInfo wifiInfo = wifiManager.getConnectionInfo();       
+				    int ipAddress = wifiInfo.getIpAddress();   
+				    String ip_addr = intToIp(ipAddress);  
+				    
+					uri = uri.replace("127.0.0.1", ip_addr);
+				}
+				mDLNA.SetURI(uuid, uri);
+				Log.i(TAG, String.format("Java: dlna push url %s to uuid(%s) name(%s)", uri, uuid, name));
+				
+				dialog.cancel();
+				
+			}
+		})
+		.setNegativeButton("Cancel",
+			new DialogInterface.OnClickListener(){
+				public void onClick(DialogInterface dialog, int whichButton){
+			}})
+		.create();
+		choose_device_dlg.show();
+	}
+	
+	private String intToIp(int i) {       
+        
+        return (i & 0xFF ) + "." +       
+      ((i >> 8 ) & 0xFF) + "." +       
+      ((i >> 16 ) & 0xFF) + "." +       
+      ( i >> 24 & 0xFF) ;  
+   }   
 	
 	@Override
 	public boolean onCreateOptionsMenu(Menu menu) {
@@ -1708,10 +1794,13 @@ public class ClipListActivity extends Activity implements
 		
 		SubMenu fileSubMenu = menu.addSubMenu(i, OPTION, Menu.NONE, "Option");
 		fileSubMenu.setIcon(R.drawable.option);
-		MenuItem newMenuItem = fileSubMenu.add(i, OPTION_PREVIEW, Menu.NONE, "Preview");
-		newMenuItem.setCheckable(true);
+		MenuItem previewMenuItem = fileSubMenu.add(i, OPTION_PREVIEW, Menu.NONE, "Preview");
+		previewMenuItem.setCheckable(true);
 		if (mIsPreview)
-			newMenuItem.setChecked(true);
+			previewMenuItem.setChecked(true);
+		
+		// dlna
+		MenuItem dlnaMenuItem = fileSubMenu.add(i, OPTION_DLNA_LIST, Menu.NONE, "dlna");
 		
 		return super.onCreateOptionsMenu(menu);
 	}
@@ -1747,6 +1836,9 @@ public class ClipListActivity extends Activity implements
 			else
 				item.setChecked(true);
 			mIsPreview = !mIsPreview;
+			break;
+		case OPTION_DLNA_LIST:
+			push_to_dmr();
 			break;
 		default:
 			Log.w(TAG, "bad menu item selected: " + id);
@@ -2092,6 +2184,28 @@ public class ClipListActivity extends Activity implements
 		helper.init(this);
 		AtvUtils.sContext = this;
 		FeedBackFactory.sContext = this;
+	}
+	
+	private boolean initDLNA() {
+		mDLNA = new DLNASdk();
+		if (!mDLNA.isLibLoadSuccess()) {
+			Log.e(TAG, "Java: dlna failed to load dlna lib");
+			return false;
+		}
+		
+		mDLNAcallback = new IDlnaCallback();
+		mDLNA.setLogPath(Environment.getExternalStorageDirectory().getAbsolutePath() + "/xxxx_dlna.log");
+		mDLNA.Init(mDLNAcallback);
+		mDLNA.EnableRendererControler(true);
+		
+		//start file server
+		Random rand =new Random();
+		int i;
+		i = rand.nextInt(100);
+		int port = 10000;
+		mDLNA.StartHttpServer(port);
+		Log.i(TAG, String.format("Java: dlna start dlna server port: %d", port));
+		return true;
 	}
 	
     private void attachMediaController() {

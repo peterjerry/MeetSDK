@@ -114,6 +114,7 @@ status_t AudioPlayer::prepare()
 		mRender = new AudioRender();
 		uint64_t channelLayout = AV_CH_LAYOUT_MONO;// default layout
 
+		// 2015.1.19 guoliangma mark(it's very important)
 		// fix channel_layout param is not accurate for some video.
 		switch(CodecCtx->channels) {
 		case 1:

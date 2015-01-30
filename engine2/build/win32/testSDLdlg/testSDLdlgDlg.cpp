@@ -78,9 +78,8 @@ const char* url_list[PROG_MAX_NUM] = {
 	_T("http://172.16.204.106/test/hls/600000/index.m3u8"),
 	_T("http://172.16.204.106/test/hls/600000/noend.m3u8"),
 	_T("D:\\Archive\\media\\[圣斗士星矢Ω].[hysub]Saint.Seiya.Omega_11_[GB_mp4][480p].mp4"),
-	_T("D:\\11.ts"),
 	//_T("D:\\Archive\\media\\mv\\G.NA_Secret.mp4"),
-	//_T("D:\\Archive\\media\\dragon_trainer_4audio.mkv"),
+	_T("D:\\Archive\\media\\dragon_trainer_4audio.mkv"),
 
 	_T("http://zb.v.qq.com:1863/?progid=1975434150"),
 	_T("http://zb.v.qq.com:1863/?progid=3900155972"),
@@ -275,7 +274,7 @@ BOOL CtestSDLdlgDlg::OnInitDialog()
 	timeFmt += " 00:00:00";
 	SetDlgItemText(IDC_EDIT_TIMECODE, timeFmt);
 	SetDlgItemText(IDC_EDIT_VOD_DURATION, "90");
-	SetDlgItemText(IDC_EDIT_VLC_PATH, "C:\\Program Files (x86)\\VideoLAN\\VLC\\vlc.exe");
+	//SetDlgItemText(IDC_EDIT_VLC_PATH, "C:\\Program Files (x86)\\VideoLAN\\VLC\\vlc.exe");
 
 	return TRUE;  // 除非将焦点设置到控件，否则返回 TRUE
 }
@@ -511,45 +510,52 @@ void CtestSDLdlgDlg::OnBnClickedStart()
 		}
 	}
 
-	mPlayer = new FFPlayer;
-	mPlayer->setListener(this);
-	mPlayer->setDataSource(mUrl.GetBuffer(0));
-	status = mPlayer->prepareAsync();
-	if (status != OK) {
-		delete mPlayer;
-		mPlayer = NULL;
-		AfxMessageBox("failed to prepareAsync");
-	}
-
-	mBuffering = true;
-	mBufferingOffset = 0;
-
 	CString vlcPath;
 	GetDlgItemText(IDC_EDIT_VLC_PATH, vlcPath);
-	CString strArgu, convertUri;
-	convertUri = mUrl;
-	convertUri.Replace("\\", "/");
-	strArgu.Format("%s", convertUri.GetBuffer(0));
+	if (vlcPath.IsEmpty()) {
+		mPlayer = new FFPlayer;
+		mPlayer->setListener(this);
+		mPlayer->setDataSource(mUrl.GetBuffer(0));
+		status = mPlayer->prepareAsync();
+		if (status != OK) {
+			delete mPlayer;
+			mPlayer = NULL;
+			AfxMessageBox("failed to prepareAsync");
+		}
 
-	PROCESS_INFORMATION pi;
-	STARTUPINFO si;
-	memset(&si,0,sizeof(si));
-	si.cb=sizeof(si);
-	si.wShowWindow=SW_SHOW;
-	si.dwFlags=STARTF_USESHOWWINDOW;
+		mBuffering = true;
+		mBufferingOffset = 0;
+	}
+	else {
+		CString strArgu;
+		strArgu.Format("\"%s\" \"%s\"", vlcPath, mUrl.GetBuffer(0));
+		LOGI("vlc arg: %s", strArgu.GetBuffer(0));
 
-	/*bool fRet = CreateProcess(
-		vlcPath.GetBuffer(0),
-		mUrl.GetBuffer(0),
-		NULL,
-		FALSE,
-		NULL,
-		NULL,
-		NULL,
-		NULL,
-		&si,
-		&pi
-		);*/
+		PROCESS_INFORMATION pi;
+		memset(&pi,0,sizeof(pi));
+
+		STARTUPINFO si;
+		memset(&si,0,sizeof(si));
+		si.cb			= sizeof(si);
+		//si.wShowWindow	= SW_SHOW;
+		//si.dwFlags		= STARTF_USESHOWWINDOW;
+
+		BOOL fRet = CreateProcess(
+			vlcPath.GetBuffer(0),
+			strArgu.GetBuffer(0),
+			NULL,
+			FALSE,
+			NULL,
+			NULL,
+			NULL,
+			NULL,
+			&si,
+			&pi
+			);
+		if (!fRet) {
+			MessageBox("failed to launch vlc");
+		}
+	}
 }
 
 void CtestSDLdlgDlg::notify(int msg, int ext1, int ext2)
