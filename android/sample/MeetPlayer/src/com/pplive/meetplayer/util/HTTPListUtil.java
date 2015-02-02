@@ -12,7 +12,6 @@ public class HTTPListUtil {
 	
 	private final static String TAG = "HTTPListUtil";
 	
-	private String mHttpUrl;
 	private List<URL> mHttpFileList;
 	private List<URL> mHttpFolderList;
 	
@@ -31,7 +30,7 @@ public class HTTPListUtil {
 		try {
 			ApacheURLLister lister = new ApacheURLLister();
 			URL url;
-			url = new URL(mHttpUrl);
+			url = new URL(http_url);
 			mHttpFileList = lister.listFiles(url); //listAll
 			for(int i = 0; i < mHttpFileList.size(); i++) {
 				URL full_path = (URL)mHttpFileList.get(i);
@@ -46,8 +45,6 @@ public class HTTPListUtil {
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
-			
-			//mHandler.sendEmptyMessage(MSG_FAIL_TO_LIST_HTTP_LIST);
 			return false;
 		}
 		

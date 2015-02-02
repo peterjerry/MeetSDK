@@ -11,19 +11,12 @@ import java.net.URL;
 import java.net.URLEncoder;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Comparator;
 import java.util.Date;
 import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Random;
 
 import android.app.Activity;
 import android.app.ProgressDialog;
-import android.content.ContentResolver;
 import android.content.Intent;
 import android.content.Context;
 import android.view.ContextThemeWrapper;
@@ -66,6 +59,7 @@ import android.app.Dialog;
 
 import com.pplive.meetplayer.R;
 import com.pplive.meetplayer.util.AtvUtils;
+import com.pplive.meetplayer.util.CrashHandler;
 import com.pplive.meetplayer.util.DownloadAsyncTask;
 import com.pplive.meetplayer.util.FeedBackFactory;
 import com.pplive.meetplayer.util.IDlnaCallback;
@@ -73,6 +67,9 @@ import com.pplive.meetplayer.util.ListMediaUtil;
 import com.pplive.meetplayer.util.LogcatHelper;
 import com.pplive.meetplayer.util.Util;
 import com.pplive.dlna.DLNASdk;
+
+
+
 
 
 // for thread
@@ -86,13 +83,9 @@ import android.pplive.media.subtitle.SubTitleParser;
 import android.pplive.media.subtitle.SubTitleSegment;
 import android.pplive.media.player.TrackInfo;
 import android.pplive.media.player.MediaPlayer.DecodeMode;
-import android.provider.MediaStore;
-import android.database.Cursor;
 
 import com.pplive.sdk.MediaSDK;
 import com.pplive.thirdparty.BreakpadUtil;
-
-import org.apache.ivy.util.url.ApacheURLLister;
 
 public class ClipListActivity extends Activity implements
 		MediaPlayer.OnPreparedListener, MediaPlayer.OnCompletionListener,
@@ -112,7 +105,7 @@ public class ClipListActivity extends Activity implements
 	private EditText et_play_url;
 	private MyPreView mPreview;
 	private SurfaceHolder mHolder;
-	private MyMediaController mMediaController;
+	private MySimpleMediaController mMediaController;
 	private RelativeLayout mLayout;
 	private ProgressBar mBufferingProgressBar;
 	private EditText et_playlink;
@@ -120,7 +113,7 @@ public class ClipListActivity extends Activity implements
 	private EditText et_bw_type;
 	private MediaPlayer mPlayer 				= null;
 	private MyAdapter mAdapter;
-	private ListView lv_filelist 				= null;
+	private ListView lv_filelist;
 	
 	private ProgressBar mDownloadProgressBar;
 	private TextView mProgressTextView;
@@ -200,7 +193,8 @@ public class ClipListActivity extends Activity implements
 	private final static int MSG_CLIP_PLAY_DONE			= 102;
 	private static final int MSG_UPDATE_PLAY_INFO 		= 201;
 	private static final int MSG_UPDATE_RENDER_INFO		= 202;
-	private static final int MSG_UPDATE_HTTP_LIST			= 203;
+	private static final int MSG_LOCAL_LIST_DONE			= 203;
+	private static final int MSG_HTTP_LIST_DONE			= 204;
 	private static final int MSG_FAIL_TO_LIST_HTTP_LIST	= 301;
 	private static final int MSG_DISPLAY_SUBTITLE			= 401;
 	private static final int MSG_HIDE_SUBTITLE			= 402;
@@ -210,9 +204,6 @@ public class ClipListActivity extends Activity implements
 	private String mCurrentFolder;
 	
 	private final static String home_folder		= "";//"/test2";
-	
-	//private final static String H265_TEST_PLAYLINK = "http://127.0.0.1:9106/record.m3u8?type=pplive3&playlink=300146%3fft%3D2%26type%3dphone.android%26h265%3d2";
-
 	
 	private final static String HTTP_UPDATE_APK_URL = "http://172.16.204.106/test/test/";
 	
@@ -297,6 +288,8 @@ public class ClipListActivity extends Activity implements
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
+		
+		// compatible with tvbox
 		boolean isLandscape;
 		if (getResources().getConfiguration().orientation == 1) 
 			isLandscape = false;
@@ -319,6 +312,7 @@ public class ClipListActivity extends Activity implements
 		else
 			preview_height = screen_height * 2 / 5;
 		Log.i(TAG, String.format("screen %dx%d, preview height %d", screen_width, screen_height, preview_height));
+		// end of tvbox
 		
 		this.btnPlay = (Button) findViewById(R.id.btn_play);
 		this.btnSelectTime = (Button) findViewById(R.id.btn_select_time);
@@ -338,7 +332,7 @@ public class ClipListActivity extends Activity implements
 		this.mBufferingProgressBar = (ProgressBar) findViewById(R.id.progressbar_buffering);
 		this.mSubtitleTextView = (TextView) findViewById(R.id.textview_subtitle);
 		
-		this.mMediaController = new MyMediaController(this);
+		this.mMediaController = new MySimpleMediaController(this);
 		
 		mControllerLayout = new LinearLayout(this);
 		mControllerLayout.setLayoutParams(new LayoutParams(LayoutParams.MATCH_PARENT,
@@ -352,16 +346,21 @@ public class ClipListActivity extends Activity implements
 		addContentView(mControllerLayout, new LayoutParams(LayoutParams.MATCH_PARENT,
 				LayoutParams.WRAP_CONTENT));
 		
-		if (Environment.getExternalStorageState().equals(Environment.MEDIA_MOUNTED)) {
-			mCurrentFolder = Environment.getExternalStorageDirectory().getPath() + home_folder;
-			File file = new File(mCurrentFolder);
-			if (!file.isDirectory()) {
-				mCurrentFolder = Environment.getExternalStorageDirectory().getPath();
-			}
-			setTitle(mCurrentFolder);
+		if (home_folder.equals("")) {
+			mCurrentFolder = "";
 		}
 		else {
-			Toast.makeText(this, "sd card is not mounted!", Toast.LENGTH_SHORT).show();
+			if (Environment.getExternalStorageState().equals(Environment.MEDIA_MOUNTED)) {
+				mCurrentFolder = Environment.getExternalStorageDirectory().getPath() + home_folder;
+				File file = new File(mCurrentFolder);
+				if (!file.isDirectory()) {
+					mCurrentFolder = Environment.getExternalStorageDirectory().getPath();
+				}
+				setTitle(mCurrentFolder);
+			}
+			else {
+				Toast.makeText(this, "sd card is not mounted!", Toast.LENGTH_SHORT).show();
+			}
 		}
 		
 		if (USE_BREAKPAD && !mRegisterBreakpad)
@@ -377,9 +376,12 @@ public class ClipListActivity extends Activity implements
             }
         }
 		
-		mListUtil = new ListMediaUtil();
+		mListUtil = new ListMediaUtil(this);
 		
 		initFeedback();
+		
+		CrashHandler crashHandler = CrashHandler.getInstance();  
+        crashHandler.init(this);
 		
 		if (initMeetSDK() == false) {
 			Toast.makeText(this, "failed to load meet lib", 
@@ -402,37 +404,43 @@ public class ClipListActivity extends Activity implements
 
 		this.lv_filelist = (ListView) findViewById(R.id.lv_filelist);
 		
-		new ListItemTask().execute("");
+		new ListItemTask().execute(mCurrentFolder);
 		
 		this.lv_filelist
 				.setOnItemClickListener(new ListView.OnItemClickListener() {
+					@SuppressWarnings("unchecked")
 					@Override
 					public void onItemClick(AdapterView<?> arg0, View view,
 							int position, long id) {
 						// TODO Auto-generated method stub
 						Log.i(TAG, String.format("onItemClick %d %d", position, id));
 						
-						HashMap item = (HashMap)lv_filelist.getItemAtPosition(position);
+						HashMap<String, Object> item = (HashMap<String, Object>) lv_filelist.getItemAtPosition(position);
 						String file_name = (String)item.get("filename");
 						String file_path = (String)item.get("fullpath");
 						Log.i(TAG, String.format("Java: full_path %s", file_path));
 							
 						if (file_name.equals("..")) {
 							// up to parent folder
-							String parent_folder;
-							
 							if (mListLocalFile) {
 								File file = new File(mCurrentFolder);
-								if (file.getParent() != mCurrentFolder) {
-									mCurrentFolder = file.getParent();
+								String parent_folder = file.getParent();
+								if (parent_folder == null ||parent_folder == mCurrentFolder) {
+									Log.i(TAG, "already at root folder");
+								}
+								else {
+									mCurrentFolder = parent_folder;
 									setTitle(mCurrentFolder);
 									new ListItemTask().execute(mCurrentFolder);
 								}
 							}
 							else {
-								setTitle(file_path);
-								// fixme!
-								new ListItemTask().execute(mCurrentFolder);
+								// http parent folder list
+								String url = file_path;
+								int index = url.lastIndexOf('/', url.length() - 1 - 1);
+								url = url.substring(0, index + 1);
+								new ListItemTask().execute(url);
+								setTitle(url);
 							}
 						}
 						else {
@@ -460,10 +468,10 @@ public class ClipListActivity extends Activity implements
 											Toast.LENGTH_SHORT).show();  
 									}
 									else {
-										Log.i(TAG, "Java: folder: " + file.getAbsolutePath());
+										Log.i(TAG, "Java: list folder: " + file.getAbsolutePath());
 										mCurrentFolder = file_path;
-										setTitle(file_path);
-										new ListItemTask().execute("");
+										setTitle(mCurrentFolder);
+										new ListItemTask().execute(mCurrentFolder);
 									}
 								}
 								else {
@@ -675,10 +683,6 @@ public class ClipListActivity extends Activity implements
 		this.btnClipLocation.setOnClickListener(new Button.OnClickListener() {
 			@Override
 			public void onClick(View view) {
-				
-				// TODO Auto-generated method stub
-				Log.i(TAG, "onClick toParent: ");
-				
 				String listUrl;
 				if (mListLocalFile) {
 					// switch to http list(maybe failed)
@@ -686,13 +690,7 @@ public class ClipListActivity extends Activity implements
 				}
 				else {
 					// http->local always succeed
-		        	if (home_folder == null || home_folder.equals(""))
-		        		listUrl = "";
-		        	else
-		        		listUrl = Environment.getExternalStorageDirectory().getPath() + home_folder;
-		        	
-					btnClipLocation.setText("http");
-					mListLocalFile = true;
+		        	listUrl = mCurrentFolder;
 				}
 				
 				new ListItemTask().execute(listUrl);
@@ -857,6 +855,7 @@ public class ClipListActivity extends Activity implements
         }
 	}
 	
+	@SuppressWarnings("deprecation") // avoid setType warning
 	private int start_player(String path) {
 		mPlayUrl = path;
 		
@@ -908,31 +907,7 @@ public class ClipListActivity extends Activity implements
 			return -1;
 		}
 		
-		//Toast.makeText(ClipListActivity.this, mIsOMXSurface ? "is omx" : "not omx", Toast.LENGTH_SHORT).show();
-		
-		if (mPlayer != null) {
-			mStoped = true;
-			if (mIsSubtitleUsed) {
-				mSubtitleThread.interrupt();
-				
-				try {
-					mSubtitleThread.join();
-				} catch (InterruptedException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
-				}
-			}
-			
-			mPlayer.stop();
-			mPlayer.release();
-			mPlayer = null;
-			
-			// fix last video is still in buffering state
-			if (mIsBuffering) {
-				mBufferingProgressBar.setVisibility(View.GONE);
-				mIsBuffering = false;
-			}
-		}
+		stop_player();
 		
 		if (!mIsPreview) {
 			//Uri uri = Uri.fromFile(file);
@@ -1053,6 +1028,32 @@ public class ClipListActivity extends Activity implements
 		}
 		
 		return 0;
+	}
+	
+	void stop_player() {
+		if (mPlayer != null) {
+			mStoped = true;
+			if (mIsSubtitleUsed) {
+				mSubtitleThread.interrupt();
+				
+				try {
+					mSubtitleThread.join();
+				} catch (InterruptedException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+			}
+			
+			mPlayer.stop();
+			mPlayer.release();
+			mPlayer = null;
+			
+			// fix last video is still in buffering state
+			if (mIsBuffering) {
+				mBufferingProgressBar.setVisibility(View.GONE);
+				mIsBuffering = false;
+			}
+		}
 	}
 	
 	/////////////////////////////////////////////
@@ -1194,9 +1195,12 @@ public class ClipListActivity extends Activity implements
 				Toast.makeText(ClipListActivity.this, "clip completed", Toast.LENGTH_SHORT).show();
 				mTextViewInfo.setText("play info");
 				break;
-			case MSG_UPDATE_HTTP_LIST:
-				// fixme!
-				//ListHttpMediaInfo(mHttpFolderList, mHttpFileList);
+			case MSG_LOCAL_LIST_DONE:
+				btnClipLocation.setText("http");
+				mListLocalFile = true;
+				break;
+			case MSG_HTTP_LIST_DONE:
+				setTitle(HTTP_SERVER_URL);
 				btnClipLocation.setText("local");
 				mListLocalFile = false;
 				break;
@@ -1221,16 +1225,28 @@ public class ClipListActivity extends Activity implements
 	private class ListItemTask extends AsyncTask<String, Integer, Boolean> {
         @Override
         protected Boolean doInBackground(String... params) {
-        	String path;
-        	if (home_folder == null || home_folder.equals(""))
-        		path = "";
-        	else
-        		path = Environment.getExternalStorageDirectory().getPath() + home_folder;
+        	Log.i(TAG, "Java: doInBackground " +  params[0]);
         	
-        	mListUtil.ListMediaInfo(ClipListActivity.this, path);
-            
-			Log.i(TAG, "Java: Long Operation done.");
-            return true;
+        	// update progress
+        	// publishProgress(progresses)
+        	
+        	boolean ret = mListUtil.ListMediaInfo(params[0]);
+        	if (ret) {
+        		if (params[0].startsWith("http://")) {
+        			 if (mListLocalFile)
+        				 mHandler.sendEmptyMessage(MSG_HTTP_LIST_DONE);
+        		}
+        		else {
+        			if (!mListLocalFile)
+        				mHandler.sendEmptyMessage(MSG_LOCAL_LIST_DONE);
+        		}
+        	}
+        	else {
+        		if (mListLocalFile)
+        			mHandler.sendEmptyMessage(MSG_FAIL_TO_LIST_HTTP_LIST);
+        	}
+        	
+        	return ret;
         }
 
         @Override
@@ -1238,8 +1254,7 @@ public class ClipListActivity extends Activity implements
         	if (result) {
 				mAdapter = new MyAdapter(ClipListActivity.this, mListUtil.getList(), R.layout.sd_list,
 					from, to);
-				lv_filelist.setAdapter(mAdapter);
-				
+				lv_filelist.setAdapter(mAdapter);	
         	}
         	
         	progDlg.dismiss();
@@ -1270,20 +1285,6 @@ public class ClipListActivity extends Activity implements
 		intent.putExtra("impl", player_impl);
 		startActivity(intent);
 	}
-
-	private String msecToString(long msec)
-	{
-		long msec_, sec, minute, hour, tmp;
-		msec_ = msec % 1000;
-		sec = msec / 1000;
-		
-		// sec = 3710
-		tmp = sec % 3600; // 110
-		hour = sec / 3600; // 1
-		sec = tmp % 60; // 50
-		minute = tmp / 60; // 1
-		return String.format("%02d:%02d:%02d:%03d", hour, minute, sec, msec_);
-	}
 	
 	private String addPlaylinkParam(String playlink, int ft, String bwt) {
     	playlink += "?ft=" + ft;
@@ -1306,6 +1307,11 @@ public class ClipListActivity extends Activity implements
 	}
 	
 	private void push_to_dmr() {
+		if (mPlayUrl == null || mPlayUrl.equals("")) {
+			Toast.makeText(this, "no url is set", Toast.LENGTH_SHORT).show();
+			return;
+		}
+		
 		int dev_num = mDLNAcallback.mDeviceMap.size();
 		
 		if (dev_num == 0) {
@@ -1393,7 +1399,7 @@ public class ClipListActivity extends Activity implements
 			previewMenuItem.setChecked(true);
 		
 		// dlna
-		MenuItem dlnaMenuItem = fileSubMenu.add(i, OPTION_DLNA_LIST, Menu.NONE, "dlna");
+		fileSubMenu.add(i, OPTION_DLNA_LIST, Menu.NONE, "dlna");
 		
 		return super.onCreateOptionsMenu(menu);
 	}
@@ -1722,7 +1728,7 @@ public class ClipListActivity extends Activity implements
 
 		Log.i(TAG, "Java: onPause()");
 
-		if(mPlayer != null) {
+		if (mPlayer != null) {
 			mPlayer.pause();
 			//mPlayer.suspend();
 		}
@@ -1794,7 +1800,7 @@ public class ClipListActivity extends Activity implements
 		Random rand =new Random();
 		int i;
 		i = rand.nextInt(100);
-		int port = 10000;
+		int port = DLNA_LISTEN_PORT + i;
 		mDLNA.StartHttpServer(port);
 		Log.i(TAG, String.format("Java: dlna start dlna server port: %d", port));
 		return true;
@@ -1940,9 +1946,9 @@ public class ClipListActivity extends Activity implements
 	}
 	// end of "callback of subtitle"
 	
-	private final class MyMediaController extends MediaController {
+	private final class MySimpleMediaController extends MediaController {
 
-	    private MyMediaController(Context context) {
+	    private MySimpleMediaController(Context context) {
 	        super(new ContextThemeWrapper(context, R.style.MyPlayerTheme));
 	    }
 	}

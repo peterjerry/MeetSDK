@@ -898,7 +898,6 @@ bool loadPlayerLib(bool generalPlayer) // use ffplay if true, use ppplayer if fa
 	player_handle = &player_handle_software;
 
 	if (*player_handle && getPlayerFun) {// already loaded
-		PPLOGI("lib already loaded");
 		return true;
 	}
 

@@ -12,8 +12,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.ivy.util.url.ApacheURLLister;
-
 import android.content.ContentResolver;
 import android.content.Context;
 import android.database.Cursor;
@@ -41,6 +39,11 @@ public class ListMediaUtil {
 		return mClipList;
 	}
 	
+	public ListMediaUtil(Context ctx) {
+		mContext = ctx;
+		mClipList = new ArrayList<Map<String, Object>>();
+	}
+
 	private String GetFileExt(String path) {
 		/*File f = new File(path);  
 		String fileName = f.getName(); 
@@ -233,10 +236,6 @@ public class ListMediaUtil {
 	}
 	
 	private boolean ListMediaInfoFolder() {
-		File folder = new File(mUrl);
-		File[] files = folder.listFiles();
-		Arrays.sort(files, new FileComparator());
-		
 		// add parent folder ".." line
 		HashMap<String, Object> parent_folder = new HashMap<String, Object>();
 		parent_folder.put("filename", "..");
@@ -247,72 +246,54 @@ public class ListMediaUtil {
 		parent_folder.put("fullpath", "..");
 		parent_folder.put("thumb", R.drawable.folder);
 		mClipList.add(parent_folder);
-		
-		if (files != null) {
-			SimpleDateFormat dateFormat = new SimpleDateFormat(
-					"yyyy-MM-dd HH:mm:ss");
-
-			for (File file : files) {
-				String fileName = file.getName();
-				if (fileName.endsWith("srt") || fileName.endsWith("ass"))
-					continue;
 				
-				if (file.isFile() && !file.isHidden())
-				{
-					long modTime = file.lastModified();
+		File folder = new File(mUrl);
+		File[] files = folder.listFiles();
+		if (files == null) {
+			Log.i(TAG, "folder is empty");
+			return true;
+		}
 
-					String filesize;
-					if (file.length() > ONE_MAGABYTE)
-						filesize = String.format("%.3f MB",
-								(float) file.length() / (float) ONE_MAGABYTE);
-					else if (file.length() > ONE_KILOBYTE)
-						filesize = String.format("%.3f kB",
-								(float) file.length() / (float) ONE_KILOBYTE);
-					else
-						filesize = String.format("%d Byte", file.length());
+		Arrays.sort(files, new FileComparator());
+		SimpleDateFormat dateFormat = new SimpleDateFormat(
+				"yyyy-MM-dd HH:mm:ss");
 
-					MediaInfo info = MeetSDK.getMediaDetailInfo(file);
+		for (File file : files) {
+			String fileName = file.getName();
+			if (fileName.endsWith("srt") || fileName.endsWith("ass"))
+				continue;
+			
+			if (file.isFile() && !file.isHidden())
+			{
+				long modTime = file.lastModified();
 
-					if (info != null) {
-						HashMap<String, Object> map = new HashMap<String, Object>();
-						map.put("filename", file.getName());
-						map.put("mediainfo", QueryMediaInfo(file.getAbsolutePath()));
-						map.put("folder", GetFileFolder(file.getAbsolutePath()));
-						map.put("filesize", filesize);
-						map.put("modify", dateFormat.format(new Date(modTime)));
-						
-						String string_res = String.format("%dx%d %s", 
-								info.getWidth(), info.getHeight(), msecToString(info.getDuration()));
-						map.put("resolution", string_res);
-						Log.i(TAG, "Java: media info: " + string_res);
-						
-						map.put("fullpath", file.getAbsolutePath());
-						map.put("thumb", file.getAbsolutePath()/*R.drawable.clip*/);
+				String filesize;
+				if (file.length() > ONE_MAGABYTE)
+					filesize = String.format("%.3f MB",
+							(float) file.length() / (float) ONE_MAGABYTE);
+				else if (file.length() > ONE_KILOBYTE)
+					filesize = String.format("%.3f kB",
+							(float) file.length() / (float) ONE_KILOBYTE);
+				else
+					filesize = String.format("%d Byte", file.length());
 
-						int index = fileName.lastIndexOf(".");
-						String s;
-						if (index != -1)
-							s = fileName.substring(0, index).toString();
-						else
-							s = fileName;
-						
-						Log.i(TAG, "video: " + fileName + " added to list");
-						mClipList.add(map);
-					}
-					else {
-						Log.w(TAG, "video: " + fileName + " cannot get media info");
-					}
-				}
-				else if(file.isDirectory() && !file.isHidden()) {
+				MediaInfo info = MeetSDK.getMediaDetailInfo(file);
+
+				if (info != null) {
 					HashMap<String, Object> map = new HashMap<String, Object>();
 					map.put("filename", file.getName());
-					map.put("mediainfo", "N/A");
-					map.put("folder", "N/A");
-					map.put("filesize", "N/A");
-					map.put("modify", "N/A");
-					map.put("resolution", "N/A");
+					map.put("mediainfo", QueryMediaInfo(file.getAbsolutePath()));
+					map.put("folder", GetFileFolder(file.getAbsolutePath()));
+					map.put("filesize", filesize);
+					map.put("modify", dateFormat.format(new Date(modTime)));
+					
+					String string_res = String.format("%dx%d %s", 
+							info.getWidth(), info.getHeight(), msecToString(info.getDuration()));
+					map.put("resolution", string_res);
+					Log.i(TAG, "Java: media info: " + string_res);
+					
 					map.put("fullpath", file.getAbsolutePath());
-					map.put("thumb", R.drawable.folder);
+					map.put("thumb", file.getAbsolutePath()/*R.drawable.clip*/);
 
 					int index = fileName.lastIndexOf(".");
 					String s;
@@ -324,10 +305,31 @@ public class ListMediaUtil {
 					Log.i(TAG, "video: " + fileName + " added to list");
 					mClipList.add(map);
 				}
+				else {
+					Log.w(TAG, "video: " + fileName + " cannot get media info");
+				}
 			}
-		} else {
-			Log.e(TAG, "file path is empty");
-			return false;
+			else if(file.isDirectory() && !file.isHidden()) {
+				HashMap<String, Object> map = new HashMap<String, Object>();
+				map.put("filename", file.getName());
+				map.put("mediainfo", "N/A");
+				map.put("folder", "N/A");
+				map.put("filesize", "N/A");
+				map.put("modify", "N/A");
+				map.put("resolution", "N/A");
+				map.put("fullpath", file.getAbsolutePath());
+				map.put("thumb", R.drawable.folder);
+
+				int index = fileName.lastIndexOf(".");
+				String s;
+				if (index != -1)
+					s = fileName.substring(0, index).toString();
+				else
+					s = fileName;
+				
+				Log.i(TAG, "folder: " + fileName + " added to list");
+				mClipList.add(map);
+			}
 		}
 		
 		return true;
@@ -433,16 +435,11 @@ public class ListMediaUtil {
 		return true;
 	}
 	
-	public boolean ListMediaInfo(Context ctx, String url) {
-		Log.i(TAG, "Java: ListMidiaInfo");
-
-		mContext = ctx;
+	public boolean ListMediaInfo(String url) {
+		Log.i(TAG, "Java: ListMidiaInfo " + url);
+		
 		mUrl = url;
-		
-		if (mClipList != null)
-			mClipList.clear();
-		
-		mClipList = new ArrayList<Map<String, Object>>();
+		mClipList.clear();
 		
 		if (mUrl == null || mUrl.equals(""))
 			return ListMediaInfoMediaStore();
