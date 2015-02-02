@@ -203,7 +203,7 @@ public class ClipListActivity extends Activity implements
 	
 	private String mCurrentFolder;
 	
-	private final static String home_folder		= "";//"/test2";
+	private final static String home_folder		= "/test2";
 	
 	private final static String HTTP_UPDATE_APK_URL = "http://172.16.204.106/test/test/";
 	
@@ -1800,7 +1800,7 @@ public class ClipListActivity extends Activity implements
 		Random rand =new Random();
 		int i;
 		i = rand.nextInt(100);
-		int port = DLNA_LISTEN_PORT + i;
+		int port = 10010;//DLNA_LISTEN_PORT + i;
 		mDLNA.StartHttpServer(port);
 		Log.i(TAG, String.format("Java: dlna start dlna server port: %d", port));
 		return true;

@@ -11,6 +11,7 @@ import android.app.AlertDialog;
 import android.app.Dialog;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.text.InputType;
 import android.view.Menu;
 import android.view.MotionEvent;
@@ -40,10 +41,14 @@ public class TimePickerActivity extends Activity implements OnTouchListener {
         etDuration = (EditText) this.findViewById(R.id.et_duration); 
         btnBack = (Button) this.findViewById(R.id.btn_back);
         
-        SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd HH:mm");
+        SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd"); // yyyy-MM-dd HH:mm
         Date curDate = new Date(System.currentTimeMillis());
-        String str = formatter.format(curDate);
-        etStartTime.setText(str/*2014-11-08 17:12"*/);
+        String strDay = formatter.format(curDate);
+        SharedPreferences sharedata = getSharedPreferences("last_select_time", 0);  
+        int last_hour = sharedata.getInt("hour", 18);
+        int last_min = sharedata.getInt("min", 30);
+        String strTime = String.format(" %02d:%02d", last_hour, last_min);
+        etStartTime.setText(strDay + strTime/*2014-11-08 17:12"*/);
            
         etStartTime.setOnTouchListener(this); 
         etDuration.setOnTouchListener(this); 
@@ -65,9 +70,12 @@ public class TimePickerActivity extends Activity implements OnTouchListener {
             cal.setTimeInMillis(System.currentTimeMillis()); 
             datePicker.init(cal.get(Calendar.YEAR), cal.get(Calendar.MONTH), cal.get(Calendar.DAY_OF_MONTH), null); 
    
-            timePicker.setIs24HourView(true); 
-            timePicker.setCurrentHour(cal.get(Calendar.HOUR_OF_DAY)); 
-            timePicker.setCurrentMinute(cal.get(Calendar.MINUTE)); 
+            timePicker.setIs24HourView(true);
+            SharedPreferences sharedata = getSharedPreferences("last_select_time", 0);  
+            int last_hour = sharedata.getInt("hour", 18);
+            int last_min = sharedata.getInt("min", 30);
+            timePicker.setCurrentHour(last_hour/*cal.get(Calendar.HOUR_OF_DAY)*/); 
+            timePicker.setCurrentMinute(last_min/*cal.get(Calendar.MINUTE)*/); 
    
             if (v.getId() == R.id.et_start_time) { 
                 final int inType = etStartTime.getInputType(); 
@@ -88,6 +96,12 @@ public class TimePickerActivity extends Activity implements OnTouchListener {
                     	day  = datePicker.getDayOfMonth();
                     	hour = timePicker.getCurrentHour();
                     	min = timePicker.getCurrentMinute();
+                    	
+                    	// save hour and minute
+                    	SharedPreferences.Editor sharedata = getSharedPreferences("last_select_time", 0).edit();  
+                    	sharedata.putInt("hour", hour);
+                    	sharedata.putInt("min", min);
+                    	sharedata.commit();
                     	
                     	String strHour = String.format("%02d", hour);
                         String strMin = String.format("%02d", min);

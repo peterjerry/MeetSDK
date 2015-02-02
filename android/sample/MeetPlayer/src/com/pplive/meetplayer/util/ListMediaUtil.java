@@ -215,20 +215,20 @@ public class ListMediaUtil {
 			URL url = (URL)FileList.get(i);
 			String clip_fullpath = url.toString();
 			String filename = GetFileName(clip_fullpath);
-			MediaInfo info = MeetSDK.getMediaDetailInfo(clip_fullpath);
+			/*MediaInfo info = MeetSDK.getMediaDetailInfo(clip_fullpath);
 			String string_res = "N/A";
 			if (info != null) {
 				String.format("%dx%d %s", 
 					info.getWidth(), info.getHeight(), msecToString(info.getDuration()));
-			}
+			}*/
 			
 			HashMap<String, Object> map = new HashMap<String, Object>();
 			map.put("filename", filename);
-			map.put("mediainfo", QueryMediaInfo(clip_fullpath));
+			map.put("mediainfo", "N/A"/*QueryMediaInfo(clip_fullpath)*/);
 			map.put("folder", mUrl);
 			map.put("filesize", "N/A");
 			map.put("modify", "N/A");
-			map.put("resolution", string_res);
+			map.put("resolution", "N/A"/*string_res*/);
 			map.put("fullpath", clip_fullpath);
 			map.put("thumb", R.drawable.http);
 
