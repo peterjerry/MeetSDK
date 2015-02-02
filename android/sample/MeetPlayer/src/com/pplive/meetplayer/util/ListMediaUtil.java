@@ -63,6 +63,19 @@ public class ListMediaUtil {
 		return file_ext;
 	}
 	
+	private String GetFileName(String path) {
+		int pos1, pos2;
+		pos1 = path.lastIndexOf('/');
+		pos2 = path.lastIndexOf(".");
+		if (pos2 == -1)
+			pos2 = path.length();
+		
+		String filename;
+		filename = path.substring(pos1 + 1, pos2);
+		
+		return filename;
+	}
+	
 	private String GetFileFolder(String path) {
 		String file_folder;
 		int pos1, pos2;
@@ -92,15 +105,8 @@ public class ListMediaUtil {
 		return String.format("%02d:%02d:%02d:%03d", hour, minute, sec, msec_);
 	}
 	
-	
-	
 	private String QueryMediaInfo(String path) {
-		File file = new File(path);
-		
-		if(file == null || !file.exists())
-			return "N/A";
-		
-		MediaInfo info = MeetSDK.getMediaDetailInfo(file);
+		MediaInfo info = MeetSDK.getMediaDetailInfo(path);
 		
 		StringBuffer sbMediaInfo = new StringBuffer();
 
@@ -108,7 +114,7 @@ public class ListMediaUtil {
 		sbMediaInfo.append(GetFileExt(path));
 		
 		if (info == null) {
-			Log.w(TAG, "video: " + file.getAbsolutePath() + " cannot get media info");
+			Log.w(TAG, "video: " + path + " cannot get media info");
 			return sbMediaInfo.toString();
 		}
 		sbMediaInfo.append(", f:");
@@ -189,14 +195,10 @@ public class ListMediaUtil {
 		for (int i = 0; i < FolderList.size(); i++) {
 			URL url = (URL)FolderList.get(i);
 			String clip_fullpath = url.toString();
-			Log.i(TAG, "http folder: " + clip_fullpath);
-			
-			int index = clip_fullpath.lastIndexOf("/", clip_fullpath.length() - 2);
-			String foldername;
-			foldername = clip_fullpath.substring(index + 1, clip_fullpath.length() - 1).toString();
+			String folder = GetFileFolder(clip_fullpath);
 			
 			HashMap<String, Object> map = new HashMap<String, Object>();
-			map.put("filename", foldername);
+			map.put("filename", folder);
 			map.put("mediainfo", "N/A");
 			map.put("folder", mUrl);
 			map.put("filesize", "N/A");
@@ -205,26 +207,28 @@ public class ListMediaUtil {
 			map.put("fullpath", clip_fullpath);
 			map.put("thumb", R.drawable.folder);
 
-			Log.i(TAG, "folder: " + foldername + " added to list");
+			Log.i(TAG, "folder: " + folder + " added to list");
 			mClipList.add(map);
 		}
 		
 		for (int i = 0; i < FileList.size(); i++) {
 			URL url = (URL)FileList.get(i);
 			String clip_fullpath = url.toString();
-			Log.i(TAG, "http file: " + clip_fullpath);
-			
-			int index = clip_fullpath.lastIndexOf("/");
-			String filename;
-			filename = clip_fullpath.substring(index + 1, clip_fullpath.length()).toString();
+			String filename = GetFileName(clip_fullpath);
+			MediaInfo info = MeetSDK.getMediaDetailInfo(clip_fullpath);
+			String string_res = "N/A";
+			if (info != null) {
+				String.format("%dx%d %s", 
+					info.getWidth(), info.getHeight(), msecToString(info.getDuration()));
+			}
 			
 			HashMap<String, Object> map = new HashMap<String, Object>();
 			map.put("filename", filename);
-			map.put("mediainfo", "N/A");
+			map.put("mediainfo", QueryMediaInfo(clip_fullpath));
 			map.put("folder", mUrl);
 			map.put("filesize", "N/A");
 			map.put("modify", "N/A");
-			map.put("resolution", "N/A");
+			map.put("resolution", string_res);
 			map.put("fullpath", clip_fullpath);
 			map.put("thumb", R.drawable.http);
 

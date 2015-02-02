@@ -380,8 +380,8 @@ public class ClipListActivity extends Activity implements
 		
 		initFeedback();
 		
-		CrashHandler crashHandler = CrashHandler.getInstance();  
-        crashHandler.init(this);
+		//CrashHandler crashHandler = CrashHandler.getInstance();  
+        //crashHandler.init(this);
 		
 		if (initMeetSDK() == false) {
 			Toast.makeText(this, "failed to load meet lib", 

@@ -54,6 +54,7 @@ public class CrashHandler implements UncaughtExceptionHandler {
             return true;
         }
 
+        ex.printStackTrace();
         return true;
     }
 }

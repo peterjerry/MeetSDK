@@ -63,8 +63,6 @@ public final class MeetSDK {
 	
 	private static String AppRootDir = null;
 	private static String PPBoxLibName = null;
-	private static int FullScreenWidth = 0;
-    private static int FullScreenHeight = 0;
 	private static int status = 0;
 	
 	@Deprecated
@@ -182,6 +180,18 @@ public final class MeetSDK {
 		return info;
 	}
 
+	public static MediaInfo getMediaDetailInfo(String url) {
+		MediaInfo info = null;
+		
+		try {
+			info = MeetPlayerHelper.getMediaDetailInfo(url);
+		} catch (LinkageError e) {
+            LogUtils.error("LinkageError", e);
+        }
+
+		return info;
+	}
+	
 	public static MediaInfo getMediaDetailInfo(File mediaFile) {
 		MediaInfo info = null;
 
@@ -357,18 +367,6 @@ public final class MeetSDK {
 
 	@Deprecated
 	public static void setSurfaceType(SurfaceHolder holder, boolean isOMXSurface) {
-		/*
-		if (isOMXSurface) {
-			holder.setType(SurfaceHolder.SURFACE_TYPE_PUSH_BUFFERS);
-		} else {
-			holder.setType(SurfaceHolder.SURFACE_TYPE_NORMAL);
-			holder.setFormat(PixelFormat.RGBX_8888);
-			if(FullScreenWidth > 0 && FullScreenHeight > 0)
-			{
-			    holder.setFixedSize(FullScreenWidth, FullScreenHeight);
-			}
-		}
-		*/
 	}
 
 	/**

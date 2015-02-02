@@ -2981,16 +2981,15 @@ bool FFPlayer::getMediaInfo(const char* url, MediaInfo* info)
 
     bool ret = false;
 
-    struct stat buf;
+	struct stat buf;
     int32_t iresult = stat(url, &buf);
-	if(iresult == 0)
-    {
-        info->size_byte = buf.st_size;
-    }
-    else
-    {
-        return ret;
-    }
+    if (0 == iresult) {
+		info->size_byte = buf.st_size;
+	}
+	else {
+		LOGW("cannnot get filesize: %s, %d", url, iresult);
+        info->size_byte = 0;
+	}
 
     AVFormatContext* movieFile = avformat_alloc_context();
     LOGD("check file %s", url);
