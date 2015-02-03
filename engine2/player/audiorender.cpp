@@ -97,7 +97,6 @@ status_t AudioRender::open(int sampleRate,
 	mChannelLayoutOutput = mChannelLayout;
 	mChannelsOutput = mChannels;
 
-#if defined(__CYGWIN__) || defined(OSLES_IMPL) || defined(_MSC_VER)
 	switch(mSampleFormat)
 	{
 	case AV_SAMPLE_FMT_U8:
@@ -123,7 +122,6 @@ status_t AudioRender::open(int sampleRate,
 		LOGW("unsupported sample format(for osles) %d", mSampleFormat);
 		break;
 	}
-#endif   
 
 	if (need_convert()) {
 		LOGI("need do audio conversion");
@@ -165,21 +163,20 @@ status_t AudioRender::open(int sampleRate,
 			}
 
 			mFormatSizeOutput = mFormatSize;
-			if(mSampleFormatOutput < AV_SAMPLE_FMT_U8) {
+			if (mSampleFormatOutput < AV_SAMPLE_FMT_U8) {
 				mSampleFormatOutput = AV_SAMPLE_FMT_U8;
 				mFormatSizeOutput = 1;
 			}
-			else if(mSampleFormatOutput > AV_SAMPLE_FMT_S16) {
+			else if (mSampleFormatOutput > AV_SAMPLE_FMT_S16) {
 				mSampleFormatOutput = AV_SAMPLE_FMT_S16;
 				mFormatSizeOutput = 2;
 			}
 			LOGI("mSampleFormatOutput:%d", mSampleFormatOutput);
 			LOGI("mFormatSizeOutput:%d", mFormatSizeOutput);
 
-#if defined(__CYGWIN__) || defined(_MSC_VER) || defined(OSLES_IMPL)				
+            // overwrite bit_per_sample to 1 or 2
 			mBitPerSample = mFormatSizeOutput * 8;
 			LOGI("bitPerSample reset to(need convert): %d", mBitPerSample);
-#endif
 
 			if(mSampleRateOutput < 4000)
 				mSampleRateOutput = 4000;

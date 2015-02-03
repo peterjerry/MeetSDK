@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>IDESourceControlProjectFavoriteDictionaryKey</key>
+	<false/>
+	<key>IDESourceControlProjectIdentifier</key>
+	<string>C4A1C339-DFB3-43FD-A5CD-78600AC28ECF</string>
+	<key>IDESourceControlProjectName</key>
+	<string>PlayerWorkspace</string>
+	<key>IDESourceControlProjectOriginsDictionary</key>
+	<dict>
+		<key>3BC5D6DFE4B49B1189B7FFA9AA778224C472D51E</key>
+		<string>http://inn/guoliangma/meetsdk.git</string>
+		<key>653f6834-aab9-c84e-bf21-5865e8c89758++7012</key>
+		<string>http://192.168.0.94/repositories/r02/MediaPipeline/meet/PPMediaPlayer</string>
+	</dict>
+	<key>IDESourceControlProjectPath</key>
+	<string>workspace/PlayerWorkspace.xcworkspace</string>
+	<key>IDESourceControlProjectRelativeInstallPathDictionary</key>
+	<dict>
+		<key>3BC5D6DFE4B49B1189B7FFA9AA778224C472D51E</key>
+		<string>../../..</string>
+		<key>653f6834-aab9-c84e-bf21-5865e8c89758++7012</key>
+		<string>../..</string>
+	</dict>
+	<key>IDESourceControlProjectRepositoryRootDictionary</key>
+	<dict>
+		<key>653f6834-aab9-c84e-bf21-5865e8c89758++7012</key>
+		<string>http://192.168.0.94/repositories/r02</string>
+	</dict>
+	<key>IDESourceControlProjectURL</key>
+	<string>http://192.168.0.94/repositories/r02/MediaPipeline/meet/PPMediaPlayer/workspace/PlayerWorkspace.xcworkspace</string>
+	<key>IDESourceControlProjectVersion</key>
+	<integer>111</integer>
+	<key>IDESourceControlProjectWCCIdentifier</key>
+	<string>653f6834-aab9-c84e-bf21-5865e8c89758++7012</string>
+	<key>IDESourceControlProjectWCConfigurations</key>
+	<array>
+		<dict>
+			<key>IDESourceControlRepositoryExtensionIdentifierKey</key>
+			<string>public.vcs.git</string>
+			<key>IDESourceControlWCCIdentifierKey</key>
+			<string>3BC5D6DFE4B49B1189B7FFA9AA778224C472D51E</string>
+			<key>IDESourceControlWCCName</key>
+			<string></string>
+		</dict>
+		<dict>
+			<key>IDESourceControlRepositoryExtensionIdentifierKey</key>
+			<string>public.vcs.subversion</string>
+			<key>IDESourceControlWCCIdentifierKey</key>
+			<string>653f6834-aab9-c84e-bf21-5865e8c89758++7012</string>
+			<key>IDESourceControlWCCName</key>
+			<string>ios</string>
+		</dict>
+	</array>
+</dict>
+</plist>

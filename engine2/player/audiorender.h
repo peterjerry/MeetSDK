@@ -67,12 +67,10 @@ private:
 	// added new opensl es audio render
 	and_osles* a_render;
 #endif
-#if defined(__CYGWIN__) || defined(OSLES_IMPL) || defined(_MSC_VER)
 #if defined(__CYGWIN__) || defined(_MSC_VER)
 	and_fifobuffer mFifo;
 #endif
 	int mBitPerSample; // 8, 16, ...
-#endif
 };
 
 #endif // _AUDIO_RENDER_H

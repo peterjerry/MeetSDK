@@ -286,4 +286,6 @@ public:
 
 extern "C" IPlayer* getPlayer(void* context);
 
+extern "C" void releasePlayer(IPlayer *player);
+
 #endif
