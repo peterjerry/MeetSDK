@@ -319,7 +319,6 @@ AVFormatContext* FFStream::open(char* uri)
 
     mStreamsCount = mMovieFile->nb_streams;
     LOGD("mStreamsCount:%d", mStreamsCount);
-#ifndef NO_AUDIO_PLAY
 	for (int32_t i = 0; i < (int32_t)mStreamsCount; i++)
     {
 		if (mMovieFile->streams[i]->codec->codec_type == AVMEDIA_TYPE_AUDIO)
@@ -334,7 +333,6 @@ AVFormatContext* FFStream::open(char* uri)
             //LOGI("Discard audio stream:%d", i);
 		}
 	}
-#endif
 
     //Some audio file includes video stream as album. we need to skip it.
     //Todo: support displaying album picture when playing audio file

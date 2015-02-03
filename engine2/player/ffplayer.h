@@ -169,7 +169,7 @@ private:
 	bool broadcast_refresh(); // if not broadcast, return false. if broadcast, flush a/v packet and return true 
 	bool need_drop_pkt(AVPacket* packet); // pare h264 pakcet, do decide if this packet(frame) can be drop
 	void optimizeDecode_l(AVPacket* packet); // set codec context->skip_loop_filter and skip_frame
-	int32_t calc_frame_delay();
+	int64_t calc_frame_delay();
 	void notifyVideoDelay(int64_t video_clock, int64_t audio_clock, int64_t frame_delay);
 
 	int64_t getFramePTS_l(AVFrame* frame);
@@ -245,7 +245,7 @@ private:
 
 	int64_t		mAveVideoDecodeTimeMs;
 	int64_t		mCompensateMs;
-	int32_t		mFrameDelay;
+	int64_t		mFrameDelay;
 	int32_t		mDiscardLevel;
 	uint32_t	mDiscardCount;
 	int64_t		mVideoPlayingTimeMs; // calc from AVFrame pts

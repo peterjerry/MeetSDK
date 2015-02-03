@@ -975,11 +975,13 @@ void FFPlayer::onPrepareImpl()
         return;
     }
 
+#ifndef NO_AUDIO_PLAY
     if (prepareAudio_l() != OK) {
      	LOGE("Initing audio decoder failed");
         abortPrepare_l(ERROR);
         return;
     }
+#endif
 
     if (mPlayerStatus == MEDIA_PLAYER_STOPPING || mPlayerStatus == MEDIA_PLAYER_STOPPED) {
         LOGD("Player is stopping");
@@ -1030,7 +1032,7 @@ int64_t FFPlayer::get_audio_clock()
 
 int64_t FFPlayer::get_video_clock()
 {
-	return mVideoPlayingTimeMs;
+	return mVideoTimeMs;
 }
 
 int64_t FFPlayer::get_external_clock()
@@ -1038,8 +1040,11 @@ int64_t FFPlayer::get_external_clock()
 	return av_gettime() / 1000;
 }
 
-int32_t FFPlayer::calc_frame_delay()
+int64_t FFPlayer::calc_frame_delay()
 {
+#ifdef NO_AUDIO_PLAY
+	return 0;
+#else
 	int64_t videoFramePTS, videoFrameMs;
 	int64_t delay_msec;
 	int64_t ref_clock_msec, diff_msec, sync_threshold_msec, actual_delay_msec;
@@ -1066,8 +1071,8 @@ int32_t FFPlayer::calc_frame_delay()
 	mLastFrameMs = videoFrameMs;
 	mLastDelayMs = delay_msec;
 	
-	ref_clock_msec = get_audio_clock();
-	mVideoTimeMs = ref_clock_msec; // time for seek
+	ref_clock_msec = get_master_clock();
+	mVideoTimeMs = videoFrameMs; // time for seek
 	diff_msec = videoFrameMs - ref_clock_msec;
 
 	sync_threshold_msec = (delay_msec > AV_SYNC_THRESHOLD_MSEC) ? delay_msec : AV_SYNC_THRESHOLD_MSEC;
@@ -1086,8 +1091,10 @@ int32_t FFPlayer::calc_frame_delay()
 	if (actual_delay_msec < 10) // 10 msec
 		actual_delay_msec = 0;
 
+	LOGI("v: %I64d, a: %I64d, diff: %I64d", videoFramePTS, ref_clock_msec, diff_msec);
 	notifyVideoDelay(videoFramePTS, ref_clock_msec, diff_msec);
-	return (int32_t)actual_delay_msec;
+	return actual_delay_msec;
+#endif
 }
 
 void FFPlayer::notifyVideoDelay(int64_t video_clock, int64_t audio_clock, int64_t frame_delay)
@@ -1147,7 +1154,7 @@ bool FFPlayer::render_frame()
 
 	mFrameDelay = calc_frame_delay();
 
-	if (need_drop_frame(mFrameDelay)) {
+	if (need_drop_frame((int32_t)mFrameDelay)) {
 		// delay is larger than video_gap, so next video vidoe event is asap.
 		return true;
 	}
@@ -1401,13 +1408,7 @@ void FFPlayer::onVideoImpl()
 		return;
 	}
 
-	int32_t next_event_delay;
-#ifdef NO_AUDIO_PLAY
-	next_event_delay = 0;
-#else
-	next_event_delay = mFrameDelay; // if video is early, mFrameDelay is negative, sleep here
-#endif
-	postVideoEvent_l(next_event_delay);
+	postVideoEvent_l(mFrameDelay);
 }
 
 void FFPlayer::set_opt(char *opt)
