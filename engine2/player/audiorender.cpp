@@ -449,9 +449,13 @@ int AudioRender::get_latency()
 		return a_render->get_latency();
 	else
 		return 0;
-#elif defined(__CYGWIN__) || defined(_MSC_VER)
+#elif defined(__CYGWIN__)
 	int one_sec_size = mSampleRateOutput * mChannelsOutput * mBitPerSample / 8;
 	int latency = FIFO_BUFFER_SIZE  * 1000 / one_sec_size;
+	return latency;
+#elif defined(_MSC_VER)
+	int one_sec_size = mSampleRateOutput * mChannelsOutput * mBitPerSample / 8;
+	int latency = mFifo.used() / one_sec_size;
 	return latency;
 #else // android with audiotrack and ios with openal
 	return AudioTrack_getLatency();

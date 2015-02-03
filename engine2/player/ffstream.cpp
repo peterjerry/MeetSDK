@@ -338,7 +338,7 @@ AVFormatContext* FFStream::open(char* uri)
 
     //Some audio file includes video stream as album. we need to skip it.
     //Todo: support displaying album picture when playing audio file
-    if(mMovieFile->iformat->name != NULL
+    if (mMovieFile->iformat->name != NULL
         && strcmp(mMovieFile->iformat->name, "mp3") != 0
         && strcmp(mMovieFile->iformat->name, "ogg") != 0
         && strcmp(mMovieFile->iformat->name, "wmav1") != 0

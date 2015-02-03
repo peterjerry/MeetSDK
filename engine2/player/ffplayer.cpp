@@ -280,6 +280,11 @@ FFPlayer::FFPlayer()
 	mDecodedFrames			= 0;
 	mRenderedFrames			= 0;
 
+	mSyncType				= AV_SYNC_AUDIO_MASTER;
+	mLastFrameMs			= 0;
+	mLastDelayMs			= 0;
+	mFrameTimerMs			= 0;
+
 	//snapshot
 	mSnapshotPic	= NULL;
 	mSnapShotFrame	= NULL;
@@ -1005,10 +1010,41 @@ void FFPlayer::onPrepareImpl()
         postBufferingUpdateEvent_l();
 }
 
+int64_t FFPlayer::get_master_clock()
+{
+	if (AV_SYNC_VIDEO_MASTER == mSyncType)
+		return get_video_clock();
+	else if (AV_SYNC_AUDIO_MASTER == mSyncType)
+		return get_audio_clock();
+	else
+		return get_external_clock();
+}
+
+int64_t FFPlayer::get_audio_clock()
+{
+	if (NULL == mAudioPlayer)
+		return 0;
+
+	return mAudioPlayer->getMediaTimeMs();
+}
+
+int64_t FFPlayer::get_video_clock()
+{
+	return mVideoPlayingTimeMs;
+}
+
+int64_t FFPlayer::get_external_clock()
+{
+	return av_gettime() / 1000;
+}
+
 int32_t FFPlayer::calc_frame_delay()
 {
-	int32_t frame_delay;
-	int64_t videoFramePTS;
+	int64_t videoFramePTS, videoFrameMs;
+	int64_t delay_msec;
+	int64_t ref_clock_msec, diff_msec, sync_threshold_msec, actual_delay_msec;
+
+	// calc pts from AVframe
 #ifdef USE_AV_FILTER
 	if (mVideoFiltFrame) {
 		videoFramePTS = getFramePTS_l(mVideoFiltFrame);
@@ -1019,56 +1055,55 @@ int32_t FFPlayer::calc_frame_delay()
 #else
 	videoFramePTS = getFramePTS_l(mVideoFrame);
 #endif
-    mVideoPlayingTimeMs = (int64_t)(videoFramePTS * av_q2d(mVideoStream->time_base) * 1000);
-    LOGD("video frame pts: %lld(%lld ms)", videoFramePTS, mVideoPlayingTimeMs);
-    //if(mDurationMs == 0)
-    //{
-    //    //broadcast
-    //    if(mLastFrameMs-frameMs > 500) //0.5s
-    //    {
-    //        //m3u8
-    //        mPlayedDurationMs = mVideoPlayingTimeMs;
-    //        LOGD("Video mPlayedDurationMs:%lld", mPlayedDurationMs);
-    //    }
-    //    mLastFrameMs = frameMs;
-    //}
-    //mVideoPlayingTimeMs = mPlayedDurationMs+frameMs;
 
-    int64_t audioPlayingTimeMs;
-#ifdef NO_AUDIO_PLAY
-	audioPlayingTimeMs = mVideoPlayingTimeMs;
-#else
-	if (mAudioPlayer) {
-		audioPlayingTimeMs = mAudioPlayer->getMediaTimeMs();
-		frame_delay = (int32_t)(audioPlayingTimeMs - mVideoPlayingTimeMs + mVideoRenderer->swsMs()); // suppose render time cost on sws almostly 
+	videoFrameMs = (int64_t)(videoFramePTS * av_q2d(mVideoStream->time_base) * 1000); // pts -> msec
+	delay_msec = videoFrameMs - mLastFrameMs; // always 1000 / framerate(40 msec)
+	if (delay_msec < 0 || delay_msec > 1000) {
+		// fix invalid pts
+		delay_msec = mLastDelayMs;
 	}
-	else {
-		audioPlayingTimeMs = mVideoPlayingTimeMs;
-		frame_delay = 0;
+
+	mLastFrameMs = videoFrameMs;
+	mLastDelayMs = delay_msec;
+	
+	ref_clock_msec = get_audio_clock();
+	mVideoTimeMs = ref_clock_msec; // time for seek
+	diff_msec = videoFrameMs - ref_clock_msec;
+
+	sync_threshold_msec = (delay_msec > AV_SYNC_THRESHOLD_MSEC) ? delay_msec : AV_SYNC_THRESHOLD_MSEC;
+	if (diff_msec < AV_NOSYNC_THRESHOLD || diff_msec > -AV_NOSYNC_THRESHOLD) {
+		if (diff_msec <= -sync_threshold_msec) {
+		  delay_msec = 0;
+		} else if(diff_msec >= sync_threshold_msec) {
+		  delay_msec = 2 * delay_msec;
+		}
 	}
-#endif
 
-    mVideoTimeMs = audioPlayingTimeMs;
+	mFrameTimerMs += delay_msec;
 
-	notifyVideoDelay(mVideoPlayingTimeMs, audioPlayingTimeMs, frame_delay);
+	actual_delay_msec = mFrameTimerMs - av_gettime() / 1000 - mAveVideoDecodeTimeMs;
+	LOGI("actual_delay_msec %I64d", actual_delay_msec);
+	if (actual_delay_msec < 10) // 10 msec
+		actual_delay_msec = 0;
 
-	return frame_delay;
+	notifyVideoDelay(videoFramePTS, ref_clock_msec, diff_msec);
+	return (int32_t)actual_delay_msec;
 }
 
-void FFPlayer::notifyVideoDelay(int64_t video_clock, int64_t audio_clock, int32_t frame_delay)
+void FFPlayer::notifyVideoDelay(int64_t video_clock, int64_t audio_clock, int64_t frame_delay)
 {
 	static int64_t start_msec = 0;
 #ifdef TEST_PERFORMANCE
-	if(mDecodedFrames % 5 == 0)
-		notifyListener_l(MEDIA_INFO, MEDIA_INFO_TEST_LATENCY_MSEC, (int)mFrameDelay);
+	if (mDecodedFrames % 5 == 0)
+		notifyListener_l(MEDIA_INFO, MEDIA_INFO_TEST_LATENCY_MSEC, (int)frame_delay);
 #endif
 	int64_t cur_msec = getNowMs();
 	if (cur_msec - start_msec > 5000) {
 #ifdef _MSC_VER
-		LOGI("video_clock: %I64d, audio_clock: %I64d, delay: %d(msec)",
+		LOGI("video_clock: %I64d, audio_clock: %I64d, delay: %I64d(msec)",
 		    video_clock, audio_clock, frame_delay);
 #else
-		LOGI("video_clock: %lld, audio_clock: %lld, delay: %d(msec)",
+		LOGI("video_clock: %lld, audio_clock: %lld, delay: %lld(msec)",
 		    mVideoPlayingTimeMs, audio_clock, frame_delay);
 #endif
 		start_msec = cur_msec;
@@ -1108,14 +1143,6 @@ bool FFPlayer::render_frame()
 		// must set audio start time before render frame!
         mIsVideoFrameDirty = true;
         mRenderFirstFrame = false;
-
-        //update audioplayer initial media time
-        //video outputs before audio
-    	if (mAudioPlayer != NULL) {
-            int64_t pts = getFramePTS_l(mVideoFrame);
-            int64_t frameTimeMs = (int64_t)(pts * av_q2d(mVideoStream->time_base) * 1000);
-            mAudioPlayer->setMediaTimeMs(frameTimeMs);
-    	}
     }
 
 	mFrameDelay = calc_frame_delay();
@@ -1137,11 +1164,6 @@ bool FFPlayer::render_frame()
 	int64_t end_render, costTime;
 	end_render = getNowMs();
 	costTime = end_render - begin_render;
-	/*static int64_t lastTime = 0;
-	if(0 == lastTime)
-	lastTime = end_render;
-	LOGI("render tick %lld msec (use %lld, gap %lld)", end_render, costTime, end_render - lastTime);
-	lastTime = end_render;*/
 
 	if (mAveRenderTimeMs == 0)
 		mAveRenderTimeMs = costTime;
@@ -1374,7 +1396,7 @@ void FFPlayer::onVideoImpl()
 
 	// Step3 render picture
 	bool render_res = render_frame();
-	if(!render_res) {
+	if (!render_res) {
 		LOGI("render one frame and stop onVideo()");
 		return;
 	}
@@ -1383,12 +1405,14 @@ void FFPlayer::onVideoImpl()
 #ifdef NO_AUDIO_PLAY
 	next_event_delay = 0;
 #else
-	next_event_delay = mVideoGapMs - mFrameDelay - (int32_t)mAveVideoDecodeTimeMs; // if video is early, mFrameDelay is negative, sleep here
-	if (next_event_delay < 0)
-		next_event_delay = 0;
-	LOGD("next_delay %d", next_event_delay);
+	next_event_delay = mFrameDelay; // if video is early, mFrameDelay is negative, sleep here
 #endif
 	postVideoEvent_l(next_event_delay);
+}
+
+void FFPlayer::set_opt(char *opt)
+{
+
 }
 
 bool FFPlayer::broadcast_refresh()
@@ -1884,57 +1908,50 @@ status_t FFPlayer::prepareAudio_l()
 {
 	mAudioStreamIndex = mDataStream->getAudioStreamIndex();
 	mAudioStream = mDataStream->getAudioStream();
-	if (mAudioStreamIndex == -1 || mAudioStream == NULL)
-    {
-        LOGD("No audio stream");
-
-        //init audioplayer for time reference
-        mAudioPlayer = new AudioPlayer();
+	if (mAudioStreamIndex == -1 || NULL == mAudioStream) {
+        LOGI("No audio stream");
+		mSyncType = AV_SYNC_VIDEO_MASTER; // fixme
+		return OK;
 	}
-    else
-    {
-    	LOGD("Audio time_base: %d/%d ", mAudioStream->time_base.num, mAudioStream->time_base.den);
-    	// Get a pointer to the codec context for the video stream
-    	AVCodecContext* codec_ctx = mAudioStream->codec;
-    	AVCodec* codec = avcodec_find_decoder(codec_ctx->codec_id);
+    
+    // Get a pointer to the codec context for the video stream
+    AVCodecContext* codec_ctx = mAudioStream->codec;
+    AVCodec* codec = avcodec_find_decoder(codec_ctx->codec_id);
 
-        if (NULL == codec) {
-			LOGE("Failed to find audio decoder: %d %s", codec_ctx->codec_id, avcodec_get_name(codec_ctx->codec_id));
-			//notifyListener_l(MEDIA_ERROR, MEDIA_ERROR_UNSUPPORTED, 0);
-			return ERROR;
-		}
+    if (NULL == codec) {
+		LOGE("Failed to find audio decoder: %d %s", codec_ctx->codec_id, avcodec_get_name(codec_ctx->codec_id));
+		//notifyListener_l(MEDIA_ERROR, MEDIA_ERROR_UNSUPPORTED, 0);
+		return ERROR;
+	}
 
-		LOGI("audio codec_ctx fmt %d", codec_ctx->sample_fmt);
+	LOGI("audio codec_ctx fmt %d", codec_ctx->sample_fmt);
 
-        // Open codec
-        //codec_ctx->request_sample_fmt = AV_SAMPLE_FMT_S16;
-		// AV_SAMPLE_FMT_S16P,        ///< signed 16 bits, planar
-        if (avcodec_open2(codec_ctx, codec, NULL) >= 0) {
-            //init audioplayer
-            if(codec_ctx->sample_rate > 0 && codec_ctx->channels > 0)
-            {
-                mAudioPlayer = new AudioPlayer(mDataStream, mAudioStream, mAudioStreamIndex);
-                LOGD("audio codec name:%s", codec->long_name);
-            }
-            else
-            {
-                LOGE("invalid audio config data, codec:%s, samplerate:%d, channels:%d",
-                    codec->long_name, codec_ctx->sample_rate, codec_ctx->channels);
-				// 2015.1.13 guoliangma fix crash
-				return ERROR;
-            }
+    // Open codec
+    //codec_ctx->request_sample_fmt = AV_SAMPLE_FMT_S16;
+	// AV_SAMPLE_FMT_S16P,        ///< signed 16 bits, planar
+    if (avcodec_open2(codec_ctx, codec, NULL) >= 0) {
+        //init audioplayer
+        if(codec_ctx->sample_rate > 0 && codec_ctx->channels > 0) {
+            mAudioPlayer = new AudioPlayer(mDataStream, mAudioStream, mAudioStreamIndex);
+            LOGD("audio codec name:%s", codec->long_name);
         }
         else {
-            LOGE("Failed to open audio decoder: %d %s", codec_ctx->codec_id, avcodec_get_name(codec_ctx->codec_id));
+            LOGE("invalid audio config data, codec:%s, samplerate:%d, channels:%d",
+                codec->long_name, codec_ctx->sample_rate, codec_ctx->channels);
+			// 2015.1.13 guoliangma fix crash
+			return ERROR;
         }
+    }
+    else {
+        LOGE("Failed to open audio decoder: %d %s", codec_ctx->codec_id, avcodec_get_name(codec_ctx->codec_id));
+    }
 
-        if (mAudioPlayer == NULL) {
-            mDataStream->disableStream(mAudioStreamIndex);
-            mAudioStreamIndex = -1;
-            mAudioStream = NULL;
-            //init audioplayer for time reference
-            mAudioPlayer = new AudioPlayer();
-        }
+    if (mAudioPlayer == NULL) {
+        mDataStream->disableStream(mAudioStreamIndex);
+        mAudioStreamIndex = -1;
+        mAudioStream = NULL;
+		LOGW("failed to open audio player");
+        mSyncType = AV_SYNC_VIDEO_MASTER; // fixme
     }
 
     mAudioPlayer->setListener(this);
@@ -2103,9 +2120,11 @@ status_t FFPlayer::play_l()
         LOGI("no video stream");
     }
 
-	mDecodedFrames = 0;
-	mRenderedFrames = 0;
-	mTotalStartTimeMs = getNowMs();
+	mDecodedFrames		= 0;
+	mRenderedFrames		= 0;
+	mTotalStartTimeMs	= getNowMs();
+	mFrameTimerMs		= av_gettime() / 1000;
+	mLastDelayMs	= 40;
 
     mPlayerStatus = MEDIA_PLAYER_STARTED;
     return OK;
@@ -2665,8 +2684,8 @@ bool FFPlayer::need_drop_pkt(AVPacket* packet)
                 {
                     return false;
                 }
-                int64_t packetTimeMs = (int64_t)(packetPTS*1000*av_q2d(mVideoStream->time_base));
-                int64_t audioPlayingTimeMs = mAudioPlayer->getMediaTimeMs();
+                int64_t packetTimeMs = (int64_t)(packetPTS * 1000 * av_q2d(mVideoStream->time_base));
+				int64_t audioPlayingTimeMs = get_audio_clock();
                 int64_t latenessMs = audioPlayingTimeMs - packetTimeMs;
 
                 //as audio time is playing, so time*2

@@ -34,8 +34,6 @@ public:
 
 	status_t flush();
 
-	status_t setMediaTimeMs(int64_t timeMs);
-
     int32_t getStatus(){ return mPlayerStatus;}
 
 	int64_t getMediaTimeMs(); 
@@ -81,8 +79,6 @@ private:
     pthread_t mThread;
     pthread_mutex_t mLock;
     pthread_cond_t mCondition;
-
-	bool mIsUsedAsClock;
 
 };
 
