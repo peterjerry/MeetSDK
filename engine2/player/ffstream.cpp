@@ -392,13 +392,14 @@ AVFormatContext* FFStream::open(char* uri)
 
 	int64_t duration;
 	duration =  mMovieFile->duration;
-	if (AV_NOPTS_VALUE == duration) {
-		LOGW("cannot got video duration");
+	if (AV_NOPTS_VALUE == duration || duration < 0) {
+		mDurationMs = 0;
 		//avformat_close_input(&mMovieFile);
 		//return NULL;
 	}
-	
-	mDurationMs = duration * 1000 / AV_TIME_BASE;
+	else {
+		mDurationMs = duration * 1000 / AV_TIME_BASE;
+	}
 	LOGI("file duration got: %lld(msec)", mDurationMs);
 
     mFrameRate = 25;//default

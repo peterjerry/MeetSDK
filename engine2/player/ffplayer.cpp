@@ -1472,7 +1472,7 @@ void FFPlayer::onSeekingImpl()
 	LOGD("onSeeking");
 	AutoLock autolock(&mPlayerLock);
 
-    if (!mSeekingEventPending) // omit duplicated evetn
+    if (!mSeekingEventPending) // omit duplicated event
 		return;
 
     if (mVideoStream != NULL) {
@@ -1484,10 +1484,10 @@ void FFPlayer::onSeekingImpl()
     }
 	else {
 		int64_t cur_pos;
-		if(mAudioPlayer){
+		if (mAudioPlayer) {
 			//get audio time
 			cur_pos = (int32_t)mAudioPlayer->getMediaTimeMs();
-			if(mSeekTimeMs < cur_pos)
+			if (mSeekTimeMs < cur_pos)
 				mSeekIncr = -1;
 			else
 				mSeekIncr = 1;
@@ -1504,13 +1504,10 @@ void FFPlayer::onSeekingImpl()
     if (!mSeeking) {
         mSeeking = true; //doing seek.
         seekTo_l();
-        if(mVideoStream != NULL) {
+        if (mVideoStream != NULL) {
             mRenderFirstFrame = true;
             mNeedSyncFrame = true;
         }
-    }
-    else {
-        postSeekingEvent_l(100);
     }
 }
 
@@ -1750,9 +1747,10 @@ status_t FFPlayer::pause_l()
 
 status_t FFPlayer::seekTo_l() // called from onSeekingImpl, so MUSTN'T LOCK IT HERE
 {
-    if (mAudioPlayer != NULL)
+	if (mAudioPlayer != NULL)
         mAudioPlayer->seekTo(mSeekTimeMs);
 
+	// will notify seek_complete
     if (mDataStream->seek(mSeekTimeMs, mSeekIncr) != OK) {
         notifyListener_l(MEDIA_ERROR, MEDIA_ERROR_FAIL_TO_SEEK, 0);
         mPlayerStatus = MEDIA_PLAYER_STATE_ERROR;
