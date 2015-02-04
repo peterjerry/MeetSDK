@@ -50,9 +50,8 @@ private:
 	status_t pause_l();
 	status_t flush_l();
 	void run();
-    int32_t decode_l(AVPacket *packet);
+    int decode_l(AVPacket *packet);
 	static void* audio_thread(void* ptr);
-	void render_l();
     void notifyListener_l(int msg, int ext1 = 0, int ext2 = 0);
 
 private:

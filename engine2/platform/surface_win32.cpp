@@ -17,7 +17,7 @@ int				g_window_h	= 0;
 
 status_t Surface_open(void* surface)
 {
-	if(surface == NULL)
+	if (surface == NULL)
         return ERROR;
 
 	return OK;

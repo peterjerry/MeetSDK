@@ -1792,7 +1792,7 @@ public class ClipListActivity extends Activity implements
 		}
 		
 		mDLNAcallback = new IDlnaCallback();
-		mDLNA.setLogPath(Environment.getExternalStorageDirectory().getAbsolutePath() + "/xxxx_dlna.log");
+		//mDLNA.setLogPath(Environment.getExternalStorageDirectory().getAbsolutePath() + "/xxxx_dlna.log");
 		mDLNA.Init(mDLNAcallback);
 		mDLNA.EnableRendererControler(true);
 		

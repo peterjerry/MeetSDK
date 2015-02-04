@@ -350,7 +350,7 @@ void CtestSDLdlgDlg::OnTimer(UINT_PTR nIDEvent)
 		int buffer_time_msec;
 		mPlayer->getBufferingTime(&buffer_time_msec);
 
-		title.Format("%s, a-v %03d, drop %d, render %d, %02d(%03d)/%02d(%03d), %d/%d kbps | %d msec", 
+		title.Format("%s, v-a %03d, drop %d, render %d, %02d(%03d)/%02d(%03d), %d/%d kbps | %d msec", 
 			filename.GetBuffer(), 
 			mLatency, mDropFrames, mRenderFrames, 
 			mDecFPS, mDecAvgMsec, mRenderFPS, mRenderAvgMsec, mIOBitrate, mBitrate, buffer_time_msec);

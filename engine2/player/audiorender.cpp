@@ -11,7 +11,7 @@
 #endif
 #if defined(__CYGWIN__) || defined(_MSC_VER)
 #include "sdl.h"
-#define SDL_AUDIO_BUFFER_SIZE	4096
+#define SDL_AUDIO_SAMPLES		1024
 #define FIFO_BUFFER_SIZE		65536
 #endif
 
@@ -27,6 +27,9 @@ AudioRender::AudioRender()
 	mDeviceChannels = 2; // hard code to 2 channels?
 #ifdef OSLES_IMPL
 	a_render = NULL;
+#endif
+#if defined(__CYGWIN__) || defined(_MSC_VER)
+	mAudioLogCnt = 0;
 #endif
 }
 
@@ -237,7 +240,7 @@ status_t AudioRender::open(int sampleRate,
 	wanted_spec.format = fmt;
 	wanted_spec.channels = mChannelsOutput;
 	wanted_spec.silence = 0;
-	wanted_spec.samples = SDL_AUDIO_BUFFER_SIZE;
+	wanted_spec.samples = SDL_AUDIO_SAMPLES;
 	wanted_spec.callback = audio_callback;
 	wanted_spec.userdata = this;
 
@@ -279,7 +282,7 @@ status_t AudioRender::render(AVFrame* audioFrame)//int16_t* buffer, uint32_t buf
 		int64_t begin_decode = getNowMs();
 #endif
 		int32_t sampleInCount = audioFrame->nb_samples;
-		LOGD("sampleInCount:%d", sampleInCount);
+		LOGD("sampleInCount: %d", sampleInCount);
 		int sampleOutCount = (int)av_rescale_rnd(
 			swr_get_delay(mConvertCtx, mSampleRate) + sampleInCount,
 			mSampleRateOutput,
@@ -293,12 +296,10 @@ status_t AudioRender::render(AVFrame* audioFrame)//int16_t* buffer, uint32_t buf
 			LOGE("Audio convert sampleformat(%d) failed, ret %d", mSampleFormat, sampleCountOutput);
 			return ERROR;
 		}
-		else if(sampleCountOutput > 0)
-		{
+		else if (sampleCountOutput > 0) {
 			audio_buffer = mSamples;
 			audio_buffer_size = sampleCountOutput * mChannelsOutput * mFormatSizeOutput;
-			LOGD("sampleCountOutput:%d", sampleCountOutput);
-			LOGD("buffer_size:%d", audio_buffer_size);
+			LOGD("swr output: sample:%d, size:%d", sampleCountOutput, audio_buffer_size);
 		}
 #ifndef NDEBUG
 		int64_t end_decode = getNowMs();
@@ -314,18 +315,25 @@ status_t AudioRender::render(AVFrame* audioFrame)//int16_t* buffer, uint32_t buf
 		audio_buffer_size = audioFrame->nb_samples * mChannels * mBitPerSample / 8;
 	}
 
+#ifdef _DUMP_PCM_DATA_
+	static FILE *pFile = NULL;
+	if (!pFile)
+		pFile = fopen("d:\\test.pcm", "wb");
+	fwrite(audio_buffer, 1, audio_buffer_size, pFile);
+#endif
+
 	int32_t size = 0;
 #if defined(__CYGWIN__) || defined(_MSC_VER)
 	int left;
 	int count = 0;
-	while (count < 50) { // 1sec
+	while (count < 50) { // 500 msec
 		left = mFifo.size() - mFifo.used();
 		if (left >= (int)audio_buffer_size) {
 			count = 0;
 			break;
 		}
 
-		SDL_Delay(10); // 10msec
+		SDL_Delay(10); // 10 msec
 		count++;
 	}
 
@@ -366,6 +374,7 @@ status_t AudioRender::start()
 {
 #if defined(__CYGWIN__) || defined(_MSC_VER)
 	SDL_PauseAudio(0);
+	mAudioLogCnt = 0;
 	return OK;
 #elif defined(OSLES_IMPL)
 	if(a_render->play() != 0)
@@ -412,6 +421,7 @@ status_t AudioRender::resume()
 {
 #if defined(__CYGWIN__) || defined(_MSC_VER)
 	SDL_PauseAudio(0);
+	mAudioLogCnt = 0;
 	return OK;
 #elif defined(OSLES_IMPL) // android with osles audio render
 	if(a_render) {
@@ -449,13 +459,9 @@ int AudioRender::get_latency()
 		return a_render->get_latency();
 	else
 		return 0;
-#elif defined(__CYGWIN__)
+#elif defined(__CYGWIN__) || defined(_MSC_VER)
 	int one_sec_size = mSampleRateOutput * mChannelsOutput * mBitPerSample / 8;
-	int latency = FIFO_BUFFER_SIZE  * 1000 / one_sec_size;
-	return latency;
-#elif defined(_MSC_VER)
-	int one_sec_size = mSampleRateOutput * mChannelsOutput * mBitPerSample / 8;
-	int latency = mFifo.used() / one_sec_size;
+	int latency = mFifo.used() * 1000 / one_sec_size; // msec
 	return latency;
 #else // android with audiotrack and ios with openal
 	return AudioTrack_getLatency();
@@ -470,21 +476,19 @@ void AudioRender::audio_callback(void *userdata, Uint8 *stream, int len)
 	AudioRender *ins = (AudioRender *)userdata;
 	if (ins) {
 		ins->audio_callback_impl(stream, len);
-		LOGD("audio_callback %d", len);
 	}
 }
 
 void AudioRender::audio_callback_impl(Uint8 *stream, int len)
 {
 	int ret;
-	static int count = 0;
 
 	ret = mFifo.read((char *)stream, len);
 	if (ret != len) {
 		memset(stream, 0, len);
-		count++;
-		if (count < 10)
-			LOGW("SDL audio buffer underflow #%d: %d.%d", count, ret, len);
+		mAudioLogCnt++;
+		if (mAudioLogCnt < 10)
+			LOGW("SDL audio buffer underflow #%d: %d.%d", mAudioLogCnt, ret, len);
 	}
 }
 #endif

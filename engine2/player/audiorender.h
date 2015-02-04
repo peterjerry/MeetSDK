@@ -69,6 +69,7 @@ private:
 #endif
 #if defined(__CYGWIN__) || defined(_MSC_VER)
 	and_fifobuffer mFifo;
+	int mAudioLogCnt;
 #endif
 	int mBitPerSample; // 8, 16, ...
 };

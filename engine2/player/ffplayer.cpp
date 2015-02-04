@@ -203,7 +203,6 @@ FFPlayer::FFPlayer()
     mPlayerStatus				= MEDIA_PLAYER_IDLE;
 	mAveVideoDecodeTimeMs		= 0;
     mCompensateMs				= 0;
-	mFrameDelay					= 0;
 	mVideoPlayingTimeMs			= 0;
 
 	// optimize
@@ -284,6 +283,7 @@ FFPlayer::FFPlayer()
 	mLastFrameMs			= 0;
 	mLastDelayMs			= 0;
 	mFrameTimerMs			= 0;
+	mAVDiffMs				= 0;
 
 	//snapshot
 	mSnapshotPic	= NULL;
@@ -580,27 +580,20 @@ status_t FFPlayer::selectAudioChannel(int32_t index)
 {
 	LOGI("player op selectAudioChannel(%d)", index);
 
-	status_t ret = ERROR;
-	// 2014.12.2 guoliang.ma added to support audio track switch when playing
-	do {
-		//if (mPlayerStatus == MEDIA_PLAYER_STARTED)
-		//	pause_l();
+	// verify if index is available
+	if (mDataStream->selectAudioChannel(index) != OK)
+		return ERROR;
 
-		// verify if index is available
-		if (mDataStream->selectAudioChannel(index) != OK)
-			break;
+	mAudioStreamIndex = index;
 
-		mAudioStreamIndex = index;
+	if (mAudioPlayer)
+		mAudioPlayer->selectAudioChannel(index);
 
-		if (mAudioPlayer)
-			mAudioPlayer->selectAudioChannel(index);
-		ret = OK;
-	}while(0);
+	mSeekTimeMs = mVideoTimeMs;
+	postSeekingEvent_l();
 	
-	//if (mPlayerStatus == MEDIA_PLAYER_PAUSED)
-	//	play_l();
-
-	return ret;
+	ResetStatics();
+	return OK;
 }
 
 status_t FFPlayer::setVideoSurface(void* surface)
@@ -1040,14 +1033,15 @@ int64_t FFPlayer::get_external_clock()
 	return av_gettime() / 1000;
 }
 
-int64_t FFPlayer::calc_frame_delay()
+void FFPlayer::calc_frame_delay()
 {
 #ifdef NO_AUDIO_PLAY
-	return 0;
+	mAVDiffMs = 0;
+	mScheduleMs = 0;
 #else
 	int64_t videoFramePTS, videoFrameMs;
 	int64_t delay_msec;
-	int64_t ref_clock_msec, diff_msec, sync_threshold_msec, actual_delay_msec;
+	int64_t ref_clock_msec, sync_threshold_msec;
 
 	// calc pts from AVframe
 #ifdef USE_AV_FILTER
@@ -1073,27 +1067,21 @@ int64_t FFPlayer::calc_frame_delay()
 	
 	ref_clock_msec = get_master_clock();
 	mVideoTimeMs = videoFrameMs; // time for seek
-	diff_msec = videoFrameMs - ref_clock_msec;
+	mAVDiffMs = videoFrameMs - ref_clock_msec;
 
 	sync_threshold_msec = (delay_msec > AV_SYNC_THRESHOLD_MSEC) ? delay_msec : AV_SYNC_THRESHOLD_MSEC;
-	if (diff_msec < AV_NOSYNC_THRESHOLD || diff_msec > -AV_NOSYNC_THRESHOLD) {
-		if (diff_msec <= -sync_threshold_msec) {
+	if (mAVDiffMs < AV_NOSYNC_THRESHOLD && mAVDiffMs > -AV_NOSYNC_THRESHOLD) {
+		if (mAVDiffMs <= -sync_threshold_msec) {
 		  delay_msec = 0;
-		} else if(diff_msec >= sync_threshold_msec) {
+		} else if(mAVDiffMs >= sync_threshold_msec) {
 		  delay_msec = 2 * delay_msec;
 		}
 	}
 
 	mFrameTimerMs += delay_msec;
 
-	actual_delay_msec = mFrameTimerMs - av_gettime() / 1000 - mAveVideoDecodeTimeMs;
-	LOGI("actual_delay_msec %I64d", actual_delay_msec);
-	if (actual_delay_msec < 10) // 10 msec
-		actual_delay_msec = 0;
-
-	LOGI("v: %I64d, a: %I64d, diff: %I64d", videoFramePTS, ref_clock_msec, diff_msec);
-	notifyVideoDelay(videoFramePTS, ref_clock_msec, diff_msec);
-	return actual_delay_msec;
+	LOGD("v: %I64d, a: %I64d, diff: %I64d", videoFrameMs, ref_clock_msec, mAVDiffMs);
+	notifyVideoDelay(videoFrameMs, ref_clock_msec, mAVDiffMs);
 #endif
 }
 
@@ -1152,9 +1140,9 @@ bool FFPlayer::render_frame()
         mRenderFirstFrame = false;
     }
 
-	mFrameDelay = calc_frame_delay();
+	calc_frame_delay();
 
-	if (need_drop_frame((int32_t)mFrameDelay)) {
+	if (need_drop_frame()) {
 		// delay is larger than video_gap, so next video vidoe event is asap.
 		return true;
 	}
@@ -1192,7 +1180,7 @@ bool FFPlayer::render_frame()
 	LOGV("render frame end");
 
 	// if video is too late ,just play it. otherwise frame will always frozen.
-	if (mFrameDelay >= AV_LATENCY_THR5) {
+	if (mAVDiffMs >= AV_LATENCY_THR5) {
 		mDiscardLevel = AVDISCARD_BIDIR;
 		mDiscardCount = 7;
 	}
@@ -1200,9 +1188,18 @@ bool FFPlayer::render_frame()
 	return true;
 }
 
-bool FFPlayer::need_drop_frame(int32_t frame_delay)
+bool FFPlayer::need_drop_frame()
 {
-	if (frame_delay > AV_LATENCY_THR1 && frame_delay < AV_LATENCY_THR5) {
+	int32_t frame_delay = (int32_t)mAVDiffMs;
+	bool ret = true;
+
+	if (frame_delay <= AV_LATENCY_THR1) {
+		// video is not late
+		mDiscardLevel = AVDISCARD_NONE;
+        mDiscardCount = 0;
+		ret = false;
+	}
+	else if (frame_delay > AV_LATENCY_THR1 && frame_delay < AV_LATENCY_THR5) {
 		// if latency is too much, just display video, otherwise frame is frozen for a long time
 		if (frame_delay < AV_LATENCY_THR2) {
 			mDiscardLevel = AVDISCARD_NONREF;
@@ -1228,30 +1225,20 @@ bool FFPlayer::need_drop_frame(int32_t frame_delay)
 		}
 
 		mIsVideoFrameDirty = true;
+		ret = true;
 #ifdef TEST_PERFORMANCE
 		notifyListener_l(MEDIA_INFO, MEDIA_INFO_TEST_DROP_FRAME, (int)frame_delay);
 		// drop frame!
 		// We're more than 40ms(default) late.
 		LOGI("drop frame: video late by %d ms, mDiscardLevel:%d, mDiscardCount:%d", frame_delay, mDiscardLevel, mDiscardCount);
 #endif
-		return true;
+	}
+	else {
+		// video lag too much, just play
+		ret = false;
 	}
 
-	if (frame_delay <= AV_LATENCY_THR1) {
-		// video is not late
-		mDiscardLevel = AVDISCARD_NONE;
-        mDiscardCount = 0;
-	}
-	
-	if (frame_delay < AV_LATENCY_BACK_THR2){ 
-		//still drop frame if it is too early for error handling.
-        LOGE("incorrect pts in frame, drop it");
-        mIsVideoFrameDirty = true;	
-		mFrameDelay = 1000; // make next onVideo asap
-		return true;
-    }
-
-	return false;
+	return ret;
 }
 
 void FFPlayer::onVideo(void *opaque)
@@ -1298,7 +1285,7 @@ void FFPlayer::onVideoImpl()
 					pPacket = NULL;
 					LOGI("packet is not key frame, drop frame");
 #ifdef TEST_PERFORMANCE
-					notifyListener_l(MEDIA_INFO, MEDIA_INFO_TEST_DROP_FRAME, (int)mFrameDelay);
+					notifyListener_l(MEDIA_INFO, MEDIA_INFO_TEST_DROP_FRAME, (int)mAVDiffMs);
 #endif
 					postVideoEvent_l(0); //trigger next onvideo event asap.
 					// drop frame!
@@ -1322,7 +1309,7 @@ void FFPlayer::onVideoImpl()
 				pPacket = NULL;
 				LOGI("packet is late, drop frame");
 #ifdef TEST_PERFORMANCE
-				notifyListener_l(MEDIA_INFO, MEDIA_INFO_TEST_DROP_FRAME, (int)mFrameDelay);
+				notifyListener_l(MEDIA_INFO, MEDIA_INFO_TEST_DROP_FRAME, (int)mAVDiffMs);
 #endif
 				postVideoEvent_l(0);
 				// drop frame!
@@ -1408,7 +1395,12 @@ void FFPlayer::onVideoImpl()
 		return;
 	}
 
-	postVideoEvent_l(mFrameDelay);
+	int64_t schedule_msec = mFrameTimerMs - av_gettime() / 1000 - mAveVideoDecodeTimeMs;
+	LOGD("schedule_msec %lld", schedule_msec);
+	if (schedule_msec < 10) // 10 msec
+		schedule_msec = 0;
+
+	postVideoEvent_l(schedule_msec);
 }
 
 void FFPlayer::set_opt(char *opt)
@@ -1663,9 +1655,7 @@ void FFPlayer::onSeekingCompleteImpl()
     mSeekingCompleteEventPending = false;
 
     mSeeking = false;
-	mDecodedFrames = 0;
-	mRenderedFrames = 0;
-	mTotalStartTimeMs = getNowMs();
+	ResetStatics();
     LOGD("send event MEDIA_SEEK_COMPLETE");
     notifyListener_l(MEDIA_SEEK_COMPLETE);
 }
@@ -2121,14 +2111,17 @@ status_t FFPlayer::play_l()
         LOGI("no video stream");
     }
 
+	ResetStatics();
+    mPlayerStatus = MEDIA_PLAYER_STARTED;
+    return OK;
+}
+
+void FFPlayer::ResetStatics()
+{
 	mDecodedFrames		= 0;
 	mRenderedFrames		= 0;
 	mTotalStartTimeMs	= getNowMs();
 	mFrameTimerMs		= av_gettime() / 1000;
-	mLastDelayMs	= 40;
-
-    mPlayerStatus = MEDIA_PLAYER_STARTED;
-    return OK;
 }
 
 status_t FFPlayer::reset_l()
@@ -2300,7 +2293,7 @@ status_t FFPlayer::decode_l(AVPacket *packet)
         						 packet);
 	int64_t end_decode = getNowMs();
     int64_t costTime = end_decode - begin_decode;
-    if(mAveVideoDecodeTimeMs == 0)
+    if (mAveVideoDecodeTimeMs == 0)
         mAveVideoDecodeTimeMs = costTime;
     else
         mAveVideoDecodeTimeMs = (mAveVideoDecodeTimeMs*4+costTime)/5;
