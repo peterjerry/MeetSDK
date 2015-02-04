@@ -61,7 +61,8 @@ private:
 	AVFrame* mAudioFrame;
     int64_t mNumFramesPlayed;
     uint32_t mLatencyMs;
-	int64_t mPositionTimeMediaMs; // pts clock, "seek" set to time, update when frame decoded out
+	int64_t mAudioPlayingTimeMs;
+	int64_t mSeekTimeMs;
 	bool mReachEndStream;
 	int64_t mOutputBufferingStartMs; // get from system clock
 	int64_t mAvePacketDurationMs;

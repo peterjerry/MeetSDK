@@ -317,10 +317,15 @@ int and_osles::read_data(char *buf, int size)
 	return m_fifo->read(buf, size);
 }
 
+void and_osles::flush()
+{
+	if (m_fifo)
+		m_fifo->reset();
+}
+
 int and_osles::get_latency()
 {
-	return m_fifo->used() * 1000 / m_one_sec_byte;
-	//return m_latency;
+	return m_fifo->used() * 1000 / m_one_sec_byte; // msec
 }
 
 // create buffer queue audio player

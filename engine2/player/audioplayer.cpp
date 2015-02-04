@@ -131,7 +131,7 @@ status_t AudioPlayer::prepare()
 	}
 
 	mNumFramesPlayed = 0;
-	mPositionTimeMediaMs = 0;
+	mAudioPlayingTimeMs = 0;
 	mAvePacketDurationMs = 0;
 	mLatencyMs = mRender->get_latency();
 	LOGI("mLatencyMs: %d", mLatencyMs);
@@ -173,7 +173,7 @@ int64_t AudioPlayer::getMediaTimeMs()
         mPlayerStatus != MEDIA_PLAYER_PLAYBACK_COMPLETE)
         return 0;
 
-	int64_t audioNowMs = mPositionTimeMediaMs - mRender->get_latency(); // |-------pts#######latency#########play->audio_hardware
+	int64_t audioNowMs = mAudioPlayingTimeMs - mRender->get_latency(); // |-------pts#######latency#########play->audio_hardware
 	if (audioNowMs < 0)
 		audioNowMs = 0;
     return audioNowMs;
@@ -181,9 +181,12 @@ int64_t AudioPlayer::getMediaTimeMs()
 
 status_t AudioPlayer::seekTo(int64_t msec)
 {
-	mPositionTimeMediaMs = msec;
-	mSeeking = true;
+	mSeekTimeMs = msec;
+	mSeeking	= true;
+	if (mRender)
+		mRender->flush();
 
+	LOGI("audio seeking...");
     return OK;
 }
 
@@ -294,6 +297,11 @@ int AudioPlayer::decode_l(AVPacket *packet)
 		/* packet has no more data, decode next packet. */
 		if (packet->size <= 0)
 			break;
+
+		if (mSeeking) {
+			mAudioPlayingTimeMs = mSeekTimeMs;
+			break;
+		}
 	}
 
     return 0;
@@ -310,7 +318,7 @@ void AudioPlayer::run()
             break;
         }
 
-        if(mPlayerStatus == MEDIA_PLAYER_PAUSED)
+        if (mPlayerStatus == MEDIA_PLAYER_PAUSED)
         {
             LOGD("AudioPlayer is paused");
             AutoLock autoLock(&mLock);
@@ -334,26 +342,20 @@ void AudioPlayer::run()
             AutoLock autoLock(&mLock);
             AVPacket* pPacket = NULL;
             status_t ret = mDataStream->getPacket(mAudioStreamIndex, &pPacket);
-            if(ret == FFSTREAM_OK)
-            {
-                if(!mSeeking)
-                {
-                    //decoding
-                    //TODO: do we need to stop playing if decode failed?
-        		    LOGD("decode before");
+            if (ret == FFSTREAM_OK) {
+                if (!mSeeking) {
         	        int ret = decode_l(pPacket);
-        		    LOGD("decode after");
 
                     if (ret == 0) {
                         //update audio output buffering start time
         	            mOutputBufferingStartMs = getNowMs();
                         
                         mAvePacketDurationMs = (mAvePacketDurationMs * 4 + (int64_t)(pPacket->duration * 1000 * av_q2d(mAudioContext->time_base))) / 5;
-                       	mPositionTimeMediaMs = (int64_t)(pPacket->pts * av_q2d(mAudioContext->time_base) * 1000);
+                       	mAudioPlayingTimeMs = (int64_t)(pPacket->pts * av_q2d(mAudioContext->time_base) * 1000);
 #ifdef _MSC_VER
-						LOGI("mPositionTimeMediaMs: %I64d", mPositionTimeMediaMs);
+						LOGD("mAudioPlayingTimeMs: %I64d", mAudioPlayingTimeMs);
 #else
-						LOGI("mPositionTimeMediaMs: %lld", mPositionTimeMediaMs);
+						LOGD("mAudioPlayingTimeMs: %lld", mAudioPlayingTimeMs);
 #endif
                     }
                 }
@@ -363,8 +365,10 @@ void AudioPlayer::run()
                 pPacket = NULL;
                 continue;
             }
-            else if(ret == FFSTREAM_ERROR_FLUSHING)
+            else if (ret == FFSTREAM_ERROR_FLUSHING)
             {
+				// seek is done!
+				LOGI("audio seek is done!");
                 mSeeking = false;
                 mOutputBufferingStartMs = 0;
                 avcodec_flush_buffers(mAudioContext->codec);
@@ -372,7 +376,7 @@ void AudioPlayer::run()
                 pPacket = NULL;
                 continue;
             }
-    		else if(ret == FFSTREAM_ERROR_BUFFERING)
+    		else if (ret == FFSTREAM_ERROR_BUFFERING)
     		{
 		        LOGD("audio queue no data");
 				struct timespec ts;
@@ -390,7 +394,7 @@ void AudioPlayer::run()
 #endif
                 continue;
     		}
-    		else if(ret == FFSTREAM_ERROR_EOF)
+    		else if (ret == FFSTREAM_ERROR_EOF)
     		{
     		    LOGI("reach audio stream end");
                 mReachEndStream = true;

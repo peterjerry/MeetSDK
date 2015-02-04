@@ -18,6 +18,8 @@ public:
 
 	void close();
 
+	void flush();
+
 	int setVol(int vol); // 0-100
 
 	int getVol();
