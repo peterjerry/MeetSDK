@@ -36,6 +36,8 @@ public:
 
 	int get_latency(); // msec
 
+	int get_one_sec_size();
+
 #if defined(__CYGWIN__) || defined(_MSC_VER)
 private:
 	static void audio_callback(void *userdata, Uint8 *stream, int len);
@@ -72,6 +74,7 @@ private:
 	int mAudioLogCnt;
 #endif
 	int mBitPerSample; // 8, 16, ...
+	int mOneSecSize;
 };
 
 #endif // _AUDIO_RENDER_H

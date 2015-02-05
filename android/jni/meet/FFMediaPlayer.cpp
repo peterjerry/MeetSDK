@@ -514,16 +514,14 @@ void android_media_MediaPlayer_seekTo(JNIEnv *env, jobject thiz, int msec)
 
 	int playTime=0;
 	mp->getCurrentPosition(&playTime);
-	int mediaDiff = msec -playTime;//ms
-	mediaDiff = mediaDiff>0?mediaDiff:-mediaDiff;
+	int mediaDiff = msec - playTime; // msec
+	mediaDiff = mediaDiff>0 ? mediaDiff : -mediaDiff;
 
-	if(mediaDiff > 2000)// && actionDiff > 500)//2sec
+	if(mediaDiff > 2000) // 2sec
 	{
-		PPLOGD("&&&&seekTo: %d(msec)", msec);
-		process_media_player_call( env, thiz, mp->seekTo(msec), NULL, NULL );
-		//lastSeekMediaTime = msec;
-		//lastSeekActionTime = nowMs;
-		PPLOGD("&&&&seekTo: %d(msec) end", msec);
+		PPLOGD("jni seekTo: %d(msec)", msec);
+		process_media_player_call( env, thiz, mp->seekTo(msec), NULL, NULL);
+		PPLOGD("jni seekTo: %d(msec) end", msec);
 	}
 	else
 	{

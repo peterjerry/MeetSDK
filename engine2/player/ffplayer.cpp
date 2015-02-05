@@ -831,7 +831,6 @@ status_t FFPlayer::getCurrentPosition(int32_t* positionMs)
 	}
 	
 	*positionMs = (int32_t)pos;
-	LOGI("getCurrentPosition %d", *positionMs);
     return OK;
 }
 

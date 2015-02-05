@@ -498,15 +498,12 @@ public class ClipListActivity extends Activity implements
 		        case OnScrollListener.SCROLL_STATE_IDLE:
 		        	mAdapter.SetScrolling(false);
 		        	mAdapter.notifyDataSetChanged();
-		        	Log.i(TAG, "set to false");
 		            break;
 		        case OnScrollListener.SCROLL_STATE_TOUCH_SCROLL:
 		        	mAdapter.SetScrolling(true);
-		        	Log.i(TAG, "set to true");
 		            break;
 		        case OnScrollListener.SCROLL_STATE_FLING:
 		        	mAdapter.SetScrolling(true);
-		        	Log.i(TAG, "set to true");
 				}
 			}
 		});
@@ -642,12 +639,6 @@ public class ClipListActivity extends Activity implements
 						MEET_PLAY_TYPE.HTTP_TYPE == play_type) {
 					// vod
 					ppbox_url = String.format(HTTP_M3U8_RECORD_PPVOD2, port, str_playlink);
-					/*int index = ppbox_url.indexOf("record.m3u8");
-					String StrtoEnc = ppbox_url.substring(index, ppbox_url.length());
-					Log.i(TAG, "before base64 encode  " + StrtoEnc);
-					String base64String = Base64.encodeToString(StrtoEnc.getBytes(), Base64.NO_WRAP);
-					ppbox_url = String.format("http://127.0.0.1:%d/base64%s.m3u8", port, base64String);
-					Log.i(TAG, "base64 encoded url:  " + ppbox_url);*/
 				}
 				else if (MEET_PLAY_TYPE.PPTV_LIVE_TYPE == play_type) {
 					// live
@@ -1571,7 +1562,7 @@ public class ClipListActivity extends Activity implements
 				subtitle_full_path = tmp + ext;
 				
 				File subfile = new File(subtitle_full_path);
-				Log.i(TAG, "Java: subtitle: subtitle file: " + subtitle_full_path);
+				//Log.d(TAG, "Java: subtitle: subtitle file: " + subtitle_full_path);
 		        if (subfile.exists()) {
 		        	Log.i(TAG, "Java: subtitle: subtitle file found: " + subtitle_full_path);
 		        	

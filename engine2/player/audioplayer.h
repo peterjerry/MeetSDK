@@ -46,12 +46,21 @@ public:
 
 private:
 	status_t start_l();
+
 	status_t stop_l();
+
 	status_t pause_l();
+
 	status_t flush_l();
-	void run();
+
     int decode_l(AVPacket *packet);
+
+	void wait(int msec);
+
 	static void* audio_thread(void* ptr);
+
+	void audio_thread_impl();
+
     void notifyListener_l(int msg, int ext1 = 0, int ext2 = 0);
 
 private:
@@ -64,8 +73,6 @@ private:
 	int64_t mAudioPlayingTimeMs;
 	int64_t mSeekTimeMs;
 	bool mReachEndStream;
-	int64_t mOutputBufferingStartMs; // get from system clock
-	int64_t mAvePacketDurationMs;
 	int32_t mAudioStreamIndex;
 	bool mSeeking;
     MediaPlayerListener* mListener;

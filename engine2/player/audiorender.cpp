@@ -62,8 +62,8 @@ bool AudioRender::need_convert()
 	if (mSampleRateOutput > 48000)
 		return true;
 
-	// channel suport 1 or 2
-	if (mChannelsOutput != 2/*> mDeviceChannels*/) // mDeviceChannels is 2
+	// channel support 1 or 2
+	if (mChannelsOutput != mDeviceChannels)
 		return true;
 
 	// only support U8 and S16
@@ -181,22 +181,16 @@ status_t AudioRender::open(int sampleRate,
 			mBitPerSample = mFormatSizeOutput * 8;
 			LOGI("bitPerSample reset to(need convert): %d", mBitPerSample);
 
-			if(mSampleRateOutput < 4000)
+			// valid sample rate is 4k - 48k
+			if (mSampleRateOutput < 4000)
 				mSampleRateOutput = 4000;
-			else if(mSampleRateOutput > 48000)
+			else if (mSampleRateOutput > 48000)
 				mSampleRateOutput = 48000;
 			LOGI("mSampleRateOutput:%d", mSampleRateOutput);
 
-			if(mChannelsOutput > mDeviceChannels) {
-				mChannelLayoutOutput = mDeviceChannelLayoutOutput;
-				mChannelsOutput = mDeviceChannels;
-			}
-			else if(mChannelsOutput < 1) {
-				mChannelLayoutOutput = AV_CH_LAYOUT_MONO;
-				mChannelsOutput = 1;
-			}
-			LOGI("mChannelLayoutOutput:%lld", mChannelLayoutOutput);
-			LOGI("mChannelsOutput:%d", mChannelsOutput);
+			mChannelLayoutOutput = mDeviceChannelLayoutOutput;
+			mChannelsOutput = mDeviceChannels;
+			LOGI("mChannelsOutput:%d, mChannelLayoutOutput:%lld", mChannelsOutput, mChannelLayoutOutput);
 
 			mConvertCtx = swr_alloc_set_opts(mConvertCtx,
 				mChannelLayoutOutput,
@@ -221,6 +215,8 @@ status_t AudioRender::open(int sampleRate,
 #endif
 		}
 	}
+
+	mOneSecSize = mSampleRateOutput * mChannelsOutput * mBitPerSample / 8;
 
 #if defined(__CYGWIN__) || defined(_MSC_VER)
 	Uint16 fmt;
@@ -452,6 +448,11 @@ status_t AudioRender::flush()
 #endif
 }
 
+int AudioRender::get_one_sec_size()
+{
+	return mOneSecSize;
+}
+
 int AudioRender::get_latency()
 {
 #if defined(OSLES_IMPL) // android with osles
@@ -460,8 +461,7 @@ int AudioRender::get_latency()
 	else
 		return 0;
 #elif defined(__CYGWIN__) || defined(_MSC_VER)
-	int one_sec_size = mSampleRateOutput * mChannelsOutput * mBitPerSample / 8;
-	int latency = mFifo.used() * 1000 / one_sec_size; // msec
+	int latency = mFifo.used() * 1000 / mOneSecSize; // msec
 	return latency;
 #else // android with audiotrack and ios with openal
 	return AudioTrack_getLatency();

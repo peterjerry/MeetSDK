@@ -590,22 +590,18 @@ status_t FFStream::getPacket(int32_t streamIndex, AVPacket** packet)
         }
 
         AVPacket* pPacket = mAudioQueue.get();
-        if(pPacket != NULL)
-        {
-            if (pPacket->data && !strcmp((char*)pPacket->data, "FLUSH_AUDIO"))
-            {
+        if (pPacket != NULL) {
+            if (pPacket->data && !strcmp((char*)pPacket->data, "FLUSH_AUDIO")) {
                 *packet = pPacket;
                 return FFSTREAM_ERROR_FLUSHING;
             }
-            else
-            {
+            else {
                 mBufferSize-=pPacket->size;
                 *packet = pPacket;
                 return FFSTREAM_OK;
             }
         }
-		else
-		{
+		else {
 		    if (mReachEndStream) {
 				// support looping
 				if (mLooping) {
@@ -674,8 +670,7 @@ status_t FFStream::getPacket(int32_t streamIndex, AVPacket** packet)
             }
 		}
     }
-    else
-    {
+    else {
         LOGE("Unknown stream index: %d", streamIndex);
         return FFSTERAM_ERROR_SWITCH_AUDIO;//FFSTREAM_ERROR_STREAMINDEX;
     }
