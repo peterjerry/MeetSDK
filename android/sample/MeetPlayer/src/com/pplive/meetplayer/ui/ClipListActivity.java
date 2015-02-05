@@ -64,9 +64,11 @@ import com.pplive.meetplayer.util.DownloadAsyncTask;
 import com.pplive.meetplayer.util.FeedBackFactory;
 import com.pplive.meetplayer.util.IDlnaCallback;
 import com.pplive.meetplayer.util.ListMediaUtil;
+import com.pplive.meetplayer.util.LoadPlayLinkUtil;
 import com.pplive.meetplayer.util.LogcatHelper;
 import com.pplive.meetplayer.util.Util;
 import com.pplive.dlna.DLNASdk;
+
 
 
 
@@ -554,7 +556,11 @@ public class ClipListActivity extends Activity implements
 				
 				final int fixed_size = list_title.size();
 
-				LoadTvList(list_title, list_url);
+				LoadPlayLinkUtil ext_link = new LoadPlayLinkUtil();
+				if (ext_link.LoadTvList()) {
+					list_title.addAll(ext_link.getTitles());
+					list_url.addAll(ext_link.getUrls());
+				}
 				
 				final String[] ppbox_clipname = (String[])list_title.toArray(new String[list_title.size()]);  
 				
