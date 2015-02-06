@@ -107,22 +107,20 @@
 			android:layout_width="wrap_content"
 			android:layout_height="wrap_content"
 			android:text="ft" />
-		<EditText
-			android:id="@+id/et_ft"
-			android:layout_width="30dp"
+		<Button
+			android:id="@+id/btn_ft"
+			android:layout_width="wrap_content"
 			android:layout_height="wrap_content"
-			android:text="3"
-			android:numeric="integer" />
+			android:text="1" />
 		<TextView
 			android:layout_width="wrap_content"
 			android:layout_height="wrap_content"
 			android:text="bw" />
-		<EditText
-			android:id="@+id/et_bw_type"
-			android:layout_width="30dp"
+		<Button
+			android:id="@+id/btn_bw_type"
+			android:layout_width="wrap_content"
 			android:layout_height="wrap_content"
-			android:text="3"
-			android:numeric="integer" />
+			android:text="3" />
 		<Button
 			android:id="@+id/btn_play"
 			android:layout_width="wrap_content"
