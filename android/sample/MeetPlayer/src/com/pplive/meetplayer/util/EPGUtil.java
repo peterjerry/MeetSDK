@@ -4,7 +4,9 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
+import java.net.URLEncoder;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -27,6 +29,8 @@ import android.util.Xml;
 public class EPGUtil {
 	private final static String TAG = "EPGUtil";
 	
+	//mtbu -> epg.api -> play.api
+	
 	private final static String mtbu_url = "http://mtbu.api.pptv.com/v4/module?lang=zh_cn&platform=aphone&" + 
 			"appid=com.pplive.androidphone&appver=4.1.3&appplt=aph&userLevel=0&";// + 
 			//"channel=@SHIP.TO.31415926PI@&location=app%3A%2F%2Faph.pptv.com%2Fv4%2Fhome";
@@ -35,7 +39,23 @@ public class EPGUtil {
 			"@SHIP.TO.%sPI@&userLevel=0&appid=com.pplive.androidphone&appver=4.1.3" + 
 			"&appplt=aph&vid=%s&series=1&virtual=1&ver=2&platform=android3"; // 8022983
 	
+	/*private final static String play_url = "http://play.api.pptv.com/boxplay.api?" + 
+			"auth=d410fafad87e7bbf6c6dd62434345818&userLevel=0&content=need_drag" + 
+			"&id=17652896&platform=android3&param=userType%3D1&vvid=877a4382-f0e4-49ed-afea-8d59dbd11df1" + 
+			"&k_ver=1.1.0.8565&sv=4.1.3&ver=1&type=phone.android.vip&gslbversion=2";*/
+	
+	// http://play.api.pptv.com/boxplay.api?platform=android3&type=phone.android.vip&sv=4.0.1
+	// &param=userType%3D1&sdk=1&channel=162&content=need_drag
+	// &auth=55b7c50dc1adfc3bcabe2d9b2015e35c&vvid=41&id=19252909&ft=1&k_ver=1.1.0
+	private final static String boxplay_prefix = "http://play.api.pptv.com/boxplay.api?" + 
+			"platform=android3&type=phone.android.vip&sv=4.0.1&param=";
+	
+	private final static String boxplay_fmt = "&sdk=1&channel=162&content=need_drag" + 
+			"&auth=55b7c50dc1adfc3bcabe2d9b2015e35c&vvid=41" +
+			"&id=%s&ft=1&k_ver=1.1.0";
+	
 	private final int MAX_TITLE_LEN = 16;
+	private final int HOST_PORT = 80;
 	
 	private List<Map<String, Object>> mCategoryList = null;
 	private List<Map<String, Object>> mClipList = null;
@@ -96,7 +116,7 @@ public class EPGUtil {
 		return ret;
 	}
 	
-	public boolean initEPG(int type) {
+	public boolean getEPGClips(int catalog_index) {
 		boolean ret = false;
 		
 		HttpResponse httpResponse = null;
@@ -109,7 +129,7 @@ public class EPGUtil {
 				JSONTokener jsonParser = new JSONTokener(result);
 				JSONObject item = (JSONObject) jsonParser.nextValue();
 				JSONArray modules = item.getJSONArray("modules");
-				JSONObject programs = modules.getJSONObject(type);
+				JSONObject programs = modules.getJSONObject(catalog_index);
 				JSONObject data = programs.getJSONObject("data");
 				JSONArray data_array = data.getJSONArray("dlist");
 				
@@ -147,6 +167,43 @@ public class EPGUtil {
 		return ret;
 	}
 	
+	public String getCDNUrl(String link) {
+		Log.i(TAG, String.format("java: getCDNUrl() %s", link));
+		
+		String user_type = null;
+		try {
+			user_type = URLEncoder.encode("userType=1", "utf-8");
+		} catch (UnsupportedEncodingException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+			return null;
+		}
+		
+		String boxplay_part2 = String.format(boxplay_fmt, link);
+		StringBuffer sbBoxPlayUrl = new StringBuffer();
+		sbBoxPlayUrl.append(boxplay_prefix);
+		sbBoxPlayUrl.append(user_type);
+		sbBoxPlayUrl.append(boxplay_part2);
+		Log.i(TAG, "Java key url " + sbBoxPlayUrl.toString());
+		HttpGet httpGet = new HttpGet(sbBoxPlayUrl.toString());
+		
+		HttpResponse httpResponse = null;
+
+		try {
+			httpResponse = new DefaultHttpClient().execute(httpGet);
+			if (httpResponse.getStatusLine().getStatusCode() == 200) {
+				String result = EntityUtils.toString(httpResponse.getEntity());
+				return parseCdnUrlxml(result);
+			}
+		} catch (ClientProtocolException e) {
+			e.printStackTrace();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		
+		return null;
+	}
+	
 	private boolean getDetail(String url) {
 		HttpResponse httpResponse = null;
 		HttpGet httpGet = new HttpGet(url);
@@ -155,7 +212,7 @@ public class EPGUtil {
 			if (httpResponse.getStatusLine().getStatusCode() == 200) {
 				String result = EntityUtils.toString(httpResponse.getEntity());
 				//Log.d(TAG, "Java: mtbu detail result: " + result);
-				parsexml(result);
+				parseClipxml(result);
 			}
 		} catch (ClientProtocolException e) {
 			// TODO Auto-generated catch block
@@ -169,7 +226,7 @@ public class EPGUtil {
 	}
 	
 	
-	void parsexml(String str) {
+	void parseClipxml(String str) {
         try {
         	InputStream in_withcode;
         	in_withcode = new ByteArrayInputStream(str.getBytes("UTF-8"));
@@ -199,6 +256,7 @@ public class EPGUtil {
 						new_episode.put("title", main_title + "(" + sub_title + ")"); // episode2
 						new_episode.put("link", link); // playlink
 						new_episode.put("duration", duration); // minute
+						new_episode.put("cdn_url", getCDNUrl(link)); // cdn url
 						mClipList.add(new_episode);
 						Log.i(TAG, "Java: mtbu added " + new_episode.toString());
 					}
@@ -220,5 +278,100 @@ public class EPGUtil {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
+	}
+	
+	String parseCdnUrlxml(String str) {
+		String url = null;
+		
+        try {
+        	InputStream in_withcode;
+        	in_withcode = new ByteArrayInputStream(str.getBytes("UTF-8"));
+    		XmlPullParser parser = Xml.newPullParser();
+			parser.setInput(in_withcode, "UTF-8");
+
+			int eventType = parser.getEventType();
+			boolean bFound = false;
+			
+			String host = null;
+			String st = null;
+			String key = null;
+			String rid = null;
+			
+			while (eventType != XmlPullParser.END_DOCUMENT) {
+				switch (eventType) {
+				case XmlPullParser.START_DOCUMENT:
+					break;
+				case XmlPullParser.START_TAG:
+					if (parser.getName().equals("item")) {
+						String tmp = parser.getAttributeValue(null, "ft");
+						if (tmp != null && tmp.equals("1")) {
+							rid = parser.getAttributeValue(null, "rid");
+						}
+					}
+					if (parser.getName().equals("dt")) {
+						String tmp = parser.getAttributeValue(null, "ft");
+						if (tmp != null && tmp.equals("1")) {
+							Log.i(TAG, "java key: ft=1");
+							bFound = true;
+						}
+					}
+					if (bFound) {
+						if (parser.getName().equals("bh")) {
+							host = parser.nextText();
+						}
+						
+						if (parser.getName().equals("st")) {
+							st = parser.nextText();
+						}
+						
+						if (parser.getName().equals("key")) {
+							key = parser.nextText();
+						}
+						
+						if (host != null && st != null && key != null)
+							break;
+					}
+					
+					break;
+				case XmlPullParser.END_TAG:
+					break;
+				}
+				eventType = parser.next();
+			}
+			
+			if (host == null || st == null || key == null)
+				return null;
+			
+			if (!host.contains("http://"))
+	            url = "http://" + host;
+	        else
+	            url = host;
+			if (!host.contains(":"))
+				url += ":" + HOST_PORT;
+			
+			url += "/";
+	        url += rid.replaceFirst(".mp4", ".m3u8");
+	        
+			url += "?w=" + 1 + "&key=" + Key.getKey(new Date(st).getTime());
+			url += "&k=" + key;
+			url += "&type=phone.android.vip&vvid=877a4382-f0e4-49ed-afea-8d59dbd11df1"
+					+ "&sv=4.1.3&platform=android3&ft=1&accessType=wifi";
+			Log.i(TAG, "Java: final cdn url: " + url);
+			
+			return url;
+			
+		} catch (XmlPullParserException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (UnsupportedEncodingException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+        catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+        
+        return null;
 	}
 }

@@ -203,18 +203,19 @@ public class ClipListActivity extends Activity implements
 	
 	
 	// message
-	private final static int MSG_CLIP_LIST_DONE			= 101;
-	private final static int MSG_CLIP_PLAY_DONE			= 102;
-	private static final int MSG_UPDATE_PLAY_INFO 		= 201;
-	private static final int MSG_UPDATE_RENDER_INFO		= 202;
-	private static final int MSG_LOCAL_LIST_DONE			= 203;
-	private static final int MSG_HTTP_LIST_DONE			= 204;
-	private static final int MSG_FAIL_TO_LIST_HTTP_LIST	= 301;
-	private static final int MSG_DISPLAY_SUBTITLE			= 401;
-	private static final int MSG_HIDE_SUBTITLE			= 402;
-	private static final int MSG_LIST_EPG_CLIP_ONE		= 501;
-	private static final int MSG_LIST_EPG_CATALOG_DONE	= 502;
+	private final static int MSG_CLIP_LIST_DONE					= 101;
+	private final static int MSG_CLIP_PLAY_DONE					= 102;
+	private static final int MSG_UPDATE_PLAY_INFO 				= 201;
+	private static final int MSG_UPDATE_RENDER_INFO				= 202;
+	private static final int MSG_LOCAL_LIST_DONE					= 203;
+	private static final int MSG_HTTP_LIST_DONE					= 204;
+	private static final int MSG_FAIL_TO_LIST_HTTP_LIST			= 301;
+	private static final int MSG_DISPLAY_SUBTITLE					= 401;
+	private static final int MSG_HIDE_SUBTITLE					= 402;
+	private static final int MSG_LIST_EPG_CLIP_ONE				= 501;
+	private static final int MSG_LIST_EPG_CATALOG_DONE			= 502;
 	private static final int MSG_FAIL_TO_CONNECT_EPG_SERVER		= 511;
+	private static final int MSG_PUSH_CDN_CLIP					= 601;
 	
 	private ProgressDialog progDlg 				= null;
 	
@@ -1350,15 +1351,24 @@ public class ClipListActivity extends Activity implements
         		
                 mHandler.sendEmptyMessage(MSG_LIST_EPG_CATALOG_DONE);
         	}
-        	else {
-        		if (epg.initEPG(params[0]) == false) {
+        	else if (params[0] < 10){
+        		if (epg.getEPGClips(params[0]) == false) {
             		mHandler.sendEmptyMessage(MSG_FAIL_TO_CONNECT_EPG_SERVER);
             		return false;
             	}
             	
         		mEPGClipList = epg.getClipList();
         		mHandler.sendEmptyMessage(MSG_LIST_EPG_CLIP_ONE);
-        	}	
+        	}
+        	else {
+        		String url = epg.getCDNUrl(String.valueOf(params[0]));
+        		if (url == null) {
+            		mHandler.sendEmptyMessage(MSG_FAIL_TO_CONNECT_EPG_SERVER);
+            		return false;
+            	}
+        		
+        		mHandler.sendEmptyMessage(MSG_PUSH_CDN_CLIP);
+        	}
         	
         	return true;
         }
