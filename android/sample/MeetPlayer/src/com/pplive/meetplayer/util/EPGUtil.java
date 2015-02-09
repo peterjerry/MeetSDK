@@ -29,24 +29,27 @@ import android.util.Xml;
 public class EPGUtil {
 	private final static String TAG = "EPGUtil";
 	
+	public final static int LIST_FRONTPAGE_CATALOG = -101;
+	public final static int LIST_MAIN_CATALOG = -102;
+	
 	//mtbu -> epg.api -> play.api
 	
-	private final static String mtbu_url = "http://mtbu.api.pptv.com/v4/module?lang=zh_cn&platform=aphone&" + 
-			"appid=com.pplive.androidphone&appver=4.1.3&appplt=aph&userLevel=0&";// + 
-			//"channel=@SHIP.TO.31415926PI@&location=app%3A%2F%2Faph.pptv.com%2Fv4%2Fhome";
+	private final static String catalog_url = "http://mtbu.api.pptv.com/v4/module?lang=zh_cn"
+			+ "&platform=aphone&appid=com.pplive.androidphone&appver=4.1.3"
+			+ "&appplt=aph&userLevel=0&channel=@SHIP.TO.31415926PI@"
+			+ "&location=app%3A%2F%2Faph.pptv.com%2Fv4%2Fcate";
+	// cate/live
+	// cate/
+	// module data dlist tags param=ntags=动作:catalog|&order=n
+	
+	private final static String frontpage_url = "http://mtbu.api.pptv.com/v4/module?lang=zh_cn&platform=aphone"
+			+ "&appid=com.pplive.androidphone&appver=4.1.3"
+			+ "&appplt=aph&userLevel=0";
 	
 	private final static String detail_url_fmt = "http://epg.api.pptv.com/detail.api?auth=d410fafad87e7bbf6c6dd62434345818&canal=" + 
 			"@SHIP.TO.%sPI@&userLevel=0&appid=com.pplive.androidphone&appver=4.1.3" + 
 			"&appplt=aph&vid=%s&series=1&virtual=1&ver=2&platform=android3"; // 8022983
 	
-	/*private final static String play_url = "http://play.api.pptv.com/boxplay.api?" + 
-			"auth=d410fafad87e7bbf6c6dd62434345818&userLevel=0&content=need_drag" + 
-			"&id=17652896&platform=android3&param=userType%3D1&vvid=877a4382-f0e4-49ed-afea-8d59dbd11df1" + 
-			"&k_ver=1.1.0.8565&sv=4.1.3&ver=1&type=phone.android.vip&gslbversion=2";*/
-	
-	// http://play.api.pptv.com/boxplay.api?platform=android3&type=phone.android.vip&sv=4.0.1
-	// &param=userType%3D1&sdk=1&channel=162&content=need_drag
-	// &auth=55b7c50dc1adfc3bcabe2d9b2015e35c&vvid=41&id=19252909&ft=1&k_ver=1.1.0
 	private final static String boxplay_prefix = "http://play.api.pptv.com/boxplay.api?" + 
 			"platform=android3&type=phone.android.vip&sv=4.0.1&param=";
 	
@@ -74,13 +77,21 @@ public class EPGUtil {
 	public	final static int EPG_TYPE_VIP_MOVIE	= 6; // 会员电影
 	public	final static int EPG_TYPE_CARTOON		= 7; // 卡通动漫
 	
-	public boolean getCategory() {
+	public boolean getCategory(int id) {
 		Log.i(TAG, "java: getCategory()");
 		
 		boolean ret = false;
 		
 		HttpResponse httpResponse = null;
-		HttpGet httpGet = new HttpGet(mtbu_url);
+		String url;
+		if (LIST_FRONTPAGE_CATALOG == id)
+			url = frontpage_url;
+		else if (LIST_MAIN_CATALOG == id)
+			url = catalog_url;
+		else
+			url = "xxx";
+		
+		HttpGet httpGet = new HttpGet(url);
 		try {
 			httpResponse = new DefaultHttpClient().execute(httpGet);
 			if (httpResponse.getStatusLine().getStatusCode() == 200) {
@@ -120,7 +131,7 @@ public class EPGUtil {
 		boolean ret = false;
 		
 		HttpResponse httpResponse = null;
-		HttpGet httpGet = new HttpGet(mtbu_url);
+		HttpGet httpGet = new HttpGet(frontpage_url);
 		try {
 			httpResponse = new DefaultHttpClient().execute(httpGet);
 			if (httpResponse.getStatusLine().getStatusCode() == 200) {

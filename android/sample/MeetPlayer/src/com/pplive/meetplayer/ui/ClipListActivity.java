@@ -1353,7 +1353,7 @@ public class ClipListActivity extends Activity implements
         	
         	if (EPG_ITEM_CATALOG == type) {
         		if (mEPGCatalogList == null) {
-            		if (epg.getCategory() == false) {
+            		if (epg.getCategory(EPGUtil.LIST_FRONTPAGE_CATALOG) == false) { // frontpage
             			mHandler.sendEmptyMessage(MSG_FAIL_TO_CONNECT_EPG_SERVER);
                 		return false;
                 	}
