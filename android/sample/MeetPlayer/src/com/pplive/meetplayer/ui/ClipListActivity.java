@@ -153,26 +153,32 @@ public class ClipListActivity extends Activity implements
 	// dlna
 	private DLNASdk mDLNA;
 	private IDlnaCallback mDLNAcallback;
-	private final static int DLNA_LISTEN_PORT = 8787;
+	private final static int DLNA_LISTEN_PORT = 10010;
+	private String mDlnaDeviceUUID;
+	private String mDlnaDeviceName;
 	
 	// epg
 	private List<Map<String, Object>> mEPGCatalogList = null;
 	private List<Map<String, Object>> mEPGClipList = null;
 	private int mLastEPGitem					= -1;
-	private final int INIT_EPG_CATALOG			= -1; 
+	private String mDLNAPushUrl;
+	private final int EPG_ITEM_CATALOG			= 1;
+	private final int EPG_ITEM_SELECTION		= 2;
+	private final int EPG_ITEM_EPISODE			= 3;
+	private final int EPG_ITEM_CDN				= 4;
 
 	private boolean mListLocalFile				= true;
 	
 	private LinearLayout mControllerLayout 		= null;
 	private TextView mTextViewInfo 				= null;
 	
-	private int decode_fps 						= 0;
-	private int render_fps 						= 0;
+	private int decode_fps						= 0;
+	private int render_fps 					= 0;
 	private int decode_avg_msec 				= 0;
 	private int render_avg_msec 				= 0;
 	private int render_frame_num				= 0;
 	private int decode_drop_frame				= 0;
-	private int av_latency_msec					= 0;
+	private int av_latency_msec				= 0;
 	private int video_bitrate					= 0;
 	
 	private int preview_height;
@@ -212,7 +218,7 @@ public class ClipListActivity extends Activity implements
 	private static final int MSG_FAIL_TO_LIST_HTTP_LIST			= 301;
 	private static final int MSG_DISPLAY_SUBTITLE					= 401;
 	private static final int MSG_HIDE_SUBTITLE					= 402;
-	private static final int MSG_LIST_EPG_CLIP_ONE				= 501;
+	private static final int MSG_LIST_EPG_EPISODE					= 501;
 	private static final int MSG_LIST_EPG_CATALOG_DONE			= 502;
 	private static final int MSG_FAIL_TO_CONNECT_EPG_SERVER		= 511;
 	private static final int MSG_PUSH_CDN_CLIP					= 601;
@@ -538,7 +544,7 @@ public class ClipListActivity extends Activity implements
 				
 				Dialog choose_ft_dlg = new AlertDialog.Builder(ClipListActivity.this)
 				.setTitle("select player impl")
-				.setSingleChoiceItems(ft, Integer.parseInt((String) btn_ft.getText()), /*default selection item number*/
+				.setSingleChoiceItems(ft, Integer.parseInt(btn_ft.getText().toString()), /*default selection item number*/
 					new DialogInterface.OnClickListener(){
 						public void onClick(DialogInterface dialog, int whichButton){
 							btn_ft.setText(Integer.toString(whichButton));
@@ -924,7 +930,6 @@ public class ClipListActivity extends Activity implements
 		stop_player();
 		
 		if (!mIsPreview) {
-			//Uri uri = Uri.fromFile(file);
 			Uri uri = Uri.parse(path);
 			Log.i(TAG, "Java: goto PlayerActivity, uri:" + uri.toString());
 			start_fullscreen_play(uri, mPlayerImpl);
@@ -1232,11 +1237,17 @@ public class ClipListActivity extends Activity implements
 			case MSG_LIST_EPG_CATALOG_DONE:
 				popupEPGSelDlg();
 				break;
-			case MSG_LIST_EPG_CLIP_ONE:
+			case MSG_LIST_EPG_EPISODE:
 				popupEPGListDlg();
 				break;
 			case MSG_FAIL_TO_CONNECT_EPG_SERVER:
 				Toast.makeText(ClipListActivity.this, "failed to connect to epg server", Toast.LENGTH_SHORT).show();
+				break;
+			case MSG_PUSH_CDN_CLIP:
+				mDLNA.SetURI(mDlnaDeviceUUID, mDLNAPushUrl);
+				Log.i(TAG, String.format("Java: dlna push url(%s) to uuid(%s) name(%s)", mDLNAPushUrl, mDlnaDeviceUUID, mDlnaDeviceName));
+				Toast.makeText(ClipListActivity.this, 
+						String.format("push url to dmr %s", mDlnaDeviceName), Toast.LENGTH_SHORT).show();
 				break;
 			default:
 				Log.w(TAG, "unknown msg.what " + msg.what);
@@ -1264,25 +1275,22 @@ public class ClipListActivity extends Activity implements
 		}
 		
 		final String[] str_title_list = (String[])title_list.toArray(new String[size]);
-			
-		//final String[] str_name_list = {"PP出品", "同步剧场", "热播电影", "会员电影", "卡通动漫"};
-		
+
 		Dialog choose_clip_dlg = new AlertDialog.Builder(ClipListActivity.this)
 		.setTitle("Select epg item")
-		.setSingleChoiceItems(str_title_list, -1, /*default selection item number*/
+		.setItems(str_title_list, 
 			new DialogInterface.OnClickListener(){
 			public void onClick(DialogInterface dialog, int whichButton) {
 				if (whichButton >= 0) {
-					//int item = EPGUtil.EPG_TYPE_NEWS + whichButton;
 					int item = index_list.get(whichButton);
 					if (item != mLastEPGitem) {
 						mLastEPGitem = item;
 						Toast.makeText(ClipListActivity.this, "loading epg clip...", Toast.LENGTH_SHORT).show();
-						new EPGTask().execute(item);
+						new EPGTask().execute(EPG_ITEM_EPISODE, item);
 					}
 					else {
 						// just display cache list
-						mHandler.sendEmptyMessage(MSG_LIST_EPG_CLIP_ONE);
+						mHandler.sendEmptyMessage(MSG_LIST_EPG_EPISODE);
 					}
 				}
 				
@@ -1317,7 +1325,7 @@ public class ClipListActivity extends Activity implements
 			
 			Dialog choose_clip_dlg = new AlertDialog.Builder(ClipListActivity.this)
 			.setTitle("Select clip to play")
-			.setSingleChoiceItems(str_name_list, -1, /*default selection item number*/
+			.setItems(str_name_list, 
 				new DialogInterface.OnClickListener(){
 				public void onClick(DialogInterface dialog, int whichButton) {
 					et_playlink.setText(str_link_list[whichButton]);
@@ -1336,9 +1344,14 @@ public class ClipListActivity extends Activity implements
 	private class EPGTask extends AsyncTask<Integer, Integer, Boolean> {
         @Override
         protected Boolean doInBackground(Integer... params) {
+        	int type = params[0];
+        	int id = -1;
+        	if (params.length > 1)
+        		id = params[1];
+        	
         	EPGUtil epg = new EPGUtil();
         	
-        	if (params[0] == INIT_EPG_CATALOG) {
+        	if (EPG_ITEM_CATALOG == type) {
         		if (mEPGCatalogList == null) {
             		if (epg.getCategory() == false) {
             			mHandler.sendEmptyMessage(MSG_FAIL_TO_CONNECT_EPG_SERVER);
@@ -1351,23 +1364,26 @@ public class ClipListActivity extends Activity implements
         		
                 mHandler.sendEmptyMessage(MSG_LIST_EPG_CATALOG_DONE);
         	}
-        	else if (params[0] < 10){
-        		if (epg.getEPGClips(params[0]) == false) {
+        	else if (EPG_ITEM_EPISODE == type){
+        		if (epg.getEPGClips(id) == false) {
             		mHandler.sendEmptyMessage(MSG_FAIL_TO_CONNECT_EPG_SERVER);
             		return false;
             	}
             	
         		mEPGClipList = epg.getClipList();
-        		mHandler.sendEmptyMessage(MSG_LIST_EPG_CLIP_ONE);
+        		mHandler.sendEmptyMessage(MSG_LIST_EPG_EPISODE);
         	}
-        	else {
-        		String url = epg.getCDNUrl(String.valueOf(params[0]));
-        		if (url == null) {
+        	else if (EPG_ITEM_CDN == type){
+        		mDLNAPushUrl = epg.getCDNUrl(String.valueOf(id), btn_ft.getText().toString());
+        		if (mDLNAPushUrl == null) {
             		mHandler.sendEmptyMessage(MSG_FAIL_TO_CONNECT_EPG_SERVER);
             		return false;
             	}
         		
         		mHandler.sendEmptyMessage(MSG_PUSH_CDN_CLIP);
+        	}
+        	else {
+        		Log.w(TAG, "Java: EPGTask invalid type: " + type);
         	}
         	
         	return true;
@@ -1389,7 +1405,7 @@ public class ClipListActivity extends Activity implements
 	private class ListItemTask extends AsyncTask<String, Integer, Boolean> {
         @Override
         protected Boolean doInBackground(String... params) {
-        	Log.i(TAG, "Java: doInBackground " +  params[0]);
+        	Log.i(TAG, "Java: doInBackground " + params[0]);
         	
         	// update progress
         	// publishProgress(progresses)
@@ -1465,6 +1481,14 @@ public class ClipListActivity extends Activity implements
 	private void upload_crash_report(int type) {	
 		MeetSDK.makePlayerlog();
 		
+		/*String log_filepath = getCacheDir().getAbsolutePath() + "/meetplayer.log";
+		String new_filepath = Environment.getExternalStorageDirectory().getAbsolutePath() + "/meetplayer.log";
+		File file = new File(new_filepath);
+		if (file.exists())
+			file.delete();
+		
+		Util.copyFile(log_filepath, new_filepath);*/
+		
 		FeedBackFactory fbf = new FeedBackFactory(
 				 Integer.toString(type), "123456", false, false);
 		fbf.asyncFeedBack();
@@ -1498,33 +1522,26 @@ public class ClipListActivity extends Activity implements
 		
 		Dialog choose_device_dlg = new AlertDialog.Builder(ClipListActivity.this)
 		.setTitle("Select device to push")
-		.setSingleChoiceItems(str_dev_list, -1, /*default selection item number*/
+		.setItems(str_dev_list,
 			new DialogInterface.OnClickListener(){
 			public void onClick(DialogInterface dialog, int whichButton) {
 				
-				String uuid = str_uuid_list[whichButton];
-				String name = str_dev_list[whichButton];
-				String uri;
-				if (mPlayUrl.startsWith("/") || mPlayUrl.startsWith("file://")) 
-					uri = mDLNA.GetServerFileUrl(mPlayUrl);
-				else
-					uri = mPlayUrl;
-				if (uri.indexOf("127.0.0.1") != -1) { 
-				    WifiManager wifiManager = (WifiManager) getSystemService(Context.WIFI_SERVICE);  
-				    if (!wifiManager.isWifiEnabled()) {  
-				    wifiManager.setWifiEnabled(true);    
-				    }  
-				    WifiInfo wifiInfo = wifiManager.getConnectionInfo();       
-				    int ipAddress = wifiInfo.getIpAddress();   
-				    String ip_addr = intToIp(ipAddress);  
-				    
-					uri = uri.replace("127.0.0.1", ip_addr);
+				mDlnaDeviceUUID = str_uuid_list[whichButton];
+				mDlnaDeviceName = str_dev_list[whichButton];
+				
+				if (mPlayUrl.startsWith("http://127.0.0.1")) {
+					int link = Integer.valueOf(et_playlink.getText().toString());
+					new EPGTask().execute(EPG_ITEM_CDN, link);
+					dialog.cancel();
+					return;
 				}
-				mDLNA.SetURI(uuid, uri);
-				Log.i(TAG, String.format("Java: dlna push url %s to uuid(%s) name(%s)", uri, uuid, name));
 				
-				dialog.cancel();
+				if (mPlayUrl.startsWith("/") || mPlayUrl.startsWith("file://")) 
+					mDLNAPushUrl = mDLNA.GetServerFileUrl(mPlayUrl);
+				else
+					mDLNAPushUrl = mPlayUrl;
 				
+				mHandler.sendEmptyMessage(MSG_PUSH_CDN_CLIP);
 			}
 		})
 		.setNegativeButton("Cancel",
@@ -1609,7 +1626,7 @@ public class ClipListActivity extends Activity implements
 			break;
 		case OPTION_EPG_LIST:
 			Toast.makeText(this, "loading epg catalog...", Toast.LENGTH_SHORT).show();
-			new EPGTask().execute(INIT_EPG_CATALOG);
+			new EPGTask().execute(EPG_ITEM_CATALOG);
 			break;
 		default:
 			Log.w(TAG, "bad menu item selected: " + id);
@@ -1973,7 +1990,7 @@ public class ClipListActivity extends Activity implements
 		Random rand =new Random();
 		int i;
 		i = rand.nextInt(100);
-		int port = 10010;//DLNA_LISTEN_PORT + i;
+		int port = DLNA_LISTEN_PORT + i;
 		mDLNA.StartHttpServer(port);
 		Log.i(TAG, String.format("Java: dlna start dlna server port: %d", port));
 		return true;

@@ -167,7 +167,7 @@ public class EPGUtil {
 		return ret;
 	}
 	
-	public String getCDNUrl(String link) {
+	public String getCDNUrl(String link, String ft) {
 		Log.i(TAG, String.format("java: getCDNUrl() %s", link));
 		
 		String user_type = null;
@@ -193,7 +193,7 @@ public class EPGUtil {
 			httpResponse = new DefaultHttpClient().execute(httpGet);
 			if (httpResponse.getStatusLine().getStatusCode() == 200) {
 				String result = EntityUtils.toString(httpResponse.getEntity());
-				return parseCdnUrlxml(result);
+				return parseCdnUrlxml(result, ft);
 			}
 		} catch (ClientProtocolException e) {
 			e.printStackTrace();
@@ -256,9 +256,8 @@ public class EPGUtil {
 						new_episode.put("title", main_title + "(" + sub_title + ")"); // episode2
 						new_episode.put("link", link); // playlink
 						new_episode.put("duration", duration); // minute
-						new_episode.put("cdn_url", getCDNUrl(link)); // cdn url
 						mClipList.add(new_episode);
-						Log.i(TAG, "Java: mtbu added " + new_episode.toString());
+						Log.i(TAG, "Java: epg clip added " + new_episode.toString());
 					}
 					break;
 				case XmlPullParser.END_TAG:
@@ -280,7 +279,8 @@ public class EPGUtil {
 		}
 	}
 	
-	String parseCdnUrlxml(String str) {
+	private String parseCdnUrlxml(String str, String ft) {
+		Log.i(TAG, "Java: epg parseCdnUrlxml " + str.replace("\n", ""));
 		String url = null;
 		
         try {
@@ -304,28 +304,31 @@ public class EPGUtil {
 				case XmlPullParser.START_TAG:
 					if (parser.getName().equals("item")) {
 						String tmp = parser.getAttributeValue(null, "ft");
-						if (tmp != null && tmp.equals("1")) {
+						if (tmp != null && tmp.equals(ft)) {
 							rid = parser.getAttributeValue(null, "rid");
 						}
 					}
 					if (parser.getName().equals("dt")) {
 						String tmp = parser.getAttributeValue(null, "ft");
-						if (tmp != null && tmp.equals("1")) {
-							Log.i(TAG, "java key: ft=1");
+						if (tmp != null && tmp.equals(ft)) {
+							Log.i(TAG, "Java: epg ft=1");
 							bFound = true;
 						}
 					}
 					if (bFound) {
-						if (parser.getName().equals("bh")) {
+						if (parser.getName().equals("sh") && null == host) { // sh main, bh backup
 							host = parser.nextText();
+							Log.i(TAG, "Java: epg host: " + host);
 						}
 						
-						if (parser.getName().equals("st")) {
+						if (parser.getName().equals("st") && null == st) {
 							st = parser.nextText();
+							Log.i(TAG, "Java: epg st: " + st);
 						}
 						
-						if (parser.getName().equals("key")) {
+						if (parser.getName().equals("key") && null == key) {
 							key = parser.nextText();
+							Log.i(TAG, "Java: epg key: " + key);
 						}
 						
 						if (host != null && st != null && key != null)
@@ -355,8 +358,10 @@ public class EPGUtil {
 			url += "?w=" + 1 + "&key=" + Key.getKey(new Date(st).getTime());
 			url += "&k=" + key;
 			url += "&type=phone.android.vip&vvid=877a4382-f0e4-49ed-afea-8d59dbd11df1"
-					+ "&sv=4.1.3&platform=android3&ft=1&accessType=wifi";
-			Log.i(TAG, "Java: final cdn url: " + url);
+					+ "&sv=4.1.3&platform=android3";
+			url += "&ft=" + ft;
+			url += "&accessType=wifi";
+			Log.i(TAG, "Java: epg final cdn url: " + url);
 			
 			return url;
 			
