@@ -480,10 +480,15 @@ AVFormatContext* FFStream::open(char* uri)
         return NULL;
     }
 
-	if (TYPE_LOCAL_FILE == mUrlType)
-		mStartTimeMs = mMovieFile->start_time * 1000 / AV_TIME_BASE;
-	else
+	if (TYPE_LOCAL_FILE == mUrlType) {
+		if (AV_NOPTS_VALUE != mMovieFile->start_time)
+			mStartTimeMs = mMovieFile->start_time * 1000 / AV_TIME_BASE;
+		else
+			mStartTimeMs = 0;
+	}
+	else {
 		mStartTimeMs = 0;
+	}
 
     mStatus	= FFSTREAM_PREPARED;
 	
