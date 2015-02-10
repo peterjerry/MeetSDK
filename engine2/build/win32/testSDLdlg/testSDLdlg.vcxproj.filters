@@ -45,6 +45,12 @@
     <ClInclude Include="..\..\..\player\ppffmpeg.h">
       <Filter>头文件</Filter>
     </ClInclude>
+    <ClInclude Include="apEPG.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="apJsonParser.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="testSDLdlg.cpp">
@@ -102,6 +108,24 @@
       <Filter>源文件</Filter>
     </ClCompile>
     <ClCompile Include="..\..\..\player\audiorender.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="apThread.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="..\testEPG\apEPG.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="..\testEPG\apJsonParser.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="..\testEPG\apXmlParser.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="..\testEPG\Markup.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="..\testEPG\md5c.c">
       <Filter>源文件</Filter>
     </ClCompile>
   </ItemGroup>

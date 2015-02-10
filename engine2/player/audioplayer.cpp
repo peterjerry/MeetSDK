@@ -450,7 +450,7 @@ void AudioPlayer::audio_thread_impl()
                     //TODO: do we need to stop playing if decode failed?
 					if (pPacket->pts != AV_NOPTS_VALUE) {
 						mAudioPlayingTimeMs = (int64_t)(pPacket->pts * av_q2d(mAudioContext->time_base) * 1000);
-						LOGI("set mAudioPlayingTimeMs %lld", mAudioPlayingTimeMs);
+						LOGD("set mAudioPlayingTimeMs %lld", mAudioPlayingTimeMs);
 					}
 					mAvePacketDurationMs = (mAvePacketDurationMs * 4 + 
 						(int64_t)(pPacket->duration * 1000 * av_q2d(mAudioContext->time_base))) / 5;

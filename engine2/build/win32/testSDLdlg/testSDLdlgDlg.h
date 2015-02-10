@@ -6,12 +6,13 @@
 #include "afxwin.h"
 #include "player.h"
 #include "afxcmn.h"
+#include "apThread.h"
 
 class FFPlayer;
 struct SDL_Surface;
 
 // CtestSDLdlgDlg 对话框
-class CtestSDLdlgDlg : public CDialogEx, MediaPlayerListener
+class CtestSDLdlgDlg : public CDialogEx, MediaPlayerListener, apThread
 {
 // 构造
 public:
@@ -30,6 +31,7 @@ protected:
 	virtual void notify(int msg, int ext1, int ext2);
 	BOOL PreTranslateMessage(MSG* pMsg);
 	void Shuttle(int sec);
+	virtual void thread_proc();
 
 	// 生成的消息映射函数
 	virtual BOOL OnInitDialog();

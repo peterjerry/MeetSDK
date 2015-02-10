@@ -16,6 +16,7 @@
 #include "IPpbox.h"
 #include "IDemuxer.h"
 #include "approcessbmp.h" // for snapshot
+//#include "apEPG.h"
 
 #pragma comment(lib, "sdl")
 #pragma comment(lib, "libppbox")
@@ -844,7 +845,7 @@ bool CtestSDLdlgDlg::OnPrepared()
 	GetWindowRect(&rc);
 	if (mWidth + 50 > 900)
 		rc.right = rc.left + mWidth + 50;
-	rc.bottom = rc.top + mHeight + 150;
+	rc.bottom = rc.top + mHeight + 200;
 	int new_w, new_h;
 	new_w = rc.right - rc.left;
 	new_h = rc.bottom - rc.top;
@@ -880,6 +881,48 @@ void genHMSM(int pos_msec, int *hour, int *minute, int *sec, int *msec)
 	tmp		= tmp - 3600 * (*hour);
 	*minute	= tmp / 60;
 	*sec = tmp % 60;
+}
+
+void CtestSDLdlgDlg::thread_proc()
+{
+	/*apEPG epg;
+	EPG_LIST *catalog = epg.getCatalog(-1);
+	if (!catalog) {
+		LOGE(_T("failed to get catalog")); // tchar.h compatible with ansi and unicode
+		return;
+	}
+
+	int link_id;
+	MAP_ITEM *link = NULL;
+	std::string id = "";
+	int done = 0;
+
+	EPG_LIST::iterator it = catalog->begin();
+	for (;it != catalog->end() && !done;it++) {
+		MAP_ITEM::iterator it_map = (*it).begin();
+		for (;it_map != (*it).end() && !done;it_map++) {
+			LOGI(_T("Item: %s, Value: %s\n"), (*it_map).first.c_str(), (*it_map).second.c_str());
+			if (it_map == (*it).begin() && (*it_map).first.find("link") != std::string::npos) {
+				link_id = atoi((*it_map).second.c_str());
+				link = epg.getPlaylink(link_id);
+				if (link) {
+					MAP_ITEM::iterator it_clip = link->begin();
+					for (;it_clip != link->end();it_clip++) {
+						if((*it_clip).first.find("id") != std::string::npos) {
+							id = (*it_clip).second.c_str();
+							LOGI(_T("playlink id: %s\n"), id.c_str());
+						}
+						else {
+							LOGI(_T("item: %s, value: %s\n"), (*it_clip).first.c_str(), (*it_clip).second.c_str());
+						}
+					}
+					done = 1;
+					break;
+				}
+				
+			}
+		}
+	}*/
 }
 
 void CtestSDLdlgDlg::OnBnClickedButtonGetsec()
