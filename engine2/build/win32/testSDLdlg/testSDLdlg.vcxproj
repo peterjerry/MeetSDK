@@ -54,14 +54,14 @@
       <PrecompiledHeader>Use</PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
-      <PreprocessorDefinitions>DEBUG_LOG_LEVEL__;SAVE_LOG_FILE;USE_AV_FILTER;TEST_PERFORMANCE;TEST_PERFORMANCE_BITRATE;NDEBUG;_CRT_SECURE_NO_WARNINGS;WIN32;_WINDOWS;_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>CURL_STATICLIB;DEBUG_LOG_LEVEL__;SAVE_LOG_FILE;USE_AV_FILTER;TEST_PERFORMANCE;TEST_PERFORMANCE_BITRATE;NDEBUG;_CRT_SECURE_NO_WARNINGS;WIN32;_WINDOWS;_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <SDLCheck>true</SDLCheck>
-      <AdditionalIncludeDirectories>.\;.\ppbox\include;..\..\..\player;..\..\..\platform;..\..\..\..\foundation\output\win32\full\include;..\..\..\..\subtitle2\output\android\include;D:\Archive\SDK\pthread\pthreads-w32-2-9-1-release\Pre-built.2\include;D:\Archive\SDK\SDL\SDL-1.2.15\include;D:\Archive\SDK\pthread\pthreads-w32-2-9-1-release\Pre-built.2\include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>.\;.\ppbox\include;..\..\..\player;..\..\..\platform;.\libjsoncpp\include;.\libcurl\include;..\..\..\..\foundation\output\win32\full\include;..\..\..\..\subtitle2\output\android\include;D:\Archive\SDK\pthread\pthreads-w32-2-9-1-release\Pre-built.2\include;D:\Archive\SDK\SDL\SDL-1.2.15\include;D:\Archive\SDK\pthread\pthreads-w32-2-9-1-release\Pre-built.2\include</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>.\ppbox;..\..\..\..\foundation\output\win32\full\bin;D:\Archive\SDK\pthread\pthreads-w32-2-9-1-release\Pre-built.2\lib\x86;D:\Archive\SDK\SDL\SDL-1.2.15\lib\x86</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>.\ppbox;.\libcurl\lib\vc11\x86\static;.\libjsoncpp\lib\vc11;..\..\..\..\foundation\output\win32\full\bin;D:\Archive\SDK\pthread\pthreads-w32-2-9-1-release\Pre-built.2\lib\x86;D:\Archive\SDK\SDL\SDL-1.2.15\lib\x86</AdditionalLibraryDirectories>
     </Link>
     <Midl>
       <MkTypLibCompatible>false</MkTypLibCompatible>
@@ -111,6 +111,8 @@
     <ClInclude Include="..\..\..\player\player.h" />
     <ClInclude Include="..\..\..\player\pperrors.h" />
     <ClInclude Include="..\..\..\player\ppffmpeg.h" />
+    <ClInclude Include="apEPG.h" />
+    <ClInclude Include="apJsonParser.h" />
     <ClInclude Include="Resource.h" />
     <ClInclude Include="stdafx.h" />
     <ClInclude Include="targetver.h" />
@@ -170,8 +172,14 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>
     </ClCompile>
+    <ClCompile Include="apEPG.cpp" />
     <ClCompile Include="apFileLog.cpp" />
+    <ClCompile Include="apJsonParser.cpp" />
     <ClCompile Include="apProcessBMP.cpp" />
+    <ClCompile Include="md5c.c">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>
+    </ClCompile>
     <ClCompile Include="stdafx.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Create</PrecompiledHeader>

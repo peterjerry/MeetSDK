@@ -322,10 +322,8 @@ int AudioPlayer::decode_l(AVPacket *packet)
 
 void AudioPlayer::wait(int msec)
 {
-	LOGI("wait() lock");
 	AutoLock autoLock(&mLock);
 
-	LOGI("wait() wait");
 	struct timespec ts;
     ts.tv_sec = 0;
     ts.tv_nsec = msec * 1000000L;//10 msec
@@ -339,7 +337,6 @@ void AudioPlayer::wait(int msec)
 #else
 	pthread_cond_timedwait_relative_np(&mCondition, &mLock, &ts);
 #endif
-	LOGI("wait() wait done!");
 }
 
 void AudioPlayer::audio_thread_impl()

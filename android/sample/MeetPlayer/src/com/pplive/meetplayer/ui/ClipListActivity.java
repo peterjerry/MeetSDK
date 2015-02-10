@@ -37,7 +37,6 @@ import android.widget.AbsListView.OnScrollListener;
 import android.widget.AdapterView;
 import android.widget.Button;
 import android.widget.EditText;
-import android.widget.ListAdapter;
 import android.widget.ListView;
 import android.widget.ProgressBar;
 import android.widget.LinearLayout;
@@ -49,8 +48,6 @@ import android.os.Build;
 import android.media.AudioManager;
 import android.graphics.Bitmap;
 import android.net.Uri;
-import android.net.wifi.WifiInfo;
-import android.net.wifi.WifiManager;
 import android.os.AsyncTask;
 import android.view.ViewGroup.LayoutParams;
 import android.widget.TextView;
@@ -62,7 +59,6 @@ import android.app.Dialog;
 
 import com.pplive.meetplayer.R;
 import com.pplive.meetplayer.util.AtvUtils;
-import com.pplive.meetplayer.util.CrashHandler;
 import com.pplive.meetplayer.util.DownloadAsyncTask;
 import com.pplive.meetplayer.util.EPGUtil;
 import com.pplive.meetplayer.util.FeedBackFactory;
@@ -138,6 +134,7 @@ public class ClipListActivity extends Activity implements
 	private final static String HTTP_SERVER_URL = "http://172.16.204.106/test/testcase/";
 	
 	private String mPlayUrl;
+	private int mVideoWidth, mVideoHeight;
 	private int mAudioTrackNum = 4;
 	private int mAudioChannel = 1;
 	private int mPlayerImpl = 0;
@@ -991,8 +988,6 @@ public class ClipListActivity extends Activity implements
 			
 			mPlayer = new MediaPlayer(dec_mode);
 			
-			mPreview.BindInstance(mMediaController, mPlayer);
-			
 			// fix Mediaplayer setVideoSurfaceTexture failed: -17
 			mPlayer.setDisplay(null);
 			mPlayer.reset();
@@ -1739,6 +1734,39 @@ public class ClipListActivity extends Activity implements
 		//if (mListLocalFile)
 		//	mPlayer.setLooping(true);
 		
+		/*
+		// view
+		mVideoWidth = mp.getVideoWidth();
+		mVideoHeight = mp.getVideoHeight();
+		
+		int width = mLayout.getWidth();
+		int height = mLayout.getHeight();
+		
+		Log.i(TAG, String.format("surfaceview %d x %d, video %d x %d", width, height, mVideoWidth, mVideoHeight)); 
+		
+		mPreview.getHolder().setFixedSize(mVideoWidth, mVideoHeight);
+		
+		RelativeLayout.LayoutParams sufaceviewParams = (RelativeLayout.LayoutParams) mPreview.getLayoutParams();
+		if ( mVideoWidth * height  > width * mVideoHeight ) { 
+			Log.i(TAG, "surfaceview is too tall, correcting");
+			sufaceviewParams.height = width * mVideoHeight / mVideoWidth;
+		}
+		else if ( mVideoWidth * height  < width * mVideoHeight ) 
+		{ 
+			Log.i(TAG, "surfaceview is too wide, correcting"); 
+			sufaceviewParams.width = height * mVideoWidth / mVideoHeight; 
+		}
+		else {
+           sufaceviewParams.height= height;
+           sufaceviewParams.width = width;
+		}
+		
+		Log.i(TAG, String.format("surfaceview setLayoutParams %d %d", 
+				sufaceviewParams.width, sufaceviewParams.height)); 
+		mPreview.setLayoutParams(sufaceviewParams);*/
+		
+		mPreview.BindInstance(mMediaController, mPlayer);
+		
 		Log.i(TAG, String.format("Java: width %d, height %d", mPlayer.getVideoWidth(), mPlayer.getVideoHeight()));
 		mPlayer.start();
 		
@@ -1783,6 +1811,7 @@ public class ClipListActivity extends Activity implements
 	@Override
 	public void onVideoSizeChanged(MediaPlayer mp, int w, int h) {
 		// TODO Auto-generated method stub
+		Log.i(TAG, String.format("onVideoSizeChanged(%d %d)", w, h));
 		
 		if (w == 0 || h == 0) {
 			mHolder.setFixedSize(640, 480);
@@ -1794,7 +1823,8 @@ public class ClipListActivity extends Activity implements
 			mPreview.SetVideoRes(w, h);
 		}
 		
-		mPreview.measure(MeasureSpec.AT_MOST, MeasureSpec.AT_MOST/*EXACTLY*/);
+		// will trigger onMeasure() 
+		mPreview.measure(MeasureSpec.AT_MOST, MeasureSpec.AT_MOST);
 	}
 	
 	private void setupUpdater() {
@@ -1954,8 +1984,6 @@ public class ClipListActivity extends Activity implements
 			mHomed = true;
 		}
 	}
-	
-	
 	
 	private boolean initMeetSDK() {
 		// upload util will upload /data/data/pacake_name/Cache/xxx

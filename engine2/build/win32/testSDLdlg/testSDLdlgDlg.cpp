@@ -16,6 +16,7 @@
 #include "IPpbox.h"
 #include "IDemuxer.h"
 #include "approcessbmp.h" // for snapshot
+//#include "apEPG.h"
 
 #pragma comment(lib, "sdl")
 #pragma comment(lib, "libppbox")
@@ -457,6 +458,9 @@ void CtestSDLdlgDlg::drawBuffering()
 
 void CtestSDLdlgDlg::OnBnClickedStart()
 {
+	//apEPG epg;
+	//epg.getCatalog(-1);
+
 	// TODO: 在此添加控件通知处理程序代码
 	status_t status;
 
