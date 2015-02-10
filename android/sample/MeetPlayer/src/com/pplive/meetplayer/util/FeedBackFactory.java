@@ -2,6 +2,9 @@ package com.pplive.meetplayer.util;
 
 import java.io.ByteArrayInputStream;
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.HashMap;
 import java.util.Map;
@@ -212,6 +215,7 @@ public class FeedBackFactory {
                     e.printStackTrace();
                 }
             }
+            
             setProgress(99);
             return ret;
         }

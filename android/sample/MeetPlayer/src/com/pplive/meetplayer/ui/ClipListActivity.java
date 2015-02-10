@@ -13,6 +13,8 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.Random;
 
 import android.app.Activity;
@@ -46,8 +48,6 @@ import android.os.Build;
 import android.media.AudioManager;
 import android.graphics.Bitmap;
 import android.net.Uri;
-import android.net.wifi.WifiInfo;
-import android.net.wifi.WifiManager;
 import android.os.AsyncTask;
 import android.view.ViewGroup.LayoutParams;
 import android.widget.TextView;
@@ -59,14 +59,18 @@ import android.app.Dialog;
 
 import com.pplive.meetplayer.R;
 import com.pplive.meetplayer.util.AtvUtils;
-import com.pplive.meetplayer.util.CrashHandler;
 import com.pplive.meetplayer.util.DownloadAsyncTask;
+import com.pplive.meetplayer.util.EPGUtil;
 import com.pplive.meetplayer.util.FeedBackFactory;
 import com.pplive.meetplayer.util.IDlnaCallback;
 import com.pplive.meetplayer.util.ListMediaUtil;
+import com.pplive.meetplayer.util.LoadPlayLinkUtil;
 import com.pplive.meetplayer.util.LogcatHelper;
 import com.pplive.meetplayer.util.Util;
 import com.pplive.dlna.DLNASdk;
+
+
+
 
 
 
@@ -109,8 +113,8 @@ public class ClipListActivity extends Activity implements
 	private RelativeLayout mLayout;
 	private ProgressBar mBufferingProgressBar;
 	private EditText et_playlink;
-	private EditText et_ft;
-	private EditText et_bw_type;
+	private Button btn_ft;
+	private Button btn_bw_type;
 	private MediaPlayer mPlayer 				= null;
 	private MyAdapter mAdapter;
 	private ListView lv_filelist;
@@ -130,6 +134,7 @@ public class ClipListActivity extends Activity implements
 	private final static String HTTP_SERVER_URL = "http://172.16.204.106/test/testcase/";
 	
 	private String mPlayUrl;
+	private int mVideoWidth, mVideoHeight;
 	private int mAudioTrackNum = 4;
 	private int mAudioChannel = 1;
 	private int mPlayerImpl = 0;
@@ -145,21 +150,32 @@ public class ClipListActivity extends Activity implements
 	// dlna
 	private DLNASdk mDLNA;
 	private IDlnaCallback mDLNAcallback;
-	private final static int DLNA_LISTEN_PORT = 8787;
+	private final static int DLNA_LISTEN_PORT = 10010;
+	private String mDlnaDeviceUUID;
+	private String mDlnaDeviceName;
 	
+	// epg
+	private List<Map<String, Object>> mEPGCatalogList = null;
+	private List<Map<String, Object>> mEPGClipList = null;
+	private int mLastEPGitem					= -1;
+	private String mDLNAPushUrl;
+	private final int EPG_ITEM_CATALOG			= 1;
+	private final int EPG_ITEM_SELECTION		= 2;
+	private final int EPG_ITEM_EPISODE			= 3;
+	private final int EPG_ITEM_CDN				= 4;
 
 	private boolean mListLocalFile				= true;
 	
 	private LinearLayout mControllerLayout 		= null;
 	private TextView mTextViewInfo 				= null;
 	
-	private int decode_fps 						= 0;
-	private int render_fps 						= 0;
+	private int decode_fps						= 0;
+	private int render_fps 					= 0;
 	private int decode_avg_msec 				= 0;
 	private int render_avg_msec 				= 0;
 	private int render_frame_num				= 0;
 	private int decode_drop_frame				= 0;
-	private int av_latency_msec					= 0;
+	private int av_latency_msec				= 0;
 	private int video_bitrate					= 0;
 	
 	private int preview_height;
@@ -185,19 +201,24 @@ public class ClipListActivity extends Activity implements
 	final static int OPTION 					= Menu.FIRST + 4;
 	final static int OPTION_PREVIEW			= Menu.FIRST + 11;
 	final static int OPTION_DLNA_LIST			= Menu.FIRST + 12;
+	final static int OPTION_EPG_LIST			= Menu.FIRST + 13;
 	
 	
 	
 	// message
-	private final static int MSG_CLIP_LIST_DONE			= 101;
-	private final static int MSG_CLIP_PLAY_DONE			= 102;
-	private static final int MSG_UPDATE_PLAY_INFO 		= 201;
-	private static final int MSG_UPDATE_RENDER_INFO		= 202;
-	private static final int MSG_LOCAL_LIST_DONE			= 203;
-	private static final int MSG_HTTP_LIST_DONE			= 204;
-	private static final int MSG_FAIL_TO_LIST_HTTP_LIST	= 301;
-	private static final int MSG_DISPLAY_SUBTITLE			= 401;
-	private static final int MSG_HIDE_SUBTITLE			= 402;
+	private final static int MSG_CLIP_LIST_DONE					= 101;
+	private final static int MSG_CLIP_PLAY_DONE					= 102;
+	private static final int MSG_UPDATE_PLAY_INFO 				= 201;
+	private static final int MSG_UPDATE_RENDER_INFO				= 202;
+	private static final int MSG_LOCAL_LIST_DONE					= 203;
+	private static final int MSG_HTTP_LIST_DONE					= 204;
+	private static final int MSG_FAIL_TO_LIST_HTTP_LIST			= 301;
+	private static final int MSG_DISPLAY_SUBTITLE					= 401;
+	private static final int MSG_HIDE_SUBTITLE					= 402;
+	private static final int MSG_LIST_EPG_EPISODE					= 501;
+	private static final int MSG_LIST_EPG_CATALOG_DONE			= 502;
+	private static final int MSG_FAIL_TO_CONNECT_EPG_SERVER		= 511;
+	private static final int MSG_PUSH_CDN_CLIP					= 601;
 	
 	private ProgressDialog progDlg 				= null;
 	
@@ -285,6 +306,7 @@ public class ClipListActivity extends Activity implements
 
     public static final int FT_UNKNOWN = -1;
 
+	@SuppressWarnings("deprecation")
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
@@ -323,8 +345,8 @@ public class ClipListActivity extends Activity implements
 		this.btnSelectAudioTrack = (Button) findViewById(R.id.btn_select_audiotrack);
 		this.et_play_url = (EditText) findViewById(R.id.et_url);
 		this.et_playlink = (EditText) findViewById(R.id.et_playlink);
-		this.et_ft = (EditText) findViewById(R.id.et_ft);
-		this.et_bw_type = (EditText) findViewById(R.id.et_bw_type);
+		this.btn_ft = (Button) findViewById(R.id.btn_ft);
+		this.btn_bw_type = (Button) findViewById(R.id.btn_bw_type);
 
 		this.mPreview = (MyPreView) findViewById(R.id.preview);
 		this.mLayout = (RelativeLayout) findViewById(R.id.layout_preview);
@@ -334,15 +356,17 @@ public class ClipListActivity extends Activity implements
 		
 		this.mMediaController = new MySimpleMediaController(this);
 		
-		mControllerLayout = new LinearLayout(this);
-		mControllerLayout.setLayoutParams(new LayoutParams(LayoutParams.MATCH_PARENT,
-				LayoutParams.WRAP_CONTENT));
-		mControllerLayout.setOrientation(LinearLayout.VERTICAL);
 		mTextViewInfo = new TextView(this);
 		mTextViewInfo.setTextColor(Color.RED);
 		mTextViewInfo.setTextSize(18);
 		mTextViewInfo.setText("play info");
-		mControllerLayout.addView(mTextViewInfo);
+		
+		mControllerLayout = new LinearLayout(this);
+		mControllerLayout.setLayoutParams(new LayoutParams(LayoutParams.MATCH_PARENT,
+				LayoutParams.WRAP_CONTENT));
+		mControllerLayout.setOrientation(LinearLayout.VERTICAL);
+		//mControllerLayout.addView(mTextViewInfo);
+		mLayout.addView(mTextViewInfo);
 		addContentView(mControllerLayout, new LayoutParams(LayoutParams.MATCH_PARENT,
 				LayoutParams.WRAP_CONTENT));
 		
@@ -498,16 +522,55 @@ public class ClipListActivity extends Activity implements
 		        case OnScrollListener.SCROLL_STATE_IDLE:
 		        	mAdapter.SetScrolling(false);
 		        	mAdapter.notifyDataSetChanged();
-		        	Log.i(TAG, "set to false");
 		            break;
 		        case OnScrollListener.SCROLL_STATE_TOUCH_SCROLL:
 		        	mAdapter.SetScrolling(true);
-		        	Log.i(TAG, "set to true");
 		            break;
 		        case OnScrollListener.SCROLL_STATE_FLING:
 		        	mAdapter.SetScrolling(true);
-		        	Log.i(TAG, "set to true");
 				}
+			}
+		});
+		
+		this.btn_ft.setOnClickListener(new Button.OnClickListener() {
+
+			@Override
+			public void onClick(View view) {
+				// TODO Auto-generated method stub
+				final String[] ft = {"流畅", "高清", "超清", "蓝光"};
+				
+				Dialog choose_ft_dlg = new AlertDialog.Builder(ClipListActivity.this)
+				.setTitle("select player impl")
+				.setSingleChoiceItems(ft, Integer.parseInt(btn_ft.getText().toString()), /*default selection item number*/
+					new DialogInterface.OnClickListener(){
+						public void onClick(DialogInterface dialog, int whichButton){
+							btn_ft.setText(Integer.toString(whichButton));
+							dialog.dismiss();
+						}
+					})
+				.create();
+				choose_ft_dlg.show();	
+			}
+		});
+		
+		this.btn_bw_type.setOnClickListener(new Button.OnClickListener() {
+
+			@Override
+			public void onClick(View view) {
+				// TODO Auto-generated method stub
+				final String[] bw_type = {"P2P", "CDNP2P", "CDN", "PPTV"};
+
+				Dialog choose_bw_type_dlg = new AlertDialog.Builder(ClipListActivity.this)
+				.setTitle("select player impl")
+				.setSingleChoiceItems(bw_type, Integer.parseInt((String) btn_bw_type.getText()), /*default selection item number*/
+					new DialogInterface.OnClickListener(){
+						public void onClick(DialogInterface dialog, int whichButton){
+							btn_bw_type.setText(Integer.toString(whichButton));
+							dialog.dismiss();
+						}
+					})
+				.create();
+				choose_bw_type_dlg.show();	
 			}
 		});
 		
@@ -557,7 +620,11 @@ public class ClipListActivity extends Activity implements
 				
 				final int fixed_size = list_title.size();
 
-				LoadTvList(list_title, list_url);
+				LoadPlayLinkUtil ext_link = new LoadPlayLinkUtil();
+				if (ext_link.LoadTvList()) {
+					list_title.addAll(ext_link.getTitles());
+					list_url.addAll(ext_link.getUrls());
+				}
 				
 				final String[] ppbox_clipname = (String[])list_title.toArray(new String[list_title.size()]);  
 				
@@ -577,7 +644,7 @@ public class ClipListActivity extends Activity implements
 						public void onClick(DialogInterface dialog, int whichButton) {
 							if (whichButton < fixed_size) {
 								et_playlink.setText(String.valueOf(ppbox_playlink[whichButton]));
-								et_ft.setText(String.valueOf(ppbox_ft[whichButton]));
+								btn_ft.setText(String.valueOf(ppbox_ft[whichButton]));
 								if (0 == ppbox_type[whichButton]) {
 									play_type = MEET_PLAY_TYPE.PPTV_VOD_TYPE;
 								}
@@ -618,9 +685,9 @@ public class ClipListActivity extends Activity implements
 				String tmp;
 				tmp = et_playlink.getText().toString();
 				ppbox_playid = Integer.parseInt(tmp);
-				tmp = et_ft.getText().toString();
+				tmp = btn_ft.getText().toString();
 				ppbox_ft = Integer.parseInt(tmp);
-				tmp = et_bw_type.getText().toString();
+				tmp = btn_bw_type.getText().toString();
 				ppbox_bw_type = Integer.parseInt(tmp);
 				
 				String ppbox_url;
@@ -642,12 +709,6 @@ public class ClipListActivity extends Activity implements
 						MEET_PLAY_TYPE.HTTP_TYPE == play_type) {
 					// vod
 					ppbox_url = String.format(HTTP_M3U8_RECORD_PPVOD2, port, str_playlink);
-					/*int index = ppbox_url.indexOf("record.m3u8");
-					String StrtoEnc = ppbox_url.substring(index, ppbox_url.length());
-					Log.i(TAG, "before base64 encode  " + StrtoEnc);
-					String base64String = Base64.encodeToString(StrtoEnc.getBytes(), Base64.NO_WRAP);
-					ppbox_url = String.format("http://127.0.0.1:%d/base64%s.m3u8", port, base64String);
-					Log.i(TAG, "base64 encoded url:  " + ppbox_url);*/
 				}
 				else if (MEET_PLAY_TYPE.PPTV_LIVE_TYPE == play_type) {
 					// live
@@ -721,50 +782,6 @@ public class ClipListActivity extends Activity implements
 				}
 			}
 		});
-	}
-	
-	private void LoadTvList(ArrayList<String> list_title, ArrayList<String> list_url) {
-		String str_tvlist = Environment.getExternalStorageDirectory().getAbsolutePath() + "/tvlist.txt";
-		File file = new File(str_tvlist);
-		if (file.exists()) {
-		    FileInputStream fin = null;
-		    
-			try {
-			    fin = new FileInputStream(file);
-			    
-			    byte[] buf = new byte[fin.available()];
-			    
-		    	fin.read(buf);
-		    	String s = new String(buf);
-
-			    int pos = 0;
-			    while (true) {
-			    	int comma = s.indexOf(',', pos);
-			    	int newline = s.indexOf('\n', pos);
-			    	if (comma == -1)
-			    		break;
-			    	if (newline == -1)
-			    		newline = s.length();
-			    	
-			    	String title = s.substring(pos, comma);
-			    	String url = s.substring(comma + 1, newline);
-			    	Log.i(TAG, String.format("Java: filecontext title: %s url: %s", title, url));
-			    	list_title.add(title);
-			    	list_url.add(url);
-			    	pos = newline + 1;
-			    }
-			    
-			    fin.close();
-			      
-			} catch (FileNotFoundException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
-			catch (IOException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
-		}
 	}
 	
 	private void TakeSnapShot() {
@@ -910,7 +927,6 @@ public class ClipListActivity extends Activity implements
 		stop_player();
 		
 		if (!mIsPreview) {
-			//Uri uri = Uri.fromFile(file);
 			Uri uri = Uri.parse(path);
 			Log.i(TAG, "Java: goto PlayerActivity, uri:" + uri.toString());
 			start_fullscreen_play(uri, mPlayerImpl);
@@ -971,8 +987,6 @@ public class ClipListActivity extends Activity implements
 			mPreview.setVisibility(View.VISIBLE);
 			
 			mPlayer = new MediaPlayer(dec_mode);
-			
-			mPreview.BindInstance(mMediaController, mPlayer);
 			
 			// fix Mediaplayer setVideoSurfaceTexture failed: -17
 			mPlayer.setDisplay(null);
@@ -1215,6 +1229,21 @@ public class ClipListActivity extends Activity implements
 			case MSG_HIDE_SUBTITLE:
 				mSubtitleTextView.setText("");
 				break;
+			case MSG_LIST_EPG_CATALOG_DONE:
+				popupEPGSelDlg();
+				break;
+			case MSG_LIST_EPG_EPISODE:
+				popupEPGListDlg();
+				break;
+			case MSG_FAIL_TO_CONNECT_EPG_SERVER:
+				Toast.makeText(ClipListActivity.this, "failed to connect to epg server", Toast.LENGTH_SHORT).show();
+				break;
+			case MSG_PUSH_CDN_CLIP:
+				mDLNA.SetURI(mDlnaDeviceUUID, mDLNAPushUrl);
+				Log.i(TAG, String.format("Java: dlna push url(%s) to uuid(%s) name(%s)", mDLNAPushUrl, mDlnaDeviceUUID, mDlnaDeviceName));
+				Toast.makeText(ClipListActivity.this, 
+						String.format("push url to dmr %s", mDlnaDeviceName), Toast.LENGTH_SHORT).show();
+				break;
 			default:
 				Log.w(TAG, "unknown msg.what " + msg.what);
 				break;
@@ -1222,10 +1251,156 @@ public class ClipListActivity extends Activity implements
         }
 	}; 
 	
+	private void popupEPGSelDlg() {
+		int size = mEPGCatalogList.size();
+		if (size == 0) {
+			Toast.makeText(this, "epg catalog is empty!", Toast.LENGTH_SHORT).show();
+			return;
+		}
+		
+		ArrayList<String> title_list = new ArrayList<String>();
+		final ArrayList<Integer> index_list = new ArrayList<Integer>();
+		
+		for (int i=0;i<size;i++) {
+			HashMap<String, Object> item = (HashMap<String, Object>) mEPGCatalogList.get(i);
+			String title = (String)item.get("title");
+			int index = (Integer)item.get("index");
+			title_list.add(title);
+			index_list.add(index);
+		}
+		
+		final String[] str_title_list = (String[])title_list.toArray(new String[size]);
+
+		Dialog choose_clip_dlg = new AlertDialog.Builder(ClipListActivity.this)
+		.setTitle("Select epg item")
+		.setItems(str_title_list, 
+			new DialogInterface.OnClickListener(){
+			public void onClick(DialogInterface dialog, int whichButton) {
+				if (whichButton >= 0) {
+					int item = index_list.get(whichButton);
+					if (item != mLastEPGitem) {
+						mLastEPGitem = item;
+						Toast.makeText(ClipListActivity.this, "loading epg clip...", Toast.LENGTH_SHORT).show();
+						new EPGTask().execute(EPG_ITEM_EPISODE, item);
+					}
+					else {
+						// just display cache list
+						mHandler.sendEmptyMessage(MSG_LIST_EPG_EPISODE);
+					}
+				}
+				
+				dialog.dismiss();
+			}
+		})
+		.setNegativeButton("Cancel",
+			new DialogInterface.OnClickListener(){
+				public void onClick(DialogInterface dialog, int whichButton){
+			}})
+		.create();
+		choose_clip_dlg.show();
+	}
+	
+	private void popupEPGListDlg() {
+
+		int size = mEPGClipList.size();
+		if (size > 0) {
+			ArrayList<String> link_list = new ArrayList<String>();
+			ArrayList<String> name_list = new ArrayList<String>();
+			
+			for (int i=0;i<size;i++) {
+				HashMap<String, Object> item = (HashMap<String, Object>) mEPGClipList.get(i);
+				String name = (String)item.get("title");
+				String link = (String)item.get("link");
+				name_list.add(name);
+				link_list.add(link);
+			}
+			
+			final String[] str_link_list = (String[])link_list.toArray(new String[link_list.size()]);
+			final String[] str_name_list = (String[])name_list.toArray(new String[name_list.size()]);
+			
+			Dialog choose_clip_dlg = new AlertDialog.Builder(ClipListActivity.this)
+			.setTitle("Select clip to play")
+			.setItems(str_name_list, 
+				new DialogInterface.OnClickListener(){
+				public void onClick(DialogInterface dialog, int whichButton) {
+					et_playlink.setText(str_link_list[whichButton]);
+					dialog.cancel();
+				}
+			})
+			.setNegativeButton("Cancel",
+				new DialogInterface.OnClickListener(){
+					public void onClick(DialogInterface dialog, int whichButton){
+				}})
+			.create();
+			choose_clip_dlg.show();
+		}
+	}
+	
+	private class EPGTask extends AsyncTask<Integer, Integer, Boolean> {
+        @Override
+        protected Boolean doInBackground(Integer... params) {
+        	int type = params[0];
+        	int id = -1;
+        	if (params.length > 1)
+        		id = params[1];
+        	
+        	EPGUtil epg = new EPGUtil();
+        	
+        	if (EPG_ITEM_CATALOG == type) {
+        		if (mEPGCatalogList == null) {
+            		if (epg.getCategory(EPGUtil.LIST_FRONTPAGE_CATALOG) == false) { // frontpage
+            			mHandler.sendEmptyMessage(MSG_FAIL_TO_CONNECT_EPG_SERVER);
+                		return false;
+                	}
+            		
+                	mEPGCatalogList = epg.getCategoryList();
+                	Log.i(TAG, "Java: epg getCategory() " + mEPGCatalogList.toArray().toString());
+        		}
+        		
+                mHandler.sendEmptyMessage(MSG_LIST_EPG_CATALOG_DONE);
+        	}
+        	else if (EPG_ITEM_EPISODE == type){
+        		if (epg.getEPGClips(id) == false) {
+            		mHandler.sendEmptyMessage(MSG_FAIL_TO_CONNECT_EPG_SERVER);
+            		return false;
+            	}
+            	
+        		mEPGClipList = epg.getClipList();
+        		mHandler.sendEmptyMessage(MSG_LIST_EPG_EPISODE);
+        	}
+        	else if (EPG_ITEM_CDN == type){
+        		mDLNAPushUrl = epg.getCDNUrl(String.valueOf(id), btn_ft.getText().toString());
+        		if (mDLNAPushUrl == null) {
+            		mHandler.sendEmptyMessage(MSG_FAIL_TO_CONNECT_EPG_SERVER);
+            		return false;
+            	}
+        		
+        		mHandler.sendEmptyMessage(MSG_PUSH_CDN_CLIP);
+        	}
+        	else {
+        		Log.w(TAG, "Java: EPGTask invalid type: " + type);
+        	}
+        	
+        	return true;
+        }
+        
+    	@Override
+        protected void onPostExecute(Boolean result) {
+        }
+
+        @Override
+        protected void onPreExecute() {
+        }
+
+        @Override
+        protected void onProgressUpdate(Integer... progresses) {		
+        }
+	}
+	
 	private class ListItemTask extends AsyncTask<String, Integer, Boolean> {
         @Override
         protected Boolean doInBackground(String... params) {
-        	Log.i(TAG, "Java: doInBackground " +  params[0]);
+        	Log.i(TAG, "Java: doInBackground " + params[0]);
         	
         	// update progress
         	// publishProgress(progresses)
@@ -1301,6 +1476,14 @@ public class ClipListActivity extends Activity implements
 	private void upload_crash_report(int type) {	
 		MeetSDK.makePlayerlog();
 		
+		/*String log_filepath = getCacheDir().getAbsolutePath() + "/meetplayer.log";
+		String new_filepath = Environment.getExternalStorageDirectory().getAbsolutePath() + "/meetplayer.log";
+		File file = new File(new_filepath);
+		if (file.exists())
+			file.delete();
+		
+		Util.copyFile(log_filepath, new_filepath);*/
+		
 		FeedBackFactory fbf = new FeedBackFactory(
 				 Integer.toString(type), "123456", false, false);
 		fbf.asyncFeedBack();
@@ -1334,33 +1517,26 @@ public class ClipListActivity extends Activity implements
 		
 		Dialog choose_device_dlg = new AlertDialog.Builder(ClipListActivity.this)
 		.setTitle("Select device to push")
-		.setSingleChoiceItems(str_dev_list, -1, /*default selection item number*/
+		.setItems(str_dev_list,
 			new DialogInterface.OnClickListener(){
 			public void onClick(DialogInterface dialog, int whichButton) {
 				
-				String uuid = str_uuid_list[whichButton];
-				String name = str_dev_list[whichButton];
-				String uri;
-				if (mPlayUrl.startsWith("/") || mPlayUrl.startsWith("file://")) 
-					uri = mDLNA.GetServerFileUrl(mPlayUrl);
-				else
-					uri = mPlayUrl;
-				if (uri.indexOf("127.0.0.1") != -1) { 
-				    WifiManager wifiManager = (WifiManager) getSystemService(Context.WIFI_SERVICE);  
-				    if (!wifiManager.isWifiEnabled()) {  
-				    wifiManager.setWifiEnabled(true);    
-				    }  
-				    WifiInfo wifiInfo = wifiManager.getConnectionInfo();       
-				    int ipAddress = wifiInfo.getIpAddress();   
-				    String ip_addr = intToIp(ipAddress);  
-				    
-					uri = uri.replace("127.0.0.1", ip_addr);
+				mDlnaDeviceUUID = str_uuid_list[whichButton];
+				mDlnaDeviceName = str_dev_list[whichButton];
+				
+				if (mPlayUrl.startsWith("http://127.0.0.1")) {
+					int link = Integer.valueOf(et_playlink.getText().toString());
+					new EPGTask().execute(EPG_ITEM_CDN, link);
+					dialog.cancel();
+					return;
 				}
-				mDLNA.SetURI(uuid, uri);
-				Log.i(TAG, String.format("Java: dlna push url %s to uuid(%s) name(%s)", uri, uuid, name));
 				
-				dialog.cancel();
+				if (mPlayUrl.startsWith("/") || mPlayUrl.startsWith("file://")) 
+					mDLNAPushUrl = mDLNA.GetServerFileUrl(mPlayUrl);
+				else
+					mDLNAPushUrl = mPlayUrl;
 				
+				mHandler.sendEmptyMessage(MSG_PUSH_CDN_CLIP);
 			}
 		})
 		.setNegativeButton("Cancel",
@@ -1383,6 +1559,19 @@ public class ClipListActivity extends Activity implements
 	public boolean onCreateOptionsMenu(Menu menu) {
 
 		int i = Menu.FIRST;
+		
+		SubMenu OptSubMenu = menu.addSubMenu(i, OPTION, Menu.NONE, "Option");
+		OptSubMenu.setIcon(R.drawable.option);
+		MenuItem previewMenuItem = OptSubMenu.add(i, OPTION_PREVIEW, Menu.NONE, "Preview");
+		previewMenuItem.setCheckable(true);
+		if (mIsPreview)
+			previewMenuItem.setChecked(true);
+		
+		// dlna
+		OptSubMenu.add(i, OPTION_DLNA_LIST, Menu.NONE, "dlna");
+		// epg
+		OptSubMenu.add(i, OPTION_EPG_LIST, Menu.NONE, "epg");
+		
 		menu.add(i, UPDATE_CLIP_LIST, Menu.NONE, "Update list")
 			.setIcon(R.drawable.list);
 		menu.add(i, UPDATE_APK, Menu.NONE, "Update apk")
@@ -1390,16 +1579,6 @@ public class ClipListActivity extends Activity implements
 		menu.add(i, UPLOAD_CRASH_REPORT, Menu.NONE, "Upload crash report")
 			.setIcon(R.drawable.log);
 		menu.add(i, QUIT, Menu.NONE, "Quit");
-		
-		SubMenu fileSubMenu = menu.addSubMenu(i, OPTION, Menu.NONE, "Option");
-		fileSubMenu.setIcon(R.drawable.option);
-		MenuItem previewMenuItem = fileSubMenu.add(i, OPTION_PREVIEW, Menu.NONE, "Preview");
-		previewMenuItem.setCheckable(true);
-		if (mIsPreview)
-			previewMenuItem.setChecked(true);
-		
-		// dlna
-		fileSubMenu.add(i, OPTION_DLNA_LIST, Menu.NONE, "dlna");
 		
 		return super.onCreateOptionsMenu(menu);
 	}
@@ -1439,6 +1618,10 @@ public class ClipListActivity extends Activity implements
 			break;
 		case OPTION_DLNA_LIST:
 			push_to_dmr();
+			break;
+		case OPTION_EPG_LIST:
+			Toast.makeText(this, "loading epg catalog...", Toast.LENGTH_SHORT).show();
+			new EPGTask().execute(EPG_ITEM_CATALOG);
 			break;
 		default:
 			Log.w(TAG, "bad menu item selected: " + id);
@@ -1551,6 +1734,39 @@ public class ClipListActivity extends Activity implements
 		//if (mListLocalFile)
 		//	mPlayer.setLooping(true);
 		
+		/*
+		// view
+		mVideoWidth = mp.getVideoWidth();
+		mVideoHeight = mp.getVideoHeight();
+		
+		int width = mLayout.getWidth();
+		int height = mLayout.getHeight();
+		
+		Log.i(TAG, String.format("surfaceview %d x %d, video %d x %d", width, height, mVideoWidth, mVideoHeight)); 
+		
+		mPreview.getHolder().setFixedSize(mVideoWidth, mVideoHeight);
+		
+		RelativeLayout.LayoutParams sufaceviewParams = (RelativeLayout.LayoutParams) mPreview.getLayoutParams();
+		if ( mVideoWidth * height  > width * mVideoHeight ) { 
+			Log.i(TAG, "surfaceview is too tall, correcting");
+			sufaceviewParams.height = width * mVideoHeight / mVideoWidth;
+		}
+		else if ( mVideoWidth * height  < width * mVideoHeight ) 
+		{ 
+			Log.i(TAG, "surfaceview is too wide, correcting"); 
+			sufaceviewParams.width = height * mVideoWidth / mVideoHeight; 
+		}
+		else {
+           sufaceviewParams.height= height;
+           sufaceviewParams.width = width;
+		}
+		
+		Log.i(TAG, String.format("surfaceview setLayoutParams %d %d", 
+				sufaceviewParams.width, sufaceviewParams.height)); 
+		mPreview.setLayoutParams(sufaceviewParams);*/
+		
+		mPreview.BindInstance(mMediaController, mPlayer);
+		
 		Log.i(TAG, String.format("Java: width %d, height %d", mPlayer.getVideoWidth(), mPlayer.getVideoHeight()));
 		mPlayer.start();
 		
@@ -1571,7 +1787,7 @@ public class ClipListActivity extends Activity implements
 				subtitle_full_path = tmp + ext;
 				
 				File subfile = new File(subtitle_full_path);
-				Log.i(TAG, "Java: subtitle: subtitle file: " + subtitle_full_path);
+				//Log.d(TAG, "Java: subtitle: subtitle file: " + subtitle_full_path);
 		        if (subfile.exists()) {
 		        	Log.i(TAG, "Java: subtitle: subtitle file found: " + subtitle_full_path);
 		        	
@@ -1595,6 +1811,7 @@ public class ClipListActivity extends Activity implements
 	@Override
 	public void onVideoSizeChanged(MediaPlayer mp, int w, int h) {
 		// TODO Auto-generated method stub
+		Log.i(TAG, String.format("onVideoSizeChanged(%d %d)", w, h));
 		
 		if (w == 0 || h == 0) {
 			mHolder.setFixedSize(640, 480);
@@ -1606,7 +1823,8 @@ public class ClipListActivity extends Activity implements
 			mPreview.SetVideoRes(w, h);
 		}
 		
-		mPreview.measure(MeasureSpec.AT_MOST, MeasureSpec.AT_MOST/*EXACTLY*/);
+		// will trigger onMeasure() 
+		mPreview.measure(MeasureSpec.AT_MOST, MeasureSpec.AT_MOST);
 	}
 	
 	private void setupUpdater() {
@@ -1792,7 +2010,7 @@ public class ClipListActivity extends Activity implements
 		}
 		
 		mDLNAcallback = new IDlnaCallback();
-		mDLNA.setLogPath(Environment.getExternalStorageDirectory().getAbsolutePath() + "/xxxx_dlna.log");
+		//mDLNA.setLogPath(Environment.getExternalStorageDirectory().getAbsolutePath() + "/xxxx_dlna.log");
 		mDLNA.Init(mDLNAcallback);
 		mDLNA.EnableRendererControler(true);
 		
@@ -1800,7 +2018,7 @@ public class ClipListActivity extends Activity implements
 		Random rand =new Random();
 		int i;
 		i = rand.nextInt(100);
-		int port = 10010;//DLNA_LISTEN_PORT + i;
+		int port = DLNA_LISTEN_PORT + i;
 		mDLNA.StartHttpServer(port);
 		Log.i(TAG, String.format("Java: dlna start dlna server port: %d", port));
 		return true;

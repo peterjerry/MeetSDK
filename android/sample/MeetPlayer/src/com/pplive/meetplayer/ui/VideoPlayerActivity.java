@@ -120,31 +120,11 @@ public class VideoPlayerActivity extends Activity {
 	}
 	
 	private void setupSDK() {
-		MeetSDK.setAppRootDir(getCacheDir().getParentFile().getAbsolutePath() + "/");
-		if (android.os.Build.CPU_ABI == "x86")
-			MeetSDK.setPPBoxLibName("libppbox-android-x86-gcc44-mt-1.1.0.so");
-    	else
-    		MeetSDK.setPPBoxLibName("libppbox-armandroid-r4-gcc44-mt-1.1.0.so");
-		MeetSDK.setLogPath(getCacheDir().getAbsolutePath() + "/meetplayer.log", getCacheDir().getAbsolutePath() + "/");
-		
+		MeetSDK.setLogPath(getCacheDir().getAbsolutePath() + "/meetplayer.log", 
+				getCacheDir().getAbsolutePath() + "/");
 		MeetSDK.initSDK(this, "");
-		
-		String gid = "13";//12
-		String pid = "162";//161
-		String auth = "08ae1acd062ea3ab65924e07717d5994";
 
-		File cacheDirFile	= getCacheDir();
-		String dataDir		= cacheDirFile.getParentFile().getAbsolutePath();
-		String libDir		= dataDir + "/lib";
-		String logDir		= cacheDirFile.getAbsolutePath(); //Environment.getExternalStorageDirectory().getPath() + "/pptv";
-		
-		MediaSDK.libPath = libDir;
-		MediaSDK.logPath = logDir;
-		MediaSDK.logOn = false;
-		MediaSDK.setConfig("", "HttpManager", "addr", "127.0.0.1:9106+");
-		MediaSDK.setConfig("", "RtspManager", "addr", "127.0.0.1:5156+");
-		
-		MediaSDK.startP2PEngine(gid, pid, auth);
+		Util.startP2PEngine(this);
 	}
 
 	private void setupPlayer() {

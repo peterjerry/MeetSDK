@@ -49,12 +49,6 @@ public class MyPreView extends SurfaceView {
 		mVideoHeight	= height;
 	}
 	
-	/*
-	public void SetLayout(RelativeLayout layout) {
-		mLayout = layout;
-	}
-	*/
-	
 	void BindInstance(MediaController controller, MediaPlayer player) {
 		mController = controller;
 		mPlayer = player;
@@ -134,17 +128,6 @@ public class MyPreView extends SurfaceView {
 		Log.i(TAG, String.format("setMeasuredDimension: width: %d, height: %d", width, height));
 
 		setMeasuredDimension(width, height);
-		
-		// only LinearLayout need this!
-		/*if (mLayout != null) {
-			mLayout.setOrientation(RelativeLayout.HORIZONTAL);
-			RelativeLayout.LayoutParams sufaceviewParams = (RelativeLayout.LayoutParams)getLayoutParams();
-			sufaceviewParams.gravity = Gravity.CENTER;
-			if (height == LayoutHeight)
-				mLayout.setOrientation(RelativeLayout.VERTICAL);
-	 
-			setLayoutParams(sufaceviewParams);
-		}*/
 	}
 
 	private DisplayMode mCurrentDisplayMode = DisplayMode.FULL_SCREEN_BY_SCALE;

@@ -25,7 +25,7 @@ import com.pplive.meetplayer.R;
 public class MyMediaController extends MediaController {
 	
 	@SuppressWarnings("unused")
-	private final static String TAG = "MediaController";
+	private final static String TAG = "MyMediaController";
 	
 	private AudioManager mAudioManager;
 	
@@ -208,7 +208,7 @@ public class MyMediaController extends MediaController {
 	private Handler mHandler = new Handler() {
 		@Override
         public void handleMessage(Message msg) {
-            Log.i(TAG, "aaaaaa handleMessage: " + msg.what);
+            //Log.d(TAG, "handleMessage: " + msg.what);
             
             int pos;
             switch (msg.what) {

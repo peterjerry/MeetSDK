@@ -12,59 +12,38 @@ import java.util.UUID;
 
 import android.util.Log;
 
-/**
- * 
- * ÉÏ´«¹¤¾ßÀà
- * @author spring sky
- * Email:vipa1888@163.com
- * QQ:840950105
- * MyName:Ê¯Ã÷Õþ
- */
 public class UploadUtil {
     private static final String TAG = "uploadFile";
     private static final int TIME_OUT = 10*1000;
     private static final String CHARSET = "utf-8";
-    /**
-     * androidÉÏ´«ÎÄ¼þµ½·þÎñÆ÷
-     * @param file  ÐèÒªÉÏ´«µÄÎÄ¼þ
-     * @param RequestURL  ÇëÇóµÄurl
-     * @return  ·µ»ØÏìÓ¦µÄÄÚÈÝ
-     */
-    public static String uploadFile(File file,String RequestURL)
+
+    public static String uploadFile(File file, String RequestURL)
     {
         String result = null;
-        String  BOUNDARY =  UUID.randomUUID().toString();  //±ß½ç±êÊ¶   Ëæ»úÉú³É
+        String  BOUNDARY =  UUID.randomUUID().toString();  //ï¿½ß½ï¿½ï¿½Ê¶   ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
         String PREFIX = "--" , LINE_END = "\r\n"; 
-        String CONTENT_TYPE = "multipart/form-data";   //ÄÚÈÝÀàÐÍ
+        String CONTENT_TYPE = "multipart/form-data";   //ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
         
         try {
             URL url = new URL(RequestURL);
             HttpURLConnection conn = (HttpURLConnection) url.openConnection();
             conn.setReadTimeout(TIME_OUT);
             conn.setConnectTimeout(TIME_OUT);
-            conn.setDoInput(true);  //ÔÊÐíÊäÈëÁ÷
-            conn.setDoOutput(true); //ÔÊÐíÊä³öÁ÷
-            conn.setUseCaches(false);  //²»ÔÊÐíÊ¹ÓÃ»º´æ
-            conn.setRequestMethod("POST");  //ÇëÇó·½Ê½
-            conn.setRequestProperty("Charset", CHARSET);  //ÉèÖÃ±àÂë
+            conn.setDoInput(true);  //ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+            conn.setDoOutput(true); //ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+            conn.setUseCaches(false);  //ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê¹ï¿½Ã»ï¿½ï¿½ï¿½
+            conn.setRequestMethod("POST");  //ï¿½ï¿½ï¿½ï¿½Ê½
+            conn.setRequestProperty("Charset", CHARSET);  //ï¿½ï¿½ï¿½Ã±ï¿½ï¿½ï¿½
             conn.setRequestProperty("connection", "keep-alive");   
             conn.setRequestProperty("Content-Type", CONTENT_TYPE + ";boundary=" + BOUNDARY); 
             
             if(file!=null)
             {
-                /**
-                 * µ±ÎÄ¼þ²»Îª¿Õ£¬°ÑÎÄ¼þ°ü×°²¢ÇÒÉÏ´«
-                 */
                 DataOutputStream dos = new DataOutputStream( conn.getOutputStream());
                 StringBuffer sb = new StringBuffer();
                 sb.append(PREFIX);
                 sb.append(BOUNDARY);
                 sb.append(LINE_END);
-                /**
-                 * ÕâÀïÖØµã×¢Òâ£º
-                 * nameÀïÃæµÄÖµÎª·þÎñÆ÷¶ËÐèÒªkey   Ö»ÓÐÕâ¸ökey ²Å¿ÉÒÔµÃµ½¶ÔÓ¦µÄÎÄ¼þ
-                 * filenameÊÇÎÄ¼þµÄÃû×Ö£¬°üº¬ºó×ºÃûµÄ   ±ÈÈç:abc.png  
-                 */
                 
                 sb.append("Content-Disposition: form-data; name=\"img\"; filename=\""+file.getName()+"\""+LINE_END); 
                 sb.append("Content-Type: application/octet-stream; charset="+CHARSET+LINE_END);
@@ -82,15 +61,12 @@ public class UploadUtil {
                 byte[] end_data = (PREFIX+BOUNDARY+PREFIX+LINE_END).getBytes();
                 dos.write(end_data);
                 dos.flush();
-                /**
-                 * »ñÈ¡ÏìÓ¦Âë  200=³É¹¦
-                 * µ±ÏìÓ¦³É¹¦£¬»ñÈ¡ÏìÓ¦µÄÁ÷  
-                 */
+
                 int res = conn.getResponseCode();  
-                Log.e(TAG, "response code:"+res);
-//                if(res==200)
-//                {
-                    Log.e(TAG, "request success");
+                Log.i(TAG, "response code:"+res);
+                if(res==200)
+                {
+                    Log.i(TAG, "request success");
                     InputStream input =  conn.getInputStream();
                     StringBuffer sb1= new StringBuffer();
                     int ss ;
@@ -100,10 +76,10 @@ public class UploadUtil {
                     }
                     result = sb1.toString();
                     Log.e(TAG, "result : "+ result);
-//                }
-//                else{
-//                    Log.e(TAG, "request error");
-//                }
+                }
+                else{
+                    Log.e(TAG, "request error");
+                }
             }
         } catch (MalformedURLException e) {
             e.printStackTrace();
