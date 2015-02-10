@@ -156,7 +156,7 @@ status_t AudioPlayer::prepare()
 		}
 
 		mNumFramesPlayed = 0;
-		mPositionTimeMediaMs = 0;
+		mAudioPlayingTimeMs = 0;
 		mAvePacketDurationMs = 0;
 		mLatencyMs = mRender->get_latency();
 		LOGI("mLatencyMs: %d", mLatencyMs);
@@ -194,7 +194,7 @@ status_t AudioPlayer::flush()
 
 status_t AudioPlayer::setMediaTimeMs(int64_t timeMs)
 {
-    mPositionTimeMediaMs = timeMs;
+    mAudioPlayingTimeMs = timeMs;
     return OK;
 }
 
@@ -228,9 +228,9 @@ int64_t AudioPlayer::getMediaTimeMs()
 			}
         }
 #ifdef OSLES_IMPL
-		audioNowMs = mPositionTimeMediaMs - mRender->get_latency(); // |-------pts#######latency#########play->audio_hardware
+		audioNowMs = mAudioPlayingTimeMs - mRender->get_latency(); // |-------pts#######latency#########play->audio_hardware
 #else
-		audioNowMs = mPositionTimeMediaMs - mLatencyMs + playedDiffMs; // |----diff----pts################play->audio_hardware
+		audioNowMs = mAudioPlayingTimeMs - mLatencyMs + playedDiffMs; // |----diff----pts################play->audio_hardware
 #endif
 		if (audioNowMs < 0)
 			audioNowMs = 0;
@@ -239,21 +239,24 @@ int64_t AudioPlayer::getMediaTimeMs()
     else
     {
         if(mPlayerStatus == MEDIA_PLAYER_STARTED)
-            audioNowMs = mPositionTimeMediaMs + (getNowMs() - mOutputBufferingStartMs);
+            audioNowMs = mAudioPlayingTimeMs + (getNowMs() - mOutputBufferingStartMs);
         else
-            audioNowMs = mPositionTimeMediaMs;
+            audioNowMs = mAudioPlayingTimeMs;
     }
     return audioNowMs;
 }
 
 status_t AudioPlayer::seekTo(int64_t msec)
 {
-	mPositionTimeMediaMs = msec;
+	mAudioPlayingTimeMs = msec;
 
 	if (mIsUsedAsClock)
         mOutputBufferingStartMs = getNowMs();
-	else
+	else {
 		mSeeking = true;
+		if (mRender)
+			mRender->flush();
+	}
 
     return OK;
 }
@@ -292,11 +295,19 @@ status_t AudioPlayer::stop()
 
 		if (mPlayerStatus == MEDIA_PLAYER_STARTED || mPlayerStatus == MEDIA_PLAYER_PAUSED) {
 			mPlayerStatus = MEDIA_PLAYER_STOPPING; // notify audio thread to exit
+			// empty fifo avoid write block
+			if (mRender)
+				mRender->flush();
+			
 			LOGI("before pthread_join %p", mThread);
 			if (pthread_join(mThread, NULL) != 0)
 				LOGE("failed to join audioplayer thread");
 
 			LOGI("after join");
+			
+#if !defined(OSLES_IMPL) && !defined(__CYGWIN__) && !defined(_MSC_VER)
+			AudioTrack_stop();
+#endif
 		}
 
         if (mRender != NULL) {
@@ -325,7 +336,7 @@ status_t AudioPlayer::pause_l()
     }
     else
     {
-        mPositionTimeMediaMs = mPositionTimeMediaMs + (getNowMs() - mOutputBufferingStartMs);
+        mAudioPlayingTimeMs = mAudioPlayingTimeMs + (getNowMs() - mOutputBufferingStartMs);
         mPlayerStatus = MEDIA_PLAYER_PAUSED;
     }
 
@@ -344,43 +355,62 @@ int32_t AudioPlayer::decode_l(AVPacket *packet)
 {
     int got_frame = 0;
 
-    if (mAudioFrame != NULL) {
-		av_frame_unref(mAudioFrame);
-    }
-	else {
-        LOGE("mAudioFrame is NULL");
-        return 0;
-    }
-
-#ifndef NDEBUG
-	int64_t begin_decode = getNowMs();
-#endif
+	av_frame_unref(mAudioFrame);
 
 	int ret;
-	do {
+	while(1) {
 		ret = avcodec_decode_audio4(mAudioContext->codec, mAudioFrame, &got_frame, packet);
 		if (ret < 0) {
 			LOGE("decode audio failed, ret:%d", ret);
 			return -1;
 		}
 
-		if (got_frame) { // got audio frame
-#ifndef NDEBUG
-			int64_t end_decode = getNowMs();
-			LOGD("decode audio cost %lld[ms], decoded samples:%d", (end_decode - begin_decode), mAudioFrame->nb_samples);
-#endif
-			break;
-		}
-
 		packet->data += ret;
         packet->size -= ret;
-	}while(packet->size > 0);
 
-    return got_frame;
+		/* in-complete frame and have data in packet still, continue to decode packet. */
+		if (!got_frame && packet->size > 0)
+			continue;
+
+		/* packet has no more data ,and is in-complete frame discard whole audio packet. */
+		if (packet->size == 0 && !got_frame)
+			break;
+
+		if (mAudioFrame->linesize[0] != 0) { //got audio frame
+			LOGD("decode audio samples: %d", mAudioFrame->nb_samples);
+			
+			if (mPlayerStatus != MEDIA_PLAYER_STOPPING) { // avoid block stop audio player
+				if (mRender) {
+					// may be blocked!
+					status_t stat = mRender->render(mAudioFrame);
+					if (stat != OK) {
+						LOGE("Audio render failed");
+						return -1;
+					}
+
+					mAudioPlayingTimeMs += ( mAudioFrame->nb_samples * 1000 / mAudioContext->codec->sample_rate); // fix me!!!
+				}
+			}
+		}
+
+		/* packet has no more data, decode next packet. */
+		if (packet->size <= 0)
+			break;
+
+		if (mSeeking)
+			break;
+	}
+
+    return 0;
 }
 
-void AudioPlayer::run()
+void AudioPlayer::audio_thread_impl()
 {
+	if (mRender->start() != OK) {
+		LOGE("failed to start audio render");
+		return;
+	}
+	
     while(1)
     {
         if (mPlayerStatus == MEDIA_PLAYER_STOPPED ||
@@ -434,8 +464,8 @@ void AudioPlayer::run()
             		    LOGD("render after");
                         
                         mAvePacketDurationMs = (mAvePacketDurationMs * 4 + (int64_t)(pPacket->duration * 1000 * av_q2d(mAudioContext->time_base))) / 5;
-                       	mPositionTimeMediaMs = (int64_t)(pPacket->pts * 1000 * av_q2d(mAudioContext->time_base));
-                        LOGD("audio frame pts: %lld", mPositionTimeMediaMs);
+                       	mAudioPlayingTimeMs = (int64_t)(pPacket->pts * 1000 * av_q2d(mAudioContext->time_base));
+                        LOGD("audio frame pts: %lld", mAudioPlayingTimeMs);
                     }
                 }
             
@@ -518,25 +548,7 @@ void* AudioPlayer::audio_thread(void* ptr)
 		return NULL;
 	}
     
-#ifdef __ANDROID__
-    LOGD("getpriority before:%d", getpriority(PRIO_PROCESS, 0));
-    int audioThreadPriority = -6;
-    if(setpriority(PRIO_PROCESS, 0, audioThreadPriority) != 0)
-    {
-        LOGE("set audio thread priority failed");
-    }
-    LOGD("getpriority after:%d", getpriority(PRIO_PROCESS, 0));
-#endif
-    
-    audioPlayer->run();
-
-#if !defined(OSLES_IMPL) && !defined(__CYGWIN__) && !defined(_MSC_VER)
-    AudioTrack_stop();
-#endif
-
-#ifdef __ANDROID__
-    setpriority(PRIO_PROCESS, 0, 0);
-#endif
+    audioPlayer->audio_thread_impl();
 
 	LOGI("audio player thread exited");
     return NULL;

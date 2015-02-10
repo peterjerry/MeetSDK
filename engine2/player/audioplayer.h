@@ -51,7 +51,7 @@ private:
 	status_t stop_l();
 	status_t pause_l();
 	status_t flush_l();
-	void run();
+	void audio_thread_impl();
     int32_t decode_l(AVPacket *packet);
 	static void* audio_thread(void* ptr);
 	void render_l();
@@ -64,7 +64,7 @@ private:
 	AVFrame* mAudioFrame;
     int64_t mNumFramesPlayed;
     uint32_t mLatencyMs;
-	int64_t mPositionTimeMediaMs; // pts clock, "seek" set to time, update when frame decoded out
+	int64_t mAudioPlayingTimeMs; // pts clock, "seek" set to time, update when frame decoded out
 	bool mReachEndStream;
 	int64_t mOutputBufferingStartMs; // get from system clock
 	int64_t mAvePacketDurationMs;

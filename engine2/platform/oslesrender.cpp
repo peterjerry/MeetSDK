@@ -301,7 +301,7 @@ int and_osles::free_size()
 
 int and_osles::write_data(const char *buf, int size)
 {
-	if(!m_fifo)
+	if (!m_fifo)
 		return -1;
 
 	//LOGV("write_data %d", size);
@@ -310,11 +310,17 @@ int and_osles::write_data(const char *buf, int size)
 
 int and_osles::read_data(char *buf, int size)
 {
-	if(!m_fifo)
+	if (!m_fifo)
 		return -1;
 
 	//LOGV("read_data %d", size);
 	return m_fifo->read(buf, size);
+}
+
+void and_osles::flush()
+{
+	if (m_fifo)
+		m_fifo->reset();
 }
 
 int and_osles::get_latency()

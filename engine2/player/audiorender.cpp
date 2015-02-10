@@ -432,8 +432,8 @@ status_t AudioRender::flush()
 	mFifo.reset();
 	return OK;
 #elif defined(OSLES_IMPL)
-	if(a_render) {
-		//todo
+	if (a_render) {
+		a_render->flush();
 		return OK;
 	}
 	return ERROR;
