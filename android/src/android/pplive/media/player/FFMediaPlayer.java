@@ -544,6 +544,8 @@ public class FFMediaPlayer implements MediaPlayerInterface {
 	private static native int native_getCpuArchNumber();
 	
 	public static native String getBestCodec(String appPath);
+	
+	public static native boolean native_supportSoftDecode();
 
 	// media info and snapshot
 	private static native boolean native_getMediaInfo(String mediaFilePath, MediaInfo info);

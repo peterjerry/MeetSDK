@@ -32,9 +32,20 @@ struct AVFilterContext;
 #define MAX_FILTER_CNT	4
 #endif
 
+#define AV_SYNC_THRESHOLD_MSEC 100 // 100 msec
+#define AV_NOSYNC_THRESHOLD 10000 // 10 sec
+
 class FFPlayer : public IPlayer, MediaPlayerListener
 {
 public:
+	enum AV_SYNC_TYPE {
+		AV_SYNC_AUDIO_MASTER,
+		AV_SYNC_VIDEO_MASTER,
+		AV_SYNC_EXTERNAL_MASTER,
+	};
+
+	
+
     FFPlayer();
     ~FFPlayer();
 
@@ -154,18 +165,21 @@ private:
 	
 	bool render_frame(); // stop sent onVideo event when false
 	void render_impl(); // decide render origin frame or filter frame
-	bool need_drop_frame(int32_t frame_delay); // true means drop it.
+	bool need_drop_frame(); // true means need drop it.
 	bool broadcast_refresh(); // if not broadcast, return false. if broadcast, flush a/v packet and return true 
 	bool need_drop_pkt(AVPacket* packet); // pare h264 pakcet, do decide if this packet(frame) can be drop
 	void optimizeDecode_l(AVPacket* packet); // set codec context->skip_loop_filter and skip_frame
-	int32_t calc_frame_delay();
-	void notifyVideoDelay(int64_t video_clock, int64_t audio_clock, int32_t frame_delay);
+	void calc_frame_delay();
+	void notifyVideoDelay(int64_t video_clock, int64_t audio_clock, int64_t frame_delay);
 
 	int64_t getFramePTS_l(AVFrame* frame);
 
 	// for auto video rotation
 	bool FixRotateVideo(AVStream *video_st);
+
 	void SwapResolution(int32_t *width, int32_t *height);
+
+	void set_opt(char *opt);
 #ifdef USE_AV_FILTER
 	bool init_filters(const char **filters_descr);
 	bool insert_filter(const char *name, const char* arg, AVFilterContext **last_filter);
@@ -185,6 +199,14 @@ private:
 
     FFPlayer(const FFPlayer &);
     FFPlayer &operator=(const FFPlayer &);
+
+private:
+	int64_t get_master_clock();
+	int64_t get_audio_clock();
+	int64_t get_video_clock();
+	int64_t get_external_clock();
+
+	void ResetStatics();
 
 private:
     char*				mUri;
@@ -225,10 +247,9 @@ private:
 
 	int64_t		mAveVideoDecodeTimeMs;
 	int64_t		mCompensateMs;
-	int32_t		mFrameDelay;
 	int32_t		mDiscardLevel;
 	uint32_t	mDiscardCount;
-	int64_t		mVideoPlayingTimeMs;
+	int64_t		mVideoPlayingTimeMs; // calc from AVFrame pts
 	int64_t		mSeekTimeMs;
 	int64_t		mVideoTimeMs; // for seek position
 	int			mSeekIncr;
@@ -276,13 +297,20 @@ private:
     bool				mRunningCompatibilityTest;
 	ISubtitles*			mSubtitles;
 
-	//for test
+	// for test
 	int64_t				mTotalStartTimeMs;
 	int64_t				mGapStartTimeMs;
 	int64_t				mRenderGapStartTimeMs;
 	int64_t				mAveRenderTimeMs;
 	int64_t				mDecodedFrames;
 	int64_t				mRenderedFrames;
+
+	// for clock
+	AV_SYNC_TYPE		mSyncType;
+	int64_t				mLastFrameMs;
+	int64_t				mLastDelayMs;
+	int64_t				mFrameTimerMs;
+	int64_t				mAVDiffMs;
 
 #if USE_AV_FILTER
 	//avfilter

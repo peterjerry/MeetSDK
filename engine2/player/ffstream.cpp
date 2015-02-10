@@ -218,6 +218,7 @@ status_t FFStream::selectAudioChannel(int32_t index)
 	mAudioStreamIndex = index;
 	mAudioStream = mMovieFile->streams[mAudioStreamIndex];
 
+	/*
 	// cause stuck!!!
 	flush_l();
 	mGopDuration = 0;
@@ -238,7 +239,7 @@ status_t FFStream::selectAudioChannel(int32_t index)
 		flushVideoPkt->size = 0;
 		flushVideoPkt->data = (uint8_t*)"FLUSH_VIDEO";
 		mVideoQueue.put(flushVideoPkt);
-	}
+	}*/
 
     return OK;
 }
@@ -319,26 +320,26 @@ AVFormatContext* FFStream::open(char* uri)
 
     mStreamsCount = mMovieFile->nb_streams;
     LOGD("mStreamsCount:%d", mStreamsCount);
-#ifndef NO_AUDIO_PLAY
 	for (int32_t i = 0; i < (int32_t)mStreamsCount; i++)
     {
 		if (mMovieFile->streams[i]->codec->codec_type == AVMEDIA_TYPE_AUDIO)
         {
-    		mAudioStreamIndex = i;
+#ifdef NO_AUDIO_PLAY
+			//by default, use the first audio stream, and discard others.
+            mMovieFile->streams[i]->discard = AVDISCARD_ALL;
+			LOGI("Discard audio stream: #%d", i);
+#else
+			mAudioStreamIndex = i;
             LOGI("mAudioStreamIndex: %d", mAudioStreamIndex);
             mAudioStream = mMovieFile->streams[mAudioStreamIndex];
 			break;
-            
-            //by default, use the first audio stream, and discard others.
-            //mMovieFile->streams[i]->discard = AVDISCARD_ALL;
-            //LOGI("Discard audio stream:%d", i);
+#endif
 		}
 	}
-#endif
 
     //Some audio file includes video stream as album. we need to skip it.
     //Todo: support displaying album picture when playing audio file
-    if(mMovieFile->iformat->name != NULL
+    if (mMovieFile->iformat->name != NULL
         && strcmp(mMovieFile->iformat->name, "mp3") != 0
         && strcmp(mMovieFile->iformat->name, "ogg") != 0
         && strcmp(mMovieFile->iformat->name, "wmav1") != 0
@@ -391,13 +392,14 @@ AVFormatContext* FFStream::open(char* uri)
 
 	int64_t duration;
 	duration =  mMovieFile->duration;
-	if (AV_NOPTS_VALUE == duration) {
-		LOGW("cannot got video duration");
+	if (AV_NOPTS_VALUE == duration || duration < 0) {
+		mDurationMs = 0;
 		//avformat_close_input(&mMovieFile);
 		//return NULL;
 	}
-	
-	mDurationMs = duration * 1000 / AV_TIME_BASE;
+	else {
+		mDurationMs = duration * 1000 / AV_TIME_BASE;
+	}
 	LOGI("file duration got: %lld(msec)", mDurationMs);
 
     mFrameRate = 25;//default
@@ -473,7 +475,7 @@ AVFormatContext* FFStream::open(char* uri)
 
 	av_dump_format(mMovieFile, 0, uri, 0);
 
-    if(mStatus == FFSTREAM_STOPPED ||
+    if (mStatus == FFSTREAM_STOPPED ||
         mStatus == FFSTREAM_STOPPING)
     {
         LOGI("player preparation is interrupted");
@@ -588,22 +590,18 @@ status_t FFStream::getPacket(int32_t streamIndex, AVPacket** packet)
         }
 
         AVPacket* pPacket = mAudioQueue.get();
-        if(pPacket != NULL)
-        {
-            if (pPacket->data && !strcmp((char*)pPacket->data, "FLUSH_AUDIO"))
-            {
+        if (pPacket != NULL) {
+            if (pPacket->data && !strcmp((char*)pPacket->data, "FLUSH_AUDIO")) {
                 *packet = pPacket;
                 return FFSTREAM_ERROR_FLUSHING;
             }
-            else
-            {
+            else {
                 mBufferSize-=pPacket->size;
                 *packet = pPacket;
                 return FFSTREAM_OK;
             }
         }
-		else
-		{
+		else {
 		    if (mReachEndStream) {
 				// support looping
 				if (mLooping) {
@@ -672,8 +670,7 @@ status_t FFStream::getPacket(int32_t streamIndex, AVPacket** packet)
             }
 		}
     }
-    else
-    {
+    else {
         LOGE("Unknown stream index: %d", streamIndex);
         return FFSTERAM_ERROR_SWITCH_AUDIO;//FFSTREAM_ERROR_STREAMINDEX;
     }
@@ -1066,7 +1063,7 @@ void FFStream::run()
                         mGopEnd = pPacket->pts;
                     }
 
-                    if(mGopStart && mGopEnd) {
+                    if (mGopStart && mGopEnd) {
 						// ahha! we got duration now!
                         mGopDuration = (int64_t)((mGopEnd - mGopStart) * 1000 * av_q2d(mVideoStream->time_base));
                         if (mGopDuration < FF_PLAYER_MAX_BUFFER_MILISECONDS_BROADCAST_HR || mGopDuration > FF_PLAYER_INVALID_GOP_DURATION) {
@@ -1246,7 +1243,7 @@ void FFStream::notifyListener_l(int msg, int ext1, int ext2)
 
 status_t FFStream::getBufferingTime(int *msec)
 {
-    if(mBufferSize <= 0 || mVideoQueue.count() == 0) {
+    if (mBufferSize <= 0 || mVideoQueue.count() == 0) {
 		LOGI("Buffer is zero");
         *msec = 0;
     }

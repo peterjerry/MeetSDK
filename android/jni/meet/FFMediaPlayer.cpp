@@ -137,7 +137,7 @@ const char* getCodecLibName(uint64_t cpuFeatures)
 	char value[PROP_VALUE_MAX];
 	__system_property_get("ro.product.cpu.abi", value);
 	char* occ = strcasestr(value,"x86");
-	if(occ) {
+	if (occ) {
 		// x86 arch
 		PPLOGI("the device is x86 platform");
 		codecLibName = "libplayer_neon.so";
@@ -514,16 +514,14 @@ void android_media_MediaPlayer_seekTo(JNIEnv *env, jobject thiz, int msec)
 
 	int playTime=0;
 	mp->getCurrentPosition(&playTime);
-	int mediaDiff = msec -playTime;//ms
-	mediaDiff = mediaDiff>0?mediaDiff:-mediaDiff;
+	int mediaDiff = msec - playTime; // msec
+	mediaDiff = mediaDiff>0 ? mediaDiff : -mediaDiff;
 
-	if(mediaDiff > 2000)// && actionDiff > 500)//2sec
+	if(mediaDiff > 2000) // 2sec
 	{
-		PPLOGD("&&&&seekTo: %d(msec)", msec);
-		process_media_player_call( env, thiz, mp->seekTo(msec), NULL, NULL );
-		//lastSeekMediaTime = msec;
-		//lastSeekActionTime = nowMs;
-		PPLOGD("&&&&seekTo: %d(msec) end", msec);
+		PPLOGD("jni seekTo: %d(msec)", msec);
+		process_media_player_call( env, thiz, mp->seekTo(msec), NULL, NULL);
+		PPLOGD("jni seekTo: %d(msec) end", msec);
 	}
 	else
 	{
@@ -1468,6 +1466,25 @@ jstring android_media_MediaPlayer_native_getVersion(JNIEnv *env, jobject thiz)
 	return cstr2jstr(env, MEET_NATIVE_VERISON);
 }
 
+static
+jboolean android_media_MediaPlayer_native_supportSoftDecode()
+{
+	char value[PROP_VALUE_MAX];
+	__system_property_get("ro.product.cpu.abi", value);
+	char* occ = strcasestr(value,"x86");
+	if (occ) {
+		// x86 arch
+		PPLOGI("the device is x86 platform");
+		return true;
+	}
+
+	uint64_t cpuFeatures = android_getCpuFeatures();
+	if ((cpuFeatures & ANDROID_CPU_ARM_FEATURE_NEON) != 0)
+		return true;
+
+	return false;
+}
+
 // ----------------------------------------------------------------------------
 
 static JNINativeMethod gMethods[] = {
@@ -1522,6 +1539,7 @@ static JNINativeMethod gMethods[] = {
 	{"native_checkSoftwareDecodeLevel",	"()I",(void *)android_media_MediaPlayer_native_checkSoftwareDecodeLevel},
 	{"native_getCpuArchNumber",	"()I",(void *)android_media_MediaPlayer_native_getCpuArchNumber},
 	{"native_getVersion",	"()Ljava/lang/String;",(void *)android_media_MediaPlayer_native_getVersion},
+	{"native_supportSoftDecode",	"()Z",(void *)android_media_MediaPlayer_native_supportSoftDecode},
 };
 
 

@@ -34,8 +34,6 @@ public:
 
 	status_t flush();
 
-	status_t setMediaTimeMs(int64_t timeMs);
-
     int32_t getStatus(){ return mPlayerStatus;}
 
 	int64_t getMediaTimeMs(); 
@@ -48,13 +46,21 @@ public:
 
 private:
 	status_t start_l();
+
 	status_t stop_l();
+
 	status_t pause_l();
+
 	status_t flush_l();
-	void audio_thread_impl();
-    int32_t decode_l(AVPacket *packet);
+
+    int decode_l(AVPacket *packet);
+
+	void wait(int msec);
+
 	static void* audio_thread(void* ptr);
-	void render_l();
+
+	void audio_thread_impl();
+
     void notifyListener_l(int msg, int ext1 = 0, int ext2 = 0);
 
 private:
@@ -64,10 +70,9 @@ private:
 	AVFrame* mAudioFrame;
     int64_t mNumFramesPlayed;
     uint32_t mLatencyMs;
-	int64_t mAudioPlayingTimeMs; // pts clock, "seek" set to time, update when frame decoded out
+	int64_t mAudioPlayingTimeMs;
+	int64_t mSeekTimeMs;
 	bool mReachEndStream;
-	int64_t mOutputBufferingStartMs; // get from system clock
-	int64_t mAvePacketDurationMs;
 	int32_t mAudioStreamIndex;
 	bool mSeeking;
     MediaPlayerListener* mListener;
@@ -81,8 +86,6 @@ private:
     pthread_t mThread;
     pthread_mutex_t mLock;
     pthread_cond_t mCondition;
-
-	bool mIsUsedAsClock;
 
 };
 

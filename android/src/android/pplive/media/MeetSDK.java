@@ -97,17 +97,18 @@ public final class MeetSDK {
 		return (retPlayer && retParser);
 	}
 
+	@Deprecated
 	public static boolean checkCompatibility(Surface surface) {
-		return checkCompatibility(COMPATIBILITY_HARDWARE_DECODE, surface);
+		return true;
 	}
 
+	@Deprecated
 	public static boolean checkCompatibility(int checkWhat, Surface surface) {
-		if (AppRootDir == null) {
-		    LogUtils.error("MeetSDK.AppRootDir is null.");
-			throw new IllegalArgumentException("MeetSDK.AppRootDir is null.");
-		}
-		
-		return false;
+		return true;
+	}
+	
+	public static boolean SupportSoftDecode() {
+		return FFMediaPlayer.native_supportSoftDecode();
 	}
 
 	public static int checkSoftwareDecodeLevel() {
@@ -324,35 +325,6 @@ public final class MeetSDK {
 	@Deprecated
 	public static boolean setSurfaceType(Context ctx, SurfaceHolder holder, Uri uri) {
 		return false;
-		/*
-		if (holder == null || uri == null) {
-
-			return false;
-		}
-
-		String schema = uri.getScheme();
-		String path = null;
-
-		if ("content".equalsIgnoreCase(schema)) {
-			String[] proj = { MediaStore.Video.Media.DATA };
-			Cursor cursor = ctx.getContentResolver().query(uri, proj, null, null, null);
-			
-			if (cursor != null && cursor.moveToFirst()) {
-				int column_index = cursor.getColumnIndexOrThrow(MediaStore.Video.Media.DATA);
-				path = cursor.getString(column_index);
-				cursor.close();
-			}
-			
-		} else if ("file".equalsIgnoreCase(schema)) {
-			path = uri.getPath();
-		} else {
-			path = uri.toString();
-		}
-
-		boolean isOMXSurface = isOMXSurface(path);
-		setSurfaceType(holder, isOMXSurface);
-		return isOMXSurface;
-		*/
 	}
 
 	@Deprecated
@@ -362,7 +334,6 @@ public final class MeetSDK {
 
 	@Deprecated
 	public static void setSurfaceType(SurfaceHolder holder, SurfaceTypeDecider decider) {
-		setSurfaceType(holder, decider.isOMXSurface());
 	}
 
 	@Deprecated

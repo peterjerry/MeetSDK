@@ -325,8 +325,7 @@ void and_osles::flush()
 
 int and_osles::get_latency()
 {
-	return m_fifo->used() * 1000 / m_one_sec_byte;
-	//return m_latency;
+	return m_fifo->used() * 1000 / m_one_sec_byte; // msec
 }
 
 // create buffer queue audio player

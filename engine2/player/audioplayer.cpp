@@ -19,36 +19,14 @@
 #include "audiorender.h"
 #include "audiotrack.h"
 
-AudioPlayer::AudioPlayer()
-{
-    mDataStream = NULL;
-    mDurationMs = 0;
-    mOutputBufferingStartMs = 0;
-    mAvePacketDurationMs = 0;
-    mLastPacketMs = 0;
-    mAudioContext = NULL;
-    mAudioStreamIndex = -1;
-    mSamplesSize = 0;
-    mSamples = NULL;
-    mAudioFrame = NULL;
-    mListener = NULL;
-    mReachEndStream = false;
-	mSeeking = false;
-	mIsUsedAsClock = true; // used as a fake clock!!!
-
-    mPlayerStatus = MEDIA_PLAYER_INITIALIZED;
-}
-
 AudioPlayer::AudioPlayer(FFStream* dataStream, AVStream* context, int32_t streamIndex)
 {
     mDataStream = dataStream;
-    if(dataStream)
+    if (dataStream)
         mDurationMs = dataStream->getDurationMs();
     else
         mDurationMs = 0;
 
-    mOutputBufferingStartMs = 0;
-    mAvePacketDurationMs = 0;
     mLastPacketMs = 0;
     mAudioContext = context;
     mAudioStreamIndex = streamIndex;
@@ -63,7 +41,6 @@ AudioPlayer::AudioPlayer(FFStream* dataStream, AVStream* context, int32_t stream
     pthread_cond_init(&mCondition, NULL);
 
     mSeeking = false;
-	mIsUsedAsClock = false;
 	mPlayerStatus = MEDIA_PLAYER_INITIALIZED;
 }
 
@@ -74,20 +51,17 @@ AudioPlayer::~AudioPlayer()
 	if (stop()!= OK)
 		LOGW("failed to stop AudioPlayer");
 
-    if (!mIsUsedAsClock) {
-        if (mSamples != NULL) {
-            // Free audio samples buffer
-            av_free(mSamples);
-            mSamples = NULL;
-        }
-
-        if (mAudioFrame != NULL)
-            av_frame_free(&mAudioFrame);
-        
-        pthread_mutex_destroy(&mLock);
-        pthread_cond_destroy(&mCondition);
+    if (mSamples != NULL) {
+        // Free audio samples buffer
+        av_free(mSamples);
+        mSamples = NULL;
     }
-    
+
+    if (mAudioFrame != NULL)
+        av_frame_free(&mAudioFrame);
+        
+    pthread_mutex_destroy(&mLock);
+    pthread_cond_destroy(&mCondition);
 	LOGI("AudioPlayer destructor() done.");
 }
 
@@ -100,67 +74,64 @@ status_t AudioPlayer::prepare()
 	if (mPlayerStatus != MEDIA_PLAYER_INITIALIZED)
 		return INVALID_OPERATION;
 
-	if (!mIsUsedAsClock) {
-		if (mAudioContext == NULL) {
-			LOGE("audio stream is null");
-			return ERROR;
-		}
-
-		AVCodecContext *CodecCtx = mAudioContext->codec;
-		LOGI("channel layout:%lld, sample rate:%d, sample format:%d, channels:%d", 
-			CodecCtx->channel_layout, 
-			CodecCtx->sample_rate, CodecCtx->sample_fmt, CodecCtx->channels);
-
-		mRender = new AudioRender();
-		uint64_t channelLayout = AV_CH_LAYOUT_MONO;// default layout
-
-		// 2015.1.19 guoliangma mark(it's very important)
-		// fix channel_layout param is not accurate for some video.
-		switch(CodecCtx->channels) {
-		case 1:
-			channelLayout = AV_CH_LAYOUT_MONO;
-			break;
-		case 2:
-			channelLayout = AV_CH_LAYOUT_STEREO;
-			break;
-		case 3:
-			channelLayout = AV_CH_LAYOUT_2POINT1;
-			break;
-		case 4:
-			channelLayout = AV_CH_LAYOUT_3POINT1;
-			break;
-		case 5:
-			channelLayout = AV_CH_LAYOUT_4POINT1;
-			break;
-		case 6:
-			channelLayout = AV_CH_LAYOUT_5POINT1;
-			break;
-		case 7:
-			channelLayout = AV_CH_LAYOUT_6POINT1;
-			break;
-		case 8:
-			channelLayout = AV_CH_LAYOUT_7POINT1;
-			break;
-		default:
-			channelLayout = AV_CH_LAYOUT_MONO;
-			break;
-		}
-
-		res = mRender->open(mAudioContext->codec->sample_rate,
-			channelLayout,
-			mAudioContext->codec->channels,
-			mAudioContext->codec->sample_fmt);
-		if (res != OK) {
-			LOGE("failed to open audio render");
-			return ERROR;
-		}
-
-		mNumFramesPlayed = 0;
-		mAudioPlayingTimeMs = 0;
-		mAvePacketDurationMs = 0;
-		mLatencyMs = mRender->get_latency();
-		LOGI("mLatencyMs: %d", mLatencyMs);
+	if (mAudioContext == NULL || mDataStream == NULL) {
+		LOGE("audio stream is null");
+		return ERROR;
 	}
+
+	AVCodecContext *CodecCtx = mAudioContext->codec;
+	LOGI("channel layout:%lld, sample rate:%d, sample format:%d, channels:%d", 
+		CodecCtx->channel_layout, 
+		CodecCtx->sample_rate, CodecCtx->sample_fmt, CodecCtx->channels);
+
+	mRender = new AudioRender();
+	uint64_t channelLayout = AV_CH_LAYOUT_MONO;// default layout
+
+	// 2015.1.19 guoliangma mark(it's very important)
+	// fix channel_layout param is not accurate for some video.
+	switch(CodecCtx->channels) {
+	case 1:
+		channelLayout = AV_CH_LAYOUT_MONO;
+		break;
+	case 2:
+		channelLayout = AV_CH_LAYOUT_STEREO;
+		break;
+	case 3:
+		channelLayout = AV_CH_LAYOUT_2POINT1;
+		break;
+	case 4:
+		channelLayout = AV_CH_LAYOUT_3POINT1;
+		break;
+	case 5:
+		channelLayout = AV_CH_LAYOUT_4POINT1;
+		break;
+	case 6:
+		channelLayout = AV_CH_LAYOUT_5POINT1;
+		break;
+	case 7:
+		channelLayout = AV_CH_LAYOUT_6POINT1;
+		break;
+	case 8:
+		channelLayout = AV_CH_LAYOUT_7POINT1;
+		break;
+	default:
+		channelLayout = AV_CH_LAYOUT_MONO;
+		break;
+	}
+
+	res = mRender->open(mAudioContext->codec->sample_rate,
+		channelLayout,
+		mAudioContext->codec->channels,
+		mAudioContext->codec->sample_fmt);
+	if (res != OK) {
+		LOGE("failed to open audio render");
+		return ERROR;
+	}
+
+	mNumFramesPlayed = 0;
+	mAudioPlayingTimeMs = 0;
+	mLatencyMs = mRender->get_latency();
+	LOGI("mLatencyMs: %d", mLatencyMs);
 
 	mPlayerStatus = MEDIA_PLAYER_PREPARED;
 	return OK;
@@ -192,12 +163,6 @@ status_t AudioPlayer::flush()
     return flush_l();
 }
 
-status_t AudioPlayer::setMediaTimeMs(int64_t timeMs)
-{
-    mAudioPlayingTimeMs = timeMs;
-    return OK;
-}
-
 int64_t AudioPlayer::getMediaTimeMs()
 {
     if (mPlayerStatus != MEDIA_PLAYER_STARTED &&
@@ -205,76 +170,35 @@ int64_t AudioPlayer::getMediaTimeMs()
         mPlayerStatus != MEDIA_PLAYER_PLAYBACK_COMPLETE)
         return 0;
 
-    int64_t audioNowMs = 0;
-    if (!mIsUsedAsClock)
-    {
-        int64_t playedDiffMs = 0; // time gap bewteen last start position and current time
-        if (mOutputBufferingStartMs == 0) // after "seek" and "start" getNowMs()
-            playedDiffMs = 0;
-        else
-        {
-			// because audio timestamp is not continous, so should guess current position(msec)
-			playedDiffMs = getNowMs() - mOutputBufferingStartMs;
-            if (playedDiffMs < 0)
-                playedDiffMs = 0;
-            else if(mAvePacketDurationMs > 0 && playedDiffMs > mAvePacketDurationMs) {
-				// eliminate audio bufferjitter£¬still got stable audio clock when audio frame wasn't decoded out at common pace
-#ifdef _MSC_VER
-				LOGD("update diffMs to mAvePacketDurationMs %I64d->%I64d", playedDiffMs, mAvePacketDurationMs);
-#else
-				LOGD("update diffMs to mAvePacketDurationMs %lld->%lld", playedDiffMs, mAvePacketDurationMs);
-#endif
-                playedDiffMs = mAvePacketDurationMs;
-			}
-        }
-#ifdef OSLES_IMPL
-		audioNowMs = mAudioPlayingTimeMs - mRender->get_latency(); // |-------pts#######latency#########play->audio_hardware
-#else
-		audioNowMs = mAudioPlayingTimeMs - mLatencyMs + playedDiffMs; // |----diff----pts################play->audio_hardware
-#endif
-		if (audioNowMs < 0)
-			audioNowMs = 0;
-        LOGD("diffMs:%lld, time now: %lld msec", playedDiffMs, audioNowMs);
-    }
-    else
-    {
-        if (mPlayerStatus == MEDIA_PLAYER_STARTED)
-            audioNowMs = mAudioPlayingTimeMs + (getNowMs() - mOutputBufferingStartMs);
-        else
-            audioNowMs = mAudioPlayingTimeMs;
-    }
+	if (mSeeking)
+		return mSeekTimeMs;
+
+	int64_t audioNowMs = mAudioPlayingTimeMs - mRender->get_latency(); // |-------pts#######latency#########play->audio_hardware
+	if (audioNowMs < 0)
+		audioNowMs = 0;
     return audioNowMs;
 }
 
 status_t AudioPlayer::seekTo(int64_t msec)
 {
-	mAudioPlayingTimeMs = msec;
+	mSeekTimeMs = msec;
+	mSeeking	= true;
+	if (mRender)
+		mRender->flush();
 
-	if (mIsUsedAsClock)
-        mOutputBufferingStartMs = getNowMs();
-	else {
-		mSeeking = true;
-		if (mRender)
-			mRender->flush();
-	}
-
+	LOGI("audio seeking...");
     return OK;
 }
 
 status_t AudioPlayer::start_l()
 {      
-    if (mIsUsedAsClock) {
-        mOutputBufferingStartMs = getNowMs();
+	if (mPlayerStatus == MEDIA_PLAYER_PREPARED) {
+        pthread_create(&mThread, NULL, audio_thread, this);
     }
-	else {
-		if (mPlayerStatus == MEDIA_PLAYER_PREPARED) {
-            pthread_create(&mThread, NULL, audio_thread, this);
-        }
-        else if(mPlayerStatus == MEDIA_PLAYER_PAUSED) {
-        	if (mRender->resume() != OK) {
-                LOGE("AudioTrack_resume failed");
-        		return ERROR;
-        	}
+    else if(mPlayerStatus == MEDIA_PLAYER_PAUSED) {
+        if (mRender->resume() != OK) {
+            LOGE("AudioTrack_resume failed");
+        	return ERROR;
         }
     }
     
@@ -290,35 +214,33 @@ status_t AudioPlayer::stop()
     if (mPlayerStatus == MEDIA_PLAYER_STOPPED)
         return OK;
 
-    if (!mIsUsedAsClock) {
-		pthread_cond_signal(&mCondition);
+	AutoLock autoLock(&mLock);
+	pthread_cond_signal(&mCondition);
 
-		if (mPlayerStatus == MEDIA_PLAYER_STARTED || mPlayerStatus == MEDIA_PLAYER_PAUSED) {
-			mPlayerStatus = MEDIA_PLAYER_STOPPING; // notify audio thread to exit
-			// empty fifo avoid write block
-			if (mRender)
-				mRender->flush();
-			
-			LOGI("before pthread_join %p", mThread);
-			if (pthread_join(mThread, NULL) != 0)
-				LOGE("failed to join audioplayer thread");
-
-			LOGI("after join");
-			
-#if !defined(OSLES_IMPL) && !defined(__CYGWIN__) && !defined(_MSC_VER)
-			AudioTrack_stop();
-#endif
-		}
-
-        if (mRender != NULL) {
+	if (mPlayerStatus == MEDIA_PLAYER_STARTED || mPlayerStatus == MEDIA_PLAYER_PAUSED) {
+		mPlayerStatus = MEDIA_PLAYER_STOPPING; // notify audio thread to exit
+		// empty fifo avoid write block
+		if (mRender)
 			mRender->flush();
-			mRender->close();
-			LOGI("after audio render closed");
+		
+		LOGI("before pthread_join %p", mThread);
+		if (pthread_join(mThread, NULL) != 0)
+			LOGE("failed to join audioplayer thread");
+
+		LOGI("after join");
+
+#if !defined(OSLES_IMPL) && !defined(__CYGWIN__) && !defined(_MSC_VER)
+		AudioTrack_stop();
+#endif
+	}
+
+    if (mRender) {
+		mRender->close();
+		LOGI("after audio render closed");
             
-			delete mRender;
-            mRender = NULL;
-			LOGI("after audio render released");
-		}
+		delete mRender;
+        mRender = NULL;
+		LOGI("after audio render released");
     }
 
 	mPlayerStatus = MEDIA_PLAYER_STOPPED;
@@ -328,17 +250,11 @@ status_t AudioPlayer::stop()
 
 status_t AudioPlayer::pause_l()
 {
-    if (mAudioContext != NULL) {
-    	if(mRender->pause() != OK)
-            return ERROR;
-        mPlayerStatus = MEDIA_PLAYER_PAUSED;
-        pthread_cond_signal(&mCondition);
-    }
-    else
-    {
-        mAudioPlayingTimeMs = mAudioPlayingTimeMs + (getNowMs() - mOutputBufferingStartMs);
-        mPlayerStatus = MEDIA_PLAYER_PAUSED;
-    }
+    if (mRender->pause() != OK)
+        return ERROR;
+    mPlayerStatus = MEDIA_PLAYER_PAUSED;
+	AutoLock autoLock(&mLock);
+    pthread_cond_signal(&mCondition);
 
     return OK;
 }
@@ -351,7 +267,7 @@ status_t AudioPlayer::flush_l()
     return OK;
 }
 
-int32_t AudioPlayer::decode_l(AVPacket *packet)
+int AudioPlayer::decode_l(AVPacket *packet)
 {
     int got_frame = 0;
 
@@ -404,58 +320,57 @@ int32_t AudioPlayer::decode_l(AVPacket *packet)
     return 0;
 }
 
+void AudioPlayer::wait(int msec)
+{
+	AutoLock autoLock(&mLock);
+
+	struct timespec ts;
+    ts.tv_sec = 0;
+    ts.tv_nsec = msec * 1000000L;//10 msec
+#if defined(__CYGWIN__) || defined(_MSC_VER)
+	int64_t now_usec = getNowUs();
+	int64_t now_sec = now_usec / 1000000;
+	now_usec	= now_usec - now_sec * 1000000;
+	ts.tv_sec	+= now_sec;
+    ts.tv_nsec	+= (long)now_usec * 1000;
+    pthread_cond_timedwait(&mCondition, &mLock, &ts);
+#else
+	pthread_cond_timedwait_relative_np(&mCondition, &mLock, &ts);
+#endif
+}
+
 void AudioPlayer::audio_thread_impl()
 {
-	if (mRender->start() != OK) {
+	if (mRender && mRender->start() != OK) {
 		LOGE("failed to start audio render");
 		return;
 	}
-	
-    while(1)
-    {
+
+    while(1) {
         if (mPlayerStatus == MEDIA_PLAYER_STOPPED ||
             mPlayerStatus == MEDIA_PLAYER_STOPPING)
         {
-            LOGD("AudioPlayer is stopping");
+            LOGI("AudioPlayer is stopping");
             break;
         }
 
-        if(mPlayerStatus == MEDIA_PLAYER_PAUSED)
+        if (mPlayerStatus == MEDIA_PLAYER_PAUSED)
         {
             LOGD("AudioPlayer is paused");
-            AutoLock autoLock(&mLock);
-			struct timespec ts;
-            ts.tv_sec = 0;
-            ts.tv_nsec = 10000000;//10 msec
-#if defined(__CYGWIN__) || defined(_MSC_VER)
-			int64_t now_usec = getNowUs();
-			int64_t now_sec = now_usec / 1000000;
-			now_usec	= now_usec - now_sec * 1000000;
-			ts.tv_sec	+= now_sec;
-            ts.tv_nsec	+= (long)now_usec * 1000;
-            pthread_cond_timedwait(&mCondition, &mLock, &ts);
-#else
-            pthread_cond_timedwait_relative_np(&mCondition, &mLock, &ts);
-#endif
+            wait(10); // msec
             continue;
         }
         else
         {
-            AutoLock autoLock(&mLock);
             AVPacket* pPacket = NULL;
             status_t ret = mDataStream->getPacket(mAudioStreamIndex, &pPacket);
-            if (ret == FFSTREAM_OK) {
+			if (ret == FFSTREAM_OK) {
+				// drop frame when seeking
                 if (!mSeeking) {
-                    //decoding
-                    //TODO: do we need to stop playing if decode failed?
-					if (pPacket->pts != AV_NOPTS_VALUE) {
-						mAudioPlayingTimeMs = (int64_t)(pPacket->pts * av_q2d(mAudioContext->time_base) * 1000);
-						LOGD("set mAudioPlayingTimeMs %lld", mAudioPlayingTimeMs);
-					}
-					mAvePacketDurationMs = (mAvePacketDurationMs * 4 + 
-						(int64_t)(pPacket->duration * 1000 * av_q2d(mAudioContext->time_base))) / 5;
-					
-        	        decode_l(pPacket);
+					mAudioPlayingTimeMs = (int64_t)(pPacket->pts * av_q2d(mAudioContext->time_base) * 1000);
+					LOGD("set mAudioPlayingTimeMs %lld", mAudioPlayingTimeMs);
+        	        // maybe blocked by write buffer
+					decode_l(pPacket);
                 }
             
     	        av_free_packet(pPacket);
@@ -463,32 +378,27 @@ void AudioPlayer::audio_thread_impl()
                 pPacket = NULL;
                 continue;
             }
-            else if(ret == FFSTREAM_ERROR_FLUSHING) {
+            else if (ret == FFSTREAM_ERROR_FLUSHING)
+            {
+				// seek is done!
+				LOGI("audio seek is done!");
                 mSeeking = false;
-                mOutputBufferingStartMs = 0;
+				// update pts at once because update from decode audio packet maybe late
+				// fix seek ape seekbar "re-jump"
+				mAudioPlayingTimeMs = mSeekTimeMs; 
                 avcodec_flush_buffers(mAudioContext->codec);
                 av_free(pPacket);
                 pPacket = NULL;
                 continue;
             }
-    		else if(ret == FFSTREAM_ERROR_BUFFERING) {
+    		else if (ret == FFSTREAM_ERROR_BUFFERING)
+    		{
 		        LOGD("audio queue no data");
-				struct timespec ts;
-				ts.tv_sec = 0;
-				ts.tv_nsec = 10000000; // 10 msec
-#if defined(__CYGWIN__) || defined(_MSC_VER)
-				int64_t now_usec = getNowUs();
-				int64_t now_sec = now_usec / 1000000;
-				now_usec	= now_usec - now_sec * 1000000;
-				ts.tv_sec	+= now_sec;
-				ts.tv_nsec	+= (long)now_usec * 1000;
-				pthread_cond_timedwait(&mCondition, &mLock, &ts);
-#else
-				pthread_cond_timedwait_relative_np(&mCondition, &mLock, &ts);
-#endif
+				wait(10); // msec
                 continue;
     		}
-    		else if(ret == FFSTREAM_ERROR_EOF) {
+    		else if (ret == FFSTREAM_ERROR_EOF)
+    		{
     		    LOGI("reach audio stream end");
                 mReachEndStream = true;
                 mPlayerStatus = MEDIA_PLAYER_PLAYBACK_COMPLETE;
@@ -497,10 +407,12 @@ void AudioPlayer::audio_thread_impl()
 #endif
                 break;
             }
-			else if (ret == FFSTERAM_ERROR_SWITCH_AUDIO) {
+			else if (ret == FFSTERAM_ERROR_SWITCH_AUDIO)
+			{
 				continue;
 			}
-            else {
+            else
+            {
                 LOGE("Read audio packet error:%d", ret);
                 break;
             }
@@ -515,10 +427,6 @@ void* AudioPlayer::audio_thread(void* ptr)
 	LOGI("audio player thread started");
 
 	AudioPlayer* audioPlayer = (AudioPlayer *) ptr;
-	if (audioPlayer->mRender->start() != OK) {
-		LOGE("failed to start audio render");
-		return NULL;
-	}
     
     audioPlayer->audio_thread_impl();
 
@@ -543,6 +451,8 @@ void AudioPlayer::notifyListener_l(int msg, int ext1, int ext2)
 status_t AudioPlayer::selectAudioChannel(int32_t index)
 {
 	mAudioStreamIndex = index;
+	if (mRender)
+		mRender->flush();
 	LOGI("audioPlayer select audio #%d", index);
 	return OK;
 }

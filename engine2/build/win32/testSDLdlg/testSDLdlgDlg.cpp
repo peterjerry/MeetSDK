@@ -33,7 +33,9 @@
 #define PPTV_RTSP_URL_OFFSET 9
 #define PPTV_HLS_URL_OFFSET (PPTV_RTSP_URL_OFFSET + 12)
 #define USER_LIST_OFFSET (PPTV_HLS_URL_OFFSET + 12)
-#define LOCAL_HOST "127.0.0.1"
+
+#define HOST "127.0.0.1"
+#define HTTP_PORT 9008
 
 const char* url_desc[PROG_MAX_NUM] = {
 	_T("变形金刚2 720p"),
@@ -216,14 +218,14 @@ BOOL CtestSDLdlgDlg::OnInitDialog()
 
 	for(int i=0;i<sizeof(pptv_channel_id) / sizeof(int);i++) {
 		char *new_item = (char *)malloc(256);
-		_snprintf(new_item, 256, pptv_rtsp_playlink_fmt, LOCAL_HOST, mrtspPort, pptv_channel_id[i]);
+		_snprintf(new_item, 256, pptv_rtsp_playlink_fmt, HOST, mrtspPort, pptv_channel_id[i]);
 		strcat(new_item, pptv_playlink_surfix);
 		url_list[PPTV_RTSP_URL_OFFSET + i] = new_item;
 	}
 
 	for(int i=0;i<sizeof(pptv_channel_id) / sizeof(int);i++) {
 		char *new_item = (char *)malloc(256);
-		_snprintf(new_item, 256, pptv_http_playlink_fmt, LOCAL_HOST, mhttpPort, pptv_channel_id[i]);
+		_snprintf(new_item, 256, pptv_http_playlink_fmt, HOST, mhttpPort, pptv_channel_id[i]);
 		strcat(new_item, pptv_playlink_surfix);
 		url_list[PPTV_HLS_URL_OFFSET + i] = new_item;
 	}
@@ -351,7 +353,7 @@ void CtestSDLdlgDlg::OnTimer(UINT_PTR nIDEvent)
 		int buffer_time_msec;
 		mPlayer->getBufferingTime(&buffer_time_msec);
 
-		title.Format("%s, a-v %03d, drop %d, render %d, %02d(%03d)/%02d(%03d), %d/%d kbps | %d msec", 
+		title.Format("%s, v-a %03d, drop %d, render %d, %02d(%03d)/%02d(%03d), %d/%d kbps | %d msec", 
 			filename.GetBuffer(), 
 			mLatency, mDropFrames, mRenderFrames, 
 			mDecFPS, mDecAvgMsec, mRenderFPS, mRenderAvgMsec, mIOBitrate, mBitrate, buffer_time_msec);
@@ -456,6 +458,9 @@ void CtestSDLdlgDlg::drawBuffering()
 
 void CtestSDLdlgDlg::OnBnClickedStart()
 {
+	//apEPG epg;
+	//epg.getCatalog(-1);
+
 	// TODO: 在此添加控件通知处理程序代码
 	status_t status;
 
@@ -490,7 +495,7 @@ void CtestSDLdlgDlg::OnBnClickedStart()
 	mPlayLive = false;
 	SetDlgItemText(IDC_STATIC_START_TIME, "N/A");
 
-	if(mUrl.Find(LOCAL_HOST) != -1 && sel < USER_LIST_OFFSET) {
+	if(mUrl.Find(HOST) != -1 && sel < USER_LIST_OFFSET) {
 		int64_t start_time = getSec();
 		int duration_min = GetDlgItemInt(IDC_EDIT_VOD_DURATION);
 		CString strTime;
