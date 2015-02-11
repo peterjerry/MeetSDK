@@ -204,7 +204,7 @@ public class EPGUtil {
 			httpResponse = new DefaultHttpClient().execute(httpGet);
 			if (httpResponse.getStatusLine().getStatusCode() == 200) {
 				String result = EntityUtils.toString(httpResponse.getEntity());
-				return parseCdnUrlxml(result, ft);
+				return parseCdnUrlxml(result, ft, false);
 			}
 		} catch (ClientProtocolException e) {
 			e.printStackTrace();
@@ -290,7 +290,7 @@ public class EPGUtil {
 		}
 	}
 	
-	private String parseCdnUrlxml(String str, String ft) {
+	private String parseCdnUrlxml(String str, String ft, boolean m3u8) {
 		Log.i(TAG, "Java: epg parseCdnUrlxml " + str.replace("\n", ""));
 		String url = null;
 		
@@ -364,7 +364,10 @@ public class EPGUtil {
 				url += ":" + HOST_PORT;
 			
 			url += "/";
-	        url += rid.replaceFirst(".mp4", ".m3u8");
+			if (m3u8)
+				url += rid.replaceFirst(".mp4", ".m3u8");
+			else
+				url += rid;
 	        
 			url += "?w=" + 1 + "&key=" + Key.getKey(new Date(st).getTime());
 			url += "&k=" + key;

@@ -66,8 +66,12 @@ import com.pplive.meetplayer.util.IDlnaCallback;
 import com.pplive.meetplayer.util.ListMediaUtil;
 import com.pplive.meetplayer.util.LoadPlayLinkUtil;
 import com.pplive.meetplayer.util.LogcatHelper;
+import com.pplive.meetplayer.util.PlayLinkUtil;
 import com.pplive.meetplayer.util.Util;
 import com.pplive.dlna.DLNASdk;
+
+
+
 
 
 
@@ -98,6 +102,12 @@ public class ClipListActivity extends Activity implements
 		MediaPlayerControl, SurfaceHolder.Callback, SubTitleParser.Callback {
 
 	private final static String TAG = "ClipList";	
+	
+    /** http端口 */
+    private final static String PORT_HTTP = "http";
+
+    /** rtsp端口 */
+    private final static String PORT_RTSP = "rtsp";
 		
 	private Button btnPlay;
 	private Button btnSelectTime;
@@ -219,6 +229,7 @@ public class ClipListActivity extends Activity implements
 	private static final int MSG_LIST_EPG_CATALOG_DONE			= 502;
 	private static final int MSG_FAIL_TO_CONNECT_EPG_SERVER		= 511;
 	private static final int MSG_PUSH_CDN_CLIP					= 601;
+	private static final int MSG_SET_CDN_URL						= 602;
 	
 	private ProgressDialog progDlg 				= null;
 	
@@ -235,76 +246,6 @@ public class ClipListActivity extends Activity implements
 	
 	private boolean USE_BREAKPAD = false;
 	private boolean mRegisterBreakpad = false;
-	
-	// copy from PPTV code
-	
-	public static final String P2PType_CDN = "2";
-
-    public static final String P2PType_CDNP2P = "1";
-
-    public static final String P2PType_P2P = "0";
-
-    /**
-     * P2P type,茂哥提供，0：只是用P2P,1：CDN+P2P，2：CDN
-     * 最新增加t参数，所以修改？bwtype为&bwtype。play接口会返回
-     */
-    public final static String P2PType = "bwtype=";
-
-    /** 点播 */
-    public static final String TYPE_PPVOD2 = "ppvod2";
-
-    /** 直播 */
-    public static final String TYPE_PPLIVE3 = "pplive3";
-    
-    public static final String TYPE_UNICOM = "ppliveunicom";
-
-
-    private static final String HOST = "127.0.0.1";
-
-    private static final String HTTP_MP4_RECORD_PPVOD2 = "http://" + HOST + ":%s/record.mp4?type=ppvod2&playlink=%s";
-
-    private static final String HTTP_M3U8_RECORD_PPVOD2 = "http://" + HOST
-            + ":%s/record.m3u8?type=ppvod2&playlink=%s&mux.M3U8.segment_duration=5";
-
-    private static final String HTTP_M3U8_RECORD_PPVOD2_CHUNKED = HTTP_M3U8_RECORD_PPVOD2 + "&chunked=true";
-
-    private static final String HTTP_M3U8_PLAY_PPLIVE3 = "http://" + HOST+":%s/play.m3u8?type=pplive3&playlink=%s";
-
-    private static final String RTSP_ES_URL = "rtsp://" + HOST + ":%s/play.es?type=%s&playlink=%s";
-
-    private static final String PPVOD2_URL = "ppvod2:///%s";
-
-    private static final String PPLIVE3_URL = "pplive3:///%s";
-
-    private static final String HTTP_MP4_PLAYINFO = "http://" + HOST + ":%s/playinfo.mp4";
-
-    private static final String HTTP_MP4_MEDIAINFO_PPVOD2 = "http://" + HOST + ":%s/mediainfo.mp4?type=ppvod2&playlink=%s";
-
-    private static final String HTTP_M3U8_CLOSE_URL = "http://" + HOST + ":%s/close";
-
-    /** http端口 */
-    private final static String PORT_HTTP = "http";
-
-    /** rtsp端口 */
-    private final static String PORT_RTSP = "rtsp";
-	
-	 /** 码流 */
-    /** baseline */
-    public static final int FT_BASELINE = 5;
-
-    /** 流畅 */
-    public static final int FT_LOW = 0;
-
-    /** 高清 */
-    public static final int FT_DVD = 1;
-
-    /** 超清 */
-    public static final int FT_HD = 2;
-
-    /** 蓝光 */
-    public static final int FT_BD = 3;
-
-    public static final int FT_UNKNOWN = -1;
 
 	@SuppressWarnings("deprecation")
 	@Override
@@ -558,7 +499,7 @@ public class ClipListActivity extends Activity implements
 			@Override
 			public void onClick(View view) {
 				// TODO Auto-generated method stub
-				final String[] bw_type = {"P2P", "CDNP2P", "CDN", "PPTV"};
+				final String[] bw_type = {"P2P", "CDNP2P", "CDN", "PPTV", "DLNA"};
 
 				Dialog choose_bw_type_dlg = new AlertDialog.Builder(ClipListActivity.this)
 				.setTitle("select player impl")
@@ -690,7 +631,35 @@ public class ClipListActivity extends Activity implements
 				tmp = btn_bw_type.getText().toString();
 				ppbox_bw_type = Integer.parseInt(tmp);
 				
-				String ppbox_url;
+				short port = MediaSDK.getPort(PORT_HTTP);
+				Log.i(TAG, "Http port is: " + port);
+				
+				boolean isVOD;
+				if (MEET_PLAY_TYPE.PPTV_VOD_TYPE == play_type ||
+						MEET_PLAY_TYPE.LOCAL_TYPE == play_type ||
+						MEET_PLAY_TYPE.HTTP_TYPE == play_type) {
+					isVOD = true;
+				}
+				else if (MEET_PLAY_TYPE.PPTV_LIVE_TYPE == play_type) {
+					isVOD = false;
+				}
+				else {
+					Toast.makeText(ClipListActivity.this, "invalid play type: " + play_type, 
+							Toast.LENGTH_SHORT).show();					
+					return;
+				}
+				
+				if (ppbox_bw_type == 4) {// dlna
+					new EPGTask().execute(EPG_ITEM_CDN, ppbox_playid, 0); // 3 params for MSG_SET_CDN_URL
+					return;
+				}
+				
+				String ppbox_url = PlayLinkUtil.getPlayUrl(isVOD, 
+						ppbox_playid, port, ppbox_ft, ppbox_bw_type, str_play_link_surfix);
+				
+				
+				/*
+				 * String ppbox_url = getPlayUrl();
 				String str_playlink;
 				str_playlink = addPlaylinkParam(Integer.toString(ppbox_playid), ppbox_ft, Integer.toString(ppbox_bw_type));
 
@@ -725,9 +694,7 @@ public class ClipListActivity extends Activity implements
 					Toast.makeText(ClipListActivity.this, "invalid play type: " + play_type, 
 							Toast.LENGTH_SHORT).show();					
 					return;
-				}
-				
-				Log.i(TAG, "Java: toPlay: " + ppbox_url);
+				}*/
 				
 				start_player(ppbox_url);
 			}
@@ -1244,6 +1211,11 @@ public class ClipListActivity extends Activity implements
 				Toast.makeText(ClipListActivity.this, 
 						String.format("push url to dmr %s", mDlnaDeviceName), Toast.LENGTH_SHORT).show();
 				break;
+			case MSG_SET_CDN_URL:
+				Log.i(TAG, "cdn url set %s"+ mDLNAPushUrl);
+				stop_player();
+				start_player(mDLNAPushUrl);
+				break;
 			default:
 				Log.w(TAG, "unknown msg.what " + msg.what);
 				break;
@@ -1375,7 +1347,10 @@ public class ClipListActivity extends Activity implements
             		return false;
             	}
         		
-        		mHandler.sendEmptyMessage(MSG_PUSH_CDN_CLIP);
+        		if (params.length > 2)
+        			mHandler.sendEmptyMessage(MSG_SET_CDN_URL);
+        		else
+        			mHandler.sendEmptyMessage(MSG_PUSH_CDN_CLIP);
         	}
         	else {
         		Log.w(TAG, "Java: EPGTask invalid type: " + type);
@@ -1460,18 +1435,6 @@ public class ClipListActivity extends Activity implements
 		intent.putExtra("impl", player_impl);
 		startActivity(intent);
 	}
-	
-	private String addPlaylinkParam(String playlink, int ft, String bwt) {
-    	playlink += "?ft=" + ft;
-    	playlink += "&bwtype=" + bwt;
-    	
-    	playlink += "&platform=android3";
-        playlink += "&type=phone.android.vip";
-        playlink += "&sv=4.0.1";
-		playlink += "&param=userType%3D1"; // fix cannot find blue-disk ft problem
-    	
-    	return playlink;
-    }
 
 	private void upload_crash_report(int type) {	
 		MeetSDK.makePlayerlog();
@@ -1734,11 +1697,11 @@ public class ClipListActivity extends Activity implements
 		//if (mListLocalFile)
 		//	mPlayer.setLooping(true);
 		
-		/*
-		// view
 		mVideoWidth = mp.getVideoWidth();
 		mVideoHeight = mp.getVideoHeight();
 		
+		/*
+		// view
 		int width = mLayout.getWidth();
 		int height = mLayout.getHeight();
 		

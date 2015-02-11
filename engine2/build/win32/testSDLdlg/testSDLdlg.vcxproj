@@ -81,16 +81,16 @@
       <Optimization>MaxSpeed</Optimization>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
-      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;SAVE_LOG_FILE;USE_AV_FILTER;TEST_PERFORMANCE;WIN32;_WINDOWS;NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>MARKUP_STL;CURL_STATICLIB;_CRT_SECURE_NO_WARNINGS;SAVE_LOG_FILE;USE_AV_FILTER;TEST_PERFORMANCE;WIN32;_WINDOWS;NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <SDLCheck>true</SDLCheck>
-      <AdditionalIncludeDirectories>.\;.\ppbox\include;..\..\..\player;..\..\..\platform;D:\Archive\SDK\FFMPEG\ffmpeg-20140613-git-1c5aa64-win32\include;..\..\..\..\subtitle2\output\android\include;D:\Archive\SDK\pthread\pthreads-w32-2-9-1-release\Pre-built.2\include;D:\Archive\SDK\SDL\SDL-1.2.15\include;D:\Archive\SDK\pthread\pthreads-w32-2-9-1-release\Pre-built.2\include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>.\;.\ppbox\include;..\testEPG;..\..\..\player;..\..\..\platform;..\testEPG\libjsoncpp\include;..\testEPG\libcurl\include;D:\Archive\SDK\FFMPEG\ffmpeg-20140613-git-1c5aa64-win32\include;..\..\..\..\subtitle2\output\android\include;D:\Archive\SDK\pthread\pthreads-w32-2-9-1-release\Pre-built.2\include;D:\Archive\SDK\SDL\SDL-1.2.15\include;D:\Archive\SDK\pthread\pthreads-w32-2-9-1-release\Pre-built.2\include</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
-      <AdditionalLibraryDirectories>.\ppbox;D:\Archive\SDK\FFMPEG\ffmpeg-20140613-git-1c5aa64-win32\lib;D:\Archive\SDK\pthread\pthreads-w32-2-9-1-release\Pre-built.2\lib\x86;D:\Archive\SDK\SDL\SDL-1.2.15\lib\x86</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>.\ppbox;..\testEPG\libcurl\lib\vc11\x86\static;..\testEPG\libjsoncpp\lib\vc11;D:\Archive\SDK\FFMPEG\ffmpeg-20140613-git-1c5aa64-win32\lib;D:\Archive\SDK\pthread\pthreads-w32-2-9-1-release\Pre-built.2\lib\x86;D:\Archive\SDK\SDL\SDL-1.2.15\lib\x86</AdditionalLibraryDirectories>
       <ImageHasSafeExceptionHandlers>false</ImageHasSafeExceptionHandlers>
     </Link>
     <Midl>
@@ -175,9 +175,11 @@
     <ClCompile Include="..\testEPG\apXmlParser.cpp" />
     <ClCompile Include="..\testEPG\Markup.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="..\testEPG\md5c.c">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="apFileLog.cpp" />
     <ClCompile Include="apProcessBMP.cpp" />

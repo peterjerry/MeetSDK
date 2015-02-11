@@ -31,6 +31,10 @@
 	"&canal=@SHIP.TO.%dPI@&userLevel=0&appid=com.pplive.androidphone&appver=4.1.3" \
 	"&appplt=aph&vid=%d&series=1&virtual=1&ver=2&platform=android3"
 
+#define SREATCH_URL_FMT "http://so.api.pptv.com/search_smart.api?auth=d410fafad87e7bbf6c6dd62434345818" \
+	"&appver=4.1.3&canal=@SHIP.TO.31415926PI@&userLevel=0&hasVirtual=1&k=%s&conlen=0" \
+	"&shownav=1&type=0&mode=all&contentype=0&c=2&s=1&ver=2&platform=android3" // k=xxx
+
 apEPG::apEPG(void)
 	:mData(NULL)
 {
