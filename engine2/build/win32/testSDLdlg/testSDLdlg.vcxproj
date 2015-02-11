@@ -111,8 +111,6 @@
     <ClInclude Include="..\..\..\player\player.h" />
     <ClInclude Include="..\..\..\player\pperrors.h" />
     <ClInclude Include="..\..\..\player\ppffmpeg.h" />
-    <ClInclude Include="apEPG.h" />
-    <ClInclude Include="apJsonParser.h" />
     <ClInclude Include="Resource.h" />
     <ClInclude Include="stdafx.h" />
     <ClInclude Include="targetver.h" />

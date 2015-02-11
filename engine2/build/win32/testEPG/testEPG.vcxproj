@@ -52,7 +52,7 @@
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>MARKUP_STL;;CURL_STATICLIB;WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <SDLCheck>true</SDLCheck>
-      <AdditionalIncludeDirectories>.\libjsoncpp\include;.\libcurl\include;..\testSDLdlg</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>.\libjsoncpp\include;.\libcurl\include;..\testSDLdlg;..\..\..\platform</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>

@@ -1,6 +1,8 @@
 #include "stdafx.h"
 #include "apEPG.h"
 #include "apJsonParser.h"
+#define LOG_TAG "apEPG"
+#include "log.h"
 
 #include "wininet.h"
 #include "urlcodec.h"
@@ -20,7 +22,7 @@
 #pragma comment(lib, "wldap32.lib")
 #pragma  comment(lib, "wininet.lib")
 
-#define MAX_DATA_SIZE (65536)
+#define MAX_DATA_SIZE (65536 * 10)
 
 #define FRONTPAGE_URL "http://mtbu.api.pptv.com/v4/module?lang=zh_cn&platform=aphone" \
 	"&appid=com.pplive.androidphone&appver=4.1.3&appplt=aph&userLevel=0"
@@ -77,9 +79,11 @@ EPG_LIST * apEPG::getCatalog(int index)
 	CURL *curl = NULL;   
 	CURLcode res;
 	curl = curl_easy_init();  
-	if(!curl){
+	if (!curl){
 		return NULL;
 	}
+
+	LOGI("curl_perform: %s", FRONTPAGE_URL);
 
 	curl_easy_reset(curl);
 
@@ -93,17 +97,26 @@ EPG_LIST * apEPG::getCatalog(int index)
 		return NULL;
 	}
 	
-	apLog::print(0, apLog::info, "post ok. %d", mDataSize);
-	return mParser.parseCatalog(mData, mDataSize);
+	if (index == -1)
+		return mParser.parseCatalog(mData, mDataSize);
+	else
+		return mParser.parseCollection(mData, mDataSize, index);
 }
 
-MAP_ITEM * apEPG::getPlaylink(int index)
+EPG_LIST * apEPG::getPlaylink(int index)
 {
+	LOGI("getPlaylink() index %d", index);
+
+	if (index == 0) {
+		LOGE("invalid index %d", index);
+		return NULL;
+	}
+
 	reset();
 
 	TCHAR url[1024] = {0};
 	_stprintf_s(url, DETAIL_URL_FMT, index, index);
-	apLog::print(0, apLog::info, "get_link_url: %s", url);
+	LOGI("curl_perform: %s", url);
 
 	CURL *curl = NULL;   
 	CURLcode res;

@@ -10,7 +10,7 @@ public:
 
 	EPG_LIST * getCatalog(int index);
 
-	MAP_ITEM * getPlaylink(int index);
+	EPG_LIST * getPlaylink(int index);
 
 private:
 	void reset();

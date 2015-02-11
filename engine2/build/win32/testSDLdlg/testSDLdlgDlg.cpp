@@ -17,6 +17,7 @@
 #include "IDemuxer.h"
 #include "approcessbmp.h" // for snapshot
 #include "apEPG.h"
+#include "urlcodec.h"
 
 #pragma comment(lib, "sdl")
 #pragma comment(lib, "libppbox")
@@ -108,6 +109,7 @@ int pptv_channel_id[] = {
 const char *pptv_rtsp_playlink_fmt = "rtsp://%s:%d/play.es?type=pplive3&playlink=%d";
 const char *pptv_http_playlink_fmt = "http://%s:%d/play.m3u8?type=pplive3&playlink=%d";
 const char *pptv_playlink_surfix = "%3Fft%3D1%26bwtype%3D0%26platform%3Dandroid3%26type%3Dphone.android.vip";
+const char *pptv_playlink_ppvod2_fmt = "http://%s:%d/record.m3u8?type=ppvod2&playlink=%s&mux.M3U8.segment_duration=5";
 
 void genHMSM(int pos_msec, int *hour, int *minute, int *sec, int *msec);
 
@@ -152,7 +154,8 @@ CtestSDLdlgDlg::CtestSDLdlgDlg(CWnd* pParent /*=NULL*/)
 	mWidth(0), mHeight(0), mDuration(0), mUsedAudioChannel(1),
 	mDecFPS(0), mRenderFPS(0), mDecAvgMsec(0), mRenderAvgMsec(0), 
 	mDropFrames(0), mRenderFrames(0), mLatency(0), mIOBitrate(0), mBitrate(0),
-	mUserAddChnNum(0)
+	mUserAddChnNum(0), 
+	mEPGQueryType(EPG_QUERY_CATALOG), mEPGValue(-1)
 {
 	m_hIcon = AfxGetApp()->LoadIcon(IDR_MAINFRAME);
 }
@@ -163,7 +166,7 @@ void CtestSDLdlgDlg::DoDataExchange(CDataExchange* pDX)
 	DDX_Control(pDX, IDC_CHECK_LOOP, mCheckLooping);
 	DDX_Control(pDX, IDC_PROGRESS_CLIP, mProgClip);
 	DDX_Control(pDX, IDC_COMBO_URL, mComboURL);
-	DDX_Control(pDX, IDC_COMBO_CATALOG, mComboCatalog);
+	DDX_Control(pDX, IDC_COMBO_CATALOG, mComboEPGItem);
 }
 
 BEGIN_MESSAGE_MAP(CtestSDLdlgDlg, CDialogEx)
@@ -179,6 +182,9 @@ BEGIN_MESSAGE_MAP(CtestSDLdlgDlg, CDialogEx)
 	ON_MESSAGE(WM_NOTIFY_MESSAGE, OnNotify)
 	ON_BN_CLICKED(IDC_BUTTON_GETSEC, &CtestSDLdlgDlg::OnBnClickedButtonGetsec)
 	ON_WM_DESTROY()
+	ON_BN_CLICKED(IDC_BUTTON_RESET_EPG, &CtestSDLdlgDlg::OnBnClickedButtonResetEpg)
+	ON_CBN_SELCHANGE(IDC_COMBO_CATALOG, &CtestSDLdlgDlg::OnCbnSelchangeComboCatalog)
+	ON_BN_CLICKED(IDC_BUTTON_PLAY_EPG, &CtestSDLdlgDlg::OnBnClickedButtonPlayEpg)
 END_MESSAGE_MAP()
 
 
@@ -280,6 +286,11 @@ BOOL CtestSDLdlgDlg::OnInitDialog()
 	SetDlgItemText(IDC_EDIT_VOD_DURATION, "90");
 	//SetDlgItemText(IDC_EDIT_VLC_PATH, "C:\\Program Files (x86)\\VideoLAN\\VLC\\vlc.exe");
 
+	SetDlgItemText(IDC_EDIT_PLAYLINK, "19534153");
+	SetDlgItemText(IDC_EDIT_FT, "1");
+	SetDlgItemText(IDC_EDIT_BWTYPE, "3");
+	mEPGQueryType = EPG_QUERY_CATALOG;
+	mEPGValue = -1;
 	start();
 
 	return TRUE;  // 除非将焦点设置到控件，否则返回 TRUE
@@ -461,24 +472,6 @@ void CtestSDLdlgDlg::drawBuffering()
 
 void CtestSDLdlgDlg::OnBnClickedStart()
 {
-	// TODO: 在此添加控件通知处理程序代码
-	status_t status;
-
-	if (mPlayer) {
-		KillTimer(0);
-
-		LOGI("before call player stop");
-		mPlayer->stop();
-		LOGI("after call player stop");
-		delete mPlayer;
-		mPlayer = NULL;
-
-		if (mSurface2) {
-			SDL_FreeSurface(mSurface2);
-			mSurface2 = NULL;
-		}
-	}
-
 	int sel = mComboURL.GetCurSel();
 	if (sel < 0) {
 		AfxMessageBox("not select item");
@@ -519,18 +512,8 @@ void CtestSDLdlgDlg::OnBnClickedStart()
 	CString vlcPath;
 	GetDlgItemText(IDC_EDIT_VLC_PATH, vlcPath);
 	if (vlcPath.IsEmpty()) {
-		mPlayer = new FFPlayer;
-		mPlayer->setListener(this);
-		mPlayer->setDataSource(mUrl.GetBuffer(0));
-		status = mPlayer->prepareAsync();
-		if (status != OK) {
-			delete mPlayer;
-			mPlayer = NULL;
-			AfxMessageBox("failed to prepareAsync");
-		}
-
-		mBuffering = true;
-		mBufferingOffset = 0;
+		stop_player();
+		start_player(mUrl.GetBuffer(0));
 	}
 	else {
 		CString strArgu;
@@ -560,6 +543,44 @@ void CtestSDLdlgDlg::OnBnClickedStart()
 			);
 		if (!fRet) {
 			MessageBox("failed to launch vlc");
+		}
+	}
+}
+
+bool CtestSDLdlgDlg::start_player(const char *url)
+{
+	status_t status;
+
+	mPlayer = new FFPlayer;
+	mPlayer->setListener(this);
+	mPlayer->setDataSource(url);
+	status = mPlayer->prepareAsync();
+	if (status != OK) {
+		delete mPlayer;
+		mPlayer = NULL;
+		AfxMessageBox("failed to prepareAsync");
+	}
+
+	mBuffering = true;
+	mBufferingOffset = 0;
+
+	return true;
+}
+
+void CtestSDLdlgDlg::stop_player()
+{
+	if (mPlayer) {
+		KillTimer(0);
+
+		LOGI("before call player stop");
+		mPlayer->stop();
+		LOGI("after call player stop");
+		delete mPlayer;
+		mPlayer = NULL;
+
+		if (mSurface2) {
+			SDL_FreeSurface(mSurface2);
+			mSurface2 = NULL;
 		}
 	}
 }
@@ -899,22 +920,52 @@ void genHMSM(int pos_msec, int *hour, int *minute, int *sec, int *msec)
 
 void CtestSDLdlgDlg::thread_proc()
 {
-	apEPG epg;
-	EPG_LIST *catalog = epg.getCatalog(-1);
-	if (!catalog) {
-		LOGE(_T("failed to get catalog")); // tchar.h compatible with ansi and unicode
+	CString strPrefix;
+	int sel;
+
+	switch (mEPGQueryType) {
+	case EPG_QUERY_CATALOG:
+		mEPGlist = mEPG.getCatalog(-1);
+		break;
+	case EPG_QUERY_COLLECTION:
+		mEPGlist = mEPG.getCatalog(mEPGValue);
+		break;
+	case EPG_QUERY_DATAIL:
+		sel = mComboEPGItem.GetCurSel();
+		mComboEPGItem.GetLBText(sel, strPrefix);
+		mEPGlist = mEPG.getPlaylink(mEPGValue);
+		break;
+	case EPG_QUERY_CDN_URL:
+		break;
+	default:
+		break;
+	}
+	
+	if (!mEPGlist) {
+		LOGE(_T("failed to connect to epg server")); // tchar.h compatible with ansi and unicode
+		AfxMessageBox(_T("failed to connect to epg server"));
 		return;
 	}
 
-	EPG_LIST::iterator it = catalog->begin();
-	for (;it != catalog->end();it++) {
-		MAP_ITEM::iterator it_map = (*it).begin();
-		for (;it_map != (*it).end();it_map++) {
-			//LOGD(_T("Item: %s, Value: %s\n"), (*it_map).first.c_str(), (*it_map).second.c_str());
+	mComboEPGItem.ResetContent();
+	
+	if (mEPGlist) {
+		EPG_LIST::iterator it = mEPGlist->begin();
+		for (;it != mEPGlist->end();it++) {
+			MAP_ITEM::iterator it_map = (*it).begin();
+			for (;it_map != (*it).end();it_map++) {
+				//LOGD(_T("Item: %s, Value: %s\n"), (*it_map).first.c_str(), (*it_map).second.c_str());
 
-			if((*it_map).first.find("title") != std::string::npos)
-				mComboCatalog.AddString((*it_map).second.c_str());
+				if((*it_map).first.find("title") != std::string::npos) {
+					if (strPrefix.IsEmpty())
+						mComboEPGItem.AddString((*it_map).second.c_str());
+					else
+						mComboEPGItem.AddString(strPrefix + "(" + (*it_map).second.c_str() + ")");
+				}
+			}
 		}
+
+		mComboEPGItem.SetCurSel(0);
 	}
 }
 
@@ -1007,4 +1058,85 @@ void CtestSDLdlgDlg::OnDestroy()
 
 	// TODO: 在此处添加消息处理程序代码
 	Cleanup();
+}
+
+
+void CtestSDLdlgDlg::OnBnClickedButtonResetEpg()
+{
+	// TODO: 在此添加控件通知处理程序代码
+	mEPGQueryType = EPG_QUERY_CATALOG;
+	start();
+}
+
+
+void CtestSDLdlgDlg::OnCbnSelchangeComboCatalog()
+{
+	// TODO: 在此添加控件通知处理程序代码
+	int sel = mComboEPGItem.GetCurSel();
+
+	if (EPG_QUERY_CATALOG == mEPGQueryType) {
+		MAP_ITEM item = mEPGlist->at(sel);
+		MAP_ITEM::iterator it_map = item.begin();
+		for (;it_map != item.end();it_map++) {
+			if ((*it_map).first.find("index") != std::string::npos) {
+				mEPGValue = atoi((*it_map).second.c_str());
+				break;
+			}
+		}
+		mEPGQueryType = EPG_QUERY_COLLECTION;
+	}
+	else if(EPG_QUERY_COLLECTION == mEPGQueryType) {
+		MAP_ITEM item = mEPGlist->at(sel);
+		MAP_ITEM::iterator it_map = item.begin();
+		for (;it_map != item.end();it_map++) {
+			if ((*it_map).first.find("link") != std::string::npos) {
+				mEPGValue = atoi((*it_map).second.c_str());
+				if (EPG_QUERY_COLLECTION == mEPGQueryType)
+					mEPGQueryType = EPG_QUERY_DATAIL;
+				break;
+			}
+		}
+	}
+	else if (EPG_QUERY_DATAIL == mEPGQueryType) {
+		MAP_ITEM item = mEPGlist->at(sel);
+		MAP_ITEM::iterator it = item.begin();
+		for (;it != item.end();it++) {
+			if ((*it).first.find("id") != std::string::npos) {
+				SetDlgItemText(IDC_EDIT_PLAYLINK, (*it).second.c_str());
+				return;
+			}	
+		}
+		
+	}
+	else {
+		mEPGValue = -1;
+		mEPGQueryType = EPG_QUERY_CATALOG;
+	}
+
+	start();
+}
+
+
+void CtestSDLdlgDlg::OnBnClickedButtonPlayEpg()
+{
+	// TODO: 在此添加控件通知处理程序代码
+	stop_player();
+	char str_url[1024] = {0};
+	char str_playlink[512] = {0};
+
+	int link, ft, bw_type;
+	link = GetDlgItemInt(IDC_EDIT_PLAYLINK);
+	ft = GetDlgItemInt(IDC_EDIT_FT);
+	bw_type = GetDlgItemInt(IDC_EDIT_BWTYPE);
+
+	_snprintf(str_playlink, 512, "%d?ft=%d&bwtype=%d&platform=android3&type=phone.android.vip&sv=4.1.3&param=userType%3D1", 
+		link, ft, bw_type);
+	LOGI("playlink before urlencode: %s", str_playlink);
+	int out_len = 0;
+	char *encoded_playlink = urlencode(str_playlink, strlen(str_playlink), &out_len);
+	LOGI("playlink after urlencode: %s", encoded_playlink);
+
+	_snprintf(str_url, 1024, pptv_playlink_ppvod2_fmt, HOST, mhttpPort, encoded_playlink);
+	LOGI("final vod url: %s", str_url);
+	start_player(str_url);
 }

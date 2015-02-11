@@ -54,13 +54,13 @@
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>USE_AV_FILTER;TEST_PERFORMANCE;NDEBUG;_CRT_SECURE_NO_WARNINGS;WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <SDLCheck>true</SDLCheck>
-      <AdditionalIncludeDirectories>..\..\..\player;D:\Archive\SDK\FFMPEG\ffmpeg-20140613-git-1c5aa64-win32\include;..\..\..\platform;D:\Archive\SDK\pthread\pthreads-w32-2-9-1-release\Pre-built.2\include;D:\Archive\SDK\SDL\SDL-1.2.15\include;D:\Archive\SDK\pthread\pthreads-w32-2-9-1-release\Pre-built.2\include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\..\..\player;..\..\..\..\subtitle2\output\android\include;..\..\..\..\foundation\output\win32\full\include;..\..\..\platform;D:\Archive\SDK\pthread\pthreads-w32-2-9-1-release\Pre-built.2\include;D:\Archive\SDK\SDL\SDL-1.2.15\include;D:\Archive\SDK\pthread\pthreads-w32-2-9-1-release\Pre-built.2\include</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>D:\Archive\SDK\FFMPEG\ffmpeg-20140613-git-1c5aa64-win32\lib;D:\Archive\SDK\pthread\pthreads-w32-2-9-1-release\Pre-built.2\lib\x86;D:\Archive\SDK\SDL\SDL-1.2.15\lib\x86</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>..\..\..\..\foundation\output\win32\full\bin;D:\Archive\SDK\pthread\pthreads-w32-2-9-1-release\Pre-built.2\lib\x86;D:\Archive\SDK\SDL\SDL-1.2.15\lib\x86</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">

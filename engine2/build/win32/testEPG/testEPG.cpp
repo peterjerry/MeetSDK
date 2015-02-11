@@ -17,7 +17,6 @@ int _tmain(int argc, _TCHAR* argv[])
 	}
 
 	int link_id;
-	MAP_ITEM *link = NULL;
 	std::string id = "";
 	int done = 0;
 
@@ -28,10 +27,11 @@ int _tmain(int argc, _TCHAR* argv[])
 			_tprintf(_T("Item: %s, Value: %s\n"), (*it_map).first.c_str(), (*it_map).second.c_str());
 			if (it_map == (*it).begin() && (*it_map).first.find("link") != std::string::npos) {
 				link_id = atoi((*it_map).second.c_str());
-				link = epg.getPlaylink(link_id);
-				if (link) {
-					MAP_ITEM::iterator it_clip = link->begin();
-					for (;it_clip != link->end();it_clip++) {
+				catalog = epg.getPlaylink(link_id);
+				if (catalog) {
+					MAP_ITEM item = catalog->at(0);
+					MAP_ITEM::iterator it_clip = item.begin();
+					for (;it_clip != item.end();it_clip++) {
 						if((*it_clip).first.find("id") != std::string::npos) {
 							id = (*it_clip).second.c_str();
 							_tprintf(_T("playlink id: %s\n"), id.c_str());

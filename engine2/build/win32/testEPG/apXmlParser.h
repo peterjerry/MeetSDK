@@ -7,9 +7,9 @@ public:
 	apXmlParser(void);
 	~apXmlParser(void);
 
-	MAP_ITEM * parsePlaylink(char *context, unsigned int size);
+	EPG_LIST * parsePlaylink(char *context, unsigned int size);
 
 private:
-	std::list<MAP_ITEM> mClips;
+	EPG_LIST mClips;
 };
 

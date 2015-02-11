@@ -14,9 +14,9 @@ apXmlParser::~apXmlParser(void)
 {
 }
 
-MAP_ITEM * apXmlParser::parsePlaylink(char *context, unsigned int size)
+EPG_LIST * apXmlParser::parsePlaylink(char *context, unsigned int size)
 {
-	_tprintf(_T("begin to parsePlaylink()\n"));
+	mClips.clear();
 
 	FILE *pFile = NULL;
 	fopen_s(&pFile, "tmp.xml", "wb");
@@ -39,7 +39,7 @@ MAP_ITEM * apXmlParser::parsePlaylink(char *context, unsigned int size)
 		return NULL;
 	}
 
-	MAP_ITEM *new_item = new MAP_ITEM();
+	
 
 	ret = dom.FindElem(_T("v"));
 	dom.IntoElem();
@@ -49,14 +49,33 @@ MAP_ITEM * apXmlParser::parsePlaylink(char *context, unsigned int size)
 
 	ret = dom.FindElem(_T("video_list2"));
 	dom.IntoElem();
+	
+	while (dom.FindElem(_T("playlink2"))) {
+		MAP_ITEM new_item;
 
-	ret = dom.FindElem(_T("playlink2"));
-	std::string id = dom.GetAttrib(_T("id"));
-	std::string duration = dom.GetAttrib(_T("duration")); // min
-	new_item->insert(MAP_ITEM::value_type("id", id));
-	new_item->insert(MAP_ITEM::value_type("duration", duration));
+		std::string id = dom.GetAttrib(_T("id"));
+		std::string title = dom.GetAttrib(_T("title"));
+		std::string duration = dom.GetAttrib(_T("duration")); // min
+		std::string duration_sec = dom.GetAttrib(_T("durationSecond")); // min
+		new_item.insert(MAP_ITEM::value_type("id", id));
+		new_item.insert(MAP_ITEM::value_type("title", title));
+		new_item.insert(MAP_ITEM::value_type("duration", duration));
+		new_item.insert(MAP_ITEM::value_type("duration_sec", duration_sec));
 
-	return new_item;
+		dom.IntoElem();
+		if (dom.FindElem("source")) {
+			std::string bitrate = dom.GetAttrib(_T("bitrate"));
+			std::string resolution = dom.GetAttrib(_T("resolution"));
+			
+			new_item.insert(MAP_ITEM::value_type("bitrate", bitrate));
+			new_item.insert(MAP_ITEM::value_type("resolution", resolution));
+		}
+		dom.OutOfElem();
+
+		mClips.push_back(new_item);
+	}
+
+	return &mClips;
 }
 
 static std::string Utf82Ansi(const char* srcCode)  

@@ -51,12 +51,6 @@
     <ClInclude Include="..\..\..\player\ppffmpeg.h">
       <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="apEPG.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
-    <ClInclude Include="apJsonParser.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="testSDLdlg.cpp">

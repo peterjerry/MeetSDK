@@ -13,9 +13,12 @@ public:
 
 	EPG_LIST * parseCatalog(char *context, unsigned int size);
 
+	EPG_LIST * parseCollection(char *context, unsigned int size, int index);
+
 	EPG_LIST * parsePlaylink(char *context, unsigned int size);
 private:
-	std::list<MAP_ITEM> mCatalog;
-	std::list<MAP_ITEM> mClips;
+	EPG_LIST mCatalog;
+	EPG_LIST mCollection;
+	EPG_LIST mClips;
 };
 

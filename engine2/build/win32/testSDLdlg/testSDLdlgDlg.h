@@ -7,9 +7,18 @@
 #include "player.h"
 #include "afxcmn.h"
 #include "apThread.h"
+#include "apEPG.h"
 
 class FFPlayer;
 struct SDL_Surface;
+
+enum EPG_QUERY_TYPE {
+	EPG_QUERY_CATALOG,
+	EPG_QUERY_COLLECTION,
+	EPG_QUERY_DATAIL,
+	EPG_QUERY_CLIP,
+	EPG_QUERY_CDN_URL,
+};
 
 // CtestSDLdlgDlg ¶Ô»°¿ò
 class CtestSDLdlgDlg : public CDialogEx, MediaPlayerListener, apThread
@@ -50,8 +59,16 @@ public:
 	CButton mCheckLooping;
 	CProgressCtrl mProgClip;
 	CComboBox mComboURL;
+	CComboBox mComboEPGItem;
 private:
 	CString mUrl;
+
+	// epg
+	enum EPG_QUERY_TYPE mEPGQueryType;
+	apEPG mEPG;
+	EPG_LIST *mEPGlist;
+	int mEPGValue;
+
 	FFPlayer *mPlayer;
 	SDL_Surface *mSurface2;
 	int mhttpPort;
@@ -79,6 +96,9 @@ private:
 	int mBitrate;
 private:
 	bool startP2P();
+	bool play_url(const char *url);
+	bool start_player(const char *url);
+	void stop_player();
 	int64_t getSec();
 	void drawBuffering();
 	bool OnPrepared();
@@ -90,5 +110,7 @@ public:
 	afx_msg void OnChar(UINT nChar, UINT nRepCnt, UINT nFlags);
 	afx_msg void OnBnClickedButtonGetsec();
 	afx_msg void OnDestroy();
-	CComboBox mComboCatalog;
+	afx_msg void OnBnClickedButtonResetEpg();
+	afx_msg void OnCbnSelchangeComboCatalog();
+	afx_msg void OnBnClickedButtonPlayEpg();
 };
