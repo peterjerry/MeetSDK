@@ -16,6 +16,12 @@
     <Filter Include="源文件\platform">
       <UniqueIdentifier>{b8091797-080b-46fd-9b2b-2f83fff5b728}</UniqueIdentifier>
     </Filter>
+    <Filter Include="源文件\util">
+      <UniqueIdentifier>{fd160c97-da61-4f79-9a2c-d5ce7362dd24}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="源文件\player">
+      <UniqueIdentifier>{443b3a57-6a92-4033-ae5f-6517f4e006cc}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <Text Include="ReadMe.txt" />
@@ -62,18 +68,6 @@
     <ClCompile Include="stdafx.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\player\ffstream.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\player\ffrender.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\player\ffplayer.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\player\audioplayer.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\..\platform\utils.cpp">
       <Filter>源文件\platform</Filter>
     </ClCompile>
@@ -98,35 +92,47 @@
     <ClCompile Include="apFileLog.cpp">
       <Filter>源文件\platform</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\player\filesource.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
-    <ClCompile Include="urlcodec.cpp">
-      <Filter>源文件</Filter>
+    <ClCompile Include="..\testEPG\apJsonParser.cpp">
+      <Filter>源文件\util</Filter>
     </ClCompile>
     <ClCompile Include="apProcessBMP.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\player\audiorender.cpp">
-      <Filter>源文件</Filter>
+      <Filter>源文件\util</Filter>
     </ClCompile>
     <ClCompile Include="apThread.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
-    <ClCompile Include="..\testEPG\apEPG.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
-    <ClCompile Include="..\testEPG\apJsonParser.cpp">
-      <Filter>源文件</Filter>
+      <Filter>源文件\util</Filter>
     </ClCompile>
     <ClCompile Include="..\testEPG\apXmlParser.cpp">
-      <Filter>源文件</Filter>
+      <Filter>源文件\util</Filter>
+    </ClCompile>
+    <ClCompile Include="..\testEPG\apEPG.cpp">
+      <Filter>源文件\util</Filter>
     </ClCompile>
     <ClCompile Include="..\testEPG\Markup.cpp">
-      <Filter>源文件</Filter>
+      <Filter>源文件\util</Filter>
+    </ClCompile>
+    <ClCompile Include="urlcodec.cpp">
+      <Filter>源文件\util</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\player\audioplayer.cpp">
+      <Filter>源文件\player</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\player\audiorender.cpp">
+      <Filter>源文件\player</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\player\ffplayer.cpp">
+      <Filter>源文件\player</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\player\ffrender.cpp">
+      <Filter>源文件\player</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\player\ffstream.cpp">
+      <Filter>源文件\player</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\player\filesource.cpp">
+      <Filter>源文件\player</Filter>
     </ClCompile>
     <ClCompile Include="..\testEPG\md5c.c">
-      <Filter>源文件</Filter>
+      <Filter>源文件\util</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

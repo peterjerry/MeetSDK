@@ -19,7 +19,7 @@ MAP_ITEM * apXmlParser::parsePlaylink(char *context, unsigned int size)
 	_tprintf(_T("begin to parsePlaylink()\n"));
 
 	FILE *pFile = NULL;
-	fopen_s(&pFile, "detail\\tmp.xml", "wb");
+	fopen_s(&pFile, "tmp.xml", "wb");
 	fwrite(context, 1, size, pFile);
 	fclose(pFile);
 
@@ -32,7 +32,7 @@ MAP_ITEM * apXmlParser::parsePlaylink(char *context, unsigned int size)
 	bool ret;
 
 	//ret = dom.SetDoc(context);
-	ret = dom.Load(_T("detail\\tmp.xml"));
+	ret = dom.Load(_T("tmp.xml"));
 	if (ret == false) {
 		apLog::print(0, apLog::error, "failed to parse xml");
 		

@@ -106,26 +106,26 @@ public class MyPreView extends SurfaceView {
 	
 	@Override
 	protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
-		Log.i(TAG, String.format("onMeasure(0): widthMeasureSpec: %s, heightMeasureSpec: %s", 
-				get_desc(MeasureSpec.getMode(widthMeasureSpec)), get_desc(MeasureSpec.getMode(heightMeasureSpec))));
+		//Log.d(TAG, String.format("onMeasure(0): widthMeasureSpec: %s, heightMeasureSpec: %s", 
+		//		get_desc(MeasureSpec.getMode(widthMeasureSpec)), get_desc(MeasureSpec.getMode(heightMeasureSpec))));
 		
 		int LayoutWidth = getDefaultSize(-1, widthMeasureSpec);
 		int LayoutHeight = getDefaultSize(-1, heightMeasureSpec);
 		
-		Log.i(TAG, String.format("onMeasure(0): LayoutWidth: %d, LayoutHeight: %d", LayoutWidth, LayoutHeight));
+		//Log.d(TAG, String.format("onMeasure(0): LayoutWidth: %d, LayoutHeight: %d", LayoutWidth, LayoutHeight));
 		int displaySize[] = mCurrentDisplayMode.getDisplaySize(LayoutWidth, LayoutHeight, mVideoWidth, mVideoHeight);
 		
 		int width = displaySize[0];
 		int height = displaySize[1];
 		
-		Log.i(TAG, String.format("onMeasure(1): width: %d; height: %d", width, height));
+		//Log.d(TAG, String.format("onMeasure(1): width: %d; height: %d", width, height));
 		
 		if (width == 0 || height == 0) {
 			width = widthMeasureSpec;
 			height = heightMeasureSpec;
 		}
 
-		Log.i(TAG, String.format("setMeasuredDimension: width: %d, height: %d", width, height));
+		//Log.d(TAG, String.format("setMeasuredDimension: width: %d, height: %d", width, height));
 
 		setMeasuredDimension(width, height);
 	}

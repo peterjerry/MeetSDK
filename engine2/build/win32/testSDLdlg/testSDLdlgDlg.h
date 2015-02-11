@@ -90,4 +90,5 @@ public:
 	afx_msg void OnChar(UINT nChar, UINT nRepCnt, UINT nFlags);
 	afx_msg void OnBnClickedButtonGetsec();
 	afx_msg void OnDestroy();
+	CComboBox mComboCatalog;
 };

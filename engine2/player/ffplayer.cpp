@@ -1072,9 +1072,11 @@ void FFPlayer::calc_frame_delay()
 	sync_threshold_msec = (delay_msec > AV_SYNC_THRESHOLD_MSEC) ? delay_msec : AV_SYNC_THRESHOLD_MSEC;
 	if (mAVDiffMs < AV_NOSYNC_THRESHOLD && mAVDiffMs > -AV_NOSYNC_THRESHOLD) {
 		if (mAVDiffMs <= -sync_threshold_msec) {
-		  delay_msec = 0;
-		} else if(mAVDiffMs >= sync_threshold_msec) {
-		  delay_msec = 2 * delay_msec;
+			delay_msec = 0;
+		} else if (mAVDiffMs >= sync_threshold_msec && mAVDiffMs <= (sync_threshold_msec * 2)) {
+			delay_msec = 2 * delay_msec;
+		} else if (mAVDiffMs >= (sync_threshold_msec * 2)){
+			delay_msec = mAVDiffMs; // for seek case
 		}
 	}
 

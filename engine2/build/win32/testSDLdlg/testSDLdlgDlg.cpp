@@ -16,7 +16,7 @@
 #include "IPpbox.h"
 #include "IDemuxer.h"
 #include "approcessbmp.h" // for snapshot
-//#include "apEPG.h"
+#include "apEPG.h"
 
 #pragma comment(lib, "sdl")
 #pragma comment(lib, "libppbox")
@@ -163,6 +163,7 @@ void CtestSDLdlgDlg::DoDataExchange(CDataExchange* pDX)
 	DDX_Control(pDX, IDC_CHECK_LOOP, mCheckLooping);
 	DDX_Control(pDX, IDC_PROGRESS_CLIP, mProgClip);
 	DDX_Control(pDX, IDC_COMBO_URL, mComboURL);
+	DDX_Control(pDX, IDC_COMBO_CATALOG, mComboCatalog);
 }
 
 BEGIN_MESSAGE_MAP(CtestSDLdlgDlg, CDialogEx)
@@ -278,6 +279,8 @@ BOOL CtestSDLdlgDlg::OnInitDialog()
 	SetDlgItemText(IDC_EDIT_TIMECODE, timeFmt);
 	SetDlgItemText(IDC_EDIT_VOD_DURATION, "90");
 	//SetDlgItemText(IDC_EDIT_VLC_PATH, "C:\\Program Files (x86)\\VideoLAN\\VLC\\vlc.exe");
+
+	start();
 
 	return TRUE;  // 除非将焦点设置到控件，否则返回 TRUE
 }
@@ -458,9 +461,6 @@ void CtestSDLdlgDlg::drawBuffering()
 
 void CtestSDLdlgDlg::OnBnClickedStart()
 {
-	//apEPG epg;
-	//epg.getCatalog(-1);
-
 	// TODO: 在此添加控件通知处理程序代码
 	status_t status;
 
@@ -851,6 +851,15 @@ bool CtestSDLdlgDlg::OnPrepared()
 	if (mWidth + 50 > 900)
 		rc.right = rc.left + mWidth + 50;
 	rc.bottom = rc.top + mHeight + 200;
+	
+	// adjust position
+	int scr_width = GetSystemMetrics ( SM_CXSCREEN ); 
+	int scr_height= GetSystemMetrics ( SM_CYSCREEN ); 
+	if(rc.bottom > scr_height) {
+		int tmp = rc.top - 50;
+		rc.top = 50;
+		rc.bottom -= tmp;
+	}
 	int new_w, new_h;
 	new_w = rc.right - rc.left;
 	new_h = rc.bottom - rc.top;
@@ -890,44 +899,23 @@ void genHMSM(int pos_msec, int *hour, int *minute, int *sec, int *msec)
 
 void CtestSDLdlgDlg::thread_proc()
 {
-	/*apEPG epg;
+	apEPG epg;
 	EPG_LIST *catalog = epg.getCatalog(-1);
 	if (!catalog) {
 		LOGE(_T("failed to get catalog")); // tchar.h compatible with ansi and unicode
 		return;
 	}
 
-	int link_id;
-	MAP_ITEM *link = NULL;
-	std::string id = "";
-	int done = 0;
-
 	EPG_LIST::iterator it = catalog->begin();
-	for (;it != catalog->end() && !done;it++) {
+	for (;it != catalog->end();it++) {
 		MAP_ITEM::iterator it_map = (*it).begin();
-		for (;it_map != (*it).end() && !done;it_map++) {
-			LOGI(_T("Item: %s, Value: %s\n"), (*it_map).first.c_str(), (*it_map).second.c_str());
-			if (it_map == (*it).begin() && (*it_map).first.find("link") != std::string::npos) {
-				link_id = atoi((*it_map).second.c_str());
-				link = epg.getPlaylink(link_id);
-				if (link) {
-					MAP_ITEM::iterator it_clip = link->begin();
-					for (;it_clip != link->end();it_clip++) {
-						if((*it_clip).first.find("id") != std::string::npos) {
-							id = (*it_clip).second.c_str();
-							LOGI(_T("playlink id: %s\n"), id.c_str());
-						}
-						else {
-							LOGI(_T("item: %s, value: %s\n"), (*it_clip).first.c_str(), (*it_clip).second.c_str());
-						}
-					}
-					done = 1;
-					break;
-				}
-				
-			}
+		for (;it_map != (*it).end();it_map++) {
+			//LOGD(_T("Item: %s, Value: %s\n"), (*it_map).first.c_str(), (*it_map).second.c_str());
+
+			if((*it_map).first.find("title") != std::string::npos)
+				mComboCatalog.AddString((*it_map).second.c_str());
 		}
-	}*/
+	}
 }
 
 void CtestSDLdlgDlg::OnBnClickedButtonGetsec()
