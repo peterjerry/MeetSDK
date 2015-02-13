@@ -169,9 +169,12 @@ public class EPGUtil {
     	String link_act = v.getChild("act").getText();
     	String link_year = v.getChild("year").getText();
     	String link_area = v.getChild("area").getText();
-    	String link_du = v.getChild("duration").getText();
-    	int duration_sec = Integer.valueOf(link_du) * 60;
+    	String link_duration = v.getChild("duration").getText();
+    	String link_duration_sec = v.getChild("durationSecond").getText();
+    	int duration_sec = Integer.valueOf(link_duration_sec);
     	String link_resolution = v.getChild("resolution").getText();
+    	
+    	String link_content = v.getChild("content").getText();
     	
     	List<Element> linklist = null;
         Element video_list2 = v.getChild("video_list2");
@@ -193,7 +196,7 @@ public class EPGUtil {
 	    	String src_res = source.getAttributeValue("resolution");
 	    	if(src_res != null && !src_res.isEmpty())
 	    		link_resolution = src_res; // overwrite
-	    	PlayLink2 l = new PlayLink2(link_title, link_id, "", 
+	    	PlayLink2 l = new PlayLink2(link_title, link_id, link_content, 
 	    			src_mark, link_director, link_act,
 	    			link_year, link_area,
 	    			link_resolution, duration_sec);

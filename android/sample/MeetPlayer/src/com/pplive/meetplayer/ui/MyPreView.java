@@ -151,16 +151,16 @@ public class MyPreView extends SurfaceView {
 		FULL_SCREEN_BY_SCALE {
 			@Override
 			public int[] getDisplaySize(int screenWidth, int screenHeight, int videoWidth, int videoHeight) {
-				Log.i(TAG, "FULL_SCREEN_BY_SCALE");
-				Log.i(TAG, String.format("wWidth: %d; wHeight: %d; vWidth: %d; vHeight: %d", 
-						screenWidth, screenHeight, videoWidth, videoHeight));
+				//Log.i(TAG, "FULL_SCREEN_BY_SCALE");
+				//Log.i(TAG, String.format("wWidth: %d; wHeight: %d; vWidth: %d; vHeight: %d", 
+				//		screenWidth, screenHeight, videoWidth, videoHeight));
 				
 				float widthScale = (float)(screenWidth) / videoWidth;
 				float heightScale = (float)(screenHeight) / videoHeight;
 				
 				float scale = (widthScale < heightScale) ? widthScale : heightScale;
 				
-				Log.i(TAG, String.format("scale: %f", scale));
+				//Log.i(TAG, String.format("scale: %f", scale));
 				
 				int width = (int)(videoWidth * scale);
 				int height = (int)(videoHeight * scale);
@@ -168,7 +168,7 @@ public class MyPreView extends SurfaceView {
 				width = (width >= screenWidth) ? screenWidth : width;
 				height = (height >= screenHeight) ? screenHeight : height;
 				
-				Log.i(TAG, String.format("width: %d; height: %d", width, height));
+				//Log.i(TAG, String.format("width: %d; height: %d", width, height));
 				
 				return new int[] {width, height};
 			}

@@ -1,4 +1,4 @@
-package com.pplive.epg;
+package com.pplive.meetplayer.util;
 
 public class PlayLink2 { 
 	private String mTitle;
