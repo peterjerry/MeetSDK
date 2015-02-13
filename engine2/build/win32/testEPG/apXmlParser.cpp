@@ -1,7 +1,8 @@
 #include "stdafx.h"
 #include "apXmlParser.h"
 #include "markup.h"
-#include "apFileLog.h"
+#define LOG_TAG "apXmlParser"
+#include "log.h"
 
 static std::string Utf82Ansi(const char* srcCode);
 
@@ -12,6 +13,42 @@ apXmlParser::apXmlParser(void)
 
 apXmlParser::~apXmlParser(void)
 {
+}
+
+EPG_LIST * apXmlParser::parseSearch(char *context, unsigned int size)
+{
+	mClips.clear();
+
+	FILE *pFile = NULL;
+	fopen_s(&pFile, "tmp.xml", "wb");
+	fwrite(context, 1, size, pFile);
+	fclose(pFile);
+
+	CMarkup dom;
+	bool ret;
+
+	//ret = dom.SetDoc(context);
+	ret = dom.Load(_T("tmp.xml"));
+	if (ret == false) {
+		LOGE("failed to parse xml");
+		
+		return NULL;
+	}
+
+	dom.FindElem("vlist");
+	dom.IntoElem();
+
+	while (dom.FindElem("v")) {
+		dom.IntoElem();
+
+		MAP_ITEM new_item;
+
+		std::string vid = dom.GetAttrib(_T("vid"));
+		new_item.insert(MAP_ITEM::value_type("vid", vid));
+		mClips.push_back(new_item);
+	}
+
+	return &mClips;
 }
 
 EPG_LIST * apXmlParser::parsePlaylink(char *context, unsigned int size)
@@ -34,8 +71,7 @@ EPG_LIST * apXmlParser::parsePlaylink(char *context, unsigned int size)
 	//ret = dom.SetDoc(context);
 	ret = dom.Load(_T("tmp.xml"));
 	if (ret == false) {
-		apLog::print(0, apLog::error, "failed to parse xml");
-		
+		LOGE("failed to parse xml");
 		return NULL;
 	}
 

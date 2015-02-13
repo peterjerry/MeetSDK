@@ -229,7 +229,7 @@ public class ClipListActivity extends Activity implements
 	private static final int MSG_LIST_EPG_CATALOG_DONE			= 502;
 	private static final int MSG_FAIL_TO_CONNECT_EPG_SERVER		= 511;
 	private static final int MSG_PUSH_CDN_CLIP					= 601;
-	private static final int MSG_SET_CDN_URL						= 602;
+	private static final int MSG_PLAY_CDN_URL						= 602;
 	
 	private ProgressDialog progDlg 				= null;
 	
@@ -650,7 +650,7 @@ public class ClipListActivity extends Activity implements
 				}
 				
 				if (ppbox_bw_type == 4) {// dlna
-					new EPGTask().execute(EPG_ITEM_CDN, ppbox_playid, 0); // 3 params for MSG_SET_CDN_URL
+					new EPGTask().execute(EPG_ITEM_CDN, ppbox_playid, 0); // 3 params for MSG_PLAY_CDN_URL
 					return;
 				}
 				
@@ -1206,12 +1206,11 @@ public class ClipListActivity extends Activity implements
 				Toast.makeText(ClipListActivity.this, "failed to connect to epg server", Toast.LENGTH_SHORT).show();
 				break;
 			case MSG_PUSH_CDN_CLIP:
-				mDLNA.SetURI(mDlnaDeviceUUID, mDLNAPushUrl);
 				Log.i(TAG, String.format("Java: dlna push url(%s) to uuid(%s) name(%s)", mDLNAPushUrl, mDlnaDeviceUUID, mDlnaDeviceName));
 				Toast.makeText(ClipListActivity.this, 
 						String.format("push url to dmr %s", mDlnaDeviceName), Toast.LENGTH_SHORT).show();
 				break;
-			case MSG_SET_CDN_URL:
+			case MSG_PLAY_CDN_URL:
 				Log.i(TAG, "cdn url set %s"+ mDLNAPushUrl);
 				stop_player();
 				start_player(mDLNAPushUrl);
@@ -1308,6 +1307,20 @@ public class ClipListActivity extends Activity implements
 		}
 	}
 	
+	private void push_cdn_clip() {
+		//mDLNA.EnableRendererControler(true);
+		mDLNA.SetURI(mDlnaDeviceUUID, mDLNAPushUrl);
+		try {
+			Thread.sleep(500);
+		}
+		catch(Exception e) {
+			e.printStackTrace();
+		}
+		mDLNA.Play(mDlnaDeviceUUID);
+		
+		mHandler.sendEmptyMessage(MSG_PUSH_CDN_CLIP);
+	}
+	
 	private class EPGTask extends AsyncTask<Integer, Integer, Boolean> {
         @Override
         protected Boolean doInBackground(Integer... params) {
@@ -1348,9 +1361,9 @@ public class ClipListActivity extends Activity implements
             	}
         		
         		if (params.length > 2)
-        			mHandler.sendEmptyMessage(MSG_SET_CDN_URL);
+        			mHandler.sendEmptyMessage(MSG_PLAY_CDN_URL);
         		else
-        			mHandler.sendEmptyMessage(MSG_PUSH_CDN_CLIP);
+        			push_cdn_clip();
         	}
         	else {
         		Log.w(TAG, "Java: EPGTask invalid type: " + type);
@@ -1499,7 +1512,7 @@ public class ClipListActivity extends Activity implements
 				else
 					mDLNAPushUrl = mPlayUrl;
 				
-				mHandler.sendEmptyMessage(MSG_PUSH_CDN_CLIP);
+				push_cdn_clip();
 			}
 		})
 		.setNegativeButton("Cancel",

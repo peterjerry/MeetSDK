@@ -12,6 +12,8 @@ public:
 
 	EPG_LIST * getPlaylink(int index);
 
+	EPG_LIST * search(const char* key);
+
 private:
 	void reset();
 

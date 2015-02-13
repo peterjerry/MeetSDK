@@ -87,7 +87,7 @@ EPG_LIST * apEPG::getCatalog(int index)
 		return NULL;
 	}
 
-	LOGI("curl_perform: %s", FRONTPAGE_URL);
+	LOGI("curl_perform(getCatalog): %s", FRONTPAGE_URL);
 
 	curl_easy_reset(curl);
 
@@ -107,6 +107,40 @@ EPG_LIST * apEPG::getCatalog(int index)
 		return mParser.parseCollection(mData, mDataSize, index);
 }
 
+EPG_LIST * apEPG::search(const char* key)
+{
+	reset();
+
+	CURL *curl = NULL;   
+	CURLcode res;
+	curl = curl_easy_init();  
+	if (!curl){
+		return NULL;
+	}
+
+	int out_len = 0;
+	char *encoded_key = urlencode(key, strlen(key), &out_len);
+
+	TCHAR url[1024] = {0};
+	_stprintf_s(url, SREATCH_URL_FMT, encoded_key);
+	LOGI("curl_perform(search): %s", url);
+
+	curl_easy_reset(curl);
+
+	curl_easy_setopt(curl, CURLOPT_URL, url);
+	curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, apEPG::write_data);
+	curl_easy_setopt(curl, CURLOPT_WRITEDATA, this);
+
+	res = curl_easy_perform(curl);
+	if (CURLE_OK != res) {
+		apLog::print(0, apLog::info, "curl error %s\n", curl_easy_strerror(res));
+		return NULL;
+	}
+	
+	
+	return mParserXml.parseSearch(mData, mDataSize);
+}
+
 EPG_LIST * apEPG::getPlaylink(int index)
 {
 	LOGI("getPlaylink() index %d", index);
@@ -120,7 +154,7 @@ EPG_LIST * apEPG::getPlaylink(int index)
 
 	TCHAR url[1024] = {0};
 	_stprintf_s(url, DETAIL_URL_FMT, index, index);
-	LOGI("curl_perform: %s", url);
+	LOGI("curl_perform(getPlaylink): %s", url);
 
 	CURL *curl = NULL;   
 	CURLcode res;
