@@ -13,23 +13,27 @@ public class PlayLink2 {
 	private String mResolution;
 	private int mWidth, mHeight;
 	private int mDurationSec;
+	
+	private String mExtTitle;
 
+	@SuppressWarnings("unused")
 	private PlayLink2() {
 		
 	}
 	
 	public PlayLink2(String title, String id, String desc) {
-		this(title, id, desc, 
+		this(title, "", id, desc, 
 				"", "", "", 
 				"", "",
 				"", 0);
 	}
 
-	public PlayLink2(String title, String id, String desc, 
+	public PlayLink2(String title, String ext_title, String id, String desc, 
 			String mark, String director, String act, 
 			String year, String area,
 			String resolution, int duration_sec) {
 		mTitle 			= title;
+		mExtTitle		= ext_title;
 		mId				= id;
 		mDescription	= desc;
 		
@@ -51,7 +55,15 @@ public class PlayLink2 {
 	}
 	
 	public String getTitle() {
-		return mTitle;
+		StringBuffer sb = new StringBuffer();
+		sb.append(mTitle);
+		if (mExtTitle != null && !mExtTitle.isEmpty()) {
+			sb.append("(");
+			sb.append(mExtTitle);
+			sb.append(")");
+		}
+		
+		return sb.toString();
 	}
 	
 	public String getDescription() {
@@ -93,7 +105,7 @@ public class PlayLink2 {
 	public String toString() {
 		StringBuffer sb = new StringBuffer();
 		sb.append("标题: ");
-		sb.append(mTitle);
+		sb.append(getTitle());
 		sb.append(", id: ");
 		sb.append(mId);
 		sb.append(", 描述: ");

@@ -5,14 +5,14 @@ import java.util.ArrayList;
 public class TestEPG { 
 	
 	private static void search(EPGUtil epg) {
-		String key = "破产姐妹";
+		String key = "泰坦尼克";
 		String type = "0";
 		
 		boolean ret;
 		
 		ArrayList<PlayLink2> list = null;
 		System.out.println("step 1");
-		ret = epg.search(key, type, "0", "5");
+		ret = epg.search(key, type, "0", "10");
 		if(!ret)
 			return;
 		
@@ -31,7 +31,7 @@ public class TestEPG {
 		
 		while (true) {
 			
-			ret = epg.selection(id);
+			ret = epg.collection(id);
 			if (!ret)
 				break;
 			
@@ -53,7 +53,16 @@ public class TestEPG {
 	private static void frontpage(EPGUtil epg) {
 		boolean ret;
 		
-		ret = epg.frontpage(-1);
+		ret = epg.frontpage();
+		if(!ret)
+			return;
+		
+		ArrayList<Module> modulelist = epg.getModule();
+		for(int i=0;i<modulelist.size();i++) {
+			System.out.println(modulelist.get(i).toString());
+		}
+		
+		ret = epg.catalog(4);
 		if(!ret)
 			return;
 		
@@ -62,33 +71,31 @@ public class TestEPG {
 			System.out.println(catloglist.get(i).toString());
 		}
 		
-		ret = epg.frontpage(6);
-		if(!ret)
-			return;
-		
-		catloglist = epg.getCatalog();
-		for(int i=0;i<catloglist.size();i++) {
-			System.out.println(catloglist.get(i).toString());
-		}
-		
-		String vid = catloglist.get(0).getVid();
+		String vid = catloglist.get(4).getVid();
 		
 		ArrayList<PlayLink2> playlink2list = null;
 		
 		while (true) {
-			ret = epg.selection(vid);
+			ret = epg.collection(vid);
 			if (!ret)
 				break;
 			
 			playlink2list = epg.getLink();
-			if (playlink2list.size() > 0) {
-				PlayLink2 first = playlink2list.get(0);
-				System.out.println(first.toString());
-				vid = first.getId();
+			for(int i=0;i<playlink2list.size();i++) {
+				System.out.println(playlink2list.get(i).toString());
 			}
 			
-			if (playlink2list.size() == 1)
-				break;
+			if (playlink2list.size() > 0) {
+				PlayLink2 first = playlink2list.get(0);
+				vid = first.getId();
+				
+				if (playlink2list.size() == 1) { 
+					String cdn_url = epg.getCDNUrl(vid, "1", false, false);
+					if (cdn_url != null)
+						System.out.println("vid: " + vid + " , url: " + cdn_url);
+					break;
+				}
+			}
 		}
 	}
 	
@@ -96,7 +103,7 @@ public class TestEPG {
 		
 		EPGUtil epg = new EPGUtil();
 		
-		if (true) {
+		if (false) {
 			frontpage(epg);
 		}
 		else {

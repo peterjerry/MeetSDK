@@ -1,31 +1,19 @@
 package com.pplive.epg;
 
 public class Catalog { 
-	private int mIndex;
-	private String mId;
 	private String mTitle;
-
+	private String mTarget;
 	private String mLink;
 	
+	@SuppressWarnings("unused")
 	private Catalog() {
 		
 	}
 	
-	public Catalog(int index, String id, String title) {
-		mIndex 			= index;
-		mId				= id;
-		mTitle			= title;
-	}
-	
-	public Catalog(String title, String link) {
-		mIndex			= -1;
-		mId				= "N/A";
-		mTitle			= title;
-		mLink			= link;
-	}
-	
-	public String getId() {
-		return mId;
+	public Catalog(String title, String target, String link) {
+		this.mTitle		= title;
+		this.mTarget	= target;
+		this.mLink		= link;
 	}
 	
 	public String getVid() {
@@ -46,27 +34,17 @@ public class Catalog {
 		return mTitle;
 	}
 	
-	public int getIndex() {
-		return mIndex;
-	}
-	
 	public String toString() {
 		StringBuffer sb = new StringBuffer();
 		sb.append("title: ");
 		sb.append(mTitle);
-		
-		if (mIndex != -1) {
-			sb.append(", #");
-			sb.append(mIndex);
-			sb.append(", id: ");
-			sb.append(mId);
-		}
-		
-		if (mLink != null) {
-			sb.append(", vid: ");
-			sb.append(getVid());
-		}
+		sb.append(", vid: ");
+		sb.append(getVid());
 		
 		return sb.toString();
+	}
+
+	public String getTarget() {
+		return mTarget;
 	}
 }

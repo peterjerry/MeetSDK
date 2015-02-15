@@ -67,10 +67,12 @@ import com.pplive.meetplayer.util.IDlnaCallback;
 import com.pplive.meetplayer.util.ListMediaUtil;
 import com.pplive.meetplayer.util.LoadPlayLinkUtil;
 import com.pplive.meetplayer.util.LogcatHelper;
+import com.pplive.meetplayer.util.Module;
 import com.pplive.meetplayer.util.PlayLink2;
 import com.pplive.meetplayer.util.PlayLinkUtil;
 import com.pplive.meetplayer.util.Util;
 import com.pplive.dlna.DLNASdk;
+
 
 
 
@@ -138,6 +140,7 @@ public class ClipListActivity extends Activity implements
 	private Dialog mUpdateDialog;
 	
 	private boolean mIsPreview					= true;
+	private boolean mIsLoop					= false;
 	
 	private boolean mIsBuffering 				= false;
 	private boolean mStoped					= false;
@@ -170,14 +173,16 @@ public class ClipListActivity extends Activity implements
 	
 	// epg
 	private EPGUtil mEPG;
-	private boolean mEPGFrontpage = true;
+	private ArrayList<Module> mEPGModuleList 	= null;
 	private ArrayList<Catalog> mEPGCatalogList = null;
 	private ArrayList<PlayLink2> mEPGLinkList 	= null;
-	private int mLastEPGitem					= -1;
+	private String mEPGsearchKey;
 	private String mDLNAPushUrl;
-	private final int EPG_ITEM_CATALOG			= 1;
-	private final int EPG_ITEM_SELECTION		= 2;
-	private final int EPG_ITEM_CDN				= 4;
+	private final int EPG_ITEM_FRONTPAGE		= 1;
+	private final int EPG_ITEM_CATALOG			= 2;
+	private final int EPG_ITEM_SELECTION		= 3;
+	private final int EPG_ITEM_SEARCH			= 4;
+	private final int EPG_ITEM_CDN				= 11;
 
 	private boolean mListLocalFile				= true;
 	
@@ -215,9 +220,10 @@ public class ClipListActivity extends Activity implements
 	final static int QUIT 						= Menu.FIRST + 3;
 	final static int OPTION 					= Menu.FIRST + 4;
 	final static int OPTION_PREVIEW			= Menu.FIRST + 11;
-	final static int OPTION_DLNA_LIST			= Menu.FIRST + 12;
-	final static int OPTION_EPG_LIST			= Menu.FIRST + 13;
-	
+	final static int OPTION_LOOP				= Menu.FIRST + 12;
+	final static int OPTION_DLNA_LIST			= Menu.FIRST + 21;
+	final static int OPTION_EPG_FRONTPAGE		= Menu.FIRST + 22;
+	final static int OPTION_EPG_SEARCH			= Menu.FIRST + 23;
 	
 	
 	// message
@@ -230,9 +236,12 @@ public class ClipListActivity extends Activity implements
 	private static final int MSG_FAIL_TO_LIST_HTTP_LIST			= 301;
 	private static final int MSG_DISPLAY_SUBTITLE					= 401;
 	private static final int MSG_HIDE_SUBTITLE					= 402;
-	private static final int MSG_LIST_EPG_CATALOG_DONE			= 501;
-	private static final int MSG_LIST_EPG_PLAYLINK				= 502;
+	private static final int MSG_LIST_EPG_FRONTPAGE_DONE			= 501;
+	private static final int MSG_LIST_EPG_CATALOG_DONE			= 502;
+	private static final int MSG_LIST_EPG_COLLECTION_DONE			= 503;
+	private static final int MSG_LIST_EPG_SEARCH_DONE				= 504;
 	private static final int MSG_FAIL_TO_CONNECT_EPG_SERVER		= 511;
+	private static final int MSG_FAIL_TO_PARSE_EPG_RESULT			= 512;
 	private static final int MSG_PUSH_CDN_CLIP					= 601;
 	private static final int MSG_PLAY_CDN_URL						= 602;
 	
@@ -657,7 +666,7 @@ public class ClipListActivity extends Activity implements
 				}
 				
 				if (ppbox_bw_type == 4) {// dlna
-					new EPGTask().execute(EPG_ITEM_CDN, ppbox_playid, 0); // 3 params for MSG_PLAY_CDN_URL
+					new EPGTask().execute(EPG_ITEM_CDN, ppbox_playid, 0); // 3rd params for MSG_PLAY_CDN_URL
 					return;
 				}
 				
@@ -1164,22 +1173,28 @@ public class ClipListActivity extends Activity implements
 			case MSG_HIDE_SUBTITLE:
 				mSubtitleTextView.setText("");
 				break;
-			case MSG_LIST_EPG_PLAYLINK:
+			case MSG_LIST_EPG_FRONTPAGE_DONE:
+				popupEPGFrontpageDlg();
+				break;
+			case MSG_LIST_EPG_CATALOG_DONE:
+				popupEPGCatalogDlg();
+				break;
+			case MSG_LIST_EPG_COLLECTION_DONE:
+			case MSG_LIST_EPG_SEARCH_DONE:
 				if (mEPGLinkList.size() == 1) {
-					Toast.makeText(ClipListActivity.this, "playlink is set", Toast.LENGTH_SHORT).show();
+					Toast.makeText(ClipListActivity.this, 
+							String.format("\"%s\" is set", mEPGLinkList.get(0).getTitle()),
+							Toast.LENGTH_SHORT).show();
 					et_playlink.setText(mEPGLinkList.get(0).getId());
 				}
 				else
 					popupEPGCollectionDlg();
 				break;
-			case MSG_LIST_EPG_CATALOG_DONE:
-				if (mEPGFrontpage)
-					popupEPGFrontpageDlg();
-				else
-					popupEPGCatalogDlg();
-				break;
 			case MSG_FAIL_TO_CONNECT_EPG_SERVER:
 				Toast.makeText(ClipListActivity.this, "failed to connect to epg server", Toast.LENGTH_SHORT).show();
+				break;
+			case MSG_FAIL_TO_PARSE_EPG_RESULT:
+				Toast.makeText(ClipListActivity.this, "failed to parse epg result", Toast.LENGTH_SHORT).show();
 				break;
 			case MSG_PUSH_CDN_CLIP:
 				Log.i(TAG, String.format("Java: dlna push url(%s) to uuid(%s) name(%s)", mDLNAPushUrl, mDlnaDeviceUUID, mDlnaDeviceName));
@@ -1199,7 +1214,7 @@ public class ClipListActivity extends Activity implements
 	}; 
 	
 	private void popupEPGFrontpageDlg() {
-		int size = mEPGCatalogList.size();
+		int size = mEPGModuleList.size();
 		if (size == 0) {
 			Toast.makeText(this, "epg catalog is empty!", Toast.LENGTH_SHORT).show();
 			return;
@@ -1209,7 +1224,7 @@ public class ClipListActivity extends Activity implements
 		final ArrayList<Integer> index_list = new ArrayList<Integer>();
 		
 		for (int i=0;i<size;i++) {
-			Catalog c = mEPGCatalogList.get(i);
+			Module c = mEPGModuleList.get(i);
 			String title = c.getTitle();
 			title_list.add(title);
 			index_list.add(c.getIndex()); // index in programs
@@ -1224,15 +1239,8 @@ public class ClipListActivity extends Activity implements
 			public void onClick(DialogInterface dialog, int whichButton) {
 				if (whichButton >= 0) {
 						int item = index_list.get(whichButton);
-						if (item != mLastEPGitem) {
-							mLastEPGitem = item;
-							Toast.makeText(ClipListActivity.this, "loading epg clip...", Toast.LENGTH_SHORT).show();
-							new EPGTask().execute(EPG_ITEM_CATALOG, item);
-						}
-						else {
-							// just display cache list
-							mHandler.sendEmptyMessage(MSG_LIST_EPG_CATALOG_DONE);
-						}
+						Toast.makeText(ClipListActivity.this, "loading epg clip...", Toast.LENGTH_SHORT).show();
+						new EPGTask().execute(EPG_ITEM_CATALOG, item);
 				}
 				
 				dialog.dismiss();
@@ -1254,7 +1262,7 @@ public class ClipListActivity extends Activity implements
 		}
 		
 		ArrayList<String> title_list = new ArrayList<String>();
-		final ArrayList<Integer> vid_list = new ArrayList<Integer>();
+		final ArrayList<String> vid_list = new ArrayList<String>();
 		
 		for (int i=0;i<size;i++) {
 			Catalog c = mEPGCatalogList.get(i);
@@ -1271,7 +1279,7 @@ public class ClipListActivity extends Activity implements
 			new DialogInterface.OnClickListener(){
 			public void onClick(DialogInterface dialog, int whichButton) {
 				if (whichButton >= 0) {
-						int vid = vid_list.get(whichButton);
+						int vid = Integer.valueOf(vid_list.get(whichButton));
 						Log.i(TAG, "Java: epg vid: " + vid);
 						new EPGTask().execute(EPG_ITEM_SELECTION, vid);						
 				}
@@ -1290,23 +1298,22 @@ public class ClipListActivity extends Activity implements
 	private void popupEPGCollectionDlg() {
 		int size = mEPGLinkList.size();
 		if (size > 0) {
-			ArrayList<String> name_list = new ArrayList<String>();
+			ArrayList<String> title_list = new ArrayList<String>();
 			final ArrayList<String> link_list = new ArrayList<String>();
 			
 			for (int i=0;i<size;i++) {
 				PlayLink2 l = mEPGLinkList.get(i);
-				String name = l.getTitle();
+				String title = l.getTitle();
 				String link = l.getId();
-				name_list.add(name);
+				title_list.add(title);
 				link_list.add(link);
 			}
 			
-			final String[] str_link_list = (String[])link_list.toArray(new String[link_list.size()]);
-			final String[] str_name_list = (String[])name_list.toArray(new String[name_list.size()]);
+			final String[] str_title_list = (String[])title_list.toArray(new String[title_list.size()]);
 			
 			Dialog choose_clip_dlg = new AlertDialog.Builder(ClipListActivity.this)
 			.setTitle("Select clip to play")
-			.setItems(str_name_list, 
+			.setItems(str_title_list, 
 				new DialogInterface.OnClickListener(){
 				public void onClick(DialogInterface dialog, int whichButton) {
 					int vid = Integer.valueOf(link_list.get(whichButton));
@@ -1345,43 +1352,61 @@ public class ClipListActivity extends Activity implements
         	if (params.length > 1)
         		id = params[1];
         	
-        	boolean ret = false;
+        	boolean ret;
         	
-        	if (EPG_ITEM_CATALOG == type) {
-        		if(id != -1)
-        			mEPGFrontpage = false;
-        		
-        		ret = mEPG.frontpage(id);
-        		if (ret) {
-        			mEPGCatalogList = mEPG.getCatalog();
-        			if (mEPGCatalogList == null) {
-        				mHandler.sendEmptyMessage(MSG_FAIL_TO_CONNECT_EPG_SERVER);
-        			}
-        			else {
-        				for(int i=0;i<mEPGCatalogList.size();i++) {
-        					Log.i(TAG, String.format("Java: epg getCategory() #%d %s, vid %d",
-        							mEPGCatalogList.get(i).getIndex(), mEPGCatalogList.get(i).getTitle(),
-        							mEPGCatalogList.get(i).getVid()));
-        				}
-        				
-        				mHandler.sendEmptyMessage(MSG_LIST_EPG_CATALOG_DONE);
-        			}
+        	if (EPG_ITEM_FRONTPAGE == type) {
+        		if (!mEPG.frontpage()) {
+        			mHandler.sendEmptyMessage(MSG_FAIL_TO_CONNECT_EPG_SERVER);
+        			return false;
         		}
+        		
+        		mEPGModuleList = mEPG.getModule();
+    			if (mEPGModuleList.size() == 0)
+    				return false;
+        		
+        		mHandler.sendEmptyMessage(MSG_LIST_EPG_FRONTPAGE_DONE);
+        	}
+        	if (EPG_ITEM_CATALOG == type) {
+        		if (!mEPG.catalog(id)) {
+        			mHandler.sendEmptyMessage(MSG_FAIL_TO_PARSE_EPG_RESULT);
+        			return false;
+        		}
+        		
+    			mEPGCatalogList = mEPG.getCatalog();
+    			if (mEPGCatalogList.size() == 0)
+    				return false;
+				
+				mHandler.sendEmptyMessage(MSG_LIST_EPG_CATALOG_DONE);
         	}
         	else if (EPG_ITEM_SELECTION == type){
-        		ret = mEPG.selection(String.valueOf(id));
-        		if (ret) {
-        			mEPGLinkList = mEPG.getLink();
-        			if (mEPGLinkList == null) {
-        				mHandler.sendEmptyMessage(MSG_FAIL_TO_CONNECT_EPG_SERVER);
-        			}
-        			else {
-        				mHandler.sendEmptyMessage(MSG_LIST_EPG_PLAYLINK);
-        			}
+				Log.i(TAG, "Java: epg collection() " + id);
+				
+        		if (!mEPG.collection(String.valueOf(id))) {
+        			mHandler.sendEmptyMessage(MSG_FAIL_TO_PARSE_EPG_RESULT);
+        			return false;
         		}
+
+    			mEPGLinkList = mEPG.getLink();
+    			if (mEPGLinkList.size() == 0)
+    				return false;
+
+    			mHandler.sendEmptyMessage(MSG_LIST_EPG_COLLECTION_DONE);
+        	}
+        	else if (EPG_ITEM_SEARCH == type) {
+        		if (!mEPG.search(mEPGsearchKey, "0", "0", "10")) {
+        			mHandler.sendEmptyMessage(MSG_FAIL_TO_CONNECT_EPG_SERVER);
+    				return false;
+    			}
+        		
+    			mEPGLinkList = mEPG.getLink();
+    			if (mEPGLinkList.size() == 0)
+    				return false;
+
+    			mHandler.sendEmptyMessage(MSG_LIST_EPG_SEARCH_DONE);
         	}
         	else if (EPG_ITEM_CDN == type){
-        		/*mDLNAPushUrl = epg.getCDNUrl(String.valueOf(id), btn_ft.getText().toString());
+        		Log.i(TAG, "Java: EPGTask start to getCDNUrl");
+        		mDLNAPushUrl = mEPG.getCDNUrl(String.valueOf(id), btn_ft.getText().toString(), false, false);
         		if (mDLNAPushUrl == null) {
             		mHandler.sendEmptyMessage(MSG_FAIL_TO_CONNECT_EPG_SERVER);
             		return false;
@@ -1390,13 +1415,13 @@ public class ClipListActivity extends Activity implements
         		if (params.length > 2)
         			mHandler.sendEmptyMessage(MSG_PLAY_CDN_URL);
         		else
-        			push_cdn_clip();*/
+        			push_cdn_clip();
         	}
         	else {
         		Log.w(TAG, "Java: EPGTask invalid type: " + type);
         	}
         	
-        	return ret;
+        	return true;
         }
         
     	@Override
@@ -1569,11 +1594,16 @@ public class ClipListActivity extends Activity implements
 		previewMenuItem.setCheckable(true);
 		if (mIsPreview)
 			previewMenuItem.setChecked(true);
+		MenuItem loopMenuItem = OptSubMenu.add(i, OPTION_LOOP, Menu.NONE, "Loop");
+		loopMenuItem.setCheckable(true);
+		if (mIsLoop)
+			loopMenuItem.setChecked(true);
 		
 		// dlna
 		OptSubMenu.add(i, OPTION_DLNA_LIST, Menu.NONE, "dlna");
 		// epg
-		OptSubMenu.add(i, OPTION_EPG_LIST, Menu.NONE, "epg");
+		OptSubMenu.add(i, OPTION_EPG_FRONTPAGE, Menu.NONE, "epg frontpage");
+		OptSubMenu.add(i, OPTION_EPG_SEARCH, Menu.NONE, "epg search");
 		
 		menu.add(i, UPDATE_CLIP_LIST, Menu.NONE, "Update list")
 			.setIcon(R.drawable.list);
@@ -1622,10 +1652,29 @@ public class ClipListActivity extends Activity implements
 		case OPTION_DLNA_LIST:
 			push_to_dmr();
 			break;
-		case OPTION_EPG_LIST:
-			Toast.makeText(this, "loading epg catalog...", Toast.LENGTH_SHORT).show();
-			mEPGFrontpage = true;
-			new EPGTask().execute(EPG_ITEM_CATALOG);
+		case OPTION_EPG_FRONTPAGE:
+			if (mEPGModuleList != null)
+				mHandler.sendEmptyMessage(MSG_LIST_EPG_FRONTPAGE_DONE);
+			else {
+				Toast.makeText(this, "loading epg catalog...", Toast.LENGTH_SHORT).show();
+				new EPGTask().execute(EPG_ITEM_FRONTPAGE);
+			}
+			break;
+		case OPTION_EPG_SEARCH:
+			final EditText inputKey = new EditText(this);
+	        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+	        builder.setTitle("input key").setIcon(android.R.drawable.ic_dialog_info).setView(inputKey)
+	                .setNegativeButton("Cancel", null);
+	        builder.setPositiveButton("Ok", new DialogInterface.OnClickListener() {
+
+	            public void onClick(DialogInterface dialog, int which) {
+	            	
+	            	mEPGsearchKey = inputKey.getText().toString();
+	            	Toast.makeText(ClipListActivity.this, "search epg...", Toast.LENGTH_SHORT).show();
+	    			new EPGTask().execute(EPG_ITEM_SEARCH);
+	             }
+	        });
+	        builder.show();
 			break;
 		default:
 			Log.w(TAG, "bad menu item selected: " + id);
@@ -1736,7 +1785,7 @@ public class ClipListActivity extends Activity implements
 		decode_drop_frame = 0;
 		
 		//if (mListLocalFile)
-		//	mPlayer.setLooping(true);
+		mPlayer.setLooping(mIsLoop);
 		
 		mVideoWidth = mp.getVideoWidth();
 		mVideoHeight = mp.getVideoHeight();
