@@ -1670,6 +1670,10 @@ void FFPlayer::onIOBitrateInfoImpl()
 {
 	LOGD("onBitrateInfo");
     notifyListener_l(MEDIA_INFO, MEDIA_INFO_TEST_IO_BITRATE, mIOBitrate);
+
+	int msec = 0;
+	getBufferingTime(&msec);
+	notifyListener_l(MEDIA_INFO, MEDIA_INFO_TEST_BUFFERING_MSEC, msec);
 }
 
 void FFPlayer::onMediaBitrateInfo(void *opaque)

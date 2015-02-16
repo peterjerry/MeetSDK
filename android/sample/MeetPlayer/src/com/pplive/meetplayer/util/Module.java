@@ -30,6 +30,10 @@ public class Module {
 		return mTitle;
 	}
 	
+	public String getLink() {
+		return mLink;
+	}
+	
 	@Override
 	public String toString() {
 		StringBuffer sb = new StringBuffer();

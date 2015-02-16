@@ -117,10 +117,13 @@ public:
 	
 private:
 	status_t flush_l();
+
 	static void* demux_thread(void* ptr);
-	void run();
-	//status_t join_l();
+
+	void thread_impl();
+
 	static int interrupt_l(void *ctx);
+
     void notifyListener_l(int msg, int ext1 = 0, int ext2 = 0);
 
 	static int ff_read_packet(void *opaque, uint8_t *buf, int buf_size);

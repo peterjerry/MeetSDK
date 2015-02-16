@@ -94,6 +94,7 @@ private:
 	int mLatency;
 	int mIOBitrate;
 	int mBitrate;
+	int mBufferingTimeMsec;
 private:
 	bool startP2P();
 	bool play_url(const char *url);

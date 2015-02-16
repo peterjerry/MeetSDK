@@ -154,6 +154,7 @@ CtestSDLdlgDlg::CtestSDLdlgDlg(CWnd* pParent /*=NULL*/)
 	mWidth(0), mHeight(0), mDuration(0), mUsedAudioChannel(1),
 	mDecFPS(0), mRenderFPS(0), mDecAvgMsec(0), mRenderAvgMsec(0), 
 	mDropFrames(0), mRenderFrames(0), mLatency(0), mIOBitrate(0), mBitrate(0),
+	mBufferingTimeMsec(0),
 	mUserAddChnNum(0), 
 	mEPGQueryType(EPG_QUERY_CATALOG), mEPGValue(-1)
 {
@@ -364,13 +365,10 @@ void CtestSDLdlgDlg::OnTimer(UINT_PTR nIDEvent)
 			filename += "...";
 		}
 
-		int buffer_time_msec;
-		mPlayer->getBufferingTime(&buffer_time_msec);
-
 		title.Format("%s, v-a %03d, drop %d, render %d, %02d(%03d)/%02d(%03d), %d/%d kbps | %d msec", 
 			filename.GetBuffer(), 
 			mLatency, mDropFrames, mRenderFrames, 
-			mDecFPS, mDecAvgMsec, mRenderFPS, mRenderAvgMsec, mIOBitrate, mBitrate, buffer_time_msec);
+			mDecFPS, mDecAvgMsec, mRenderFPS, mRenderAvgMsec, mIOBitrate, mBitrate, mBufferingTimeMsec);
 		SetWindowText(title);
 		if (mPlayLive) {
 			int32_t new_duration;
@@ -818,6 +816,9 @@ LRESULT CtestSDLdlgDlg::OnNotify(WPARAM wParam, LPARAM lParam)
 		}
 		else if(MEDIA_INFO_TEST_DROP_FRAME == ext1) {
 			mDropFrames++;
+		}
+		else if(MEDIA_INFO_TEST_BUFFERING_MSEC == ext1) {
+			mBufferingTimeMsec = ext2;
 		}
 		else if(MEDIA_INFO_TEST_IO_BITRATE == ext1) {
 			mIOBitrate = ext2;

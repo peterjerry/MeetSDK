@@ -620,7 +620,12 @@ status_t FFStream::getPacket(int32_t streamIndex, AVPacket** packet)
 		        LOGD("audio queue empty");
                 if(!mIsBuffering) {
                     mIsBuffering = true;
-                    LOGD("audio MEDIA_INFO_BUFFERING_START");
+					int64_t offset = (mMovieFile->pb ? avio_tell(mMovieFile->pb) : 0);
+#ifdef _MSC_VER	
+					LOGI("audio MEDIA_INFO_BUFFERING_START, offset %I64d", offset);
+#else
+					LOGI("audio MEDIA_INFO_BUFFERING_START, offset %lld", offset);
+#endif
                     notifyListener_l(MEDIA_INFO, MEDIA_INFO_BUFFERING_START);
                 }
 
@@ -663,7 +668,12 @@ status_t FFStream::getPacket(int32_t streamIndex, AVPacket** packet)
 		        LOGD("video queue empty");
                 if(!mIsBuffering) {
                     mIsBuffering = true;
-                    LOGD("video MEDIA_INFO_BUFFERING_START");
+					int64_t offset = (mMovieFile->pb ? avio_tell(mMovieFile->pb) : 0);
+#ifdef _MSC_VER	
+					LOGI("video MEDIA_INFO_BUFFERING_START, offset %I64d", offset);
+#else
+					LOGI("video MEDIA_INFO_BUFFERING_START, offset %lld", offset);
+#endif
                     notifyListener_l(MEDIA_INFO, MEDIA_INFO_BUFFERING_START);
                 }
                 return FFSTREAM_ERROR_BUFFERING;
@@ -676,7 +686,7 @@ status_t FFStream::getPacket(int32_t streamIndex, AVPacket** packet)
     }
 }
 
-void FFStream::run()
+void FFStream::thread_impl()
 {
 	// initial state is "buffering..."
 #ifdef TEST_PERFORMANCE_BITRATE 
@@ -806,7 +816,12 @@ void FFStream::run()
             {
 				// packet queue is enough for play
                 mIsBuffering = false;
-                LOGD("MEDIA_INFO_BUFFERING_END");
+				int64_t offset = (mMovieFile->pb ? avio_tell(mMovieFile->pb) : 0);
+#ifdef _MSC_VER	
+                LOGI("MEDIA_INFO_BUFFERING_END, offset %I64d", offset);
+#else
+				LOGI("MEDIA_INFO_BUFFERING_END, offset %lld", offset);
+#endif
                 notifyListener_l(MEDIA_INFO, MEDIA_INFO_BUFFERING_END);
             }
 
@@ -818,11 +833,11 @@ void FFStream::run()
 				
 				if (mIsBuffering) {
                     mMaxBufferSize *= 2;
-                    LOGI("Double max buffer size to:%d", mMaxBufferSize);
+                    LOGI("Double max buffer size to: %d", mMaxBufferSize);
                 }
                 else {
 					// too much data to decode, just wait for decoder consuming some data
-					while(mBufferSize > mMaxBufferSize ) {
+					while (mBufferSize > mMaxBufferSize ) {
 						struct timespec ts;
 						ts.tv_sec = 0;
 						ts.tv_nsec = 250000000ll; // 250 msec
@@ -1180,21 +1195,10 @@ status_t FFStream::flush_l()
 void* FFStream::demux_thread(void* ptr)
 {
 	LOGI("demux_thread thread started");
-
-#ifdef __ANDROID__
-    LOGD("getpriority before:%d", getpriority(PRIO_PROCESS, 0));
-    int streamThreadPriority = -6;
-    if(setpriority(PRIO_PROCESS, 0, streamThreadPriority) != 0)
-    {
-        LOGE("set stream thread priority failed");
-    }
-    LOGD("getpriority after:%d", getpriority(PRIO_PROCESS, 0));
-#endif
-
     FFStream* stream = (FFStream*)ptr;
-    stream->run();
+    stream->thread_impl();
 	LOGI("demux_thread thread exited");
-    return 0;
+    return NULL;
 }
 
 int FFStream::interrupt_l(void* ctx)

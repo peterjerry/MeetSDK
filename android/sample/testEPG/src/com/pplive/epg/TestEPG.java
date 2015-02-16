@@ -31,7 +31,7 @@ public class TestEPG {
 		
 		while (true) {
 			
-			ret = epg.collection(id);
+			ret = epg.detail(id);
 			if (!ret)
 				break;
 			
@@ -53,7 +53,7 @@ public class TestEPG {
 	private static void frontpage(EPGUtil epg) {
 		boolean ret;
 		
-		ret = epg.contents("");
+		ret = epg.frontpage();
 		if(!ret)
 			return;
 		
@@ -76,7 +76,7 @@ public class TestEPG {
 		ArrayList<PlayLink2> playlink2list = null;
 		
 		while (true) {
-			ret = epg.collection(vid);
+			ret = epg.detail(vid);
 			if (!ret)
 				break;
 			
@@ -99,15 +99,117 @@ public class TestEPG {
 		}
 	}
 	
+	private static void live(EPGUtil epg) {
+		boolean ret;
+		
+		ret = epg.contents_list();
+		if (!ret)
+			return;
+
+		ArrayList<Module> modulelist = epg.getModule();
+		for(int i=0;i<modulelist.size();i++) {
+			System.out.println(modulelist.get(i).toString());
+		}
+		
+		String prefix = "app://aph.pptv.com/v4/cate/live";
+		ret = epg.contents(prefix);
+		if(!ret)
+			return;
+		
+		ArrayList<Content> contentlist = epg.getContent();
+		for(int i=0;i<contentlist.size();i++) {
+			System.out.println(contentlist.get(i).toString());
+		}
+		
+		ret = epg.live(30, 164); // 156 164
+		if (!ret)
+			return;
+		
+		ArrayList<PlayLink2> playlink2list = null;
+		playlink2list = epg.getLink();
+		for(int i=0;i<playlink2list.size();i++) {
+			System.out.println(playlink2list.get(i).toString());
+		}
+	}
+	
+	private static void contents(EPGUtil epg) {
+		boolean ret;
+		
+		ret = epg.contents_list();
+		if (!ret)
+			return;
+
+		ArrayList<Module> modulelist = epg.getModule();
+		for(int i=0;i<modulelist.size();i++) {
+			System.out.println(modulelist.get(i).toString());
+		}
+		
+		String prefix = "app://aph.pptv.com/v4/cate/tv";
+		ret = epg.contents(prefix);
+		if(!ret)
+			return;
+		
+		ArrayList<Content> contentlist = epg.getContent();
+		for(int i=0;i<contentlist.size();i++) {
+			System.out.println(contentlist.get(i).toString());
+		}
+		
+		String param = contentlist.get(0).getParam();
+		System.out.println("param: " + param);
+		ret = epg.list(param); // "美国:area|"
+		if (!ret)
+			return;
+		
+		ArrayList<PlayLink2> playlink2list = null;
+		playlink2list = epg.getLink();
+		for(int i=0;i<playlink2list.size();i++) {
+			System.out.println(playlink2list.get(i).toString());
+		}
+		
+		String vid = playlink2list.get(2).getId();
+		
+		while (true) {
+			ret = epg.detail(vid);
+			if (!ret)
+				break;
+			
+			playlink2list = epg.getLink();
+			for(int i=0;i<playlink2list.size();i++) {
+				System.out.println(playlink2list.get(i).toString());
+			}
+			
+			if (playlink2list.size() > 0) {
+				PlayLink2 first = playlink2list.get(0);
+				vid = first.getId();
+				
+				if (playlink2list.size() == 1) { 
+					break;
+				}
+			}
+		}
+	}
+	
 	public static void main(String[] args) {
 		
 		EPGUtil epg = new EPGUtil();
 		
-		if (true) {
+		int type = 3;
+		switch(type) {
+		case 0:
 			frontpage(epg);
-		}
-		else {
+			break;
+		case 1:
 			search(epg);
+			break;
+		case 2:
+			contents(epg);
+			break;
+		case 3:
+			live(epg);
+			break;
+		default:
+			System.out.println("unknown type: " + type);
+			break;
 		}
 	}
 }

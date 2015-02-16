@@ -34,10 +34,10 @@ public class EPGUtil {
 			+ "&appid=com.pplive.androidphone&appver=4.1.3"
 			+ "&appplt=aph&userLevel=0";
 	
-	private final static String catalog_url = "http://mtbu.api.pptv.com/v4/module"
+	private final static String catalog_url_prefix = "http://mtbu.api.pptv.com/v4/module"
 			+ "?lang=zh_cn&platform=aphone&appid=com.pplive.androidphone"
-			+ "&appver=4.1.3&appplt=aph&userLevel=0&channel=@SHIP.TO.31415926PI@"
-			+ "&location=app%3A%2F%2Faph.pptv.com%2Fv4%2Fcate";
+			+ "&appver=4.1.3&appplt=aph&userLevel=0&channel=@SHIP.TO.31415926PI@";
+			//+ "&location=app%3A%2F%2Faph.pptv.com%2Fv4%2Fcate"; // app://aph.pptv.com/v4/cate
 	
 	private final static String search_url_fmt = "http://so.api.pptv.com/search_smart.api"
 			+ "?auth=d410fafad87e7bbf6c6dd62434345818"
@@ -59,6 +59,19 @@ public class EPGUtil {
 			+ "&vid=%s" // 8022983
 			+ "&series=1&virtual=1&ver=2&platform=android3";
 	
+	private final static String list_url_prefix_fmt = "http://epg.api.pptv.com/list.api"
+			+ "?auth=d410fafad87e7bbf6c6dd62434345818"
+			+ "&appver=4.1.3&canal=@SHIP.TO.31415926PI@"
+			+ "&userLevel=0&virtual=1&platform=android3"
+			+ "&s=1"
+			+ "&order=t"
+			+ "&c=%d"
+			+ "&vt=21"
+			+ "&ver=2"
+			+ "&type=2";
+			//+ "&ntags=%E7%BE%8E%E5%9B%BD%3Aarea%7C" // ntags=美国:area| -> &ntags=%E7%BE%8E%E5%9B%BD%3Aarea%7C
+			//+ "&appid=com.pplive.androidphone&appplt=aph";
+	
 	private final static String boxplay_prefix = "http://play.api.pptv.com/boxplay.api?" + 
 			"platform=android3&type=phone.android.vip&sv=4.0.1&param=";
 	
@@ -66,16 +79,22 @@ public class EPGUtil {
 			"&auth=55b7c50dc1adfc3bcabe2d9b2015e35c&vvid=41" +
 			"&id=%s&ft=1&k_ver=1.1.0";
 	
+	private ArrayList<Content> mContentList;
 	private ArrayList<Module> mModuleList;
 	private ArrayList<Catalog> mCatalogList;
 	private ArrayList<PlayLink2> mPlayLinkList;
 	private ArrayList<Navigator> mNavList;
 	
 	public EPGUtil() {
+		mContentList = new ArrayList<Content>();
 		mModuleList = new ArrayList<Module>();
 		mCatalogList = new ArrayList<Catalog>();
 		mPlayLinkList = new ArrayList<PlayLink2>();
 		mNavList = new ArrayList<Navigator>();
+	}
+	
+	public ArrayList<Content> getContent() {
+		return mContentList;
 	}
 	
 	public ArrayList<Module> getModule() {
@@ -92,6 +111,122 @@ public class EPGUtil {
 	
 	public ArrayList<Navigator> getNav() {
 		return mNavList;
+	}
+	
+	public boolean contents_list() {
+		String cate;
+		try {
+			String sur = "app://aph.pptv.com/v4/cate";
+			cate = URLEncoder.encode(sur, "utf-8");
+		} catch (UnsupportedEncodingException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+			return false;
+		}
+		
+		String url = catalog_url_prefix + "&location=" + cate;
+		
+		Log.i(TAG, "Java: epg contents_list " + url);
+		
+		HttpGet request = new HttpGet(url);
+		
+		HttpResponse response;
+		try {
+			response = new DefaultHttpClient().execute(request);
+			if (response.getStatusLine().getStatusCode() != 200){
+				return false;
+			}
+			
+			String result = EntityUtils.toString(response.getEntity());
+			JSONTokener jsonParser = new JSONTokener(result);
+			JSONObject item = (JSONObject) jsonParser.nextValue();
+			JSONArray modules = item.getJSONArray("modules");
+			
+			mModuleList.clear();
+			
+			JSONObject program = modules.getJSONObject(0).getJSONObject("data");
+			JSONArray contents = program.getJSONArray("dlist");
+			for (int i=0;i<contents.length();i++) {
+				JSONObject c = contents.getJSONObject(i);
+				Module new_mod = new Module(i, c.getString("title"), c.getString("target"), c.getString("link"));
+				mModuleList.add(new_mod);
+			}
+		} catch (ClientProtocolException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (JSONException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+		return true;
+	}
+	
+	public boolean contents(String surfix) {
+		
+		String cate;
+		try {
+			String sur = "app://aph.pptv.com/v4/cate";
+			if(surfix != null && !surfix.isEmpty())
+				sur = surfix;
+			cate = URLEncoder.encode(sur, "utf-8");
+		} catch (UnsupportedEncodingException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+			return false;
+		}
+		
+		String url = catalog_url_prefix + "&location=" + cate;
+		
+		Log.i(TAG, "Java: epg contents " + url);
+		
+		HttpGet request = new HttpGet(url);
+		
+		HttpResponse response;
+		try {
+			response = new DefaultHttpClient().execute(request);
+			if (response.getStatusLine().getStatusCode() != 200){
+				return false;
+			}
+			
+			String result = EntityUtils.toString(response.getEntity());
+			JSONTokener jsonParser = new JSONTokener(result);
+			JSONObject item = (JSONObject) jsonParser.nextValue();
+			JSONArray modules = item.getJSONArray("modules");
+			
+			mContentList.clear();
+			
+			JSONObject program = modules.getJSONObject(0).getJSONObject("data");
+			JSONArray contents = program.getJSONArray("dlist");
+			for (int i=0;i<contents.length();i++) {
+				JSONObject obj = contents.getJSONObject(i);
+				
+				JSONArray tags = obj.getJSONArray("tags");
+				if (tags == null)
+					continue;
+				
+				for (int j=0;j<tags.length();j++) {
+					JSONObject c = tags.getJSONObject(j);
+					Content new_content = new Content(
+							c.getString("id"), c.getString("title"), c.getString("param"), c.getString("position"));
+					mContentList.add(new_content);
+				}
+			}
+		} catch (ClientProtocolException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (JSONException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+		return true;
 	}
 	
 	public boolean frontpage() {
@@ -180,7 +315,75 @@ public class EPGUtil {
 		return true;
 	}
 	
-	public boolean collection(String vid) {
+	public boolean list(String param) {
+		String encoded_param;
+		int pos = param.indexOf('=');
+		if (pos == -1)
+			encoded_param = param;
+		else {
+			String tmp = param.substring(pos + 1, param.length());
+			try {
+				encoded_param = param.substring(0, pos + 1) + URLEncoder.encode(tmp, "utf-8");
+			} catch (UnsupportedEncodingException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+				return false;
+			}
+			Log.i(TAG, "Java: epg encoded param " + encoded_param);
+		}
+		
+		String url = String.format(list_url_prefix_fmt, 30);
+		//url += "&ntags=";
+		//url += tag;
+		url += "&";
+		url += encoded_param;
+		url += "&appid=com.pplive.androidphone&appplt=aph";
+		Log.i(TAG, "Java epg list " + url);
+		
+		boolean ret = false;
+		
+		HttpGet request = new HttpGet(url);
+		HttpResponse response;
+		
+		try {
+			response = new DefaultHttpClient().execute(request);
+			if (response.getStatusLine().getStatusCode() != 200){
+				return false;
+			}
+			
+			String result = EntityUtils.toString(response.getEntity());
+			Log.i(TAG, "Java epg result " + result.replace("\n", ""));
+			
+			SAXBuilder builder = new SAXBuilder();
+			Reader returnQuote = new StringReader(result);  
+	        Document doc = builder.build(returnQuote);
+	        Element root = doc.getRootElement();
+	        
+	        mPlayLinkList.clear();
+	        
+	        List<Element> v_list = root.getChildren("v");
+			Iterator<Element> it2 = v_list.iterator();
+	        while (it2.hasNext()){   
+	        	Element v  = (Element) it2.next();
+	        	ret = add_v(v);
+	        	if (!ret)
+	        		break;
+	        }
+		} catch (ClientProtocolException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (JDOMException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+			
+		return ret;
+	}
+	
+	public boolean detail(String vid) {
 		String url = String.format(detail_url_fmt, vid, vid);
 		Log.i(TAG, "Java: epg url " + url);
 		

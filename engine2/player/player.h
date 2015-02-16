@@ -137,8 +137,9 @@ enum media_info_type {
 	MEDIA_INFO_TEST_DECODE_FPS		= 903,
 	MEDIA_INFO_TEST_RENDER_FPS		= 904, 
 	MEDIA_INFO_TEST_RENDER_FRAME	= 905, // total render frames
-	MEDIA_INFO_TEST_LATENCY_MSEC	= 906, // audio_clock - video_clock
+	MEDIA_INFO_TEST_LATENCY_MSEC	= 906, // video_clock - ref_clock
 	MEDIA_INFO_TEST_DROP_FRAME		= 907, // this frame is drop
+	MEDIA_INFO_TEST_BUFFERING_MSEC	= 908, // msec
 	MEDIA_INFO_TEST_IO_BITRATE		= 921, // read from disk or network(maybe zero) kbps
 	MEDIA_INFO_TEST_MEDIA_BITRATE	= 922, // media bitrate kbps
 
