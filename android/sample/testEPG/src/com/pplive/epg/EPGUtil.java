@@ -30,6 +30,11 @@ public class EPGUtil {
 			+ "&appid=com.pplive.androidphone&appver=4.1.3"
 			+ "&appplt=aph&userLevel=0";
 	
+	private final static String catalog_url_prefix = "http://mtbu.api.pptv.com/v4/module"
+			+ "?lang=zh_cn&platform=aphone&appid=com.pplive.androidphone"
+			+ "&appver=4.1.3&appplt=aph&userLevel=0&channel=@SHIP.TO.31415926PI@";
+			//+ "&location=app%3A%2F%2Faph.pptv.com%2Fv4%2Fcate";
+	
 	private final static String search_url_fmt = "http://so.api.pptv.com/search_smart.api"
 			+ "?auth=d410fafad87e7bbf6c6dd62434345818"
 			+ "&appver=4.1.3&canal=@SHIP.TO.31415926PI@"
@@ -85,8 +90,64 @@ public class EPGUtil {
 		return mNavList;
 	}
 	
+	public boolean contents(String surfix) {
+		
+		String cate;
+		try {
+			String sur = "app://aph.pptv.com/v4/cate";
+			if(surfix != null && !surfix.isEmpty())
+				sur = surfix;
+			cate = URLEncoder.encode(sur, "utf-8");
+		} catch (UnsupportedEncodingException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+			return false;
+		}
+		
+		String url = catalog_url_prefix + "&location=" + cate;
+		
+		System.out.println(url);
+		
+		HttpGet request = new HttpGet(url);
+		
+		HttpResponse response;
+		try {
+			response = HttpClients.createDefault().execute(request);
+			if (response.getStatusLine().getStatusCode() != 200){
+				return false;
+			}
+			
+			String result = EntityUtils.toString(response.getEntity());
+			JSONTokener jsonParser = new JSONTokener(result);
+			JSONObject item = (JSONObject) jsonParser.nextValue();
+			JSONArray modules = item.getJSONArray("modules");
+			
+			mModuleList.clear();
+			
+			JSONObject program = modules.getJSONObject(0).getJSONObject("data");
+			JSONArray contents = program.getJSONArray("dlist");
+			for (int i=0;i<contents.length();i++) {
+				JSONObject c = contents.getJSONObject(i);
+				Module new_content = new Module(i, c.getString("title"), c.getString("target"), c.getString("link"));
+				mModuleList.add(new_content);
+			}
+		} catch (ClientProtocolException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (JSONException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+		return true;
+	}
+		
 	public boolean frontpage() {
 		System.out.println(frontpage_url);
+		
 		HttpGet request = new HttpGet(frontpage_url);
 		
 		HttpResponse response;
@@ -107,7 +168,7 @@ public class EPGUtil {
 				JSONObject programs = modules.getJSONObject(i);
 				JSONObject data = programs.getJSONObject("data");
 				if (!data.isNull("title")) {
-					Module c = new Module(i, data.getString("title"), data.getString("target"), data.getString("link"));
+					Module c = new Module(i, data.getString("title"), /*data.getString("target")*/"", data.getString("link"));
 					mModuleList.add(c);
 				}
 			}

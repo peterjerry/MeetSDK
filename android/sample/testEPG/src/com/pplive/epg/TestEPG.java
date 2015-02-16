@@ -25,7 +25,7 @@ public class TestEPG {
 			System.out.println(l.toString());
 		}
 		
-		PlayLink2 l = list.get(0);
+		PlayLink2 l = list.get(1);
 		String id = l.getId();
 		System.out.println("step 2: " + id);
 		
@@ -53,7 +53,7 @@ public class TestEPG {
 	private static void frontpage(EPGUtil epg) {
 		boolean ret;
 		
-		ret = epg.frontpage();
+		ret = epg.contents("");
 		if(!ret)
 			return;
 		
@@ -90,9 +90,9 @@ public class TestEPG {
 				vid = first.getId();
 				
 				if (playlink2list.size() == 1) { 
-					String cdn_url = epg.getCDNUrl(vid, "1", false, false);
+					/*String cdn_url = epg.getCDNUrl(vid, "1", false, false);
 					if (cdn_url != null)
-						System.out.println("vid: " + vid + " , url: " + cdn_url);
+						System.out.println("vid: " + vid + " , url: " + cdn_url);*/
 					break;
 				}
 			}
@@ -103,7 +103,7 @@ public class TestEPG {
 		
 		EPGUtil epg = new EPGUtil();
 		
-		if (false) {
+		if (true) {
 			frontpage(epg);
 		}
 		else {

@@ -34,6 +34,11 @@ public class EPGUtil {
 			+ "&appid=com.pplive.androidphone&appver=4.1.3"
 			+ "&appplt=aph&userLevel=0";
 	
+	private final static String catalog_url = "http://mtbu.api.pptv.com/v4/module"
+			+ "?lang=zh_cn&platform=aphone&appid=com.pplive.androidphone"
+			+ "&appver=4.1.3&appplt=aph&userLevel=0&channel=@SHIP.TO.31415926PI@"
+			+ "&location=app%3A%2F%2Faph.pptv.com%2Fv4%2Fcate";
+	
 	private final static String search_url_fmt = "http://so.api.pptv.com/search_smart.api"
 			+ "?auth=d410fafad87e7bbf6c6dd62434345818"
 			+ "&appver=4.1.3&canal=@SHIP.TO.31415926PI@"

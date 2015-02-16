@@ -11,7 +11,9 @@ import java.net.URL;
 import java.net.URLEncoder;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.Date;
+import java.util.GregorianCalendar;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -36,11 +38,13 @@ import android.widget.AbsListView;
 import android.widget.AbsListView.OnScrollListener;
 import android.widget.AdapterView;
 import android.widget.Button;
+import android.widget.DatePicker;
 import android.widget.EditText;
 import android.widget.ListView;
 import android.widget.ProgressBar;
 import android.widget.LinearLayout;
 import android.widget.RelativeLayout;
+import android.widget.TimePicker;
 import android.widget.Toast;
 import android.widget.MediaController;
 import android.widget.MediaController.MediaPlayerControl;
@@ -72,15 +76,6 @@ import com.pplive.meetplayer.util.PlayLink2;
 import com.pplive.meetplayer.util.PlayLinkUtil;
 import com.pplive.meetplayer.util.Util;
 import com.pplive.dlna.DLNASdk;
-
-
-
-
-
-
-
-
-
 
 
 
@@ -146,6 +141,10 @@ public class ClipListActivity extends Activity implements
 	private boolean mStoped					= false;
 	private boolean mHomed						= false;
 	
+	// playback
+	private long mStartTimeSec = 0;
+	private int mDuration = 0;
+	
 	// list
 	private ListMediaUtil mListUtil;
 	private final static String HTTP_SERVER_URL = "http://172.16.204.106/test/testcase/";
@@ -199,7 +198,7 @@ public class ClipListActivity extends Activity implements
 	private int video_bitrate					= 0;
 	
 	private int preview_height;
-	private String str_play_link_surfix;
+	private String mPlayerLinkSurfix;
 	
 	private enum MEET_PLAY_TYPE {
 		UNKNOWN_TYPE,
@@ -671,7 +670,7 @@ public class ClipListActivity extends Activity implements
 				}
 				
 				String ppbox_url = PlayLinkUtil.getPlayUrl(isVOD, 
-						ppbox_playid, port, ppbox_ft, ppbox_bw_type, str_play_link_surfix);
+						ppbox_playid, port, ppbox_ft, ppbox_bw_type, mPlayerLinkSurfix);
 				
 				start_player(ppbox_url);
 			}
@@ -680,8 +679,10 @@ public class ClipListActivity extends Activity implements
 		this.btnSelectTime.setOnClickListener(new Button.OnClickListener() {
 			@Override
 			public void onClick(View view) {
-				Intent intent = new Intent(ClipListActivity.this, TimePickerActivity.class);
-				startActivityForResult(intent, 1);
+				//Intent intent = new Intent(ClipListActivity.this, TimePickerActivity.class);
+				//startActivityForResult(intent, 1);
+				
+				setPlaybackTime();
 			}
 		});
 		
@@ -711,7 +712,6 @@ public class ClipListActivity extends Activity implements
 			}
 		});
 		
-		btnSelectAudioTrack.setVisibility(View.VISIBLE);
 		this.btnSelectAudioTrack.setOnClickListener(new Button.OnClickListener() {
 			@Override
 			public void onClick(View view) {
@@ -727,6 +727,96 @@ public class ClipListActivity extends Activity implements
 			}
 		});
 	}
+	
+	private void setPlaybackTime() {
+    	AlertDialog.Builder builder = new AlertDialog.Builder(this); 
+        View view = View.inflate(this, R.layout.date_time_dialog, null); 
+        final DatePicker datePicker = (DatePicker) view.findViewById(R.id.date_picker); 
+        final TimePicker timePicker = (android.widget.TimePicker) view.findViewById(R.id.time_picker); 
+        builder.setView(view); 
+
+        Calendar cal = Calendar.getInstance(); 
+        cal.setTimeInMillis(System.currentTimeMillis()); 
+        datePicker.init(cal.get(Calendar.YEAR), cal.get(Calendar.MONTH), cal.get(Calendar.DAY_OF_MONTH), null); 
+
+        timePicker.setIs24HourView(true); 
+        timePicker.setCurrentHour(18/*cal.get(Calendar.HOUR_OF_DAY)*/); 
+        timePicker.setCurrentMinute(30/*cal.get(Calendar.MINUTE)*/); 
+ 
+        builder.setTitle("select start time"); 
+        builder.setPositiveButton("Confirm", new DialogInterface.OnClickListener() { 
+
+            @Override 
+            public void onClick(DialogInterface dialog, int which) { 
+
+            	int year, month, day, hour, min;
+            	year = datePicker.getYear();
+            	month = datePicker.getMonth();
+            	day  = datePicker.getDayOfMonth();
+            	hour = timePicker.getCurrentHour();
+            	min = timePicker.getCurrentMinute();
+            	
+            	String strHour = String.format("%02d", hour);
+                String strMin = String.format("%02d", min);
+                
+            	StringBuffer sb = new StringBuffer(); 
+                sb.append(String.format("%d-%02d-%02d",  
+                        year, month, day)); 
+                sb.append(" ");
+                sb.append(strHour).append(":").append(strMin); 
+                
+                String strTime;
+                strTime = String.format("%d-%02d-%02d %02d:%02d",
+                		datePicker.getYear(),
+                        datePicker.getMonth(), 
+                        datePicker.getDayOfMonth(),
+                        timePicker.getCurrentHour(),
+                        timePicker.getCurrentMinute());
+
+                //mETStartTime.setText(sb);
+                
+                // step1
+                GregorianCalendar gc = new GregorianCalendar(year, month, day, hour, min, 0);
+                mStartTimeSec = gc.getTimeInMillis() / 1000;
+            	
+            	// step2
+            	String strDuration =  "60"; //mETDuration.getText().toString();
+            	mDuration = Integer.parseInt(strDuration);
+            	
+            	Log.i(TAG, String.format("start_time %d sec, duration %d min", mStartTimeSec, mDuration));
+            	
+            	mPlayerLinkSurfix = String.format("&begin_time=%d&end_time=%d", 
+                		mStartTimeSec, mStartTimeSec + mDuration * 60);
+                try {
+                	mPlayerLinkSurfix = URLEncoder.encode(mPlayerLinkSurfix, "utf-8");
+				} catch (UnsupportedEncodingException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+                Log.i(TAG, "Java: mPlayerLinkSurfix final: " + mPlayerLinkSurfix);
+            	
+                dialog.cancel();
+                Toast.makeText(ClipListActivity.this, 
+                		String.format("toggle to playback mode start %s, duration %d min", sb, mDuration), 
+                		Toast.LENGTH_SHORT).show();
+            } 
+        });
+        
+        builder.setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
+
+			@Override
+			public void onClick(DialogInterface arg0, int arg1) {
+				mPlayerLinkSurfix = "";
+				mStartTimeSec = 0;
+				Toast.makeText(ClipListActivity.this, 
+                		String.format("toggle to live mode"), Toast.LENGTH_SHORT).show();
+			}
+        	
+        });
+        
+        Dialog dialog = builder.create(); 
+        dialog.show();
+    }
 	
 	private void TakeSnapShot() {
 		if (mPlayer == null) {
@@ -801,9 +891,9 @@ public class ClipListActivity extends Activity implements
                 int duration = intent.getIntExtra("duration_min", 60);
                 Log.i(TAG, String.format("activity return result: %s %d(%d min)", strStartTime, start_time, duration));
                 
-                str_play_link_surfix = String.format("&begin_time=%d&end_time=%d", start_time, start_time + duration * 60);
+                mPlayerLinkSurfix = String.format("&begin_time=%d&end_time=%d", start_time, start_time + duration * 60);
                 try {
-                	str_play_link_surfix = URLEncoder.encode(str_play_link_surfix, "utf-8");
+                	mPlayerLinkSurfix = URLEncoder.encode(mPlayerLinkSurfix, "utf-8");
 				} catch (UnsupportedEncodingException e) {
 					// TODO Auto-generated catch block
 					e.printStackTrace();
@@ -870,6 +960,8 @@ public class ClipListActivity extends Activity implements
 		
 		stop_player();
 		
+		btnSelectAudioTrack.setVisibility(View.GONE);
+		
 		if (!mIsPreview) {
 			Uri uri = Uri.parse(path);
 			Log.i(TAG, "Java: goto PlayerActivity, uri:" + uri.toString());
@@ -892,9 +984,7 @@ public class ClipListActivity extends Activity implements
 					}
 					
 					if (info.getAudioChannels() > 1)
-						btnSelectAudioTrack.setVisibility(View.VISIBLE);
-					else
-						btnSelectAudioTrack.setVisibility(View.INVISIBLE);
+						btnSelectAudioTrack.setVisibility(View.VISIBLE);	
 					
 					ArrayList<TrackInfo> subtitleTrackList = info.getSubtitleChannelsInfo();
 					for (TrackInfo trackInfo : subtitleTrackList) {
@@ -907,9 +997,6 @@ public class ClipListActivity extends Activity implements
 					}
 				}
 				
-			}
-			else {
-				btnSelectAudioTrack.setVisibility(View.INVISIBLE);
 			}
 			
 			if (DecodeMode.AUTO == dec_mode) {
@@ -1109,7 +1196,7 @@ public class ClipListActivity extends Activity implements
 	
 	private boolean isLivePlay() {
 		if (MEET_PLAY_TYPE.PPTV_LIVE_TYPE == play_type) {
-			if (str_play_link_surfix == null || str_play_link_surfix.equals(""))
+			if (mPlayerLinkSurfix == null || mPlayerLinkSurfix.equals(""))
 				return true;
 		}
 		
@@ -1891,7 +1978,7 @@ public class ClipListActivity extends Activity implements
 			AlertDialog.Builder builder = 
 				new AlertDialog.Builder(this); 
 			
-			builder.setMessage("Download");
+			builder.setMessage("Download new APK?");
 
 			builder.setPositiveButton("Yes",
 				new DialogInterface.OnClickListener() {
