@@ -141,6 +141,55 @@ public class VideoPlayerActivity extends Activity {
 		mVideoView.setOnInfoListener(mInfoListener);
 		mVideoView.setOnPreparedListener(mPreparedListener);
 		
+		String schema = mUri.getScheme();
+		String path = null;
+		
+		if ("file".equalsIgnoreCase(schema))
+			path = mUri.getPath();
+		else
+			path = mUri.toString();
+		
+		String name = "N/A";
+		if (path.startsWith("/") || path.startsWith("file://")) {
+			int pos = path.lastIndexOf('/');
+			if (pos != -1)
+				name = path.substring(pos + 1, path.length());
+			
+			if (name.length() > 16)
+				name = name.substring(0, 16) + "...";
+		}
+		else if(path.startsWith("http://")) {
+			int pos1, pos2;
+			String tmp;
+			pos1 = path.indexOf("?");
+			if (pos1 == -1)
+				name = path;
+			else {
+				tmp = path.substring(0, pos1);
+				pos2 = tmp.lastIndexOf('/');
+				if (pos2 == -1)
+					name = path;
+				else
+					name = tmp.substring(pos2 + 1, tmp.length());
+			}
+			
+			int pos3;
+			pos3 = path.indexOf("playlink=");
+			if (pos3 != -1) {
+				String link = path.substring(pos3 + 9, path.indexOf("%3F", pos3));
+				name += ", link " + link;
+			}
+			
+			int pos4;
+			pos4 = path.indexOf("Fft%3D");
+			if (pos4 != -1) {
+				String link = path.substring(pos4 + 6, pos4 + 7);
+				name += ", ft " + link;
+			}
+		}
+		
+		mController.setFileName(name);
+		
 		mBufferingProgressBar = (ProgressBar) findViewById(R.id.progressbar_buffering);
 		if(mBufferingProgressBar == null)
 			Log.e(TAG, "mBufferingProgressBar is null");
@@ -257,7 +306,6 @@ public class VideoPlayerActivity extends Activity {
 			case KeyEvent.KEYCODE_DPAD_RIGHT:
 			case KeyEvent.KEYCODE_DPAD_DOWN:
 			case KeyEvent.KEYCODE_DPAD_UP:
-			case KeyEvent.KEYCODE_DPAD_CENTER:
 				mController.show();
 				
 				if (KeyEvent.KEYCODE_DPAD_RIGHT == keyCode) {
@@ -274,11 +322,16 @@ public class VideoPlayerActivity extends Activity {
 						pos = 0;
 					mVideoView.seekTo(pos);
 				}
-				else if (KeyEvent.KEYCODE_DPAD_CENTER == keyCode) {
-					if (mVideoView.isPlaying())
-						mVideoView.pause();
-					else
-						mVideoView.resume();
+				
+				return true;
+			case KeyEvent.KEYCODE_ENTER: // 66
+				if (mVideoView.isPlaying()) {
+					mVideoView.pause();
+					mController.show(10000000);
+				}
+				else {
+					mVideoView.start();
+					mController.show();
 				}
 				return true;
 			default:

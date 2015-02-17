@@ -15,7 +15,7 @@
 		android:layout_marginBottom="10dp"
 		android:layout_alignParentRight="true" 
 		android:layout_marginRight="20dp" />
-    
+	
 	<RelativeLayout
 	    android:id="@+id/layout_mediacontroller"
 	    android:layout_width="wrap_content"
@@ -24,6 +24,19 @@
 		android:padding="10dp"
 		android:background="#40ffffff" >
 	    
+	    <RelativeLayout 
+		android:id="@+id/layout_playinfo"
+		android:layout_width="wrap_content"
+		android:layout_height="20dp"
+		android:layout_alignParentLeft="true" >
+			<TextView
+				android:id="@+id/textview_filename"
+				android:layout_width="wrap_content"
+				android:layout_height="wrap_content"
+				android:textColor="#FF0000"
+				android:text="test.mp4" />
+		</RelativeLayout>
+		    
 		<LinearLayout 
 			android:id="@+id/layout_player_panel"
 			android:layout_width="wrap_content"

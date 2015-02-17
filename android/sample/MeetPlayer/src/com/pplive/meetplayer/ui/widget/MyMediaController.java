@@ -34,6 +34,7 @@ public class MyMediaController extends MediaController {
 	private ProgressBar mVolumeBar;
 	private TextView mEndTime;
 	private TextView mCurrentTime;
+	private TextView mFileName;
 	StringBuilder mFormatBuilder;
     Formatter mFormatter;  
     
@@ -54,6 +55,11 @@ public class MyMediaController extends MediaController {
 		super(context, attr);
 		
 		mControllerView = makeControllerView();
+	}
+	
+	public void setFileName(String name) {
+		if (name != null)
+			mFileName.setText(name);
 	}
 	
 	@Override
@@ -109,6 +115,8 @@ public class MyMediaController extends MediaController {
 		mFormatBuilder = new StringBuilder();
         mFormatter = new Formatter(mFormatBuilder, Locale.getDefault());
         
+        mFileName = (TextView) v.findViewById(R.id.textview_filename);
+  
         this.setOnTouchListener(mTouchListener);
 	}
 	
@@ -241,7 +249,10 @@ public class MyMediaController extends MediaController {
 	private View.OnClickListener mPlayPauseListener = new View.OnClickListener() {
         public void onClick(View v) {
             doPauseResume();
-            show(sDefaultTimeout);
+            if (mPlayer.isPlaying())
+            	show(sDefaultTimeout);
+            else
+            	show(10000000); // never hide!
         }
     };
     

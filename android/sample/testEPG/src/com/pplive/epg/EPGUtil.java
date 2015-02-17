@@ -62,7 +62,7 @@ public class EPGUtil {
 			+ "&s=1"
 			+ "&order=t"
 			+ "&c=%d"
-			+ "&vt=21"
+			+ "&vt=21" // 21 -> 3,21
 			+ "&ver=2"
 			+ "&type=2";
 	

@@ -193,7 +193,7 @@ public class TestEPG {
 		
 		EPGUtil epg = new EPGUtil();
 		
-		int type = 3;
+		int type = 2;
 		switch(type) {
 		case 0:
 			frontpage(epg);
