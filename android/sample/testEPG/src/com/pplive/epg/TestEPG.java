@@ -1,6 +1,6 @@
 package com.pplive.epg;
 
-import java.util.ArrayList;
+import java.util.List;
 
 public class TestEPG { 
 	
@@ -10,7 +10,7 @@ public class TestEPG {
 		
 		boolean ret;
 		
-		ArrayList<PlayLink2> list = null;
+		List<PlayLink2> list = null;
 		System.out.println("step 1");
 		ret = epg.search(key, type, "0", "10");
 		if(!ret)
@@ -57,23 +57,27 @@ public class TestEPG {
 		if(!ret)
 			return;
 		
-		ArrayList<Module> modulelist = epg.getModule();
+		List<Module> modulelist = epg.getModule();
 		for(int i=0;i<modulelist.size();i++) {
 			System.out.println(modulelist.get(i).toString());
 		}
 		
-		ret = epg.catalog(4);
+		ret = epg.catalog(18);
 		if(!ret)
 			return;
 		
-		ArrayList<Catalog> catloglist = epg.getCatalog();
+		List<Catalog> catloglist = epg.getCatalog();
 		for(int i=0;i<catloglist.size();i++) {
 			System.out.println(catloglist.get(i).toString());
 		}
 		
-		String vid = catloglist.get(4).getVid();
+		String vid = catloglist.get(3).getVid();
+		if (vid == null) {
+			System.out.println("vid is null");
+			return;
+		}
 		
-		ArrayList<PlayLink2> playlink2list = null;
+		List<PlayLink2> playlink2list = null;
 		
 		while (true) {
 			ret = epg.detail(vid);
@@ -106,7 +110,7 @@ public class TestEPG {
 		if (!ret)
 			return;
 
-		ArrayList<Module> modulelist = epg.getModule();
+		List<Module> modulelist = epg.getModule();
 		for(int i=0;i<modulelist.size();i++) {
 			System.out.println(modulelist.get(i).toString());
 		}
@@ -116,16 +120,16 @@ public class TestEPG {
 		if(!ret)
 			return;
 		
-		ArrayList<Content> contentlist = epg.getContent();
+		List<Content> contentlist = epg.getContent();
 		for(int i=0;i<contentlist.size();i++) {
 			System.out.println(contentlist.get(i).toString());
 		}
 		
-		ret = epg.live(30, 164); // 156 164
+		ret = epg.live(1, 15, 164); // 156 164
 		if (!ret)
 			return;
 		
-		ArrayList<PlayLink2> playlink2list = null;
+		List<PlayLink2> playlink2list = null;
 		playlink2list = epg.getLink();
 		for(int i=0;i<playlink2list.size();i++) {
 			System.out.println(playlink2list.get(i).toString());
@@ -139,37 +143,40 @@ public class TestEPG {
 		if (!ret)
 			return;
 
-		ArrayList<Module> modulelist = epg.getModule();
+		List<Module> modulelist = epg.getModule();
 		for(int i=0;i<modulelist.size();i++) {
 			System.out.println(modulelist.get(i).toString());
 		}
 		
-		String prefix = modulelist.get(3).getLink();//"app://aph.pptv.com/v4/cate/tv";
+		String link = modulelist.get(7).getLink(); //"app://aph.pptv.com/v4/cate/tv";
+		
+		// save "type" for list()
 		String type = "";
-		int pos = prefix.indexOf("type=");
-		if(pos != -1) {
-			type = prefix.substring(pos, prefix.length());
+		int pos = link.indexOf("type=");
+		if (pos != -1) {
+			type = link.substring(pos, link.length());
 		}
 		
-		System.out.println("prefix " + prefix);
-		ret = epg.contents(prefix);
+		ret = epg.contents(link);
 		if(!ret)
 			return;
 		
-		ArrayList<Content> contentlist = epg.getContent();
+		List<Content> contentlist = epg.getContent();
 		for(int i=0;i<contentlist.size();i++) {
-			System.out.println(contentlist.get(i).toString());
+			System.out.println("#" + i + ": " + contentlist.get(i).toString());
 		}
 		
-		String param = contentlist.get(19).getParam();
+		String param = contentlist.get(5).getParam();
+		if (param.startsWith("type="))
+			type = "";
 		
-		System.out.println("param: " + param);
-		System.out.println("type: " + type);
-		ret = epg.list(param, type); // "美国:area|"
+		System.out.println(String.format("param: %s, type %s", param, type));
+		
+		ret = epg.list(param, type, 2, "order=n", 10); // "美国:area|"
 		if (!ret)
 			return;
 		
-		ArrayList<PlayLink2> playlink2list = null;
+		List<PlayLink2> playlink2list = null;
 		playlink2list = epg.getLink();
 		for(int i=0;i<playlink2list.size();i++) {
 			System.out.println(playlink2list.get(i).toString());
@@ -200,7 +207,10 @@ public class TestEPG {
 	
 	public static void main(String[] args) {
 		
-		EPGUtil epg = new EPGUtil();
+		MyFrame myFrame = new MyFrame();
+		myFrame.setVisible(true); 
+		
+		/*EPGUtil epg = new EPGUtil();
 		
 		int type = 2;
 		switch(type) {
@@ -219,6 +229,6 @@ public class TestEPG {
 		default:
 			System.out.println("unknown type: " + type);
 			break;
-		}
+		}*/
 	}
 }

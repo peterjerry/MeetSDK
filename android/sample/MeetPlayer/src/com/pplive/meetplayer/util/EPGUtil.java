@@ -63,14 +63,11 @@ public class EPGUtil {
 			+ "?auth=d410fafad87e7bbf6c6dd62434345818"
 			+ "&appver=4.1.3&canal=@SHIP.TO.31415926PI@"
 			+ "&userLevel=0&virtual=1&platform=android3"
-			+ "&s=1"
-			+ "&order=t"
-			+ "&c=%d"
-			+ "&vt=21"
+			+ "&s=%d" // start page index
+			+ "&%s" // order=xx 最受好评, param: order=g|最高人气, param: order=t|最新更新, param: order=n
+			+ "&c=%d" // count
+			+ "&vt=3,21" // 21 -> 3,21
 			+ "&ver=2";
-			//+ "&type=2";
-			//+ "&ntags=%E7%BE%8E%E5%9B%BD%3Aarea%7C" // ntags=美国:area| -> &ntags=%E7%BE%8E%E5%9B%BD%3Aarea%7C
-			//+ "&appid=com.pplive.androidphone&appplt=aph";
 	
 	private final static String boxplay_prefix = "http://play.api.pptv.com/boxplay.api?" + 
 			"platform=android3&type=phone.android.vip&sv=4.0.1&param=";
@@ -199,7 +196,11 @@ public class EPGUtil {
 			
 			mContentList.clear();
 			
-			JSONObject program = modules.getJSONObject(0).getJSONObject("data");
+			int module_index = 0;
+			if ("app://aph.pptv.com/v4/cate/sports?type=5".equals(surfix))
+				module_index = 1; // hard code
+			
+			JSONObject program = modules.getJSONObject(module_index).getJSONObject("data");
 			JSONArray contents = program.getJSONArray("dlist");
 			for (int i=0;i<contents.length();i++) {
 				JSONObject obj = contents.getJSONObject(i);
@@ -252,7 +253,13 @@ public class EPGUtil {
 				JSONObject programs = modules.getJSONObject(i);
 				JSONObject data = programs.getJSONObject("data");
 				if (!data.isNull("title")) {
-					Module c = new Module(i, data.getString("title"), data.getString("target"), data.getString("link"));
+					String target = "";
+					String link = "";
+					if (!data.isNull("target"))
+						target = data.getString("target");
+					if (!data.isNull("link"))
+						link = data.getString("link");
+					Module c = new Module(i, data.getString("title"), target, link);
 					mModuleList.add(c);
 				}
 			}
@@ -315,7 +322,8 @@ public class EPGUtil {
 		return true;
 	}
 	
-	public boolean list(String param, String type) {
+	public boolean list(String param, String type, 
+			int start_page, String order, int count) {
 		String encoded_param;
 		int pos = param.indexOf('=');
 		if (pos == -1)
@@ -332,7 +340,9 @@ public class EPGUtil {
 			Log.i(TAG, "Java: epg encoded param " + encoded_param);
 		}
 		
-		String url = String.format(list_url_prefix_fmt, 30);
+		String url = String.format(list_url_prefix_fmt, 
+				start_page, order, count);
+		
 		if (type != null && !type.isEmpty()) {
 			url += "&";
 			url += type;
@@ -361,6 +371,14 @@ public class EPGUtil {
 			Reader returnQuote = new StringReader(result);  
 	        Document doc = builder.build(returnQuote);
 	        Element root = doc.getRootElement();
+	        
+	        int total_count = Integer.valueOf(root.getChild("count").getText());
+	        int page_count = Integer.valueOf(root.getChild("page_count").getText());
+	        int countInPage = Integer.valueOf(root.getChild("countInPage").getText());
+	        int page = Integer.valueOf(root.getChild("page").getText()); // == input param s
+	        Log.i(TAG, 
+	        	String.format("total_count %d, page_count %d, countInPage %d, page %d",
+	        	total_count, page_count, countInPage, page));
 	        
 	        mPlayLinkList.clear();
 	        

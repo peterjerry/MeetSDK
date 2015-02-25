@@ -60,6 +60,7 @@ import android.util.DisplayMetrics; // for display width and height
 import android.content.DialogInterface;
 import android.app.AlertDialog;
 import android.app.Dialog;
+import android.content.SharedPreferences;
 
 import com.pplive.meetplayer.R;
 import com.pplive.meetplayer.util.AtvUtils;
@@ -107,10 +108,8 @@ public class ClipListActivity extends Activity implements
 
 	private final static String TAG = "ClipList";	
 	
-    /** http端口 */
     private final static String PORT_HTTP = "http";
 
-    /** rtsp端口 */
     private final static String PORT_RTSP = "rtsp";
 		
 	private Button btnPlay;
@@ -184,6 +183,9 @@ public class ClipListActivity extends Activity implements
 	private String mDLNAPushUrl;
 	private String mLink;
 	private String mEPGparam;
+	private String mEPGtype;
+	private int mEPGlistStartPage = 1;
+	private int mEPGlistCount = 15;
 	private final int EPG_ITEM_FRONTPAGE		= 1;
 	private final int EPG_ITEM_CATALOG			= 2;
 	private final int EPG_ITEM_DETAIL			= 3;
@@ -272,7 +274,7 @@ public class ClipListActivity extends Activity implements
 			R.id.tv_filesize, R.id.tv_resolution, R.id.iv_thumb };
 	
 	private boolean USE_BREAKPAD = false;
-	private boolean mRegisterBreakpad = false;
+	private boolean mBreakpadRegisterDone = false;
 
 	@SuppressWarnings("deprecation")
 	@Override
@@ -355,15 +357,12 @@ public class ClipListActivity extends Activity implements
 			}
 		}
 		
-		if (USE_BREAKPAD && !mRegisterBreakpad)
-        {
-            try
-            {
+		if (USE_BREAKPAD && !mBreakpadRegisterDone) {
+            try {
                 BreakpadUtil.registerBreakpad(new File(getCacheDir().getAbsolutePath()));
-                mRegisterBreakpad = true;
+                mBreakpadRegisterDone = true;
             }
-            catch (Exception e)
-            {
+            catch (Exception e) {
                 Log.e(TAG, e.toString());
             }
         }
@@ -989,7 +988,7 @@ public class ClipListActivity extends Activity implements
 				if (info != null) {
 					ArrayList<TrackInfo> audioTrackList = info.getAudioChannelsInfo();
 					for (TrackInfo trackInfo : audioTrackList) {
-						Log.i(TAG, String.format("Java： audio Trackinfo: streamindex #%d id %d, codec %s, lang %s, title %s", 
+						Log.i(TAG, String.format("Java: audio Trackinfo: streamindex #%d id %d, codec %s, lang %s, title %s", 
 							trackInfo.getStreamIndex(), 
 							trackInfo.getId(), 
 							trackInfo.getCodecName(), 
@@ -1002,7 +1001,7 @@ public class ClipListActivity extends Activity implements
 					
 					ArrayList<TrackInfo> subtitleTrackList = info.getSubtitleChannelsInfo();
 					for (TrackInfo trackInfo : subtitleTrackList) {
-						Log.i(TAG, String.format("Java： subtitle Trackinfo: streamindex #%d id %d, codec %s, lang %s, title %s", 
+						Log.i(TAG, String.format("Java: subtitle Trackinfo: streamindex #%d id %d, codec %s, lang %s, title %s", 
 							trackInfo.getStreamIndex(), 
 							trackInfo.getId(), 
 							trackInfo.getCodecName(), 
@@ -1226,9 +1225,9 @@ public class ClipListActivity extends Activity implements
 			HttpURLConnection conn = (HttpURLConnection)url.openConnection();
 			conn.setRequestMethod("GET");
 			if (conn.getResponseCode()==200)
-                Toast.makeText(this, "GET提交成功", Toast.LENGTH_SHORT).show();  
+                Toast.makeText(this, "GET post succeeded", Toast.LENGTH_SHORT).show();  
             else
-            	Toast.makeText(this, "GET提交失败", Toast.LENGTH_SHORT).show();  
+            	Toast.makeText(this, "GET post failed", Toast.LENGTH_SHORT).show();  
 		}
 		catch (IOException e) {
 			// TODO Auto-generated catch block
@@ -1344,7 +1343,7 @@ public class ClipListActivity extends Activity implements
 		final String[] str_title_list = (String[])title_list.toArray(new String[size]);
 
 		Dialog choose_clip_dlg = new AlertDialog.Builder(ClipListActivity.this)
-		.setTitle("Select epg item")
+		.setTitle("Select epg module")
 		.setItems(str_title_list, 
 			new DialogInterface.OnClickListener(){
 			public void onClick(DialogInterface dialog, int whichButton) {
@@ -1356,6 +1355,15 @@ public class ClipListActivity extends Activity implements
 						}
 						else {
 							mLink = value_list.get(whichButton);
+							
+							int pos = mLink.indexOf("type=");
+							if (pos != -1) {
+								mEPGtype = mLink.substring(pos, mLink.length());
+							}
+							else {
+								mEPGtype = null;
+							}
+							
 							Toast.makeText(ClipListActivity.this, "loading epg clip...", Toast.LENGTH_SHORT).show();
 							new EPGTask().execute(EPG_ITEM_CONTENT_SURFIX);
 						}
@@ -1392,14 +1400,17 @@ public class ClipListActivity extends Activity implements
 		final String[] str_title_list = (String[])title_list.toArray(new String[size]);
 
 		Dialog choose_clip_dlg = new AlertDialog.Builder(ClipListActivity.this)
-		.setTitle("Select epg item")
+		.setTitle("Select epg content")
 		.setItems(str_title_list, 
 			new DialogInterface.OnClickListener(){
 			public void onClick(DialogInterface dialog, int whichButton) {
 				if (whichButton >= 0) {
 					mEPGparam = param_list.get(whichButton);
-					Log.i(TAG, "Java: epg content param: " + mEPGparam);
-					new EPGTask().execute(EPG_ITEM_LIST);
+					if (mEPGparam.startsWith("type="))
+						mEPGtype = "";
+					Log.i(TAG, String.format("Java: epg content param: %s, type: %s", mEPGparam, mEPGtype));
+					mEPGlistStartPage = 1;
+					new EPGTask().execute(EPG_ITEM_LIST, mEPGlistStartPage, mEPGlistCount);
 					/*String tmp = param_list.get(whichButton);
 					int index = tmp.indexOf("ntags=");
 					if (index == -1) {
@@ -1436,12 +1447,14 @@ public class ClipListActivity extends Activity implements
 		
 		for (int i=0;i<size;i++) {
 			Catalog c = mEPGCatalogList.get(i);
-			String title = c.getTitle();
-			title_list.add(title);
+			if (c.getVid() == null)
+				continue;
+				
+			title_list.add(c.getTitle());
 			vid_list.add(c.getVid()); // index in programs
 		}
 		
-		final String[] str_title_list = (String[])title_list.toArray(new String[size]);
+		final String[] str_title_list = (String[])title_list.toArray(new String[title_list.size()]);
 
 		Dialog choose_clip_dlg = new AlertDialog.Builder(ClipListActivity.this)
 		.setTitle("Select epg item")
@@ -1482,7 +1495,7 @@ public class ClipListActivity extends Activity implements
 			final String[] str_title_list = (String[])title_list.toArray(new String[title_list.size()]);
 			
 			Dialog choose_clip_dlg = new AlertDialog.Builder(ClipListActivity.this)
-			.setTitle("Select clip to play")
+			.setTitle(String.format("Select clip to play(page #%d)", mEPGlistStartPage))
 			.setItems(str_title_list, 
 				new DialogInterface.OnClickListener(){
 				public void onClick(DialogInterface dialog, int whichButton) {
@@ -1491,10 +1504,17 @@ public class ClipListActivity extends Activity implements
 					dialog.cancel();
 				}
 			})
+			.setPositiveButton("More...", 
+				new DialogInterface.OnClickListener(){
+					public void onClick(DialogInterface dialog, int whichButton){
+						new EPGTask().execute(EPG_ITEM_LIST, ++mEPGlistStartPage, mEPGlistCount);
+					}
+				})
 			.setNegativeButton("Cancel",
 				new DialogInterface.OnClickListener(){
 					public void onClick(DialogInterface dialog, int whichButton){
-				}})
+					}
+				})
 			.create();
 			choose_clip_dlg.show();
 		}
@@ -1599,7 +1619,14 @@ public class ClipListActivity extends Activity implements
     			mHandler.sendEmptyMessage(MSG_EPG_CONTENT_SURFIX_DONE);
         	}
         	else if (EPG_ITEM_LIST == type) {
-        		if (mEPGparam == null || mEPGparam.isEmpty() || !mEPG.list(mEPGparam)) {
+        		if (mEPGparam == null || mEPGparam.isEmpty() || params.length != 3) {
+        			mHandler.sendEmptyMessage(MSG_FAIL_TO_PARSE_EPG_RESULT);
+        			return false;
+        		}
+        		
+        		int start_page = params[1];
+        		int count = params[2];
+        		if (!mEPG.list(mEPGparam, mEPGtype, start_page, "order=n", count)) {
         			mHandler.sendEmptyMessage(MSG_FAIL_TO_PARSE_EPG_RESULT);
         			return false;
         		}
@@ -1860,14 +1887,16 @@ public class ClipListActivity extends Activity implements
 			push_to_dmr();
 			break;
 		case OPTION_EPG_FRONTPAGE:
-			if (mEPGModuleList != null)
+			/*if (mEPGModuleList != null)
 				mHandler.sendEmptyMessage(MSG_EPG_FRONTPAGE_DONE);
-			else {
+			else {*/
 				Toast.makeText(this, "loading epg catalog...", Toast.LENGTH_SHORT).show();
 				new EPGTask().execute(EPG_ITEM_FRONTPAGE);
-			}
+			//}
 			break;
 		case OPTION_EPG_SEARCH:
+			
+		
 			final EditText inputKey = new EditText(this);
 	        AlertDialog.Builder builder = new AlertDialog.Builder(this);
 	        builder.setTitle("input key").setIcon(android.R.drawable.ic_dialog_info).setView(inputKey)
@@ -1875,8 +1904,16 @@ public class ClipListActivity extends Activity implements
 	        builder.setPositiveButton("Ok", new DialogInterface.OnClickListener() {
 
 	            public void onClick(DialogInterface dialog, int which) {
-	            	
+	            	/*SharedPreferences sharedata = getSharedPreferences("last_search", 0);  
+					String last_key = sharedata.getString("last_key", "inputkey");
+					inputKey.setText(last_key);*/
+		
 	            	mEPGsearchKey = inputKey.getText().toString();
+					
+					/*SharedPreferences.Editor sharedata_edit = sharedata.edit();  
+					sharedata_edit.putString("last_key", mEPGsearchKey);
+					sharedata_edit.commit();*/
+					
 	            	Toast.makeText(ClipListActivity.this, "search epg...", Toast.LENGTH_SHORT).show();
 	    			new EPGTask().execute(EPG_ITEM_SEARCH);
 	             }

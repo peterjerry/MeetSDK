@@ -59,17 +59,18 @@ public class EPGUtil {
 			+ "?auth=d410fafad87e7bbf6c6dd62434345818"
 			+ "&appver=4.1.3&canal=@SHIP.TO.31415926PI@"
 			+ "&userLevel=0&virtual=1&platform=android3"
-			+ "&s=1"
-			+ "&order=t" // 最受好评, param: order=g|最高人气, param: order=t|最新更新, param: order=n
-			+ "&c=%d" // list count number
-			+ "&vt=3,21" // 21 -> 3,21
-			+ "&ver=2"; // &type=1
+			+ "&s=%d" // start page index
+			+ "&%s" // order=xx 最受好评, param: order=g|最高人气, param: order=t|最新更新, param: order=n
+			+ "&c=%d" // count
+			+ "&vt=3,21" // 21 -> 3,21 视频, param: vt=3, 合集, param: vt=21,22
+			+ "&ver=2";
 	
 	private final static String live_url_fmt = "http://epg.api.pptv.com/live-list.api?"
 			+ "auth=d410fafad87e7bbf6c6dd62434345818&userLevel=0"
+			+ "&s=%d"
 			+ "&c=%d"
-			+ "&s=1&platform=android3&vt=4"
-			+ "&type=%d" // 156
+			+ "&platform=android3&vt=4"
+			+ "&type=%d" // 156 地方台, 164 卫视
 			+ "&nowplay=1"
 			+ "&appid=com.pplive.androidphone&appver=4.1.3&appplt=aph";
 	
@@ -80,11 +81,11 @@ public class EPGUtil {
 			"&auth=55b7c50dc1adfc3bcabe2d9b2015e35c&vvid=41" +
 			"&id=%s&ft=1&k_ver=1.1.0";
 	
-	private ArrayList<Content> mContentList;
-	private ArrayList<Module> mModuleList;
-	private ArrayList<Catalog> mCatalogList;
-	private ArrayList<PlayLink2> mPlayLinkList;
-	private ArrayList<Navigator> mNavList;
+	private List<Content> mContentList;
+	private List<Module> mModuleList;
+	private List<Catalog> mCatalogList;
+	private List<PlayLink2> mPlayLinkList;
+	private List<Navigator> mNavList;
 	
 	public EPGUtil() {
 		mContentList = new ArrayList<Content>();
@@ -94,28 +95,28 @@ public class EPGUtil {
 		mNavList = new ArrayList<Navigator>();
 	}
 	
-	public ArrayList<Content> getContent() {
+	public List<Content> getContent() {
 		return mContentList;
 	}
 	
-	public ArrayList<Module> getModule() {
+	public List<Module> getModule() {
 		return mModuleList;
 	}
 	
-	public ArrayList<Catalog> getCatalog() {
+	public List<Catalog> getCatalog() {
 		return mCatalogList;
 	}
 	
-	public ArrayList<PlayLink2> getLink() {
+	public List<PlayLink2> getLink() {
 		return mPlayLinkList;
 	}
 	
-	public ArrayList<Navigator> getNav() {
+	public List<Navigator> getNav() {
 		return mNavList;
 	}
 	
-	public boolean live(int count, int type) {
-		String url = String.format(live_url_fmt, count, type);
+	public boolean live(int start_page, int count, int type) {
+		String url = String.format(live_url_fmt, start_page, count, type);
 		System.out.println(url);
 		
 		HttpGet request = new HttpGet(url);
@@ -247,7 +248,11 @@ public class EPGUtil {
 			
 			mContentList.clear();
 			
-			JSONObject program = modules.getJSONObject(0).getJSONObject("data");
+			int module_index = 0;
+			if ("app://aph.pptv.com/v4/cate/sports?type=5".equals(surfix))
+				module_index = 1; // hard code
+			
+			JSONObject program = modules.getJSONObject(module_index).getJSONObject("data");
 			JSONArray contents = program.getJSONArray("dlist");
 			for (int i=0;i<contents.length();i++) {
 				JSONObject obj = contents.getJSONObject(i);
@@ -320,6 +325,9 @@ public class EPGUtil {
 	}
 	
 	public boolean catalog(int catalog_index) {
+		if (catalog_index < 0)
+			return false;
+		
 		System.out.println(frontpage_url);
 		HttpGet request = new HttpGet(frontpage_url);
 		
@@ -362,7 +370,8 @@ public class EPGUtil {
 		return true;
 	}
 	
-	public boolean list(String param, String type) {
+	public boolean list(String param, String type, 
+			int start_page, String order, int count) {
 		String encoded_param;
 		int pos = param.indexOf('=');
 		if (pos == -1)
@@ -379,7 +388,8 @@ public class EPGUtil {
 		}
 		System.out.println("encoded param " + encoded_param);
 		
-		String url = String.format(list_url_prefix_fmt, 30);
+		String url = String.format(list_url_prefix_fmt, 
+				start_page, order, count);
 		if (type != null && !type.isEmpty()) {
 			url += "&";
 			url += type;
@@ -408,6 +418,14 @@ public class EPGUtil {
 			Reader returnQuote = new StringReader(result);  
 	        Document doc = builder.build(returnQuote);
 	        Element root = doc.getRootElement();
+	        
+	        int total_count = Integer.valueOf(root.getChild("count").getText());
+	        int page_count = Integer.valueOf(root.getChild("page_count").getText());
+	        int countInPage = Integer.valueOf(root.getChild("countInPage").getText());
+	        int page = Integer.valueOf(root.getChild("page").getText()); // == input param s
+	        System.out.println(
+	        	String.format("total_count %d, page_count %d, countInPage %d, page %d",
+	        	total_count, page_count, countInPage, page));
 	        
 	        mPlayLinkList.clear();
 	        
@@ -640,13 +658,16 @@ public class EPGUtil {
 						url += rid.replaceFirst(".mp4", ".m3u8");
 					else
 						url += rid;
-			        
+					
 					url += "?w=" + 1 + "&key=" + item.getK();
 					url += "&k=" + item.getKey();
+					if (novideo)
+						url += "&video=false";
 					url += "&type=phone.android.vip&vvid=877a4382-f0e4-49ed-afea-8d59dbd11df1"
 							+ "&sv=4.1.3&platform=android3";
 					url += "&ft=" + ft;
 					url += "&accessType=wifi";
+
 					
 					System.out.println("epg final cdn url: " + url);
 					break;
