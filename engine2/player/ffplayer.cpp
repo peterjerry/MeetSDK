@@ -1473,7 +1473,7 @@ void FFPlayer::onSeekingImpl()
 	LOGD("onSeeking");
 	AutoLock autolock(&mPlayerLock);
 
-    if (!mSeekingEventPending) // omit duplicated event
+    if (!mSeekingEventPending) // more than 1 seek request in event loop
 		return;
 
     if (mVideoStream != NULL) {
@@ -1509,6 +1509,11 @@ void FFPlayer::onSeekingImpl()
             mRenderFirstFrame = true;
             mNeedSyncFrame = true;
         }
+    }
+	else {
+		// mSeeking will be reset to false when seek is complete
+		// last "seek" is doing, so just wait 
+        postSeekingEvent_l(100); // handle continously seeking?
     }
 }
 

@@ -181,10 +181,10 @@ public class ClipListActivity extends Activity implements
 	// epg
 	private EPGUtil mEPG;
 	
-	private ArrayList<Content> mEPGContentList 	= null;
-	private ArrayList<Module> mEPGModuleList 	= null;
-	private ArrayList<Catalog> mEPGCatalogList = null;
-	private ArrayList<PlayLink2> mEPGLinkList 	= null;
+	private List<Content> mEPGContentList 	= null;
+	private List<Module> mEPGModuleList 	= null;
+	private List<Catalog> mEPGCatalogList = null;
+	private List<PlayLink2> mEPGLinkList 	= null;
 	private String mEPGsearchKey; // for search
 	private String mDLNAPushUrl;
 	private String mLink;
@@ -241,8 +241,9 @@ public class ClipListActivity extends Activity implements
 	final static int OPTION_EPG_FRONTPAGE		= Menu.FIRST + 13;
 	final static int OPTION_EPG_CONTENT		= Menu.FIRST + 14;
 	final static int OPTION_EPG_SEARCH			= Menu.FIRST + 15;
-	final static int OPTION_PREVIEW			= Menu.FIRST + 21;
-	final static int OPTION_LOOP				= Menu.FIRST + 22;
+	final static int OPTION_COMMON_PREVIEW		= Menu.FIRST + 21;
+	final static int OPTION_COMMON_LOOP		= Menu.FIRST + 22;
+	final static int OPTION_COMMON_MEETVIEW	= Menu.FIRST + 23;
 	
 	
 	// message
@@ -383,7 +384,7 @@ public class ClipListActivity extends Activity implements
 		//CrashHandler crashHandler = CrashHandler.getInstance();  
         //crashHandler.init(this);
 		
-		if (initMeetSDK() == false) {
+		if (Util.initMeetSDK(this) == false) {
 			Toast.makeText(this, "failed to load meet lib", 
 				Toast.LENGTH_SHORT).show();
 			finish();
@@ -1763,16 +1764,8 @@ public class ClipListActivity extends Activity implements
 	private void upload_crash_report(int type) {	
 		MeetSDK.makePlayerlog();
 		
-		/*String log_filepath = getCacheDir().getAbsolutePath() + "/meetplayer.log";
-		String new_filepath = Environment.getExternalStorageDirectory().getAbsolutePath() + "/meetplayer.log";
-		File file = new File(new_filepath);
-		if (file.exists())
-			file.delete();
-		
-		Util.copyFile(log_filepath, new_filepath);*/
-		
 		FeedBackFactory fbf = new FeedBackFactory(
-				 Integer.toString(type), "123456", false, false);
+				 Integer.toString(type), "123456", true, false);
 		fbf.asyncFeedBack();
 	}
 	
@@ -1855,14 +1848,15 @@ public class ClipListActivity extends Activity implements
 		OptSubMenu.add(Menu.NONE, OPTION_EPG_CONTENT, Menu.FIRST + 3, "epg content");
 		OptSubMenu.add(Menu.NONE, OPTION_EPG_SEARCH, Menu.FIRST + 4, "epg search");
 				
-		MenuItem previewMenuItem = commonMenu.add(Menu.NONE, OPTION_PREVIEW, Menu.FIRST, "Preview");
+		MenuItem previewMenuItem = commonMenu.add(Menu.NONE, OPTION_COMMON_PREVIEW, Menu.FIRST, "Preview");
 		previewMenuItem.setCheckable(true);
 		if (mIsPreview)
 			previewMenuItem.setChecked(true);
-		MenuItem loopMenuItem = commonMenu.add(Menu.NONE, OPTION_LOOP, Menu.FIRST + 1, "Loop");
+		MenuItem loopMenuItem = commonMenu.add(Menu.NONE, OPTION_COMMON_LOOP, Menu.FIRST + 1, "Loop");
 		loopMenuItem.setCheckable(true);
 		if (mIsLoop)
 			loopMenuItem.setChecked(true);
+		commonMenu.add(Menu.NONE, OPTION_COMMON_MEETVIEW, Menu.FIRST + 2, "test view");
 		
 		menu.add(Menu.NONE, UPDATE_CLIP_LIST, Menu.FIRST + 1, "Update list")
 			.setIcon(R.drawable.list);
@@ -1894,12 +1888,24 @@ public class ClipListActivity extends Activity implements
 		case QUIT:
 			this.finish();
 			break;
-		case OPTION_PREVIEW:
+		case OPTION_COMMON_PREVIEW:
 			if (mIsPreview)
 				item.setChecked(false);
 			else
 				item.setChecked(true);
 			mIsPreview = !mIsPreview;
+			break;
+		case OPTION_COMMON_LOOP:
+			if (mIsLoop)
+				item.setChecked(false);
+			else
+				item.setChecked(true);
+			mIsLoop = !mIsLoop;
+			break;
+		case OPTION_COMMON_MEETVIEW:
+			Intent intent = new Intent(ClipListActivity.this, MeetViewActivity.class);
+			startActivity(intent);
+			finish();
 			break;
 		case OPTION_DLNA_LIST:
 			push_to_dmr();
@@ -2267,9 +2273,8 @@ public class ClipListActivity extends Activity implements
 
 		Log.i(TAG, "Java: onPause()");
 
-		if (mPlayer != null) {
+		if (mPlayer != null && mPlayer.isPlaying()) {
 			mPlayer.pause();
-			//mPlayer.suspend();
 		}
 			
 		//MeetSDK.closeLog();
@@ -2306,6 +2311,7 @@ public class ClipListActivity extends Activity implements
 		}
 	}
 	
+	@Deprecated
 	private boolean initMeetSDK() {
 		// upload util will upload /data/data/pacake_name/Cache/xxx
 		// so must NOT change path

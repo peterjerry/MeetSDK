@@ -346,7 +346,7 @@ void AudioPlayer::audio_thread_impl()
 		return;
 	}
 
-    while(1) {
+    while (1) {
         if (mPlayerStatus == MEDIA_PLAYER_STOPPED ||
             mPlayerStatus == MEDIA_PLAYER_STOPPING)
         {

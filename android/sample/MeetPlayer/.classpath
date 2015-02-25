@@ -8,8 +8,8 @@
 	<classpathentry kind="lib" path="libs/MeetSDK.jar"/>
 	<classpathentry kind="lib" path="libs/ppbox_jni.jar"/>
 	<classpathentry kind="lib" path="libs/breakpad_util_jni.jar"/>
-	<classpathentry kind="lib" path="libs/commons-codec-1.3.jar"/>
 	<classpathentry kind="lib" path="libs/ivy-2.0.0-rc1.jar"/>
 	<classpathentry kind="lib" path="libs/jdom-2.0.5.jar"/>
+	<classpathentry kind="lib" path="libs/commons-codec-1.3.jar"/>
 	<classpathentry kind="output" path="bin/classes"/>
 </classpath>

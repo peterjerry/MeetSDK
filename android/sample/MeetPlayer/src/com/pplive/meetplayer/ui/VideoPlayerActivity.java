@@ -83,7 +83,7 @@ public class VideoPlayerActivity extends Activity {
 
 		setContentView(R.layout.activity_video_player);
 		
-		setupSDK();
+		Util.initMeetSDK(this);
 		
 	}
 
@@ -121,6 +121,7 @@ public class VideoPlayerActivity extends Activity {
 		mVideoView.stopPlayback();
 	}
 	
+	@Deprecated
 	private void setupSDK() {
 		MeetSDK.setLogPath(getCacheDir().getAbsolutePath() + "/meetplayer.log", 
 				getCacheDir().getAbsolutePath() + "/");
@@ -151,6 +152,15 @@ public class VideoPlayerActivity extends Activity {
 		else
 			path = mUri.toString();
 		
+		String name = getFileName(path);
+		mController.setFileName(name);
+		
+		mBufferingProgressBar = (ProgressBar) findViewById(R.id.progressbar_buffering);
+		
+		mVideoView.start();
+	}
+
+	private String getFileName(String path) {
 		String name = "N/A";
 		if (path.startsWith("/") || path.startsWith("file://")) {
 			int pos = path.lastIndexOf('/');
@@ -190,15 +200,9 @@ public class VideoPlayerActivity extends Activity {
 			}
 		}
 		
-		mController.setFileName(name);
-		
-		mBufferingProgressBar = (ProgressBar) findViewById(R.id.progressbar_buffering);
-		if(mBufferingProgressBar == null)
-			Log.e(TAG, "mBufferingProgressBar is null");
-		
-		mVideoView.start();
+		return name;
 	}
-
+	
 	private MediaPlayer.OnCompletionListener mCompletionListener = new MediaPlayer.OnCompletionListener() {
 		public void onCompletion(MediaPlayer mp) {
 			Log.d(TAG, "MEDIA_PLAYBACK_COMPLETE");

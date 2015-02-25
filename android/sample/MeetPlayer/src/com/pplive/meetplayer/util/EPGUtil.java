@@ -76,11 +76,11 @@ public class EPGUtil {
 			"&auth=55b7c50dc1adfc3bcabe2d9b2015e35c&vvid=41" +
 			"&id=%s&ft=1&k_ver=1.1.0";
 	
-	private ArrayList<Content> mContentList;
-	private ArrayList<Module> mModuleList;
-	private ArrayList<Catalog> mCatalogList;
-	private ArrayList<PlayLink2> mPlayLinkList;
-	private ArrayList<Navigator> mNavList;
+	private List<Content> mContentList;
+	private List<Module> mModuleList;
+	private List<Catalog> mCatalogList;
+	private List<PlayLink2> mPlayLinkList;
+	private List<Navigator> mNavList;
 	
 	public EPGUtil() {
 		mContentList = new ArrayList<Content>();
@@ -90,23 +90,23 @@ public class EPGUtil {
 		mNavList = new ArrayList<Navigator>();
 	}
 	
-	public ArrayList<Content> getContent() {
+	public List<Content> getContent() {
 		return mContentList;
 	}
 	
-	public ArrayList<Module> getModule() {
+	public List<Module> getModule() {
 		return mModuleList;
 	}
 	
-	public ArrayList<Catalog> getCatalog() {
+	public List<Catalog> getCatalog() {
 		return mCatalogList;
 	}
 	
-	public ArrayList<PlayLink2> getLink() {
+	public List<PlayLink2> getLink() {
 		return mPlayLinkList;
 	}
 	
-	public ArrayList<Navigator> getNav() {
+	public List<Navigator> getNav() {
 		return mNavList;
 	}
 	

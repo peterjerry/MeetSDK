@@ -41,7 +41,7 @@
             </intent-filter>
         </activity>
 		<activity
-			android:name=".ui.TimePickerActivity" 
+			android:name=".ui.MeetViewActivity" 
             android:label="@string/app_name" >
 		</activity>
         <activity

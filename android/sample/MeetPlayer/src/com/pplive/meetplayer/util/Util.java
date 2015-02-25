@@ -6,6 +6,7 @@ import java.io.FileOutputStream;
 import java.io.InputStream;
 
 import android.content.Context;
+import android.pplive.media.MeetSDK;
 import android.util.Log;
 
 import com.pplive.sdk.MediaSDK;
@@ -41,6 +42,16 @@ public class Util {
 
 		Log.d("Util", "startP2PEngine: " + ret);
 		return (ret != -1);// 端口占用&& ret != 9);
+	}
+	
+	public static boolean initMeetSDK(Context ctx) {
+		// upload util will upload /data/data/pacake_name/Cache/xxx
+		// so must NOT change path
+		MeetSDK.setLogPath(
+				ctx.getCacheDir().getAbsolutePath() + "/meetplayer.log", 
+				ctx.getCacheDir().getParentFile().getAbsolutePath() + "/");
+		// /data/data/com.svox.pico/
+		return MeetSDK.initSDK(ctx, "");
 	}
 	
 	public static void copyFile(String oldPath, String newPath) {
