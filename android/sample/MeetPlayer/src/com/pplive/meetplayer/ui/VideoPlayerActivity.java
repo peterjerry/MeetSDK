@@ -299,13 +299,15 @@ public class VideoPlayerActivity extends Activity {
 	public boolean onKeyDown(int keyCode, KeyEvent event) {
 		
 		Log.d(TAG, "keyCode: " + keyCode);
+		int incr = -1;
+		int mode;
+		
+		String []mode_desc = {"自适应", "铺满屏幕", "放大裁切", "原始大小"};
 		
 		switch (keyCode) {
 			case KeyEvent.KEYCODE_MENU:
 			case KeyEvent.KEYCODE_DPAD_LEFT:
 			case KeyEvent.KEYCODE_DPAD_RIGHT:
-			case KeyEvent.KEYCODE_DPAD_DOWN:
-			case KeyEvent.KEYCODE_DPAD_UP:
 				mController.show();
 				
 				if (KeyEvent.KEYCODE_DPAD_RIGHT == keyCode) {
@@ -333,6 +335,22 @@ public class VideoPlayerActivity extends Activity {
 					mVideoView.start();
 					mController.show();
 				}
+				return true;
+			case KeyEvent.KEYCODE_DPAD_DOWN:
+			case KeyEvent.KEYCODE_DPAD_UP:
+				if (KeyEvent.KEYCODE_DPAD_DOWN == keyCode)
+					incr = 1;
+				else
+					incr = -1;
+				
+				mode = mVideoView.getDisplayMode();
+				mode = mode + incr;
+				if (mode < 0)
+					mode = 3;
+				else if(mode > 3)
+					mode = 0;
+				mVideoView.setDisplayMode(mode);
+				Toast.makeText(this, "mode switch to " + mode_desc[mode], Toast.LENGTH_SHORT).show();
 				return true;
 			default:
 				return super.onKeyDown(keyCode, event);

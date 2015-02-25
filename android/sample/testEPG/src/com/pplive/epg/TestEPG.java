@@ -144,7 +144,14 @@ public class TestEPG {
 			System.out.println(modulelist.get(i).toString());
 		}
 		
-		String prefix = "app://aph.pptv.com/v4/cate/tv";
+		String prefix = modulelist.get(3).getLink();//"app://aph.pptv.com/v4/cate/tv";
+		String type = "";
+		int pos = prefix.indexOf("type=");
+		if(pos != -1) {
+			type = prefix.substring(pos, prefix.length());
+		}
+		
+		System.out.println("prefix " + prefix);
 		ret = epg.contents(prefix);
 		if(!ret)
 			return;
@@ -154,9 +161,11 @@ public class TestEPG {
 			System.out.println(contentlist.get(i).toString());
 		}
 		
-		String param = contentlist.get(0).getParam();
+		String param = contentlist.get(19).getParam();
+		
 		System.out.println("param: " + param);
-		ret = epg.list(param); // "美国:area|"
+		System.out.println("type: " + type);
+		ret = epg.list(param, type); // "美国:area|"
 		if (!ret)
 			return;
 		
@@ -166,7 +175,7 @@ public class TestEPG {
 			System.out.println(playlink2list.get(i).toString());
 		}
 		
-		String vid = playlink2list.get(2).getId();
+		/*String vid = playlink2list.get(2).getId();
 		
 		while (true) {
 			ret = epg.detail(vid);
@@ -186,7 +195,7 @@ public class TestEPG {
 					break;
 				}
 			}
-		}
+		}*/
 	}
 	
 	public static void main(String[] args) {

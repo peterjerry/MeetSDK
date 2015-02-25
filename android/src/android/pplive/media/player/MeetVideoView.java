@@ -59,10 +59,10 @@ public class MeetVideoView extends SurfaceView implements MediaPlayerControl {
 
 	// 2015.1.13 guoliangma added
 	// display mode
-	public static final int SCREEN_FIT = 0;
-    public static final int SCREEN_STRETCH = 1;
-    public static final int SCREEN_FILL = 2;
-    public static final int SCREEN_CENTER = 3;
+	public static final int SCREEN_FIT = 0; // 自适应
+    public static final int SCREEN_STRETCH = 1; // 铺满屏幕 
+    public static final int SCREEN_FILL = 2; // 放大裁切
+    public static final int SCREEN_CENTER = 3; // 原始大小
 	
 	private int mDisplayMode = SCREEN_FIT;
 	

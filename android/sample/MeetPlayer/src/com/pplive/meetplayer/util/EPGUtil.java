@@ -67,8 +67,8 @@ public class EPGUtil {
 			+ "&order=t"
 			+ "&c=%d"
 			+ "&vt=21"
-			+ "&ver=2"
-			+ "&type=2";
+			+ "&ver=2";
+			//+ "&type=2";
 			//+ "&ntags=%E7%BE%8E%E5%9B%BD%3Aarea%7C" // ntags=美国:area| -> &ntags=%E7%BE%8E%E5%9B%BD%3Aarea%7C
 			//+ "&appid=com.pplive.androidphone&appplt=aph";
 	
@@ -315,7 +315,7 @@ public class EPGUtil {
 		return true;
 	}
 	
-	public boolean list(String param) {
+	public boolean list(String param, String type) {
 		String encoded_param;
 		int pos = param.indexOf('=');
 		if (pos == -1)
@@ -333,8 +333,11 @@ public class EPGUtil {
 		}
 		
 		String url = String.format(list_url_prefix_fmt, 30);
-		//url += "&ntags=";
-		//url += tag;
+		if (type != null && !type.isEmpty()) {
+			url += "&";
+			url += type;
+		}
+		
 		url += "&";
 		url += encoded_param;
 		url += "&appid=com.pplive.androidphone&appplt=aph";

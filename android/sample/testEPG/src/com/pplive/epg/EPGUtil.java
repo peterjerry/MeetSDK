@@ -60,11 +60,10 @@ public class EPGUtil {
 			+ "&appver=4.1.3&canal=@SHIP.TO.31415926PI@"
 			+ "&userLevel=0&virtual=1&platform=android3"
 			+ "&s=1"
-			+ "&order=t"
-			+ "&c=%d"
-			+ "&vt=21" // 21 -> 3,21
-			+ "&ver=2"
-			+ "&type=2";
+			+ "&order=t" // 最受好评, param: order=g|最高人气, param: order=t|最新更新, param: order=n
+			+ "&c=%d" // list count number
+			+ "&vt=3,21" // 21 -> 3,21
+			+ "&ver=2"; // &type=1
 	
 	private final static String live_url_fmt = "http://epg.api.pptv.com/live-list.api?"
 			+ "auth=d410fafad87e7bbf6c6dd62434345818&userLevel=0"
@@ -363,7 +362,7 @@ public class EPGUtil {
 		return true;
 	}
 	
-	public boolean list(String param) {
+	public boolean list(String param, String type) {
 		String encoded_param;
 		int pos = param.indexOf('=');
 		if (pos == -1)
@@ -381,8 +380,11 @@ public class EPGUtil {
 		System.out.println("encoded param " + encoded_param);
 		
 		String url = String.format(list_url_prefix_fmt, 30);
-		//url += "&ntags=";
-		//url += tag;
+		if (type != null && !type.isEmpty()) {
+			url += "&";
+			url += type;
+		}
+		
 		url += "&";
 		url += encoded_param;
 		url += "&appid=com.pplive.androidphone&appplt=aph";
