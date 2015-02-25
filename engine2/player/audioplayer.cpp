@@ -214,8 +214,11 @@ status_t AudioPlayer::stop()
     if (mPlayerStatus == MEDIA_PLAYER_STOPPED)
         return OK;
 
-	AutoLock autoLock(&mLock);
+	// 2015.2.25 fix re-open stuck problem when buffering
+	//AutoLock autoLock(&mLock);
+	pthread_mutex_lock(&mLock); // will block wait() !!!
 	pthread_cond_signal(&mCondition);
+	pthread_mutex_unlock(&mLock);
 
 	if (mPlayerStatus == MEDIA_PLAYER_STARTED || mPlayerStatus == MEDIA_PLAYER_PAUSED) {
 		mPlayerStatus = MEDIA_PLAYER_STOPPING; // notify audio thread to exit
@@ -322,6 +325,9 @@ int AudioPlayer::decode_l(AVPacket *packet)
 
 void AudioPlayer::wait(int msec)
 {
+	if (mPlayerStatus == MEDIA_PLAYER_STOPPED || mPlayerStatus == MEDIA_PLAYER_STOPPING)
+		return;
+
 	AutoLock autoLock(&mLock);
 
 	struct timespec ts;
@@ -363,7 +369,9 @@ void AudioPlayer::audio_thread_impl()
         else
         {
             AVPacket* pPacket = NULL;
+			LOGI("before getPacket()");
             status_t ret = mDataStream->getPacket(mAudioStreamIndex, &pPacket);
+			LOGI("after getPacket()");
 			if (ret == FFSTREAM_OK) {
 				// drop frame when seeking
                 if (!mSeeking) {
@@ -394,7 +402,9 @@ void AudioPlayer::audio_thread_impl()
     		else if (ret == FFSTREAM_ERROR_BUFFERING)
     		{
 		        LOGD("audio queue no data");
+				//LOGI("before FFSTREAM_ERROR_BUFFERING wait");
 				wait(10); // msec
+				//LOGI("after FFSTREAM_ERROR_BUFFERING wait");
                 continue;
     		}
     		else if (ret == FFSTREAM_ERROR_EOF)
