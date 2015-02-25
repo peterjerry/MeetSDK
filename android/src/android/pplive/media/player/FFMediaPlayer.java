@@ -28,7 +28,7 @@ import android.pplive.media.player.MediaPlayer.OnSeekCompleteListener;
 //import android.pplive.media.player.MediaPlayer.OnTimedTextListener;
 import android.pplive.media.player.MediaPlayer.OnVideoSizeChangedListener;
 
-public class FFMediaPlayer implements MediaPlayerInterface {
+public class FFMediaPlayer extends NativeMediaPlayer implements MediaPlayerInterface {
 
 	private int mNativeContext; // accessed by native methods
 	private int mListenerContext; // accessed by native methods
@@ -246,7 +246,10 @@ public class FFMediaPlayer implements MediaPlayerInterface {
 
 	@Override
 	public void setDisplay(SurfaceHolder sh) {
+		super.setDisplay(sh);
+		
 		_setVideoSurface(sh.getSurface());
+		updateSurfaceScreenOn();
 	}
 
 	@Override
@@ -264,18 +267,21 @@ public class FFMediaPlayer implements MediaPlayerInterface {
 	@Override
 	public void start() throws IllegalStateException {
 		// TODO Auto-generated method stub
+		stayAwake(true);
 		_start();
 	}
 
 	@Override
 	public void stop() throws IllegalStateException {
 		// TODO Auto-generated method stub
+		stayAwake(false);
 		_stop();
 	}
 
 	@Override
 	public void pause() throws IllegalStateException {
 		// TODO Auto-generated method stub
+		stayAwake(false);
 		_pause();
 	}
 
@@ -286,8 +292,27 @@ public class FFMediaPlayer implements MediaPlayerInterface {
 	}
 
 	@Override
+	public void setScreenOnWhilePlaying(boolean screenOn) {
+        super.setScreenOnWhilePlaying(screenOn);
+    }
+	
+	@Override
+	public void setWakeMode(Context context, int mode) {
+		super.setWakeMode(context, mode);
+	}
+	
+	@Override
 	public void release() {
-		// TODO Auto-generated method stub
+		stayAwake(false);
+		updateSurfaceScreenOn();
+		mOnPreparedListener = null;
+        mOnBufferingUpdateListener = null;
+        mOnCompletionListener = null;
+        mOnSeekCompleteListener = null;
+        mOnErrorListener = null;
+        mOnInfoListener = null;
+        mOnVideoSizeChangedListener = null;
+        //mOnTimedTextListener = null;
 		_release();
 		// make sure none of the listeners get called anymore
 		// 2015.1.20 guoliangma solve "quick" new-open when another is in "preparing" state
@@ -296,7 +321,7 @@ public class FFMediaPlayer implements MediaPlayerInterface {
 
 	@Override
 	public void reset() {
-		// TODO Auto-generated method stub
+		stayAwake(false);
 		_reset();
 		// make sure none of the listeners get called anymore
         mEventHandler.removeCallbacksAndMessages(null);
@@ -459,6 +484,7 @@ public class FFMediaPlayer implements MediaPlayerInterface {
 				if (mOnSeekCompleteListener != null) {
 					mOnSeekCompleteListener.onSeekComplete(mPlayer);
 				}
+				stayAwake(false);
 				return;
 
 			case MediaPlayer.MEDIA_SET_VIDEO_SIZE:
@@ -471,6 +497,7 @@ public class FFMediaPlayer implements MediaPlayerInterface {
 				if (mOnErrorListener != null) {
 					mOnErrorListener.onError(mPlayer, msg.arg1, msg.arg2);
 				}
+				stayAwake(false);
 				return;
 
 			case MediaPlayer.MEDIA_INFO:

@@ -107,14 +107,14 @@ public class MediaPlayer implements MediaPlayerInterface {
         }
     }
 	
+	private Context mContext = null;
 	private MediaPlayerInterface mPlayer = null;
 	private DecodeMode mDecodeMode = DecodeMode.SW;
+	private String mPath = null;
 	private Surface mSurface = null;
 	private SurfaceHolder mHolder = null;
-
-	private PowerManager.WakeLock mWakeLock = null;
-	private boolean mScreenOnWhilePlaying = false;
-	private boolean mStayAwake = false;
+	private boolean mScreenOn = false;
+	private int mWakeMode;
 
 	public MediaPlayer() {
 		this(DecodeMode.SW);
@@ -142,9 +142,6 @@ public class MediaPlayer implements MediaPlayerInterface {
 			throw new IllegalStateException("MediaPlayer hasn't initialized!!!");
 		}
 	}
-	
-	private Context mContext = null;
-	private String mPath = null;
 	
 	@Override
 	public void setDataSource(Context context, Uri uri, Map<String, String> headers)
@@ -237,6 +234,9 @@ public class MediaPlayer implements MediaPlayerInterface {
 		setOnPreparedListener();
 		setOnSeekCompleteListener();
 		setOnVideoSizeChangedListener();
+		
+		setScreenOnWhilePlaying();
+		setWakeMode();
 	}
 	
 	@Override
@@ -272,7 +272,6 @@ public class MediaPlayer implements MediaPlayerInterface {
 	@Override
 	public void start() throws IllegalStateException {
 		if (mPlayer != null) {
-			stayAwake(true);
 			mPlayer.start();
 		}
 		else {
@@ -284,7 +283,6 @@ public class MediaPlayer implements MediaPlayerInterface {
 	@Override
 	public void stop() throws IllegalStateException {
 		if (mPlayer != null) {
-			stayAwake(false);
 			mPlayer.stop();
 		}
 		else {
@@ -296,7 +294,6 @@ public class MediaPlayer implements MediaPlayerInterface {
 	@Override
 	public void pause() throws IllegalStateException {
 		if (mPlayer != null) {
-			stayAwake(false);
 			mPlayer.pause();
 		}
 		else {
@@ -319,8 +316,6 @@ public class MediaPlayer implements MediaPlayerInterface {
 	@Override
 	public void release() {
 		if (mPlayer != null) {
-			stayAwake(false);
-	        updateSurfaceScreenOn();
 	        mOnPreparedListener = null;
 	        mOnBufferingUpdateListener = null;
 	        mOnCompletionListener = null;
@@ -336,7 +331,6 @@ public class MediaPlayer implements MediaPlayerInterface {
 	@Override
 	public void reset() {
 		if (mPlayer != null) {
-			stayAwake(false);
 			mPlayer.reset();
 		}
 	}
@@ -495,21 +489,11 @@ public class MediaPlayer implements MediaPlayerInterface {
 	}
 	private void setOnCompletionListener() {
 		if (mPlayer != null) {
-			mPlayer.setOnCompletionListener(mCompletionListener);
+			mPlayer.setOnCompletionListener(mOnCompletionListener);
 		}
 	}
 
 	private OnCompletionListener mOnCompletionListener;
-	
-	private MediaPlayer.OnCompletionListener mCompletionListener =
-	        new MediaPlayer.OnCompletionListener() {
-	        public void onCompletion(MediaPlayer mp) {
-	        	stayAwake(false);
-	        	
-	            if (mOnCompletionListener != null)
-	            	mOnCompletionListener.onCompletion(mp);
-	        }
-	    };
 
 	/**
 	 * Interface definition of a callback to be invoked indicating buffering
@@ -712,24 +696,11 @@ public class MediaPlayer implements MediaPlayerInterface {
 	}
 	private void setOnErrorListener() {
 		if (mPlayer != null) {
-			mPlayer.setOnErrorListener(mErrorListener);
+			mPlayer.setOnErrorListener(mOnErrorListener);
 		}
 	}
 
 	private OnErrorListener mOnErrorListener;
-	
-	private MediaPlayer.OnErrorListener mErrorListener =
-	        new MediaPlayer.OnErrorListener() {
-	        public boolean onError(MediaPlayer mp, int framework_err, int impl_err) {
-
-	        	stayAwake(false);
-	            /* If an error handler has been supplied, use it and finish. */
-	            if (mOnErrorListener != null)
-	            	return mOnErrorListener.onError(mp, framework_err, impl_err);
-
-	            return true;
-	        }
-	    };
 
 	/**
 	 * Interface definition of a callback to be invoked to communicate some info
@@ -874,79 +845,33 @@ public class MediaPlayer implements MediaPlayerInterface {
 			throw new IllegalStateException("mMeetPlayer is null");
 		}
 	}
-	
-	/**
-     * Set the low-level power management behavior for this MediaPlayer.  This
-     * can be used when the MediaPlayer is not playing through a SurfaceHolder
-     * set with {@link #setDisplay(SurfaceHolder)} and thus can use the
-     * high-level {@link #setScreenOnWhilePlaying(boolean)} feature.
-     *
-     * <p>This function has the MediaPlayer access the low-level power manager
-     * service to control the device's power usage while playing is occurring.
-     * The parameter is a combination of {@link android.os.PowerManager} wake flags.
-     * Use of this method requires {@link android.Manifest.permission#WAKE_LOCK}
-     * permission.
-     * By default, no attempt is made to keep the device awake during playback.
-     *
-     * @param context the Context to use
-     * @param mode    the power/wake mode to set
-     * @see android.os.PowerManager
-     */
-    public void setWakeMode(Context context, int mode) {
-        boolean washeld = false;
-        if (mWakeLock != null) {
-            if (mWakeLock.isHeld()) {
-                washeld = true;
-                mWakeLock.release();
-            }
-            mWakeLock = null;
-        }
-
-        PowerManager pm = (PowerManager)context.getSystemService(Context.POWER_SERVICE);
-        mWakeLock = pm.newWakeLock(mode|PowerManager.ON_AFTER_RELEASE, MediaPlayer.class.getName());
-        mWakeLock.setReferenceCounted(false);
-        if (washeld) {
-            mWakeLock.acquire();
-        }
-    }
 
     /**
-     * Control whether we should use the attached SurfaceHolder to keep the
-     * screen on while video playback is occurring.  This is the preferred
-     * method over {@link #setWakeMode} where possible, since it doesn't
-     * require that the application have permission for low-level wake lock
-     * access.
-     *
      * @param screenOn Supply true to keep the screen on, false to allow it
      * to turn off.
      */
     public void setScreenOnWhilePlaying(boolean screenOn) {
-        if (mScreenOnWhilePlaying != screenOn) {
-            if (screenOn && mHolder == null) {
-            	LogUtils.warn("setScreenOnWhilePlaying(true) is ineffective without a SurfaceHolder");
-            }
-            mScreenOnWhilePlaying = screenOn;
-            updateSurfaceScreenOn();
-        }
+    	mScreenOn = screenOn;
+    	setScreenOnWhilePlaying();
     }
-
-    private void stayAwake(boolean awake) {
-        if (mWakeLock != null) {
-            if (awake && !mWakeLock.isHeld()) {
-                mWakeLock.acquire();
-            } else if (!awake && mWakeLock.isHeld()) {
-                mWakeLock.release();
-            }
-        }
-        mStayAwake = awake;
-        updateSurfaceScreenOn();
+    
+    private void setScreenOnWhilePlaying() {
+    	if (mPlayer != null) {
+			mPlayer.setScreenOnWhilePlaying(mScreenOn);
+		}
     }
-
-    private void updateSurfaceScreenOn() {
-        if (mHolder != null) {
-            mHolder.setKeepScreenOn(mScreenOnWhilePlaying && mStayAwake);
-        }
-    }
+    
+    public void setWakeMode(Context ctx, int mode) {
+		mContext = ctx;
+		mWakeMode = mode;
+		setWakeMode();
+	}
+	
+	private void setWakeMode() {
+		if (mPlayer != null && mContext != null) {
+			mPlayer.setWakeMode(mContext, mWakeMode);
+		}
+	}
 	
 	// event
     /* Do not change these values without updating their counterparts

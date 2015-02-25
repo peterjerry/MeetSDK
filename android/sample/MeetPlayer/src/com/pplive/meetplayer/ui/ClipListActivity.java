@@ -1268,6 +1268,9 @@ public class ClipListActivity extends Activity implements
         public void handleMessage(Message msg) {  
             switch(msg.what) {
 			case MSG_CLIP_LIST_DONE:
+				mAdapter = new MyAdapter(ClipListActivity.this, mListUtil.getList(), R.layout.sd_list,
+						from, to);
+				lv_filelist.setAdapter(mAdapter);
 				break;
 			case MSG_UPDATE_PLAY_INFO:
 			case MSG_UPDATE_RENDER_INFO:
@@ -1726,12 +1729,8 @@ public class ClipListActivity extends Activity implements
 
         @Override
         protected void onPostExecute(Boolean result) {
-        	if (result) {
-				mAdapter = new MyAdapter(ClipListActivity.this, mListUtil.getList(), R.layout.sd_list,
-					from, to);
-				lv_filelist.setAdapter(mAdapter);	
-        	}
-        	
+        	if (result)
+        		mHandler.sendEmptyMessage(MSG_CLIP_LIST_DONE);
         	progDlg.dismiss();
         }
 
@@ -2435,7 +2434,7 @@ public class ClipListActivity extends Activity implements
     			target_msec = mPlayer.getDuration();
         	}
         
-            while (mPlayer.getCurrentPosition() < target_msec/* || mSubtitleSeeking == true*/) {
+            while (mPlayer != null && mPlayer.getCurrentPosition() < target_msec/* || mSubtitleSeeking == true*/) {
             	if (isDropItem == true) {
             		if (mSubtitleSeeking == false) {
             			break;

@@ -3,6 +3,7 @@ package android.pplive.media.player;
 import java.lang.reflect.Method;
 
 import android.annotation.SuppressLint;
+import android.content.Context;
 import android.media.TimedText;
 import android.util.Log;
 import android.view.Surface;
@@ -308,6 +309,16 @@ public class SystemMediaPlayer extends android.media.MediaPlayer implements
 		mOnTimedTextListener = listener;
 		super.setOnTimedTextListener(mSystemOnTimedTextListener);
 	}*/
+	
+	@Override
+	public void setScreenOnWhilePlaying(boolean screenOn) {
+        super.setScreenOnWhilePlaying(screenOn);
+    }
+	
+	@Override
+	public void setWakeMode(Context context, int mode) {
+		super.setWakeMode(context, mode);
+	}
 
 	@Override
 	public DecodeMode getDecodeMode() {

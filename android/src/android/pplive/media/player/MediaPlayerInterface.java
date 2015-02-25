@@ -116,5 +116,9 @@ public interface MediaPlayerInterface {
 
 	//public abstract void setOnTimedTextListener(OnTimedTextListener listener);
 	
+	public abstract void setScreenOnWhilePlaying(boolean screenOn);
+	
+	public abstract void setWakeMode(Context context, int mode);
+	
 	public abstract DecodeMode getDecodeMode();
 }
