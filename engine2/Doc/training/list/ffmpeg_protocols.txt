@@ -1,0 +1,12 @@
+applehttp		httpproxy		rtmpe
+bluray			https			rtmps
+cache			librtmp			rtmpt
+concat			librtmpe		rtmpte
+crypto			librtmps		rtmpts
+data			librtmpt		rtp
+ffrtmpcrypt		librtmpte		sctp
+ffrtmphttp		md5			srtp
+file			mmsh			tcp
+gopher			mmst			tls
+hls			pipe			udp
+http			rtmp

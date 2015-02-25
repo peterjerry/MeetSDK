@@ -1,0 +1,7 @@
+file 'F:\bt\神枪狙击3_1.flv'
+file 'F:\bt\神枪狙击3_2.flv'
+file 'F:\bt\神枪狙击3_3.flv'
+file 'F:\bt\神枪狙击3_4.flv'
+file 'F:\bt\神枪狙击3_5.flv'
+file 'F:\bt\神枪狙击3_6.flv'
+file 'F:\bt\神枪狙击3_7.flv'

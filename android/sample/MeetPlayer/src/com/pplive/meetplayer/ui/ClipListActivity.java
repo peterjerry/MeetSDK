@@ -52,6 +52,8 @@ import android.os.Build;
 import android.media.AudioManager;
 import android.graphics.Bitmap;
 import android.net.Uri;
+import android.net.wifi.WifiManager;
+import android.net.wifi.WifiManager.WifiLock;
 import android.os.AsyncTask;
 import android.view.ViewGroup.LayoutParams;
 import android.widget.TextView;
@@ -78,6 +80,8 @@ import com.pplive.meetplayer.util.PlayLink2;
 import com.pplive.meetplayer.util.PlayLinkUtil;
 import com.pplive.meetplayer.util.Util;
 import com.pplive.dlna.DLNASdk;
+
+
 
 
 
@@ -142,6 +146,8 @@ public class ClipListActivity extends Activity implements
 	private boolean mIsBuffering 				= false;
 	private boolean mStoped					= false;
 	private boolean mHomed						= false;
+	
+	private WifiLock mWifiLock;
 	
 	// playback
 	private long mStartTimeSec = 0;
@@ -225,17 +231,18 @@ public class ClipListActivity extends Activity implements
 	final static int ONE_KILOBYTE 				= 1024;
 	
 	// menu item
-	final static int UPDATE_CLIP_LIST			= Menu.FIRST;
-	final static int UPDATE_APK				= Menu.FIRST + 1;
-	final static int UPLOAD_CRASH_REPORT		= Menu.FIRST + 2;
-	final static int QUIT 						= Menu.FIRST + 3;
-	final static int OPTION 					= Menu.FIRST + 4;
-	final static int OPTION_PREVIEW			= Menu.FIRST + 11;
-	final static int OPTION_LOOP				= Menu.FIRST + 12;
-	final static int OPTION_DLNA_LIST			= Menu.FIRST + 21;
-	final static int OPTION_EPG_FRONTPAGE		= Menu.FIRST + 22;
-	final static int OPTION_EPG_CONTENT		= Menu.FIRST + 23;
-	final static int OPTION_EPG_SEARCH			= Menu.FIRST + 24;
+	final static int OPTION 					= Menu.FIRST;
+	final static int UPDATE_CLIP_LIST			= Menu.FIRST + 1;
+	final static int UPDATE_APK				= Menu.FIRST + 2;
+	final static int UPLOAD_CRASH_REPORT		= Menu.FIRST + 3;
+	final static int QUIT 						= Menu.FIRST + 4;
+	final static int OPTION_COMMON				= Menu.FIRST + 11;
+	final static int OPTION_DLNA_LIST			= Menu.FIRST + 12;
+	final static int OPTION_EPG_FRONTPAGE		= Menu.FIRST + 13;
+	final static int OPTION_EPG_CONTENT		= Menu.FIRST + 14;
+	final static int OPTION_EPG_SEARCH			= Menu.FIRST + 15;
+	final static int OPTION_PREVIEW			= Menu.FIRST + 21;
+	final static int OPTION_LOOP				= Menu.FIRST + 22;
 	
 	
 	// message
@@ -1045,6 +1052,13 @@ public class ClipListActivity extends Activity implements
 			mPlayer.setOnErrorListener(this);
 			mPlayer.setOnBufferingUpdateListener(this);
 			mPlayer.setOnInfoListener(this);
+			
+			if (path.startsWith("http://")) {
+				mWifiLock = ((WifiManager) getSystemService(Context.WIFI_SERVICE))
+					    .createWifiLock(WifiManager.WIFI_MODE_FULL, "mylock");
+
+				mWifiLock.acquire();
+			}
 
 			mStoped = false;
 			mHomed = false;
@@ -1105,6 +1119,19 @@ public class ClipListActivity extends Activity implements
 			mPlayer.stop();
 			mPlayer.release();
 			mPlayer = null;
+			
+			if (mWifiLock != null) {
+				try {
+					if (mWifiLock.isHeld())
+						mWifiLock.release();
+				}
+				catch(Exception e){
+			        //probably already released
+			        Log.e(TAG, e.getMessage());
+			    }
+				
+				mWifiLock = null;
+			}
 			
 			// fix last video is still in buffering state
 			if (mIsBuffering) {
@@ -1818,47 +1845,39 @@ public class ClipListActivity extends Activity implements
 	
 	@Override
 	public boolean onCreateOptionsMenu(Menu menu) {
-
-		int i = Menu.FIRST;
-		
-		SubMenu OptSubMenu = menu.addSubMenu(i, OPTION, Menu.NONE, "Option");
+		SubMenu OptSubMenu = menu.addSubMenu(Menu.NONE, OPTION, Menu.FIRST, "Option");
 		OptSubMenu.setIcon(R.drawable.option);
-		MenuItem previewMenuItem = OptSubMenu.add(i, OPTION_PREVIEW, Menu.NONE, "Preview");
+		
+		SubMenu commonMenu = OptSubMenu.addSubMenu(Menu.NONE, OPTION_COMMON, Menu.FIRST, "common");
+		// dlna
+		OptSubMenu.add(Menu.NONE, OPTION_DLNA_LIST, Menu.FIRST + 1, "dlna");
+		// epg
+		OptSubMenu.add(Menu.NONE, OPTION_EPG_FRONTPAGE, Menu.FIRST + 2, "epg frontpage");
+		OptSubMenu.add(Menu.NONE, OPTION_EPG_CONTENT, Menu.FIRST + 3, "epg content");
+		OptSubMenu.add(Menu.NONE, OPTION_EPG_SEARCH, Menu.FIRST + 4, "epg search");
+				
+		MenuItem previewMenuItem = commonMenu.add(Menu.NONE, OPTION_PREVIEW, Menu.FIRST, "Preview");
 		previewMenuItem.setCheckable(true);
 		if (mIsPreview)
 			previewMenuItem.setChecked(true);
-		MenuItem loopMenuItem = OptSubMenu.add(i, OPTION_LOOP, Menu.NONE, "Loop");
+		MenuItem loopMenuItem = commonMenu.add(Menu.NONE, OPTION_LOOP, Menu.FIRST + 1, "Loop");
 		loopMenuItem.setCheckable(true);
 		if (mIsLoop)
 			loopMenuItem.setChecked(true);
 		
-		// dlna
-		OptSubMenu.add(i, OPTION_DLNA_LIST, Menu.NONE, "dlna");
-		// epg
-		OptSubMenu.add(i, OPTION_EPG_FRONTPAGE, Menu.NONE, "epg frontpage");
-		OptSubMenu.add(i, OPTION_EPG_CONTENT, Menu.NONE, "epg content");
-		OptSubMenu.add(i, OPTION_EPG_SEARCH, Menu.NONE, "epg search");
-		
-		menu.add(i, UPDATE_CLIP_LIST, Menu.NONE, "Update list")
+		menu.add(Menu.NONE, UPDATE_CLIP_LIST, Menu.FIRST + 1, "Update list")
 			.setIcon(R.drawable.list);
-		menu.add(i, UPDATE_APK, Menu.NONE, "Update apk")
+		menu.add(Menu.NONE, UPDATE_APK, Menu.FIRST + 2, "Update apk")
 			.setIcon(R.drawable.update);
-		menu.add(i, UPLOAD_CRASH_REPORT, Menu.NONE, "Upload crash report")
+		menu.add(Menu.NONE, UPLOAD_CRASH_REPORT, Menu.FIRST + 3, "Upload crash report")
 			.setIcon(R.drawable.log);
-		menu.add(i, QUIT, Menu.NONE, "Quit");
+		menu.add(Menu.NONE, QUIT, Menu.FIRST + 4, "Quit");
 		
 		return super.onCreateOptionsMenu(menu);
 	}
 
 	@Override
 	public boolean onOptionsItemSelected(MenuItem item) {
-		// Handle action bar item clicks here. The action bar will
-		// automatically handle clicks on the Home/Up button, so long
-		// as you specify a parent activity in AndroidManifest.xml.
-		/*
-		 * int id = item.getItemId(); if (id == R.id.action_settings) { return
-		 * true; } return super.onOptionsItemSelected(item);
-		 */
 		int id = item.getItemId();
 		switch (id) {
 		case UPDATE_CLIP_LIST:
@@ -1895,24 +1914,26 @@ public class ClipListActivity extends Activity implements
 			//}
 			break;
 		case OPTION_EPG_SEARCH:
-			
-		
 			final EditText inputKey = new EditText(this);
+			SharedPreferences settings = getSharedPreferences("settings", MODE_PRIVATE); // create it if NOT exist
+        	String last_key = settings.getString("last_searchkey", "阿仁");
+        	Log.i(TAG, "Java last_key: " + last_key);
+        	inputKey.setText(last_key);
+			inputKey.setHint("input search key");
+			
 	        AlertDialog.Builder builder = new AlertDialog.Builder(this);
 	        builder.setTitle("input key").setIcon(android.R.drawable.ic_dialog_info).setView(inputKey)
 	                .setNegativeButton("Cancel", null);
 	        builder.setPositiveButton("Ok", new DialogInterface.OnClickListener() {
 
 	            public void onClick(DialogInterface dialog, int which) {
-	            	/*SharedPreferences sharedata = getSharedPreferences("last_search", 0);  
-					String last_key = sharedata.getString("last_key", "inputkey");
-					inputKey.setText(last_key);*/
+	            	SharedPreferences settings = getSharedPreferences("settings", MODE_PRIVATE); // create it if NOT exist
+	            	SharedPreferences.Editor editor = settings.edit();
 		
 	            	mEPGsearchKey = inputKey.getText().toString();
-					
-					/*SharedPreferences.Editor sharedata_edit = sharedata.edit();  
-					sharedata_edit.putString("last_key", mEPGsearchKey);
-					sharedata_edit.commit();*/
+	            	Log.i(TAG, "Java save last_key: " + mEPGsearchKey);
+	            	editor.putString("last_searchkey", mEPGsearchKey);
+	            	editor.commit();
 					
 	            	Toast.makeText(ClipListActivity.this, "search epg...", Toast.LENGTH_SHORT).show();
 	    			new EPGTask().execute(EPG_ITEM_SEARCH);

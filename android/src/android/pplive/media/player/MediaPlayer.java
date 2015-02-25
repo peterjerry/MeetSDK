@@ -272,6 +272,7 @@ public class MediaPlayer implements MediaPlayerInterface {
 	@Override
 	public void start() throws IllegalStateException {
 		if (mPlayer != null) {
+			stayAwake(true);
 			mPlayer.start();
 		}
 		else {
@@ -283,6 +284,7 @@ public class MediaPlayer implements MediaPlayerInterface {
 	@Override
 	public void stop() throws IllegalStateException {
 		if (mPlayer != null) {
+			stayAwake(false);
 			mPlayer.stop();
 		}
 		else {
@@ -294,6 +296,7 @@ public class MediaPlayer implements MediaPlayerInterface {
 	@Override
 	public void pause() throws IllegalStateException {
 		if (mPlayer != null) {
+			stayAwake(false);
 			mPlayer.pause();
 		}
 		else {
@@ -316,6 +319,16 @@ public class MediaPlayer implements MediaPlayerInterface {
 	@Override
 	public void release() {
 		if (mPlayer != null) {
+			stayAwake(false);
+	        updateSurfaceScreenOn();
+	        mOnPreparedListener = null;
+	        mOnBufferingUpdateListener = null;
+	        mOnCompletionListener = null;
+	        mOnSeekCompleteListener = null;
+	        mOnErrorListener = null;
+	        mOnInfoListener = null;
+	        mOnVideoSizeChangedListener = null;
+	        
 			mPlayer.release();
 		}
 	}
@@ -323,6 +336,7 @@ public class MediaPlayer implements MediaPlayerInterface {
 	@Override
 	public void reset() {
 		if (mPlayer != null) {
+			stayAwake(false);
 			mPlayer.reset();
 		}
 	}
@@ -481,11 +495,21 @@ public class MediaPlayer implements MediaPlayerInterface {
 	}
 	private void setOnCompletionListener() {
 		if (mPlayer != null) {
-			mPlayer.setOnCompletionListener(mOnCompletionListener);
+			mPlayer.setOnCompletionListener(mCompletionListener);
 		}
 	}
 
 	private OnCompletionListener mOnCompletionListener;
+	
+	private MediaPlayer.OnCompletionListener mCompletionListener =
+	        new MediaPlayer.OnCompletionListener() {
+	        public void onCompletion(MediaPlayer mp) {
+	        	stayAwake(false);
+	        	
+	            if (mOnCompletionListener != null)
+	            	mOnCompletionListener.onCompletion(mp);
+	        }
+	    };
 
 	/**
 	 * Interface definition of a callback to be invoked indicating buffering
@@ -688,11 +712,24 @@ public class MediaPlayer implements MediaPlayerInterface {
 	}
 	private void setOnErrorListener() {
 		if (mPlayer != null) {
-			mPlayer.setOnErrorListener(mOnErrorListener);
+			mPlayer.setOnErrorListener(mErrorListener);
 		}
 	}
 
 	private OnErrorListener mOnErrorListener;
+	
+	private MediaPlayer.OnErrorListener mErrorListener =
+	        new MediaPlayer.OnErrorListener() {
+	        public boolean onError(MediaPlayer mp, int framework_err, int impl_err) {
+
+	        	stayAwake(false);
+	            /* If an error handler has been supplied, use it and finish. */
+	            if (mOnErrorListener != null)
+	            	return mOnErrorListener.onError(mp, framework_err, impl_err);
+
+	            return true;
+	        }
+	    };
 
 	/**
 	 * Interface definition of a callback to be invoked to communicate some info

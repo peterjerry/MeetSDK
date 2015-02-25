@@ -1,0 +1,11 @@
+aac			dvdsub			mpegvideo
+aac_latm		flac			png
+ac3			gsm			pnm
+adx			h261			rv30
+bmp			h263			rv40
+cavsvideo		h264			tak
+cook			mjpeg			vc1
+dca			mlp			vorbis
+dirac			mpeg4video		vp3
+dnxhd			mpegaudio		vp8
+dvbsub

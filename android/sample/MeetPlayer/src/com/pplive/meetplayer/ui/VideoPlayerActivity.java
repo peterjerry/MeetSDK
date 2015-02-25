@@ -36,7 +36,9 @@ import android.pplive.media.player.MediaPlayer.DecodeMode;
 
 public class VideoPlayerActivity extends Activity {
 
-	private static final String TAG = "VideoPlayerActivity";
+	private final static String TAG = "VideoPlayerActivity";
+	
+	private final static String []mode_desc = {"自适应", "铺满屏幕", "放大裁切", "原始大小"};
 
 	private Uri mUri = null;
 	private DecodeMode mDecodeMode = DecodeMode.AUTO;
@@ -268,11 +270,8 @@ public class VideoPlayerActivity extends Activity {
 		
 		@Override
 		public boolean onDoubleTap(MotionEvent event) {
-			
 			Log.i(TAG, "onDoubleTap!!!");
-			if (mVideoView != null)
-				mVideoView.switchDisplayMode();
-			
+			switchDisplayMode(1);
 			return true;
 		}
 		
@@ -288,6 +287,19 @@ public class VideoPlayerActivity extends Activity {
 		}
 	});
 	
+	private void switchDisplayMode(int incr) {
+		if (mVideoView != null) {
+			int mode = mVideoView.getDisplayMode();
+			mode = mode + incr;
+			if (mode < 0)
+				mode = 3;
+			else if(mode > 3)
+				mode = 0;
+			mVideoView.setDisplayMode(mode);
+			Toast.makeText(this, "mode switch to " + mode_desc[mode], Toast.LENGTH_SHORT).show();
+		}
+	}
+	
 	@Override
 	public boolean onTouchEvent(MotionEvent event) {
 		Log.i(TAG, "onTouchEvent()" + event.toString());
@@ -301,8 +313,6 @@ public class VideoPlayerActivity extends Activity {
 		Log.d(TAG, "keyCode: " + keyCode);
 		int incr = -1;
 		int mode;
-		
-		String []mode_desc = {"自适应", "铺满屏幕", "放大裁切", "原始大小"};
 		
 		switch (keyCode) {
 			case KeyEvent.KEYCODE_MENU:
@@ -343,14 +353,7 @@ public class VideoPlayerActivity extends Activity {
 				else
 					incr = -1;
 				
-				mode = mVideoView.getDisplayMode();
-				mode = mode + incr;
-				if (mode < 0)
-					mode = 3;
-				else if(mode > 3)
-					mode = 0;
-				mVideoView.setDisplayMode(mode);
-				Toast.makeText(this, "mode switch to " + mode_desc[mode], Toast.LENGTH_SHORT).show();
+				switchDisplayMode(incr);
 				return true;
 			default:
 				return super.onKeyDown(keyCode, event);
