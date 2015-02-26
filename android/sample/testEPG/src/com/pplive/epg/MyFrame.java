@@ -258,7 +258,7 @@ public class MyFrame extends JFrame {
 	}
 	
 	private void init_combobox() {
-		int type = 0;
+		int type = 2;
 		
 		switch (type) {
 		case 0:

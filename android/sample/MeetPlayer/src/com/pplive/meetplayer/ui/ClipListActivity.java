@@ -37,6 +37,8 @@ import android.view.View.MeasureSpec;
 import android.widget.AbsListView;
 import android.widget.AbsListView.OnScrollListener;
 import android.widget.AdapterView;
+import android.widget.AdapterView.OnItemClickListener;
+import android.widget.AdapterView.OnItemLongClickListener;
 import android.widget.Button;
 import android.widget.DatePicker;
 import android.widget.EditText;
@@ -80,6 +82,8 @@ import com.pplive.meetplayer.util.PlayLink2;
 import com.pplive.meetplayer.util.PlayLinkUtil;
 import com.pplive.meetplayer.util.Util;
 import com.pplive.dlna.DLNASdk;
+
+
 
 
 
@@ -407,8 +411,62 @@ public class ClipListActivity extends Activity implements
 		
 		new ListItemTask().execute(mCurrentFolder);
 		
+		this.lv_filelist.setOnItemLongClickListener(new OnItemLongClickListener() {
+
+			@Override
+			public boolean onItemLongClick(AdapterView<?> arg0, View view,
+					int position, long id) {
+				// TODO Auto-generated method stub
+				
+				HashMap<String, Object> item = (HashMap<String, Object>) lv_filelist.getItemAtPosition(position);
+				final String file_path = (String)item.get("fullpath");
+				
+				if (!file_path.startsWith("/"))
+					return false;
+				
+				final String []actions = {"detail", "delete", "open"};
+				Dialog choose_action_dlg = new AlertDialog.Builder(ClipListActivity.this)
+				.setTitle("select action")
+				.setItems(actions, new DialogInterface.OnClickListener(){
+						public void onClick(DialogInterface dialog, int whichButton){
+							switch(whichButton) {
+							case 0:
+								break;
+							case 1:
+								File file = new File(file_path);
+								
+								if (file.exists()) {
+									String filename = file.getName();
+									file.delete();
+									Toast.makeText(ClipListActivity.this, 
+											"file " + filename + " deleted", Toast.LENGTH_SHORT).show();
+									new ListItemTask().execute(mCurrentFolder);
+								}
+								else {
+									Toast.makeText(ClipListActivity.this, 
+											"file " + file_path + " not found", Toast.LENGTH_SHORT).show();
+								}
+								
+								break;
+							case 2:
+								break;
+							default:
+								break;
+							}
+							dialog.dismiss();
+						}
+					})
+				.setNegativeButton("Cancel", null)
+				.create();
+				choose_action_dlg.show();
+				
+				return true;
+			}
+			
+		});
+		
 		this.lv_filelist
-				.setOnItemClickListener(new ListView.OnItemClickListener() {
+				.setOnItemClickListener(new OnItemClickListener() {
 					@SuppressWarnings("unchecked")
 					@Override
 					public void onItemClick(AdapterView<?> arg0, View view,
@@ -1139,6 +1197,8 @@ public class ClipListActivity extends Activity implements
 				mBufferingProgressBar.setVisibility(View.GONE);
 				mIsBuffering = false;
 			}
+			
+			close_hls();
 		}
 	}
 	

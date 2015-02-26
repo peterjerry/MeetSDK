@@ -369,16 +369,18 @@ void AudioPlayer::audio_thread_impl()
         else
         {
             AVPacket* pPacket = NULL;
-			LOGI("before getPacket()");
             status_t ret = mDataStream->getPacket(mAudioStreamIndex, &pPacket);
-			LOGI("after getPacket()");
 			if (ret == FFSTREAM_OK) {
 				// drop frame when seeking
                 if (!mSeeking) {
 					mAudioPlayingTimeMs = (int64_t)(pPacket->pts * av_q2d(mAudioContext->time_base) * 1000);
 					LOGD("set mAudioPlayingTimeMs %lld", mAudioPlayingTimeMs);
         	        // maybe blocked by write buffer
-					decode_l(pPacket);
+					// 2015.2.26 michael.ma added dec_pkt fix release changed pkt data/size
+					AVPacket dec_pkt;
+					av_init_packet(&dec_pkt);
+					dec_pkt = *pPacket;
+					decode_l(&dec_pkt);
                 }
             
     	        av_free_packet(pPacket);
