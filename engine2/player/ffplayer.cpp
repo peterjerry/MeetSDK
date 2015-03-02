@@ -1122,19 +1122,9 @@ void FFPlayer::render_impl()
 		notifyListener_l(MEDIA_ERROR, MEDIA_ERROR_VIDEO_RENDER, 0);
 }
 
-bool FFPlayer::render_frame()
+void FFPlayer::render_frame()
 {
 	LOGD("render_frame");
-
-	if (mPlayerStatus == MEDIA_PLAYER_PAUSED) {
-        //support frame update during paused. ONLY RENDER ONE FRAME
-        LOGD("render frame begin(paused)");
-        render_impl();
-        mIsVideoFrameDirty = true;
-        LOGD("on video event end: render frame end(paused)");
-        //mRenderFrameDuringPaused = false;
-        return false;
-    }
 
 	if (mRenderFirstFrame) { 
 		// must set audio start time before render frame!
@@ -1146,7 +1136,7 @@ bool FFPlayer::render_frame()
 
 	if (need_drop_frame()) {
 		// delay is larger than video_gap, so next video vidoe event is asap.
-		return true;
+		return;
 	}
 
 #ifdef TEST_PERFORMANCE
@@ -1186,8 +1176,6 @@ bool FFPlayer::render_frame()
 		mDiscardLevel = AVDISCARD_BIDIR;
 		mDiscardCount = 7;
 	}
-
-	return true;
 }
 
 bool FFPlayer::need_drop_frame()
@@ -1391,11 +1379,17 @@ void FFPlayer::onVideoImpl()
 	} // end of if(mIsVideoFrameDirty)
 
 	// Step3 render picture
-	bool render_res = render_frame();
-	if (!render_res) {
-		LOGI("render one frame and stop onVideo()");
-		return;
-	}
+	if (mPlayerStatus == MEDIA_PLAYER_PAUSED) {
+        //support frame update during paused. ONLY RENDER ONE FRAME
+        LOGD("render paused frame frame");
+        render_impl();
+        mIsVideoFrameDirty = true;
+        LOGD("render paused frame frame done");
+        //mRenderFrameDuringPaused = false;
+        return;
+    }
+
+	render_frame();
 
 	int64_t schedule_msec = mFrameTimerMs - av_gettime() / 1000 - mAveVideoDecodeTimeMs;
 	LOGD("schedule_msec %lld", schedule_msec);

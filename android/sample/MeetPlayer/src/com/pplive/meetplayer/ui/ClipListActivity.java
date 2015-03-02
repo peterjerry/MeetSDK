@@ -1144,11 +1144,8 @@ public class ClipListActivity extends Activity implements
 				mBufferingProgressBar.setVisibility(View.GONE);
 				mIsBuffering = false;
 			}
-<<<<<<< HEAD
 			
-			//close_hls();
-=======
->>>>>>> parent of b741c7b... 1 fix audioplayer decode pkt release problem
+			close_hls();
 		}
 	}
 	

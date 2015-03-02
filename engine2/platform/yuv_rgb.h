@@ -18,14 +18,14 @@
 struct yuv_planes
 {
     void *y, *u, *v;
-    size_t pitch;
+    int32_t pitch;
 };
 
 /* Packed picture buffer. Pitch is in bytes (_not_ pixels). */
 struct yuv_pack
 {
     void *yuv;
-    size_t pitch;
+    int32_t pitch;
 };
 
 #ifndef _MSC_VER

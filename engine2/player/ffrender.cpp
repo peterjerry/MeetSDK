@@ -133,7 +133,7 @@ status_t FFRender::render_neon(AVFrame* frame)
 					mSurfaceStride<<1, //bitmap span/pitch
 					420);
 #else
-				struct yuv_pack out = {surfacePixels, mSurfaceStride * 4};
+				struct yuv_pack out = {surfacePixels, (int32_t)mSurfaceStride * 4};
 				struct yuv_planes in = {frame->data[0], frame->data[1], frame->data[2], frame->linesize[0]};
 				i420_rgb_neon(&out, &in, frame->width, frame->height);
 #endif
@@ -147,14 +147,14 @@ status_t FFRender::render_neon(AVFrame* frame)
 		}
 	case AV_PIX_FMT_NV12:
 		{
-			struct yuv_pack out = {surfacePixels, mSurfaceStride * 4};
+			struct yuv_pack out = {surfacePixels, (int32_t)mSurfaceStride * 4};
 			struct yuv_planes in = {frame->data[0], frame->data[1], frame->data[2], frame->linesize[0]};
 			nv12_rgb_neon (&out, &in, frame->width, frame->height);
 			break;
 		}
 	case AV_PIX_FMT_NV21:
 		{
-			struct yuv_pack out = {surfacePixels, mSurfaceStride * 4};
+			struct yuv_pack out = {surfacePixels, (int32_t)mSurfaceStride * 4};
 			struct yuv_planes in = {frame->data[0], frame->data[1], frame->data[2], frame->linesize[0]};
 			nv21_rgb_neon (&out, &in, frame->width, frame->height);
 			break;

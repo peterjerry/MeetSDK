@@ -163,7 +163,7 @@ private:
 	status_t decode_l(AVPacket* packet);
 	status_t prepareSubtitle_l();
 	
-	bool render_frame(); // stop sent onVideo event when false
+	void render_frame(); // stop sent onVideo event when false
 	void render_impl(); // decide render origin frame or filter frame
 	bool need_drop_frame(); // true means need drop it.
 	bool broadcast_refresh(); // if not broadcast, return false. if broadcast, flush a/v packet and return true 
