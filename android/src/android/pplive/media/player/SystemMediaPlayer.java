@@ -203,6 +203,7 @@ public class SystemMediaPlayer extends android.media.MediaPlayer implements
 		@Override
 		public boolean onError(android.media.MediaPlayer mp, int what, int extra) {
 			if (null != mOnErrorListener) {
+				LogUtils.error(String.format("Java: Systemplayer onError: what %d, extra %d", what, extra));
 				return mOnErrorListener.onError(mMediaPlayer, MediaPlayer.MEDIA_ERROR_SYSTEM_PLAYER_COMMON_ERROR, extra);
 			}
 			return false;

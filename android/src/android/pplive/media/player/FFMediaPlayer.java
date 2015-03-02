@@ -11,37 +11,16 @@ import android.net.Uri;
 import android.view.Surface;
 import android.view.SurfaceHolder;
 import android.graphics.Bitmap;
-import android.os.Handler;
-import android.os.Looper;
 import android.os.Message;
 import android.os.Parcel;
-import android.os.PowerManager;
 import android.pplive.media.util.LogUtils;
 import android.pplive.media.subtitle.SimpleSubTitleParser;
 import android.pplive.media.player.MediaPlayer.DecodeMode;
-import android.pplive.media.player.MediaPlayer.OnBufferingUpdateListener;
-import android.pplive.media.player.MediaPlayer.OnCompletionListener;
-import android.pplive.media.player.MediaPlayer.OnErrorListener;
-import android.pplive.media.player.MediaPlayer.OnInfoListener;
-import android.pplive.media.player.MediaPlayer.OnPreparedListener;
-import android.pplive.media.player.MediaPlayer.OnSeekCompleteListener;
-//import android.pplive.media.player.MediaPlayer.OnTimedTextListener;
-import android.pplive.media.player.MediaPlayer.OnVideoSizeChangedListener;
 
-public class FFMediaPlayer extends NativeMediaPlayer implements MediaPlayerInterface {
+public class FFMediaPlayer extends BaseMediaPlayer {
 
 	private int mNativeContext; // accessed by native methods
 	private int mListenerContext; // accessed by native methods
-	private static MediaPlayer mPlayer;
-	
-	private MediaPlayer.OnBufferingUpdateListener 	mOnBufferingUpdateListener 	= null;
-	private MediaPlayer.OnCompletionListener 		mOnCompletionListener 		= null;
-	private MediaPlayer.OnErrorListener 			mOnErrorListener 			= null;
-	private MediaPlayer.OnInfoListener 				mOnInfoListener 			= null;
-	private MediaPlayer.OnPreparedListener 			mOnPreparedListener 		= null;
-	private MediaPlayer.OnSeekCompleteListener 		mOnSeekCompleteListener 	= null;
-	private MediaPlayer.OnVideoSizeChangedListener mOnVideoSizeChangedListener = null;
-	//private MediaPlayer.OnTimedTextListener			mOnTimedTextListener		= null;
 	
 	private static String libPath = "";
 	private static boolean libLoaded = false;
@@ -89,17 +68,9 @@ public class FFMediaPlayer extends NativeMediaPlayer implements MediaPlayerInter
 	}
 	
 	public FFMediaPlayer(MediaPlayer mp) {
-		native_setup(new WeakReference<FFMediaPlayer>(this), true); // always true to use ffplay
-		mPlayer = mp;
+		super(mp);
 		
-		Looper looper;
-	    if ((looper = Looper.myLooper()) != null) {
-	        mEventHandler = new EventHandler(mPlayer, looper);
-	    } else if ((looper = Looper.getMainLooper()) != null) {
-	        mEventHandler = new EventHandler(mPlayer, looper);
-	    } else {
-	        mEventHandler = null;
-	    }
+		native_setup(new WeakReference<FFMediaPlayer>(this), true); // always true to use ffplay
 	}
 	
 	// capability
@@ -303,16 +274,8 @@ public class FFMediaPlayer extends NativeMediaPlayer implements MediaPlayerInter
 	
 	@Override
 	public void release() {
-		stayAwake(false);
-		updateSurfaceScreenOn();
-		mOnPreparedListener = null;
-        mOnBufferingUpdateListener = null;
-        mOnCompletionListener = null;
-        mOnSeekCompleteListener = null;
-        mOnErrorListener = null;
-        mOnInfoListener = null;
-        mOnVideoSizeChangedListener = null;
-        //mOnTimedTextListener = null;
+		super.release();
+		
 		_release();
 		// make sure none of the listeners get called anymore
 		// 2015.1.20 guoliangma solve "quick" new-open when another is in "preparing" state
@@ -403,122 +366,9 @@ public class FFMediaPlayer extends NativeMediaPlayer implements MediaPlayerInter
 	}
 	
 	@Override
-	public void setOnBufferingUpdateListener(OnBufferingUpdateListener listener) {
-		mOnBufferingUpdateListener = listener;
-	}
-
-	@Override
-	public void setOnCompletionListener(OnCompletionListener listener) {
-		mOnCompletionListener = listener;
-	}
-
-	@Override
-	public void setOnErrorListener(OnErrorListener listener) {
-		mOnErrorListener = listener;
-	}
-
-	@Override
-	public void setOnInfoListener(OnInfoListener listener) {
-		mOnInfoListener = listener;
-	}
-
-	@Override
-	public void setOnPreparedListener(OnPreparedListener listener) {
-		mOnPreparedListener = listener;
-	}
-
-	@Override
-	public void setOnSeekCompleteListener(OnSeekCompleteListener listener) {
-		mOnSeekCompleteListener = listener;
-	}
-
-	@Override
-	public void setOnVideoSizeChangedListener(OnVideoSizeChangedListener listener) {
-		mOnVideoSizeChangedListener = listener;
-	}
-
-	/*@Override
-	public void setOnTimedTextListener(OnTimedTextListener listener) {
-		mOnTimedTextListener = listener;
-	}*/
-	
-	@Override
 	public DecodeMode getDecodeMode() {
 		return DecodeMode.SW;
 	}
-	
-	private EventHandler mEventHandler;
-		
-	private class EventHandler extends Handler
-    {
-        private MediaPlayer mMediaPlayer;
-
-        public EventHandler(MediaPlayer mp, Looper looper) {
-            super(looper);
-            mMediaPlayer = mp;
-        }
-
-        @Override
-        public void handleMessage(Message msg) {
-        	
-            switch(msg.what) {
-            case MediaPlayer.MEDIA_PREPARED:
-				if (mOnPreparedListener != null) {
-					mOnPreparedListener.onPrepared(mPlayer);
-				}
-				return;
-				
-			case MediaPlayer.MEDIA_PLAYBACK_COMPLETE:
-				if (mOnCompletionListener != null) {
-					mOnCompletionListener.onCompletion(mPlayer);
-				}
-				return;
-				
-			case MediaPlayer.MEDIA_BUFFERING_UPDATE:
-				if (mOnBufferingUpdateListener != null) {
-					mOnBufferingUpdateListener.onBufferingUpdate(mPlayer, msg.arg1 /* percent */);
-				}
-				return;
-
-			case MediaPlayer.MEDIA_SEEK_COMPLETE:
-				if (mOnSeekCompleteListener != null) {
-					mOnSeekCompleteListener.onSeekComplete(mPlayer);
-				}
-				stayAwake(false);
-				return;
-
-			case MediaPlayer.MEDIA_SET_VIDEO_SIZE:
-				if (mOnVideoSizeChangedListener != null) {
-					mOnVideoSizeChangedListener.onVideoSizeChanged(mPlayer, msg.arg1 /* width */, msg.arg2 /* height */);
-				}
-				return;
-
-			case MediaPlayer.MEDIA_ERROR:
-				if (mOnErrorListener != null) {
-					mOnErrorListener.onError(mPlayer, msg.arg1, msg.arg2);
-				}
-				stayAwake(false);
-				return;
-
-			case MediaPlayer.MEDIA_INFO:
-				if (mOnInfoListener != null) {
-					mOnInfoListener.onInfo(mPlayer, msg.arg1, msg.arg2);
-				}
-				return;
-				
-            case MediaPlayer.MEDIA_TIMED_TEXT:
-                // todo
-                return;
-
-            case MediaPlayer.MEDIA_NOP: // interface test message - ignore
-                break;
-
-            default:
-            	LogUtils.error("Unknown message type " + msg.what);
-				return;
-            }
-        }
-    }
 	
 	private native void _setDataSource(String path) throws IOException,
 			IllegalArgumentException, IllegalStateException;
