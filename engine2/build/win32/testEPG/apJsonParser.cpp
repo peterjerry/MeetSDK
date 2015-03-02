@@ -21,9 +21,9 @@ apJsonParser::~apJsonParser(void)
 {
 }
 
-EPG_LIST * apJsonParser::parseCatalog(char *context, unsigned int size)
+EPG_MODULE_LIST * apJsonParser::parseFrontpage(char *context, unsigned int size)
 {
-	mCatalog.clear();
+	mModuleList.clear();
 
 	Value  v;
 	Reader r;
@@ -36,30 +36,27 @@ EPG_LIST * apJsonParser::parseCatalog(char *context, unsigned int size)
 	for (int i=0;i<c;i++) {
 		std::string title = v["modules"][i]["data"]["title"].asString();
 		if (!title.empty()) {
-			char str_index[8] = {0};
-			sprintf_s(str_index, "%d", i);
-
-			MAP_ITEM new_item;
-			new_item.insert(MAP_ITEM::value_type("index", str_index));
-			new_item.insert(MAP_ITEM::value_type("title", title));
-			mCatalog.push_back(new_item);
+			apModule m(i, title.c_str());
+			mModuleList.push_back(m);
 		}
 	}
 
-	return &mCatalog;
+	return &mModuleList;
 }
 
-EPG_LIST * apJsonParser::parseCollection(char *context, unsigned int size, int index)
+EPG_CATALOG_LIST * apJsonParser::parseCatalog(char *context, unsigned int size, int index)
 {
 	LOGI("parseCollection() index %d", index);
 
-	mCollection.clear();
+	mCatalogList.clear();
 
+	LOGI("before parse json");
 	Value  v;
 	Reader r;
 	if (!r.parse(context, v, false))
 		return NULL;
 
+	LOGI("after parse json");
 	const int len = strlen("&vid=");
 
 	int c = v["modules"].size();
@@ -68,31 +65,20 @@ EPG_LIST * apJsonParser::parseCollection(char *context, unsigned int size, int i
 
 	int c2 = v["modules"][index]["data"]["dlist"].size();
 	for (int j=0;j<c2;j++) {
-		std::string title = v["modules"][index]["data"]["dlist"][j]["title"].asString();
-		std::string str_link = v["modules"][index]["data"]["dlist"][j]["link"].asString();
-		std::string link = v["modules"][index]["data"]["dlist"][j]["epg_id"].asString();
-		if(link.empty()) {
-			int p1, p2;
-			p1 = str_link.find("&vid=");
-			p2 = str_link.find("&sid=");
-			if (std::string::npos == p1 || std::string::npos == p2)
-				continue;
-
-			link = str_link.substr(p1 + len, p2 - p1 - len);
-			
-		}
-		MAP_ITEM new_item;
-		new_item.insert(MAP_ITEM::value_type("title", title));
-		new_item.insert(MAP_ITEM::value_type("link", link));
-		mCollection.push_back(new_item);
+		Value v2 = v["modules"][index]["data"]["dlist"][j];
+		std::string title = v2["title"].asString();
+		std::string target = v2["target"].asString();
+		std::string link = v2["link"].asString();
+		apCatalog c(title.c_str(), target.c_str(), link.c_str());
+		mCatalogList.push_back(c);
 	}
 
-	return &mCollection;
+	return &mCatalogList;
 }
 
-EPG_LIST * apJsonParser::parsePlaylink(char *context, unsigned int size)
+EPG_PLAYLINK_LIST * apJsonParser::parseDetail(char *context, unsigned int size)
 {
-	mClips.clear();
+/*	mPlaylinkList.clear();
 
 	Value  v;
 	Reader r;
@@ -116,6 +102,8 @@ EPG_LIST * apJsonParser::parsePlaylink(char *context, unsigned int size)
 
 			std::string link = str_link.substr(p1 + len, p2 - p1 - len);
 			printf("link %s\n", link.c_str());
+			
+			apPlayLink2 l(title.c_str(), link.c_str(), "");
 			MAP_ITEM new_item;
 			new_item.insert(MAP_ITEM::value_type("title", title));
 			new_item.insert(MAP_ITEM::value_type("link", link));
@@ -123,5 +111,6 @@ EPG_LIST * apJsonParser::parsePlaylink(char *context, unsigned int size)
 		}
 	}
 
-	return &mClips;
+	return &mClips;*/
+	return NULL;
 }

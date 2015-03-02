@@ -13,8 +13,8 @@ class FFPlayer;
 struct SDL_Surface;
 
 enum EPG_QUERY_TYPE {
+	EPG_QUERY_FRONTPAGE,
 	EPG_QUERY_CATALOG,
-	EPG_QUERY_COLLECTION,
 	EPG_QUERY_DATAIL,
 	EPG_QUERY_CLIP,
 	EPG_QUERY_CDN_URL,
@@ -66,7 +66,6 @@ private:
 	// epg
 	enum EPG_QUERY_TYPE mEPGQueryType;
 	apEPG mEPG;
-	EPG_LIST *mEPGlist;
 	int mEPGValue;
 
 	FFPlayer *mPlayer;

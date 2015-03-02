@@ -76,7 +76,7 @@ size_t apEPG::write_data_impl(void *buffer, size_t size, size_t nmemb, void *use
 	return nmemb;
 }
 
-EPG_LIST * apEPG::getCatalog(int index)
+EPG_MODULE_LIST * apEPG::frontpage()
 {
 	reset();
 
@@ -101,13 +101,38 @@ EPG_LIST * apEPG::getCatalog(int index)
 		return NULL;
 	}
 	
-	if (index == -1)
-		return mParser.parseCatalog(mData, mDataSize);
-	else
-		return mParser.parseCollection(mData, mDataSize, index);
+	return mParser.parseFrontpage(mData, mDataSize);
 }
 
-EPG_LIST * apEPG::search(const char* key)
+EPG_CATALOG_LIST * apEPG::catalog(int catalog_index)
+{
+	reset();
+
+	CURL *curl = NULL;   
+	CURLcode res;
+	curl = curl_easy_init();  
+	if (!curl){
+		return NULL;
+	}
+
+	LOGI("curl_perform(getCatalog): %s", FRONTPAGE_URL);
+
+	curl_easy_reset(curl);
+
+	curl_easy_setopt(curl, CURLOPT_URL, FRONTPAGE_URL);
+	curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, apEPG::write_data);
+	curl_easy_setopt(curl, CURLOPT_WRITEDATA, this);
+
+	res = curl_easy_perform(curl);
+	if (CURLE_OK != res) {
+		apLog::print(0, apLog::info, "curl error %s\n", curl_easy_strerror(res));
+		return NULL;
+	}
+	
+	return mParser.parseCatalog(mData, mDataSize, catalog_index);
+}
+
+bool apEPG::search(const char* key, EPG_NAVIGATOR_LIST **pNav, EPG_PLAYLINK_LIST **pPlaylink)
 {
 	reset();
 
@@ -133,27 +158,34 @@ EPG_LIST * apEPG::search(const char* key)
 
 	res = curl_easy_perform(curl);
 	if (CURLE_OK != res) {
-		apLog::print(0, apLog::info, "curl error %s\n", curl_easy_strerror(res));
-		return NULL;
+		apLog::print(0, apLog::error, "curl error %s\n", curl_easy_strerror(res));
+		return false;
 	}
 	
 	
-	return mParserXml.parseSearch(mData, mDataSize);
+	if (!mParserXml.parseSearch(mData, mDataSize)) {
+		apLog::print(0, apLog::error, "failed to parse search xml");
+		return false;
+	}
+
+	*pNav		= mParserXml.get_nav();
+	*pPlaylink	= mParserXml.get_playlink();
+	return true;
 }
 
-EPG_LIST * apEPG::getPlaylink(int index)
+EPG_PLAYLINK_LIST * apEPG::detail(int vid)
 {
-	LOGI("getPlaylink() index %d", index);
+	LOGI("getPlaylink() index %d", vid);
 
-	if (index == 0) {
-		LOGE("invalid index %d", index);
+	if (vid == 0) {
+		LOGE("invalid index %d", vid);
 		return NULL;
 	}
 
 	reset();
 
 	TCHAR url[1024] = {0};
-	_stprintf_s(url, DETAIL_URL_FMT, index, index);
+	_stprintf_s(url, DETAIL_URL_FMT, vid, vid);
 	LOGI("curl_perform(getPlaylink): %s", url);
 
 	CURL *curl = NULL;   
@@ -177,5 +209,5 @@ EPG_LIST * apEPG::getPlaylink(int index)
 	
 	apLog::print(0, apLog::info, "post ok. %d", mDataSize);
 	mData[mDataSize] = '\0';
-	return mParserXml.parsePlaylink(mData, mDataSize);
+	return mParserXml.parseDetail(mData, mDataSize);
 }

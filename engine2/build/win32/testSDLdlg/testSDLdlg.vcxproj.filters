@@ -128,6 +128,21 @@
     <ClCompile Include="..\testEPG\md5c.c">
       <Filter>源文件\util</Filter>
     </ClCompile>
+    <ClCompile Include="..\testEPG\apCatalog.cpp">
+      <Filter>源文件\util</Filter>
+    </ClCompile>
+    <ClCompile Include="..\testEPG\apContent.cpp">
+      <Filter>源文件\util</Filter>
+    </ClCompile>
+    <ClCompile Include="..\testEPG\apModule.cpp">
+      <Filter>源文件\util</Filter>
+    </ClCompile>
+    <ClCompile Include="..\testEPG\apNavigator.cpp">
+      <Filter>源文件\util</Filter>
+    </ClCompile>
+    <ClCompile Include="..\testEPG\apPlayLink2.cpp">
+      <Filter>源文件\util</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="testSDLdlg.rc">

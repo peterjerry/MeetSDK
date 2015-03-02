@@ -1,10 +1,9 @@
 #include "stdafx.h"
 #include "apXmlParser.h"
-#include "markup.h"
 #define LOG_TAG "apXmlParser"
 #include "log.h"
 
-static std::string Utf82Ansi(const char* srcCode);
+//static std::string Utf82Ansi(const char* srcCode);
 
 apXmlParser::apXmlParser(void)
 {
@@ -15,9 +14,10 @@ apXmlParser::~apXmlParser(void)
 {
 }
 
-EPG_LIST * apXmlParser::parseSearch(char *context, unsigned int size)
+bool apXmlParser::parseSearch(char *context, unsigned int size)
 {
-	mClips.clear();
+	mNavigatorList.clear();
+	mPlaylinkList.clear();
 
 	FILE *pFile = NULL;
 	fopen_s(&pFile, "tmp.xml", "wb");
@@ -32,7 +32,7 @@ EPG_LIST * apXmlParser::parseSearch(char *context, unsigned int size)
 	if (ret == false) {
 		LOGE("failed to parse xml");
 		
-		return NULL;
+		return false;
 	}
 
 	dom.FindElem("vlist");
@@ -40,20 +40,17 @@ EPG_LIST * apXmlParser::parseSearch(char *context, unsigned int size)
 
 	while (dom.FindElem("v")) {
 		dom.IntoElem();
-
-		MAP_ITEM new_item;
-
 		std::string vid = dom.GetAttrib(_T("vid"));
-		new_item.insert(MAP_ITEM::value_type("vid", vid));
-		mClips.push_back(new_item);
+		apPlayLink2 l("", vid.c_str(), "");
+		mPlaylinkList.push_back(l);
 	}
 
-	return &mClips;
+	return true;
 }
 
-EPG_LIST * apXmlParser::parsePlaylink(char *context, unsigned int size)
+EPG_PLAYLINK_LIST * apXmlParser::parseDetail(char *context, unsigned int size)
 {
-	mClips.clear();
+	mPlaylinkList.clear();
 
 	FILE *pFile = NULL;
 	fopen_s(&pFile, "tmp.xml", "wb");
@@ -75,46 +72,90 @@ EPG_LIST * apXmlParser::parsePlaylink(char *context, unsigned int size)
 		return NULL;
 	}
 
-	
-
-	ret = dom.FindElem(_T("v"));
+	dom.FindElem(_T("v"));
 	dom.IntoElem();
 
-	ret = dom.FindElem(_T("title"));
-	std::string title = dom.GetData();
+	add_v(dom);
 
-	ret = dom.FindElem(_T("video_list2"));
-	dom.IntoElem();
-	
-	while (dom.FindElem(_T("playlink2"))) {
-		MAP_ITEM new_item;
-
-		std::string id = dom.GetAttrib(_T("id"));
-		std::string title = dom.GetAttrib(_T("title"));
-		std::string duration = dom.GetAttrib(_T("duration")); // min
-		std::string duration_sec = dom.GetAttrib(_T("durationSecond")); // min
-		new_item.insert(MAP_ITEM::value_type("id", id));
-		new_item.insert(MAP_ITEM::value_type("title", title));
-		new_item.insert(MAP_ITEM::value_type("duration", duration));
-		new_item.insert(MAP_ITEM::value_type("duration_sec", duration_sec));
-
-		dom.IntoElem();
-		if (dom.FindElem("source")) {
-			std::string bitrate = dom.GetAttrib(_T("bitrate"));
-			std::string resolution = dom.GetAttrib(_T("resolution"));
-			
-			new_item.insert(MAP_ITEM::value_type("bitrate", bitrate));
-			new_item.insert(MAP_ITEM::value_type("resolution", resolution));
-		}
-		dom.OutOfElem();
-
-		mClips.push_back(new_item);
-	}
-
-	return &mClips;
+	return &mPlaylinkList;
 }
 
-static std::string Utf82Ansi(const char* srcCode)  
+boolean apXmlParser::add_v(CMarkup v)
+{
+	boolean found = false;
+
+	v.FindElem("title");
+	std::string link_title		= v.GetData();
+	v.FindElem("vid");
+	std::string link_id			= v.GetData();
+	v.FindElem("director");
+	std::string link_director	= v.GetData();
+	v.FindElem("act");
+	std::string link_act		= v.GetData();
+	v.FindElem("year");
+	std::string link_year		= v.GetData();
+	v.FindElem("area");
+	std::string link_area		= v.GetData();
+
+	v.FindElem("resolution");
+	std::string link_resolution = v.GetData();
+
+	std::string str_du;
+	int duration_sec;
+	found = v.FindElem("durationSecond");
+	if (found) {
+		str_du = v.GetData();
+		duration_sec = atoi(str_du.c_str());
+	}
+	else {
+		v.FindElem("duration");
+		str_du = v.GetData();
+		duration_sec = atoi(str_du.c_str()) * 60;
+	}
+
+	std::string link_description = "N/A";
+	found = v.FindElem("content");
+	if (found)
+		link_description = v.GetData();
+
+	found = v.FindElem("video_list2");
+	if (found)
+		v.IntoElem();
+
+	int count = 0;
+	while(v.FindElem("playlink2")) {
+		count++;
+	}
+
+	v.ResetMainPos();
+	while(v.FindElem("playlink2")) {
+		std::string id = v.GetAttrib("id");
+		if (!id.empty())
+			link_id = id; // overwrite
+
+		std::string ext_title = "";
+		if (count > 1)
+			ext_title = v.GetAttrib("title");
+
+		v.IntoElem();
+		v.FindElem("source");
+		std::string src_mark = v.GetAttrib("mark");
+		std::string src_res = v.GetAttrib("resolution");
+		if(!src_res.empty())
+			link_resolution = src_res; // overwrite
+		v.OutOfElem();
+
+		apPlayLink2 l(link_title.c_str(), ext_title.c_str(), link_id.c_str(), link_description.c_str(), 
+			src_mark.c_str(), link_director.c_str(), link_act.c_str(),
+			link_year.c_str(), link_area.c_str(),
+			link_resolution.c_str(), duration_sec);
+		mPlaylinkList.push_back(l);
+	}
+
+	return true;
+}
+
+/*static std::string Utf82Ansi(const char* srcCode)  
 {     
     int srcCodeLen=0;  
     srcCodeLen=MultiByteToWideChar(CP_UTF8,NULL,srcCode,strlen(srcCode),NULL,0);  
@@ -130,4 +171,4 @@ static std::string Utf82Ansi(const char* srcCode)
     delete result_t;  
     delete result;  
     return srcAnsiCode;  
-}  
+}*/

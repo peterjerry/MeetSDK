@@ -90,12 +90,20 @@
     <ClCompile Include="..\..\..\platform\log_win32.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
     </ClCompile>
+    <ClCompile Include="..\..\..\platform\utils.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
+    </ClCompile>
     <ClCompile Include="..\testSDLdlg\urlcodec.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
     </ClCompile>
+    <ClCompile Include="apCatalog.cpp" />
+    <ClCompile Include="apContent.cpp" />
     <ClCompile Include="apEPG.cpp" />
     <ClCompile Include="apFileLog.cpp" />
     <ClCompile Include="apJsonParser.cpp" />
+    <ClCompile Include="apModule.cpp" />
+    <ClCompile Include="apNavigator.cpp" />
+    <ClCompile Include="apPlayLink2.cpp" />
     <ClCompile Include="apXmlParser.cpp" />
     <ClCompile Include="libjsoncpp\src\json_reader.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>

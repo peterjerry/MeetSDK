@@ -290,7 +290,7 @@ BOOL CtestSDLdlgDlg::OnInitDialog()
 	SetDlgItemText(IDC_EDIT_PLAYLINK, "19534153");
 	SetDlgItemText(IDC_EDIT_FT, "1");
 	SetDlgItemText(IDC_EDIT_BWTYPE, "3");
-	mEPGQueryType = EPG_QUERY_CATALOG;
+	mEPGQueryType = EPG_QUERY_FRONTPAGE;
 	mEPGValue = -1;
 	start();
 
@@ -924,49 +924,67 @@ void CtestSDLdlgDlg::thread_proc()
 	CString strPrefix;
 	int sel;
 
+	EPG_MODULE_LIST*	modulelist	= NULL;
+	EPG_CATALOG_LIST*	cataloglist = NULL;
+	EPG_PLAYLINK_LIST*	playlinklist = NULL;
+
 	switch (mEPGQueryType) {
-	case EPG_QUERY_CATALOG:
-		mEPGlist = mEPG.getCatalog(-1);
+	case EPG_QUERY_FRONTPAGE:
+		modulelist = mEPG.frontpage();
+		if (!modulelist) {
+			LOGE(_T("failed to connect to epg server")); // tchar.h compatible with ansi and unicode
+			AfxMessageBox(_T("failed to connect to epg server"));
+			return;
+		}
+
+		mComboEPGItem.ResetContent();
+		for (int i=0;i<(int)modulelist->size();i++) {
+			mComboEPGItem.AddString((*modulelist)[i].get_title());
+		}
+		
+		mComboEPGItem.SetCurSel(0);
 		break;
-	case EPG_QUERY_COLLECTION:
-		mEPGlist = mEPG.getCatalog(mEPGValue);
+	case EPG_QUERY_CATALOG:
+		cataloglist = mEPG.catalog(mEPGValue);
+		if (!cataloglist) {
+			LOGE(_T("failed to connect to epg server")); // tchar.h compatible with ansi and unicode
+			AfxMessageBox(_T("failed to connect to epg server"));
+			return;
+		}
+
+		mComboEPGItem.ResetContent();
+		for (int i=0;i<(int)cataloglist->size();i++) {
+			mComboEPGItem.AddString((*cataloglist)[i].get_title());
+		}
+		
+		mComboEPGItem.SetCurSel(0);
 		break;
 	case EPG_QUERY_DATAIL:
 		sel = mComboEPGItem.GetCurSel();
 		mComboEPGItem.GetLBText(sel, strPrefix);
-		mEPGlist = mEPG.getPlaylink(mEPGValue);
+		playlinklist = mEPG.detail(mEPGValue);
+
+		if (!playlinklist) {
+			LOGE(_T("failed to connect to epg server")); // tchar.h compatible with ansi and unicode
+			AfxMessageBox(_T("failed to connect to epg server"));
+			return;
+		}
+
+		mComboEPGItem.ResetContent();
+		for (int i=0;i<(int)playlinklist->size();i++) {
+			mComboEPGItem.AddString((*playlinklist)[i].get_title());
+		}
+		
+		mComboEPGItem.SetCurSel(0);
+		
+		if (playlinklist->size() == 1)
+			SetDlgItemInt(IDC_EDIT_PLAYLINK, playlinklist->at(0).get_id());
+
 		break;
 	case EPG_QUERY_CDN_URL:
 		break;
 	default:
 		break;
-	}
-	
-	if (!mEPGlist) {
-		LOGE(_T("failed to connect to epg server")); // tchar.h compatible with ansi and unicode
-		AfxMessageBox(_T("failed to connect to epg server"));
-		return;
-	}
-
-	mComboEPGItem.ResetContent();
-	
-	if (mEPGlist) {
-		EPG_LIST::iterator it = mEPGlist->begin();
-		for (;it != mEPGlist->end();it++) {
-			MAP_ITEM::iterator it_map = (*it).begin();
-			for (;it_map != (*it).end();it_map++) {
-				//LOGD(_T("Item: %s, Value: %s\n"), (*it_map).first.c_str(), (*it_map).second.c_str());
-
-				if((*it_map).first.find("title") != std::string::npos) {
-					if (strPrefix.IsEmpty())
-						mComboEPGItem.AddString((*it_map).second.c_str());
-					else
-						mComboEPGItem.AddString(strPrefix + "(" + (*it_map).second.c_str() + ")");
-				}
-			}
-		}
-
-		mComboEPGItem.SetCurSel(0);
 	}
 }
 
@@ -1065,7 +1083,7 @@ void CtestSDLdlgDlg::OnDestroy()
 void CtestSDLdlgDlg::OnBnClickedButtonResetEpg()
 {
 	// TODO: 在此添加控件通知处理程序代码
-	mEPGQueryType = EPG_QUERY_CATALOG;
+	mEPGQueryType = EPG_QUERY_FRONTPAGE;
 	start();
 }
 
@@ -1075,39 +1093,19 @@ void CtestSDLdlgDlg::OnCbnSelchangeComboCatalog()
 	// TODO: 在此添加控件通知处理程序代码
 	int sel = mComboEPGItem.GetCurSel();
 
-	if (EPG_QUERY_CATALOG == mEPGQueryType) {
-		MAP_ITEM item = mEPGlist->at(sel);
-		MAP_ITEM::iterator it_map = item.begin();
-		for (;it_map != item.end();it_map++) {
-			if ((*it_map).first.find("index") != std::string::npos) {
-				mEPGValue = atoi((*it_map).second.c_str());
-				break;
-			}
-		}
-		mEPGQueryType = EPG_QUERY_COLLECTION;
+	if (EPG_QUERY_FRONTPAGE == mEPGQueryType) {
+		mEPGValue = mEPG.get_module()->at(sel).get_index();
+		mEPGQueryType = EPG_QUERY_CATALOG;
 	}
-	else if(EPG_QUERY_COLLECTION == mEPGQueryType) {
-		MAP_ITEM item = mEPGlist->at(sel);
-		MAP_ITEM::iterator it_map = item.begin();
-		for (;it_map != item.end();it_map++) {
-			if ((*it_map).first.find("link") != std::string::npos) {
-				mEPGValue = atoi((*it_map).second.c_str());
-				if (EPG_QUERY_COLLECTION == mEPGQueryType)
-					mEPGQueryType = EPG_QUERY_DATAIL;
-				break;
-			}
-		}
+	else if(EPG_QUERY_CATALOG == mEPGQueryType) {
+		mEPGValue = mEPG.get_catalog()->at(sel).get_vid();
+		mEPGQueryType = EPG_QUERY_DATAIL;
 	}
 	else if (EPG_QUERY_DATAIL == mEPGQueryType) {
-		MAP_ITEM item = mEPGlist->at(sel);
-		MAP_ITEM::iterator it = item.begin();
-		for (;it != item.end();it++) {
-			if ((*it).first.find("id") != std::string::npos) {
-				SetDlgItemText(IDC_EDIT_PLAYLINK, (*it).second.c_str());
-				return;
-			}	
-		}
-		
+		if (mEPG.get_playlink()->size() < 2)
+			return;
+
+		mEPGValue = mEPG.get_playlink()->at(sel).get_id();
 	}
 	else {
 		mEPGValue = -1;

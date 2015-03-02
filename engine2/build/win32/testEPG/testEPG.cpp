@@ -10,59 +10,58 @@ int _tmain(int argc, _TCHAR* argv[])
 {
 	apLog::init(_T("c:\\log\\testEPG.log"));
 	apEPG epg;
-	EPG_LIST *catalog = epg.getCatalog(-1);
-	if (!catalog) {
+
+	EPG_MODULE_LIST *modulelist = epg.frontpage();
+	if (!modulelist) {
+		_tprintf(_T("failed to get frontpage\n")); // tchar.h compatible with ansi and unicode
+		return 1;
+	}
+
+	int size = modulelist->size();
+	for (int i=0;i<size;i++) {
+		_tprintf(_T("#%d title: %s\n"), (*modulelist)[i].get_index(), (*modulelist)[i].get_title());
+	}
+
+	int index;
+	printf("input index\n");
+	scanf_s("%d", &index);
+
+	printf("before epg.catalog\n");
+	EPG_CATALOG_LIST *catloglist = epg.catalog(index);
+	printf("after epg.catalog\n");
+	if (!catloglist) {
 		_tprintf(_T("failed to get catalog\n")); // tchar.h compatible with ansi and unicode
 		return 1;
 	}
 
-	int link_id;
-	std::string id = "";
-	int done = 0;
-
-	EPG_LIST::iterator it = catalog->begin();
-	for (;it != catalog->end() && !done;it++) {
-		MAP_ITEM::iterator it_map = (*it).begin();
-		for (;it_map != (*it).end() && !done;it_map++) {
-			_tprintf(_T("Item: %s, Value: %s\n"), (*it_map).first.c_str(), (*it_map).second.c_str());
-			if (it_map == (*it).begin() && (*it_map).first.find("link") != std::string::npos) {
-				link_id = atoi((*it_map).second.c_str());
-				catalog = epg.getPlaylink(link_id);
-				if (catalog) {
-					MAP_ITEM item = catalog->at(0);
-					MAP_ITEM::iterator it_clip = item.begin();
-					for (;it_clip != item.end();it_clip++) {
-						if((*it_clip).first.find("id") != std::string::npos) {
-							id = (*it_clip).second.c_str();
-							_tprintf(_T("playlink id: %s\n"), id.c_str());
-						}
-						else {
-							_tprintf(_T("item: %s, value: %s\n"), (*it_clip).first.c_str(), (*it_clip).second.c_str());
-						}
-					}
-					done = 1;
-					break;
-				}
-				
-			}
-		}
-		_tprintf(_T("\n"));
+	size = catloglist->size();
+	for (int i=0;i<size;i++) {
+		_tprintf(_T("#%d title: %s , vid: %d\n"), i, (*catloglist)[i].get_title(), (*catloglist)[i].get_vid());
 	}
 
-	
+	printf("input playlink index\n");
+	scanf_s("%d", &index);
 
-	/*char buf[65536] = {0};
-	FILE *pFile = NULL;
-	if (fopen_s(&pFile, "frontpage\\module.json", "rb") != 0) {
-		printf(_T("open file error\n"));
+	int vid = (*catloglist)[index].get_vid();
+	EPG_PLAYLINK_LIST *playlinklist = epg.detail(vid);
+	if (!catloglist) {
+		_tprintf(_T("failed to get detail\n")); // tchar.h compatible with ansi and unicode
 		return 1;
 	}
 
-	size_t readed = fread(buf, 1, 65536, pFile);
-	fclose(pFile);
+	size = playlinklist->size();
+	for (int i=0;i<size;i++) {
+		_tprintf(_T("#%d vid: %d, title: %s, %d x %d, %d min\n"), 
+			i, 
+			(*playlinklist)[i].get_id(), 
+			(*playlinklist)[i].get_title(), 
+			(*playlinklist)[i].get_width(), (*playlinklist)[i].get_height(),
+			(*playlinklist)[i].get_duration() / 60,
+			(*playlinklist)[i].get_description());
+	}
 
-	apJsonParser json;
-	json.parseContext(buf, readed);*/
+	//_tprintf(_T("playlink id: %s\n"), id.c_str());
+						
 
 	return 0;
 }

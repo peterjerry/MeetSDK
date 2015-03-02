@@ -16,6 +16,12 @@
     <Filter Include="源文件\libjsoncpp">
       <UniqueIdentifier>{255f2e04-3a45-4c3d-8baf-aa8fbd8ef08d}</UniqueIdentifier>
     </Filter>
+    <Filter Include="源文件\struct">
+      <UniqueIdentifier>{138418bd-9efc-405f-9a30-5864dd771fc1}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="源文件\util">
+      <UniqueIdentifier>{bd41afbb-c983-46ac-a858-4893de454bfb}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <Text Include="ReadMe.txt" />
@@ -47,12 +53,6 @@
     <ClCompile Include="apJsonParser.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="md5c.c">
-      <Filter>源文件</Filter>
-    </ClCompile>
-    <ClCompile Include="..\testSDLdlg\urlcodec.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
     <ClCompile Include="apFileLog.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
@@ -71,8 +71,32 @@
     <ClCompile Include="Markup.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
+    <ClCompile Include="apCatalog.cpp">
+      <Filter>源文件\struct</Filter>
+    </ClCompile>
+    <ClCompile Include="apContent.cpp">
+      <Filter>源文件\struct</Filter>
+    </ClCompile>
+    <ClCompile Include="apModule.cpp">
+      <Filter>源文件\struct</Filter>
+    </ClCompile>
+    <ClCompile Include="apPlayLink2.cpp">
+      <Filter>源文件\struct</Filter>
+    </ClCompile>
+    <ClCompile Include="apNavigator.cpp">
+      <Filter>源文件\struct</Filter>
+    </ClCompile>
+    <ClCompile Include="..\testSDLdlg\urlcodec.cpp">
+      <Filter>源文件\util</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\platform\utils.cpp">
+      <Filter>源文件\util</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\..\platform\log_win32.cpp">
-      <Filter>源文件</Filter>
+      <Filter>源文件\util</Filter>
+    </ClCompile>
+    <ClCompile Include="md5c.c">
+      <Filter>源文件\util</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>
