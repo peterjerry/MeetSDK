@@ -618,6 +618,8 @@ public class EPGUtil {
 			        
 					url += "?w=" + 1 + "&key=" + item.getK();
 					url += "&k=" + item.getKey();
+					if (novideo)
+						url += "&video=false";
 					url += "&type=phone.android.vip&vvid=877a4382-f0e4-49ed-afea-8d59dbd11df1"
 							+ "&sv=4.1.3&platform=android3";
 					url += "&ft=" + ft;

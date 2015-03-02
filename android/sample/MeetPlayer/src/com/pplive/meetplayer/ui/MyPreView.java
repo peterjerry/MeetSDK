@@ -29,6 +29,7 @@ public class MyPreView extends SurfaceView {
 	//private RelativeLayout mLayout 		= null;
 	private MediaController mController;
 	private MediaPlayer mPlayer;
+	private boolean mAlwaysShow = false;
 	private GestureDetector mDetector;
 	
 	public MyPreView(Context context) {
@@ -49,9 +50,10 @@ public class MyPreView extends SurfaceView {
 		mVideoHeight	= height;
 	}
 	
-	void BindInstance(MediaController controller, MediaPlayer player) {
+	void BindInstance(MediaController controller, boolean alwaysShow, MediaPlayer player) {
 		mController = controller;
 		mPlayer = player;
+		mAlwaysShow = alwaysShow;
 		
 		mDetector = new GestureDetector(getContext(), new MyGestureListener(mPlayer));  
         setLongClickable(true);  
@@ -73,7 +75,10 @@ public class MyPreView extends SurfaceView {
 		if (MotionEvent.ACTION_UP == mask) {
 			if(mController != null) {
         		if(!mController.isShowing()) {
-        			mController.show(3000);
+        			if (mAlwaysShow)
+        				mController.show(10000000);
+        			else
+        				mController.show(3000);
 	    		}
 			}
 		}

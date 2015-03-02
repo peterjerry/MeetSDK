@@ -1,7 +1,6 @@
 package com.pplive.meetplayer.ui;
 
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -37,8 +36,6 @@ import android.view.View.MeasureSpec;
 import android.widget.AbsListView;
 import android.widget.AbsListView.OnScrollListener;
 import android.widget.AdapterView;
-import android.widget.AdapterView.OnItemClickListener;
-import android.widget.AdapterView.OnItemLongClickListener;
 import android.widget.Button;
 import android.widget.DatePicker;
 import android.widget.EditText;
@@ -82,8 +79,6 @@ import com.pplive.meetplayer.util.PlayLink2;
 import com.pplive.meetplayer.util.PlayLinkUtil;
 import com.pplive.meetplayer.util.Util;
 import com.pplive.dlna.DLNASdk;
-
-
 
 
 
@@ -144,14 +139,19 @@ public class ClipListActivity extends Activity implements
 	private TextView mProgressTextView;
 	private Dialog mUpdateDialog;
 	
+	private DecodeMode mDecMode = DecodeMode.AUTO;
 	private boolean mIsPreview					= true;
 	private boolean mIsLoop					= false;
+	private boolean mIsNoVideo					= false;
 	
+	private int mBufferingPertent				= 0;
 	private boolean mIsBuffering 				= false;
 	private boolean mStoped					= false;
 	private boolean mHomed						= false;
 	
 	private WifiLock mWifiLock;
+	
+	private boolean isLandscape = false;
 	
 	// playback
 	private long mStartTimeSec = 0;
@@ -165,7 +165,7 @@ public class ClipListActivity extends Activity implements
 	private int mVideoWidth, mVideoHeight;
 	private int mAudioTrackNum = 4;
 	private int mAudioChannel = 1;
-	private int mPlayerImpl = 0;
+	private int mPlayerImpl = 3;
 	
 	// subtitle
 	private SimpleSubTitleParser mSubtitleParser;
@@ -247,7 +247,8 @@ public class ClipListActivity extends Activity implements
 	final static int OPTION_EPG_SEARCH			= Menu.FIRST + 15;
 	final static int OPTION_COMMON_PREVIEW		= Menu.FIRST + 21;
 	final static int OPTION_COMMON_LOOP		= Menu.FIRST + 22;
-	final static int OPTION_COMMON_MEETVIEW	= Menu.FIRST + 23;
+	final static int OPTION_COMMON_NO_VIDEO	= Menu.FIRST + 23;
+	final static int OPTION_COMMON_MEETVIEW	= Menu.FIRST + 24;
 	
 	
 	// message
@@ -294,7 +295,6 @@ public class ClipListActivity extends Activity implements
 		super.onCreate(savedInstanceState);
 		
 		// compatible with tvbox
-		boolean isLandscape;
 		if (getResources().getConfiguration().orientation == 1) 
 			isLandscape = false;
 		else
@@ -411,62 +411,8 @@ public class ClipListActivity extends Activity implements
 		
 		new ListItemTask().execute(mCurrentFolder);
 		
-		this.lv_filelist.setOnItemLongClickListener(new OnItemLongClickListener() {
-
-			@Override
-			public boolean onItemLongClick(AdapterView<?> arg0, View view,
-					int position, long id) {
-				// TODO Auto-generated method stub
-				
-				HashMap<String, Object> item = (HashMap<String, Object>) lv_filelist.getItemAtPosition(position);
-				final String file_path = (String)item.get("fullpath");
-				
-				if (!file_path.startsWith("/"))
-					return false;
-				
-				final String []actions = {"detail", "delete", "open"};
-				Dialog choose_action_dlg = new AlertDialog.Builder(ClipListActivity.this)
-				.setTitle("select action")
-				.setItems(actions, new DialogInterface.OnClickListener(){
-						public void onClick(DialogInterface dialog, int whichButton){
-							switch(whichButton) {
-							case 0:
-								break;
-							case 1:
-								File file = new File(file_path);
-								
-								if (file.exists()) {
-									String filename = file.getName();
-									file.delete();
-									Toast.makeText(ClipListActivity.this, 
-											"file " + filename + " deleted", Toast.LENGTH_SHORT).show();
-									new ListItemTask().execute(mCurrentFolder);
-								}
-								else {
-									Toast.makeText(ClipListActivity.this, 
-											"file " + file_path + " not found", Toast.LENGTH_SHORT).show();
-								}
-								
-								break;
-							case 2:
-								break;
-							default:
-								break;
-							}
-							dialog.dismiss();
-						}
-					})
-				.setNegativeButton("Cancel", null)
-				.create();
-				choose_action_dlg.show();
-				
-				return true;
-			}
-			
-		});
-		
 		this.lv_filelist
-				.setOnItemClickListener(new OnItemClickListener() {
+				.setOnItemClickListener(new ListView.OnItemClickListener() {
 					@SuppressWarnings("unchecked")
 					@Override
 					public void onItemClick(AdapterView<?> arg0, View view,
@@ -992,12 +938,12 @@ public class ClipListActivity extends Activity implements
 		setTitle(path);
 		Log.i(TAG, "Java: clipname: " + mPlayUrl);
 		
-		DecodeMode dec_mode = DecodeMode.UNKNOWN;
+		mDecMode = DecodeMode.UNKNOWN;
 		if (0 == mPlayerImpl) {
-			dec_mode = DecodeMode.AUTO;
+			mDecMode = DecodeMode.AUTO;
 		}
 		else if (1 == mPlayerImpl) {
-			dec_mode = DecodeMode.HW_SYSTEM;
+			mDecMode = DecodeMode.HW_SYSTEM;
 		}
 		else if (2 == mPlayerImpl) {
 			boolean canPlay = false;
@@ -1023,13 +969,13 @@ public class ClipListActivity extends Activity implements
 				return -1;
 			}
 			
-			dec_mode = DecodeMode.SW;
+			mDecMode = DecodeMode.SW;
 		}									
 		else if (3 == mPlayerImpl) {
-			dec_mode = DecodeMode.SW;
+			mDecMode = DecodeMode.SW;
 		}
 		else if (4 == mPlayerImpl) {
-			dec_mode = DecodeMode.SW;
+			mDecMode = DecodeMode.SW;
 		}
 		else {
 			Toast.makeText(ClipListActivity.this, "invalid player implement: " + Integer.toString(mPlayerImpl), 
@@ -1078,25 +1024,25 @@ public class ClipListActivity extends Activity implements
 				
 			}
 			
-			if (DecodeMode.AUTO == dec_mode) {
-				dec_mode = MeetSDK.getPlayerType(mPlayUrl);
-				Log.i(TAG, "Java: dec_mode " + dec_mode.toString());
+			if (DecodeMode.AUTO == mDecMode) {
+				mDecMode = MeetSDK.getPlayerType(mPlayUrl);
+				Log.i(TAG, "Java: mDecMode " + mDecMode.toString());
 			}
 			
 			// force refresh a new surface
 			mPreview.setVisibility(View.INVISIBLE);
 			
-			if (DecodeMode.HW_SYSTEM == dec_mode) {
+			if (DecodeMode.HW_SYSTEM == mDecMode) {
 				mHolder.setType(SurfaceHolder.SURFACE_TYPE_PUSH_BUFFERS);
 			}
-			else if (DecodeMode.SW == dec_mode){
+			else if (DecodeMode.SW == mDecMode){
 				mHolder.setType(SurfaceHolder.SURFACE_TYPE_NORMAL);
 				mHolder.setFormat(PixelFormat.RGBX_8888/*RGB_565*/);
 			}
 			
 			mPreview.setVisibility(View.VISIBLE);
 			
-			mPlayer = new MediaPlayer(dec_mode);
+			mPlayer = new MediaPlayer(mDecMode);
 			
 			// fix Mediaplayer setVideoSurfaceTexture failed: -17
 			mPlayer.setDisplay(null);
@@ -1119,8 +1065,9 @@ public class ClipListActivity extends Activity implements
 				mWifiLock.acquire();
 			}
 
-			mStoped = false;
-			mHomed = false;
+			mStoped 			= false;
+			mHomed 				= false;
+			mBufferingPertent 	= 0;
 			
 			boolean succeed = true;
 			try {
@@ -1197,8 +1144,11 @@ public class ClipListActivity extends Activity implements
 				mBufferingProgressBar.setVisibility(View.GONE);
 				mIsBuffering = false;
 			}
+<<<<<<< HEAD
 			
-			close_hls();
+			//close_hls();
+=======
+>>>>>>> parent of b741c7b... 1 fix audioplayer decode pkt release problem
 		}
 	}
 	
@@ -1264,14 +1214,17 @@ public class ClipListActivity extends Activity implements
 		if (mPlayer == null)
 			return 0;
 			
-		int pct, duration;
+		/*int pct, duration;
 		duration = mPlayer.getDuration();
 		if (duration == 0) // avoid divide by zero
 			pct = 0;
 		else 
 			pct = (mPlayer.getCurrentPosition() + mPlayer.getBufferingTime()) * 100 / duration;
 		Log.i(TAG, String.format("Java: getBufferPercentage: %d(%d, %d)", pct, mPlayer.getCurrentPosition(), mPlayer.getBufferingTime()));
-		return pct;
+		
+		return pct;*/
+		
+		return mBufferingPertent;
 	}
 
 	public boolean canPause() {
@@ -1674,6 +1627,7 @@ public class ClipListActivity extends Activity implements
     			mHandler.sendEmptyMessage(MSG_EPG_DETAIL_DONE);
         	}
         	else if (EPG_ITEM_SEARCH == type) {
+        		mEPGlistStartPage = 1;
         		if (!mEPG.search(mEPGsearchKey, "0", "0", "10")) {
         			mHandler.sendEmptyMessage(MSG_FAIL_TO_CONNECT_EPG_SERVER);
     				return false;
@@ -1730,7 +1684,7 @@ public class ClipListActivity extends Activity implements
         	}
         	else if (EPG_ITEM_CDN == type){
         		Log.i(TAG, "Java: EPGTask start to getCDNUrl");
-        		mDLNAPushUrl = mEPG.getCDNUrl(String.valueOf(id), btn_ft.getText().toString(), false, false);
+        		mDLNAPushUrl = mEPG.getCDNUrl(String.valueOf(id), btn_ft.getText().toString(), false, mIsNoVideo);
         		if (mDLNAPushUrl == null) {
             		mHandler.sendEmptyMessage(MSG_FAIL_TO_CONNECT_EPG_SERVER);
             		return false;
@@ -1912,11 +1866,18 @@ public class ClipListActivity extends Activity implements
 		previewMenuItem.setCheckable(true);
 		if (mIsPreview)
 			previewMenuItem.setChecked(true);
+		
 		MenuItem loopMenuItem = commonMenu.add(Menu.NONE, OPTION_COMMON_LOOP, Menu.FIRST + 1, "Loop");
 		loopMenuItem.setCheckable(true);
 		if (mIsLoop)
 			loopMenuItem.setChecked(true);
-		commonMenu.add(Menu.NONE, OPTION_COMMON_MEETVIEW, Menu.FIRST + 2, "test view");
+		
+		MenuItem noVideoMenuItem = commonMenu.add(Menu.NONE, OPTION_COMMON_NO_VIDEO, Menu.FIRST + 2, "no video");
+		noVideoMenuItem.setCheckable(true);
+		if (mIsNoVideo)
+			loopMenuItem.setChecked(false);
+		
+		commonMenu.add(Menu.NONE, OPTION_COMMON_MEETVIEW, Menu.FIRST + 3, "test view");
 		
 		menu.add(Menu.NONE, UPDATE_CLIP_LIST, Menu.FIRST + 1, "Update list")
 			.setIcon(R.drawable.list);
@@ -1961,6 +1922,13 @@ public class ClipListActivity extends Activity implements
 			else
 				item.setChecked(true);
 			mIsLoop = !mIsLoop;
+			break;
+		case OPTION_COMMON_NO_VIDEO:
+			if (mIsNoVideo)
+				item.setChecked(false);
+			else
+				item.setChecked(true);
+			mIsNoVideo = !mIsNoVideo;
 			break;
 		case OPTION_COMMON_MEETVIEW:
 			Intent intent = new Intent(ClipListActivity.this, MeetViewActivity.class);
@@ -2021,7 +1989,7 @@ public class ClipListActivity extends Activity implements
 	@Override
 	public boolean onInfo(MediaPlayer mp, int what, int extra) {
 		// TODO Auto-generated method stub
-		Log.d(TAG, "Java: onInfo: " + what + " " + extra);
+		Log.i(TAG, "Java: onInfo: " + what + " " + extra);
 		
 		if ((MediaPlayer.MEDIA_INFO_BUFFERING_START == what) && !mIsBuffering) {
 			mBufferingProgressBar.setVisibility(View.VISIBLE);
@@ -2076,6 +2044,17 @@ public class ClipListActivity extends Activity implements
 			video_bitrate = extra;
 			mHandler.sendEmptyMessage(MSG_UPDATE_PLAY_INFO);
 		}
+		else if(android.media.MediaPlayer.MEDIA_INFO_VIDEO_RENDERING_START == what) {
+			
+		}
+		else if(MediaPlayer.MEDIA_INFO_VIDEO_TRACK_LAGGING == what) {
+			av_latency_msec = extra;
+			
+			decode_fps = render_fps = 0;
+			decode_drop_frame = 0;
+			video_bitrate = 0;
+			mHandler.sendEmptyMessage(MSG_UPDATE_PLAY_INFO);
+		}
 		
 		return true;
 	}
@@ -2083,7 +2062,7 @@ public class ClipListActivity extends Activity implements
 	@Override
 	public boolean onError(MediaPlayer mp, int framework_err, int impl_err) {
 		// TODO Auto-generated method stub
-		Log.e(TAG, "onError: " + framework_err + "," + impl_err);
+		Log.e(TAG, "Java: onError: " + framework_err + "," + impl_err);
 		Toast.makeText(ClipListActivity.this, String.format("failed to play clip: %d %d", framework_err, impl_err), Toast.LENGTH_SHORT).show();
 		
 		if (mIsBuffering) {
@@ -2118,8 +2097,10 @@ public class ClipListActivity extends Activity implements
 		render_frame_num = 0;
 		decode_drop_frame = 0;
 		
+		// S39H call setLooping here, system player will throw error (-38, 0)
 		//if (mListLocalFile)
-		mPlayer.setLooping(mIsLoop);
+		if (DecodeMode.SW == mDecMode) // ffplay
+			mPlayer.setLooping(mIsLoop);
 		
 		mVideoWidth = mp.getVideoWidth();
 		mVideoHeight = mp.getVideoHeight();
@@ -2152,7 +2133,7 @@ public class ClipListActivity extends Activity implements
 				sufaceviewParams.width, sufaceviewParams.height)); 
 		mPreview.setLayoutParams(sufaceviewParams);*/
 		
-		mPreview.BindInstance(mMediaController, mPlayer);
+		mPreview.BindInstance(mMediaController, isLandscape, mPlayer);
 		
 		Log.i(TAG, String.format("Java: width %d, height %d", mPlayer.getVideoWidth(), mPlayer.getVideoHeight()));
 		mPlayer.start();
@@ -2193,6 +2174,7 @@ public class ClipListActivity extends Activity implements
 	public void onBufferingUpdate(MediaPlayer mp, int percent) {
 		// TODO Auto-generated method stub
 		Log.i(TAG, "onBufferingUpdate: " + percent);
+		mBufferingPertent = percent;
 	}
 
 	@Override

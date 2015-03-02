@@ -47,6 +47,9 @@ public class MeetViewActivity extends Activity {
 	private final int MSG_PPTV_CLIP_LIST_DONE = 1001;
 	private final int MSG_FAIL_TO_GET_DETAIL	= 2002;
 	
+	private final int LIST_MOVIE 		= 1;
+	private final int LIST_TV_SERIES 	= 2;
+	
 	private final String[] from = { "title", "desc", "ft", "duration", "resolution" };
 	
 	private final int[] to = { R.id.tv_title, R.id.tv_description, 
@@ -60,6 +63,8 @@ public class MeetViewActivity extends Activity {
 	
 	private int mPlayerImpl = 0;
 	private Button btnPlayerImpl;
+	private Button btnMovies;
+	private Button btnTVSeries;
 	
 	private MyAdapter mAdapter;
 	private ListView lv_pptvlist;
@@ -107,9 +112,25 @@ public class MeetViewActivity extends Activity {
 			}
 		});
 		
+		this.btnMovies = (Button) findViewById(R.id.btn_movies);
+		this.btnMovies.setOnClickListener(new Button.OnClickListener() {
+			@Override
+			public void onClick(View view) {
+				new ListPPTVTask().execute(LIST_MOVIE);
+			}
+		});
+		
+		this.btnTVSeries = (Button) findViewById(R.id.btn_tv_series);
+		this.btnTVSeries.setOnClickListener(new Button.OnClickListener() {
+			@Override
+			public void onClick(View view) {
+				new ListPPTVTask().execute(LIST_TV_SERIES);
+			}
+		});
+		
 		mPPTVClipList = new ArrayList<Map<String, Object>>();
 		
-		new ListPPTVTask().execute(1);
+		new ListPPTVTask().execute(LIST_TV_SERIES);
 		
 		this.lv_pptvlist = (ListView) findViewById(R.id.lv_pptvlist);
 		
@@ -142,10 +163,21 @@ public class MeetViewActivity extends Activity {
 		protected Boolean doInBackground(Integer... params) {
 			// TODO Auto-generated method stub
 			boolean ret;
-			if (params[0] == 0)
+			
+			mPPTVClipList.clear();
+			
+			int list_type = params[0];
+			switch(list_type) {
+			case LIST_TV_SERIES:
 				ret = fill_list_series();
-			else
+				break;
+			case LIST_MOVIE:
 				ret = fill_list_movie();
+				break;
+			default:
+				Log.e(TAG, "invalid list type : " + list_type);
+				return false;
+			}
 			
 			if(!ret)
 				mHandler.sendEmptyMessage(MSG_FAIL_TO_GET_DETAIL);
