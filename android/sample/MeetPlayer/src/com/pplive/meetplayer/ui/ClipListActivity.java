@@ -143,6 +143,7 @@ public class ClipListActivity extends Activity implements
 	private boolean mIsPreview					= true;
 	private boolean mIsLoop					= false;
 	private boolean mIsNoVideo					= false;
+	private MenuItem noVideoMenuItem;
 	
 	private int mBufferingPertent				= 0;
 	private boolean mIsBuffering 				= false;
@@ -547,6 +548,13 @@ public class ClipListActivity extends Activity implements
 					new DialogInterface.OnClickListener(){
 						public void onClick(DialogInterface dialog, int whichButton){
 							btn_bw_type.setText(Integer.toString(whichButton));
+							if (noVideoMenuItem != null) {
+								if (whichButton == 4)
+									noVideoMenuItem.setEnabled(true);
+								else
+									noVideoMenuItem.setEnabled(false);
+							}
+							
 							dialog.dismiss();
 						}
 					})
@@ -1157,8 +1165,16 @@ public class ClipListActivity extends Activity implements
 	}
 	
 	public void seekTo(int pos) {
-		if (mPlayer != null)
+		if (mPlayer != null) {
 			mPlayer.seekTo(pos);
+			
+			// update mBufferingPertent
+			mBufferingPertent = pos * 100 / mPlayer.getDuration() + 1;
+			if (mBufferingPertent > 100)
+				mBufferingPertent = 100;
+			Log.i(TAG, "onBufferingUpdate: seekTo " + mBufferingPertent);
+		}
+		
 		if (mSubtitleParser != null) {
 			mSubtitleThread.interrupt();
 			mSubtitleSeeking = true;
@@ -1869,8 +1885,12 @@ public class ClipListActivity extends Activity implements
 		if (mIsLoop)
 			loopMenuItem.setChecked(true);
 		
-		MenuItem noVideoMenuItem = commonMenu.add(Menu.NONE, OPTION_COMMON_NO_VIDEO, Menu.FIRST + 2, "no video");
+		noVideoMenuItem = commonMenu.add(Menu.NONE, OPTION_COMMON_NO_VIDEO, Menu.FIRST + 2, "NoVideo");
 		noVideoMenuItem.setCheckable(true);
+		if ("4".equals(btn_bw_type.getText())) // cdn play
+			noVideoMenuItem.setEnabled(true);
+		else
+			noVideoMenuItem.setEnabled(false);
 		if (mIsNoVideo)
 			loopMenuItem.setChecked(false);
 		
@@ -1884,7 +1904,7 @@ public class ClipListActivity extends Activity implements
 			.setIcon(R.drawable.log);
 		menu.add(Menu.NONE, QUIT, Menu.FIRST + 4, "Quit");
 		
-		return super.onCreateOptionsMenu(menu);
+		return true;//super.onCreateOptionsMenu(menu);
 	}
 
 	@Override
@@ -1977,10 +1997,10 @@ public class ClipListActivity extends Activity implements
 			break;
 		default:
 			Log.w(TAG, "bad menu item selected: " + id);
-			break;
+			return false;
 		}
 		
-		return super.onOptionsItemSelected(item);
+		return true;//super.onOptionsItemSelected(item);
 	}
 
 	@Override
@@ -2233,7 +2253,7 @@ public class ClipListActivity extends Activity implements
 		final String path;
 		
 		String url = HTTP_UPDATE_APK_URL + apk_name;
-		path = Environment.getExternalStorageDirectory().getPath() + home_folder + "/" + apk_name;
+		path = Environment.getExternalStorageDirectory().getPath() + "/" + apk_name;
 		Log.i(TAG, "to download apk: " + path);
 		
 		DownloadAsyncTask downloadTask = new DownloadAsyncTask() {

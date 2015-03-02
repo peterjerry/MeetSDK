@@ -611,7 +611,7 @@ public class EPGUtil {
 						}
 					}
 
-					if (is_m3u8)
+					if (novideo/*force use m3u8*/ || is_m3u8)
 						url += rid.replaceFirst(".mp4", ".m3u8");
 					else
 						url += rid;
@@ -623,7 +623,7 @@ public class EPGUtil {
 					url += "&type=phone.android.vip&vvid=877a4382-f0e4-49ed-afea-8d59dbd11df1"
 							+ "&sv=4.1.3&platform=android3";
 					url += "&ft=" + ft;
-					url += "&accessType=wifi";
+					//url += "&accessType=wifi";
 					
 					Log.i(TAG, "Java: epg final cdn url: " + url);
 					break;

@@ -1444,8 +1444,17 @@ void FFPlayer::onBufferingUpdateImpl()
         return;
     }
 
-    int64_t cachedDurationMs = mDataStream->getCachedDurationMs();
-	int percent100 = (int)(cachedDurationMs * 100 / mDurationMs) + 1; // 1 is for compensation.
+    int64_t cachedDurationMs;
+	int64_t cur_pos;
+	if (mSeeking) {
+		cur_pos = mSeekTimeMs;
+		cachedDurationMs = 0;
+	}
+	else {
+		cur_pos = mVideoPlayingTimeMs;
+		cachedDurationMs = mDataStream->getCachedDurationMs();
+	}
+	int percent100 = (int)((mVideoPlayingTimeMs + cachedDurationMs) * 100 / mDurationMs) + 1; // 1 is for compensation.
 	if (percent100 > 100) 
 		percent100 = 100;
 	LOGD("onBufferingUpdate, percent: %d", percent100);
@@ -2275,11 +2284,13 @@ status_t FFPlayer::prepareAsync_l()
     if (mPlayerStatus == MEDIA_PLAYER_PREPARED)
         return OK;
 
+	mPlayerStatus = MEDIA_PLAYER_PREPARING;
+
 	mMsgLoop.setInstance(this);
     mMsgLoop.start();
+
     postPrepareEvent_l();
 
-    mPlayerStatus = MEDIA_PLAYER_PREPARING;
     return OK;
 }
 
