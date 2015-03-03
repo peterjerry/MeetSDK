@@ -696,6 +696,10 @@ public class ClipListActivity extends Activity implements
 							Toast.LENGTH_SHORT).show();					
 					return;
 				}
+				/*if (ppbox_playid >= 300000 && ppbox_playid < 300999)
+					isVOD = false;
+				else
+					isVOD = true;*/
 				
 				if (ppbox_bw_type == 4) {// dlna
 					new EPGTask().execute(EPG_ITEM_CDN, ppbox_playid, 0); // 3rd params for MSG_PLAY_CDN_URL
@@ -1172,7 +1176,7 @@ public class ClipListActivity extends Activity implements
 			mBufferingPertent = pos * 100 / mPlayer.getDuration() + 1;
 			if (mBufferingPertent > 100)
 				mBufferingPertent = 100;
-			Log.i(TAG, "onBufferingUpdate: seekTo " + mBufferingPertent);
+			Log.d(TAG, "onBufferingUpdate: seekTo " + mBufferingPertent);
 		}
 		
 		if (mSubtitleParser != null) {
@@ -2006,7 +2010,7 @@ public class ClipListActivity extends Activity implements
 	@Override
 	public boolean onInfo(MediaPlayer mp, int what, int extra) {
 		// TODO Auto-generated method stub
-		Log.i(TAG, "Java: onInfo: " + what + " " + extra);
+		Log.d(TAG, "Java: onInfo: " + what + " " + extra);
 		
 		if ((MediaPlayer.MEDIA_INFO_BUFFERING_START == what) && !mIsBuffering) {
 			mBufferingProgressBar.setVisibility(View.VISIBLE);
@@ -2190,7 +2194,7 @@ public class ClipListActivity extends Activity implements
 	@Override
 	public void onBufferingUpdate(MediaPlayer mp, int percent) {
 		// TODO Auto-generated method stub
-		Log.i(TAG, "onBufferingUpdate: " + percent);
+		Log.d(TAG, "onBufferingUpdate: " + percent);
 		mBufferingPertent = percent;
 	}
 

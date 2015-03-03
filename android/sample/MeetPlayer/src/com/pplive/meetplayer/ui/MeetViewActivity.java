@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Map;
 
 import com.pplive.meetplayer.R;
+import com.pplive.meetplayer.ui.widget.MyMediaController;
 import com.pplive.meetplayer.util.Content;
 import com.pplive.meetplayer.util.EPGUtil;
 import com.pplive.meetplayer.util.Module;
@@ -27,7 +28,9 @@ import android.pplive.media.player.MediaPlayer;
 import android.pplive.media.player.MediaPlayer.DecodeMode;
 import android.pplive.media.player.MeetVideoView;
 import android.util.Log;
+import android.view.GestureDetector;
 import android.view.KeyEvent;
+import android.view.MotionEvent;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.Button;
@@ -55,8 +58,11 @@ public class MeetViewActivity extends Activity {
 	private final int[] to = { R.id.tv_title, R.id.tv_description, 
 			R.id.tv_ft, R.id.tv_duration, R.id.resolution};
 	
+	private int mListType = LIST_TV_SERIES;
+	private int mPageNum = 1;
 	private Uri mUri = null;
-	private MeetVideoView mVideoView = null;
+	private MeetVideoView mVideoView;
+	private MyMediaController mController;
 	
 	private ProgressBar mBufferingProgressBar = null;
 	private boolean mIsBuffering = false;
@@ -65,6 +71,7 @@ public class MeetViewActivity extends Activity {
 	private Button btnPlayerImpl;
 	private Button btnMovies;
 	private Button btnTVSeries;
+	private Button btnNextPage;
 	
 	private MyAdapter mAdapter;
 	private ListView lv_pptvlist;
@@ -85,6 +92,8 @@ public class MeetViewActivity extends Activity {
 		mVideoView.setOnErrorListener(mErrorListener);
 		mVideoView.setOnInfoListener(mInfoListener);
 		mVideoView.setOnPreparedListener(mPreparedListener);
+		
+		mController = (MyMediaController) findViewById(R.id.video_controller2);
 		
 		mBufferingProgressBar = (ProgressBar) findViewById(R.id.progressbar_buffering2);
 		
@@ -116,7 +125,9 @@ public class MeetViewActivity extends Activity {
 		this.btnMovies.setOnClickListener(new Button.OnClickListener() {
 			@Override
 			public void onClick(View view) {
-				new ListPPTVTask().execute(LIST_MOVIE);
+				mListType = LIST_MOVIE;
+				mPageNum = 1;
+				new ListPPTVTask().execute(mListType, mPageNum);
 			}
 		});
 		
@@ -124,13 +135,24 @@ public class MeetViewActivity extends Activity {
 		this.btnTVSeries.setOnClickListener(new Button.OnClickListener() {
 			@Override
 			public void onClick(View view) {
-				new ListPPTVTask().execute(LIST_TV_SERIES);
+				mListType = LIST_TV_SERIES;
+				mPageNum = 1;
+				new ListPPTVTask().execute(mListType, mPageNum);
+			}
+		});
+		
+		this.btnNextPage = (Button) findViewById(R.id.btn_next_page);
+		this.btnNextPage.setOnClickListener(new Button.OnClickListener() {
+			@Override
+			public void onClick(View view) {
+				mPageNum++;
+				new ListPPTVTask().execute(mListType, mPageNum);
 			}
 		});
 		
 		mPPTVClipList = new ArrayList<Map<String, Object>>();
 		
-		new ListPPTVTask().execute(LIST_TV_SERIES);
+		new ListPPTVTask().execute(mListType, mPageNum);
 		
 		this.lv_pptvlist = (ListView) findViewById(R.id.lv_pptvlist);
 		
@@ -167,12 +189,14 @@ public class MeetViewActivity extends Activity {
 			mPPTVClipList.clear();
 			
 			int list_type = params[0];
+			int start_page = params[1];
+			
 			switch(list_type) {
 			case LIST_TV_SERIES:
 				ret = fill_list_series();
 				break;
 			case LIST_MOVIE:
-				ret = fill_list_movie();
+				ret = fill_list_movie(start_page);
 				break;
 			default:
 				Log.e(TAG, "invalid list type : " + list_type);
@@ -219,7 +243,7 @@ public class MeetViewActivity extends Activity {
 		return true;
 	}
 	
-	private boolean fill_list_movie() {
+	private boolean fill_list_movie(int start_page) {
 		EPGUtil util = new EPGUtil();
 		
 		String link = "app://aph.pptv.com/v4/cate/movie?type=1";
@@ -240,7 +264,7 @@ public class MeetViewActivity extends Activity {
 		if (param.startsWith("type="))
 			ContentType = "";
 		
-		ret = util.list(param, ContentType, 1, "order=n", 15);
+		ret = util.list(param, ContentType, start_page, "order=n", 15);
 		if (!ret)
 			return false;
 		
@@ -364,6 +388,8 @@ public class MeetViewActivity extends Activity {
 		mVideoView.setDecodeMode(dec_mode);
 		mVideoView.setVideoURI(mUri);
 		
+		mController.setMediaPlayer(mVideoView);
+		
 		String schema = mUri.getScheme();
 		String path = null;
 		
@@ -450,6 +476,43 @@ public class MeetViewActivity extends Activity {
 		}
 	}
 	
+	// UI
+	private GestureDetector mDoubleTapListener = 
+			new GestureDetector(getApplication(), new GestureDetector.SimpleOnGestureListener() {
+				
+		public boolean onSingleTapConfirmed(MotionEvent e) {
+			
+			Log.i(TAG, "onSingleTapConfirmed!!!");
+			toggleMediaControlsVisiblity();
+			
+			return false;
+		};
+		
+		@Override
+		public boolean onDoubleTap(MotionEvent event) {
+			Log.i(TAG, "onDoubleTap!!!");
+			return true;
+		}
+		
+		@Override
+		public void onLongPress(MotionEvent e) {
+			Log.i(TAG, "onLongPress!!!");
+			/*if (mVideoView != null) {
+				mVideoView.stopPlayback();
+				
+				mVideoView.setVideoURI(mUri);
+				mVideoView.start();
+			}*/
+		}
+	});
+	
+	@Override
+	public boolean onTouchEvent(MotionEvent event) {
+		Log.i(TAG, "onTouchEvent()" + event.toString());
+		
+		return mDoubleTapListener.onTouchEvent(event);
+	}
+	
 	@Override
 	public boolean onKeyDown(int keyCode, KeyEvent event) {
 		
@@ -499,5 +562,15 @@ public class MeetViewActivity extends Activity {
 				return super.onKeyDown(keyCode, event);
 			}
 	}
+	
+	private void toggleMediaControlsVisiblity() {
+    	if (mVideoView != null && mVideoView.isPlaying() && mController != null) {
+	        if (mController.isShowing()) {
+	        	mController.hide();
+	        } else {
+	        	mController.show();
+	        }
+    	}
+    }
 	
 }

@@ -175,6 +175,9 @@ public class MyMediaController extends MediaController {
 	}
 	
 	private void updateVolumeProgress() {
+		if (mAudioManager == null)
+			return;
+		
 		int maxVolume = mAudioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC);
 		int volume = mAudioManager.getStreamVolume(AudioManager.STREAM_MUSIC);
 		

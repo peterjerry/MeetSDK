@@ -95,8 +95,9 @@ public class PlayerPolicy {
 		
 		if (AndroidSystemVersion >= 14 /* 4.0+ */ ) { 
 			// video
-			if (url.endsWith("mp4") || url.endsWith("3gp") ||
-				formatName.equals("mpegts") || url.endsWith("mkv")) {
+			if (url.toLowerCase().endsWith("mp4") || url.toLowerCase().endsWith("3gp") || 
+					url.toLowerCase().endsWith("ts") || url.toLowerCase().endsWith("mkv") || 
+					formatName.equals("mpegts")) {
 				if ((null == videoCodecName || videoCodecName.equals("h263") || videoCodecName.equals("h264")) && 
 					(null == audioCodecName || audioCodecName.equals("aac"))) {
 					return DecodeMode.HW_SYSTEM;
@@ -104,12 +105,12 @@ public class PlayerPolicy {
 			}
 			
 			// audio
-			if (url.endsWith("ape"))
+			if (url.toLowerCase().endsWith("ape"))
 				return DecodeMode.HW_SYSTEM;
 		}
 		else if (AndroidSystemVersion >= 11 /* < 3.0 */) {
 			// video
-			if (url.endsWith("mp4") || url.endsWith("3gp")) {
+			if (url.toLowerCase().endsWith("mp4") || url.toLowerCase().endsWith("3gp")) {
 				if ((null == videoCodecName || videoCodecName.equals("h263") || videoCodecName.equals("h264")) && 
 						(null == audioCodecName || audioCodecName.equals("aac"))) {
 						return DecodeMode.HW_SYSTEM;
@@ -118,7 +119,7 @@ public class PlayerPolicy {
 		}
 		else { /* 2.0 */
 			// video
-			if (url.endsWith("3gp")) {
+			if (url.toLowerCase().endsWith("3gp")) {
 				if ((null == videoCodecName || videoCodecName.equals("h263")) && null == audioCodecName) {
 					return DecodeMode.HW_SYSTEM;
 				}
@@ -148,8 +149,9 @@ public class PlayerPolicy {
 		}
 		
 		// video
-		if (url.endsWith("mp4") || url.endsWith("3gp") || formatName.equals("mpegts") ||
-				url.endsWith("flv")) {
+		if (url.toLowerCase().endsWith("mp4") || url.toLowerCase().endsWith("3gp")  ||
+				url.toLowerCase().endsWith("flv") || url.toLowerCase().endsWith("ts") ||
+				formatName.equals("mpegts")) {
 			if ((null == videoCodecName || 
 				 videoCodecName.equals("h263") ||  videoCodecName.equals("h264") || 
 				 videoCodecName.equals("hevc") ||  videoCodecName.equals("mpeg4") ||

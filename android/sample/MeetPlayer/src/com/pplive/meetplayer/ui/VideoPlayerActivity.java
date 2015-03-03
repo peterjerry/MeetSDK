@@ -1,11 +1,5 @@
 package com.pplive.meetplayer.ui;
 
-import java.io.File;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.Map;
-import java.util.Map.Entry;
-
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.Dialog;
@@ -26,7 +20,6 @@ import android.widget.Toast;
 import com.pplive.meetplayer.R;
 import com.pplive.meetplayer.ui.widget.MyMediaController;
 import com.pplive.meetplayer.util.Util;
-import com.pplive.sdk.MediaSDK;
 
 import android.pplive.media.MeetSDK;
 import android.pplive.media.player.MediaInfo;
@@ -324,17 +317,22 @@ public class VideoPlayerActivity extends Activity {
 			case KeyEvent.KEYCODE_DPAD_RIGHT:
 				mController.show();
 				
-				if (KeyEvent.KEYCODE_DPAD_RIGHT == keyCode) {
+				if (KeyEvent.KEYCODE_DPAD_RIGHT == keyCode || 
+						KeyEvent.KEYCODE_DPAD_LEFT == keyCode) {
+					if (KeyEvent.KEYCODE_DPAD_RIGHT == keyCode)
+						incr = 1;
+					else
+						incr = -1;
+					
 					int pos = mVideoView.getCurrentPosition();
-					pos += 30000;
-					if(pos > mVideoView.getDuration())
+					int step = mVideoView.getDuration() / 100 + 1000;
+					Log.i(TAG, String.format("Java pos %d, step %s", pos, step));
+					if (step > 30000)
+						step = 30000;
+					pos += (incr * step);
+					if (pos > mVideoView.getDuration())
 						pos = mVideoView.getDuration();
-					mVideoView.seekTo(pos);
-				}
-				else if (KeyEvent.KEYCODE_DPAD_LEFT == keyCode) {
-					int pos = mVideoView.getCurrentPosition();
-					pos -= 30000;
-					if(pos < 0)
+					else if(pos < 0)
 						pos = 0;
 					mVideoView.seekTo(pos);
 				}

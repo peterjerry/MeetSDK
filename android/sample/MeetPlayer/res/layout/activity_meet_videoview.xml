@@ -23,6 +23,12 @@
 			android:layout_centerInParent="true"
 			android:visibility="gone" />
 		
+		<com.pplive.meetplayer.ui.widget.MyMediaController
+			android:id="@+id/video_controller2"
+			android:layout_width="wrap_content"
+			android:layout_height="wrap_content"
+			android:layout_centerHorizontal="true" 
+			android:visibility="gone" />
 	</RelativeLayout>
 	
 	<RelativeLayout 
@@ -45,6 +51,12 @@
 			android:layout_height="fill_parent"
 			android:layout_toRightOf="@+id/btn_movies"
 			android:text="tv"/>
+		<Button
+			android:id="@+id/btn_next_page"
+			android:layout_width="wrap_content"
+			android:layout_height="fill_parent"
+			android:layout_toRightOf="@+id/btn_tv_series"
+			android:text="next"/>
 	</RelativeLayout>
 	
 	<ListView

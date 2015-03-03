@@ -6,6 +6,7 @@ import java.io.FileOutputStream;
 import java.io.InputStream;
 
 import android.content.Context;
+import android.os.Environment;
 import android.pplive.media.MeetSDK;
 import android.util.Log;
 
@@ -26,7 +27,7 @@ public class Util {
 		String auth = "08ae1acd062ea3ab65924e07717d5994";
 
 		String libPath = "/data/data/com.pplive.meetplayer/lib";
-		MediaSDK.libPath = libPath;
+		MediaSDK.libPath = libPath; // Environment.getExternalStorageDirectory().getAbsolutePath() + "/ppp";
 		MediaSDK.logPath = "/data/data/com.pplive.meetplayer/cache";
 		MediaSDK.logOn = false;
 		MediaSDK.setConfig("", "HttpManager", "addr", "127.0.0.1:9106+");
@@ -37,10 +38,10 @@ public class Util {
 		try {
 			ret = MediaSDK.startP2PEngine(gid, pid, auth);
 		} catch (Throwable e) {
-			Log.e("Util", e.toString());
+			Log.e(TAG, e.toString());
 		}
 
-		Log.d("Util", "startP2PEngine: " + ret);
+		Log.i(TAG, "Java: startP2PEngine result " + ret);
 		return (ret != -1);// 端口占用&& ret != 9);
 	}
 	
