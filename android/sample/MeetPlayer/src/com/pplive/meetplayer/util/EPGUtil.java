@@ -69,6 +69,15 @@ public class EPGUtil {
 			+ "&vt=3,21" // 21 -> 3,21
 			+ "&ver=2";
 	
+	private final static String live_url_fmt = "http://epg.api.pptv.com/live-list.api?"
+			+ "auth=d410fafad87e7bbf6c6dd62434345818&userLevel=0"
+			+ "&s=%d"
+			+ "&c=%d"
+			+ "&platform=android3&vt=4"
+			+ "&type=%d" // 156 地方台, 164 卫视
+			+ "&nowplay=1"
+			+ "&appid=com.pplive.androidphone&appver=4.1.3&appplt=aph";
+	
 	private final static String boxplay_prefix = "http://play.api.pptv.com/boxplay.api?" + 
 			"platform=android3&type=phone.android.vip&sv=4.0.1&param=";
 	
@@ -108,6 +117,54 @@ public class EPGUtil {
 	
 	public List<Navigator> getNav() {
 		return mNavList;
+	}
+	
+	public boolean live(int start_page, int count, int type) {
+		String url = String.format(live_url_fmt, start_page, count, type);
+		System.out.println(url);
+		
+		HttpGet request = new HttpGet(url);
+		
+		HttpResponse response;
+		try {
+			response = new DefaultHttpClient().execute(request);
+			if (response.getStatusLine().getStatusCode() != 200){
+				return false;
+			}
+			
+			String result = EntityUtils.toString(response.getEntity());
+			System.out.println(result);
+			
+			SAXBuilder builder = new SAXBuilder();
+			Reader returnQuote = new StringReader(result);  
+	        Document doc = builder.build(returnQuote);
+	        Element root = doc.getRootElement();
+	        
+	        mPlayLinkList.clear();
+	       
+	        List<Element> v_list = root.getChildren("v");
+			Iterator<Element> it2 = v_list.iterator();
+	        while (it2.hasNext()){   
+	        	Element v  = (Element) it2.next();
+	        	String title = v.getChild("title").getText();
+	        	String vid = v.getChild("vid").getText();
+	        	String nowplay = v.getChild("nowplay").getText();
+	        	System.out.println(String.format("title: %s, id: %s, nowplay: %s", title, vid, nowplay));
+	        	PlayLink2 l = new PlayLink2(title, vid, nowplay);
+	        	mPlayLinkList.add(l);
+	        }
+		} catch (ClientProtocolException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (JDOMException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+		return true;
 	}
 	
 	public boolean contents_list() {

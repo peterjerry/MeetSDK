@@ -121,7 +121,6 @@ public class EPGUtil {
 		
 		HttpGet request = new HttpGet(url);
 		
-		boolean ret = false;
 		HttpResponse response;
 		try {
 			response = HttpClients.createDefault().execute(request);
@@ -147,6 +146,8 @@ public class EPGUtil {
 	        	String vid = v.getChild("vid").getText();
 	        	String nowplay = v.getChild("nowplay").getText();
 	        	System.out.println(String.format("title: %s, id: %s, nowplay: %s", title, vid, nowplay));
+	        	PlayLink2 l = new PlayLink2(title, vid, nowplay);
+	        	mPlayLinkList.add(l);
 	        }
 		} catch (ClientProtocolException e) {
 			// TODO Auto-generated catch block
@@ -159,7 +160,7 @@ public class EPGUtil {
 			e.printStackTrace();
 		}
 		
-		return ret;
+		return true;
 	}
 	
 	public boolean contents_list() {

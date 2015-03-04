@@ -370,6 +370,9 @@ public class FFMediaPlayer extends BaseMediaPlayer {
 		return DecodeMode.SW;
 	}
 	
+	@Override
+	public native void setOption(String option);
+	
 	private native void _setDataSource(String path) throws IOException,
 			IllegalArgumentException, IllegalStateException;
 			

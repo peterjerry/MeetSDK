@@ -1485,6 +1485,12 @@ jboolean android_media_MediaPlayer_native_supportSoftDecode()
 	return false;
 }
 
+static
+void android_media_MediaPlayer_native_set_option(JNIEnv *env, jobject thiz, jstring option)
+{
+	//todo
+}
+
 // ----------------------------------------------------------------------------
 
 static JNINativeMethod gMethods[] = {
@@ -1540,6 +1546,7 @@ static JNINativeMethod gMethods[] = {
 	{"native_getCpuArchNumber",	"()I",(void *)android_media_MediaPlayer_native_getCpuArchNumber},
 	{"native_getVersion",	"()Ljava/lang/String;",(void *)android_media_MediaPlayer_native_getVersion},
 	{"native_supportSoftDecode",	"()Z",(void *)android_media_MediaPlayer_native_supportSoftDecode},
+	{"setOption",	"(Ljava/lang/String;)V",(void *)android_media_MediaPlayer_native_set_option},
 };
 
 

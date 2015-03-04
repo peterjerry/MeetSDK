@@ -171,7 +171,7 @@ public class MeetViewActivity extends Activity {
 				
 				short http_port = MediaSDK.getPort("http");
 				Log.i(TAG, "Http port is: " + http_port);
-				String uri = PlayLinkUtil.getPlayUrl(true, Integer.valueOf(vid), http_port, 1, 3, "");
+				String uri = PlayLinkUtil.getPlayUrl(Integer.valueOf(vid), http_port, 1, 3, "");
 				mUri = Uri.parse(uri);
 				
 				setupPlayer();

@@ -20,6 +20,8 @@ public class MyFrame extends JFrame {
 	private List<Navigator> mNavList;
 	private String mContentType;
 	
+	private boolean mListLive = false;
+	
 	private enum EPG_STATE {
 		EPG_STATE_IDLE,
 		EPG_STATE_ERROR,
@@ -233,6 +235,12 @@ public class MyFrame extends JFrame {
 			return;
 		}
 		
+		if (mListLive) {
+			mState = EPG_STATE.EPG_STATE_FOUND_PLAYLINK;
+			System.out.println("live playlink found! " + mPlayLinkList.get(0).getId());
+			return;
+		}
+		
 		ret = mEPG.detail(vid);
 		if (!ret) {
 			System.out.println("vid is null");
@@ -258,7 +266,7 @@ public class MyFrame extends JFrame {
 	}
 	
 	private void init_combobox() {
-		int type = 0;
+		int type = 2;
 		
 		switch (type) {
 		case 0:
@@ -325,6 +333,11 @@ public class MyFrame extends JFrame {
 		int n = comboItem.getSelectedIndex();
 		String link = mModuleList.get(n).getLink(); //"app://aph.pptv.com/v4/cate/tv";
 		
+		if (mModuleList.get(n).getTitle().equals("直播"))
+			mListLive = true;
+		else
+			mListLive = false;
+		
 		// save "type" for list()
 		mContentType = "";
 		int pos = link.indexOf("type=");
@@ -359,7 +372,22 @@ public class MyFrame extends JFrame {
 		
 		System.out.println(String.format("param: %s, type %s", param, mContentType));
 		
-		ret = mEPG.list(param, mContentType, 2, "order=n", 10);
+		if (mListLive) {
+			int type;
+			if (n == 3)
+				type = 156;
+			else if (n == 2)
+				type = 164;
+			else {
+				JOptionPane.showMessageDialog(null, "invalid live type!");
+				return;
+			}
+			
+			ret = mEPG.live(1, 15, type);
+		}
+		else
+			ret = mEPG.list(param, mContentType, 1, "order=n", 10);
+		
 		if (!ret)
 			return;
 		

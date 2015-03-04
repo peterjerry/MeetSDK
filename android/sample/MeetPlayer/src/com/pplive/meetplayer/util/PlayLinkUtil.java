@@ -70,8 +70,7 @@ public class PlayLinkUtil {
 
     public static final int FT_UNKNOWN = -1;
     
-    public static String getPlayUrl(boolean isVOD, 
-    		int playlink, int http_port, int ft, int bwt, String link_surfix) {
+    public static String getPlayUrl(int playlink, int http_port, int ft, int bwt, String link_surfix) {
     	String ppbox_url;
 		String str_playlink;
 		str_playlink = addPlaylinkParam(playlink, ft, bwt);
@@ -83,10 +82,7 @@ public class PlayLinkUtil {
 			e.printStackTrace();
 		}
 		
-		if (isVOD) {
-			ppbox_url = String.format(HTTP_M3U8_RECORD_PPVOD2, http_port, str_playlink);
-		}
-		else {
+		if (playlink >= 300000 && playlink <= 300999) {
 			// live
 			if (link_surfix == null || link_surfix.equals("")) {
 				// real live
@@ -96,6 +92,9 @@ public class PlayLinkUtil {
 				// fake vod
 				ppbox_url = String.format(HTTP_M3U8_PLAY_PPLIVE3, http_port, str_playlink) + link_surfix;
 			}
+		}
+		else {
+			ppbox_url = String.format(HTTP_M3U8_RECORD_PPVOD2, http_port, str_playlink);
 		}
 
 		Log.i(TAG, "Java: getPlayUrl " + ppbox_url);

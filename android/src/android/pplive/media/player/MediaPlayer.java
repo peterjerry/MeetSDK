@@ -115,6 +115,7 @@ public class MediaPlayer implements MediaPlayerInterface {
 	private SurfaceHolder mHolder = null;
 	private boolean mScreenOn = false;
 	private int mWakeMode;
+	private String mOption;
 
 	public MediaPlayer() {
 		this(DecodeMode.SW);
@@ -237,6 +238,8 @@ public class MediaPlayer implements MediaPlayerInterface {
 		
 		setScreenOnWhilePlaying();
 		setWakeMode();
+		
+		setOption();
 	}
 	
 	@Override
@@ -835,11 +838,12 @@ public class MediaPlayer implements MediaPlayerInterface {
 	@Override
 	public Bitmap getSnapShot(int width, int height, int fmt, int msec) {
 		if (mPlayer != null) {
-			if (mDecodeMode != DecodeMode.SW)
-				return null;
+			if (mPlayer instanceof FFMediaPlayer) { // mDecodeMode == DecodeMode.SW 
+				LogUtils.info("getSnapShot: " + msec);
+				return mPlayer.getSnapShot(width, height, fmt, msec);
+			}
 			
-		    LogUtils.info("getSnapShot: " + msec);
-			return mPlayer.getSnapShot(width, height, fmt, msec);
+			return null;
 		} else {
 		    LogUtils.error("mMeetPlayer is null");
 			throw new IllegalStateException("mMeetPlayer is null");
@@ -870,6 +874,16 @@ public class MediaPlayer implements MediaPlayerInterface {
 	private void setWakeMode() {
 		if (mPlayer != null && mContext != null) {
 			mPlayer.setWakeMode(mContext, mWakeMode);
+		}
+	}
+	
+	public void setOption(String opt) {
+		mOption = opt;
+	}
+	
+	private void setOption() {
+		if (mPlayer != null) {
+			mPlayer.setOption(mOption);
 		}
 	}
 	

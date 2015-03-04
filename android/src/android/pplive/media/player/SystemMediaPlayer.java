@@ -325,4 +325,10 @@ public class SystemMediaPlayer extends android.media.MediaPlayer implements
 	public DecodeMode getDecodeMode() {
 		return DecodeMode.HW_SYSTEM;
 	}
+
+	@Override
+	public void setOption(String option) {
+		// TODO Auto-generated method stub
+		
+	}
 }

@@ -14,9 +14,10 @@ import java.util.Calendar;
 import java.util.Date;
 import java.util.GregorianCalendar;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Random;
+import java.util.Set;
 
 import android.app.Activity;
 import android.app.ProgressDialog;
@@ -83,11 +84,6 @@ import com.pplive.dlna.DLNASdk;
 
 
 
-
-
-
-
-
 // for thread
 import android.os.Handler;  
 import android.os.Message;
@@ -110,9 +106,9 @@ public class ClipListActivity extends Activity implements
 		MediaPlayerControl, SurfaceHolder.Callback, SubTitleParser.Callback {
 
 	private final static String TAG = "ClipList";	
+	private final static String PREF_NAME = "settings";
 	
     private final static String PORT_HTTP = "http";
-
     private final static String PORT_RTSP = "rtsp";
 		
 	private Button btnPlay;
@@ -197,6 +193,7 @@ public class ClipListActivity extends Activity implements
 	private String mEPGtype;
 	private int mEPGlistStartPage = 1;
 	private int mEPGlistCount = 15;
+	private boolean mListLive = false;
 	private final int EPG_ITEM_FRONTPAGE		= 1;
 	private final int EPG_ITEM_CATALOG			= 2;
 	private final int EPG_ITEM_DETAIL			= 3;
@@ -221,16 +218,9 @@ public class ClipListActivity extends Activity implements
 	private int video_bitrate					= 0;
 	
 	private int preview_height;
-	private String mPlayerLinkSurfix;
 	
-	private enum MEET_PLAY_TYPE {
-		UNKNOWN_TYPE,
-		LOCAL_TYPE,
-		HTTP_TYPE,
-		PPTV_VOD_TYPE,
-		PPTV_LIVE_TYPE
-	};
-	private MEET_PLAY_TYPE play_type			= MEET_PLAY_TYPE.PPTV_VOD_TYPE;
+	private String mPlayerLinkSurfix;
+	private boolean mIsLivePlay;
 
 	final static int ONE_MAGEBYTE 				= 1048576;
 	final static int ONE_KILOBYTE 				= 1024;
@@ -410,7 +400,7 @@ public class ClipListActivity extends Activity implements
 
 		this.lv_filelist = (ListView) findViewById(R.id.lv_filelist);
 		
-		new ListItemTask().execute(mCurrentFolder);
+		//new ListItemTask().execute(mCurrentFolder);
 		
 		this.lv_filelist
 				.setOnItemClickListener(new ListView.OnItemClickListener() {
@@ -460,7 +450,6 @@ public class ClipListActivity extends Activity implements
 								}
 								else {
 									Log.i(TAG, "Java: play http clip");
-									play_type = MEET_PLAY_TYPE.HTTP_TYPE;
 									start_player(file_path);
 								}
 							}
@@ -481,7 +470,6 @@ public class ClipListActivity extends Activity implements
 									}
 								}
 								else {
-									play_type = MEET_PLAY_TYPE.LOCAL_TYPE;
 									start_player(file_path);
 								}
 							}
@@ -598,17 +586,33 @@ public class ClipListActivity extends Activity implements
 				list_title.add("约会专家");
 				list_title.add("恋爱相对论");
 				list_title.add("后遗症");
-				list_title.add("吉林卫视");
-				list_title.add("新娱乐");
-				list_title.add("东方电影");
-				list_title.add("新闻综合");
-				list_title.add("东方购物");
-				list_title.add("电视剧");
-				list_title.add("星尚");
-				list_title.add("第一财经");
 				
 				final int fixed_size = list_title.size();
-
+				
+				// load play history
+				final ArrayList<String> list_vid = new ArrayList<String>();
+				SharedPreferences sp = getSharedPreferences(PREF_NAME, MODE_PRIVATE);
+				String key = "PlayHistory";
+				String regularEx = ",";
+				String values;
+		        values = sp.getString(key, "");
+		        Log.i(TAG, "Java: PlayHistory(in PPboxSel) read: " + values);
+		        String []str = values.split(regularEx);
+		        for (int i=0;i<str.length;i++) {
+		        	// 后遗症|1233
+		        	Log.i(TAG, "Java: history item #" + i + ": " + str[i]);
+		        	int pos = str[i].indexOf("|");
+		        	if (pos != -1) {
+		        		list_title.add(str[i].substring(0, pos));
+		        		list_vid.add(str[i].substring(pos + 1, str[i].length()));
+		        	}
+		        }
+		        
+		        final int history_size = list_vid.size();
+		        
+		        Log.i(TAG, String.format("Java: fixed_size %d, history_size %d", fixed_size, history_size));
+		        
+				// load tvlist.txt
 				LoadPlayLinkUtil ext_link = new LoadPlayLinkUtil();
 				if (ext_link.LoadTvList()) {
 					list_title.addAll(ext_link.getTitles());
@@ -617,14 +621,8 @@ public class ClipListActivity extends Activity implements
 				
 				final String[] ppbox_clipname = (String[])list_title.toArray(new String[list_title.size()]);  
 				
-				final int ppbox_playlink[] = {18139131, 10110649, 17054339, 17461610, 17631361, 17611359, 
-					300176, 300151, 300149, 300156, 300254, 300153, 300155, 300154};
-				//final String ppbox_clipname[] = {"h265测试", "快速测试", "阿森纳", "韩国傻瓜", "恋爱的技术", "约会专家", "恋爱相对论", "后遗症", 
-				//	"吉林卫视", "新娱乐" , "东方电影", "新闻综合", "东方购物", "电视剧", "星尚", "第一财经"};
-				final int ppbox_type[] = {0, 0, 0, 0, 0, 0, 
-					1, 1, 1, 1, 1, 1, 1, 1}; //0-vod.m3u8, 1-play.m3u8
-				final int ppbox_ft[] = {2, 2, 2, 2, 3, 2, 
-					1, 1, 1, 1, 1, 1, 1, 1};//2-超清, 3-bd
+				final int ppbox_playlink[] = {18139131, 10110649, 17054339, 17461610, 17631361, 17611359};
+				final int ppbox_ft[] = {2, 2, 2, 2, 3, 2};//2-超清, 3-bd
 				
 				Dialog choose_ppbox_res_dlg = new AlertDialog.Builder(ClipListActivity.this)
 					.setTitle("Select ppbox program")
@@ -634,18 +632,17 @@ public class ClipListActivity extends Activity implements
 							if (whichButton < fixed_size) {
 								et_playlink.setText(String.valueOf(ppbox_playlink[whichButton]));
 								btn_ft.setText(String.valueOf(ppbox_ft[whichButton]));
-								if (0 == ppbox_type[whichButton]) {
-									play_type = MEET_PLAY_TYPE.PPTV_VOD_TYPE;
-								}
-								else {
-									play_type = MEET_PLAY_TYPE.PPTV_LIVE_TYPE;
-								}
-								
 								Log.i(TAG, String.format("Java: choose %d %s %d", 
 										whichButton, ppbox_clipname[whichButton], ppbox_playlink[whichButton]));
 							}
+							else if (whichButton >= fixed_size && whichButton < fixed_size + history_size) {
+								et_playlink.setText(list_vid.get(whichButton - fixed_size));
+								btn_ft.setText("1");
+								Log.i(TAG, String.format("Java: choose playhistory %d %s %s", 
+										whichButton, ppbox_clipname[whichButton], list_vid.get(whichButton - fixed_size)));
+							}
 							else {
-								String url = list_url.get(whichButton - fixed_size);
+								String url = list_url.get(whichButton - fixed_size - history_size);
 								Log.i(TAG, String.format("Java: choose #%d title: %s, url: %s", 
 										whichButton, list_title.get(whichButton), url));
 								
@@ -682,32 +679,20 @@ public class ClipListActivity extends Activity implements
 				short port = MediaSDK.getPort(PORT_HTTP);
 				Log.i(TAG, "Http port is: " + port);
 				
-				boolean isVOD;
-				if (MEET_PLAY_TYPE.PPTV_VOD_TYPE == play_type ||
-						MEET_PLAY_TYPE.LOCAL_TYPE == play_type ||
-						MEET_PLAY_TYPE.HTTP_TYPE == play_type) {
-					isVOD = true;
-				}
-				else if (MEET_PLAY_TYPE.PPTV_LIVE_TYPE == play_type) {
-					isVOD = false;
+				if (ppbox_playid >= 300000 && ppbox_playid < 300999 && 
+						(mPlayerLinkSurfix == null || mPlayerLinkSurfix.equals(""))) {
+					mIsLivePlay = true;
 				}
 				else {
-					Toast.makeText(ClipListActivity.this, "invalid play type: " + play_type, 
-							Toast.LENGTH_SHORT).show();					
-					return;
+					mIsLivePlay = false;
 				}
-				/*if (ppbox_playid >= 300000 && ppbox_playid < 300999)
-					isVOD = false;
-				else
-					isVOD = true;*/
 				
 				if (ppbox_bw_type == 4) {// dlna
 					new EPGTask().execute(EPG_ITEM_CDN, ppbox_playid, 0); // 3rd params for MSG_PLAY_CDN_URL
 					return;
 				}
 				
-				String ppbox_url = PlayLinkUtil.getPlayUrl(isVOD, 
-						ppbox_playid, port, ppbox_ft, ppbox_bw_type, mPlayerLinkSurfix);
+				String ppbox_url = PlayLinkUtil.getPlayUrl(ppbox_playid, port, ppbox_ft, ppbox_bw_type, mPlayerLinkSurfix);
 				
 				start_player(ppbox_url);
 			}
@@ -769,7 +754,8 @@ public class ClipListActivity extends Activity implements
     	AlertDialog.Builder builder = new AlertDialog.Builder(this); 
         View view = View.inflate(this, R.layout.date_time_dialog, null); 
         final DatePicker datePicker = (DatePicker) view.findViewById(R.id.date_picker); 
-        final TimePicker timePicker = (android.widget.TimePicker) view.findViewById(R.id.time_picker); 
+        final TimePicker timePicker = (TimePicker) view.findViewById(R.id.time_picker);
+        final EditText etDuratoin = (EditText) view.findViewById(R.id.et_duration);
         builder.setView(view); 
 
         Calendar cal = Calendar.getInstance(); 
@@ -817,7 +803,7 @@ public class ClipListActivity extends Activity implements
                 mStartTimeSec = gc.getTimeInMillis() / 1000;
             	
             	// step2
-            	String strDuration =  "60"; //mETDuration.getText().toString();
+            	String strDuration =  etDuratoin.getText().toString();
             	mDuration = Integer.parseInt(strDuration);
             	
             	Log.i(TAG, String.format("start_time %d sec, duration %d min", mStartTimeSec, mDuration));
@@ -831,7 +817,7 @@ public class ClipListActivity extends Activity implements
 					e.printStackTrace();
 				}
                 Log.i(TAG, "Java: mPlayerLinkSurfix final: " + mPlayerLinkSurfix);
-            	
+                
                 dialog.cancel();
                 Toast.makeText(ClipListActivity.this, 
                 		String.format("toggle to playback mode start %s, duration %d min", sb, mDuration), 
@@ -1203,7 +1189,7 @@ public class ClipListActivity extends Activity implements
 		if (mPlayer == null)
 			return 0;
 		
-		if (isLivePlay())
+		if (mIsLivePlay)
 			return (1800 * 1000);
 		
 		return mPlayer.getDuration();
@@ -1214,7 +1200,7 @@ public class ClipListActivity extends Activity implements
 			return 0;
 		
 		int pos = mPlayer.getCurrentPosition();
-		if (isLivePlay()) {
+		if (mIsLivePlay) {
 			int new_duration = mPlayer.getDuration();
 			int offset = new_duration - 1800 * 1000;
 			pos -= offset;
@@ -1264,15 +1250,6 @@ public class ClipListActivity extends Activity implements
 	
 	//end of : implements MediaPlayerControl
 	//////////////////////////////////////////
-	
-	private boolean isLivePlay() {
-		if (MEET_PLAY_TYPE.PPTV_LIVE_TYPE == play_type) {
-			if (mPlayerLinkSurfix == null || mPlayerLinkSurfix.equals(""))
-				return true;
-		}
-		
-		return false;
-	}
 	
 	private void close_hls() {
 		short port = MediaSDK.getPort("http");
@@ -1347,13 +1324,43 @@ public class ClipListActivity extends Activity implements
 			case MSG_EPG_DETAIL_DONE:
 			case MSG_EPG_LIST_DONE:
 				if (mEPGLinkList.size() == 1) {
-					Toast.makeText(ClipListActivity.this, 
+					SharedPreferences sp = getSharedPreferences(PREF_NAME, MODE_PRIVATE);
+					String key = "PlayHistory";
+					String regularEx = ",";
+					String values;
+			        values = sp.getString(key, "");
+			        Log.i(TAG, "Java: PlayHistory read: " + values);
+			        String []str = values.split(regularEx);
+			        int start = str.length - 10;
+			        if (start < 0)
+			        	start = 0;
+			        for (int i=0;i<str.length;i++) {
+			        	Log.i(TAG, String.format("Java: PlayHistory #%d %s", i, str[i]));
+			        }
+			        
+			        // clip_name|11223,clip_2|34455
+			        String save_values = "";
+			        for (int i=start;i<str.length;i++) {
+			        	save_values += str[i];
+			        	save_values += regularEx;
+			        }
+			        
+			        save_values += (mEPGLinkList.get(0).getTitle() + "|" + mEPGLinkList.get(0).getId());
+					
+			        SharedPreferences.Editor et = sp.edit();
+					Log.i(TAG, "Java: PlayHistory write: " + save_values);
+					et.putString(key, save_values);
+					et.commit();
+
+					Toast.makeText(
+							ClipListActivity.this,
 							String.format("\"%s\" was selected", mEPGLinkList.get(0).getTitle()),
 							Toast.LENGTH_SHORT).show();
 					et_playlink.setText(mEPGLinkList.get(0).getId());
 				}
-				else
+				else {
 					popupEPGCollectionDlg();
+				}
 				break;
 			case MSG_EPG_CONTENT_SURFIX_DONE:
 				popupEPGContentDlg();
@@ -1388,7 +1395,7 @@ public class ClipListActivity extends Activity implements
 			return;
 		}
 		
-		ArrayList<String> title_list = new ArrayList<String>();
+		final ArrayList<String> title_list = new ArrayList<String>();
 		final ArrayList<String> value_list = new ArrayList<String>();
 		
 		for (int i=0;i<size;i++) {
@@ -1415,6 +1422,11 @@ public class ClipListActivity extends Activity implements
 							new EPGTask().execute(EPG_ITEM_CATALOG, item);
 						}
 						else {
+							if (title_list.get(whichButton).equals("直播"))
+								mListLive = true;
+							else
+								mListLive = false;
+							
 							mLink = value_list.get(whichButton);
 							
 							int pos = mLink.indexOf("type=");
@@ -1471,18 +1483,20 @@ public class ClipListActivity extends Activity implements
 						mEPGtype = "";
 					Log.i(TAG, String.format("Java: epg content param: %s, type: %s", mEPGparam, mEPGtype));
 					mEPGlistStartPage = 1;
-					new EPGTask().execute(EPG_ITEM_LIST, mEPGlistStartPage, mEPGlistCount);
-					/*String tmp = param_list.get(whichButton);
-					int index = tmp.indexOf("ntags=");
-					if (index == -1) {
-						Log.e(TAG, "Java epg: cannot found ntags");
-						Toast.makeText(ClipListActivity.this, "nTags not found", Toast.LENGTH_SHORT).show();
+					
+					if (mListLive) {
+						if(2 == whichButton)
+							mEPGtype = "164";
+						else if(3 == whichButton)
+							mEPGtype = "156";
+						else {
+							Toast.makeText(ClipListActivity.this, "invalid live type", Toast.LENGTH_SHORT).show();
+							dialog.dismiss();
+							return;
+						}
 					}
-					else {
-						mEPGparam = tmp.substring(6, tmp.length());
-						Log.i(TAG, "Java: epg content ntags: " + mEPGparam);
-						new EPGTask().execute(EPG_ITEM_LIST);
-					}*/
+					
+					new EPGTask().execute(EPG_ITEM_LIST, mEPGlistStartPage, mEPGlistCount);
 				}
 				
 				dialog.dismiss();
@@ -1561,7 +1575,15 @@ public class ClipListActivity extends Activity implements
 				new DialogInterface.OnClickListener(){
 				public void onClick(DialogInterface dialog, int whichButton) {
 					int vid = Integer.valueOf(link_list.get(whichButton));
-					new EPGTask().execute(EPG_ITEM_DETAIL, vid);
+					if (mListLive) {
+						et_playlink.setText(String.valueOf(vid));
+						Log.i(TAG, "Java: live id " + vid);
+						Toast.makeText(ClipListActivity.this, String.format("live channel %s(%d) was set",
+								mEPGLinkList.get(whichButton).getTitle(), vid), Toast.LENGTH_SHORT).show();
+					}
+					else {
+						new EPGTask().execute(EPG_ITEM_DETAIL, vid);
+					}
 					dialog.cancel();
 				}
 			})
@@ -1681,14 +1703,23 @@ public class ClipListActivity extends Activity implements
     			mHandler.sendEmptyMessage(MSG_EPG_CONTENT_SURFIX_DONE);
         	}
         	else if (EPG_ITEM_LIST == type) {
-        		if (mEPGparam == null || mEPGparam.isEmpty() || params.length != 3) {
+        		if (!mListLive && (mEPGparam == null || mEPGparam.isEmpty() || params.length != 3)) {
         			mHandler.sendEmptyMessage(MSG_FAIL_TO_PARSE_EPG_RESULT);
         			return false;
         		}
         		
         		int start_page = params[1];
         		int count = params[2];
-        		if (!mEPG.list(mEPGparam, mEPGtype, start_page, "order=n", count)) {
+        		if (mListLive) {
+        			int live_type = Integer.valueOf(mEPGtype);
+        			Log.i(TAG, "Java: EPGTask start to live() " + live_type);
+        			ret = mEPG.live(start_page, count, live_type);
+        		}
+        		else {
+        			ret = mEPG.list(mEPGparam, mEPGtype, start_page, "order=n", count);
+        		}
+        		
+        		if (!ret) {
         			mHandler.sendEmptyMessage(MSG_FAIL_TO_PARSE_EPG_RESULT);
         			return false;
         		}
@@ -1954,7 +1985,6 @@ public class ClipListActivity extends Activity implements
 		case OPTION_COMMON_MEETVIEW:
 			Intent intent = new Intent(ClipListActivity.this, MeetViewActivity.class);
 			startActivity(intent);
-			finish();
 			break;
 		case OPTION_DLNA_LIST:
 			push_to_dmr();
@@ -1969,7 +1999,7 @@ public class ClipListActivity extends Activity implements
 			break;
 		case OPTION_EPG_SEARCH:
 			final EditText inputKey = new EditText(this);
-			SharedPreferences settings = getSharedPreferences("settings", MODE_PRIVATE); // create it if NOT exist
+			SharedPreferences settings = getSharedPreferences(PREF_NAME, MODE_PRIVATE); // create it if NOT exist
         	String last_key = settings.getString("last_searchkey", "阿仁");
         	Log.i(TAG, "Java last_key: " + last_key);
         	inputKey.setText(last_key);
@@ -1981,7 +2011,7 @@ public class ClipListActivity extends Activity implements
 	        builder.setPositiveButton("Ok", new DialogInterface.OnClickListener() {
 
 	            public void onClick(DialogInterface dialog, int which) {
-	            	SharedPreferences settings = getSharedPreferences("settings", MODE_PRIVATE); // create it if NOT exist
+	            	SharedPreferences settings = getSharedPreferences(PREF_NAME, MODE_PRIVATE); // create it if NOT exist
 	            	SharedPreferences.Editor editor = settings.edit();
 		
 	            	mEPGsearchKey = inputKey.getText().toString();

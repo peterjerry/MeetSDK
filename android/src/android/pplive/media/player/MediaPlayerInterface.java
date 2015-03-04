@@ -10,10 +10,8 @@ import android.graphics.Bitmap;
 import android.net.Uri;
 import android.view.Surface;
 import android.view.SurfaceHolder;
-
 import android.pplive.media.subtitle.SimpleSubTitleParser;
 import android.pplive.media.player.MediaPlayer.DecodeMode;
-
 import android.pplive.media.player.MediaPlayer.OnBufferingUpdateListener;
 import android.pplive.media.player.MediaPlayer.OnCompletionListener;
 import android.pplive.media.player.MediaPlayer.OnErrorListener;
@@ -121,4 +119,6 @@ public interface MediaPlayerInterface {
 	public abstract void setWakeMode(Context context, int mode);
 	
 	public abstract DecodeMode getDecodeMode();
+
+	public abstract void setOption(String option);
 }
