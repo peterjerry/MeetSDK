@@ -1,0 +1,99 @@
+  <?xml version="1.0" encoding="utf-8" ?> 
+- <vlist>
+  <count>15</count> 
+  <page_count>8</page_count> 
+  <countInPage>2</countInPage> 
+  <page>1</page> 
+- <nav>
+  <type id="6" name="热点" count="3" /> 
+  <type id="-1" name="其它" count="13" /> 
+  </nav>
+- <v>
+  <vid>19224387</vid> 
+  <vt>3</vt> 
+  <cnt>0</cnt> 
+- <playlink2 duration="1">
+  <source mark="标清" bitrate="548" filelength="5902101" resolution="720|540">1d7c1WCcaMih2c7j4a6Xacikz53RxmNmZ8nX0cyhnWuaaMfYoJylnmhqnJasopfc1WY%3d</source> 
+  </playlink2>
+- <title>
+- <![CDATA[ 法国鼓励希腊留在欧元区
+  ]]> 
+  </title>
+- <userName>
+- <![CDATA[ 
+  ]]> 
+  </userName>
+  <subtitle /> 
+  <type>-1</type> 
+  <virtualStatus>0</virtualStatus> 
+  <ftAll>35</ftAll> 
+  <catalog /> 
+  <director /> 
+  <act /> 
+  <year>2015</year> 
+  <area>大陆</area> 
+  <imgurl>http://img26.pplive.cn/2012/03/01/08511054716_96X128.jpg</imgurl> 
+  <sloturl>http://v.img.pplive.cn/cp120/4f/ca/4fcac309a9911656fae36f1c2cff0e58/3.jpg</sloturl> 
+  <tviconurl /> 
+  <state>1</state> 
+  <total_state>1</total_state> 
+  <note /> 
+  <mark>8.0</mark> 
+  <hot>0</hot> 
+  <pv>3</pv> 
+  <virtual>0</virtual> 
+  <bitrate>548</bitrate> 
+  <resolution>720|540</resolution> 
+  <flag>z</flag> 
+  <duration>1</duration> 
+  <vsValue>0</vsValue> 
+  <vsTitle /> 
+  <enTitle /> 
+  <onlinetime>2015-02-02 10:12:13</onlinetime> 
+  <vip>0</vip> 
+  </v>
+- <v>
+  <vid>19224661</vid> 
+  <vt>3</vt> 
+  <cnt>0</cnt> 
+- <playlink2 duration="2">
+  <source mark="标清" bitrate="476" filelength="5665307" resolution="720|404">1d7c1WCcaMih2c7j4a5uasWjoqKix2SYbZnX0aGgyJRuZ5XUpM2kyGdpb8fWzpfc1WY%3d</source> 
+  </playlink2>
+- <title>
+- <![CDATA[ 法国鼓励希腊留在欧元区
+  ]]> 
+  </title>
+- <userName>
+- <![CDATA[ 
+  ]]> 
+  </userName>
+  <subtitle /> 
+  <type>-1</type> 
+  <virtualStatus>0</virtualStatus> 
+  <ftAll>35</ftAll> 
+  <catalog /> 
+  <director /> 
+  <act /> 
+  <year>2015</year> 
+  <area>大陆</area> 
+  <imgurl>http://img26.pplive.cn/2011/11/02/14302588110_96X128.jpg</imgurl> 
+  <sloturl>http://v.img.pplive.cn/cp120/76/a2/76a21c9234a6e42d6cf24f85da6ca156/3.jpg</sloturl> 
+  <tviconurl /> 
+  <state>1</state> 
+  <total_state>1</total_state> 
+  <note /> 
+  <mark>7.9</mark> 
+  <hot>0</hot> 
+  <pv>10</pv> 
+  <virtual>0</virtual> 
+  <bitrate>476</bitrate> 
+  <resolution>720|404</resolution> 
+  <flag>z</flag> 
+  <duration>2</duration> 
+  <vsValue>0</vsValue> 
+  <vsTitle /> 
+  <enTitle /> 
+  <onlinetime>2015-02-02 11:05:43</onlinetime> 
+  <vip>0</vip> 
+  </v>
+  </vlist>
