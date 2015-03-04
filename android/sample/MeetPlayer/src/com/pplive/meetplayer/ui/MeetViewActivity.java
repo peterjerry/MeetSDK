@@ -6,7 +6,7 @@ import java.util.List;
 import java.util.Map;
 
 import com.pplive.meetplayer.R;
-import com.pplive.meetplayer.ui.widget.MyMediaController;
+import com.pplive.meetplayer.ui.widget.MiniMediaController;
 import com.pplive.meetplayer.util.Content;
 import com.pplive.meetplayer.util.EPGUtil;
 import com.pplive.meetplayer.util.Module;
@@ -27,6 +27,7 @@ import android.os.Message;
 import android.pplive.media.player.MediaPlayer;
 import android.pplive.media.player.MediaPlayer.DecodeMode;
 import android.pplive.media.player.MeetVideoView;
+import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.GestureDetector;
 import android.view.KeyEvent;
@@ -36,6 +37,7 @@ import android.widget.AdapterView;
 import android.widget.Button;
 import android.widget.ListView;
 import android.widget.ProgressBar;
+import android.widget.RelativeLayout;
 import android.widget.Toast;
 
 public class MeetViewActivity extends Activity {
@@ -52,6 +54,7 @@ public class MeetViewActivity extends Activity {
 	
 	private final int LIST_MOVIE 		= 1;
 	private final int LIST_TV_SERIES 	= 2;
+	private final int LIST_LIVE		= 3;
 	
 	private final String[] from = { "title", "desc", "ft", "duration", "resolution" };
 	
@@ -61,8 +64,11 @@ public class MeetViewActivity extends Activity {
 	private int mListType = LIST_TV_SERIES;
 	private int mPageNum = 1;
 	private Uri mUri = null;
+	private RelativeLayout mLayout;
 	private MeetVideoView mVideoView;
-	private MyMediaController mController;
+	private MiniMediaController mController;
+	private int preview_height = 0;
+	private int mBufferingPertent = 0;
 	
 	private ProgressBar mBufferingProgressBar = null;
 	private boolean mIsBuffering = false;
@@ -71,6 +77,7 @@ public class MeetViewActivity extends Activity {
 	private Button btnPlayerImpl;
 	private Button btnMovies;
 	private Button btnTVSeries;
+	private Button btnLive;
 	private Button btnNextPage;
 	
 	private MyAdapter mAdapter;
@@ -84,6 +91,15 @@ public class MeetViewActivity extends Activity {
 		
 		setContentView(R.layout.activity_meet_videoview);
 		
+		DisplayMetrics dm = new DisplayMetrics(); 
+		getWindowManager().getDefaultDisplay().getMetrics(dm); 
+		int screen_width	= dm.widthPixels; 
+		int screen_height	= dm.heightPixels;
+
+		preview_height = screen_height * 2 / 5;
+		
+		this.mLayout = (RelativeLayout) findViewById(R.id.view_preview);
+		
 		Util.initMeetSDK(this);
 		Util.startP2PEngine(this);
 		
@@ -93,7 +109,7 @@ public class MeetViewActivity extends Activity {
 		mVideoView.setOnInfoListener(mInfoListener);
 		mVideoView.setOnPreparedListener(mPreparedListener);
 		
-		mController = (MyMediaController) findViewById(R.id.video_controller2);
+		mController = (MiniMediaController) findViewById(R.id.video_controller2);
 		
 		mBufferingProgressBar = (ProgressBar) findViewById(R.id.progressbar_buffering2);
 		
@@ -136,6 +152,16 @@ public class MeetViewActivity extends Activity {
 			@Override
 			public void onClick(View view) {
 				mListType = LIST_TV_SERIES;
+				mPageNum = 1;
+				new ListPPTVTask().execute(mListType, mPageNum);
+			}
+		});
+		
+		this.btnLive = (Button) findViewById(R.id.btn_live);
+		this.btnLive.setOnClickListener(new Button.OnClickListener() {
+			@Override
+			public void onClick(View view) {
+				mListType = LIST_LIVE;
 				mPageNum = 1;
 				new ListPPTVTask().execute(mListType, mPageNum);
 			}
@@ -198,6 +224,9 @@ public class MeetViewActivity extends Activity {
 			case LIST_MOVIE:
 				ret = fill_list_movie(start_page);
 				break;
+			case LIST_LIVE:
+				ret = fill_list_live(start_page);
+				break;
 			default:
 				Log.e(TAG, "invalid list type : " + list_type);
 				return false;
@@ -210,6 +239,37 @@ public class MeetViewActivity extends Activity {
 			
 			return ret;
 		}
+	}
+	
+	private boolean fill_list_live(int start_page) {
+		EPGUtil util = new EPGUtil();
+		boolean ret = util.live(start_page, 15, 156);
+		if (!ret)
+			return false;
+		
+		List<PlayLink2> list = util.getLink();
+		if (list == null)
+			return false;
+		
+		int size = list.size();
+		for (int i=0;i<size;i++) {
+			HashMap<String, Object> new_item = new HashMap<String, Object>();
+			PlayLink2 link = list.get(i);
+			String desc = link.getDescription();
+			if (desc.length() > MAX_DESC_LEN)
+				desc = desc.substring(0, MAX_DESC_LEN) + "...";
+			
+			new_item.put("title", link.getTitle());
+			new_item.put("desc", desc);
+			new_item.put("ft", "1");
+			new_item.put("duration", "N/A");
+			new_item.put("resolution", "N/A");
+			
+			new_item.put("vid", link.getId());
+			mPPTVClipList.add(new_item);
+		}
+		
+		return true;
 	}
 	
 	private boolean fill_list_series() {
@@ -338,6 +398,9 @@ public class MeetViewActivity extends Activity {
 	protected void onResume() {
 		super.onResume();
 
+		mLayout.getLayoutParams().height = preview_height;
+		mLayout.requestLayout();
+
 		Log.i(TAG, "Java: onResume");
 	}
 
@@ -456,7 +519,7 @@ public class MeetViewActivity extends Activity {
 	private MediaPlayer.OnPreparedListener mPreparedListener = new MediaPlayer.OnPreparedListener() {
 
 		@Override
-		public void onPrepared(MediaPlayer arg0) {
+		public void onPrepared(MediaPlayer mp) {
 			Log.i(TAG, "Java: OnPrepared");
 			mBufferingProgressBar.setVisibility(View.GONE);
 			mIsBuffering = false;

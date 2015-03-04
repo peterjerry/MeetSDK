@@ -21,12 +21,16 @@ import java.util.Set;
 
 import android.app.Activity;
 import android.app.ProgressDialog;
+import android.app.Service;
+import android.content.ComponentName;
 import android.content.Intent;
 import android.content.Context;
+import android.content.ServiceConnection;
 import android.view.ContextThemeWrapper;
 import android.graphics.PixelFormat;
 import android.os.Bundle;
 import android.os.Environment;
+import android.os.IBinder;
 import android.util.Log;
 import android.view.Menu;
 import android.view.SubMenu;
@@ -65,6 +69,7 @@ import android.app.Dialog;
 import android.content.SharedPreferences;
 
 import com.pplive.meetplayer.R;
+import com.pplive.meetplayer.service.DLNAService;
 import com.pplive.meetplayer.util.AtvUtils;
 import com.pplive.meetplayer.util.Catalog;
 import com.pplive.meetplayer.util.Content;
@@ -80,6 +85,10 @@ import com.pplive.meetplayer.util.PlayLink2;
 import com.pplive.meetplayer.util.PlayLinkUtil;
 import com.pplive.meetplayer.util.Util;
 import com.pplive.dlna.DLNASdk;
+
+
+
+
 
 
 
@@ -162,7 +171,7 @@ public class ClipListActivity extends Activity implements
 	private int mVideoWidth, mVideoHeight;
 	private int mAudioTrackNum = 4;
 	private int mAudioChannel = 1;
-	private int mPlayerImpl = 3;
+	private int mPlayerImpl = 0;
 	
 	// subtitle
 	private SimpleSubTitleParser mSubtitleParser;
@@ -554,6 +563,8 @@ public class ClipListActivity extends Activity implements
 		this.btnPlayerImpl.setOnClickListener(new Button.OnClickListener() {
 			@Override
 			public void onClick(View view) {
+				//Log.i(TAG, "Java: getCount " + binder.getCount());
+				
 				final String[] PlayerImpl = {"Auto", "System", "NuPlayer", "FFPlayer"};
 				
 				Dialog choose_player_impl_dlg = new AlertDialog.Builder(ClipListActivity.this)
@@ -1216,17 +1227,7 @@ public class ClipListActivity extends Activity implements
 	public int getBufferPercentage() {
 		if (mPlayer == null)
 			return 0;
-			
-		/*int pct, duration;
-		duration = mPlayer.getDuration();
-		if (duration == 0) // avoid divide by zero
-			pct = 0;
-		else 
-			pct = (mPlayer.getCurrentPosition() + mPlayer.getBufferingTime()) * 100 / duration;
-		Log.i(TAG, String.format("Java: getBufferPercentage: %d(%d, %d)", pct, mPlayer.getCurrentPosition(), mPlayer.getBufferingTime()));
-		
-		return pct;*/
-		
+
 		return mBufferingPertent;
 	}
 
@@ -1837,7 +1838,7 @@ public class ClipListActivity extends Activity implements
 			return;
 		}
 		
-		int dev_num = mDLNAcallback.mDeviceMap.size();
+		int dev_num = IDlnaCallback.mDeviceMap.size();
 		
 		if (dev_num == 0) {
 			Log.i(TAG, "Java: dlna no dlna device found");
@@ -1847,8 +1848,8 @@ public class ClipListActivity extends Activity implements
 		
 		ArrayList<String> dev_list = new ArrayList<String>();
 		ArrayList<String> uuid_list = new ArrayList<String>();
-		for (Object obj : mDLNAcallback.mDeviceMap.keySet()){
-	          Object name = mDLNAcallback.mDeviceMap.get(obj);
+		for (Object obj : IDlnaCallback.mDeviceMap.keySet()){
+	          Object name = IDlnaCallback.mDeviceMap.get(obj);
 	          Log.d(TAG, "Java: dlna [dlna dev] uuid: " + obj.toString() + " name: " + name.toString());
 	          uuid_list.add(obj.toString());
 	          dev_list.add(name.toString());
@@ -2374,6 +2375,14 @@ public class ClipListActivity extends Activity implements
 		
 		//MediaSDK.stopP2PEngine();
 	}
+	
+	@Override
+	protected void onDestroy() {
+		super.onDestroy();
+		
+		unbindService(dlna_conn);
+		Log.i(TAG, "Java: onDestroy()");
+	}
 
 	@Override
 	protected void onStop() {
@@ -2422,7 +2431,32 @@ public class ClipListActivity extends Activity implements
 		FeedBackFactory.sContext = this;
 	}
 	
+	DLNAService.MyBinder binder;
+	private ServiceConnection dlna_conn = new ServiceConnection() {
+
+		@Override
+		public void onServiceConnected(ComponentName name, IBinder service) {
+			// TODO Auto-generated method stub
+			Log.i(TAG, "Java: ClipActivity onServiceConnected()");
+			binder = (DLNAService.MyBinder)service;
+		}
+
+		@Override
+		public void onServiceDisconnected(ComponentName arg0) {
+			// TODO Auto-generated method stub
+			Log.i(TAG, "Java: ClipActivity onServiceDisconnected()");
+		}
+		
+	};
+	
 	private boolean initDLNA() {
+		//bindService(new Intent(DLNAService.ACTION), serv_conn, BIND_AUTO_CREATE);
+		
+		Intent intent = new Intent();
+		intent.setAction(DLNAService.ACTION);
+		//startService(intent);
+		bindService(intent, dlna_conn, Service.BIND_AUTO_CREATE);
+		
 		mDLNA = new DLNASdk();
 		if (!mDLNA.isLibLoadSuccess()) {
 			Log.e(TAG, "Java: dlna failed to load dlna lib");

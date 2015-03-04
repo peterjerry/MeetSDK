@@ -22,16 +22,13 @@ import android.pplive.media.player.MediaController;
 
 import com.pplive.meetplayer.R;
 
-public class MyMediaController extends MediaController {
+public class MiniMediaController extends MediaController {
 	
 	@SuppressWarnings("unused")
-	private final static String TAG = "MyMediaController";
-	
-	private AudioManager mAudioManager;
-	
+	private final static String TAG = "MiniMediaController";
+
 	private View mControllerView;
 	private SeekBar mProgressBar;
-	private ProgressBar mVolumeBar;
 	private TextView mEndTime;
 	private TextView mCurrentTime;
 	private TextView mFileName;
@@ -47,11 +44,11 @@ public class MyMediaController extends MediaController {
     private ImageButton mFwdBtn;
     private ImageButton mBwdBtn;
 
-    public MyMediaController(Context context) {
+    public MiniMediaController(Context context) {
     	super(context);
 	}
     
-	public MyMediaController(Context context, AttributeSet attr) {
+	public MiniMediaController(Context context, AttributeSet attr) {
 		super(context, attr);
 		
 		mControllerView = makeControllerView();
@@ -69,7 +66,7 @@ public class MyMediaController extends MediaController {
 	
 	protected View makeControllerView() {
 		LayoutInflater inflater = (LayoutInflater) getContext().getSystemService(Context.LAYOUT_INFLATER_SERVICE);
-		View v = inflater.inflate(R.layout.layout_media_controller, this, true);
+		View v = inflater.inflate(R.layout.layout_mini_media_controller, this, true);
 		return v;
 	}
 	
@@ -97,17 +94,6 @@ public class MyMediaController extends MediaController {
 				seeker.setOnSeekBarChangeListener(mProgressChangeListener);
 			}
 			mProgressBar.setMax(MAX_RANDGE);
-		}
-		
-		mVolumeBar = (ProgressBar) v.findViewById(R.id.mediacontroller_volume);
-		if (mVolumeBar != null) {
-			if (mVolumeBar instanceof SeekBar) {
-				SeekBar seeker = (SeekBar) mVolumeBar;
-				seeker.setOnSeekBarChangeListener(mVolumeChangeListener);
-			}
-			
-			mAudioManager = (AudioManager) getContext().getSystemService(Context.AUDIO_SERVICE);
-			mVolumeBar.setMax(MAX_RANDGE);
 		}
 		
 		mEndTime = (TextView) v.findViewById(R.id.end_time);
@@ -170,25 +156,6 @@ public class MyMediaController extends MediaController {
 		return position;
 	}
 	
-	private void setVolume(int volume) {
-		mAudioManager.setStreamVolume(AudioManager.STREAM_MUSIC, volume, 0 /* flags */);
-	}
-	
-	private void updateVolumeProgress() {
-		if (mAudioManager == null)
-			return;
-		
-		int maxVolume = mAudioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC);
-		int volume = mAudioManager.getStreamVolume(AudioManager.STREAM_MUSIC);
-		
-		if (mVolumeBar != null && !mVolumerDragging) {
-			if (maxVolume > 0) {
-				long pos = MAX_RANDGE * volume / maxVolume;
-				mVolumeBar.setProgress((int)pos);
-			}
-		}
-	}
-	
 	private static final int sDefaultTimeout 	= 3000; // 3 sec
 	
     private static final int FADE_OUT 			= 1;
@@ -234,7 +201,6 @@ public class MyMediaController extends MediaController {
                 	mIsShowing = true;
                     break;
                case UPDATE_PROGRESS:
-            	   updateVolumeProgress();
                    pos = setProgress();
                    // keep UI always show up
                    if (isShowing() && mPlayer.isPlaying()) {
@@ -366,31 +332,6 @@ public class MyMediaController extends MediaController {
 						setProgress((int)position);
 					}
 				}
-			}
-		}
-	};
-	
-	private OnSeekBarChangeListener mVolumeChangeListener = new OnSeekBarChangeListener() {
-		
-		@Override
-		public void onStopTrackingTouch(SeekBar seekBar) {
-			show(sDefaultTimeout);
-			mVolumerDragging = false;
-		}
-		
-		@Override
-		public void onStartTrackingTouch(SeekBar seekBar) {
-			show(3600000);
-			mVolumerDragging = true;
-		}
-		
-		@Override
-		public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
-			if (mVolumerDragging) {
-				int maxVolume = mAudioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC);
-				long volume = maxVolume * progress / 1000L;
-				
-				setVolume((int)volume);
 			}
 		}
 	};

@@ -74,6 +74,13 @@
         
         <!-- Services -->
         <service 
+            android:name=".service.DLNAService" >
+			<intent-filter >
+                <action android:name="com.pplive.meetplayer.DLNAService" />
+			</intent-filter>
+        </service>
+		
+		<service 
             android:name="android.pplive.media.scan.MediaScannerService"
             android:process=":scan"
             android:exported="false">
@@ -88,6 +95,8 @@
                 <action android:name="com.pplive.action.MEDIA_SCANNER_SCAN_FILE" />
             </intent-filter>
         </receiver>
+		
+		
         
         <!-- Providers -->
         <!--

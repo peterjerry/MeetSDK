@@ -44,7 +44,7 @@
         android:orientation="horizontal"
         android:layout_toRightOf="@id/time_picker"
 		android:layout_below="@id/date_picker"
-		android:layout_marginTop="100dp" >	
+		android:layout_marginTop="80dp" >	
 		<TextView 
 			android:id="@+id/tv_duration"
 	        android:layout_width="wrap_content" 

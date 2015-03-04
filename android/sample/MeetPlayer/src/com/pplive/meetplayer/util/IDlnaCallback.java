@@ -11,23 +11,17 @@ import com.pplive.dlna.DLNASdkDMSItemInfo;
 public class IDlnaCallback implements DLNASdk.DLNASdkInterface {
 	private final static String TAG = "dlna";
 	
-	public Map<String, String> mDeviceMap = new HashMap<String,String>();
-	public void OnDeviceAdded(String uuid, String firendname, String logourl, int devicetype)
+	public static Map<String, String> mDeviceMap = new HashMap<String,String>();
+	
+	synchronized public void OnDeviceAdded(String uuid, String firendname, String logourl, int devicetype)
 	{
 		Log.i(TAG, "Java: dlna [add] uuid: "+ uuid +", name:" + firendname);
-		
-		/*String uuid_device = "3fb202d6-142e-4e49-8b4d-f9f236f68db5";
-		if (uuid.equalsIgnoreCase(uuid_device)) {
-			Log.i(TAG, "Java: find dev!!!");
-		}*/
 		
 		if (devicetype == 1)
 			mDeviceMap.put(uuid,firendname); 
 	}
 
-	
-	
-	public void OnDeviceRemoved(String uuid, int devicetype)
+	synchronized public void OnDeviceRemoved(String uuid, int devicetype)
 	{
 		Log.i(TAG, "Java: dlna [remove] uuid:" + uuid);
 		if (devicetype == 1)

@@ -5,6 +5,7 @@
     android:orientation="vertical" >
 	
 	<RelativeLayout
+		android:id="@+id/view_preview"
 		android:layout_width="fill_parent"
 		android:layout_height="200dp"
 		android:background="@android:color/black">
@@ -23,7 +24,7 @@
 			android:layout_centerInParent="true"
 			android:visibility="gone" />
 		
-		<com.pplive.meetplayer.ui.widget.MyMediaController
+		<com.pplive.meetplayer.ui.widget.MiniMediaController
 			android:id="@+id/video_controller2"
 			android:layout_width="wrap_content"
 			android:layout_height="wrap_content"
@@ -52,10 +53,16 @@
 			android:layout_toRightOf="@+id/btn_movies"
 			android:text="tv"/>
 		<Button
-			android:id="@+id/btn_next_page"
+			android:id="@+id/btn_live"
 			android:layout_width="wrap_content"
 			android:layout_height="fill_parent"
 			android:layout_toRightOf="@+id/btn_tv_series"
+			android:text="live"/>
+		<Button
+			android:id="@+id/btn_next_page"
+			android:layout_width="wrap_content"
+			android:layout_height="fill_parent"
+			android:layout_toRightOf="@+id/btn_live"
 			android:text="next"/>
 	</RelativeLayout>
 	
