@@ -113,6 +113,8 @@ public class PlayLinkUtil {
     	sbPlaylink.append("&type=phone.android.vip");
         sbPlaylink.append("&sv=4.0.1");
         sbPlaylink.append("&param=userType%3D1"); // fix cannot find blue-disk ft problem
+        
+        //sbPlaylink.append("&h265=2");
     	
     	return sbPlaylink.toString();
     }
