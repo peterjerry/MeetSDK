@@ -501,8 +501,8 @@ public class MeetViewActivity extends Activity {
 				String str_player_type;
 				if (MediaPlayer.PLAYER_IMPL_TYPE_SYSTEM_PLAYER == extra)
 					str_player_type = "System Player";
-				else if(MediaPlayer.PLAYER_IMPL_TYPE_NU_PLAYER == extra)
-					str_player_type = "Nu Player";
+				else if(MediaPlayer.PLAYER_IMPL_TYPE_XO_PLAYER == extra)
+					str_player_type = "XO Player";
 				else if(MediaPlayer.PLAYER_IMPL_TYPE_FF_PLAYER == extra)
 					str_player_type = "FF Player";
 				else if(MediaPlayer.PLAYER_IMPL_TYPE_PP_PLAYER == extra)

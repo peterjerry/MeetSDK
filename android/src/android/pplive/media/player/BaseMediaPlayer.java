@@ -40,6 +40,20 @@ abstract class BaseMediaPlayer implements MediaPlayerInterface {
 	private boolean mScreenOnWhilePlaying = false;
 	private boolean mStayAwake = false;
 	
+	private PlayState mState = PlayState.IDLE;
+	
+	protected enum PlayState {
+		IDLE, INITIALIZED, PREPARING, PREPARED, STARTED, STOPPED, PAUSED, PLAYBACK_COMPLETED, END, ERROR
+	};
+	
+	protected /* synchronized */ void setState(PlayState state) {
+		mState = state;
+	}
+	
+	protected /* synchronized */ PlayState getState() {
+		return mState;
+	}
+	
 	protected BaseMediaPlayer(MediaPlayer mp) {
 		Looper looper;
 	    if ((looper = Looper.myLooper()) != null) {

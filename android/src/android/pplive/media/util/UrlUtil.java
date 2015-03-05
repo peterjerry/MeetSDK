@@ -29,7 +29,7 @@ public class UrlUtil {
 		return null == url ? false : sRegNuMediaPlaySupportUrl.matcher(url.trim()).matches();
 	}
 	
-	public static boolean isNuMediaPlayerSupportUrl(String url) {
+	public static boolean isXOMediaPlayerSupportUrl(String url) {
 		
 		return null == url ? false : sRegNuMediaPlaySupportUrl.matcher(url.trim()).matches();
 	}

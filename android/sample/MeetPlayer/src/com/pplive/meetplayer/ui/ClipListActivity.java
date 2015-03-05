@@ -44,6 +44,7 @@ import android.widget.AdapterView;
 import android.widget.Button;
 import android.widget.DatePicker;
 import android.widget.EditText;
+import android.widget.ImageView;
 import android.widget.ListView;
 import android.widget.ProgressBar;
 import android.widget.LinearLayout;
@@ -85,6 +86,7 @@ import com.pplive.meetplayer.util.PlayLink2;
 import com.pplive.meetplayer.util.PlayLinkUtil;
 import com.pplive.meetplayer.util.Util;
 import com.pplive.dlna.DLNASdk;
+
 
 
 
@@ -136,6 +138,8 @@ public class ClipListActivity extends Activity implements
 	private EditText et_playlink;
 	private Button btn_ft;
 	private Button btn_bw_type;
+	private ImageView imageDMR;
+	private ImageView imageNoVideo;
 	private MediaPlayer mPlayer 				= null;
 	private MyAdapter mAdapter;
 	private ListView lv_filelist;
@@ -187,6 +191,7 @@ public class ClipListActivity extends Activity implements
 	private final static int DLNA_LISTEN_PORT = 10010;
 	private String mDlnaDeviceUUID;
 	private String mDlnaDeviceName;
+	private boolean mDMRcontrolling = false;
 	
 	// epg
 	private EPGUtil mEPG;
@@ -329,7 +334,9 @@ public class ClipListActivity extends Activity implements
 		this.et_playlink = (EditText) findViewById(R.id.et_playlink);
 		this.btn_ft = (Button) findViewById(R.id.btn_ft);
 		this.btn_bw_type = (Button) findViewById(R.id.btn_bw_type);
-
+		this.imageDMR = (ImageView) findViewById(R.id.iv_dlna_dmc);
+		this.imageNoVideo = (ImageView) findViewById(R.id.iv_novideo);
+		
 		this.mPreview = (MyPreView) findViewById(R.id.preview);
 		this.mLayout = (RelativeLayout) findViewById(R.id.layout_preview);
 		
@@ -565,7 +572,7 @@ public class ClipListActivity extends Activity implements
 			public void onClick(View view) {
 				//Log.i(TAG, "Java: getCount " + binder.getCount());
 				
-				final String[] PlayerImpl = {"Auto", "System", "NuPlayer", "FFPlayer"};
+				final String[] PlayerImpl = {"Auto", "System", "XOPlayer", "FFPlayer"};
 				
 				Dialog choose_player_impl_dlg = new AlertDialog.Builder(ClipListActivity.this)
 				.setTitle("select player impl")
@@ -978,7 +985,7 @@ public class ClipListActivity extends Activity implements
 				return -1;
 			}
 			
-			mDecMode = DecodeMode.SW;
+			mDecMode = DecodeMode.HW_XOPLAYER;
 		}									
 		else if (3 == mPlayerImpl) {
 			mDecMode = DecodeMode.SW;
@@ -1077,6 +1084,8 @@ public class ClipListActivity extends Activity implements
 			mStoped 			= false;
 			mHomed 				= false;
 			mBufferingPertent 	= 0;
+			mDMRcontrolling		= false;
+			imageDMR.setVisibility(View.GONE);
 			
 			boolean succeed = true;
 			try {
@@ -1163,6 +1172,9 @@ public class ClipListActivity extends Activity implements
 	public void start() {
 		if (mPlayer != null)
 			mPlayer.start();
+		
+		if (mDMRcontrolling)
+			mDLNA.Play(mDlnaDeviceUUID);
 	}
 	
 	public void seekTo(int pos) {
@@ -1182,11 +1194,18 @@ public class ClipListActivity extends Activity implements
 			
 			mSubtitleParser.seekTo(pos);
 		}
+		
+		if (mDMRcontrolling) {
+			mDLNA.Seek(mDlnaDeviceUUID, pos / 1000);
+		}
 	}
 	
 	public void pause() {
 		if (mPlayer != null)
 			mPlayer.pause();
+		
+		if (mDMRcontrolling)
+			mDLNA.Pause(mDlnaDeviceUUID);
 	}
 	
 	public boolean isPlaying() {
@@ -1373,6 +1392,8 @@ public class ClipListActivity extends Activity implements
 				Toast.makeText(ClipListActivity.this, "failed to parse epg result", Toast.LENGTH_SHORT).show();
 				break;
 			case MSG_PUSH_CDN_CLIP:
+				mDMRcontrolling = true;
+				imageDMR.setVisibility(View.VISIBLE);
 				Log.i(TAG, String.format("Java: dlna push url(%s) to uuid(%s) name(%s)", mDLNAPushUrl, mDlnaDeviceUUID, mDlnaDeviceName));
 				Toast.makeText(ClipListActivity.this, 
 						String.format("push url to dmr %s", mDlnaDeviceName), Toast.LENGTH_SHORT).show();
@@ -1613,6 +1634,7 @@ public class ClipListActivity extends Activity implements
 		catch(Exception e) {
 			e.printStackTrace();
 		}
+		
 		mDLNA.Play(mDlnaDeviceUUID);
 		
 		mHandler.sendEmptyMessage(MSG_PUSH_CDN_CLIP);
@@ -1977,10 +1999,14 @@ public class ClipListActivity extends Activity implements
 			mIsLoop = !mIsLoop;
 			break;
 		case OPTION_COMMON_NO_VIDEO:
-			if (mIsNoVideo)
+			if (mIsNoVideo) {
 				item.setChecked(false);
-			else
+				imageNoVideo.setVisibility(View.GONE);
+			}
+			else {
 				item.setChecked(true);
+				imageNoVideo.setVisibility(View.VISIBLE);
+			}
 			mIsNoVideo = !mIsNoVideo;
 			break;
 		case OPTION_COMMON_MEETVIEW:
@@ -2057,8 +2083,8 @@ public class ClipListActivity extends Activity implements
 			String str_player_type;
 			if (MediaPlayer.PLAYER_IMPL_TYPE_SYSTEM_PLAYER == extra)
 				str_player_type = "System Player";
-			else if(MediaPlayer.PLAYER_IMPL_TYPE_NU_PLAYER == extra)
-				str_player_type = "Nu Player";
+			else if(MediaPlayer.PLAYER_IMPL_TYPE_XO_PLAYER == extra)
+				str_player_type = "XO Player";
 			else if(MediaPlayer.PLAYER_IMPL_TYPE_FF_PLAYER == extra)
 				str_player_type = "FF Player";
 			else if(MediaPlayer.PLAYER_IMPL_TYPE_PP_PLAYER == extra)
