@@ -565,7 +565,7 @@ public class ClipListActivity extends Activity implements
 			public void onClick(View view) {
 				//Log.i(TAG, "Java: getCount " + binder.getCount());
 				
-				final String[] PlayerImpl = {"Auto", "System", "NuPlayer", "FFPlayer"};
+				final String[] PlayerImpl = {"Auto", "System", "XOPlayer", "FFPlayer"};
 				
 				Dialog choose_player_impl_dlg = new AlertDialog.Builder(ClipListActivity.this)
 				.setTitle("select player impl")
@@ -978,7 +978,7 @@ public class ClipListActivity extends Activity implements
 				return -1;
 			}
 			
-			mDecMode = DecodeMode.SW;
+			mDecMode = DecodeMode.HW_XOPLAYER;
 		}									
 		else if (3 == mPlayerImpl) {
 			mDecMode = DecodeMode.SW;
@@ -2057,8 +2057,8 @@ public class ClipListActivity extends Activity implements
 			String str_player_type;
 			if (MediaPlayer.PLAYER_IMPL_TYPE_SYSTEM_PLAYER == extra)
 				str_player_type = "System Player";
-			else if(MediaPlayer.PLAYER_IMPL_TYPE_NU_PLAYER == extra)
-				str_player_type = "Nu Player";
+			else if(MediaPlayer.PLAYER_IMPL_TYPE_XO_PLAYER == extra)
+				str_player_type = "XO Player";
 			else if(MediaPlayer.PLAYER_IMPL_TYPE_FF_PLAYER == extra)
 				str_player_type = "FF Player";
 			else if(MediaPlayer.PLAYER_IMPL_TYPE_PP_PLAYER == extra)

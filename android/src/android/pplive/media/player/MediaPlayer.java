@@ -66,7 +66,7 @@ public class MediaPlayer implements MediaPlayerInterface {
 	public static final int CAN_SEEK 				= 8;
 	
 	public static final int PLAYER_IMPL_TYPE_SYSTEM_PLAYER	= 10001;
-	public static final int PLAYER_IMPL_TYPE_NU_PLAYER		= 10002;
+	public static final int PLAYER_IMPL_TYPE_XO_PLAYER		= 10002;
 	public static final int PLAYER_IMPL_TYPE_FF_PLAYER		= 10003;
 	public static final int PLAYER_IMPL_TYPE_PP_PLAYER		= 10004;
 	
@@ -77,6 +77,18 @@ public class MediaPlayer implements MediaPlayerInterface {
 	@SuppressWarnings("deprecation") // avoid setType warning
     public enum DecodeMode {
         HW_SYSTEM {
+            @Override
+            public void setSurfaceType(SurfaceHolder holder) {
+                holder.setType(SurfaceHolder.SURFACE_TYPE_PUSH_BUFFERS);
+            }
+        },
+        HW_XOPLAYER {
+        	@Override
+            public MediaPlayerInterface newInstance(MediaPlayer mp) {
+            	LogUtils.info("use xoplayer");
+                return new XOMediaPlayer(mp);
+            }
+        	
             @Override
             public void setSurfaceType(SurfaceHolder holder) {
                 holder.setType(SurfaceHolder.SURFACE_TYPE_PUSH_BUFFERS);
