@@ -194,6 +194,7 @@ private:
 	int64_t			m_total_read_bytes;
 
 	int64_t	mOpenStreamStartMs;
+	int64_t mReadStreamStartMs;
 };
 
 

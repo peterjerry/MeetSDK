@@ -47,6 +47,7 @@
 #define PB_BUF_SIZE										65536
 
 #define MEDIA_OPEN_TIMEOUT_MSEC							(120 * 1000) // 2 min
+#define MEDIA_READ_TIMEOUT_MSEC							(300 * 1000) // 5 min
 
 FFStream::FFStream()
 {
@@ -94,6 +95,7 @@ FFStream::FFStream()
 	m_vb_index				= 0;
 	m_total_read_bytes		= 0;
 	mOpenStreamStartMs		= 0;
+	mReadStreamStartMs		= 0;
 
 	for(int i=0;i<MAX_CALC_SEC;i++)
 		m_read_bytes[i] = 0;
@@ -866,6 +868,7 @@ void FFStream::thread_impl()
 
             LOGD("before av_read_frame()");
 
+			mReadStreamStartMs = getNowMs();
             AVPacket* pPacket = (AVPacket*)av_malloc(sizeof(AVPacket));
             memset(pPacket, 0, sizeof(AVPacket));
             int ret = av_read_frame(mMovieFile, pPacket);
@@ -1213,6 +1216,14 @@ int FFStream::interrupt_l(void* ctx)
 	if (stream->mOpenStreamStartMs != 0) {
 		if (getNowMs() - stream->mOpenStreamStartMs > MEDIA_OPEN_TIMEOUT_MSEC) {
 			LOGE("interrupt_l: open stream time out");
+			stream->notifyListener_l(MEDIA_ERROR, MEDIA_ERROR_TIMED_OUT, 0);
+			return 1;
+		}
+	}
+
+	if (stream->status() == FFSTREAM_STARTED) {
+		if (getNowMs() - stream->mReadStreamStartMs > MEDIA_READ_TIMEOUT_MSEC) {
+			LOGE("interrupt_l: read stream time out");
 			stream->notifyListener_l(MEDIA_ERROR, MEDIA_ERROR_TIMED_OUT, 0);
 			return 1;
 		}

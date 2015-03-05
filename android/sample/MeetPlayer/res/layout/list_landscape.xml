@@ -147,6 +147,23 @@
 			android:layout_centerHorizontal="true"
 			android:textColor="#FF0000"
 			android:visibility="gone" />
+		<ImageView
+			android:id="@+id/iv_dlna_dmc"
+			android:layout_width="128dp"
+			android:layout_height="128dp" 
+			android:layout_centerInParent="true" 
+			android:src="@drawable/dlna"
+			android:scaleType="fitXY" 
+			android:alpha="0.5"
+			android:visibility="gone" />
+		<ImageView
+			android:id="@+id/iv_novideo"
+			android:layout_width="128dp"
+			android:layout_height="128dp" 
+			android:layout_centerInParent="true" 
+			android:src="@drawable/novideo"
+			android:scaleType="fitXY" 
+			android:visibility="gone" />
 	</RelativeLayout>	
  
 </LinearLayout>

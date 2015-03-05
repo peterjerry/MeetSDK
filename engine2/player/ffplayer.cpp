@@ -1454,7 +1454,7 @@ void FFPlayer::onBufferingUpdateImpl()
 		cur_pos = mVideoPlayingTimeMs;
 		cachedDurationMs = mDataStream->getCachedDurationMs();
 	}
-	int percent100 = (int)((mVideoPlayingTimeMs + cachedDurationMs) * 100 / mDurationMs) + 1; // 1 is for compensation.
+	int percent100 = (int)((cur_pos + cachedDurationMs) * 100 / mDurationMs) + 1; // 1 is for compensation.
 	if (percent100 > 100) 
 		percent100 = 100;
 	LOGD("onBufferingUpdate, percent: %d", percent100);
