@@ -30,7 +30,7 @@ public class IDlnaCallback implements DLNASdk.DLNASdkInterface {
 	
 	public void OnLogPrintf(String msg)
 	{
-		Log.i("dlna_print", msg);
+		Log.d("dlna_print", msg);
 	}
 
 	//////////////////////////////////////////////////////////////////////////
@@ -45,11 +45,28 @@ public class IDlnaCallback implements DLNASdk.DLNASdkInterface {
 	public void OnAddTransportFileCallback(String uuid, String transportuuid, int state){}
 
 	// dmr callback function mediatype: -1:unknown 0:video 1:audio 2: picture
-	public int OnSetURI(String url, String urltitle, String remoteip, int mediatype){return 0;}
-	public void OnPlay(){}
-	public void OnPause(){}
-	public void OnStop(){}
-	public void OnSeek(long position){}
+	public int OnSetURI(String url, String urltitle, String remoteip, int mediatype) {
+		Log.i(TAG, String.format("Java: dlna OnSetURI() url: %s, title %s, remoteip %s, mediatype %d", 
+				url, urltitle, remoteip, mediatype));
+		return 0;
+	}
+	
+	public void OnPlay() {
+		Log.i(TAG, "Java: dlna OnPlay()");
+	}
+	
+	public void OnPause() {
+		Log.i(TAG, "Java: dlna OnPause()");
+	}
+	
+	public void OnStop() {
+		Log.i(TAG, "Java: dlna OnStop()");
+	}
+	
+	public void OnSeek(long position){
+		Log.i(TAG, "Java: dlna OnSeek pos: " + position);
+	}
+	
 	public void OnSetVolume(long volume){}
 	public void OnSetMute(boolean mute){}
 
