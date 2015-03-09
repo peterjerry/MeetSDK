@@ -7,7 +7,9 @@
 //
 
 #import "AppDelegate.h"
+#ifdef PPBOS_HAS
 #include "ppbox/IPpbox.h"
+#endif
 
 @interface AppDelegate ()
 
@@ -17,10 +19,12 @@
 
 
 - (BOOL)application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary *)launchOptions {
+#ifdef PPBOS_HAS
     PP_char const * gid = "NULL";
     PP_char const * pid = "NULL";
     PP_char const * auth = "NULL";
     PPBOX_StartP2PEngine(gid, pid, auth);
+#endif
     // Override point for customization after application launch.
     return YES;
 }
