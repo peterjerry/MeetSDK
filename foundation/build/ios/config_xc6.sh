@@ -106,9 +106,6 @@ EXTRA_PARAMETERS="$EXTRA_PARAMETERS --disable-decoder=ac3,eac3 --disable-parser=
 --disable-demuxer=mlp \
 --disable-parser=mlp \
 --disable-decoder=mlp \
---disable-demuxer=vc1 \
---disable-parser=vc1 \
---disable-decoder=vc1 \
 --disable-devices \
 --disable-filters \
 --disable-vfp \
