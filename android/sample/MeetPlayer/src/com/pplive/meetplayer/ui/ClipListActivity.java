@@ -653,7 +653,7 @@ public class ClipListActivity extends Activity implements
 								Log.i(TAG, String.format("Java: choose %d %s %d", 
 										whichButton, ppbox_clipname[whichButton], ppbox_playlink[whichButton]));
 							}
-							else if (whichButton >= fixed_size && whichButton < fixed_size + history_size) {
+							else if (whichButton < fixed_size + history_size) {
 								et_playlink.setText(list_vid.get(whichButton - fixed_size));
 								btn_ft.setText("1");
 								Log.i(TAG, String.format("Java: choose playhistory %d %s %s", 

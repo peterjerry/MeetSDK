@@ -655,7 +655,7 @@ public class EPGUtil {
 						}
 					}
 
-					if (is_m3u8)
+					if (novideo/*force use m3u8*/ || is_m3u8)
 						url += rid.replaceFirst(".mp4", ".m3u8");
 					else
 						url += rid;

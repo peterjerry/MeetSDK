@@ -4,6 +4,10 @@ import javax.swing.*;
 
 import java.awt.Font;
 import java.awt.event.*; 
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -47,8 +51,10 @@ public class MyFrame extends JFrame {
 	
 	String []items = {"Item1", "Item2", "Item3", "Item4", "Item5", "Item6"};
 	
-	JComboBox<String> comboItem = null;
-	JList<String> lstType = null;//new JList<String>(items);
+	JComboBox<String> comboItem 	= null;
+	JComboBox<String> comboFt 		= null;
+	JComboBox<String> comboBwType 	= null;
+	JList<String> lstType 			= null;
 	
 	JCheckBox cbNoVideo = new JCheckBox("NoVideo");
 
@@ -128,14 +134,11 @@ public class MyFrame extends JFrame {
 		Font f = new Font("宋体", 0, 12);
 		comboItem.setFont(f);
 		comboItem.setBounds(20, 80, 200, 20);
-		comboItem.addActionListener(new ActionListener(){
-
+		comboItem.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent e) {
-				// TODO Auto-generated method stub
-				
+				// TODO Auto-generated method stub	
 			}
-			
 		});
 		
 		init_combobox();
@@ -150,24 +153,55 @@ public class MyFrame extends JFrame {
 		});
 		
 		this.getContentPane().add(comboItem);
+		
+		String[] ft = {"流畅","高清","超清","蓝光"};
+		comboFt = new JComboBox<String>(ft);
+		comboFt.setBounds(20, 110, 80, 20);
+		comboFt.setSelectedIndex(0);
+		this.getContentPane().add(comboFt);
+		
+		String[] bw_type = {"P2P", "CDNP2P", "CDN", "PPTV", "DLNA"};
+		comboBwType = new JComboBox<String>(bw_type);
+		comboBwType.setBounds(120, 110, 80, 20);
+		comboBwType.setSelectedIndex(3);
+		this.getContentPane().add(comboBwType);
 
-		cbNoVideo.setBounds(150, 100, 120, 30);
+		cbNoVideo.setBounds(220, 110, 120, 20);
 		this.getContentPane().add(cbNoVideo);
+		
+		/*String exe_filepath  = "D:/Software/ppbox/ppbox_test-win32-msvc90-mt-gd-1.1.0.exe";
+		String[] cmd = new String[] {exe_filepath, ""};
+		openExe(cmd);*/
 	}
 	
 	private void playvideo() {
-		String filename = "E:\\archive\\Movie\\Mindhunters.LiMiTED.DVDRiP.XviD-HLS\\hls-mh.avi";
-		
 		String link = mPlayLinkList.get(0).getId();
-		String ft = "1";
-		boolean is_m3u8 = false;
-		boolean noVideo = false;
+		int ft = comboFt.getSelectedIndex();
+		int bw_type = comboBwType.getSelectedIndex();
+		String link_surfix = "";
 		
-		String url = mEPG.getCDNUrl(link, ft, is_m3u8, noVideo);
-		if (url == null)
+		String url = null;
+		
+		if (4 == bw_type) {
+			String str_ft = String.valueOf(ft);
+			boolean is_m3u8 = false;
+			boolean noVideo = cbNoVideo.isSelected();
+			
+			url = mEPG.getCDNUrl(link, str_ft, is_m3u8, noVideo);
+		}
+		else {
+			url = PlayLinkUtil.getPlayUrl(Integer.valueOf(link), 9006, ft, bw_type, link_surfix);
+		}
+		
+		if (url == null) {
+			System.out.println("failed to get url");
 			return;
+		}
 		
-		openExe(url);
+		System.out.println("ready to open url: " + url);
+		String exe_filepath  = "D:/Software/ffmpeg/ffplay.exe";
+		String[] cmd = new String[] {exe_filepath, url};
+		openExe(cmd);
 	}
 	
 	private void selectCatalog() {
@@ -404,15 +438,46 @@ public class MyFrame extends JFrame {
 		mState = EPG_STATE.EPG_STATE_LIST;
 	}
 	
-	private void openExe(String url) {
+	private void openExe(String... params) {
 		Runtime rn = Runtime.getRuntime();
-		Process p = null;
+		Process proc = null;
 		try {
-			String exe_filepath = "C:/Program Files (x86)/VideoLAN/VLC/vlc.exe";
-			String[] cmd = new String[] {exe_filepath, url};
-			p = rn.exec(cmd);
+			proc = rn.exec(params);
+			
+			 StreamGobbler errorGobbler = new StreamGobbler(proc.getErrorStream(), "Error");            
+             StreamGobbler outputGobbler = new StreamGobbler(proc.getInputStream(), "Output");
+             errorGobbler.start();
+             outputGobbler.start();
+             //proc.waitFor();
 		} catch (Exception e) {
 			System.out.println("Error exec!");
+		}
+	}
+	
+	class StreamGobbler extends Thread {
+		InputStream is;
+
+		String type;
+
+		StreamGobbler(InputStream is, String type) {
+			this.is = is;
+			this.type = type;
+		}
+
+		public void run() {
+			try {
+				InputStreamReader isr = new InputStreamReader(is);
+				BufferedReader br = new BufferedReader(isr);
+				String line = null;
+				while ((line = br.readLine()) != null) {
+					if (type.equals("Error"))
+						System.out.println("[error] " + line);
+					else
+						System.out.println("[info] " + line);
+				}
+			} catch (IOException ioe) {
+				ioe.printStackTrace();
+			}
 		}
 	}
 }
