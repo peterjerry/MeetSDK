@@ -50,9 +50,9 @@ class playerListener;
     if (player_ == NULL) {
         player_ = getPlayer(NULL);
         if ([url_.scheme isEqualToString:@"file"]) {
-            player_->setDataSource([[url_.path stringByReplacingPercentEscapesUsingEncoding:NSUTF8StringEncoding] UTF8String]);
+            player_->setDataSource([url_.path UTF8String]);
         } else {
-            player_->setDataSource([[[url_ absoluteString] stringByReplacingPercentEscapesUsingEncoding:NSUTF8StringEncoding] UTF8String]);
+            player_->setDataSource([[url_ absoluteString] UTF8String]);
         }
         
         player_->setVideoSurface((__bridge void *)self.view);

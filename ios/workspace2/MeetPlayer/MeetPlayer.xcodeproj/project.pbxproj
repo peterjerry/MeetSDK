@@ -7,6 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		9B4A5DF61AAD4831002669AE /* PPboxViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 9B4A5DF51AAD4831002669AE /* PPboxViewController.m */; };
+		9B4A5DF81AAD4C26002669AE /* libpptv.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 9B4A5DF71AAD4B58002669AE /* libpptv.a */; };
 		9B4D0DD41AA6DC0A00698B1D /* main.m in Sources */ = {isa = PBXBuildFile; fileRef = 9B4D0DD31AA6DC0A00698B1D /* main.m */; };
 		9B4D0DD71AA6DC0A00698B1D /* AppDelegate.m in Sources */ = {isa = PBXBuildFile; fileRef = 9B4D0DD61AA6DC0A00698B1D /* AppDelegate.m */; };
 		9B4D0DE21AA6DC0A00698B1D /* Images.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 9B4D0DE11AA6DC0A00698B1D /* Images.xcassets */; };
@@ -188,6 +190,9 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		9B4A5DF41AAD4831002669AE /* PPboxViewController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = PPboxViewController.h; sourceTree = "<group>"; };
+		9B4A5DF51AAD4831002669AE /* PPboxViewController.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = PPboxViewController.m; sourceTree = "<group>"; };
+		9B4A5DF71AAD4B58002669AE /* libpptv.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libpptv.a; path = ../../lib/libpptv.a; sourceTree = "<group>"; };
 		9B4D0DCE1AA6DC0A00698B1D /* MeetPlayer.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MeetPlayer.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		9B4D0DD21AA6DC0A00698B1D /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		9B4D0DD31AA6DC0A00698B1D /* main.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = main.m; sourceTree = "<group>"; };
@@ -374,6 +379,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				9B4A5DF81AAD4C26002669AE /* libpptv.a in Frameworks */,
 				9B4D0E611AA704BF00698B1D /* PPMediaPlayer.framework in Frameworks */,
 				9B4D0E371AA6F93400698B1D /* libbz2.dylib in Frameworks */,
 				9B4D0E301AA6E9E700698B1D /* libiconv.dylib in Frameworks */,
@@ -398,9 +404,19 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		9B4A5DF31AAD4670002669AE /* ppbox */ = {
+			isa = PBXGroup;
+			children = (
+				9B4A5DF41AAD4831002669AE /* PPboxViewController.h */,
+				9B4A5DF51AAD4831002669AE /* PPboxViewController.m */,
+			);
+			name = ppbox;
+			sourceTree = "<group>";
+		};
 		9B4D0DC51AA6DC0A00698B1D = {
 			isa = PBXGroup;
 			children = (
+				9B4A5DF71AAD4B58002669AE /* libpptv.a */,
 				9B4D0DD01AA6DC0A00698B1D /* MeetPlayer */,
 				9B4D0E311AA6EB0B00698B1D /* framework */,
 				9B4D0DCF1AA6DC0A00698B1D /* Products */,
@@ -423,6 +439,7 @@
 				9B4D0E051AA6E78D00698B1D /* playback */,
 				9B4D0DFD1AA6DF7900698B1D /* local */,
 				9B4D0E011AA6E25400698B1D /* Http */,
+				9B4A5DF31AAD4670002669AE /* ppbox */,
 				9B4D0DFA1AA6DC5000698B1D /* storyboard */,
 				9B4D0E401AA7041100698B1D /* MTLog */,
 				9B4D0E641AA8224F00698B1D /* pic */,
@@ -912,6 +929,7 @@
 				9B4D0E5D1AA7047900698B1D /* MTLogPluginRoute.m in Sources */,
 				9B4D0E041AA6E2E200698B1D /* HttpViewController.m in Sources */,
 				9B4D0DD41AA6DC0A00698B1D /* main.m in Sources */,
+				9B4A5DF61AAD4831002669AE /* PPboxViewController.m in Sources */,
 				9B4D0E5C1AA7047900698B1D /* MTLogPluginRemove.m in Sources */,
 				9B4D0E591AA7047900698B1D /* MTLogPluginFilter.m in Sources */,
 			);
@@ -1026,8 +1044,17 @@
 					"$(inherited)",
 					/Users/Developer/gitlab/meetsdk/ios/output,
 				);
+				HEADER_SEARCH_PATHS = (
+					"$(inherited)",
+					/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include,
+					../../include,
+				);
 				INFOPLIST_FILE = MeetPlayer/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
+				LIBRARY_SEARCH_PATHS = (
+					"$(inherited)",
+					/Users/Developer/gitlab/meetsdk/ios/lib,
+				);
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
 			name = Debug;
@@ -1041,8 +1068,17 @@
 					"$(inherited)",
 					/Users/Developer/gitlab/meetsdk/ios/output,
 				);
+				HEADER_SEARCH_PATHS = (
+					"$(inherited)",
+					/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include,
+					../../include,
+				);
 				INFOPLIST_FILE = MeetPlayer/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
+				LIBRARY_SEARCH_PATHS = (
+					"$(inherited)",
+					/Users/Developer/gitlab/meetsdk/ios/lib,
+				);
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
 			name = Release;
