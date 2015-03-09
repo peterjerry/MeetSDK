@@ -2,7 +2,7 @@
 
 function build_ppmediaplayer {
 echo "build player for armv7 & arm64"
-cd ../workspace/player
+cd ../workspace2/player
 xcodebuild -project player.xcodeproj clean
 xcodebuild -project player.xcodeproj build RUN_CLANG_STATIC_ANALYZER=NO ONLY_ACTIVE_ARCH=NO 
 
