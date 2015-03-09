@@ -1,0 +1,480 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 46;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		13E9AD10198248EF005932AD /* ffrender.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 13E9AD0F198248EF005932AD /* ffrender.cpp */; };
+		223BD56D1A400D1900CE09DB /* extern_api.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 223BD56C1A400D1900CE09DB /* extern_api.cpp */; };
+		227B269C1A4A9B2100C75E8A /* audiorender.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 227B269A1A4A9B2100C75E8A /* audiorender.cpp */; };
+		22A9452D1A1B273600A184F7 /* filesource.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 22A9452B1A1B273600A184F7 /* filesource.cpp */; };
+		9B4D0E391AA6F97100698B1D /* libsubtitle.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 9B4D0E381AA6F97100698B1D /* libsubtitle.a */; };
+		9BA3B8F4197FA68300261717 /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 9BA3B8F3197FA68300261717 /* Foundation.framework */; };
+		9BA3B922197FA76800261717 /* audioplayer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 9BA3B91A197FA76800261717 /* audioplayer.cpp */; };
+		9BA3B923197FA76800261717 /* ffplayer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 9BA3B91D197FA76800261717 /* ffplayer.cpp */; };
+		9BA3B924197FA76800261717 /* ffstream.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 9BA3B91F197FA76800261717 /* ffstream.cpp */; };
+		9BA3B936197FA7A800261717 /* audiotrack_ios.c in Sources */ = {isa = PBXBuildFile; fileRef = 9BA3B925197FA7A800261717 /* audiotrack_ios.c */; };
+		9BA3B937197FA7A800261717 /* glview_ios.m in Sources */ = {isa = PBXBuildFile; fileRef = 9BA3B927197FA7A800261717 /* glview_ios.m */; };
+		9BA3B938197FA7A800261717 /* list.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 9BA3B929197FA7A800261717 /* list.cpp */; };
+		9BA3B939197FA7A800261717 /* log_ios.m in Sources */ = {isa = PBXBuildFile; fileRef = 9BA3B92C197FA7A800261717 /* log_ios.m */; };
+		9BA3B93A197FA7A800261717 /* loop.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 9BA3B92E197FA7A800261717 /* loop.cpp */; };
+		9BA3B93B197FA7A800261717 /* packetqueue.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 9BA3B930197FA7A800261717 /* packetqueue.cpp */; };
+		9BA3B93C197FA7A800261717 /* surface_ios.m in Sources */ = {isa = PBXBuildFile; fileRef = 9BA3B932197FA7A800261717 /* surface_ios.m */; };
+		9BA3B93D197FA7A800261717 /* utils.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 9BA3B934197FA7A800261717 /* utils.cpp */; };
+		9BA3B943197FA95D00261717 /* libavcodec.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 9BA3B93E197FA95D00261717 /* libavcodec.a */; };
+		9BA3B944197FA95D00261717 /* libavformat.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 9BA3B93F197FA95D00261717 /* libavformat.a */; };
+		9BA3B945197FA95D00261717 /* libavutil.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 9BA3B940197FA95D00261717 /* libavutil.a */; };
+		9BA3B946197FA95D00261717 /* libswresample.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 9BA3B941197FA95D00261717 /* libswresample.a */; };
+		9BA3B947197FA95D00261717 /* libswscale.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 9BA3B942197FA95D00261717 /* libswscale.a */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		9BA3B8EE197FA68300261717 /* CopyFiles */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "include/$(PRODUCT_NAME)";
+			dstSubfolderSpec = 16;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
+/* Begin PBXFileReference section */
+		13E9AD0F198248EF005932AD /* ffrender.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = ffrender.cpp; path = ../../../../engine2/player/ffrender.cpp; sourceTree = "<group>"; };
+		13E9AD1119824905005932AD /* ffrender.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = ffrender.h; path = ../../../../engine2/player/ffrender.h; sourceTree = "<group>"; };
+		223BD56C1A400D1900CE09DB /* extern_api.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = extern_api.cpp; path = ../../../engine2/platform/extern_api.cpp; sourceTree = "<group>"; };
+		227B269A1A4A9B2100C75E8A /* audiorender.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = audiorender.cpp; path = ../../../../engine2/player/audiorender.cpp; sourceTree = "<group>"; };
+		227B269B1A4A9B2100C75E8A /* audiorender.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = audiorender.h; path = ../../../../engine2/player/audiorender.h; sourceTree = "<group>"; };
+		22A9452B1A1B273600A184F7 /* filesource.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = filesource.cpp; path = ../../../../engine2/player/filesource.cpp; sourceTree = "<group>"; };
+		22A9452C1A1B273600A184F7 /* filesource.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = filesource.h; path = ../../../../engine2/player/filesource.h; sourceTree = "<group>"; };
+		9B4D0E381AA6F97100698B1D /* libsubtitle.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libsubtitle.a; path = ../../lib/libsubtitle.a; sourceTree = "<group>"; };
+		9BA3B8F0197FA68300261717 /* libplayer.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = libplayer.a; sourceTree = BUILT_PRODUCTS_DIR; };
+		9BA3B8F3197FA68300261717 /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = System/Library/Frameworks/Foundation.framework; sourceTree = SDKROOT; };
+		9BA3B8F7197FA68300261717 /* player-Prefix.pch */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "player-Prefix.pch"; sourceTree = "<group>"; };
+		9BA3B91A197FA76800261717 /* audioplayer.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = audioplayer.cpp; path = ../../../../engine2/player/audioplayer.cpp; sourceTree = "<group>"; };
+		9BA3B91B197FA76800261717 /* audioplayer.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = audioplayer.h; path = ../../../../engine2/player/audioplayer.h; sourceTree = "<group>"; };
+		9BA3B91C197FA76800261717 /* errors.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = errors.h; path = ../../../../engine2/player/errors.h; sourceTree = "<group>"; };
+		9BA3B91D197FA76800261717 /* ffplayer.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = ffplayer.cpp; path = ../../../../engine2/player/ffplayer.cpp; sourceTree = "<group>"; };
+		9BA3B91E197FA76800261717 /* ffplayer.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = ffplayer.h; path = ../../../../engine2/player/ffplayer.h; sourceTree = "<group>"; };
+		9BA3B91F197FA76800261717 /* ffstream.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = ffstream.cpp; path = ../../../../engine2/player/ffstream.cpp; sourceTree = "<group>"; };
+		9BA3B920197FA76800261717 /* ffstream.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = ffstream.h; path = ../../../../engine2/player/ffstream.h; sourceTree = "<group>"; };
+		9BA3B921197FA76800261717 /* player.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = player.h; path = ../../../../engine2/player/player.h; sourceTree = "<group>"; };
+		9BA3B925197FA7A800261717 /* audiotrack_ios.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = audiotrack_ios.c; path = ../../../engine2/platform/audiotrack_ios.c; sourceTree = "<group>"; };
+		9BA3B926197FA7A800261717 /* audiotrack.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = audiotrack.h; path = ../../../engine2/platform/audiotrack.h; sourceTree = "<group>"; };
+		9BA3B927197FA7A800261717 /* glview_ios.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = glview_ios.m; path = ../../../engine2/platform/glview_ios.m; sourceTree = "<group>"; };
+		9BA3B928197FA7A800261717 /* glview.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = glview.h; path = ../../../engine2/platform/glview.h; sourceTree = "<group>"; };
+		9BA3B929197FA7A800261717 /* list.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = list.cpp; path = ../../../engine2/platform/list.cpp; sourceTree = "<group>"; };
+		9BA3B92A197FA7A800261717 /* list.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = list.h; path = ../../../engine2/platform/list.h; sourceTree = "<group>"; };
+		9BA3B92B197FA7A800261717 /* log_ios.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = log_ios.h; path = ../../../engine2/platform/log_ios.h; sourceTree = "<group>"; };
+		9BA3B92C197FA7A800261717 /* log_ios.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = log_ios.m; path = ../../../engine2/platform/log_ios.m; sourceTree = "<group>"; };
+		9BA3B92D197FA7A800261717 /* log.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = log.h; path = ../../../engine2/platform/log.h; sourceTree = "<group>"; };
+		9BA3B92E197FA7A800261717 /* loop.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = loop.cpp; path = ../../../engine2/platform/loop.cpp; sourceTree = "<group>"; };
+		9BA3B92F197FA7A800261717 /* loop.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = loop.h; path = ../../../engine2/platform/loop.h; sourceTree = "<group>"; };
+		9BA3B930197FA7A800261717 /* packetqueue.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = packetqueue.cpp; path = ../../../engine2/platform/packetqueue.cpp; sourceTree = "<group>"; };
+		9BA3B931197FA7A800261717 /* packetqueue.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = packetqueue.h; path = ../../../engine2/platform/packetqueue.h; sourceTree = "<group>"; };
+		9BA3B932197FA7A800261717 /* surface_ios.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = surface_ios.m; path = ../../../engine2/platform/surface_ios.m; sourceTree = "<group>"; };
+		9BA3B933197FA7A800261717 /* surface.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = surface.h; path = ../../../engine2/platform/surface.h; sourceTree = "<group>"; };
+		9BA3B934197FA7A800261717 /* utils.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = utils.cpp; path = ../../../engine2/platform/utils.cpp; sourceTree = "<group>"; };
+		9BA3B935197FA7A800261717 /* utils.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = utils.h; path = ../../../engine2/platform/utils.h; sourceTree = "<group>"; };
+		9BA3B93E197FA95D00261717 /* libavcodec.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libavcodec.a; path = ../../lib/libavcodec.a; sourceTree = "<group>"; };
+		9BA3B93F197FA95D00261717 /* libavformat.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libavformat.a; path = ../../lib/libavformat.a; sourceTree = "<group>"; };
+		9BA3B940197FA95D00261717 /* libavutil.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libavutil.a; path = ../../lib/libavutil.a; sourceTree = "<group>"; };
+		9BA3B941197FA95D00261717 /* libswresample.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libswresample.a; path = ../../lib/libswresample.a; sourceTree = "<group>"; };
+		9BA3B942197FA95D00261717 /* libswscale.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libswscale.a; path = ../../lib/libswscale.a; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		9BA3B8ED197FA68300261717 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				9B4D0E391AA6F97100698B1D /* libsubtitle.a in Frameworks */,
+				9BA3B943197FA95D00261717 /* libavcodec.a in Frameworks */,
+				9BA3B944197FA95D00261717 /* libavformat.a in Frameworks */,
+				9BA3B945197FA95D00261717 /* libavutil.a in Frameworks */,
+				9BA3B946197FA95D00261717 /* libswresample.a in Frameworks */,
+				9BA3B947197FA95D00261717 /* libswscale.a in Frameworks */,
+				9BA3B8F4197FA68300261717 /* Foundation.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		9BA3B8E7197FA68300261717 = {
+			isa = PBXGroup;
+			children = (
+				9BA3B8F5197FA68300261717 /* player */,
+				9BA3B919197FA70C00261717 /* platform */,
+				9BA3B8F2197FA68300261717 /* Frameworks */,
+				9BA3B8F1197FA68300261717 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		9BA3B8F1197FA68300261717 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				9BA3B8F0197FA68300261717 /* libplayer.a */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		9BA3B8F2197FA68300261717 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				9B4D0E381AA6F97100698B1D /* libsubtitle.a */,
+				9BA3B93E197FA95D00261717 /* libavcodec.a */,
+				9BA3B93F197FA95D00261717 /* libavformat.a */,
+				9BA3B940197FA95D00261717 /* libavutil.a */,
+				9BA3B941197FA95D00261717 /* libswresample.a */,
+				9BA3B942197FA95D00261717 /* libswscale.a */,
+				9BA3B8F3197FA68300261717 /* Foundation.framework */,
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
+		9BA3B8F5197FA68300261717 /* player */ = {
+			isa = PBXGroup;
+			children = (
+				227B269A1A4A9B2100C75E8A /* audiorender.cpp */,
+				227B269B1A4A9B2100C75E8A /* audiorender.h */,
+				22A9452B1A1B273600A184F7 /* filesource.cpp */,
+				22A9452C1A1B273600A184F7 /* filesource.h */,
+				13E9AD1119824905005932AD /* ffrender.h */,
+				13E9AD0F198248EF005932AD /* ffrender.cpp */,
+				9BA3B91A197FA76800261717 /* audioplayer.cpp */,
+				9BA3B91B197FA76800261717 /* audioplayer.h */,
+				9BA3B91C197FA76800261717 /* errors.h */,
+				9BA3B91D197FA76800261717 /* ffplayer.cpp */,
+				9BA3B91E197FA76800261717 /* ffplayer.h */,
+				9BA3B91F197FA76800261717 /* ffstream.cpp */,
+				9BA3B920197FA76800261717 /* ffstream.h */,
+				9BA3B921197FA76800261717 /* player.h */,
+				9BA3B8F6197FA68300261717 /* Supporting Files */,
+			);
+			path = player;
+			sourceTree = "<group>";
+		};
+		9BA3B8F6197FA68300261717 /* Supporting Files */ = {
+			isa = PBXGroup;
+			children = (
+				9BA3B8F7197FA68300261717 /* player-Prefix.pch */,
+			);
+			name = "Supporting Files";
+			sourceTree = "<group>";
+		};
+		9BA3B919197FA70C00261717 /* platform */ = {
+			isa = PBXGroup;
+			children = (
+				223BD56C1A400D1900CE09DB /* extern_api.cpp */,
+				9BA3B925197FA7A800261717 /* audiotrack_ios.c */,
+				9BA3B926197FA7A800261717 /* audiotrack.h */,
+				9BA3B927197FA7A800261717 /* glview_ios.m */,
+				9BA3B928197FA7A800261717 /* glview.h */,
+				9BA3B929197FA7A800261717 /* list.cpp */,
+				9BA3B92A197FA7A800261717 /* list.h */,
+				9BA3B92B197FA7A800261717 /* log_ios.h */,
+				9BA3B92C197FA7A800261717 /* log_ios.m */,
+				9BA3B92D197FA7A800261717 /* log.h */,
+				9BA3B92E197FA7A800261717 /* loop.cpp */,
+				9BA3B92F197FA7A800261717 /* loop.h */,
+				9BA3B930197FA7A800261717 /* packetqueue.cpp */,
+				9BA3B931197FA7A800261717 /* packetqueue.h */,
+				9BA3B932197FA7A800261717 /* surface_ios.m */,
+				9BA3B933197FA7A800261717 /* surface.h */,
+				9BA3B934197FA7A800261717 /* utils.cpp */,
+				9BA3B935197FA7A800261717 /* utils.h */,
+			);
+			name = platform;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		9BA3B8EF197FA68300261717 /* player */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 9BA3B913197FA68300261717 /* Build configuration list for PBXNativeTarget "player" */;
+			buildPhases = (
+				9BA3B95C1980E74300261717 /* Run Script */,
+				9BA3B8EC197FA68300261717 /* Sources */,
+				9BA3B8ED197FA68300261717 /* Frameworks */,
+				9BA3B8EE197FA68300261717 /* CopyFiles */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = player;
+			productName = player;
+			productReference = 9BA3B8F0197FA68300261717 /* libplayer.a */;
+			productType = "com.apple.product-type.library.static";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		9BA3B8E8197FA68300261717 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				LastUpgradeCheck = 0510;
+				ORGANIZATIONNAME = Eason;
+			};
+			buildConfigurationList = 9BA3B8EB197FA68300261717 /* Build configuration list for PBXProject "player" */;
+			compatibilityVersion = "Xcode 3.2";
+			developmentRegion = English;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+			);
+			mainGroup = 9BA3B8E7197FA68300261717;
+			productRefGroup = 9BA3B8F1197FA68300261717 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				9BA3B8EF197FA68300261717 /* player */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXShellScriptBuildPhase section */
+		9BA3B95C1980E74300261717 /* Run Script */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputPaths = (
+			);
+			name = "Run Script";
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "cd ../../build\nchmod +x update.sh\n./update.sh\nchmod +x link.sh\n./link.sh";
+		};
+/* End PBXShellScriptBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		9BA3B8EC197FA68300261717 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				9BA3B923197FA76800261717 /* ffplayer.cpp in Sources */,
+				9BA3B922197FA76800261717 /* audioplayer.cpp in Sources */,
+				223BD56D1A400D1900CE09DB /* extern_api.cpp in Sources */,
+				22A9452D1A1B273600A184F7 /* filesource.cpp in Sources */,
+				9BA3B936197FA7A800261717 /* audiotrack_ios.c in Sources */,
+				9BA3B93B197FA7A800261717 /* packetqueue.cpp in Sources */,
+				9BA3B93A197FA7A800261717 /* loop.cpp in Sources */,
+				13E9AD10198248EF005932AD /* ffrender.cpp in Sources */,
+				9BA3B924197FA76800261717 /* ffstream.cpp in Sources */,
+				9BA3B93D197FA7A800261717 /* utils.cpp in Sources */,
+				227B269C1A4A9B2100C75E8A /* audiorender.cpp in Sources */,
+				9BA3B937197FA7A800261717 /* glview_ios.m in Sources */,
+				9BA3B93C197FA7A800261717 /* surface_ios.m in Sources */,
+				9BA3B939197FA7A800261717 /* log_ios.m in Sources */,
+				9BA3B938197FA7A800261717 /* list.cpp in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		9BA3B911197FA68300261717 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++0x";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = NO;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CONFIGURATION_BUILD_DIR = ../../lib;
+				COPY_PHASE_STRIP = NO;
+				FRAMEWORK_SEARCH_PATHS = "";
+				GCC_C_LANGUAGE_STANDARD = gnu99;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_SYMBOLS_PRIVATE_EXTERN = NO;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				HEADER_SEARCH_PATHS = (
+					"$(inherited)",
+					/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include,
+					../../../engine2/foundation/foundation,
+					../../../engine2/platform,
+					../../../engine2/player,
+				);
+				IPHONEOS_DEPLOYMENT_TARGET = 5.1;
+				LIBRARY_SEARCH_PATHS = ../../lib;
+				ONLY_ACTIVE_ARCH = YES;
+				OTHER_CFLAGS = "-DOS_IOS";
+				OTHER_CPLUSPLUSFLAGS = (
+					"-DOS_IOS",
+					"-DNDEBUG",
+				);
+				SDKROOT = iphoneos;
+			};
+			name = Debug;
+		};
+		9BA3B912197FA68300261717 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++0x";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = NO;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CONFIGURATION_BUILD_DIR = ../../lib;
+				COPY_PHASE_STRIP = YES;
+				ENABLE_NS_ASSERTIONS = NO;
+				FRAMEWORK_SEARCH_PATHS = "";
+				GCC_C_LANGUAGE_STANDARD = gnu99;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				HEADER_SEARCH_PATHS = (
+					"$(inherited)",
+					/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include,
+					../../../engine2/foundation/foundation,
+					../../../engine2/platform,
+					../../../engine2/player,
+				);
+				IPHONEOS_DEPLOYMENT_TARGET = 5.1;
+				LIBRARY_SEARCH_PATHS = ../../lib;
+				OTHER_CFLAGS = "-DOS_IOS";
+				OTHER_CPLUSPLUSFLAGS = (
+					"-DOS_IOS",
+					"-DNDEBUG",
+				);
+				SDKROOT = iphoneos;
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		9BA3B914197FA68300261717 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CONFIGURATION_BUILD_DIR = "$(BUILD_DIR)/$(CONFIGURATION)$(EFFECTIVE_PLATFORM_NAME)";
+				DSTROOT = /tmp/player.dst;
+				GCC_PRECOMPILE_PREFIX_HEADER = YES;
+				GCC_PREFIX_HEADER = "player/player-Prefix.pch";
+				HEADER_SEARCH_PATHS = (
+					"$(inherited)",
+					/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include,
+					../../../engine2/platform,
+					../../../engine2/player,
+					../../include,
+					../../include/subtitle,
+				);
+				LIBRARY_SEARCH_PATHS = (
+					"$(inherited)",
+					/Users/Developer/gitlab/meetsdk/ios/lib,
+				);
+				ONLY_ACTIVE_ARCH = NO;
+				OTHER_CFLAGS = (
+					"-DOS_IOS",
+					"-DTEST_PERFORMANCE",
+					"-DTEST_PERFORMANCE_BITRATE",
+				);
+				OTHER_CPLUSPLUSFLAGS = (
+					"-DOS_IOS",
+					"-DNDEBUG",
+					"-DTEST_PERFORMANCE_BITRATE",
+					"-DTEST_PERFORMANCE",
+				);
+				OTHER_LDFLAGS = "-ObjC";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				VALID_ARCHS = "arm64 armv7";
+			};
+			name = Debug;
+		};
+		9BA3B915197FA68300261717 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CONFIGURATION_BUILD_DIR = "$(BUILD_DIR)/$(CONFIGURATION)$(EFFECTIVE_PLATFORM_NAME)";
+				DSTROOT = /tmp/player.dst;
+				GCC_PRECOMPILE_PREFIX_HEADER = YES;
+				GCC_PREFIX_HEADER = "player/player-Prefix.pch";
+				HEADER_SEARCH_PATHS = (
+					"$(inherited)",
+					/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include,
+					../../../engine2/platform,
+					../../../engine2/player,
+					../../include,
+					../../include/subtitle,
+				);
+				LIBRARY_SEARCH_PATHS = (
+					"$(inherited)",
+					/Users/Developer/gitlab/meetsdk/ios/lib,
+				);
+				OTHER_CFLAGS = (
+					"-DOS_IOS",
+					"-DTEST_PERFORMANCE_BITRATE",
+				);
+				OTHER_CPLUSPLUSFLAGS = (
+					"-DOS_IOS",
+					"-DNDEBUG",
+					"-DTEST_PERFORMANCE_BITRATE",
+				);
+				OTHER_LDFLAGS = "-ObjC";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				VALID_ARCHS = "arm64 armv7";
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		9BA3B8EB197FA68300261717 /* Build configuration list for PBXProject "player" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				9BA3B911197FA68300261717 /* Debug */,
+				9BA3B912197FA68300261717 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		9BA3B913197FA68300261717 /* Build configuration list for PBXNativeTarget "player" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				9BA3B914197FA68300261717 /* Debug */,
+				9BA3B915197FA68300261717 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = 9BA3B8E8197FA68300261717 /* Project object */;
+}

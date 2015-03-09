@@ -1,0 +1,4 @@
+//
+// Prefix header for all source files of the 'PPMediaPlayer' target in the 'PPMediaPlayer' project
+//
+#define playerVersion @"1.0.2"
