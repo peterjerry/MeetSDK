@@ -300,14 +300,14 @@ public class MyFrame extends JFrame {
 	}
 	
 	private void init_combobox() {
-		int type = 2;
+		int type = 1;
 		
 		switch (type) {
 		case 0:
 			frontpage();
 			break;
 		case 1:
-			//search();
+			search();
 			break;
 		case 2:
 			contents();
@@ -319,6 +319,34 @@ public class MyFrame extends JFrame {
 			System.out.println("unknown type: " + type);
 			break;
 		}
+	}
+	
+	private void search() {
+		EPGUtil epg = new EPGUtil();
+		
+		String key = "泰坦尼克";
+		int type = 0;
+		int content_type = 0;
+		
+		boolean ret;
+		
+		ret = epg.search(key, type, content_type, 2, 10);
+		if(!ret)
+			return;
+		
+		mPlayLinkList = epg.getLink();
+		if(mPlayLinkList.size() < 1)
+			return;
+		
+		comboItem.removeAllItems();
+		
+		int size = mPlayLinkList.size();
+		for(int i=0;i<size;i++) {
+			PlayLink2 l = mPlayLinkList.get(i);
+			System.out.println(l.toString());
+			comboItem.addItem(mPlayLinkList.get(i).getTitle());
+		}
+		
 	}
 	
 	private void frontpage() {

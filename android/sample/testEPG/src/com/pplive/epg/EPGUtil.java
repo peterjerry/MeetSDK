@@ -41,11 +41,12 @@ public class EPGUtil {
 			+ "&userLevel=0&hasVirtual=1"
 			+ "&k=%s"
 			+ "&conlen=0&shownav=1"
-			+ "&type=%s"
+			+ "&type=%d"
 			+ "&mode=all"
-			+ "&contentype=%s"// 0-只正片，1-非正片，-1=不过滤
-			+ "&c=%s" // display item count
-			+ "&s=1&ver=2&platform=android3";
+			+ "&contentype=%d"// 0-只正片，1-非正片，-1=不过滤
+			+ "&s=%d"
+			+ "&c=%d" // display item count
+			+ "&ver=2&platform=android3";
 	
 	private final static String detail_url_fmt = "http://epg.api.pptv.com/detail.api"
 			+ "?auth=d410fafad87e7bbf6c6dd62434345818"
@@ -685,8 +686,8 @@ public class EPGUtil {
 		return url;
 	}
 	
-	public boolean search(String s_key, String s_type, String s_contenttype, String s_count) {
-		String url = String.format(search_url_fmt, s_key, s_type, s_contenttype, s_count);
+	public boolean search(String s_key, int s_type, int s_contenttype, int s_start_page, int s_count) {
+		String url = String.format(search_url_fmt, s_key, s_type, s_contenttype, s_start_page, s_count);
 		System.out.println(url);
 
 		boolean ret = false;
@@ -710,23 +711,25 @@ public class EPGUtil {
 	        
 	        // get nav info
 	        Element nav = root.getChild("nav");
-	        List<Element> typelist = nav.getChildren("type");
+	        if(nav != null) {
+	        	List<Element> typelist = nav.getChildren("type");
 	        
-	        mNavList.clear();
-	        
-	        Iterator<Element> it = typelist.iterator();
-	        while (it.hasNext()){   
-	        	Element nav_type  = (Element) it.next();
-	        	String name = nav_type.getAttributeValue("name");
-	        	String id = nav_type.getAttributeValue("id");
-	        	int count = Integer.valueOf(nav_type.getAttributeValue("count"));
-	        	
-	        	Navigator n = new Navigator(name, id, count);
-	        	mNavList.add(n);
-	        	
-	        	String nav_info = String.format("%s, id %s, count %s", name, id, count);
-	        	System.out.println(nav_info);
-	        }   
+		        mNavList.clear();
+		        
+		        Iterator<Element> it = typelist.iterator();
+		        while (it.hasNext()){   
+		        	Element nav_type  = (Element) it.next();
+		        	String name = nav_type.getAttributeValue("name");
+		        	String id = nav_type.getAttributeValue("id");
+		        	int count = Integer.valueOf(nav_type.getAttributeValue("count"));
+		        	
+		        	Navigator n = new Navigator(name, id, count);
+		        	mNavList.add(n);
+		        	
+		        	String nav_info = String.format("%s, id %s, count %s", name, id, count);
+		        	System.out.println(nav_info);
+		        }
+	        }
 	        
 	        // get video info
 	        mPlayLinkList.clear();

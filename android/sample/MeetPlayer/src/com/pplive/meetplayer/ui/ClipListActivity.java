@@ -208,6 +208,7 @@ public class ClipListActivity extends Activity implements
 	private int mEPGlistStartPage = 1;
 	private int mEPGlistCount = 15;
 	private boolean mListLive = false;
+	private boolean mListSearch = false;
 	private final int EPG_ITEM_FRONTPAGE		= 1;
 	private final int EPG_ITEM_CATALOG			= 2;
 	private final int EPG_ITEM_DETAIL			= 3;
@@ -275,6 +276,7 @@ public class ClipListActivity extends Activity implements
 	private static final int MSG_EPG_LIST_DONE					= 507;
 	private static final int MSG_FAIL_TO_CONNECT_EPG_SERVER		= 511;
 	private static final int MSG_FAIL_TO_PARSE_EPG_RESULT			= 512;
+	private static final int MSG_WRONG_PARAM						= 513;
 	private static final int MSG_PUSH_CDN_CLIP					= 601;
 	private static final int MSG_PLAY_CDN_URL						= 602;
 	
@@ -1385,6 +1387,9 @@ public class ClipListActivity extends Activity implements
 			case MSG_EPG_CONTENT_SURFIX_DONE:
 				popupEPGContentDlg();
 				break;
+			case MSG_WRONG_PARAM:
+				Toast.makeText(ClipListActivity.this, "epg: wrong param input", Toast.LENGTH_SHORT).show();
+				break;
 			case MSG_FAIL_TO_CONNECT_EPG_SERVER:
 				Toast.makeText(ClipListActivity.this, "failed to connect to epg server", Toast.LENGTH_SHORT).show();
 				break;
@@ -1612,7 +1617,10 @@ public class ClipListActivity extends Activity implements
 			.setPositiveButton("More...", 
 				new DialogInterface.OnClickListener(){
 					public void onClick(DialogInterface dialog, int whichButton){
-						new EPGTask().execute(EPG_ITEM_LIST, ++mEPGlistStartPage, mEPGlistCount);
+						if (mListSearch)
+							new EPGTask().execute(EPG_ITEM_SEARCH, ++mEPGlistStartPage, mEPGlistCount);
+						else
+							new EPGTask().execute(EPG_ITEM_LIST, ++mEPGlistStartPage, mEPGlistCount);
 					}
 				})
 			.setNegativeButton("Cancel",
@@ -1649,6 +1657,8 @@ public class ClipListActivity extends Activity implements
         		id = params[1];
         	
         	boolean ret;
+        	
+        	mListSearch = false;
         	
         	if (EPG_ITEM_FRONTPAGE == type) {
         		if (!mEPG.frontpage()) {
@@ -1689,12 +1699,20 @@ public class ClipListActivity extends Activity implements
     			mHandler.sendEmptyMessage(MSG_EPG_DETAIL_DONE);
         	}
         	else if (EPG_ITEM_SEARCH == type) {
-        		mEPGlistStartPage = 1;
-        		if (!mEPG.search(mEPGsearchKey, "0", "0", "10")) {
+        		if (params.length < 2) {
+        			mHandler.sendEmptyMessage(MSG_WRONG_PARAM);
+					return false;
+				}
+        		
+        		int start_page = params[1];
+        		int count = params[2];
+        		
+        		if (!mEPG.search(mEPGsearchKey, 0, 0/* 0-只正片，1-非正片，-1=不过滤*/, start_page, count)) {
         			mHandler.sendEmptyMessage(MSG_FAIL_TO_CONNECT_EPG_SERVER);
     				return false;
     			}
         		
+        		mListSearch = true;
     			mEPGLinkList = mEPG.getLink();
     			if (mEPGLinkList.size() == 0)
     				return false;
@@ -1730,6 +1748,11 @@ public class ClipListActivity extends Activity implements
         			mHandler.sendEmptyMessage(MSG_FAIL_TO_PARSE_EPG_RESULT);
         			return false;
         		}
+        		
+        		if (params.length < 2) {
+        			mHandler.sendEmptyMessage(MSG_WRONG_PARAM);
+					return false;
+				}
         		
         		int start_page = params[1];
         		int count = params[2];
@@ -2047,7 +2070,8 @@ public class ClipListActivity extends Activity implements
 	            	editor.commit();
 					
 	            	Toast.makeText(ClipListActivity.this, "search epg...", Toast.LENGTH_SHORT).show();
-	    			new EPGTask().execute(EPG_ITEM_SEARCH);
+	            	mEPGlistStartPage = 1;
+	    			new EPGTask().execute(EPG_ITEM_SEARCH, mEPGlistStartPage, mEPGlistCount);
 	             }
 	        });
 	        builder.show();

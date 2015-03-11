@@ -6,13 +6,14 @@ public class TestEPG {
 	
 	private static void search(EPGUtil epg) {
 		String key = "泰坦尼克";
-		String type = "0";
+		int type = 0;
+		int content_type = 0;
 		
 		boolean ret;
 		
 		List<PlayLink2> list = null;
 		System.out.println("step 1");
-		ret = epg.search(key, type, "0", "10");
+		ret = epg.search(key, type, content_type, 1, 10);
 		if(!ret)
 			return;
 		
