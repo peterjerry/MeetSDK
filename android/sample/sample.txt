@@ -1,6 +1,36 @@
+MeetSDK 使用说明
+1 调用 所有api前，请调用全局初始化函数 initSDK() (setLogPath() 函数可选)
+    setLogPath 第一个参数为 上传log的全路径， 第二个参数为 sdk 运行时log 的目录
+	上传log 是调用MeetSDK.LogUtils.makeUploadLog() 方法时，会产生一个log文件供上传用
+	运行时log 是sdk在运行过程中写入日志的文件
+	
+2 目前提供两种 使用方式 1) MediaPlayer 2) MeetVideoView
+	使用例程 见下文
+	在使用 MediaPlayer 时, 注意 不同的编码模式 ，要手动设置 surface type(以兼容android 2.3.3)
+	
+	DecodeMode.SW 软解
+	DecodeMode.HW_SYSTEM 系统播放器硬解
+	DecodeMode.Auto 自动设置
+	
+	使用 MediaPlayer, 不支持设置auto模式，请使用MeetSDK.getPlayerType(mPlayUrl) 获取 播放模式
+
+
+////////////////////init MeetSDK///////////////////
+public static boolean initMeetSDK(Context ctx) {
+	// upload util will upload /data/data/pacake_name/Cache/xxx
+	// so must NOT change path
+	MeetSDK.setLogPath(
+			ctx.getCacheDir().getAbsolutePath() + "/meetplayer.log", 
+			ctx.getCacheDir().getParentFile().getAbsolutePath() + "/");
+	// /data/data/com.svox.pico/
+	return MeetSDK.initSDK(ctx, "");
+}
+////////////////////init MeetSDK///////////////////
+	
 ////////////////////MediaPlayer///////////////////
 void start_player() {
-
+	DecodeMode dec_mode = DecodeMode.SW;
+	
 	// force refresh a new surface
 	mPreview.setVisibility(View.INVISIBLE);
 
