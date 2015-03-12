@@ -1,0 +1,18 @@
+(lldb) bt
+* thread #39: tid = 0x4c03, 0x2fe660c4 dyld`dyld_fatal_error, stop reason = EXC_BREAKPOINT (code=EXC_ARM_BREAKPOINT, subcode=0xe7ffdefe)
+    frame #0: 0x2fe660c4 dyld`dyld_fatal_error
+    frame #1: 0x2fe66ef2 dyld`dyld::halt(char const*) + 78
+    frame #2: 0x2fe68644 dyld`dyld::fastBindLazySymbol(ImageLoader**, unsigned long) + 224
+    frame #3: 0x3b5b91fc libdyld.dylib`dyld_stub_binder + 20
+    frame #4: 0x00bae3c0 PPTViPhone`ff_ps_init + 1280
+    frame #5: 0x00ba2220 PPTViPhone`aac_decode_init + 1416
+    frame #6: 0x00e6fdd4 PPTViPhone`avcodec_open2 + 2772
+    frame #7: 0x00f8934a PPTViPhone`avformat_find_stream_info + 506
+    frame #8: 0x00f27a22 PPTViPhone`hls_read_header + 1234
+  * frame #9: 0x00f8595e PPTViPhone`avformat_open_input + 574
+    frame #10: 0x00b948ac PPTViPhone`FFStream::open(char*) + 280
+    frame #11: 0x00b8f266 PPTViPhone`FFPlayer::onPrepareImpl() + 190
+    frame #12: 0x00b93e8c PPTViPhone`Loop::threadEntry() + 332
+    frame #13: 0x00b93b62 PPTViPhone`Loop::ThreadWrapper(void*) + 38
+    frame #14: 0x3b5d9310 libsystem_c.dylib`_pthread_start + 308
+    frame #15: 0x3b5d91d8 libsystem_c.dylib`thread_start + 8
