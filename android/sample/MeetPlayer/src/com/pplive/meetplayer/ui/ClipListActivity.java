@@ -1179,9 +1179,14 @@ public class ClipListActivity extends Activity implements
 			mDLNA.Play(mDlnaDeviceUUID);
 	}
 	
+	private int fake_pos = 1800 * 1000;
+	
 	public void seekTo(int pos) {
 		if (mPlayer != null) {
 			mPlayer.seekTo(pos);
+			
+			if (mIsLivePlay)
+				fake_pos = pos;
 			
 			// update mBufferingPertent
 			mBufferingPertent = pos * 100 / mPlayer.getDuration() + 1;
@@ -1233,11 +1238,12 @@ public class ClipListActivity extends Activity implements
 		
 		int pos = mPlayer.getCurrentPosition();
 		if (mIsLivePlay) {
-			int new_duration = mPlayer.getDuration();
+			/*int new_duration = mPlayer.getDuration();
 			int offset = new_duration - 1800 * 1000;
 			pos -= offset;
 			if (pos > 1800 * 1000)
-				pos = 1800 * 1000;
+				pos = 1800 * 1000;*/
+			return fake_pos;
 		}
 		
 		Log.d(TAG, String.format("Java: getCurrentPosition %d %d msec", mPlayer.getCurrentPosition(), pos));
@@ -1346,33 +1352,7 @@ public class ClipListActivity extends Activity implements
 			case MSG_EPG_DETAIL_DONE:
 			case MSG_EPG_LIST_DONE:
 				if (mEPGLinkList.size() == 1) {
-					SharedPreferences sp = getSharedPreferences(PREF_NAME, MODE_PRIVATE);
-					String key = "PlayHistory";
-					String regularEx = ",";
-					String values;
-			        values = sp.getString(key, "");
-			        Log.i(TAG, "Java: PlayHistory read: " + values);
-			        String []str = values.split(regularEx);
-			        int start = str.length - 10;
-			        if (start < 0)
-			        	start = 0;
-			        for (int i=0;i<str.length;i++) {
-			        	Log.i(TAG, String.format("Java: PlayHistory #%d %s", i, str[i]));
-			        }
-			        
-			        // clip_name|11223,clip_2|34455
-			        String save_values = "";
-			        for (int i=start;i<str.length;i++) {
-			        	save_values += str[i];
-			        	save_values += regularEx;
-			        }
-			        
-			        save_values += (mEPGLinkList.get(0).getTitle() + "|" + mEPGLinkList.get(0).getId());
-					
-			        SharedPreferences.Editor et = sp.edit();
-					Log.i(TAG, "Java: PlayHistory write: " + save_values);
-					et.putString(key, save_values);
-					et.commit();
+					add_list_history(mEPGLinkList.get(0).getTitle(), Integer.valueOf(mEPGLinkList.get(0).getId()));
 
 					Toast.makeText(
 							ClipListActivity.this,
@@ -1605,6 +1585,9 @@ public class ClipListActivity extends Activity implements
 					if (mListLive) {
 						et_playlink.setText(String.valueOf(vid));
 						Log.i(TAG, "Java: live id " + vid);
+						
+						add_list_history(mEPGLinkList.get(whichButton).getTitle(), vid);
+						
 						Toast.makeText(ClipListActivity.this, String.format("live channel %s(%d) was set",
 								mEPGLinkList.get(whichButton).getTitle(), vid), Toast.LENGTH_SHORT).show();
 					}
@@ -2498,6 +2481,41 @@ public class ClipListActivity extends Activity implements
 		}
 		
 	};
+	
+	boolean add_list_history(String title, int playlink) {
+		SharedPreferences sp = getSharedPreferences(PREF_NAME, MODE_PRIVATE);
+		String key = "PlayHistory";
+		String regularEx = ",";
+		String values;
+	    values = sp.getString(key, "");
+	    
+	    Log.i(TAG, "Java: PlayHistory read: " + values);
+	    String []str = values.split(regularEx);
+	    int start = str.length - 10;
+	    if (start < 0)
+	    	start = 0;
+	    for (int i=0;i<str.length;i++) {
+	    	Log.d(TAG, String.format("Java: PlayHistory #%d %s", i, str[i]));
+	    }
+	    
+	    // clip_name|11223,clip_2|34455
+	    StringBuffer save_values = new StringBuffer();
+	    for (int i=start;i<str.length;i++) {
+	    	save_values.append(str[i]);
+	    	save_values.append(regularEx);
+	    }
+	    
+	    save_values.append(title);
+	    save_values.append("|");
+	    save_values.append(playlink);
+		
+	    SharedPreferences.Editor et = sp.edit();
+		//Log.d(TAG, "Java: PlayHistory write: " + save_values.toString());
+		et.putString(key, save_values.toString());
+		et.commit();
+		
+		return true;
+	}
 	
 	private boolean initDLNA() {
 		//bindService(new Intent(DLNAService.ACTION), serv_conn, BIND_AUTO_CREATE);
