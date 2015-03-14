@@ -28,6 +28,7 @@ private:
     uint32_t mCachedSize;
     uint32_t mCount;
 	int64_t mDuration;
+	int64_t mLastPTS;
 	List mPacketList;
 	pthread_mutex_t mLock;
 };

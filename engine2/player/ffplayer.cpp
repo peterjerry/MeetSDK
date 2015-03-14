@@ -1444,17 +1444,15 @@ void FFPlayer::onBufferingUpdateImpl()
         return;
     }
 
-    int64_t cachedDurationMs;
-	int64_t cur_pos;
-	if (mSeeking) {
-		cur_pos = mSeekTimeMs;
-		cachedDurationMs = 0;
-	}
-	else {
-		cur_pos = mVideoPlayingTimeMs;
+    int64_t cachedDurationMs; // abosolute position
+	if (mSeeking)
+		cachedDurationMs = mSeekTimeMs;
+	else
 		cachedDurationMs = mDataStream->getCachedDurationMs();
-	}
-	int percent100 = (int)((cur_pos + cachedDurationMs) * 100 / mDurationMs) + 1; // 1 is for compensation.
+	int64_t pos_msec = get_master_clock();
+	if (cachedDurationMs < pos_msec)
+		cachedDurationMs = pos_msec;
+	int percent100 = (int)(cachedDurationMs * 100 / mDurationMs) + 1; // 1 is for compensation.
 	if (percent100 > 100) 
 		percent100 = 100;
 	LOGD("onBufferingUpdate, percent: %d", percent100);
