@@ -31,6 +31,7 @@ import android.graphics.PixelFormat;
 import android.os.Bundle;
 import android.os.Environment;
 import android.os.IBinder;
+import android.util.AttributeSet;
 import android.util.Log;
 import android.view.Menu;
 import android.view.SubMenu;
@@ -85,6 +86,7 @@ import com.pplive.meetplayer.util.Module;
 import com.pplive.meetplayer.util.PlayLink2;
 import com.pplive.meetplayer.util.PlayLinkUtil;
 import com.pplive.meetplayer.util.Util;
+import com.pplive.meetplayer.ui.widget.MySimpleMediaController;
 import com.pplive.dlna.DLNASdk;
 
 
@@ -131,7 +133,7 @@ public class ClipListActivity extends Activity implements
 	private EditText et_play_url;
 	private MyPreView mPreview;
 	private SurfaceHolder mHolder;
-	private MySimpleMediaController mMediaController;
+	private MediaController mMediaController;
 	private RelativeLayout mLayout;
 	private ProgressBar mBufferingProgressBar;
 	private EditText et_playlink;
@@ -345,8 +347,8 @@ public class ClipListActivity extends Activity implements
 		this.mSubtitleTextView = (TextView) findViewById(R.id.textview_subtitle);
 		
 		this.mMediaController = new MySimpleMediaController(this);
-		
-		mPlayerImpl = Util.readSettingsInt(this, "PlayerImpl");
+	
+		readSettings();
 		
 		mTextViewInfo = new TextView(this);
 		mTextViewInfo.setTextColor(Color.RED);
@@ -769,6 +771,28 @@ public class ClipListActivity extends Activity implements
 				}
 			}
 		});
+	}
+	
+	private void readSettings() {
+		int value = Util.readSettingsInt(this, "isPreview");
+		if (value == 1)
+			mIsPreview = true;
+		else
+			mIsPreview = false;
+		
+		value = Util.readSettingsInt(this, "isLoop");
+		if (value == 1)
+			mIsLoop = true;
+		else
+			mIsLoop = false;
+		
+		value = Util.readSettingsInt(this, "isNoVideo");
+		if (value == 1)
+			mIsNoVideo = true;
+		else
+			mIsNoVideo = false;
+		
+		mPlayerImpl = Util.readSettingsInt(this, "PlayerImpl");
 	}
 	
 	private void setPlaybackTime() {
@@ -1948,21 +1972,11 @@ public class ClipListActivity extends Activity implements
 				
 		MenuItem previewMenuItem = commonMenu.add(Menu.NONE, OPTION_COMMON_PREVIEW, Menu.FIRST, "Preview");
 		previewMenuItem.setCheckable(true);
-		int value = Util.readSettingsInt(this, "isPreview");
-		if (value == 1)
-			mIsPreview = true;
-		else
-			mIsPreview = false;
 		if (mIsPreview)
 			previewMenuItem.setChecked(true);
 		
 		MenuItem loopMenuItem = commonMenu.add(Menu.NONE, OPTION_COMMON_LOOP, Menu.FIRST + 1, "Loop");
 		loopMenuItem.setCheckable(true);
-		value = Util.readSettingsInt(this, "isLoop");
-		if (value == 1)
-			mIsLoop = true;
-		else
-			mIsLoop = false;
 		if (mIsLoop)
 			loopMenuItem.setChecked(true);
 		
@@ -1972,13 +1986,8 @@ public class ClipListActivity extends Activity implements
 			noVideoMenuItem.setEnabled(true);
 		else
 			noVideoMenuItem.setEnabled(false);
-		value = Util.readSettingsInt(this, "isNoVideo");
-		if (value == 1)
-			mIsNoVideo = true;
-		else
-			mIsNoVideo = false;
 		if (mIsNoVideo)
-			loopMenuItem.setChecked(false);
+			noVideoMenuItem.setChecked(false);
 		
 		commonMenu.add(Menu.NONE, OPTION_COMMON_MEETVIEW, Menu.FIRST + 3, "test view");
 		
@@ -2700,13 +2709,6 @@ public class ClipListActivity extends Activity implements
 		mSubtitleSeeking = false;
 	}
 	// end of "callback of subtitle"
-	
-	private final class MySimpleMediaController extends MediaController {
-
-	    private MySimpleMediaController(Context context) {
-	        super(new ContextThemeWrapper(context, R.style.MyPlayerTheme));
-	    }
-	}
 	
 	static {
 		//System.loadLibrary("lenthevcdec");
