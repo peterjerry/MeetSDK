@@ -19,6 +19,8 @@ import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.Dialog;
 import android.content.DialogInterface;
+import android.content.pm.ActivityInfo;
+import android.content.res.Configuration;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
@@ -32,7 +34,10 @@ import android.util.Log;
 import android.view.GestureDetector;
 import android.view.KeyEvent;
 import android.view.MotionEvent;
+import android.view.OrientationEventListener;
 import android.view.View;
+import android.view.Window;
+import android.view.WindowManager;
 import android.widget.AdapterView;
 import android.widget.Button;
 import android.widget.ListView;
@@ -89,14 +94,14 @@ public class MeetViewActivity extends Activity {
 		super.onCreate(savedInstanceState);
 		Log.i(TAG, "Java: onCreate()");
 		
-		setContentView(R.layout.activity_meet_videoview);
-		
-		DisplayMetrics dm = new DisplayMetrics(); 
-		getWindowManager().getDefaultDisplay().getMetrics(dm); 
-		int screen_width	= dm.widthPixels; 
-		int screen_height	= dm.heightPixels;
+		// Full Screen
+		getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN, 
+		    WindowManager.LayoutParams.FLAG_FULLSCREEN);
 
-		preview_height = screen_height * 2 / 5;
+		// No Titlebar
+		requestWindowFeature(Window.FEATURE_NO_TITLE);
+		
+		setContentView(R.layout.activity_meet_videoview);
 		
 		this.mLayout = (RelativeLayout) findViewById(R.id.view_preview);
 		
@@ -110,6 +115,8 @@ public class MeetViewActivity extends Activity {
 		mVideoView.setOnPreparedListener(mPreparedListener);
 		
 		mController = (MiniMediaController) findViewById(R.id.video_controller2);
+		
+		mController.setInstance(this);
 		
 		mBufferingProgressBar = (ProgressBar) findViewById(R.id.progressbar_buffering2);
 		
@@ -394,14 +401,33 @@ public class MeetViewActivity extends Activity {
 		Log.i(TAG, "Java: onStart");
 	}
 	
+	void update_preview_size(boolean isLandscape) {
+		DisplayMetrics dm = new DisplayMetrics(); 
+		getWindowManager().getDefaultDisplay().getMetrics(dm); 
+		int screen_width	= dm.widthPixels; 
+		int screen_height	= dm.heightPixels;
+		
+		if (isLandscape)
+			mLayout.getLayoutParams().height = screen_height;
+		else
+			mLayout.getLayoutParams().height = screen_height * 2 / 5;
+		mLayout.requestLayout();
+	}
+	
 	@Override
 	protected void onResume() {
 		super.onResume();
 
-		mLayout.getLayoutParams().height = preview_height;
-		mLayout.requestLayout();
-
 		Log.i(TAG, "Java: onResume");
+		
+		int orient = getRequestedOrientation();
+		Log.i(TAG, "Java: orient " + orient);
+		
+		boolean isLandscape = (ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE == orient);
+		update_preview_size(isLandscape);
+		
+		if (mVideoView != null)
+			mVideoView.start();
 	}
 
 	@Override
@@ -420,7 +446,7 @@ public class MeetViewActivity extends Activity {
 
 		Log.i(TAG, "Java: onStop()");
 
-		if (mVideoView != null)
+		if (isFinishing() && mVideoView != null)
 			mVideoView.stopPlayback();
 	}
 
@@ -625,6 +651,17 @@ public class MeetViewActivity extends Activity {
 				return super.onKeyDown(keyCode, event);
 			}
 	}
+	
+	public void onConfigurationChanged(Configuration conf) {
+		super.onConfigurationChanged(conf);
+		
+		Log.i(TAG, "Java: onConfigurationChanged");
+		
+		int orientation = getRequestedOrientation();
+		Log.i(TAG, "Java: orientation " + orientation);
+		boolean isLandscape = (orientation == ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
+		update_preview_size(isLandscape);
+	}  
 	
 	private void toggleMediaControlsVisiblity() {
     	if (mVideoView != null && mVideoView.isPlaying() && mController != null) {

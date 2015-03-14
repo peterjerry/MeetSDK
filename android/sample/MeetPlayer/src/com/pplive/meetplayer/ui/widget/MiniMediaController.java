@@ -3,7 +3,9 @@ package com.pplive.meetplayer.ui.widget;
 import java.util.Formatter;
 import java.util.Locale;
 
+import android.app.Activity;
 import android.content.Context;
+import android.content.pm.ActivityInfo;
 import android.media.AudioManager;
 import android.os.Handler;
 import android.os.Message;
@@ -12,6 +14,7 @@ import android.util.Log;
 import android.view.GestureDetector;
 import android.view.LayoutInflater;
 import android.view.MotionEvent;
+import android.view.OrientationEventListener;
 import android.view.View;
 import android.widget.ImageButton;
 import android.widget.ProgressBar;
@@ -27,6 +30,9 @@ public class MiniMediaController extends MediaController {
 	@SuppressWarnings("unused")
 	private final static String TAG = "MiniMediaController";
 
+	private Context mContext;
+	private boolean mIsLand = false; // 是否是横屏
+	
 	private View mControllerView;
 	private SeekBar mProgressBar;
 	private TextView mEndTime;
@@ -43,7 +49,14 @@ public class MiniMediaController extends MediaController {
     private ImageButton mPlayPauseBtn;
     private ImageButton mFwdBtn;
     private ImageButton mBwdBtn;
-
+    private ImageButton	 mFullScreenBtn;
+    
+    private Activity mInstance;
+    
+    public void setInstance(Activity ins) {
+    	mInstance = ins;
+    }
+    
     public MiniMediaController(Context context) {
     	super(context);
 	}
@@ -85,6 +98,11 @@ public class MiniMediaController extends MediaController {
 		mFwdBtn = (ImageButton) v.findViewById(R.id.player_ff_btn);
 		if (mFwdBtn != null) {
 			mFwdBtn.setOnClickListener(mFwdListener);
+        }
+		
+		mFullScreenBtn = (ImageButton) v.findViewById(R.id.player_fullscreen_btn);
+		if (mFullScreenBtn != null) {
+			mFullScreenBtn.setOnClickListener(mFullScreenListener);
         }
 		
 		mProgressBar = (SeekBar) v.findViewById(R.id.mediacontroller_progress);
@@ -262,6 +280,23 @@ public class MiniMediaController extends MediaController {
             setProgress();
 
             show(sDefaultTimeout);
+        }
+    };
+    
+    
+    
+    private View.OnClickListener mFullScreenListener = new View.OnClickListener() {
+        public void onClick(View v) {
+            Log.i(TAG, "xxxxxxxxx");
+            if (null != mInstance) {
+            	if (mIsLand)
+            		mInstance.setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
+            	else
+            		mInstance.setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
+            	
+            	mIsLand = !mIsLand;
+            }
+            
         }
     };
     

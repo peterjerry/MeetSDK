@@ -116,8 +116,7 @@ public class ClipListActivity extends Activity implements
 		MediaPlayer.OnVideoSizeChangedListener, MediaPlayer.OnBufferingUpdateListener,
 		MediaPlayerControl, SurfaceHolder.Callback, SubTitleParser.Callback {
 
-	private final static String TAG = "ClipList";	
-	private final static String PREF_NAME = "settings";
+	private final static String TAG = "ClipList";
 	
     private final static String PORT_HTTP = "http";
     private final static String PORT_RTSP = "rtsp";
@@ -149,7 +148,7 @@ public class ClipListActivity extends Activity implements
 	private Dialog mUpdateDialog;
 	
 	private DecodeMode mDecMode = DecodeMode.AUTO;
-	private boolean mIsPreview					= true;
+	private boolean mIsPreview	;
 	private boolean mIsLoop					= false;
 	private boolean mIsNoVideo					= false;
 	private MenuItem noVideoMenuItem;
@@ -175,7 +174,7 @@ public class ClipListActivity extends Activity implements
 	private int mVideoWidth, mVideoHeight;
 	private int mAudioTrackNum = 4;
 	private int mAudioChannel = 1;
-	private int mPlayerImpl = 0;
+	private int mPlayerImpl;
 	
 	// subtitle
 	private SimpleSubTitleParser mSubtitleParser;
@@ -346,6 +345,8 @@ public class ClipListActivity extends Activity implements
 		this.mSubtitleTextView = (TextView) findViewById(R.id.textview_subtitle);
 		
 		this.mMediaController = new MySimpleMediaController(this);
+		
+		mPlayerImpl = Util.readSettingsInt(this, "PlayerImpl");
 		
 		mTextViewInfo = new TextView(this);
 		mTextViewInfo.setTextColor(Color.RED);
@@ -584,6 +585,7 @@ public class ClipListActivity extends Activity implements
 							Log.i(TAG, "select player impl: " + whichButton);
 							
 							mPlayerImpl = whichButton;
+							Util.writeSettingsInt(ClipListActivity.this, "PlayerImpl", mPlayerImpl);
 							Toast.makeText(ClipListActivity.this, 
 									"select type: " + PlayerImpl[whichButton], Toast.LENGTH_SHORT).show();
 							dialog.dismiss();
@@ -611,12 +613,11 @@ public class ClipListActivity extends Activity implements
 				
 				// load play history
 				final ArrayList<String> list_vid = new ArrayList<String>();
-				SharedPreferences sp = getSharedPreferences(PREF_NAME, MODE_PRIVATE);
+				
 				String key = "PlayHistory";
 				String regularEx = ",";
-				String values;
-		        values = sp.getString(key, "");
-		        Log.i(TAG, "Java: PlayHistory(in PPboxSel) read: " + values);
+				String values = Util.readSettings(ClipListActivity.this, key);
+		        Log.d(TAG, "Java: PlayHistory(in PPboxSel) read: " + values);
 		        String []str = values.split(regularEx);
 		        for (int i=0;i<str.length;i++) {
 		        	// 后遗症|1233
@@ -1352,8 +1353,12 @@ public class ClipListActivity extends Activity implements
 			case MSG_EPG_DETAIL_DONE:
 			case MSG_EPG_LIST_DONE:
 				if (mEPGLinkList.size() == 1) {
-					add_list_history(mEPGLinkList.get(0).getTitle(), Integer.valueOf(mEPGLinkList.get(0).getId()));
-
+					boolean ret = add_list_history(mEPGLinkList.get(0).getTitle(), 
+							Integer.valueOf(mEPGLinkList.get(0).getId()));
+					
+					if (!ret)
+						Toast.makeText(ClipListActivity.this, "failed to save play history", Toast.LENGTH_SHORT).show();
+					
 					Toast.makeText(
 							ClipListActivity.this,
 							String.format("\"%s\" was selected", mEPGLinkList.get(0).getTitle()),
@@ -1586,7 +1591,9 @@ public class ClipListActivity extends Activity implements
 						et_playlink.setText(String.valueOf(vid));
 						Log.i(TAG, "Java: live id " + vid);
 						
-						add_list_history(mEPGLinkList.get(whichButton).getTitle(), vid);
+						boolean ret = add_list_history(mEPGLinkList.get(whichButton).getTitle(), vid);
+						if (!ret)
+							Toast.makeText(ClipListActivity.this, "failed to save play history", Toast.LENGTH_SHORT).show();
 						
 						Toast.makeText(ClipListActivity.this, String.format("live channel %s(%d) was set",
 								mEPGLinkList.get(whichButton).getTitle(), vid), Toast.LENGTH_SHORT).show();
@@ -1941,11 +1948,21 @@ public class ClipListActivity extends Activity implements
 				
 		MenuItem previewMenuItem = commonMenu.add(Menu.NONE, OPTION_COMMON_PREVIEW, Menu.FIRST, "Preview");
 		previewMenuItem.setCheckable(true);
+		int value = Util.readSettingsInt(this, "isPreview");
+		if (value == 1)
+			mIsPreview = true;
+		else
+			mIsPreview = false;
 		if (mIsPreview)
 			previewMenuItem.setChecked(true);
 		
 		MenuItem loopMenuItem = commonMenu.add(Menu.NONE, OPTION_COMMON_LOOP, Menu.FIRST + 1, "Loop");
 		loopMenuItem.setCheckable(true);
+		value = Util.readSettingsInt(this, "isLoop");
+		if (value == 1)
+			mIsLoop = true;
+		else
+			mIsLoop = false;
 		if (mIsLoop)
 			loopMenuItem.setChecked(true);
 		
@@ -1955,6 +1972,11 @@ public class ClipListActivity extends Activity implements
 			noVideoMenuItem.setEnabled(true);
 		else
 			noVideoMenuItem.setEnabled(false);
+		value = Util.readSettingsInt(this, "isNoVideo");
+		if (value == 1)
+			mIsNoVideo = true;
+		else
+			mIsNoVideo = false;
 		if (mIsNoVideo)
 			loopMenuItem.setChecked(false);
 		
@@ -1996,6 +2018,7 @@ public class ClipListActivity extends Activity implements
 			else
 				item.setChecked(true);
 			mIsPreview = !mIsPreview;
+			Util.writeSettingsInt(this, "isPreview", mIsPreview ? 1 : 0);
 			break;
 		case OPTION_COMMON_LOOP:
 			if (mIsLoop)
@@ -2003,6 +2026,7 @@ public class ClipListActivity extends Activity implements
 			else
 				item.setChecked(true);
 			mIsLoop = !mIsLoop;
+			Util.writeSettingsInt(this, "isLoop", mIsLoop ? 1 : 0);
 			break;
 		case OPTION_COMMON_NO_VIDEO:
 			if (mIsNoVideo) {
@@ -2014,6 +2038,7 @@ public class ClipListActivity extends Activity implements
 				imageNoVideo.setVisibility(View.VISIBLE);
 			}
 			mIsNoVideo = !mIsNoVideo;
+			Util.writeSettingsInt(this, "IsNoVideo", mIsNoVideo ? 1 : 0);
 			break;
 		case OPTION_COMMON_MEETVIEW:
 			Intent intent = new Intent(ClipListActivity.this, MeetViewActivity.class);
@@ -2032,8 +2057,7 @@ public class ClipListActivity extends Activity implements
 			break;
 		case OPTION_EPG_SEARCH:
 			final EditText inputKey = new EditText(this);
-			SharedPreferences settings = getSharedPreferences(PREF_NAME, MODE_PRIVATE); // create it if NOT exist
-        	String last_key = settings.getString("last_searchkey", "阿仁");
+        	String last_key = Util.readSettings(this, "last_searchkey");
         	Log.i(TAG, "Java last_key: " + last_key);
         	inputKey.setText(last_key);
 			inputKey.setHint("input search key");
@@ -2044,13 +2068,9 @@ public class ClipListActivity extends Activity implements
 	        builder.setPositiveButton("Ok", new DialogInterface.OnClickListener() {
 
 	            public void onClick(DialogInterface dialog, int which) {
-	            	SharedPreferences settings = getSharedPreferences(PREF_NAME, MODE_PRIVATE); // create it if NOT exist
-	            	SharedPreferences.Editor editor = settings.edit();
-		
 	            	mEPGsearchKey = inputKey.getText().toString();
 	            	Log.i(TAG, "Java save last_key: " + mEPGsearchKey);
-	            	editor.putString("last_searchkey", mEPGsearchKey);
-	            	editor.commit();
+	            	Util.writeSettings(ClipListActivity.this, "last_searchkey", mEPGsearchKey);
 					
 	            	Toast.makeText(ClipListActivity.this, "search epg...", Toast.LENGTH_SHORT).show();
 	            	mEPGlistStartPage = 1;
@@ -2483,11 +2503,10 @@ public class ClipListActivity extends Activity implements
 	};
 	
 	boolean add_list_history(String title, int playlink) {
-		SharedPreferences sp = getSharedPreferences(PREF_NAME, MODE_PRIVATE);
 		String key = "PlayHistory";
 		String regularEx = ",";
 		String values;
-	    values = sp.getString(key, "");
+	    values = Util.readSettings(this, key);
 	    
 	    Log.i(TAG, "Java: PlayHistory read: " + values);
 	    String []str = values.split(regularEx);
@@ -2509,12 +2528,8 @@ public class ClipListActivity extends Activity implements
 	    save_values.append("|");
 	    save_values.append(playlink);
 		
-	    SharedPreferences.Editor et = sp.edit();
-		//Log.d(TAG, "Java: PlayHistory write: " + save_values.toString());
-		et.putString(key, save_values.toString());
-		et.commit();
-		
-		return true;
+	    //Log.d(TAG, "Java: PlayHistory write: " + save_values.toString());
+	    return Util.writeSettings(this, key, save_values.toString());
 	}
 	
 	private boolean initDLNA() {
