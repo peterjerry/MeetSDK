@@ -523,6 +523,56 @@ public class ClipListActivity extends Activity implements
 			}
 		});
 		
+		this.lv_filelist.setOnItemLongClickListener(new ListView.OnItemLongClickListener(){
+
+			@Override
+			public boolean onItemLongClick(AdapterView<?> arg0, View view,
+					int position, long id) {
+				// TODO Auto-generated method stub
+				final String[] action = {"delete", "detail"};
+				HashMap<String, Object> item = (HashMap<String, Object>) lv_filelist.getItemAtPosition(position);
+				final String file_name = (String)item.get("filename");
+				final String file_path = (String)item.get("fullpath");
+
+				Dialog choose_action_dlg = new AlertDialog.Builder(ClipListActivity.this)
+				.setTitle("select action")
+				.setItems(action, new DialogInterface.OnClickListener(){
+						public void onClick(DialogInterface dialog, int whichButton){
+							if (whichButton == 0) {
+								// delete
+								if (file_path.startsWith("/") || file_path.startsWith("file://")) {
+									File file = new File(file_path);
+									if (file.exists() && file.delete()) {
+										Log.i(TAG, "file: " + file_path + " deleted");
+										Toast.makeText(ClipListActivity.this, "file " + file_name + " deleted!", Toast.LENGTH_SHORT).show();
+										
+										new ListItemTask().execute(mCurrentFolder);
+									}
+									else {
+										Log.e(TAG, "failed to delete file: " + file_path);
+										Toast.makeText(ClipListActivity.this, "failed to delte file: " + file_path, Toast.LENGTH_SHORT).show();
+									}
+								}
+								else {
+									Toast.makeText(ClipListActivity.this, "DELETE only support local file", Toast.LENGTH_SHORT).show();
+								}
+							}
+							else {
+								// todo
+							}
+
+							dialog.dismiss();
+						}
+					})
+				.setNegativeButton("Cancel", null)
+				.create();
+				choose_action_dlg.show();
+				
+				return false;
+			}
+			
+		});
+		
 		this.btn_ft.setOnClickListener(new Button.OnClickListener() {
 
 			@Override
