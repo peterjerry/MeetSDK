@@ -30,10 +30,10 @@ public class Util {
 
 		String libPath = "/data/data/com.pplive.meetplayer/lib";
 		MediaSDK.libPath = libPath; // Environment.getExternalStorageDirectory().getAbsolutePath() + "/ppp";
-		MediaSDK.logPath = "/data/data/com.pplive.meetplayer/cache";
+		MediaSDK.logPath = Environment.getExternalStorageDirectory().getAbsolutePath();//"/data/data/com.pplive.meetplayer/cache";
 		MediaSDK.logOn = false;
-		MediaSDK.setConfig("", "HttpManager", "addr", "0.0.0.0:9106+");
-		MediaSDK.setConfig("", "RtspManager", "addr", "0.0.0.0:5156+");
+		MediaSDK.setConfig("", "HttpManager", "addr", "127.0.0.1:9106+");
+		MediaSDK.setConfig("", "RtspManager", "addr", "127.0.0.1:5156+");
 		
 		long ret = -1;
 

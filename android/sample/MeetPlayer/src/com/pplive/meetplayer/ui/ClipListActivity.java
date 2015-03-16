@@ -1245,7 +1245,7 @@ public class ClipListActivity extends Activity implements
 				mIsBuffering = false;
 			}
 			
-			close_hls();
+			//close_hls();
 		}
 	}
 	
@@ -1259,20 +1259,27 @@ public class ClipListActivity extends Activity implements
 			mDLNA.Play(mDlnaDeviceUUID);
 	}
 	
-	private int fake_pos = 1800 * 1000;
-	
 	public void seekTo(int pos) {
 		if (mPlayer != null) {
-			mPlayer.seekTo(pos);
-			
-			if (mIsLivePlay)
-				fake_pos = pos;
+			if (mIsLivePlay) {
+				int new_duration = mPlayer.getDuration();
+				int offset = new_duration - 1800 * 1000;
+				pos += offset;
+				if (pos > new_duration)
+					pos = new_duration;
+				if (pos < offset)
+					pos = offset;
+				mPlayer.seekTo(pos);
+			}
+			else {
+				mPlayer.seekTo(pos);
+			}
 			
 			// update mBufferingPertent
 			mBufferingPertent = pos * 100 / mPlayer.getDuration() + 1;
 			if (mBufferingPertent > 100)
 				mBufferingPertent = 100;
-			Log.d(TAG, "onBufferingUpdate: seekTo " + mBufferingPertent);
+			Log.i(TAG, "onBufferingUpdate: seekTo " + mBufferingPertent);
 		}
 		
 		if (mSubtitleParser != null) {
@@ -1318,12 +1325,11 @@ public class ClipListActivity extends Activity implements
 		
 		int pos = mPlayer.getCurrentPosition();
 		if (mIsLivePlay) {
-			/*int new_duration = mPlayer.getDuration();
+			int new_duration = mPlayer.getDuration();
 			int offset = new_duration - 1800 * 1000;
 			pos -= offset;
 			if (pos > 1800 * 1000)
-				pos = 1800 * 1000;*/
-			return fake_pos;
+				pos = 1800 * 1000;
 		}
 		
 		Log.d(TAG, String.format("Java: getCurrentPosition %d %d msec", mPlayer.getCurrentPosition(), pos));
