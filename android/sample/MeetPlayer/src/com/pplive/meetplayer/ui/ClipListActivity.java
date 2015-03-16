@@ -1040,24 +1040,29 @@ public class ClipListActivity extends Activity implements
 		}
 		else if (2 == mPlayerImpl) {
 			boolean canPlay = false;
-			String str_ext;
-			String fileName;
-			int index;
-			index = path.indexOf("http://");
-			if (-1 != index)
-				canPlay = true;
-				
+			
+			MediaInfo info = MeetSDK.getMediaDetailInfo(path);
+			if (info != null) {
+				if (info.getVideoCodecName() != null && info.getVideoCodecName().equals("h264")) {
+					if (info.getAudioChannels() == 0)
+						canPlay = true;
+					else {
+						TrackInfo trackinfo = info.getAudioChannelsInfo().get(0);
+						if (trackinfo.getCodecName() != null && trackinfo.getCodecName().equals("aac"))
+							canPlay = true;
+					}
+				}
+			}		
+			
+			String fileName = "N/A";
+			int index;	
+			
 			index = path.lastIndexOf("/");
-			fileName = path.substring(index + 1, path.length());
-			index = fileName.lastIndexOf(".");
-			if (index != -1) {
-				str_ext = fileName.substring(index + 1, fileName.length());
-				if (str_ext.equals("mp4") || str_ext.equals("flv") || str_ext.equals("mov"))
-					canPlay = true;
-			}
+			if (index != -1)
+				fileName = path.substring(index + 1, path.length());
 			
 			if (canPlay == false) {
-				Toast.makeText(ClipListActivity.this, "Nu Player cannot play: " + fileName, 
+				Toast.makeText(ClipListActivity.this, "XOPlayer cannot play: " + fileName, 
 					Toast.LENGTH_SHORT).show();
 				return -1;
 			}

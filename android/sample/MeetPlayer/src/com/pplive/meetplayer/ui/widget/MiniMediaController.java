@@ -261,6 +261,17 @@ public class MiniMediaController extends MediaController {
         }
     }
     
+    private void updateFullScreen() {
+    	if (mFullScreenBtn == null)
+            return;
+    	
+    	if (mIsLand) {
+            mFullScreenBtn.setImageResource(R.drawable.player_window_btn);
+        } else {
+        	mFullScreenBtn.setImageResource(R.drawable.player_fullscreen_btn);
+        }
+    }
+    
     private View.OnClickListener mBwdListener = new View.OnClickListener() {
         public void onClick(View v) {
             int pos = mPlayer.getCurrentPosition();
@@ -287,7 +298,6 @@ public class MiniMediaController extends MediaController {
     
     private View.OnClickListener mFullScreenListener = new View.OnClickListener() {
         public void onClick(View v) {
-            Log.i(TAG, "xxxxxxxxx");
             if (null != mInstance) {
             	if (mIsLand)
             		mInstance.setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
@@ -295,6 +305,8 @@ public class MiniMediaController extends MediaController {
             		mInstance.setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
             	
             	mIsLand = !mIsLand;
+            	
+            	updateFullScreen();
             }
             
         }
