@@ -1101,7 +1101,7 @@ void FFPlayer::notifyVideoDelay(int64_t video_clock, int64_t audio_clock, int64_
 		    video_clock, audio_clock, frame_delay);
 #else
 		LOGI("video_clock: %lld, audio_clock: %lld, delay: %lld(msec)",
-		    mVideoPlayingTimeMs, audio_clock, frame_delay);
+		    video_clock, audio_clock, frame_delay);
 #endif
 		start_msec = cur_msec;
 	}

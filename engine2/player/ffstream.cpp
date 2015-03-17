@@ -820,7 +820,7 @@ void FFStream::thread_impl()
 					audio_enough = true;
 				else {
 					double min_duration = mMinPlayBufferCount * 1000 / (double)mFrameRate;
-					double a_duration = mAudioQueue.duration() * 1000 / av_q2d(mAudioStream->time_base);
+					double a_duration = mAudioQueue.duration() * 1000 * av_q2d(mAudioStream->time_base);
 					if (a_duration >= min_duration)
 						audio_enough = true;
 				}

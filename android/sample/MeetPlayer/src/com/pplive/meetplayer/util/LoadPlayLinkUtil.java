@@ -43,6 +43,7 @@ public class LoadPlayLinkUtil {
 			    
 		    	fin.read(buf);
 		    	String s = new String(buf);
+		    	s = s.replace("\r\n", "\n");
 
 			    int pos = 0;
 			    while (true) {

@@ -40,6 +40,8 @@ public class MyMediaController extends MediaController {
     
     private final int MAX_RANDGE = 1000;
     
+    private boolean mIsLivePlay = false;
+    
     private boolean mVolumerDragging = false;
     private boolean mIsShowing = false;
     
@@ -335,12 +337,26 @@ public class MyMediaController extends MediaController {
 			
 			int progress = seekBar.getProgress();
 			if (mPlayer != null) {
-				int duration = mPlayer.getDuration();
-				if (duration > 0) {
-					long position = (duration / 1000L) * progress;
-					
-					int pos = setProgress((int)position);
-					mPlayer.seekTo(pos);
+				if (mIsLivePlay) {
+					int new_duration = mPlayer.getDuration();
+					int offset = new_duration - 1800 * 1000;
+					int duration = 1800 * 1000;
+					int position = duration / 1000 * progress;
+					position += offset;
+					if (position > new_duration)
+						position = new_duration;
+					if (position < offset)
+						position = offset;
+					mPlayer.seekTo(position);
+				}
+				else {
+					int duration = mPlayer.getDuration();
+					if (duration > 0) {
+						long position = (duration / 1000L) * progress;
+						
+						int pos = setProgress((int)position);
+						mPlayer.seekTo(pos);
+					}
 				}
 			}
 			

@@ -236,7 +236,7 @@ public class ClipListActivity extends Activity implements
 	private int preview_height;
 	
 	private String mPlayerLinkSurfix;
-	private boolean mIsLivePlay;
+	private boolean mIsLivePlay = false;
 
 	final static int ONE_MAGEBYTE 				= 1048576;
 	final static int ONE_KILOBYTE 				= 1024;
@@ -1041,25 +1041,37 @@ public class ClipListActivity extends Activity implements
 		else if (2 == mPlayerImpl) {
 			boolean canPlay = false;
 			
-			MediaInfo info = MeetSDK.getMediaDetailInfo(path);
-			if (info != null) {
-				if (info.getVideoCodecName() != null && info.getVideoCodecName().equals("h264")) {
-					if (info.getAudioChannels() == 0)
-						canPlay = true;
-					else {
-						TrackInfo trackinfo = info.getAudioChannelsInfo().get(0);
-						if (trackinfo.getCodecName() != null && trackinfo.getCodecName().equals("aac"))
+			if (path.startsWith("http://")) {
+				canPlay = true;
+			}
+			else if (path.startsWith("/") || path.startsWith("file://")) {
+				MediaInfo info = MeetSDK.getMediaDetailInfo(path);
+				if (info != null) {
+					if (info.getVideoCodecName() != null && info.getVideoCodecName().equals("h264")) {
+						if (info.getAudioChannels() == 0)
 							canPlay = true;
+						else {
+							TrackInfo trackinfo = info.getAudioChannelsInfo().get(0);
+							if (trackinfo.getCodecName() != null && trackinfo.getCodecName().equals("aac"))
+								canPlay = true;
+						}
 					}
 				}
-			}		
+			}
 			
 			String fileName = "N/A";
 			int index;	
 			
-			index = path.lastIndexOf("/");
-			if (index != -1)
-				fileName = path.substring(index + 1, path.length());
+			if (path.startsWith("/") || path.startsWith("file://")) {
+				index = path.lastIndexOf("/");
+				if (index != -1)
+					fileName = path.substring(index + 1, path.length());
+				else
+					fileName = path;
+			}
+			else {
+				fileName = path;
+			}
 			
 			if (canPlay == false) {
 				Toast.makeText(ClipListActivity.this, "XOPlayer cannot play: " + fileName, 
@@ -1163,6 +1175,7 @@ public class ClipListActivity extends Activity implements
 				mWifiLock.acquire();
 			}
 
+			mIsLivePlay 		= false;
 			mStoped 			= false;
 			mHomed 				= false;
 			mBufferingPertent 	= 0;
@@ -1245,7 +1258,8 @@ public class ClipListActivity extends Activity implements
 				mIsBuffering = false;
 			}
 			
-			//close_hls();
+			if (mPlayUrl.startsWith("http://127.0.0.1"))
+				close_hls();
 		}
 	}
 	
@@ -1367,7 +1381,7 @@ public class ClipListActivity extends Activity implements
 	
 	private void close_hls() {
 		short port = MediaSDK.getPort("http");
-		String strCloseURL = String.format("127.0.0.1:%d/close", port);
+		String strCloseURL = String.format("http://127.0.0.1:%d/close", port);
 		URL url;
 		try {
 			url = new URL(strCloseURL);
