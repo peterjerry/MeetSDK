@@ -306,6 +306,7 @@ static NSData * copyFrameData(UInt8 *src, int linesize, int width, int height)
 
 - (void) setFrame: (void *) frame
 {
+    //将ffmpeg decode出来的yuv数据转换成纹理供opengl es显示
     AVFrame *yuvFrame = (AVFrame *)frame;
     
     const NSUInteger frameWidth = yuvFrame->width;
@@ -314,9 +315,9 @@ static NSData * copyFrameData(UInt8 *src, int linesize, int width, int height)
     NSData *y = copyFrameData(yuvFrame->data[0], yuvFrame->linesize[0], frameWidth, frameHeight);
     NSData *u = copyFrameData(yuvFrame->data[1], yuvFrame->linesize[1], frameWidth / 2, frameHeight / 2);
     NSData *v = copyFrameData(yuvFrame->data[2], yuvFrame->linesize[2], frameWidth / 2, frameHeight / 2);
-    
+    //设置对齐方式为1
     glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-    
+    //创建三个纹理
     if (0 == _textures[0])
         glGenTextures(3, _textures);
 
@@ -324,20 +325,21 @@ static NSData * copyFrameData(UInt8 *src, int linesize, int width, int height)
     const NSUInteger widths[3]  = { frameWidth, frameWidth / 2, frameWidth / 2 };
     const NSUInteger heights[3] = { frameHeight, frameHeight / 2, frameHeight / 2 };
     
+    //从memory向GPU传输Y、U、V数据
     int i = 0;
     for (i = 0; i < 3; ++i) {
         
         glBindTexture(GL_TEXTURE_2D, _textures[i]);
         
         glTexImage2D(GL_TEXTURE_2D,
-                     0,
-                     GL_LUMINANCE,
-                     widths[i],
-                     heights[i],
-                     0,
-                     GL_LUMINANCE,
-                     GL_UNSIGNED_BYTE,
-                     pixels[i]);
+                     0,     //代表图像的详细程度，默认为0既可
+                     GL_LUMINANCE,      //yuv数据格式
+                     widths[i],         //纹理宽度
+                     heights[i],        //纹理高度
+                     0,                 //边框值
+                     GL_LUMINANCE,      //yuv数据格式
+                     GL_UNSIGNED_BYTE,  //数据单位
+                     pixels[i]);        //数据源
         
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
@@ -391,6 +393,7 @@ enum {
     GLuint          _program;
     GLint           _uniformMatrix;
     GLfloat         _vertices[8];
+    dispatch_semaphore_t    _render_sema;
     
     id<GLRenderer> _renderer;
 }
@@ -420,8 +423,10 @@ enum {
             _renderer = [[GLRenderer_RGB alloc] init];
             LOGD("OK use RGB GL renderer");
         }
-                
+        
+        //图像全部画到eaglLayer上
         CAEAGLLayer *eaglLayer = (CAEAGLLayer*) self.layer;
+        //设置不透明
         eaglLayer.opaque = YES;
         eaglLayer.drawableProperties = [NSDictionary dictionaryWithObjectsAndKeys:
                                         [NSNumber numberWithBool:FALSE], kEAGLDrawablePropertyRetainedBacking,
@@ -450,6 +455,7 @@ enum {
         _vertices[6] =  1.0f;  // x3
         _vertices[7] =  1.0f;  // y3
         
+        _render_sema = dispatch_semaphore_create(1);
         LOGD("OK setup GL");
     }
     
@@ -484,8 +490,12 @@ enum {
 
 - (void)layoutSubviews
 {
+    [super layoutSubviews];
+    dispatch_semaphore_wait(_render_sema, DISPATCH_TIME_FOREVER);
+    LOGD("layoutSubviews");
     glBindRenderbuffer(GL_RENDERBUFFER, _renderbuffer);
-    [_context renderbufferStorage:GL_RENDERBUFFER fromDrawable:(CAEAGLLayer*)self.layer];
+    [_context renderbufferStorage:GL_RENDERBUFFER
+                                fromDrawable:(CAEAGLLayer*)self.layer];
 	glGetRenderbufferParameteriv(GL_RENDERBUFFER, GL_RENDERBUFFER_WIDTH, &_backingWidth);
     glGetRenderbufferParameteriv(GL_RENDERBUFFER, GL_RENDERBUFFER_HEIGHT, &_backingHeight);
     //glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_RENDERBUFFER, _renderbuffer);
@@ -500,6 +510,7 @@ enum {
         LOGD("OK setup GL framebuffer %d:%d", _backingWidth, _backingHeight);
     }    
     [self updateVertices];
+    dispatch_semaphore_signal(_render_sema);
     [self render: nil];
 }
 
@@ -594,7 +605,7 @@ exit:
         0.0f, 0.0f,
         1.0f, 0.0f,
     };
-	
+    dispatch_semaphore_wait(_render_sema, DISPATCH_TIME_FOREVER);
     [EAGLContext setCurrentContext:_context];
     
     glBindFramebuffer(GL_FRAMEBUFFER, _framebuffer);
@@ -631,6 +642,7 @@ exit:
     
     glBindRenderbuffer(GL_RENDERBUFFER, _renderbuffer);
     [_context presentRenderbuffer:GL_RENDERBUFFER];
+    dispatch_semaphore_signal(_render_sema);
 }
 
 
@@ -643,7 +655,9 @@ exit:
         return NO;
     }
     
+    //创建帧缓冲
     glGenFramebuffers(1, &_framebuffer);
+    //创建渲染缓冲
     glGenRenderbuffers(1, &_renderbuffer);
     glBindFramebuffer(GL_FRAMEBUFFER, _framebuffer);
     glBindRenderbuffer(GL_RENDERBUFFER, _renderbuffer);
