@@ -84,6 +84,8 @@ private:
 	int mUserAddChnNum;
 	int mUsedAudioChannel;
 
+	int mBufferPercentage;
+
 	int mDecFPS;
 	int mRenderFPS;
 	int mDecAvgMsec;

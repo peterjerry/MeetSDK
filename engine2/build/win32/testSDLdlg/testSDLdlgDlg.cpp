@@ -154,7 +154,7 @@ CtestSDLdlgDlg::CtestSDLdlgDlg(CWnd* pParent /*=NULL*/)
 	mWidth(0), mHeight(0), mDuration(0), mUsedAudioChannel(1),
 	mDecFPS(0), mRenderFPS(0), mDecAvgMsec(0), mRenderAvgMsec(0), 
 	mDropFrames(0), mRenderFrames(0), mLatency(0), mIOBitrate(0), mBitrate(0),
-	mBufferingTimeMsec(0),
+	mBufferingTimeMsec(0), mBufferPercentage(0), 
 	mUserAddChnNum(0), 
 	mEPGQueryType(EPG_QUERY_CATALOG), mEPGValue(-1)
 {
@@ -365,10 +365,17 @@ void CtestSDLdlgDlg::OnTimer(UINT_PTR nIDEvent)
 			filename += "...";
 		}
 
-		title.Format("%s, v-a %03d, drop %d, render %d, %02d(%03d)/%02d(%03d), %d/%d kbps | %d msec", 
+		int32_t duration;
+		mPlayer->getDuration(&duration);
+		int cache_msec = duration * mBufferPercentage / 100 - curr_pos;
+		if (cache_msec < 0)
+			cache_msec = 0;
+
+		title.Format("%s, v-a %03d, drop %d, render %d, %02d(%03d)/%02d(%03d), %d/%d kbps| buf %d msec |pct %d%%(cache %d msec)", 
 			filename.GetBuffer(), 
 			mLatency, mDropFrames, mRenderFrames, 
-			mDecFPS, mDecAvgMsec, mRenderFPS, mRenderAvgMsec, mIOBitrate, mBitrate, mBufferingTimeMsec);
+			mDecFPS, mDecAvgMsec, mRenderFPS, mRenderAvgMsec, mIOBitrate, mBitrate, 
+			mBufferingTimeMsec, mBufferPercentage, cache_msec);
 		SetWindowText(title);
 		if (mPlayLive) {
 			int32_t new_duration;
@@ -386,8 +393,6 @@ void CtestSDLdlgDlg::OnTimer(UINT_PTR nIDEvent)
 		genHMSM(curr_pos, &hour, &minute, &sec, &msec);
 
 		int du_hour, du_minute, du_sec, du_msec;
-		int32_t duration;
-		mPlayer->getDuration(&duration); 
 		genHMSM(duration, &du_hour, &du_minute, &du_sec, &du_msec);
 		
 		timeinfo.Format("%02d:%02d:%02d:%03d/%02d:%02d:%02d:%03d", 
@@ -765,7 +770,7 @@ LRESULT CtestSDLdlgDlg::OnNotify(WPARAM wParam, LPARAM lParam)
 		OnPrepared();
 	}
 	else if (MEDIA_BUFFERING_UPDATE == msg) {
-		//LOGD("position %d%%", ext1);
+		mBufferPercentage = ext1;
 	}
 	else if (MEDIA_PLAYBACK_COMPLETE == msg) {
 		LOGI("MEDIA_PLAYBACK_COMPLETE");
@@ -789,7 +794,7 @@ LRESULT CtestSDLdlgDlg::OnNotify(WPARAM wParam, LPARAM lParam)
 			mBuffering = true;
 			mBufferingOffset = 0;
 		}
-		else if(MEDIA_INFO_BUFFERING_END == ext1) {
+		else if (MEDIA_INFO_BUFFERING_END == ext1) {
 			LOGI("MEDIA_INFO_BUFFERING_END");
 			// hide picture
 			Invalidate();

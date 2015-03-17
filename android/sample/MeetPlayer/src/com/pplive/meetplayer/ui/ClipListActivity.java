@@ -31,6 +31,7 @@ import android.graphics.PixelFormat;
 import android.os.Bundle;
 import android.os.Environment;
 import android.os.IBinder;
+import android.util.AttributeSet;
 import android.util.Log;
 import android.view.Menu;
 import android.view.SubMenu;
@@ -85,6 +86,7 @@ import com.pplive.meetplayer.util.Module;
 import com.pplive.meetplayer.util.PlayLink2;
 import com.pplive.meetplayer.util.PlayLinkUtil;
 import com.pplive.meetplayer.util.Util;
+import com.pplive.meetplayer.ui.widget.MySimpleMediaController;
 import com.pplive.dlna.DLNASdk;
 
 
@@ -116,8 +118,7 @@ public class ClipListActivity extends Activity implements
 		MediaPlayer.OnVideoSizeChangedListener, MediaPlayer.OnBufferingUpdateListener,
 		MediaPlayerControl, SurfaceHolder.Callback, SubTitleParser.Callback {
 
-	private final static String TAG = "ClipList";	
-	private final static String PREF_NAME = "settings";
+	private final static String TAG = "ClipList";
 	
     private final static String PORT_HTTP = "http";
     private final static String PORT_RTSP = "rtsp";
@@ -132,7 +133,7 @@ public class ClipListActivity extends Activity implements
 	private EditText et_play_url;
 	private MyPreView mPreview;
 	private SurfaceHolder mHolder;
-	private MySimpleMediaController mMediaController;
+	private MediaController mMediaController;
 	private RelativeLayout mLayout;
 	private ProgressBar mBufferingProgressBar;
 	private EditText et_playlink;
@@ -149,7 +150,7 @@ public class ClipListActivity extends Activity implements
 	private Dialog mUpdateDialog;
 	
 	private DecodeMode mDecMode = DecodeMode.AUTO;
-	private boolean mIsPreview					= true;
+	private boolean mIsPreview	;
 	private boolean mIsLoop					= false;
 	private boolean mIsNoVideo					= false;
 	private MenuItem noVideoMenuItem;
@@ -175,7 +176,7 @@ public class ClipListActivity extends Activity implements
 	private int mVideoWidth, mVideoHeight;
 	private int mAudioTrackNum = 4;
 	private int mAudioChannel = 1;
-	private int mPlayerImpl = 0;
+	private int mPlayerImpl;
 	
 	// subtitle
 	private SimpleSubTitleParser mSubtitleParser;
@@ -346,6 +347,8 @@ public class ClipListActivity extends Activity implements
 		this.mSubtitleTextView = (TextView) findViewById(R.id.textview_subtitle);
 		
 		this.mMediaController = new MySimpleMediaController(this);
+	
+		readSettings();
 		
 		mTextViewInfo = new TextView(this);
 		mTextViewInfo.setTextColor(Color.RED);
@@ -520,6 +523,56 @@ public class ClipListActivity extends Activity implements
 			}
 		});
 		
+		this.lv_filelist.setOnItemLongClickListener(new ListView.OnItemLongClickListener(){
+
+			@Override
+			public boolean onItemLongClick(AdapterView<?> arg0, View view,
+					int position, long id) {
+				// TODO Auto-generated method stub
+				final String[] action = {"delete", "detail"};
+				HashMap<String, Object> item = (HashMap<String, Object>) lv_filelist.getItemAtPosition(position);
+				final String file_name = (String)item.get("filename");
+				final String file_path = (String)item.get("fullpath");
+
+				Dialog choose_action_dlg = new AlertDialog.Builder(ClipListActivity.this)
+				.setTitle("select action")
+				.setItems(action, new DialogInterface.OnClickListener(){
+						public void onClick(DialogInterface dialog, int whichButton){
+							if (whichButton == 0) {
+								// delete
+								if (file_path.startsWith("/") || file_path.startsWith("file://")) {
+									File file = new File(file_path);
+									if (file.exists() && file.delete()) {
+										Log.i(TAG, "file: " + file_path + " deleted");
+										Toast.makeText(ClipListActivity.this, "file " + file_name + " deleted!", Toast.LENGTH_SHORT).show();
+										
+										new ListItemTask().execute(mCurrentFolder);
+									}
+									else {
+										Log.e(TAG, "failed to delete file: " + file_path);
+										Toast.makeText(ClipListActivity.this, "failed to delte file: " + file_path, Toast.LENGTH_SHORT).show();
+									}
+								}
+								else {
+									Toast.makeText(ClipListActivity.this, "DELETE only support local file", Toast.LENGTH_SHORT).show();
+								}
+							}
+							else {
+								// todo
+							}
+
+							dialog.dismiss();
+						}
+					})
+				.setNegativeButton("Cancel", null)
+				.create();
+				choose_action_dlg.show();
+				
+				return false;
+			}
+			
+		});
+		
 		this.btn_ft.setOnClickListener(new Button.OnClickListener() {
 
 			@Override
@@ -584,6 +637,7 @@ public class ClipListActivity extends Activity implements
 							Log.i(TAG, "select player impl: " + whichButton);
 							
 							mPlayerImpl = whichButton;
+							Util.writeSettingsInt(ClipListActivity.this, "PlayerImpl", mPlayerImpl);
 							Toast.makeText(ClipListActivity.this, 
 									"select type: " + PlayerImpl[whichButton], Toast.LENGTH_SHORT).show();
 							dialog.dismiss();
@@ -611,12 +665,11 @@ public class ClipListActivity extends Activity implements
 				
 				// load play history
 				final ArrayList<String> list_vid = new ArrayList<String>();
-				SharedPreferences sp = getSharedPreferences(PREF_NAME, MODE_PRIVATE);
+				
 				String key = "PlayHistory";
 				String regularEx = ",";
-				String values;
-		        values = sp.getString(key, "");
-		        Log.i(TAG, "Java: PlayHistory(in PPboxSel) read: " + values);
+				String values = Util.readSettings(ClipListActivity.this, key);
+		        Log.d(TAG, "Java: PlayHistory(in PPboxSel) read: " + values);
 		        String []str = values.split(regularEx);
 		        for (int i=0;i<str.length;i++) {
 		        	// 后遗症|1233
@@ -768,6 +821,28 @@ public class ClipListActivity extends Activity implements
 				}
 			}
 		});
+	}
+	
+	private void readSettings() {
+		int value = Util.readSettingsInt(this, "isPreview");
+		if (value == 1)
+			mIsPreview = true;
+		else
+			mIsPreview = false;
+		
+		value = Util.readSettingsInt(this, "isLoop");
+		if (value == 1)
+			mIsLoop = true;
+		else
+			mIsLoop = false;
+		
+		value = Util.readSettingsInt(this, "isNoVideo");
+		if (value == 1)
+			mIsNoVideo = true;
+		else
+			mIsNoVideo = false;
+		
+		mPlayerImpl = Util.readSettingsInt(this, "PlayerImpl");
 	}
 	
 	private void setPlaybackTime() {
@@ -965,24 +1040,29 @@ public class ClipListActivity extends Activity implements
 		}
 		else if (2 == mPlayerImpl) {
 			boolean canPlay = false;
-			String str_ext;
-			String fileName;
-			int index;
-			index = path.indexOf("http://");
-			if (-1 != index)
-				canPlay = true;
-				
+			
+			MediaInfo info = MeetSDK.getMediaDetailInfo(path);
+			if (info != null) {
+				if (info.getVideoCodecName() != null && info.getVideoCodecName().equals("h264")) {
+					if (info.getAudioChannels() == 0)
+						canPlay = true;
+					else {
+						TrackInfo trackinfo = info.getAudioChannelsInfo().get(0);
+						if (trackinfo.getCodecName() != null && trackinfo.getCodecName().equals("aac"))
+							canPlay = true;
+					}
+				}
+			}		
+			
+			String fileName = "N/A";
+			int index;	
+			
 			index = path.lastIndexOf("/");
-			fileName = path.substring(index + 1, path.length());
-			index = fileName.lastIndexOf(".");
-			if (index != -1) {
-				str_ext = fileName.substring(index + 1, fileName.length());
-				if (str_ext.equals("mp4") || str_ext.equals("flv") || str_ext.equals("mov"))
-					canPlay = true;
-			}
+			if (index != -1)
+				fileName = path.substring(index + 1, path.length());
 			
 			if (canPlay == false) {
-				Toast.makeText(ClipListActivity.this, "Nu Player cannot play: " + fileName, 
+				Toast.makeText(ClipListActivity.this, "XOPlayer cannot play: " + fileName, 
 					Toast.LENGTH_SHORT).show();
 				return -1;
 			}
@@ -1165,7 +1245,7 @@ public class ClipListActivity extends Activity implements
 				mIsBuffering = false;
 			}
 			
-			close_hls();
+			//close_hls();
 		}
 	}
 	
@@ -1179,20 +1259,27 @@ public class ClipListActivity extends Activity implements
 			mDLNA.Play(mDlnaDeviceUUID);
 	}
 	
-	private int fake_pos = 1800 * 1000;
-	
 	public void seekTo(int pos) {
 		if (mPlayer != null) {
-			mPlayer.seekTo(pos);
-			
-			if (mIsLivePlay)
-				fake_pos = pos;
+			if (mIsLivePlay) {
+				int new_duration = mPlayer.getDuration();
+				int offset = new_duration - 1800 * 1000;
+				pos += offset;
+				if (pos > new_duration)
+					pos = new_duration;
+				if (pos < offset)
+					pos = offset;
+				mPlayer.seekTo(pos);
+			}
+			else {
+				mPlayer.seekTo(pos);
+			}
 			
 			// update mBufferingPertent
 			mBufferingPertent = pos * 100 / mPlayer.getDuration() + 1;
 			if (mBufferingPertent > 100)
 				mBufferingPertent = 100;
-			Log.d(TAG, "onBufferingUpdate: seekTo " + mBufferingPertent);
+			Log.i(TAG, "onBufferingUpdate: seekTo " + mBufferingPertent);
 		}
 		
 		if (mSubtitleParser != null) {
@@ -1238,12 +1325,11 @@ public class ClipListActivity extends Activity implements
 		
 		int pos = mPlayer.getCurrentPosition();
 		if (mIsLivePlay) {
-			/*int new_duration = mPlayer.getDuration();
+			int new_duration = mPlayer.getDuration();
 			int offset = new_duration - 1800 * 1000;
 			pos -= offset;
 			if (pos > 1800 * 1000)
-				pos = 1800 * 1000;*/
-			return fake_pos;
+				pos = 1800 * 1000;
 		}
 		
 		Log.d(TAG, String.format("Java: getCurrentPosition %d %d msec", mPlayer.getCurrentPosition(), pos));
@@ -1352,8 +1438,12 @@ public class ClipListActivity extends Activity implements
 			case MSG_EPG_DETAIL_DONE:
 			case MSG_EPG_LIST_DONE:
 				if (mEPGLinkList.size() == 1) {
-					add_list_history(mEPGLinkList.get(0).getTitle(), Integer.valueOf(mEPGLinkList.get(0).getId()));
-
+					boolean ret = add_list_history(mEPGLinkList.get(0).getTitle(), 
+							Integer.valueOf(mEPGLinkList.get(0).getId()));
+					
+					if (!ret)
+						Toast.makeText(ClipListActivity.this, "failed to save play history", Toast.LENGTH_SHORT).show();
+					
 					Toast.makeText(
 							ClipListActivity.this,
 							String.format("\"%s\" was selected", mEPGLinkList.get(0).getTitle()),
@@ -1586,7 +1676,9 @@ public class ClipListActivity extends Activity implements
 						et_playlink.setText(String.valueOf(vid));
 						Log.i(TAG, "Java: live id " + vid);
 						
-						add_list_history(mEPGLinkList.get(whichButton).getTitle(), vid);
+						boolean ret = add_list_history(mEPGLinkList.get(whichButton).getTitle(), vid);
+						if (!ret)
+							Toast.makeText(ClipListActivity.this, "failed to save play history", Toast.LENGTH_SHORT).show();
 						
 						Toast.makeText(ClipListActivity.this, String.format("live channel %s(%d) was set",
 								mEPGLinkList.get(whichButton).getTitle(), vid), Toast.LENGTH_SHORT).show();
@@ -1956,7 +2048,7 @@ public class ClipListActivity extends Activity implements
 		else
 			noVideoMenuItem.setEnabled(false);
 		if (mIsNoVideo)
-			loopMenuItem.setChecked(false);
+			noVideoMenuItem.setChecked(false);
 		
 		commonMenu.add(Menu.NONE, OPTION_COMMON_MEETVIEW, Menu.FIRST + 3, "test view");
 		
@@ -1996,6 +2088,7 @@ public class ClipListActivity extends Activity implements
 			else
 				item.setChecked(true);
 			mIsPreview = !mIsPreview;
+			Util.writeSettingsInt(this, "isPreview", mIsPreview ? 1 : 0);
 			break;
 		case OPTION_COMMON_LOOP:
 			if (mIsLoop)
@@ -2003,6 +2096,7 @@ public class ClipListActivity extends Activity implements
 			else
 				item.setChecked(true);
 			mIsLoop = !mIsLoop;
+			Util.writeSettingsInt(this, "isLoop", mIsLoop ? 1 : 0);
 			break;
 		case OPTION_COMMON_NO_VIDEO:
 			if (mIsNoVideo) {
@@ -2014,6 +2108,7 @@ public class ClipListActivity extends Activity implements
 				imageNoVideo.setVisibility(View.VISIBLE);
 			}
 			mIsNoVideo = !mIsNoVideo;
+			Util.writeSettingsInt(this, "IsNoVideo", mIsNoVideo ? 1 : 0);
 			break;
 		case OPTION_COMMON_MEETVIEW:
 			Intent intent = new Intent(ClipListActivity.this, MeetViewActivity.class);
@@ -2032,8 +2127,7 @@ public class ClipListActivity extends Activity implements
 			break;
 		case OPTION_EPG_SEARCH:
 			final EditText inputKey = new EditText(this);
-			SharedPreferences settings = getSharedPreferences(PREF_NAME, MODE_PRIVATE); // create it if NOT exist
-        	String last_key = settings.getString("last_searchkey", "阿仁");
+        	String last_key = Util.readSettings(this, "last_searchkey");
         	Log.i(TAG, "Java last_key: " + last_key);
         	inputKey.setText(last_key);
 			inputKey.setHint("input search key");
@@ -2044,13 +2138,9 @@ public class ClipListActivity extends Activity implements
 	        builder.setPositiveButton("Ok", new DialogInterface.OnClickListener() {
 
 	            public void onClick(DialogInterface dialog, int which) {
-	            	SharedPreferences settings = getSharedPreferences(PREF_NAME, MODE_PRIVATE); // create it if NOT exist
-	            	SharedPreferences.Editor editor = settings.edit();
-		
 	            	mEPGsearchKey = inputKey.getText().toString();
 	            	Log.i(TAG, "Java save last_key: " + mEPGsearchKey);
-	            	editor.putString("last_searchkey", mEPGsearchKey);
-	            	editor.commit();
+	            	Util.writeSettings(ClipListActivity.this, "last_searchkey", mEPGsearchKey);
 					
 	            	Toast.makeText(ClipListActivity.this, "search epg...", Toast.LENGTH_SHORT).show();
 	            	mEPGlistStartPage = 1;
@@ -2483,11 +2573,10 @@ public class ClipListActivity extends Activity implements
 	};
 	
 	boolean add_list_history(String title, int playlink) {
-		SharedPreferences sp = getSharedPreferences(PREF_NAME, MODE_PRIVATE);
 		String key = "PlayHistory";
 		String regularEx = ",";
 		String values;
-	    values = sp.getString(key, "");
+	    values = Util.readSettings(this, key);
 	    
 	    Log.i(TAG, "Java: PlayHistory read: " + values);
 	    String []str = values.split(regularEx);
@@ -2509,12 +2598,8 @@ public class ClipListActivity extends Activity implements
 	    save_values.append("|");
 	    save_values.append(playlink);
 		
-	    SharedPreferences.Editor et = sp.edit();
-		//Log.d(TAG, "Java: PlayHistory write: " + save_values.toString());
-		et.putString(key, save_values.toString());
-		et.commit();
-		
-		return true;
+	    //Log.d(TAG, "Java: PlayHistory write: " + save_values.toString());
+	    return Util.writeSettings(this, key, save_values.toString());
 	}
 	
 	private boolean initDLNA() {
@@ -2685,13 +2770,6 @@ public class ClipListActivity extends Activity implements
 		mSubtitleSeeking = false;
 	}
 	// end of "callback of subtitle"
-	
-	private final class MySimpleMediaController extends MediaController {
-
-	    private MySimpleMediaController(Context context) {
-	        super(new ContextThemeWrapper(context, R.style.MyPlayerTheme));
-	    }
-	}
 	
 	static {
 		//System.loadLibrary("lenthevcdec");

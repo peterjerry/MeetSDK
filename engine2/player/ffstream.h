@@ -85,6 +85,7 @@ public:
 
 	int64_t getDurationMs();
 
+	// absolute positon(not cached length)
 	int64_t getCachedDurationMs(){return mCachedDurationMs;}
 
 	int64_t getStartTime(){return mStartTimeMs;}
@@ -166,15 +167,11 @@ private:
 	int32_t mAudioStreamIndex;
 	AVStream* mAudioStream;
     PacketQueue mAudioQueue;
-    //pthread_mutex_t mAudioQueueLock;
-	//int32_t mAudioBufferSize;
 
 	//video
 	int32_t mVideoStreamIndex;
 	AVStream* mVideoStream;
     PacketQueue mVideoQueue;
-    //pthread_mutex_t mVideoQueueLock;
-	//int32_t mVideoBufferSize;
 
 	//subtitles
 	int32_t			mSubtitleStreamIndex;

@@ -1,5 +1,6 @@
 测试片子
-http://127.0.0.1:9006/record.m3u8?type=pplive3&playlink=38701%3Fft%3D1%26name%3D6699b6ab460a415ea7d0dfab96195baf%26svrhost%3D60.55.12.168%3A80%26svrtime%3D1421216679%26delaytime%3D0%26bitrate%3D400%26interval%3D5%26bwtype%3D0%26sdkmode%3D0%26livepath%3D%2Flive%26begin_time%3D1421029885%26end_time%3D1421042495%26type%3Dipptv%26platform%3Daph%26appplt%3Daph%26appid%3DPPTVIBOBO%26appver%3D2.0.2&realtime=low&serialnum=1
+http://60.55.12.135:80/2edb8f3b840171234f5eea4aa07ad712.m3u8?w=1&key=93331b0993f1e66d94e259e7600e06f1&k=bbae05ac17771c45d631fdc6b0e1a257-620b-1423230772&type=phone.android.vip&vvid=877a4382-f0e4-49ed-afea-8d59dbd11df1&sv=4.1.3&platform=android3&ft=1&accessType=wifi
+
 rtsp 广西卫视
 rtsp://127.0.0.1:5154/play.es?type=pplive3&playlink=300178%3Fft%3D1%26bwtype%3D0%26platform%3Dandroid3%26type%3Dphone.android.vip%26bitrate%3D1200
 rtsp 江苏卫视
@@ -11,4 +12,8 @@ rtsp://127.0.0.1:5154/play.es?type=pplive3&playlink=300156%3Fft%3D1%26bwtype%3D0
 myFTP
 ftp://u455123614.wnpllrzodiac:daqiao1@ftp.iloveyaya.zz.vc/test/[SumiSora][Mayoi_Neko_OVERRUN][BDRip][SP][04][BIG5][PSP_480P].mp4
 xxxxx
-http://127.0.0.1:9006/record.m3u8?type=ppvod2&playlink=17275701%3Fft%3D0%26bwtype%3D0%26platform%3Dandroid3%26type%3Dphone.android
+http://127.0.0.1:9006/record.m3u8?mux.M3U8.segment_duration=5&serialnum=3&type=ppvod2&playlink=10302145%3Fft%3D0%26bwtype%3D0%26platform%3Dandroid3%26type%3Dphone%2Eandroid%2Evip%26sv%3D4%2E2%2E0%26video%3Dtrue%26p2p%2Eadvtime%3D0
+yyyy
+http://172.16.204.106/test/testcase/kalin_piaoxue.ape
+
+

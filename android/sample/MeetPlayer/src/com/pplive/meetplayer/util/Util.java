@@ -6,6 +6,7 @@ import java.io.FileOutputStream;
 import java.io.InputStream;
 
 import android.content.Context;
+import android.content.SharedPreferences;
 import android.os.Environment;
 import android.pplive.media.MeetSDK;
 import android.util.Log;
@@ -15,6 +16,7 @@ import com.pplive.sdk.MediaSDK;
 public class Util {
 	private final static String TAG = "Util";
 	
+	private final static String PREF_NAME = "settings";
 	
 	public static boolean startP2PEngine(Context context) {
 		Log.d("Util", "startP2PEngine()");
@@ -28,10 +30,10 @@ public class Util {
 
 		String libPath = "/data/data/com.pplive.meetplayer/lib";
 		MediaSDK.libPath = libPath; // Environment.getExternalStorageDirectory().getAbsolutePath() + "/ppp";
-		MediaSDK.logPath = "/data/data/com.pplive.meetplayer/cache";
+		MediaSDK.logPath = Environment.getExternalStorageDirectory().getAbsolutePath();//"/data/data/com.pplive.meetplayer/cache";
 		MediaSDK.logOn = false;
-		MediaSDK.setConfig("", "HttpManager", "addr", "0.0.0.0:9106+");
-		MediaSDK.setConfig("", "RtspManager", "addr", "0.0.0.0:5156+");
+		MediaSDK.setConfig("", "HttpManager", "addr", "127.0.0.1:9106+");
+		MediaSDK.setConfig("", "RtspManager", "addr", "127.0.0.1:5156+");
 		
 		long ret = -1;
 
@@ -53,6 +55,30 @@ public class Util {
 				ctx.getCacheDir().getParentFile().getAbsolutePath() + "/");
 		// /data/data/com.svox.pico/
 		return MeetSDK.initSDK(ctx, "");
+	}
+	
+	public static boolean writeSettings(Context ctx, String key, String value) {
+		SharedPreferences settings = ctx.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE); // create it if NOT exist
+    	SharedPreferences.Editor editor = settings.edit();
+    	editor.putString(key, value);
+    	return editor.commit();
+	}
+	
+	public static String readSettings(Context ctx, String key) {
+		SharedPreferences settings = ctx.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE); // create it if NOT exist
+    	return settings.getString(key, "");
+	}
+	
+	public static boolean writeSettingsInt(Context ctx, String key, int value) {
+		SharedPreferences settings = ctx.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE); // create it if NOT exist
+    	SharedPreferences.Editor editor = settings.edit();
+    	editor.putInt(key, value);
+    	return editor.commit();
+	}
+	
+	public static int readSettingsInt(Context ctx, String key) {
+		SharedPreferences settings = ctx.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE); // create it if NOT exist
+    	return settings.getInt(key, 0);
 	}
 	
 	public static void copyFile(String oldPath, String newPath) {

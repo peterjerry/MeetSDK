@@ -383,7 +383,7 @@ AVFormatContext* FFStream::open(char* uri)
 		}
 	}
 
-    if(mAudioStreamIndex == -1 && mVideoStreamIndex == -1)
+    if (mAudioStreamIndex == -1 && mVideoStreamIndex == -1)
     {
         LOGE("no audio and video stream!");
         avformat_close_input(&mMovieFile);
@@ -403,7 +403,7 @@ AVFormatContext* FFStream::open(char* uri)
 	LOGI("file duration got: %lld(msec)", mDurationMs);
 
     mFrameRate = 25;//default
-    if(mVideoStream != NULL)
+    if (mVideoStream != NULL)
     {
         AVRational fr;
 		fr = av_guess_frame_rate(mMovieFile, mVideoStream, NULL);
@@ -453,13 +453,13 @@ AVFormatContext* FFStream::open(char* uri)
         if(strstr(uri, "&realtime=high") != NULL || strstr(uri, "?realtime=high") != NULL || strncmp(uri, "rtmp", 4) == 0)
         {
             mRealtimeLevel = LEVEL_HIGH;
-            mMinPlayBufferCount = mFrameRate*FF_PLAYER_MIN_BUFFER_MILISECONDS_BROADCAST_HR/1000;
+            mMinPlayBufferCount = mFrameRate * FF_PLAYER_MIN_BUFFER_MILISECONDS_BROADCAST_HR/1000;
             mMaxPlayBufferMs = FF_PLAYER_MAX_BUFFER_MILISECONDS_BROADCAST_HR;
         }
         else
         {
             mRealtimeLevel = LEVEL_LOW;
-            mMinPlayBufferCount = mFrameRate*FF_PLAYER_MIN_BUFFER_MILISECONDS_BROADCAST_LR/1000;
+            mMinPlayBufferCount = mFrameRate * FF_PLAYER_MIN_BUFFER_MILISECONDS_BROADCAST_LR/1000;
             mMaxPlayBufferMs = FF_PLAYER_MAX_BUFFER_MILISECONDS_BROADCAST_LR;
         }
         LOGI("It is a broadcast stream with mMinPlayBufferCount:%d, mMaxPlayBufferMs:%lld",
@@ -482,7 +482,7 @@ AVFormatContext* FFStream::open(char* uri)
         return NULL;
     }
 
-	if (TYPE_LOCAL_FILE == mUrlType) {
+	if (TYPE_LIVE != mUrlType && TYPE_BROADCAST != mUrlType) {
 		if (AV_NOPTS_VALUE != mMovieFile->start_time)
 			mStartTimeMs = mMovieFile->start_time * 1000 / AV_TIME_BASE;
 		else
@@ -804,26 +804,39 @@ void FFStream::thread_impl()
                     mVideoQueue.put(flushVideoPkt);
                 }
 
+				mCachedDurationMs = mSeekTimeMs;
                 mSeeking = false;
                 LOGI("send event MEDIA_SEEK_COMPLETE");
                 notifyListener_l(MEDIA_SEEK_COMPLETE);
                 continue;
             } // end of isSeeking
 
-            if (mIsBuffering &&
-                ((mAudioStream != NULL) ? (mAudioQueue.count() > mMinPlayBufferCount) : true) &&
-                ((mVideoStream != NULL) ? (mVideoQueue.count() > mMinPlayBufferCount) : true))
-            {
-				// packet queue is enough for play
-                mIsBuffering = false;
-				int64_t offset = (mMovieFile->pb ? avio_tell(mMovieFile->pb) : 0);
+			// video queue count == frame
+			// but audio queue count NOT
+            if (mIsBuffering) {
+				bool video_enough = ((mVideoStream != NULL) ? (mVideoQueue.count() > mMinPlayBufferCount) : true);
+				bool audio_enough = false;
+				if (mAudioStream == NULL)
+					audio_enough = true;
+				else {
+					double min_duration = mMinPlayBufferCount * 1000 / (double)mFrameRate;
+					double a_duration = mAudioQueue.duration() * 1000 / av_q2d(mAudioStream->time_base);
+					if (a_duration >= min_duration)
+						audio_enough = true;
+				}
+				
+				if ( video_enough && audio_enough) {
+					// packet queue is enough for play
+					mIsBuffering = false;
+					int64_t offset = (mMovieFile->pb ? avio_tell(mMovieFile->pb) : 0);
 #ifdef _MSC_VER	
-                LOGI("MEDIA_INFO_BUFFERING_END, offset %I64d", offset);
+					LOGI("MEDIA_INFO_BUFFERING_END, offset %I64d", offset);
 #else
-				LOGI("MEDIA_INFO_BUFFERING_END, offset %lld", offset);
+					LOGI("MEDIA_INFO_BUFFERING_END, offset %lld", offset);
 #endif
-                notifyListener_l(MEDIA_INFO, MEDIA_INFO_BUFFERING_END);
-            }
+					notifyListener_l(MEDIA_INFO, MEDIA_INFO_BUFFERING_END);
+				}
+			}
 
             LOGD("mBufferSize:%d", mBufferSize);
             if (mBufferSize > mMaxBufferSize)
@@ -981,26 +994,23 @@ void FFStream::thread_impl()
             	LOGD("audio Packet->dts:%lld ms", dts);
 #endif
                 int64_t duration = (int64_t)(mAudioQueue.duration() * 1000 * av_q2d(mAudioStream->time_base));
-                LOGD("audio duration:%lld", duration);
+                LOGD("audio duration: %lld", duration);
                 if (!mDelaying || duration < mMaxPlayBufferMs) {
                     mAudioQueue.put(pPacket);
                     mBufferSize += pPacket->size;
 
                     //update cached duration
                     int64_t packetPTS = 0;
-                    if(pPacket->pts == AV_NOPTS_VALUE) {
-                        LOGD("pPacket->pts is AV_NOPTS_VALUE");
+                    if (pPacket->pts == AV_NOPTS_VALUE)
                         packetPTS = pPacket->dts;
-                    }
-                    else {
+                    else
                         packetPTS = pPacket->pts;
-                    }
 
-                    if (packetPTS == AV_NOPTS_VALUE) {
+                    if (packetPTS == AV_NOPTS_VALUE) // aggregate value
                         mCachedDurationMs += (int64_t)((double)pPacket->duration * 1000 * av_q2d(mAudioStream->time_base));
-                    }
-                    mCachedDurationMs = (int64_t)(packetPTS * 1000 * av_q2d(mAudioStream->time_base));
-                    LOGD("mCachedDurationMs:%lld", mCachedDurationMs);
+                    else // absolute value
+						mCachedDurationMs = (int64_t)(packetPTS * 1000 * av_q2d(mAudioStream->time_base));
+                    LOGD("mCachedDurationMs: %lld", mCachedDurationMs);
                 }
                 else {
                     av_free_packet(pPacket);
@@ -1247,14 +1257,25 @@ void FFStream::notifyListener_l(int msg, int ext1, int ext2)
 
 status_t FFStream::getBufferingTime(int *msec)
 {
-    if (mBufferSize <= 0 || mVideoQueue.count() == 0) {
+    if (mBufferSize <= 0) {
 		LOGI("Buffer is zero");
         *msec = 0;
     }
     else {
-        uint32_t cacheMs = mVideoQueue.count()*1000 / mFrameRate;
-        *msec = cacheMs;
+		if (mVideoStream == NULL) {
+			if (mAudioStream == NULL)
+				*msec = 0;
+			else {
+				uint32_t cacheMs = (uint32_t)(mAudioQueue.duration() * 1000 * av_q2d(mAudioStream->time_base));
+				*msec = cacheMs;
+			}
+		}
+		else {
+			uint32_t cacheMs = mVideoQueue.count() * 1000 / mFrameRate;
+			*msec = cacheMs;
+		}
     }
+
     //LOGI("buffering time: %d[ms]", *msec);
     return OK;
 }

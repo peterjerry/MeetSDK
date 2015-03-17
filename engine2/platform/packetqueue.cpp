@@ -13,8 +13,9 @@
 PacketQueue::PacketQueue()
 {
     mCachedSize = 0;
-    mCount = 0;
-    mDuration = 0;
+    mCount		= 0;
+    mDuration	= 0;
+	mLastPTS	= AV_NOPTS_VALUE;
 	pthread_mutex_init(&mLock, NULL);
 }
 
@@ -36,7 +37,11 @@ status_t PacketQueue::put(AVPacket* pkt)
     mCachedSize += pkt->size;
     mCount++;
     LOGD("mCount:%d", mCount);
-    mDuration+=pkt->duration;
+	if (pkt->duration == 0 && mLastPTS != AV_NOPTS_VALUE && pkt->pts != AV_NOPTS_VALUE)
+		mDuration += (pkt->pts - mLastPTS);
+    else
+		mDuration += pkt->duration;
+	mLastPTS = pkt->pts;
     LOGD("mDuration:%lld", mDuration);
 	
     return OK;
