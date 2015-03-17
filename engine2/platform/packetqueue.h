@@ -19,6 +19,7 @@ public:
 	
 	status_t put(AVPacket* pkt);
 	AVPacket* get();
+	AVPacket* peek();
 	uint32_t size();
 	uint32_t count();
 	void flush();

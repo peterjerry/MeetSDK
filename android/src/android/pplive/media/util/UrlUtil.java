@@ -29,9 +29,17 @@ public class UrlUtil {
 		return null == url ? false : sRegNuMediaPlaySupportUrl.matcher(url.trim()).matches();
 	}
 	
-	public static boolean isXOMediaPlayerSupportUrl(String url) {
+	public static boolean isUseSystemExtractor(String url) {
+		return false;
 		
-		return null == url ? false : sRegNuMediaPlaySupportUrl.matcher(url.trim()).matches();
+		/*String url_lower = url.toLowerCase();
+		if (url_lower.startsWith("http://")) {
+			if (url_lower.indexOf(".m3u8") != -1)
+				return false;
+		}
+		
+		return true;*/
+		//return null == url ? false : sRegNuMediaPlaySupportUrl.matcher(url.trim()).matches();
 	}
 	
 	public static boolean isOnlinePlayUrl(String url) {

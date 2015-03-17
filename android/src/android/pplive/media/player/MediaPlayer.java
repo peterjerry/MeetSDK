@@ -665,6 +665,15 @@ public class MediaPlayer implements MediaPlayerInterface {
 	 * Some operation takes too long to complete, usually more than 3-5 seconds.
 	 */
 	public static final int MEDIA_ERROR_TIMED_OUT = -110;
+	
+	public static final int MEDIA_ERROR_AUDIO_PLAYER 	= 311;
+	public static final int MEDIA_ERROR_AUDIO_RENDER 	= 312;
+	public static final int MEDIA_ERROR_VIDEO_PLAYER 	= 313;
+	public static final int MEDIA_ERROR_VIDEO_RENDER 	= 314;
+	public static final int MEDIA_ERROR_DEMUXER		= 315;
+	
+	public static final int MEDIA_ERROR_AUDIO_DECODER = 321;
+	public static final int MEDIA_ERROR_VIDEO_DECODER = 322;
 
 	/**
 	 * Interface definition of a callback to be invoked when there has been an

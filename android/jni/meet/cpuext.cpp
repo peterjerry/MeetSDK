@@ -21,7 +21,7 @@ int get_cpu_freq(void)
 	const char* filename = "/sys/devices/system/cpu/cpu0/cpufreq/cpuinfo_max_freq";
 	int filelen = read_file(filename, data, len);
 	if (filelen < 0) {
-		LOGE("Could not read %s: %s\n", filename, strerror(errno));
+		PPLOGE("Could not read %s: %s\n", filename, strerror(errno));
 		return 0;
 	}
 	else
@@ -32,7 +32,7 @@ int get_cpu_freq(void)
 	int cpuFreq = 0;
 	if(parse_decimal(data, data+filelen-1, &cpuFreq) == NULL)
 	{
-		LOGE("parse cpu freq failed");
+		PPLOGE("parse cpu freq failed");
 	}
 	return cpuFreq;
 }

@@ -2,7 +2,7 @@
  * Copyright (C) 2015 Michael ma guoliangma@pptv.com
  *
  */
-
+#include "FFMediaPlayer.h"
 #include <stdio.h>
 #include <stdlib.h> // for atoi
 #include <fcntl.h> // for access R_OK
@@ -19,6 +19,8 @@
 #include "subtitle.h"
 #include "player/player.h"
 #include "cpuext.h" // for get_cpu_freq()
+#include "FFMediaExtractor.h" // for extractor
+#include "jniUtils.h"
 
 #define USE_NDK_SURFACE_REF
 
@@ -32,7 +34,6 @@
 #define LEVEL_SOFTWARE_BD				5 // LEVEL_SOFTWARE_LANGUANG
 
 #define LOG_FATAL_IF(cond, ...) if (cond) { PPLOGE(__VA_ARGS__); return -1;}
-#define NELEM(x) ((int) (sizeof(x) / sizeof((x)[0])))
 
 struct fields_t {
 	jfieldID    context;
@@ -50,82 +51,26 @@ static pthread_mutex_t sLock;
 
 static bool sInited = false;
 
-class Surface;
+extern JavaVM *gs_jvm;
 
-JavaVM *gs_jvm = NULL;
+class Surface;
 
 PlatformInfo* gPlatformInfo = NULL;
 
 static void* player_handle_software = NULL;
-static void* player_handle_hardware = NULL;
 
 // new
 typedef IPlayer* (*GET_PLAYER_FUN) (void*);
+typedef void (*RELEASE_PLAYER_FUN) (IPlayer *);
 
 GET_PLAYER_FUN getPlayerFun = NULL; // function to NEW player instance
+RELEASE_PLAYER_FUN releasePlayerFun = NULL; // function to DELETE player instance
 
 static int jniThrowException(JNIEnv* env, const char* className, const char* msg);
 
-// util method
-#define vstrcat(first, ...) (vstrcat_impl(first, __VA_ARGS__, (char*)NULL))
+static void unloadPlayerLib(void** handler);
 
-static
-char* vstrcat_impl(const char* first, ...)
-{
-	size_t len = 0;
-	char* buf = NULL;
-	va_list args;
-	char* p = NULL;
-
-
-	if (first == NULL)
-		return NULL;
-
-	len = strlen(first);
-
-	va_start(args, first);
-	while((p = va_arg(args, char*)) != NULL)
-		len += strlen(p);
-	va_end(args);
-
-	buf = (char *)malloc(len + 1);
-
-	strcpy(buf, first);
-
-	va_start(args, first);
-	while((p = va_arg(args, char*)) != NULL)
-		strcat(buf, p);
-	va_end(args);
-
-	return buf;
-}
-
-static char* jstr2cstr(JNIEnv* env, const jstring jstr)
-{
-	char* cstr = NULL;
-	if (env != NULL)
-	{
-		const char* tmp = env->GetStringUTFChars(jstr, NULL);
-		const size_t len = strlen(tmp) + 1;
-		cstr = (char*)malloc(len);
-		memset(cstr, 0, len);
-		snprintf(cstr, len, "%s", tmp);
-		env->ReleaseStringUTFChars(jstr, tmp);
-	}
-
-	return cstr;
-}
-
-static jstring cstr2jstr(JNIEnv* env, const char* cstr)
-{
-	jstring jstr = NULL;
-	if (env != NULL && cstr != NULL)
-	{
-		jstr = env->NewStringUTF(cstr);
-	}
-
-	return jstr;
-}
+static bool loadPlayerLib();
 
 static
 const char* getCodecLibName(uint64_t cpuFeatures)
@@ -176,21 +121,6 @@ const char* getCodecLibName(uint64_t cpuFeatures)
 	}
 
 	return codecLibName;
-}
-
-
-JNIEnv* getJNIEnvPP()
-{
-	if (gs_jvm==NULL)
-		return NULL;
-	JNIEnv* env = NULL;
-
-	if (gs_jvm->GetEnv((void**) &env, JNI_VERSION_1_4) != JNI_OK)
-	{
-		return NULL;
-	}
-
-	return env;
 }
 
 int jniRegisterNativeMethodsPP(JNIEnv* env, const char* className, const JNINativeMethod* gMethods, int numMethods)
@@ -346,7 +276,7 @@ android_media_MediaPlayer_setDataSourceAndHeaders(
 
 	const char *pathStr = env->GetStringUTFChars(path, NULL);
 	if (pathStr == NULL) {  // Out of memory
-		jniThrowException(env, "java/lang/RuntimeException", "Path is NULL.");
+		jniThrowException(env, "java/lang/RuntimeException", "GetStringUTFChars: Out of memory");
 		return;
 	}
 
@@ -786,18 +716,17 @@ char* getCStringFromJavaStaticStringField(JNIEnv* env, const char* clazz_name, c
 	return cstr;
 }
 
+// called when MeetSDK.initSDK() call initPlayer()
 // This function gets some field IDs, which in turn causes class initialization.
 // It is called from a static block in MediaPlayer, which won't run until the
 // first time an instance of this class is used.
 static
-void android_media_MediaPlayer_native_init(JNIEnv *env, jobject thiz, jboolean startP2PEngine)
+jboolean android_media_MediaPlayer_native_init(JNIEnv *env, jobject thiz)
 {
-	(void)startP2PEngine;
+	if (sInited)
+		return true;
 
 	PPLOGI("native_init");
-
-	if (sInited)
-		return;
 
 	if (gPlatformInfo)
 		delete gPlatformInfo;
@@ -853,14 +782,20 @@ void android_media_MediaPlayer_native_init(JNIEnv *env, jobject thiz, jboolean s
 
 	fields.context = env->GetFieldID(clazz, "mNativeContext", "I");
 	if (fields.context == NULL)
-		jniThrowException(env, "java/lang/RuntimeException", "Can't find MediaPlayer.mNativeContext");
+		jniThrowException(env, "java/lang/RuntimeException", "Can't find FFMediaPlayer.mNativeContext");
 
 	fields.post_event = env->GetStaticMethodID(clazz, "postEventFromNative",
 			"(Ljava/lang/Object;IIILjava/lang/Object;)V");
 	if (fields.post_event == NULL)
-		jniThrowException(env, "java/lang/RuntimeException", "Can't find MediaPlayer.postEventFromNative");
+		jniThrowException(env, "java/lang/RuntimeException", "Can't find FFMediaPlayer.postEventFromNative");
+
+	if (!loadPlayerLib()) {
+		jniThrowException(env, "java/lang/RuntimeException", "Load Library Failed!!!");
+		return false;
+	}
 
 	sInited = true;
+	return true;
 }
 
 static
@@ -887,17 +822,12 @@ static void unloadPlayerLib(void** handler)
 	}
 }
 
-static
-bool loadPlayerLib(bool generalPlayer) // use ffplay if true, use ppplayer if false(decode ppbox demux data from API call)
+static bool loadPlayerLib()
 {
 	PPLOGI("loadPlayerLib");
 
 	void** player_handle = NULL; // handle to shared library
 	player_handle = &player_handle_software;
-
-	if (*player_handle && getPlayerFun) {// already loaded
-		return true;
-	}
 
 	if (NULL == gPlatformInfo) {
 		PPLOGE("PlatformInfo is null");
@@ -951,40 +881,27 @@ bool loadPlayerLib(bool generalPlayer) // use ffplay if true, use ppplayer if fa
 		return false;
 	}
 
+	releasePlayerFun = (RELEASE_PLAYER_FUN)dlsym(*player_handle, "releasePlayer");
+	if (releasePlayerFun == NULL) {
+		PPLOGE("Init releasePlayer() failed: %s", dlerror());
+		return false;
+	}
+
+	if (!setup_extractor(*player_handle))
+		return false;
+
 	PPLOGD("After init getPlayer()");
 
 	return true;
 }
 
-static bool loadLibraies(bool generalPlayer)
-{
-	PPLOGI("loadLibraies()");
-
-	bool ret;
-	ret	= loadPlayerLib(generalPlayer);
-	if (!ret) {
-		LOGE("failed to load player lib");
-		return false;
-	}
-		
-	return true;
-}
-
+// callled when new FFMediaPlayer
 static
-void android_media_MediaPlayer_native_setup(JNIEnv *env, jobject thiz, jobject weak_this, bool generalPlayer)
+void android_media_MediaPlayer_native_setup(JNIEnv *env, jobject thiz, jobject weak_this)
 {
 	PPLOGI("native_setup");
 
-	if (!loadLibraies(generalPlayer))
-	{
-		jniThrowException(env, "java/lang/RuntimeException", "Load Library Failed!!!");
-		return;
-	}
-
-	if(getPlayerFun == NULL) {
-		jniThrowException(env, "java/lang/RuntimeException", "\"getPlayer()\" method init failed.");
-		return;
-	}
+	pthread_mutex_init(&sLock, NULL);
 
 	IPlayer* mp = getPlayerFun((void*)gPlatformInfo);
 	if (mp == NULL) {
@@ -1005,28 +922,20 @@ void android_media_MediaPlayer_native_setup(JNIEnv *env, jobject thiz, jobject w
 static
 void android_media_MediaPlayer_release(JNIEnv *env, jobject thiz)
 {
-	PPLOGD("++++++++ release 1");
-	IPlayer* mp = setMediaPlayer(env, thiz, 0);
-	PPLOGD("++++++++ release 2");
-	if (mp != NULL)
-	{
-		delete mp;
-		PPLOGD("++++++++ release 5");
-	}
-    if (gPlatformInfo != NULL)
-    {
+	PPLOGI("release()");
+
+	IPlayer* mp = setMediaPlayer(env, thiz, NULL);
+	releasePlayerFun(mp);
+
+    if (gPlatformInfo != NULL) {
 		if (gPlatformInfo->javaSurface != NULL) {
 			env->DeleteGlobalRef(gPlatformInfo->javaSurface);
 			gPlatformInfo->javaSurface = NULL;
 		}
     }
-}
 
-static
-void android_media_MediaPlayer_native_finalize(JNIEnv *env, jobject thiz)
-{
-	PPLOGV("native_finalize");
-	//android_media_MediaPlayer_release(env, thiz);
+	pthread_mutex_destroy(&sLock);
+	PPLOGI("release done!");
 }
 
 static jint
@@ -1068,15 +977,7 @@ static bool native_checkCompatibility_software()
 	if ((cpuFeatures & ANDROID_CPU_ARM_FEATURE_NEON) != 0 ||
 			(cpuFeatures & ANDROID_CPU_ARM_FEATURE_ARMv7) != 0) // (cpuFeatures & ANDROID_CPU_ARM_FEATURE_VFP) != 0
 	{
-		if(loadPlayerLib(true))
-		{
-			IPlayer* mp = getPlayerFun((void*)gPlatformInfo);
-			if(mp != NULL)
-			{
-				ret = (mp->startCompatibilityTest()==OK)?true:false;
-				delete mp;
-			}
-		}
+		ret = true;
 	}
 	return ret;
 }
@@ -1183,45 +1084,37 @@ static jboolean
 android_media_MediaPlayer_native_getMediaInfo(JNIEnv *env, jobject thiz, jstring js_media_file_path, jobject info)
 {
 	bool ret = false;
-	if (loadPlayerLib(true))
+
+	IPlayer* mp = getPlayerFun((void*)gPlatformInfo);
+	if (mp == NULL)
 	{
-		IPlayer* mp = getPlayerFun((void*)gPlatformInfo);
-		if (mp == NULL)
-		{
-			PPLOGE("Player init failed.");
-			return false;
-		}
-
-		const char* url = jstr2cstr(env, js_media_file_path);
-		MediaInfo native_info;
-		ret = mp->getMediaInfo(url, &native_info);
-		if (!ret)
-		{
-			PPLOGE("Get MediaInfo failed: %s", url);
-		}
-		else
-		{
-			PPLOGD("Get MediaInfo succeed.");
-			jclass clazz = env->FindClass("android/pplive/media/player/MediaInfo");
-			jfieldID f_path = env->GetFieldID(clazz, "mPath", "Ljava/lang/String;");
-			jfieldID f_duration = env->GetFieldID(clazz, "mDurationMS", "J");
-			jfieldID f_size = env->GetFieldID(clazz, "mSizeByte", "J");
-			//jfieldID f_audio_channels = env->GetFieldID(clazz, "mAudioChannels", "I");
-			//jfieldID f_video_channels = env->GetFieldID(clazz, "mVideoChannels", "I");
-
-			env->SetObjectField(info, f_path, js_media_file_path);
-			env->SetLongField(info, f_duration, native_info.duration_ms);
-			env->SetLongField(info, f_size, native_info.size_byte);
-			//env->SetIntField(info, f_audio_channels, native_info.audio_channels);
-			//env->SetIntField(info, f_video_channels, native_info.video_channels);
-		}
-
-		if (mp != NULL)
-		{
-			delete mp;
-			mp = NULL;
-		}
+		PPLOGE("Player init failed.");
+		return false;
 	}
+
+	const char* url = jstr2cstr(env, js_media_file_path);
+	MediaInfo native_info;
+	ret = mp->getMediaInfo(url, &native_info);
+	if (!ret) {
+		PPLOGE("Get MediaInfo failed: %s", url);
+	}
+	else {
+		PPLOGD("Get MediaInfo succeed.");
+		jclass clazz = env->FindClass("android/pplive/media/player/MediaInfo");
+		jfieldID f_path = env->GetFieldID(clazz, "mPath", "Ljava/lang/String;");
+		jfieldID f_duration = env->GetFieldID(clazz, "mDurationMS", "J");
+		jfieldID f_size = env->GetFieldID(clazz, "mSizeByte", "J");
+		//jfieldID f_audio_channels = env->GetFieldID(clazz, "mAudioChannels", "I");
+		//jfieldID f_video_channels = env->GetFieldID(clazz, "mVideoChannels", "I");
+
+		env->SetObjectField(info, f_path, js_media_file_path);
+		env->SetLongField(info, f_duration, native_info.duration_ms);
+		env->SetLongField(info, f_size, native_info.size_byte);
+		//env->SetIntField(info, f_audio_channels, native_info.audio_channels);
+		//env->SetIntField(info, f_video_channels, native_info.video_channels);
+	}
+
+	releasePlayerFun(mp);
 
 	return ret;
 }
@@ -1233,11 +1126,6 @@ android_media_MediaPlayer_native_getMediaDetailInfo(JNIEnv *env, jobject thiz, j
 	bool ret = false;
 	
 	//use ffmpeg to get media info
-	if (!loadPlayerLib(true)) {
-		PPLOGE("getMediaDetailInfo: failed to load lib");
-		return false;
-	}	
-	
 	IPlayer* mp = getPlayerFun((void*)gPlatformInfo);
 	if (mp == NULL)
 	{
@@ -1310,11 +1198,7 @@ android_media_MediaPlayer_native_getMediaDetailInfo(JNIEnv *env, jobject thiz, j
 		PPLOGE("Get MediaDetailInfo failed.");
 	}
 
-	if (mp != NULL)
-	{
-		delete mp;
-		mp = NULL;
-	}
+	releasePlayerFun(mp);
 
 	return ret;
 }
@@ -1323,76 +1207,66 @@ static jboolean
 android_media_MediaPlayer_native_getThumbnail(JNIEnv *env, jobject thiz, jstring js_media_file_path, jobject info)
 {
 	bool ret = false;
-	if (loadPlayerLib(true))
-	{
-		IPlayer* mp = getPlayerFun((void*)gPlatformInfo);
-		if (mp == NULL)
-		{
-			PPLOGE("Player init failed.");
-			return false;
-		}
+	IPlayer* mp = getPlayerFun((void*)gPlatformInfo);
+	if (mp == NULL) {
+		PPLOGE("Player init failed.");
+		return false;
+	}
 
-		const char* url = jstr2cstr(env, js_media_file_path);
-		MediaInfo native_info;
-		bool isSuccess = mp->getThumbnail(url, &native_info);
-		if (!isSuccess || native_info.thumbnail == NULL)
-		{
-		    if(native_info.thumbnail != NULL)
-            {
-                free(native_info.thumbnail);
-                native_info.thumbnail = NULL;
-            }
-			PPLOGE("Get Thumbnail failed: %s", url);
-		}
-		else
-		{
-			jclass clazz = env->FindClass("android/pplive/media/player/MediaInfo");
-			jfieldID f_path = env->GetFieldID(clazz, "mPath", "Ljava/lang/String;");
-			jfieldID f_duration = env->GetFieldID(clazz, "mDurationMS", "J");
-			jfieldID f_size = env->GetFieldID(clazz, "mSizeByte", "J");
-			jfieldID f_width = env->GetFieldID(clazz, "mWidth", "I");
-			jfieldID f_height = env->GetFieldID(clazz, "mHeight", "I");
-			jfieldID f_format = env->GetFieldID(clazz, "mFormatName", "Ljava/lang/String;");
-			// fix me!!!
-			//jfieldID f_audio = env->GetFieldID(clazz, "mAudioName", "Ljava/lang/String;");
-			jfieldID f_videocodec = env->GetFieldID(clazz, "mVideoCodecName", "Ljava/lang/String;");
-			jfieldID f_thumbnailwidth = env->GetFieldID(clazz, "mThumbnailWidth", "I");
-			jfieldID f_thumbnailheight = env->GetFieldID(clazz, "mThumbnailHeight", "I");
-			jfieldID f_thumbnail = env->GetFieldID(clazz, "mThumbnail", "[I");
-			jfieldID f_audio_channels = env->GetFieldID(clazz, "mAudioChannels", "I");
-			jfieldID f_video_channels = env->GetFieldID(clazz, "mVideoChannels", "I");
-
-			env->SetObjectField(info, f_path, js_media_file_path);
-			env->SetLongField(info, f_duration, native_info.duration_ms);
-			env->SetLongField(info, f_size, native_info.size_byte);
-			env->SetIntField(info, f_width, native_info.width);
-			env->SetIntField(info, f_height, native_info.height);
-			env->SetObjectField(info, f_format, env->NewStringUTF(native_info.format_name));
-			// fix me!!!
-			//env->SetObjectField(info, f_audio, env->NewStringUTF(native_info.audio_name));
-			env->SetObjectField(info, f_videocodec, env->NewStringUTF(native_info.videocodec_name));
-
-			env->SetIntField(info, f_thumbnailwidth, native_info.thumbnail_width);
-			env->SetIntField(info, f_thumbnailheight, native_info.thumbnail_height);
-            int size = native_info.thumbnail_width*native_info.thumbnail_height;
-            jintArray thumbnail = env->NewIntArray(size);
-            env->SetIntArrayRegion(thumbnail,0, size, native_info.thumbnail);
-		    env->SetObjectField(info, f_thumbnail, thumbnail);
-            PPLOGD("get thumbnail success");
+	const char* url = jstr2cstr(env, js_media_file_path);
+	MediaInfo native_info;
+	bool isSuccess = mp->getThumbnail(url, &native_info);
+	if (!isSuccess || native_info.thumbnail == NULL) {
+		if(native_info.thumbnail != NULL)
+        {
             free(native_info.thumbnail);
             native_info.thumbnail = NULL;
-
-			env->SetIntField(info, f_audio_channels, native_info.audio_channels);
-			env->SetIntField(info, f_video_channels, native_info.video_channels);
-            ret = true;
-		}
-
-		if (mp != NULL)
-		{
-			delete mp;
-			mp = NULL;
-		}
+        }
+		PPLOGE("Get Thumbnail failed: %s", url);
 	}
+	else {
+		jclass clazz = env->FindClass("android/pplive/media/player/MediaInfo");
+		jfieldID f_path = env->GetFieldID(clazz, "mPath", "Ljava/lang/String;");
+		jfieldID f_duration = env->GetFieldID(clazz, "mDurationMS", "J");
+		jfieldID f_size = env->GetFieldID(clazz, "mSizeByte", "J");
+		jfieldID f_width = env->GetFieldID(clazz, "mWidth", "I");
+		jfieldID f_height = env->GetFieldID(clazz, "mHeight", "I");
+		jfieldID f_format = env->GetFieldID(clazz, "mFormatName", "Ljava/lang/String;");
+		// fix me!!!
+		//jfieldID f_audio = env->GetFieldID(clazz, "mAudioName", "Ljava/lang/String;");
+		jfieldID f_videocodec = env->GetFieldID(clazz, "mVideoCodecName", "Ljava/lang/String;");
+		jfieldID f_thumbnailwidth = env->GetFieldID(clazz, "mThumbnailWidth", "I");
+		jfieldID f_thumbnailheight = env->GetFieldID(clazz, "mThumbnailHeight", "I");
+		jfieldID f_thumbnail = env->GetFieldID(clazz, "mThumbnail", "[I");
+		jfieldID f_audio_channels = env->GetFieldID(clazz, "mAudioChannels", "I");
+		jfieldID f_video_channels = env->GetFieldID(clazz, "mVideoChannels", "I");
+
+		env->SetObjectField(info, f_path, js_media_file_path);
+		env->SetLongField(info, f_duration, native_info.duration_ms);
+		env->SetLongField(info, f_size, native_info.size_byte);
+		env->SetIntField(info, f_width, native_info.width);
+		env->SetIntField(info, f_height, native_info.height);
+		env->SetObjectField(info, f_format, env->NewStringUTF(native_info.format_name));
+		// fix me!!!
+		//env->SetObjectField(info, f_audio, env->NewStringUTF(native_info.audio_name));
+		env->SetObjectField(info, f_videocodec, env->NewStringUTF(native_info.videocodec_name));
+
+		env->SetIntField(info, f_thumbnailwidth, native_info.thumbnail_width);
+		env->SetIntField(info, f_thumbnailheight, native_info.thumbnail_height);
+        int size = native_info.thumbnail_width*native_info.thumbnail_height;
+        jintArray thumbnail = env->NewIntArray(size);
+        env->SetIntArrayRegion(thumbnail,0, size, native_info.thumbnail);
+		env->SetObjectField(info, f_thumbnail, thumbnail);
+        PPLOGD("get thumbnail success");
+        free(native_info.thumbnail);
+        native_info.thumbnail = NULL;
+
+		env->SetIntField(info, f_audio_channels, native_info.audio_channels);
+		env->SetIntField(info, f_video_channels, native_info.video_channels);
+        ret = true;
+	}
+
+	releasePlayerFun(mp);
 
 	return ret;
 }
@@ -1530,9 +1404,8 @@ static JNINativeMethod gMethods[] = {
 	{"native_setMetadataFilter", "(Landroid/os/Parcel;)I",		(void *)android_media_MediaPlayer_setMetadataFilter},
 	{"native_getMetadata", "(ZZLandroid/os/Parcel;)Z",		(void *)android_media_MediaPlayer_getMetadata},
 	
-	{"native_init",         "(Z)V",					(void *)android_media_MediaPlayer_native_init},
-	{"native_setup",        "(Ljava/lang/Object;Z)V",		(void *)android_media_MediaPlayer_native_setup},
-	{"native_finalize",     "()V",					(void *)android_media_MediaPlayer_native_finalize},
+	{"native_init",         "()Z",					(void *)android_media_MediaPlayer_native_init},
+	{"native_setup",        "(Ljava/lang/Object;)V",		(void *)android_media_MediaPlayer_native_setup},
 	{"snoop",               "([SI)I",				(void *)android_media_MediaPlayer_snoop},
 	{"native_suspend_resume", "(Z)I",				(void *)android_media_MediaPlayer_native_suspend_resume},
 	{"native_checkCompatibility","(ILandroid/view/Surface;)Z",	(void *)android_media_MediaPlayer_native_checkCompatibility},
@@ -1551,11 +1424,20 @@ static JNINativeMethod gMethods[] = {
 
 
 // This function only registers the native methods
-static int register_android_media_MediaPlayer(JNIEnv *env)
+int register_android_media_MediaPlayer(JNIEnv *env)
 {
 	return jniRegisterNativeMethodsPP(env,
 			"android/pplive/media/player/FFMediaPlayer", gMethods, NELEM(gMethods));
+}
 
+void unload_player()
+{
+	unloadPlayerLib(&player_handle_software);
+
+	if (gPlatformInfo != NULL) {
+		delete gPlatformInfo;
+		gPlatformInfo = NULL;
+	}
 }
 
 /*
@@ -1581,14 +1463,14 @@ static int jniThrowException(JNIEnv* env, const char* className, const char* msg
 
     exceptionClass = env->FindClass(className);
     if (exceptionClass == NULL) {
-        LOGE("Unable to find exception class %s\n", className);
+        PPLOGE("Unable to find exception class %s\n", className);
         /* ClassNotFoundException now pending */
         return -1;
     }
 
     int result = 0;
     if (env->ThrowNew(exceptionClass, msg) != JNI_OK) {
-        LOGE("Failed throwing '%s' '%s'\n", className, msg);
+        PPLOGE("Failed throwing '%s' '%s'\n", className, msg);
         /* an exception, most likely OOM, will now be pending */
         result = -1;
     }
@@ -1597,61 +1479,6 @@ static int jniThrowException(JNIEnv* env, const char* className, const char* msg
     return result;
 }
 
-jint JNI_OnLoad(JavaVM* vm, void* reserved)
-{
-	PPLOGI("JNI_OnLoad");
-
-	JNIEnv* env = NULL;
-	jint result = -1;
-
-	if (vm->GetEnv((void**) &env, JNI_VERSION_1_4) != JNI_OK) {
-		LOGE("ERROR: GetEnv failed");
-		goto bail;
-	}
-
-	if (env == NULL) {
-		goto bail;
-	}
-
-	if (register_android_media_MediaPlayer(env) < 0) {
-		LOGE("ERROR: MediaPlayer native registration failed");
-		goto bail;
-	} else {
-
-	}
-
-	//save jvm for multiple thread invoking to java application.
-	gs_jvm = vm;
-
-    pplog_init();
-	
-	pthread_mutex_init(&sLock, NULL);
-
-	/* success -- return valid version number */
-	result = JNI_VERSION_1_4;
-
-bail:
-	return result;
-}
-
-void JNI_OnUnload(JavaVM* vm, void* reserved)
-{
-	PPLOGI("JNI_OnUnload");
-	//stop p2p engine.
-	//PPDataSource::releaseInstance();
-	//PPLOGE("JNI_OnUnload");
-	unloadPlayerLib(&player_handle_hardware);
-	unloadPlayerLib(&player_handle_software);
-
-	if (gPlatformInfo != NULL) {
-		delete gPlatformInfo;
-		gPlatformInfo = NULL;
-	}
-
-	pplog_close();
-
-	pthread_mutex_destroy(&sLock);
-}
 
 
 

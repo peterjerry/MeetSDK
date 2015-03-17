@@ -1,5 +1,6 @@
 package android.pplive.media.player;
 
+import java.io.IOException;
 import java.nio.ByteBuffer;
 
 import android.media.MediaExtractor;
@@ -79,14 +80,14 @@ class DefaultMediaExtractor implements MediaExtractable {
 	}
 
 	@Override
-	public void setDataSource(String path) {
+	public void setDataSource(String path) throws IOException {
 		try{
 			LogUtils.info("Java: setDataSource() " + path);
 			mExtractor.setDataSource(path);
 		}
 		catch (Exception e){
             e.printStackTrace();
-            LogUtils.error("Java: failed to setDataSource() " + path);
+            LogUtils.error("Java: setDataSource() Exception" + path + ", e: " + e.getMessage());
 		}
 	}
 

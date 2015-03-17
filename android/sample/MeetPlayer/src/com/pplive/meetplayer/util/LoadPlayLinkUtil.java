@@ -43,6 +43,8 @@ public class LoadPlayLinkUtil {
 			    
 		    	fin.read(buf);
 		    	String s = new String(buf);
+				// fix win32 txt problem
+		    	s = s.replace("\r\n", "\n");
 
 			    int pos = 0;
 			    while (true) {

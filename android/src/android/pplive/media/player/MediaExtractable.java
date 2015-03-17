@@ -4,6 +4,7 @@
  */
 package android.pplive.media.player;
 
+import java.io.IOException;
 import java.nio.ByteBuffer;
 
 import android.media.MediaFormat;
@@ -42,7 +43,7 @@ interface MediaExtractable {
 	
 	void selectTrack(int index);
 	
-	void setDataSource(String path);
+	void setDataSource(String path) throws IOException;
 	
 //	void setDataSource(String path, Map<String, String> headers);
 	

@@ -19,6 +19,7 @@ class MediaFormatHelper {
 			
 			format = (MediaFormat) constructor.newInstance(new Object[]{map});
 		} catch (Exception e) {
+			e.printStackTrace();
 		    LogUtils.error("Exception", e);
 		}
 		

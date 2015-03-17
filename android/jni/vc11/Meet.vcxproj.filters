@@ -35,9 +35,6 @@
     <Text Include="ReadMe.txt" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\meet\JNIHelp.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="..\meet\pplog.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -48,6 +45,12 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\meet\cpuext.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\meet\FFMediaExtractor.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\meet\jniUtils.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

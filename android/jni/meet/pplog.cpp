@@ -27,13 +27,13 @@ int pplog_init()
 
 	jclass clazz = env->FindClass("android/pplive/media/util/LogUtils");
 	if (NULL == clazz) {
-		LOGE("failed to find class android/pplive/media/util/LogUtils");
+		AND_LOGE("failed to find class android/pplive/media/util/LogUtils");
 		return -1;
 	}
 
 	gs_mid_log = env->GetStaticMethodID(clazz, "nativeLog", "(ILjava/lang/String;Ljava/lang/String;)V");
 	if (NULL == gs_mid_log) {
-		LOGE("failed to find nativeLog methodID");
+		AND_LOGE("failed to find nativeLog methodID");
 		return -1;
 	}
 

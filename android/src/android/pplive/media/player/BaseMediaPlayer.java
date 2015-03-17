@@ -43,7 +43,7 @@ abstract class BaseMediaPlayer implements MediaPlayerInterface {
 	private PlayState mState = PlayState.IDLE;
 	
 	protected enum PlayState {
-		IDLE, INITIALIZED, PREPARING, PREPARED, STARTED, STOPPED, PAUSED, PLAYBACK_COMPLETED, END, ERROR
+		IDLE, INITIALIZED, PREPARING, PREPARED, STARTED, STOPPING, STOPPED, PAUSED, PLAYBACK_COMPLETED, END, ERROR
 	};
 	
 	protected /* synchronized */ void setState(PlayState state) {

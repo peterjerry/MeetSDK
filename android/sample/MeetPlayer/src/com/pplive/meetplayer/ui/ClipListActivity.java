@@ -175,7 +175,7 @@ public class ClipListActivity extends Activity implements
 	private int mVideoWidth, mVideoHeight;
 	private int mAudioTrackNum = 4;
 	private int mAudioChannel = 1;
-	private int mPlayerImpl = 0;
+	private int mPlayerImpl = 2;
 	
 	// subtitle
 	private SimpleSubTitleParser mSubtitleParser;
@@ -282,7 +282,7 @@ public class ClipListActivity extends Activity implements
 	
 	private String mCurrentFolder;
 	
-	private final static String home_folder		= "/test2";
+	private final static String home_folder		= "/test3";
 	
 	private final static String HTTP_UPDATE_APK_URL = "http://172.16.204.106/test/test/";
 	
@@ -416,7 +416,7 @@ public class ClipListActivity extends Activity implements
 
 		this.lv_filelist = (ListView) findViewById(R.id.lv_filelist);
 		
-		//new ListItemTask().execute(mCurrentFolder);
+		new ListItemTask().execute(mCurrentFolder);
 		
 		this.lv_filelist
 				.setOnItemClickListener(new ListView.OnItemClickListener() {
@@ -963,24 +963,41 @@ public class ClipListActivity extends Activity implements
 		}
 		else if (2 == mPlayerImpl) {
 			boolean canPlay = false;
-			String str_ext;
-			String fileName;
-			int index;
-			index = path.indexOf("http://");
-			if (-1 != index)
+			
+			if (path.startsWith("http://")) {
 				canPlay = true;
-				
-			index = path.lastIndexOf("/");
-			fileName = path.substring(index + 1, path.length());
-			index = fileName.lastIndexOf(".");
-			if (index != -1) {
-				str_ext = fileName.substring(index + 1, fileName.length());
-				if (str_ext.equals("mp4") || str_ext.equals("flv") || str_ext.equals("mov"))
-					canPlay = true;
+			}
+			else if (path.startsWith("/") || path.startsWith("file://")) {
+				MediaInfo info = MeetSDK.getMediaDetailInfo(path);
+				if (info != null) {
+					if (info.getVideoCodecName() != null && info.getVideoCodecName().equals("h264")) {
+						if (info.getAudioChannels() == 0)
+							canPlay = true;
+						else {
+							TrackInfo trackinfo = info.getAudioChannelsInfo().get(0);
+							if (trackinfo.getCodecName() != null && trackinfo.getCodecName().equals("aac"))
+								canPlay = true;
+						}
+					}
+				}
+			}
+			
+			String fileName = "N/A";
+			int index;	
+			
+			if (path.startsWith("/") || path.startsWith("file://")) {
+				index = path.lastIndexOf("/");
+				if (index != -1)
+					fileName = path.substring(index + 1, path.length());
+				else
+					fileName = path;
+			}
+			else {
+				fileName = path;
 			}
 			
 			if (canPlay == false) {
-				Toast.makeText(ClipListActivity.this, "Nu Player cannot play: " + fileName, 
+				Toast.makeText(ClipListActivity.this, "XOPlayer cannot play: " + fileName, 
 					Toast.LENGTH_SHORT).show();
 				return -1;
 			}
@@ -1163,7 +1180,8 @@ public class ClipListActivity extends Activity implements
 				mIsBuffering = false;
 			}
 			
-			close_hls();
+			//if (mPlayUrl.startsWith("http://127.0.0.1"))
+				//close_hls();
 		}
 	}
 	
@@ -1273,7 +1291,7 @@ public class ClipListActivity extends Activity implements
 	
 	private void close_hls() {
 		short port = MediaSDK.getPort("http");
-		String strCloseURL = String.format("127.0.0.1:%d/close", port);
+		String strCloseURL = String.format("http://127.0.0.1:%d/close", port);
 		URL url;
 		try {
 			url = new URL(strCloseURL);

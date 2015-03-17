@@ -51,7 +51,10 @@ public class FFMediaPlayer extends BaseMediaPlayer {
 					LogUtils.info("System.loadLibrary() meet loaded");
 				}
 				
-				native_init(false); // do not load ppbox
+				if (!native_init()) {
+					LogUtils.error("failed to init native player");
+					return false;
+				}
 				
 				libLoaded = true;
 				
@@ -70,7 +73,7 @@ public class FFMediaPlayer extends BaseMediaPlayer {
 	public FFMediaPlayer(MediaPlayer mp) {
 		super(mp);
 		
-		native_setup(new WeakReference<FFMediaPlayer>(this), true); // always true to use ffplay
+		native_setup(new WeakReference<FFMediaPlayer>(this)); // always true to use ffplay
 	}
 	
 	// capability
@@ -186,12 +189,11 @@ public class FFMediaPlayer extends BaseMediaPlayer {
 		if (scheme == null || scheme.equals("file")) {
 			//local file
 			setDataSource(uri.getPath());
-			return;
 		}
-		
-		//network path
-		setDataSource(uri.toString());
-		return;
+		else {
+			//network path
+			setDataSource(uri.toString());
+		}
 	}
 
 	@Override
@@ -439,11 +441,9 @@ public class FFMediaPlayer extends BaseMediaPlayer {
 	private native TrackInfo[] native_getTrackInfo();
 	
 	// init and uninit
-	private static native final void native_init(boolean startP2PEngine);
+	private static native final boolean native_init();
 	
-	private native final void native_setup(Object mediaplayer_this, boolean generalPlayer);
-
-	private native final void native_finalize();
+	private native final void native_setup(Object mediaplayer_this);
 	
 	// subtitle
 	private native void native_setSubtitleParser(SimpleSubTitleParser parser);

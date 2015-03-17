@@ -17,6 +17,7 @@ import android.net.Uri;
 import android.os.Build;
 import android.os.Environment;
 import android.pplive.media.config.Config;
+import android.pplive.media.player.FFMediaExtractor;
 import android.pplive.media.player.MediaPlayer.DecodeMode;
 import android.pplive.media.player.TrackInfo;
 import android.pplive.media.player.MediaInfo;
@@ -93,8 +94,9 @@ public final class MeetSDK {
 		AppRootDir = "/data/data/" + ctx.getPackageName() + "/";
 		
 		boolean retPlayer = FFMediaPlayer.initPlayer(path);
+		boolean retExtrator = FFMediaExtractor.initExtrator();
 		boolean retParser = SimpleSubTitleParser.initParser(path);
-		return (retPlayer && retParser);
+		return (retPlayer && retExtrator && retParser);
 	}
 
 	@Deprecated
