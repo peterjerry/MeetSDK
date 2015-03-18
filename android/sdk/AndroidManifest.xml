@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="android.pplive.media"
+    android:versionCode="10"
+    android:versionName="2.1.0" >
+    
+    <uses-sdk
+        android:minSdkVersion="10"
+        android:targetSdkVersion="10" />
+</manifest>

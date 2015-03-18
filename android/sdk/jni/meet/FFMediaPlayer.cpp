@@ -17,7 +17,6 @@
 #include "platform/autolock.h"
 #include "platform/platforminfo.h"
 #include "subtitle.h"
-#include "player/player.h"
 #include "cpuext.h" // for get_cpu_freq()
 #include "FFMediaExtractor.h" // for extractor
 #include "jniUtils.h"
@@ -58,6 +57,8 @@ class Surface;
 PlatformInfo* gPlatformInfo = NULL;
 
 static void* player_handle_software = NULL;
+
+static JNIMediaPlayerListener* s_player_listener = NULL;
 
 // new
 typedef IPlayer* (*GET_PLAYER_FUN) (void*);
@@ -154,20 +155,6 @@ int getParcelFileDescriptorFDPP(JNIEnv* env, jobject object)
 
 	return env->GetIntField(object, descriptor);
 }
-
-// ----------------------------------------------------------------------------
-// ref-counted object for callbacks
-class JNIMediaPlayerListener: public MediaPlayerListener
-{
-	public:
-		JNIMediaPlayerListener(JNIEnv* env, jobject thiz, jobject weak_thiz);
-		~JNIMediaPlayerListener();
-		void notify(int msg, int ext1, int ext2);
-	private:
-		JNIMediaPlayerListener();
-		jclass      mClass;     // Reference to MediaPlayer class
-		jobject     mObject;    // Weak ref to MediaPlayer Java object to call on
-};
 
 JNIMediaPlayerListener::JNIMediaPlayerListener(JNIEnv* env, jobject thiz, jobject weak_thiz)
 {
@@ -910,9 +897,9 @@ void android_media_MediaPlayer_native_setup(JNIEnv *env, jobject thiz, jobject w
 	}
 
 	// create new listener and give it to MediaPlayer
-	JNIMediaPlayerListener* listener = new JNIMediaPlayerListener(env, thiz, weak_this);
+	s_player_listener = new JNIMediaPlayerListener(env, thiz, weak_this);
 	//IPlayer takes responsibility to release listener.
-	mp->setListener(listener);
+	mp->setListener(s_player_listener);
 
 	// Stow our new C++ MediaPlayer in an opaque field in the Java object.
 	setMediaPlayer(env, thiz, mp);
@@ -933,6 +920,11 @@ void android_media_MediaPlayer_release(JNIEnv *env, jobject thiz)
 			gPlatformInfo->javaSurface = NULL;
 		}
     }
+
+	if (s_player_listener) {
+		delete s_player_listener;
+		s_player_listener = NULL;
+	}
 
 	pthread_mutex_destroy(&sLock);
 	PPLOGI("release done!");

@@ -52,7 +52,7 @@
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>TEST_PERFORMANCE;__ANDROID__;NDK_NATIVE_WINDOW_IMPL;__arm__;OSLES_IMPL;WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <SDLCheck>true</SDLCheck>
-      <AdditionalIncludeDirectories>..\..\cygwin\sdl\include;..\..\..\player;..\..\..\extrator;..\..\..\platform\yuv2rgb;..\..\..\..\foundation\output\android\neon\include;..\..\..\platform;D:\Software\android-ndk-r9d\platforms\android-9\arch-arm\usr\include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\..\cygwin\sdl\include;..\..\..\player;..\..\..\extrator;..\..\..\platform\yuv2rgb;..\..\..\..\foundation\output\android\neon\include;..\..\..\platform;D:\Software\android-ndk-r10d\platforms\android-9\arch-arm\usr\include</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
