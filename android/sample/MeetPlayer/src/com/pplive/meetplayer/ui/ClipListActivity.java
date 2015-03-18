@@ -63,6 +63,7 @@ import android.net.wifi.WifiManager.WifiLock;
 import android.os.AsyncTask;
 import android.view.ViewGroup.LayoutParams;
 import android.widget.TextView;
+import android.graphics.drawable.Drawable;
 import android.graphics.Color;
 import android.util.DisplayMetrics; // for display width and height
 import android.content.DialogInterface;
@@ -360,6 +361,8 @@ public class ClipListActivity extends Activity implements
 				LayoutParams.WRAP_CONTENT));
 		mControllerLayout.setOrientation(LinearLayout.VERTICAL);
 		//mControllerLayout.addView(mTextViewInfo);
+		mLayout.setFocusable(true);
+		mLayout.setOnFocusChangeListener(this);
 		mLayout.addView(mTextViewInfo);
 		addContentView(mControllerLayout, new LayoutParams(LayoutParams.MATCH_PARENT,
 				LayoutParams.WRAP_CONTENT));
@@ -2784,6 +2787,25 @@ public class ClipListActivity extends Activity implements
 		mSubtitleSeeking = false;
 	}
 	// end of "callback of subtitle"
+	
+	@Override
+	public void onFocusChange(View v, boolean hasFocus) {
+		// TODO Auto-generated method stub
+		if (hasFocus) {
+			if (mLayout != null) {
+				Drawable drawable1 = getResources().getDrawable(R.drawable.bg_border1); 
+				mLayout.setBackground(drawable1);
+			}
+			if (mMediaController != null)
+				mMediaController.show(5000);
+		}
+		else {
+			if (mLayout != null) {
+				Drawable drawable2 = getResources().getDrawable(R.drawable.bg_border2); 
+				mLayout.setBackground(drawable2);
+			}
+		}
+	}
 	
 	static {
 		//System.loadLibrary("lenthevcdec");
