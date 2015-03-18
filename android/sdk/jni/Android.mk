@@ -2,8 +2,8 @@ LOCAL_PATH := $(call my-dir)
 
 JNI_BASE 		:= meet
 
-ENGINE_BASE 	:= ../../engine2
-SUBTITLE_BASE	:= ../../subtitle2
+ENGINE_BASE 	:= ../../../engine2
+SUBTITLE_BASE	:= ../../../subtitle2
 
 ########################[libpplog]########################
 include $(CLEAR_VARS)
