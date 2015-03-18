@@ -2,8 +2,8 @@ LOCAL_PATH := $(call my-dir)
 
 JNI_BASE 		:= meet
 
-ENGINE_BASE 	:= ../../../engine2
-SUBTITLE_BASE	:= ../../../subtitle2
+ENGINE_BASE 	:= ../../engine2
+SUBTITLE_BASE	:= ../../subtitle2
 
 ########################[libpplog]########################
 include $(CLEAR_VARS)
@@ -19,7 +19,7 @@ MY_SO_PREFIX := debug/
 #else
 #MY_SO_PREFIX := 
 #endif
-LOCAL_SRC_FILES := $(ENGINE_BASE)/output/android/$(TARGET_ARCH_ABI)/$(MY_SO_PREFIX)libplayer_neon.so
+LOCAL_SRC_FILES := ../$(ENGINE_BASE)/output/android/$(TARGET_ARCH_ABI)/$(MY_SO_PREFIX)libplayer_neon.so
 LOCAL_MODULE := player_neon
 include $(PREBUILT_SHARED_LIBRARY)
 
@@ -34,7 +34,7 @@ LOCAL_MODULE 			:= meet
 include $(BUILD_SHARED_LIBRARY)
 
 #######################[libsubtitle-jni]#######################
-MY_PLATFORM_LIBPATH=$(SUBTITLE_BASE)/output/android/libs/$(TARGET_ARCH_ABI)
+MY_PLATFORM_LIBPATH	= ../$(SUBTITLE_BASE)/output/android/libs/$(TARGET_ARCH_ABI)
 
 include $(CLEAR_VARS)
 LOCAL_SRC_FILES := $(MY_PLATFORM_LIBPATH)/libsubtitle.a

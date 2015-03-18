@@ -51,7 +51,7 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
       <Optimization>Disabled</Optimization>
-      <AdditionalIncludeDirectories>..\..\..\engine2;..\..\..\subtitle2\output\android\include;..\..\..\subtitle2\output\android\include;..\meet;D:\Software\android-ndk-r10d\platforms\android-9\arch-x86\usr\include;D:\Software\android-ndk-r10d\sources\cpufeatures</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\..\..\..\engine2;..\..\..\..\subtitle2\output\android\include;..\..\..\..\subtitle2\output\android\include;..\meet;D:\Software\android-ndk-r10d\platforms\android-9\arch-x86\usr\include;D:\Software\android-ndk-r10d\sources\cpufeatures</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <MinimalRebuild>true</MinimalRebuild>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
