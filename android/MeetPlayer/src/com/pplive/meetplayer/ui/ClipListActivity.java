@@ -38,6 +38,7 @@ import android.view.MenuItem;
 import android.view.SurfaceHolder;
 import android.view.View;
 import android.view.View.MeasureSpec;
+import android.view.View.OnFocusChangeListener;
 import android.widget.AbsListView;
 import android.widget.AbsListView.OnScrollListener;
 import android.widget.AdapterView;
@@ -63,6 +64,7 @@ import android.os.AsyncTask;
 import android.view.ViewGroup.LayoutParams;
 import android.widget.TextView;
 import android.graphics.Color;
+import android.graphics.drawable.Drawable;
 import android.util.DisplayMetrics; // for display width and height
 import android.content.DialogInterface;
 import android.app.AlertDialog;
@@ -114,7 +116,7 @@ public class ClipListActivity extends Activity implements
 		MediaPlayer.OnPreparedListener, MediaPlayer.OnCompletionListener,
 		MediaPlayer.OnErrorListener, MediaPlayer.OnInfoListener,
 		MediaPlayer.OnVideoSizeChangedListener, MediaPlayer.OnBufferingUpdateListener,
-		MediaPlayerControl, SurfaceHolder.Callback, SubTitleParser.Callback {
+		MediaPlayerControl, SurfaceHolder.Callback, SubTitleParser.Callback, OnFocusChangeListener {
 
 	private final static String TAG = "ClipList";	
 	private final static String PREF_NAME = "settings";
@@ -175,7 +177,7 @@ public class ClipListActivity extends Activity implements
 	private int mVideoWidth, mVideoHeight;
 	private int mAudioTrackNum = 4;
 	private int mAudioChannel = 1;
-	private int mPlayerImpl = 2;
+	private int mPlayerImpl = 3;
 	
 	// subtitle
 	private SimpleSubTitleParser mSubtitleParser;
@@ -282,7 +284,7 @@ public class ClipListActivity extends Activity implements
 	
 	private String mCurrentFolder;
 	
-	private final static String home_folder		= "/test3";
+	private final static String home_folder		= "/test2";
 	
 	private final static String HTTP_UPDATE_APK_URL = "http://172.16.204.106/test/test/";
 	
@@ -356,6 +358,8 @@ public class ClipListActivity extends Activity implements
 		mControllerLayout.setOrientation(LinearLayout.VERTICAL);
 		//mControllerLayout.addView(mTextViewInfo);
 		mLayout.addView(mTextViewInfo);
+		mLayout.setFocusable(true);
+		mLayout.setOnFocusChangeListener(this);
 		addContentView(mControllerLayout, new LayoutParams(LayoutParams.MATCH_PARENT,
 				LayoutParams.WRAP_CONTENT));
 		
@@ -408,7 +412,7 @@ public class ClipListActivity extends Activity implements
 		}
 		
 		Util.startP2PEngine(this);
-				
+		
 		mHolder = mPreview.getHolder();
 		mHolder.setType(SurfaceHolder.SURFACE_TYPE_NORMAL);
 		mHolder.setFormat(PixelFormat.RGBX_8888/*RGB_565*/);
@@ -2229,7 +2233,7 @@ public class ClipListActivity extends Activity implements
 				sufaceviewParams.width, sufaceviewParams.height)); 
 		mPreview.setLayoutParams(sufaceviewParams);*/
 		
-		mPreview.BindInstance(mMediaController, isLandscape, mPlayer);
+		mPreview.BindInstance(mMediaController, mPlayer);
 		
 		Log.i(TAG, String.format("Java: width %d, height %d", mPlayer.getVideoWidth(), mPlayer.getVideoHeight()));
 		mPlayer.start();
@@ -2527,6 +2531,9 @@ public class ClipListActivity extends Activity implements
         mMediaController.setAnchorView(mPreview);
         //mMediaController.setPadding(0, 0, 0, 0);
         mMediaController.setEnabled(true);
+        
+        if (isLandscape)
+        	mMediaController.show(5000);
     }
     
 	@Override
@@ -2669,8 +2676,26 @@ public class ClipListActivity extends Activity implements
 	    }
 	}
 	
+	@Override
+	public void onFocusChange(View v, boolean hasFocus) {
+		// TODO Auto-generated method stub
+		if (hasFocus) {
+			if (mLayout != null) {
+				Drawable drawable1 = getResources().getDrawable(R.drawable.bg_border1); 
+				mLayout.setBackground(drawable1);
+			}
+			if (mMediaController != null)
+				mMediaController.show(5000);
+		}
+		else {
+			if (mLayout != null) {
+				Drawable drawable2 = getResources().getDrawable(R.drawable.bg_border2); 
+				mLayout.setBackground(drawable2);
+			}
+		}
+	}
+	
 	static {
 		//System.loadLibrary("lenthevcdec");
 	}
-	
 }

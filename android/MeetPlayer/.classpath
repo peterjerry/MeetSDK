@@ -3,7 +3,6 @@
 	<classpathentry exported="true" kind="con" path="com.android.ide.eclipse.adt.ANDROID_FRAMEWORK"/>
 	<classpathentry exported="true" kind="con" path="com.android.ide.eclipse.adt.LIBRARIES"/>
 	<classpathentry exported="true" kind="con" path="com.android.ide.eclipse.adt.DEPENDENCIES"/>
-	<classpathentry kind="lib" path="libs/MeetSDK.jar"/>
 	<classpathentry kind="lib" path="libs/ppbox_jni.jar"/>
 	<classpathentry kind="lib" path="libs/breakpad_util_jni.jar"/>
 	<classpathentry kind="lib" path="libs/ivy-2.0.0-rc1.jar"/>

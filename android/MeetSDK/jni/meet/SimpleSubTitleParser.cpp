@@ -10,11 +10,25 @@
 
 #define MAX_SIZE 1024
 
-#ifndef LOGD
-#define LOGD(tag, ...) ((void)__android_log_print(ANDROID_LOG_DEBUG, tag, __VA_ARGS__))
+#define TAG "subtitle-jni"
+
+#if LOG_NDEBUG
+#define LOGV(...) ((void)0)
+#else
+#define LOGV(...) __android_log_print(ANDROID_LOG_VERBOSE, LOG_TAG, __VA_ARGS__)
 #endif
 
-#define TAG "subtitle-jni"
+#if LOG_NDEBUG
+#define LOGD(...) ((void)0)
+#else
+#define LOGD(...) __android_log_print(ANDROID_LOG_DEBUG, LOG_TAG, __VA_ARGS__)
+#endif
+
+#define LOGI(...) __android_log_print(ANDROID_LOG_INFO, LOG_TAG, __VA_ARGS__)
+
+#define LOGW(...) __android_log_print(ANDROID_LOG_WARN, LOG_TAG, __VA_ARGS__)
+
+#define LOGE(...) __android_log_print(ANDROID_LOG_ERROR, LOG_TAG, __VA_ARGS__)
 
 #if defined(__cplusplus)
 #define	__BEGIN_DECLS		extern "C" {
@@ -99,14 +113,17 @@ ISubtitles* setSubTitleParser(JNIEnv* env, jobject thiz, ISubtitles* parser)
 static
 void native_onPrepared(JNIEnv* env, jobject thiz, bool success, const char* cmsg)
 {
-	LOGD(TAG, "Call native_onPrepared");
-	if (NULL != gFields.onPreparedID)
-	{
-		LOGD(TAG, "Before Call Java_onPrepared");
-		const jstring jmsg = cstr2jstr(env, cmsg);
-		env->CallVoidMethod(thiz, gFields.onPreparedID, success ? JNI_TRUE : JNI_FALSE, jmsg);
-		LOGD(TAG, "After Call Java_onPrepared");
+	LOGI("Call native_onPrepared");
+
+	if (NULL == gFields.onPreparedID) {
+		LOGE("gFields.onPreparedID is null");
+		return;
 	}
+
+	LOGI("Before Call Java_onPrepared");
+	const jstring jmsg = cstr2jstr(env, cmsg);
+	env->CallVoidMethod(thiz, gFields.onPreparedID, success ? JNI_TRUE : JNI_FALSE, jmsg);
+	LOGI("After Call Java_onPrepared");
 }
 
 static
@@ -223,12 +240,14 @@ Java_android_pplive_media_subtitle_SimpleSubTitleParser_native_1setup(JNIEnv* en
 JNIEXPORT void JNICALL
 Java_android_pplive_media_subtitle_SimpleSubTitleParser_native_1close(JNIEnv *env, jobject thiz)
 {
+	LOGI("native_close()");
+
 	ISubtitles* parser = getSubTitleParser(env, thiz);
-	if (NULL == parser)
-	{
+	if (NULL == parser) {
 		JNU_ThrowByName(env, "java/lang/IllegalStateException", "Subtitle parser not found.");
 		return;
 	}
+
 	parser->close();
 	setSubTitleParser(env, thiz, NULL);
 }
@@ -243,17 +262,16 @@ Java_android_pplive_media_subtitle_SimpleSubTitleParser_native_1loadSubtitle
 (JNIEnv *env, jobject thiz, jstring jFilePath, jboolean isMediaFile)
 {
 	ISubtitles* parser = getSubTitleParser(env, thiz);
-	if (NULL == parser)
-	{
+	if (NULL == parser) {
 		JNU_ThrowByName(env, "java/lang/IllegalStateException", "Subtitle parser not found");
 		return;
 	}
 
-	LOGD(TAG, "Call native_loadSubtitle");
+	LOGD("Call native_loadSubtitle");
 	const char* filePath = jstr2cstr(env, jFilePath);
 	if (NULL == filePath)
 	{
-		LOGD(TAG, "Subtitel file path is null.");
+		LOGD("Subtitel file path is null.");
 		native_onPrepared(env, thiz, false, "Subtitle file path is null.");
 		return;
 	}

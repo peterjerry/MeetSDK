@@ -7,7 +7,7 @@ call ndk-build -j4
 copy libs\armeabi\libplayer_neon.so ..\..\output\android\armeabi\
 copy obj\local\armeabi\libplayer_neon.so ..\..\output\android\armeabi\debug\
 
-copy ..\..\output\android\armeabi\libplayer_neon.so ..\..\..\android\sdk\libs\armeabi\
+copy ..\..\output\android\armeabi\libplayer_neon.so ..\..\..\android\MeetSDK\libs\armeabi\
 
 cd ..\..\..\android\MeetPlayer
 call ant debug install

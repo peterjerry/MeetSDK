@@ -210,6 +210,9 @@ status_t FFStream::selectAudioChannel(int32_t index)
 		return ERROR;
 	}
 
+	// 2015.3.18 guoliangma fix unfree resource
+	avcodec_close(mMovieFile->streams[mAudioStreamIndex]->codec);
+
 	if (mAudioStreamIndex == index) {
 		LOGI("audio channel is already in use: #%d", mAudioStreamIndex);
 		return OK;
