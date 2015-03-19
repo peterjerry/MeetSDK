@@ -2813,25 +2813,6 @@ public class ClipListActivity extends Activity implements
 		}
 	}
 	
-	@Override
-	public void onFocusChange(View v, boolean hasFocus) {
-		// TODO Auto-generated method stub
-		if (hasFocus) {
-			if (mLayout != null) {
-				Drawable drawable1 = getResources().getDrawable(R.drawable.bg_border1); 
-				mLayout.setBackground(drawable1);
-			}
-			if (mMediaController != null)
-				mMediaController.show(5000);
-		}
-		else {
-			if (mLayout != null) {
-				Drawable drawable2 = getResources().getDrawable(R.drawable.bg_border2); 
-				mLayout.setBackground(drawable2);
-			}
-		}
-	}
-	
 	static {
 		//System.loadLibrary("lenthevcdec");
 	}
