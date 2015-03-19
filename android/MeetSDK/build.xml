@@ -68,14 +68,50 @@
     -->
     <import file="custom_rules.xml" optional="true" />
 
-	<target name="-pre-build" depends="-ndk-build"> 
+	<property name="symbol.dir" location="syms" />
+	<property name="src.dir" location="src" />
+	
+	<tstamp>
+		<format property="build.timestamp" pattern="yyyyMMddHHmm" />
+	</tstamp>
+	<condition property="sdk.version" value="${Version}" else="${build.timestamp}">
+		<isset property="Version" />
+	</condition>
+
+	<target name="gen_version">
+		<mkdir dir="${build.dir}/class" />
+		
+		<condition property="config.sdk.version" value="${sdk.version}" else="${sdk.version}_debug" >
+			<isfalse value="${debug}" />
+		</condition>
+		
+		<condition property="config.startp2p" value="true" else="false">
+			<and>
+				<isset property="StartP2P" />
+				<equals arg1="${StartP2P}" arg2="true" casesensitive="false" trim="true" />
+			</and>
+		</condition>
+		
+		<copy file="${src.dir}/android/pplive/media/config/Config.java.template" tofile="${src.dir}/android/pplive/media/config/Config.java" filtering="true" overwrite="true">
+			<filterset>
+				<filter token="CONFIG.SDK.VERSION" value="${config.sdk.version}" />
+				<filter token="CONFIG.STARTP2P" value="${config.startp2p}"/>
+			</filterset>
+		</copy>
+	</target>
+	
+	<target name="-pre-build" depends="gen_version,-ndk-build"> 
 	</target> 
 	
 	<target name="-ndk-build"> 
-		<exec executable="${NDK_HOME}/ndk-build.cmd" failonerror="true"> 
+		<condition property="ndk-build-command" value="${NDK_HOME}/ndk-build.cmd" else="ndk-build">
+			<os family="windows" />
+		</condition>
+		
+		<exec executable="${ndk-build-command}" failonerror="true"> 
 			<arg value="clean" /> 
 		</exec> 
-		<exec executable="${NDK_HOME}/ndk-build.cmd" failonerror="true" /> 
+		<exec executable="${ndk-build-command}" failonerror="true" /> 
 	</target>
 	
 	<target name="-post-build">
