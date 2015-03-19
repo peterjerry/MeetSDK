@@ -67,8 +67,6 @@ AudioPlayer::~AudioPlayer()
 
 status_t AudioPlayer::prepare()
 {
-	status_t res;
-
 	if (mPlayerStatus == MEDIA_PLAYER_PREPARED)
 		return OK;
 	if (mPlayerStatus != MEDIA_PLAYER_INITIALIZED)
@@ -79,51 +77,7 @@ status_t AudioPlayer::prepare()
 		return ERROR;
 	}
 
-	AVCodecContext *CodecCtx = mAudioContext->codec;
-	LOGI("channel layout:%lld, sample rate:%d, sample format:%d, channels:%d", 
-		CodecCtx->channel_layout, 
-		CodecCtx->sample_rate, CodecCtx->sample_fmt, CodecCtx->channels);
-
-	mRender = new AudioRender();
-	uint64_t channelLayout = AV_CH_LAYOUT_MONO;// default layout
-
-	// 2015.1.19 guoliangma mark(it's very important)
-	// fix channel_layout param is not accurate for some video.
-	switch(CodecCtx->channels) {
-	case 1:
-		channelLayout = AV_CH_LAYOUT_MONO;
-		break;
-	case 2:
-		channelLayout = AV_CH_LAYOUT_STEREO;
-		break;
-	case 3:
-		channelLayout = AV_CH_LAYOUT_2POINT1;
-		break;
-	case 4:
-		channelLayout = AV_CH_LAYOUT_3POINT1;
-		break;
-	case 5:
-		channelLayout = AV_CH_LAYOUT_4POINT1;
-		break;
-	case 6:
-		channelLayout = AV_CH_LAYOUT_5POINT1;
-		break;
-	case 7:
-		channelLayout = AV_CH_LAYOUT_6POINT1;
-		break;
-	case 8:
-		channelLayout = AV_CH_LAYOUT_7POINT1;
-		break;
-	default:
-		channelLayout = AV_CH_LAYOUT_MONO;
-		break;
-	}
-
-	res = mRender->open(mAudioContext->codec->sample_rate,
-		channelLayout,
-		mAudioContext->codec->channels,
-		mAudioContext->codec->sample_fmt);
-	if (res != OK) {
+	if (setup_render() != OK) {
 		LOGE("failed to open audio render");
 		return ERROR;
 	}
@@ -135,6 +89,22 @@ status_t AudioPlayer::prepare()
 
 	mPlayerStatus = MEDIA_PLAYER_PREPARED;
 	return OK;
+}
+
+status_t AudioPlayer::setup_render()
+{
+	AVCodecContext *CodecCtx = mAudioContext->codec;
+	LOGI("channel layout:%lld, sample rate:%d, sample format:%d, channels:%d", 
+		CodecCtx->channel_layout, 
+		CodecCtx->sample_rate, CodecCtx->sample_fmt, CodecCtx->channels);
+
+	mRender = new AudioRender();
+	uint64_t channelLayout = get_channel_layout(CodecCtx->channel_layout, CodecCtx->channels);
+
+	return mRender->open(mAudioContext->codec->sample_rate,
+		channelLayout,
+		mAudioContext->codec->channels,
+		mAudioContext->codec->sample_fmt);
 }
 
 status_t AudioPlayer::start()
@@ -463,8 +433,53 @@ void AudioPlayer::notifyListener_l(int msg, int ext1, int ext2)
 status_t AudioPlayer::selectAudioChannel(int32_t index)
 {
 	mAudioStreamIndex = index;
-	if (mRender)
+	if (mRender) {
 		mRender->flush();
+	}
+
 	LOGI("audioPlayer select audio #%d", index);
 	return OK;
+}
+
+int64_t AudioPlayer::get_channel_layout(uint64_t channel_layout, int channels)
+{
+	if (channel_layout != 0)
+		return channel_layout;
+
+	// 2015.1.19 guoliangma mark(it's very important)
+	// fix channel_layout param is not accurate for some video.
+
+	uint64_t out_channelLayout = AV_CH_LAYOUT_MONO;// default layout
+
+	switch (channels) {
+	case 1:
+		out_channelLayout = AV_CH_LAYOUT_MONO;
+		break;
+	case 2:
+		out_channelLayout = AV_CH_LAYOUT_STEREO;
+		break;
+	case 3:
+		out_channelLayout = AV_CH_LAYOUT_2POINT1;
+		break;
+	case 4:
+		out_channelLayout = AV_CH_LAYOUT_3POINT1;
+		break;
+	case 5:
+		out_channelLayout = AV_CH_LAYOUT_4POINT1;
+		break;
+	case 6:
+		out_channelLayout = AV_CH_LAYOUT_5POINT1;
+		break;
+	case 7:
+		out_channelLayout = AV_CH_LAYOUT_6POINT1;
+		break;
+	case 8:
+		out_channelLayout = AV_CH_LAYOUT_7POINT1;
+		break;
+	default:
+		LOGE("channels is invalid: %d", channels);
+		break;
+	}
+
+	return out_channelLayout;
 }

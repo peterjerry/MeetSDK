@@ -51,6 +51,9 @@
     <ClInclude Include="..\..\..\player\ppffmpeg.h">
       <Filter>头文件</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\..\player\extractor.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="testSDLdlg.cpp">
@@ -142,6 +145,9 @@
     </ClCompile>
     <ClCompile Include="..\testEPG\apPlayLink2.cpp">
       <Filter>源文件\util</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\player\ffextractor.cpp">
+      <Filter>源文件\player</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

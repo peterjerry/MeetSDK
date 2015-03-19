@@ -34,16 +34,13 @@ extern "C" {
 #include "libavutil/opt.h"
 #include "libavutil/dict.h"
 #include "libavutil/time.h" // for av_usleep()
+#include "libavutil/imgutils.h" // for av_image_alloc()
 #include "libswscale/swscale.h"
 #include "libswresample/swresample.h"
 #ifdef USE_AV_FILTER
 #include "libavfilter/avfilter.h"
 #include "libavfilter/buffersrc.h"
 #include "libavfilter/buffersink.h"
-#endif
-
-#ifndef PP_FF_OLD_API
-#define PP_FF_OLD_API (LIBAVCODEC_VERSION_MINOR < 66)
 #endif
 
 #ifdef __cplusplus

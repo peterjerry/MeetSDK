@@ -90,7 +90,9 @@ static int is_relative(int64_t ts) {
  */
 static int64_t wrap_timestamp(AVStream *st, int64_t timestamp)
 {
-    if (st->pts_wrap_behavior != AV_PTS_WRAP_IGNORE &&
+	// 2015.3.16 guoliangma comment out code to fix hls seekback
+	// just a workaround
+    /*if (st->pts_wrap_behavior != AV_PTS_WRAP_IGNORE &&
         st->pts_wrap_reference != AV_NOPTS_VALUE && timestamp != AV_NOPTS_VALUE) {
         if (st->pts_wrap_behavior == AV_PTS_WRAP_ADD_OFFSET &&
             timestamp < st->pts_wrap_reference)
@@ -98,7 +100,7 @@ static int64_t wrap_timestamp(AVStream *st, int64_t timestamp)
         else if (st->pts_wrap_behavior == AV_PTS_WRAP_SUB_OFFSET &&
             timestamp >= st->pts_wrap_reference)
             return timestamp - (1ULL << st->pts_wrap_bits);
-    }
+    }*/
     return timestamp;
 }
 

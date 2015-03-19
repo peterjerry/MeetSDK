@@ -11,6 +11,7 @@ FFMPEG_PATH		:= ../../../../foundation/output/android/x86
 endif
 
 PLAYERPATH		:= ../../../player
+EXTRACTORPATH	:= ../../../extractor
 PLATFORMPATH	:= ../../../platform
 SUBTITLEPATH	:= ../../../../subtitle2/output/android
 
@@ -27,9 +28,11 @@ LOCAL_SRC_FILES := $(FFMPEG_PATH)/lib/liblenthevcdec.so
 include $(CLEAR_VARS)
 LOCAL_MODULE			:= player_neon
 LOCAL_C_INCLUDES		:= $(LOCAL_PATH)/$(FFMPEG_PATH)/include $(LOCAL_PATH)/$(SUBTITLEPATH)/include \
-	$(LOCAL_PATH)/$(PLATFORMPATH) $(LOCAL_PATH)/$(PLATFORMPATH)/yuv2rgb $(LOCAL_PATH)/$(PLAYERPATH) 
-LOCAL_CFLAGS    		:= -Wall -DNDK_BUILD=1 -DUSE_NDK_SURFACE_REF -DUSE_AV_FILTER #-DTEST_PERFORMANCE -DTEST_PERFORMANCE_BITRATE -DNO_AUDIO_PLAY 
-MY_SRC_PLAYER_FILES 	:= ffstream.cpp audioplayer.cpp audiorender.cpp ffplayer.cpp ffrender.cpp filesource.cpp
+	$(LOCAL_PATH)/$(PLATFORMPATH) $(LOCAL_PATH)/$(PLATFORMPATH)/yuv2rgb \
+	$(LOCAL_PATH)/$(PLAYERPATH) $(LOCAL_PATH)/$(EXTRACTORPATH) 
+	
+LOCAL_CFLAGS    		:= -Wall -DNDK_BUILD=1 -DUSE_NDK_SURFACE_REF -DUSE_AV_FILTER -DTEST_PERFORMANCE -DTEST_PERFORMANCE_BITRATE #-DNO_AUDIO_PLAY 
+MY_SRC_PLAYER_FILES 	:= ffstream.cpp audioplayer.cpp audiorender.cpp ffplayer.cpp ffrender.cpp filesource.cpp ffextractor.cpp
 MY_SRC_PLATFORM_FILES	:= audiotrack_android.c \
 	surface_android.cpp log_android.c packetqueue.cpp list.cpp loop.cpp utils.cpp
 ifdef BUILD_RENDER_RGB565
