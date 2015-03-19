@@ -83,7 +83,7 @@
 				<filename name="**/*.so" />
 			</fileset>
 		</copy>
-		<zip destfile="${dist.dir}/${SdkName}_debug_${sdk.version}.zip" basedir="${output.dir}" />
+		<zip destfile="${dist.dir}/${SdkName}_release_${sdk.version}.zip" basedir="${output.dir}" />
 	</target>
 	
 	<target name="-pre-clean" >
