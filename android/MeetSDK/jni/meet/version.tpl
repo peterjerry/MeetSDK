@@ -1,6 +1,6 @@
 #ifndef MEET_VERSION_H
 #define MEET_VERSION_H
 
-#define MEET_NATIVE_VERISON "SVN_VER"
+#define MEET_NATIVE_VERISON "GIT_VER"
 
 #endif // MEET_VERSION_H

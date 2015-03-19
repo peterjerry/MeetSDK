@@ -68,8 +68,16 @@
     -->
     <import file="custom_rules.xml" optional="true" />
 
-	<property name="symbol.dir" location="syms" />
+	<property name="SdkName" value="meet_sdk" />
+	
 	<property name="src.dir" location="src" />
+	
+	<property name="obj.dir" location="obj" />
+	<property name="libs.dir" location="libs" />
+	
+	<property name="output.dir" location="output" />
+	<property name="symbol.dir" location="syms" />
+	<property name="dist.dir" location="dist" />
 	
 	<tstamp>
 		<format property="build.timestamp" pattern="yyyyMMddHHmm" />
@@ -79,8 +87,6 @@
 	</condition>
 
 	<target name="gen_version">
-		<mkdir dir="${build.dir}/class" />
-		
 		<condition property="config.sdk.version" value="${sdk.version}" else="${sdk.version}_debug" >
 			<isfalse value="${debug}" />
 		</condition>
@@ -100,6 +106,21 @@
 		</copy>
 	</target>
 	
+	<target name="-symbol">
+		<mkdir dir="${symbol.dir}" />
+		<copy todir="${symbol.dir}/armeabi" overwrite="true" verbose="true">
+			<fileset dir="${obj.dir}/local/armeabi">
+				<filename name="**/*.so" />
+			</fileset>
+		</copy>
+		<copy todir="${symbol.dir}/x86" overwrite="true" verbose="true">
+			<fileset dir="${obj.dir}/local/x86">
+				<filename name="**/*.so" />
+			</fileset>
+		</copy>
+		<zip destfile="${dist.dir}/${SdkName}_symbol_${sdk.version}.zip" basedir="${symbol.dir}"/>
+	</target>
+	
 	<target name="-pre-build" depends="gen_version,-ndk-build"> 
 	</target> 
 	
@@ -114,13 +135,27 @@
 		<exec executable="${ndk-build-command}" failonerror="true" /> 
 	</target>
 	
-	<target name="-post-build">
+	<target name="-post-build" depends="-symbol">
+		<mkdir dir="${output.dir}" />
 		<copy 
 			file="${out.absolute.dir}/classes.jar" 
-			tofile="${out.absolute.dir}/${ant.project.name}.jar" 
+			tofile="${output.dir}/${ant.project.name}.jar" 
 			filtering="true" 
 			overwrite="true" >
 		</copy>
+		<copy todir="${output.dir}/libs" overwrite="true" verbose="true">
+			<fileset dir="${libs.dir}">
+				<filename name="**/*.so" />
+			</fileset>
+		</copy>
+		<zip destfile="${dist.dir}/${SdkName}_debug_${sdk.version}.zip" basedir="${output.dir}" />
+	</target>
+	
+	<target name="-pre-clean" >
+		<delete dir="${obj.dir}" />
+		<delete dir="${libs.dir}" />
+		<delete dir="${output.dir}" />
+		<delete dir="${symbol.dir}" />
 	</target>
 
     <!-- Import the actual build file.

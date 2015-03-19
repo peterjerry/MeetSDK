@@ -12,8 +12,8 @@ rm -f $new_header
 cp $tpl_header $new_header
 
 if [ `uname` = 'Darwin' ]; then
-    sed -i '' "s/SVN_VER/$build_version/" ${new_header}
+    sed -i '' "s/GIT_VER/$build_version/" ${new_header}
 
 else
-	sed -i "s/SVN_VER/$build_version/" ${new_header}
+	sed -i "s/GIT_VER/$build_version/" ${new_header}
 fi
