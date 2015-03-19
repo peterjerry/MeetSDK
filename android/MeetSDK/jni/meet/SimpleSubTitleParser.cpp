@@ -120,10 +120,8 @@ void native_onPrepared(JNIEnv* env, jobject thiz, bool success, const char* cmsg
 		return;
 	}
 
-	LOGI("Before Call Java_onPrepared");
 	const jstring jmsg = cstr2jstr(env, cmsg);
 	env->CallVoidMethod(thiz, gFields.onPreparedID, success ? JNI_TRUE : JNI_FALSE, jmsg);
-	LOGI("After Call Java_onPrepared");
 }
 
 static
@@ -261,17 +259,18 @@ JNIEXPORT void JNICALL
 Java_android_pplive_media_subtitle_SimpleSubTitleParser_native_1loadSubtitle
 (JNIEnv *env, jobject thiz, jstring jFilePath, jboolean isMediaFile)
 {
+	LOGI("native_loadSubtitle()");
+
 	ISubtitles* parser = getSubTitleParser(env, thiz);
 	if (NULL == parser) {
 		JNU_ThrowByName(env, "java/lang/IllegalStateException", "Subtitle parser not found");
 		return;
 	}
 
-	LOGD("Call native_loadSubtitle");
+	LOGI("Call native_loadSubtitle");
 	const char* filePath = jstr2cstr(env, jFilePath);
-	if (NULL == filePath)
-	{
-		LOGD("Subtitel file path is null.");
+	if (NULL == filePath) {
+		LOGE("Subtitle file path is null.");
 		native_onPrepared(env, thiz, false, "Subtitle file path is null.");
 		return;
 	}
@@ -290,6 +289,8 @@ Java_android_pplive_media_subtitle_SimpleSubTitleParser_native_1loadSubtitle
 JNIEXPORT void JNICALL
 Java_android_pplive_media_subtitle_SimpleSubTitleParser_native_1seekTo(JNIEnv *env, jobject thiz, jlong msec)
 {
+	LOGI("native_seekTo");
+
 	ISubtitles* parser = getSubTitleParser(env, thiz);
 	if (NULL == parser)
 	{
@@ -310,6 +311,8 @@ Java_android_pplive_media_subtitle_SimpleSubTitleParser_native_1seekTo(JNIEnv *e
 JNIEXPORT jboolean JNICALL
 Java_android_pplive_media_subtitle_SimpleSubTitleParser_native_1next(JNIEnv *env, jobject thiz, jobject segment)
 {
+	LOGD("native_next");
+
 	ISubtitles* parser = getSubTitleParser(env, thiz);
 	if (NULL == parser)
 	{

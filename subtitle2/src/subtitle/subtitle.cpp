@@ -8,10 +8,8 @@
 #include "subtitle.h"
 #include <stdarg.h>
 
-#ifdef __ANDROID__
-#include <jni.h>
-#include <android/log.h>
-#endif
+#define TAG "subtitle"
+#include "jnilog.h"
 
 extern "C" {
 #include "libass/ass.h"
@@ -68,10 +66,11 @@ public:
         const char* text, int textLen);
 protected:
     bool loadPPSubtitle(const char* fileName);
+	
     CSimpleTextSubtitle* getSelectedSimpleTextSubtitle()
     {
-    //__android_log_print(ANDROID_LOG_DEBUG,"FFStream","getSelectedSimpleTextSubtitle mSubtitles size= %d", mSubtitles.size());
-	//__android_log_print(ANDROID_LOG_DEBUG,"FFStream","getSelectedSimpleTextSubtitle mSelected= %d", mSelected);
+		LOGI("getSelectedSimpleTextSubtitle mSubtitles size= %d", mSubtitles.size());
+		LOGI("getSelectedSimpleTextSubtitle mSelected= %d", mSelected);
         if (mSelected >= 0 && mSelected < mSubtitles.size()) {
             return mSubtitles[mSelected];
         }
@@ -205,6 +204,7 @@ bool CSubtitleManager::loadSubtitle(const char* fileName, bool isMediaFile)
     CSimpleTextSubtitle* subtitle = new CSimpleTextSubtitle(mAssLibrary);
     if (!subtitle->loadFile(fileName)) {
         delete subtitle;
+		LOGE("failed to load subtitle: %s", fileName);
         return false;
     }
 
@@ -219,6 +219,7 @@ bool CSubtitleManager::loadPPSubtitle(const char* fileName)
 {
     tinyxml2::XMLDocument xmlDoc;
     if (xmlDoc.LoadFile(fileName) != tinyxml2::XML_SUCCESS) {
+		LOGE("failed to load xmlfile: ", fileName);
         return false;
     }
 
@@ -226,8 +227,7 @@ bool CSubtitleManager::loadPPSubtitle(const char* fileName)
     if (xmlDoc.RootElement()) {
         subEle = xmlDoc.RootElement()->FirstChildElement("sub");
     }
-    while (subEle) 
-    {
+    while (subEle) {
         CSimpleTextSubtitle* subtitle = new CSimpleTextSubtitle(mAssLibrary);
         if (subtitle->parseXMLNode(fileName, subEle)) {
             subtitle->seekTo(0);
@@ -238,6 +238,7 @@ bool CSubtitleManager::loadPPSubtitle(const char* fileName)
 
         subEle = subEle->NextSiblingElement("sub");
     }
+
     return (mSubtitles.size() != 0);
 }
 

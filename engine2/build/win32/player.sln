@@ -9,6 +9,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "testSDLdlg", "testSDLdlg\te
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "testEPG", "testEPG\testEPG.vcxproj", "{DB923DF6-3CA4-4C9C-A17F-E95C7947D11B}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "TestSubtitle", "..\..\..\subtitle2\build\win32\TestSubtitle\TestSubtitle.vcxproj", "{26D137A6-2569-472C-8FCA-868871ABC18D}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Win32 = Debug|Win32
@@ -30,6 +32,10 @@ Global
 		{DB923DF6-3CA4-4C9C-A17F-E95C7947D11B}.Debug|Win32.Build.0 = Debug|Win32
 		{DB923DF6-3CA4-4C9C-A17F-E95C7947D11B}.Release|Win32.ActiveCfg = Release|Win32
 		{DB923DF6-3CA4-4C9C-A17F-E95C7947D11B}.Release|Win32.Build.0 = Release|Win32
+		{26D137A6-2569-472C-8FCA-868871ABC18D}.Debug|Win32.ActiveCfg = Debug|Win32
+		{26D137A6-2569-472C-8FCA-868871ABC18D}.Debug|Win32.Build.0 = Debug|Win32
+		{26D137A6-2569-472C-8FCA-868871ABC18D}.Release|Win32.ActiveCfg = Release|Win32
+		{26D137A6-2569-472C-8FCA-868871ABC18D}.Release|Win32.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

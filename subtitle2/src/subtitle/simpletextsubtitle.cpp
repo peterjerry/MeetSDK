@@ -6,10 +6,9 @@
 #include "subtitle.h"
 #include "stssegment.h"
 #include "simpletextsubtitle.h"
-#ifdef __ANDROID__
-#include <jni.h>
-#include <android/log.h>
-#endif
+
+#define TAG "simple_subtitle"
+#include "jnilog.h"
 
 
 #ifdef _MSC_VER 
@@ -81,16 +80,20 @@ void CSimpleTextSubtitle::setLanguageName(const char* name)
 bool CSimpleTextSubtitle::loadFile(const char* fileName)
 {
     if (!mAssLibrary) {
+		LOGE("ass lib not loaded");
         return false;
     }
+
     const char *codepage = "enca:zh:gb2312";
     ASS_Track* track = ass_read_file(mAssLibrary, (char *)fileName, (char *)codepage);
 	if (!track) {
+		LOGE("failed to find track %s", fileName);
         return false;
     }
 
     if (!arrangeTrack(track)) {
         ass_free_track(track);
+		LOGE("failed to arrange track %s", fileName);
         return false;
     }
     mAssTrack = track;
@@ -155,6 +158,8 @@ bool CSimpleTextSubtitle::parseXMLNode(const char* fileName, tinyxml2::XMLElemen
 
 bool CSimpleTextSubtitle::arrangeTrack(ASS_Track* track)
 {
+	LOGI("arrangeTrack()");
+
     std::set<int64_t> breakpoints;
     for (int i = 0; i < track->n_events; ++i) {
         ASS_Event* event = &track->events[i];
@@ -181,7 +186,7 @@ bool CSimpleTextSubtitle::arrangeTrack(ASS_Track* track)
         ASS_Event* event = &track->events[i];
         int64_t startTime = event->Start;
         int64_t stopTime  = event->Start + event->Duration;
-		//__android_log_print(ANDROID_LOG_DEBUG,"FFStream","1arrangeTrack = %s", event->Text);
+		LOGI("arrangeTrack = %s", event->Text);
 
         size_t j = 0;
         for (j = 0; j < mSegments.size() && mSegments[j]->mStartTime < startTime; ++j) {
