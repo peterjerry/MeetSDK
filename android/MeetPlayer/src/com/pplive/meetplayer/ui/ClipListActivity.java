@@ -365,8 +365,6 @@ public class ClipListActivity extends Activity implements
 		mLayout.setFocusable(true);
 		mLayout.setOnFocusChangeListener(this);
 		mLayout.addView(mTextViewInfo);
-		mLayout.setFocusable(true);
-		mLayout.setOnFocusChangeListener(this);
 		addContentView(mControllerLayout, new LayoutParams(LayoutParams.MATCH_PARENT,
 				LayoutParams.WRAP_CONTENT));
 		
@@ -1264,8 +1262,9 @@ public class ClipListActivity extends Activity implements
 				mIsBuffering = false;
 			}
 			
-			if (mPlayUrl.startsWith("http://127.0.0.1"))
-				close_hls();
+			// cannot run in main thread
+			//if (mPlayUrl.startsWith("http://127.0.0.1"))
+			//	close_hls();
 		}
 	}
 	

@@ -21,6 +21,8 @@
 
 AudioPlayer::AudioPlayer(FFStream* dataStream, AVStream* context, int32_t streamIndex)
 {
+	LOGI("AudioPlayer constructor()");
+
     mDataStream = dataStream;
     if (dataStream)
         mDurationMs = dataStream->getDurationMs();
@@ -42,6 +44,7 @@ AudioPlayer::AudioPlayer(FFStream* dataStream, AVStream* context, int32_t stream
 
     mSeeking = false;
 	mPlayerStatus = MEDIA_PLAYER_INITIALIZED;
+	LOGI("AudioPlayer inited");
 }
 
 AudioPlayer::~AudioPlayer()
@@ -69,8 +72,10 @@ status_t AudioPlayer::prepare()
 {
 	if (mPlayerStatus == MEDIA_PLAYER_PREPARED)
 		return OK;
-	if (mPlayerStatus != MEDIA_PLAYER_INITIALIZED)
+	else if (mPlayerStatus != MEDIA_PLAYER_INITIALIZED) {
+		LOGE("audio player(prepare) was in invalid state %d", mPlayerStatus);
 		return INVALID_OPERATION;
+	}
 
 	if (mAudioContext == NULL || mDataStream == NULL) {
 		LOGE("audio stream is null");
@@ -109,27 +114,38 @@ status_t AudioPlayer::setup_render()
 
 status_t AudioPlayer::start()
 {
-    if(mPlayerStatus == MEDIA_PLAYER_STARTED)
+	LOGI("AudioPlayer start()");
+
+    if (mPlayerStatus == MEDIA_PLAYER_STARTED)
         return OK;
-    if(mPlayerStatus != MEDIA_PLAYER_PREPARED &&
+    else if (mPlayerStatus != MEDIA_PLAYER_PREPARED &&
         mPlayerStatus != MEDIA_PLAYER_PAUSED)
+	{
+		LOGE("audio player(start) was in invalid state %d", mPlayerStatus);
         return INVALID_OPERATION;
+	}
     
     return start_l();
 }
 
 status_t AudioPlayer::pause()
 {
-    if(mPlayerStatus == MEDIA_PLAYER_PAUSED)
+	LOGI("AudioPlayer pause()");
+
+    if (mPlayerStatus == MEDIA_PLAYER_PAUSED)
         return OK;
-    if(mPlayerStatus != MEDIA_PLAYER_STARTED)
+    else if (mPlayerStatus != MEDIA_PLAYER_STARTED) {
+		LOGE("audio player(pause) was in invalid state %d", mPlayerStatus);
         return INVALID_OPERATION;
+	}
     
     return pause_l();
 }
 
 status_t AudioPlayer::flush()
 {
+	LOGI("AudioPlayer flush()");
+
     return flush_l();
 }
 
@@ -151,6 +167,8 @@ int64_t AudioPlayer::getMediaTimeMs()
 
 status_t AudioPlayer::seekTo(int64_t msec)
 {
+	LOGI("AudioPlayer seekTo() %lld", msec);
+
 	mSeekTimeMs = msec;
 	mSeeking	= true;
 	if (mRender)
@@ -173,12 +191,13 @@ status_t AudioPlayer::start_l()
     }
     
     mPlayerStatus = MEDIA_PLAYER_STARTED;
+	LOGI("AudioPlayer stared");
     return OK;
 }
 
 status_t AudioPlayer::stop()
 {
-	LOGI("stop_l()");
+	LOGI("AudioPlayer stop()");
 
 	// avoid duplicated stop()
     if (mPlayerStatus == MEDIA_PLAYER_STOPPED)
@@ -217,7 +236,7 @@ status_t AudioPlayer::stop()
     }
 
 	mPlayerStatus = MEDIA_PLAYER_STOPPED;
-    LOGI("after stop_l()");
+    LOGI("AudioPlayer stoped");
     return OK;
 }
 
@@ -432,6 +451,8 @@ void AudioPlayer::notifyListener_l(int msg, int ext1, int ext2)
 
 status_t AudioPlayer::selectAudioChannel(int32_t index)
 {
+	LOGI("AudioPlayer selectAudioChannel() %d", index);
+
 	mAudioStreamIndex = index;
 	if (mRender) {
 		mRender->flush();

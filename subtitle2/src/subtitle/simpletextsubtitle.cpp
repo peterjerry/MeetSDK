@@ -10,32 +10,10 @@
 #define LOG_TAG "simple_subtitle"
 #include "logutil.h"
 
-
 #ifdef _MSC_VER 
-int pthread_mutex_init (pthread_mutex_t * mutex, const pthread_mutexattr_t * attr)
-{
-    *mutex = (pthread_mutex_t)malloc(sizeof(CRITICAL_SECTION));
-    InitializeCriticalSection(*mutex);
-
-    return 1;
-}
-
-int pthread_mutex_destroy (pthread_mutex_t * mutex)
-{
-    DeleteCriticalSection(*mutex);
-    free(*mutex);
-    return 1;
-}
-int pthread_mutex_lock (pthread_mutex_t * mutex)
-{
-    EnterCriticalSection(*mutex);
-    return 1;
-}
-int pthread_mutex_unlock (pthread_mutex_t * mutex)
-{
-    LeaveCriticalSection(*mutex);
-    return 1;
-}
+#define strdup _strdup
+static char* ass_remove_format_tag(char* src);
+static int mystrtoi(char **p, int *res);
 #endif
 
 #include <set>
@@ -84,10 +62,10 @@ bool CSimpleTextSubtitle::loadFile(const char* fileName)
         return false;
     }
 
-    const char *codepage = "enca:zh:gb2312";
-    ASS_Track* track = ass_read_file(mAssLibrary, (char *)fileName, (char *)codepage);
+    char *codepage = "enca:zh:gb2312";
+    ASS_Track* track = ass_read_file(mAssLibrary, (char *)fileName, NULL/*codepage*/);
 	if (!track) {
-		LOGE("failed to find track %s", fileName);
+		LOGE("track init failed: %s", fileName);
         return false;
     }
 
@@ -314,3 +292,63 @@ bool CSimpleTextSubtitle::addEmbeddingEntity(int64_t startTime, int64_t duration
 
     return true;
 }
+
+#ifdef _MSC_VER
+static int mystrtoi(char **p, int *res)
+{
+    double temp_res;
+    char *start = *p;
+    temp_res = strtod(*p, p);
+    *res = (int) (temp_res + (temp_res > 0 ? 0.5 : -0.5));
+    if (*p != start)
+        return 1;
+    else
+        return 0;
+}
+
+static char* ass_remove_format_tag(char* src)
+{
+    char *p1 = src;
+    char *p2 = src;
+    int drawing_mode = 0;
+
+    if (!src) {
+        return src;
+    }
+
+    while(*p2) {
+        int in_tag = 0;
+        if (*p2 == '{') {
+            p2++;
+            in_tag = 1;
+        }
+        if (in_tag) {
+            while (*p2 != '}' && *p2 != 0) {
+                if (*p2 == '\\' && *(p2 + 1) == 'p'
+                    && (*(p2 + 2) >= '0' && *(p2 + 2) <= '9')) {
+                    int val = 0;
+                    p2 += 2;
+                    if (!mystrtoi(&p2, &val)) {
+                        val = 0;
+                    }
+                    drawing_mode = !!val;
+                }
+                ++p2;
+            }
+            if (*p2 == '}') { p2++; }
+        } else if (*p2 == '\\' && (*(p2 + 1) == 'n' || *(p2 + 1) == 'N')) {
+            *p1++ = '\n';
+            p2 += 2;
+        } else {
+            if (!drawing_mode) {
+                *p1++ = *p2++;
+            } else {
+                p2++;
+            }
+        }
+    }
+    
+    *p1 = '\x0';
+    return src;
+}
+#endif

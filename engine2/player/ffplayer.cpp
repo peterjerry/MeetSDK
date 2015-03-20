@@ -553,7 +553,7 @@ void FFPlayer::cancelPlayerEvents_l()
 
 status_t FFPlayer::setDataSource(const char *uri)
 {
-	LOGI("player op setDataSource()");
+	LOGI("player op setDataSource() %s", uri);
 
     if(uri == NULL ||
         (mPlayerStatus != MEDIA_PLAYER_IDLE &&
@@ -1760,7 +1760,7 @@ status_t FFPlayer::pause_l()
     if (mAudioPlayer != NULL) {
         status_t ret = mAudioPlayer->pause();
         if(ret != OK) {
-     	    LOGE("pause audio player failed");
+     	    LOGE("failed to pause audio player %d", ret);
             return ret;
         }
     }

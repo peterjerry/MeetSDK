@@ -99,12 +99,33 @@ LOCAL_SRC_FILES := $(addprefix $(SRC_PATH)/, $(common_SRC_FILES))
 LOCAL_STATIC_LIBRARIES := expat ft2
 include $(BUILD_STATIC_LIBRARY)
 
+######################## iconv ######################
+include $(CLEAR_VARS) 
+LOCAL_MODULE    := libiconv 
+LOCAL_CFLAGS    := \
+	-Wno-multichar \
+	-D_ANDROID \
+	-DBUILDING_LIBICONV \
+	-DIN_LIBRARY \
+	-DLIBDIR="\"c\""
+LOCAL_C_INCLUDES := \
+    $(LOCAL_PATH)/../../../src/iconv/ \
+    $(LOCAL_PATH)/../../../src/iconv/include/ \
+    $(LOCAL_PATH)/../../../src/iconv/lib/ \
+	$(LOCAL_PATH)/../../../src/iconv/libcharset/include
+
+LOCAL_SRC_FILES := \
+     ../../../src/iconv/lib/iconv.c \
+     ../../../src/iconv/lib/relocatable.c \
+     ../../../src/iconv/libcharset/lib/localcharset.c
+include $(BUILD_STATIC_LIBRARY) 
 ######################## ass ######################
 include $(CLEAR_VARS)
 LOCAL_MODULE := ass
 LOCAL_C_INCLUDES := \
 	../../src/fontconfig/ \
 	../../src/freetype/include \
+	../../src/iconv/include \
 	../../src/libass
 SRC_PATH = ../../../src/libass
 common_SRC_FILES := \
@@ -121,7 +142,7 @@ common_SRC_FILES := \
 	libass/ass_render_api.c \
 	libass/ass_strtod.c
 LOCAL_SRC_FILES := $(addprefix $(SRC_PATH)/, $(common_SRC_FILES))
-LOCAL_STATIC_LIBRARIES := fontconfig
+LOCAL_STATIC_LIBRARIES := fontconfig iconv
 include $(BUILD_STATIC_LIBRARY)
 
 ######################## tinyxml2 ######################
@@ -155,6 +176,6 @@ SRC_PATH = ../../../src/subtitle
 common_SRC_FILES := \
 	fake.cpp
 LOCAL_SRC_FILES 		:= $(addprefix $(SRC_PATH)/, $(common_SRC_FILES))
-LOCAL_STATIC_LIBRARIES 	:= subtitle
+LOCAL_STATIC_LIBRARIES 	:= subtitle iconv
 LOCAL_LDLIBS 			:= -llog
 include $(BUILD_SHARED_LIBRARY)

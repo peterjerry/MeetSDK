@@ -239,6 +239,7 @@ public class MediaPlayer implements MediaPlayerInterface {
 		
 		setSurface();
 		setAudioStreamType();
+		setLooping();
 		
 		setOnBufferingUpdateListener();
 		setOnCompletionListener();
@@ -411,10 +412,16 @@ public class MediaPlayer implements MediaPlayerInterface {
 		return false;
 	}
 	
+	private boolean mLooping = false;
 	@Override
-	public void setLooping (boolean looping) {
+	public void setLooping(boolean looping) {
+		LogUtils.info("MediaPlayer setLooping: " + looping);
+		mLooping = looping;
+	}
+	
+	private void setLooping() {
 		if (mPlayer != null) {
-			mPlayer.setLooping(looping);
+			mPlayer.setLooping(mLooping);
 		}
 	}
 	

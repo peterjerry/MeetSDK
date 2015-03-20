@@ -20,7 +20,7 @@
 /* #undef CONFIG_HARFBUZZ */
 
 /* use iconv */
-/* #undef CONFIG_ICONV */
+#define CONFIG_ICONV 1
 
 /* found libpng via pkg-config */
 /* #undef CONFIG_LIBPNG */
