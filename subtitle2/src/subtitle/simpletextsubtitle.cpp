@@ -8,7 +8,7 @@
 #include "simpletextsubtitle.h"
 
 #define LOG_TAG "simple_subtitle"
-#include "jnilog.h"
+#include "logutil.h"
 
 
 #ifdef _MSC_VER 

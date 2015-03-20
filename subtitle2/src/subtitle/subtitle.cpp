@@ -9,7 +9,7 @@
 #include <stdarg.h>
 
 #define LOG_TAG "subtitle"
-#include "jnilog.h"
+#include "logutil.h"
 
 extern "C" {
 #include "libass/ass.h"

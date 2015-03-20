@@ -1,7 +1,7 @@
-#ifndef JNI_LOG_H
-#define JNI_LOG_H
+#ifndef _LOG_UTIL_H_
+#define _LOG_UTIL_H_
 
-#ifdef __ANDROID__
+#if defined(__ANDROID__)
 #include <jni.h>
 #include <android/log.h>
 
@@ -22,6 +22,23 @@
 #define LOGW(...) __android_log_print(ANDROID_LOG_WARN, LOG_TAG, __VA_ARGS__)
 
 #define LOGE(...) __android_log_print(ANDROID_LOG_ERROR, LOG_TAG, __VA_ARGS__)
+
+#elif defined(__APPLE__)
+
+#define LOGV(...) ((void)0)
+#define LOGD(...) ((void)0)
+#define LOGI(...) ((void)0)
+#define LOGW(...) ((void)0)
+#define LOGE(...) ((void)0)
+
+#else // MSC
+
+#define LOGV(...) ((void)0)
+#define LOGD(...) ((void)0)
+#define LOGI(...) ((void)0)
+#define LOGW(...) ((void)0)
+#define LOGE(...) ((void)0)
+
 #endif
 
-#endif // JNI_LOG_H
+#endif // _LOG_UTIL_H_
