@@ -18,7 +18,7 @@ int CSTSSegment::getSubtitleText(char* text, int maxLength)
         ASS_Event* event = mSubtitle->getEventAt(mSubs[i]);
         if (!text) {
             if (textLength) {
-                textLength += 1; // »»ÐÐ·û
+                textLength += 1;
             }
             textLength += strlen(event->Text);
         } else {

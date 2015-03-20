@@ -63,6 +63,10 @@ private:
 
     void notifyListener_l(int msg, int ext1 = 0, int ext2 = 0);
 
+	int64_t get_channel_layout(uint64_t channel_layout, int channels);
+
+	status_t setup_render();
+
 private:
     uint32_t mPlayerStatus;
     int16_t* mSamples;

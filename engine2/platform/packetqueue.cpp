@@ -70,6 +70,13 @@ AVPacket* PacketQueue::get()
     return pPacket;
 }
 
+AVPacket* PacketQueue::peek()
+{
+	AutoLock autoLock(&mLock);
+
+	return (AVPacket*)mPacketList.GetAt(0);
+}
+
 void PacketQueue::flush()
 {
 	AutoLock autoLock(&mLock);

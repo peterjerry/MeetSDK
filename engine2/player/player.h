@@ -176,6 +176,9 @@ enum media_error_type {
 	MEDIA_ERROR_VIDEO_RENDER						= 314,
 	MEDIA_ERROR_DEMUXER								= 315,
 
+	MEDIA_ERROR_AUDIO_DECODER						= 321,
+	MEDIA_ERROR_VIDEO_DECODER						= 322,
+
 	MEDIA_ERROR_TIMED_OUT							= -110,
 	MEDIA_ERROR_IO									= -1004,
 	MEDIA_ERROR_MALFORMED							= -1007,
@@ -281,6 +284,8 @@ public:
 	virtual status_t suspend() = 0;
 
 	virtual status_t resume() = 0;
+
+	virtual void set_opt(const char *opt) = 0;
 
 	//virtual status_t setPlayRate(double rate) = 0;
 };

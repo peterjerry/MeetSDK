@@ -586,8 +586,21 @@ status_t FFPlayer::selectAudioChannel(int32_t index)
 
 	mAudioStreamIndex = index;
 
-	if (mAudioPlayer)
-		mAudioPlayer->selectAudioChannel(index);
+	if (mAudioPlayer) {
+		delete mAudioPlayer;
+		mAudioPlayer = NULL;
+	}
+
+	// 2015.3.18 guoliangma fix multi-channel diff channel_layout problem
+	if (prepareAudio_l() != OK) {
+     	LOGE("failed to Init audio player");
+        return ERROR;
+    }
+
+	if (mAudioPlayer->start() != OK) {
+        LOGE("failed to restart audio player");
+        return ERROR;
+    }
 
 	mSeekTimeMs = mVideoTimeMs;
 	postSeekingEvent_l();
@@ -1101,7 +1114,7 @@ void FFPlayer::notifyVideoDelay(int64_t video_clock, int64_t audio_clock, int64_
 		    video_clock, audio_clock, frame_delay);
 #else
 		LOGI("video_clock: %lld, audio_clock: %lld, delay: %lld(msec)",
-		    mVideoPlayingTimeMs, audio_clock, frame_delay);
+		    video_clock, audio_clock, frame_delay);
 #endif
 		start_msec = cur_msec;
 	}
@@ -1399,7 +1412,7 @@ void FFPlayer::onVideoImpl()
 	postVideoEvent_l(schedule_msec);
 }
 
-void FFPlayer::set_opt(char *opt)
+void FFPlayer::set_opt(const char *opt)
 {
 
 }

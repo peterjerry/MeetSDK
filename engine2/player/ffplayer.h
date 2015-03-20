@@ -100,6 +100,8 @@ public:
 
 	status_t setISubtitle(ISubtitles* subtitle);
 
+	void set_opt(const char *opt);
+
 	static void onPrepare(void *opaque);
     static void onStreamDone(void *opaque);
     static void onVideo(void *opaque);
@@ -179,7 +181,6 @@ private:
 
 	void SwapResolution(int32_t *width, int32_t *height);
 
-	void set_opt(char *opt);
 #ifdef USE_AV_FILTER
 	bool init_filters(const char **filters_descr);
 	bool insert_filter(const char *name, const char* arg, AVFilterContext **last_filter);

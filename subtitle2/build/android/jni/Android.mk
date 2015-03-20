@@ -155,5 +155,6 @@ SRC_PATH = ../../../src/subtitle
 common_SRC_FILES := \
 	fake.cpp
 LOCAL_SRC_FILES 		:= $(addprefix $(SRC_PATH)/, $(common_SRC_FILES))
-LOCAL_STATIC_LIBRARIES := subtitle
+LOCAL_STATIC_LIBRARIES 	:= subtitle
+LOCAL_LDLIBS 			:= -llog
 include $(BUILD_SHARED_LIBRARY)

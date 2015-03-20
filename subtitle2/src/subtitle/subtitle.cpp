@@ -8,10 +8,8 @@
 #include "subtitle.h"
 #include <stdarg.h>
 
-#ifdef __ANDROID__
-#include <jni.h>
-#include <android/log.h>
-#endif
+#define LOG_TAG "subtitle"
+#include "logutil.h"
 
 extern "C" {
 #include "libass/ass.h"
@@ -68,10 +66,11 @@ public:
         const char* text, int textLen);
 protected:
     bool loadPPSubtitle(const char* fileName);
+	
     CSimpleTextSubtitle* getSelectedSimpleTextSubtitle()
     {
-    //__android_log_print(ANDROID_LOG_DEBUG,"FFStream","getSelectedSimpleTextSubtitle mSubtitles size= %d", mSubtitles.size());
-	//__android_log_print(ANDROID_LOG_DEBUG,"FFStream","getSelectedSimpleTextSubtitle mSelected= %d", mSelected);
+		LOGI("getSelectedSimpleTextSubtitle mSubtitles size= %d", mSubtitles.size());
+		LOGI("getSelectedSimpleTextSubtitle mSelected= %d", mSelected);
         if (mSelected >= 0 && mSelected < mSubtitles.size()) {
             return mSubtitles[mSelected];
         }
@@ -177,15 +176,17 @@ bool CSubtitleManager::seekTo(int64_t time)
 
 bool CSubtitleManager::getNextSubtitleSegment(STSSegment** segment)
 {
+	LOGD("getNextSubtitleSegment()");
+
     CSimpleTextSubtitle* subtitle = getSelectedSimpleTextSubtitle();
 	
-    if (subtitle) {
-        //mSelected ++;
-        return subtitle->getNextSubtitleSegment(segment);
+    if (subtitle == NULL) {
+        LOGE("textsubtitle is NULL");
+		return false;
     }
-	//__android_log_print(ANDROID_LOG_DEBUG,"FFStream","getNextSubtitleSegment subtitle false");
 
-    return false;
+	//mSelected ++;
+	return subtitle->getNextSubtitleSegment(segment);
 }
 
 bool CSubtitleManager::loadSubtitle(const char* fileName, bool isMediaFile)
@@ -205,6 +206,7 @@ bool CSubtitleManager::loadSubtitle(const char* fileName, bool isMediaFile)
     CSimpleTextSubtitle* subtitle = new CSimpleTextSubtitle(mAssLibrary);
     if (!subtitle->loadFile(fileName)) {
         delete subtitle;
+		LOGE("failed to load subtitle: %s", fileName);
         return false;
     }
 
@@ -219,6 +221,7 @@ bool CSubtitleManager::loadPPSubtitle(const char* fileName)
 {
     tinyxml2::XMLDocument xmlDoc;
     if (xmlDoc.LoadFile(fileName) != tinyxml2::XML_SUCCESS) {
+		LOGE("failed to load xmlfile: %s", fileName);
         return false;
     }
 
@@ -226,8 +229,7 @@ bool CSubtitleManager::loadPPSubtitle(const char* fileName)
     if (xmlDoc.RootElement()) {
         subEle = xmlDoc.RootElement()->FirstChildElement("sub");
     }
-    while (subEle) 
-    {
+    while (subEle) {
         CSimpleTextSubtitle* subtitle = new CSimpleTextSubtitle(mAssLibrary);
         if (subtitle->parseXMLNode(fileName, subEle)) {
             subtitle->seekTo(0);
@@ -238,6 +240,7 @@ bool CSubtitleManager::loadPPSubtitle(const char* fileName)
 
         subEle = subEle->NextSiblingElement("sub");
     }
+
     return (mSubtitles.size() != 0);
 }
 
@@ -267,7 +270,7 @@ int CSubtitleManager::addEmbeddingSubtitle(SubtitleCodecId codecId, const char* 
         return -1;
     }
     mSubtitles.push_back(subtitle);
-	//__android_log_print(ANDROID_LOG_DEBUG,"FFStream","zhangxianjia addEmbeddingSubtitle push_back = %d", mSubtitles.size());
+	LOGD("addEmbeddingSubtitle push_back = %d", mSubtitles.size());
     return mSubtitles.size() - 1;
 }
 
@@ -282,22 +285,21 @@ bool CSubtitleManager::addEmbeddingSubtitleEntity(int index, int64_t startTime, 
     if (!subtitle->isEmbedding()) {
         return false;
     }
-		//__android_log_print(ANDROID_LOG_DEBUG,"FFStream","addEmbeddingSubtitle index = %d", index);
-		//__android_log_print(ANDROID_LOG_DEBUG,"FFStream","addEmbeddingSubtitle index = %ld", startTime);
-		//__android_log_print(ANDROID_LOG_DEBUG,"FFStream","addEmbeddingSubtitle text = %s", text);
+	
+	LOGD("addEmbeddingSubtitle: #%d startTime %lld, text %s", index, startTime, text);
     return subtitle->addEmbeddingEntity(startTime, duration, text, textLen);
 }
 
 bool ISubtitles::create(ISubtitles** subtitle)
 {
-    if (!subtitle) {
+    if (!subtitle)
         return false;
-    }
 
     *subtitle = new CSubtitleManager;
     if (*subtitle) {
+		LOGE("failed to new CSubtitleManager");
         return true;
-    }
+	}
 
     return false;
 }
