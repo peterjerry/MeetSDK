@@ -8,7 +8,7 @@
 #include "subtitle.h"
 #include <stdarg.h>
 
-#define TAG "subtitle"
+#define LOG_TAG "subtitle"
 #include "jnilog.h"
 
 extern "C" {
@@ -176,15 +176,17 @@ bool CSubtitleManager::seekTo(int64_t time)
 
 bool CSubtitleManager::getNextSubtitleSegment(STSSegment** segment)
 {
+	LOGD("getNextSubtitleSegment()");
+
     CSimpleTextSubtitle* subtitle = getSelectedSimpleTextSubtitle();
 	
-    if (subtitle) {
-        //mSelected ++;
-        return subtitle->getNextSubtitleSegment(segment);
+    if (subtitle == NULL) {
+        LOGE("textsubtitle is NULL");
+		return false;
     }
-	//__android_log_print(ANDROID_LOG_DEBUG,"FFStream","getNextSubtitleSegment subtitle false");
 
-    return false;
+	//mSelected ++;
+	return subtitle->getNextSubtitleSegment(segment);
 }
 
 bool CSubtitleManager::loadSubtitle(const char* fileName, bool isMediaFile)
@@ -219,7 +221,7 @@ bool CSubtitleManager::loadPPSubtitle(const char* fileName)
 {
     tinyxml2::XMLDocument xmlDoc;
     if (xmlDoc.LoadFile(fileName) != tinyxml2::XML_SUCCESS) {
-		LOGE("failed to load xmlfile: ", fileName);
+		LOGE("failed to load xmlfile: %s", fileName);
         return false;
     }
 
@@ -268,7 +270,7 @@ int CSubtitleManager::addEmbeddingSubtitle(SubtitleCodecId codecId, const char* 
         return -1;
     }
     mSubtitles.push_back(subtitle);
-	//__android_log_print(ANDROID_LOG_DEBUG,"FFStream","zhangxianjia addEmbeddingSubtitle push_back = %d", mSubtitles.size());
+	LOGD("addEmbeddingSubtitle push_back = %d", mSubtitles.size());
     return mSubtitles.size() - 1;
 }
 
@@ -283,22 +285,21 @@ bool CSubtitleManager::addEmbeddingSubtitleEntity(int index, int64_t startTime, 
     if (!subtitle->isEmbedding()) {
         return false;
     }
-		//__android_log_print(ANDROID_LOG_DEBUG,"FFStream","addEmbeddingSubtitle index = %d", index);
-		//__android_log_print(ANDROID_LOG_DEBUG,"FFStream","addEmbeddingSubtitle index = %ld", startTime);
-		//__android_log_print(ANDROID_LOG_DEBUG,"FFStream","addEmbeddingSubtitle text = %s", text);
+	
+	LOGD("addEmbeddingSubtitle: #%d startTime %lld, text %s", index, startTime, text);
     return subtitle->addEmbeddingEntity(startTime, duration, text, textLen);
 }
 
 bool ISubtitles::create(ISubtitles** subtitle)
 {
-    if (!subtitle) {
+    if (!subtitle)
         return false;
-    }
 
     *subtitle = new CSubtitleManager;
     if (*subtitle) {
+		LOGE("failed to new CSubtitleManager");
         return true;
-    }
+	}
 
     return false;
 }

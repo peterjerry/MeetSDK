@@ -7,7 +7,7 @@
 #include "stssegment.h"
 #include "simpletextsubtitle.h"
 
-#define TAG "simple_subtitle"
+#define LOG_TAG "simple_subtitle"
 #include "jnilog.h"
 
 
@@ -233,21 +233,22 @@ bool CSimpleTextSubtitle::getNextSubtitleSegment(STSSegment** segment)
     }
 
     if (isEmbedding() && mDirty) {
-		//__android_log_print(ANDROID_LOG_DEBUG,"FFStream","getNextSubtitleSegment mDirty ");
+		LOGD("getNextSubtitleSegment mDirty ");
         pthread_mutex_lock(mEmbeddingLock);
         arrangeTrack(mAssTrack);
         pthread_mutex_unlock(mEmbeddingLock);
     }
-	//__android_log_print(ANDROID_LOG_DEBUG,"FFStream","getNextSubtitleSegment mNextSegment = %d", mNextSegment);
-	//__android_log_print(ANDROID_LOG_DEBUG,"FFStream","getNextSubtitleSegment size= %d", mSegments.size());
+	
+	LOGD("getNextSubtitleSegment mNextSegment %d, size %d", mNextSegment, mSegments.size());
 
-    if (mNextSegment < mSegments.size()) {
-		//__android_log_print(ANDROID_LOG_DEBUG,"FFStream","getNextSubtitleSegment = %d", mNextSegment);
-        *segment = mSegments[mNextSegment];
-        mNextSegment++;
-        return true;
-    }
-    return false;
+    if (mNextSegment >= mSegments.size()) {
+		LOGE("mNextSegment is too big");
+		return false;
+	}
+	
+	*segment = mSegments[mNextSegment];
+	mNextSegment++;
+	return true;
 }
 
 ASS_Event* CSimpleTextSubtitle::getEventAt(int pos)
