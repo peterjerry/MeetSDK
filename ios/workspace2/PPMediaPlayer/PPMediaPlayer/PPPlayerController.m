@@ -22,24 +22,45 @@
                            type:(PPMoviePlayerType)type
 {
     //system or self
-    BOOL canHardDecoding = NO;
+    PPPlayerController *player = nil;
     switch (type) {
         case PPMOVIE_SYSTEM_PLAYER:
-            canHardDecoding = YES;
+            player = [[AVPlayerController alloc] initWithUrl:url frame:frame];
+            NSLog(@"Create AvPlayer");
             break;
         case PPMOVIE_SELF_PLAYER:
-            canHardDecoding = NO;
+            player = [[PPMediaPlayerController alloc] initWithUrl:url frame:frame];
+            NSLog(@"Create FFPlayer");
             break;
         case PPMOVIE_AUTO_PLAYER:
         {
+            BOOL canHardDecoding = NO;
+            //check name
             NSArray *suffixs = @[@".mp4", @".mov", @".m4v", @".3gp", @".m3u8"];
             for (NSString *suf in suffixs) {
-                //NSLog(@"%@", url.path);
                 NSString *tmp = [url.path lowercaseString];
                 if ([tmp hasSuffix:suf]) {
                     canHardDecoding = YES;
                     break;
                 }
+            }
+            if (canHardDecoding
+                && url.isFileURL) { //check codec type
+                NSLog(@"check suffixs pass");
+                NSString *path = url.path;
+                PPMediaInfo info = [[PPMediaPlayerInfo sharedInstance]
+                                    getMediaInfo:path];
+                NSString *videoType = [NSString stringWithUTF8String:info.video_name];
+                NSString *audioType = [NSString stringWithUTF8String:info.audio_name];
+                canHardDecoding = [PPPlayerController videoSupport:videoType]
+                && [PPPlayerController audioSupport:audioType];
+            }
+            if (canHardDecoding) {
+                player = [[AVPlayerController alloc] initWithUrl:url frame:frame];
+                NSLog(@"Create AvPlayer");
+            } else {
+                player = [[PPMediaPlayerController alloc] initWithUrl:url frame:frame];
+                NSLog(@"Create FFPlayer");
             }
         }
             break;
@@ -47,28 +68,6 @@
             assert(0);
             break;
     }
-    PPPlayerController *player = nil;
-    do {
-        if (canHardDecoding) {
-            if (url.isFileURL) { //check codec support
-                NSString *path = url.path;
-                PPMediaInfo info = [[PPMediaPlayerInfo sharedInstance]
-                                    getMediaInfo:path];
-                NSString *videoType = [NSString stringWithUTF8String:info.video_name];
-                NSString *audioType = [NSString stringWithUTF8String:info.audio_name];
-                BOOL decodeEable = [PPPlayerController videoSupport:videoType]
-                && [PPPlayerController audioSupport:audioType];
-                if (decodeEable) { //support
-                    player = [[AVPlayerController alloc] initWithUrl:url frame:frame];
-                    NSLog(@"Create AvPlayer");
-                    break;
-                }
-            }
-        }
-        player = [[PPMediaPlayerController alloc] initWithUrl:url frame:frame];
-        NSLog(@"Create FFPlayer");
-    } while (0);
-    
     return player;
 }
 
