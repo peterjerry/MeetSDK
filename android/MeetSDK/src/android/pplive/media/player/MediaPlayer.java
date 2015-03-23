@@ -85,7 +85,7 @@ public class MediaPlayer implements MediaPlayerInterface {
         HW_XOPLAYER {
         	@Override
             public MediaPlayerInterface newInstance(MediaPlayer mp) {
-            	LogUtils.info("use xoplayer");
+            	LogUtils.info("player_select xoplayer");
                 return new XOMediaPlayer(mp);
             }
         	
@@ -97,7 +97,7 @@ public class MediaPlayer implements MediaPlayerInterface {
         SW {
             @Override
             public MediaPlayerInterface newInstance(MediaPlayer mp) {
-            	LogUtils.info("use ffplayer");
+            	LogUtils.info("player_select ffplayer");
                 return new FFMediaPlayer(mp);
             }
             
@@ -110,7 +110,7 @@ public class MediaPlayer implements MediaPlayerInterface {
         AUTO, UNKNOWN;
 
         public MediaPlayerInterface newInstance(MediaPlayer mp) {
-        	LogUtils.info("use system player");
+        	LogUtils.info("player_select system player");
             return new SystemMediaPlayer(mp);
         }
         
