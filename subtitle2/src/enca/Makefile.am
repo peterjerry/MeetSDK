@@ -19,13 +19,13 @@ M4TESTS = \
   m4/localias.m4 \
   m4/long-text.l2 \
   m4/recode-bugs.m4 \
-  m4/scanf.m4 \
   m4/tools.m4 \
   m4/typevar.m4
 
 EXTRA_DIST = \
   FAQ \
   README.devel \
+  README.md \
   TODO \
   ChangeLog.prelib \
   autogen.sh \
@@ -56,7 +56,7 @@ install-data-hook:
 	cd $(DESTDIR)$(man1dir); \
 	inst1=`echo enca | sed '$(transform)'`.1; \
 	inst2=`echo enconv | sed '$(transform)'`.1; \
-	$(LN_S) $$inst1 $$inst2
+	$(LN_S) -f $$inst1 $$inst2
 
 uninstall-hook:
 	inst=`echo enconv | sed '$(transform)'`.1; \

@@ -30,7 +30,9 @@ enca_LDADD = @LIBOBJS@ @CONVERTER_LIBS@ ../lib/libenca.la
 enca_LDFLAGS = @LDFLAGS@ @LIBS@
 enca_DEPENDENCIES = @LIBOBJS@ ../lib/libenca.la
 enca_CPPFLAGS = -DEXTCONV_DIR=\"@libexecdir@/enca/extconv\"
-INCLUDES = -I$(top_srcdir)/lib
+AM_CPPFLAGS = -I$(top_srcdir)/lib $(GCOV_CPPFLAGS)
+AM_LDFLAGS =  $(GCOV_LDFLAGS)
+AM_CFLAGS =  $(GCOV_FLAGS)
 
 # BUILT_SOURCES.  How we build them:
 
@@ -45,7 +47,7 @@ install-exec-hook:
 	cd $(DESTDIR)$(bindir); \
 	inst1=`echo enca | sed '$(transform)'`; \
 	inst2=`echo enconv | sed '$(transform)'`; \
-	$(LN_S) $$inst1$(EXEEXT) $$inst2$(EXEEXT)
+	$(LN_S) -f $$inst1$(EXEEXT) $$inst2$(EXEEXT)
 
 uninstall-hook:
 	inst=`echo enconv | sed '$(transform)'`; \
@@ -53,6 +55,7 @@ uninstall-hook:
 
 clean-local:
 	rm -f core.* *~ HELP.c COPYING.c
+	rm -f *.gc*
 
 dist-hook:
 	rm -f $(distdir)/HELP.c $(distdir)/COPYING.c

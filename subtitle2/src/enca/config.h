@@ -1,269 +1,289 @@
+/* config.h.  Generated from config.h.in by configure.  */
 /* config.h.in.  Generated from configure.ac by autoheader.  */
 
 /* Define to path to the cstocs recoder. */
-#undef CSTOCS_PROG
+/* #undef CSTOCS_PROG */
 
 /* Define to default converter list. */
-#undef DEFAULT_CONVERTER_LIST
+#define DEFAULT_CONVERTER_LIST "built-in"
 
 /* Define to default external converter program. */
-#undef DEFAULT_EXTERNAL_CONVERTER
+#define DEFAULT_EXTERNAL_CONVERTER ""
 
 /* Define to enable external converter programs. */
-#undef ENABLE_EXTERNAL
+/* #undef ENABLE_EXTERNAL */
 
 /* Define to 1 if you have the `canonicalize_file_name' function. */
-#undef HAVE_CANONICALIZE_FILE_NAME
+/* #undef HAVE_CANONICALIZE_FILE_NAME */
 
 /* Define to 1 if you have the declaration of `LC_MESSAGES', and to 0 if you
    don't. */
-#undef HAVE_DECL_LC_MESSAGES
+#define HAVE_DECL_LC_MESSAGES 0
 
 /* Define to 1 if you have the <dlfcn.h> header file. */
-#undef HAVE_DLFCN_H
+/* #undef HAVE_DLFCN_H */
 
 /* Define to 1 if you have the <errno.h> header file. */
-#undef HAVE_ERRNO_H
+#define HAVE_ERRNO_H 1
 
 /* Define to 1 if you have the <fcntl.h> header file. */
-#undef HAVE_FCNTL_H
+#define HAVE_FCNTL_H 1
 
 /* Define to 1 if you have the `fork' function. */
-#undef HAVE_FORK
+/* #undef HAVE_FORK */
 
 /* Define to 1 if you have the `ftruncate' function. */
-#undef HAVE_FTRUNCATE
+#define HAVE_FTRUNCATE 1
 
 /* Define to 1 if you have the <getopt.h> header file. */
-#undef HAVE_GETOPT_H
+#define HAVE_GETOPT_H 1
 
 /* Define to 1 if you have the `getopt_long' function. */
-#undef HAVE_GETOPT_LONG
+#define HAVE_GETOPT_LONG 1
 
 /* Define to 1 if you have the `gettimeofday' function. */
-#undef HAVE_GETTIMEOFDAY
+#define HAVE_GETTIMEOFDAY 1
 
 /* Define if you have the UNIX98 iconv functions. */
-#undef HAVE_GOOD_ICONV
+/* #undef HAVE_GOOD_ICONV */
 
 /* Define if you have the iconv() function and it works. */
-#undef HAVE_ICONV
+#define HAVE_ICONV 1
 
 /* Define to 1 if you have the <inttypes.h> header file. */
-#undef HAVE_INTTYPES_H
+#define HAVE_INTTYPES_H 1
 
 /* Define to 1 if you have the `isatty' function. */
-#undef HAVE_ISATTY
+#define HAVE_ISATTY 1
 
 /* Define to 1 if you have the <langinfo.h> header file. */
-#undef HAVE_LANGINFO_H
+/* #undef HAVE_LANGINFO_H */
 
 /* Define if you have the recode library (-lrecode). */
-#undef HAVE_LIBRECODE
+/* #undef HAVE_LIBRECODE */
 
 /* Define to 1 if you have the <limits.h> header file. */
-#undef HAVE_LIMITS_H
+#define HAVE_LIMITS_H 1
 
 /* Define if you have locale.alias file. */
-#undef HAVE_LOCALE_ALIAS
+#define HAVE_LOCALE_ALIAS 1
 
 /* Define to 1 if you have the <locale.h> header file. */
-#undef HAVE_LOCALE_H
+#define HAVE_LOCALE_H 1
 
 /* Define to 1 if you have the <memory.h> header file. */
-#undef HAVE_MEMORY_H
+#define HAVE_MEMORY_H 1
 
 /* Define to 1 if you have the `nl_langinfo' function. */
-#undef HAVE_NL_LANGINFO
+/* #undef HAVE_NL_LANGINFO */
 
 /* Define if you have program_invocation_short_name variable. */
-#undef HAVE_PROGRAM_INVOCATION_SHORT_NAME
+/* #undef HAVE_PROGRAM_INVOCATION_SHORT_NAME */
 
 /* Define to 1 if you have the `random' function. */
-#undef HAVE_RANDOM
+/* #undef HAVE_RANDOM */
 
 /* Define to 1 if you have the `realpath' function. */
-#undef HAVE_REALPATH
+/* #undef HAVE_REALPATH */
 
 /* Define to 1 if you have the `setlocale' function. */
-#undef HAVE_SETLOCALE
+#define HAVE_SETLOCALE 1
 
 /* Define to 1 if stdbool.h conforms to C99. */
-#undef HAVE_STDBOOL_H
+#define HAVE_STDBOOL_H 1
 
 /* Define to 1 if you have the <stdint.h> header file. */
-#undef HAVE_STDINT_H
+#define HAVE_STDINT_H 1
 
 /* Define to 1 if you have the <stdlib.h> header file. */
-#undef HAVE_STDLIB_H
+#define HAVE_STDLIB_H 1
 
 /* Define to 1 if you have the `stpcpy' function. */
-#undef HAVE_STPCPY
+/* #undef HAVE_STPCPY */
 
 /* Define to 1 if you have the <strings.h> header file. */
-#undef HAVE_STRINGS_H
+#define HAVE_STRINGS_H 1
 
 /* Define to 1 if you have the <string.h> header file. */
-#undef HAVE_STRING_H
+#define HAVE_STRING_H 1
 
 /* Define to 1 if you have the `strstr' function. */
-#undef HAVE_STRSTR
+#define HAVE_STRSTR 1
 
 /* Define to 1 if you have the <sys/stat.h> header file. */
-#undef HAVE_SYS_STAT_H
+#define HAVE_SYS_STAT_H 1
 
 /* Define to 1 if you have the <sys/time.h> header file. */
-#undef HAVE_SYS_TIME_H
+#define HAVE_SYS_TIME_H 1
 
 /* Define to 1 if you have the <sys/types.h> header file. */
-#undef HAVE_SYS_TYPES_H
+#define HAVE_SYS_TYPES_H 1
 
 /* Define to 1 if you have the <sys/wait.h> header file. */
-#undef HAVE_SYS_WAIT_H
+/* #undef HAVE_SYS_WAIT_H */
 
 /* Define to 1 if you have the <time.h> header file. */
-#undef HAVE_TIME_H
+#define HAVE_TIME_H 1
 
 /* Define to 1 if you have the `ttyname' function. */
-#undef HAVE_TTYNAME
+/* #undef HAVE_TTYNAME */
 
 /* Define to 1 if you have the <unistd.h> header file. */
-#undef HAVE_UNISTD_H
+#define HAVE_UNISTD_H 1
 
 /* Define to 1 if you have the `vfork' function. */
-#undef HAVE_VFORK
+/* #undef HAVE_VFORK */
 
 /* Define to 1 if you have the <vfork.h> header file. */
-#undef HAVE_VFORK_H
+/* #undef HAVE_VFORK_H */
 
 /* Define to 1 if you have the `wordexp' function. */
-#undef HAVE_WORDEXP
+/* #undef HAVE_WORDEXP */
 
 /* Define to 1 if you have the <wordexp.h> header file. */
-#undef HAVE_WORDEXP_H
+/* #undef HAVE_WORDEXP_H */
 
 /* Define to 1 if `fork' works. */
-#undef HAVE_WORKING_FORK
+/* #undef HAVE_WORKING_FORK */
 
 /* Define to 1 if `vfork' works. */
-#undef HAVE_WORKING_VFORK
+/* #undef HAVE_WORKING_VFORK */
 
 /* Define to 1 if the system has the type `_Bool'. */
-#undef HAVE__BOOL
+#define HAVE__BOOL 1
+
+/* Define to 1 if you have the file `/dev/arandom'. */
+/* #undef HAVE__DEV_ARANDOM */
+
+/* Define to 1 if you have the file `/dev/random'. */
+#define HAVE__DEV_RANDOM 1
+
+/* Define to 1 if you have the file `/dev/srandom'. */
+/* #undef HAVE__DEV_SRANDOM */
+
+/* Define to 1 if you have the file `/dev/urandom'. */
+#define HAVE__DEV_URANDOM 1
 
 /* Define as const if the declaration of iconv() needs const. */
-#undef ICONV_CONST
+#define ICONV_CONST 
 
 /* Define if iconv is transitive. */
-#undef ICONV_IS_TRANSITIVE
+/* #undef ICONV_IS_TRANSITIVE */
 
 /* Define to the path to locale.alias file. */
-#undef LOCALE_ALIAS_PATH
+#define LOCALE_ALIAS_PATH "/usr/share/locale/locale.alias"
 
 /* Define to the sub-directory in which libtool stores uninstalled libraries.
    */
-#undef LT_OBJDIR
+#define LT_OBJDIR ".libs/"
 
 /* Define to path to the map recoder. */
-#undef MAP_PROG
+/* #undef MAP_PROG */
+
+/* Define to 1 if your C compiler doesn't accept -c and -o together. */
+/* #undef NO_MINUS_C_MINUS_O */
 
 /* Name of package */
-#undef PACKAGE
+#define PACKAGE "enca"
 
 /* Define to the address where bug reports for this package should be sent. */
-#undef PACKAGE_BUGREPORT
+#define PACKAGE_BUGREPORT "https://bugs.cihar.com/"
 
 /* Define to the full name of this package. */
-#undef PACKAGE_NAME
+#define PACKAGE_NAME "Enca"
 
 /* Define to the full name and version of this package. */
-#undef PACKAGE_STRING
+#define PACKAGE_STRING "Enca 1.13"
 
 /* Define to the one symbol short name of this package. */
-#undef PACKAGE_TARNAME
+#define PACKAGE_TARNAME "enca"
 
 /* Define to the home page for this package. */
-#undef PACKAGE_URL
+#define PACKAGE_URL ""
 
 /* Define to the version of this package. */
-#undef PACKAGE_VERSION
+#define PACKAGE_VERSION "1.13"
 
 /* Define to path to the piconv recoder. */
-#undef PICONV_PROG
+#define PICONV_PROG "/bin/piconv"
 
 /* Define to path to the recode recoder. */
-#undef RECODE_PROG
+/* #undef RECODE_PROG */
 
 /* Define to 1 if the `S_IS*' macros in <sys/stat.h> do not work properly. */
-#undef STAT_MACROS_BROKEN
+/* #undef STAT_MACROS_BROKEN */
 
 /* Define to 1 if you have the ANSI C header files. */
-#undef STDC_HEADERS
+#define STDC_HEADERS 1
 
 /* Define to 1 if you can safely include both <sys/time.h> and <time.h>. */
-#undef TIME_WITH_SYS_TIME
+#define TIME_WITH_SYS_TIME 1
 
 /* Define to path to the umap recoder. */
-#undef UMAP_PROG
+/* #undef UMAP_PROG */
 
 /* Enable extensions on AIX 3, Interix.  */
 #ifndef _ALL_SOURCE
-# undef _ALL_SOURCE
+# define _ALL_SOURCE 1
 #endif
 /* Enable GNU extensions on systems that have them.  */
 #ifndef _GNU_SOURCE
-# undef _GNU_SOURCE
+# define _GNU_SOURCE 1
 #endif
 /* Enable threading extensions on Solaris.  */
 #ifndef _POSIX_PTHREAD_SEMANTICS
-# undef _POSIX_PTHREAD_SEMANTICS
+# define _POSIX_PTHREAD_SEMANTICS 1
 #endif
 /* Enable extensions on HP NonStop.  */
 #ifndef _TANDEM_SOURCE
-# undef _TANDEM_SOURCE
+# define _TANDEM_SOURCE 1
 #endif
 /* Enable general extensions on Solaris.  */
 #ifndef __EXTENSIONS__
-# undef __EXTENSIONS__
+# define __EXTENSIONS__ 1
 #endif
 
 
 /* Version number of package */
-#undef VERSION
+#define VERSION "1.13"
 
 /* Define to 1 if on MINIX. */
-#undef _MINIX
+/* #undef _MINIX */
 
 /* Define to 2 if the system does not provide POSIX.1 features except with
    this defined. */
-#undef _POSIX_1_SOURCE
+/* #undef _POSIX_1_SOURCE */
 
 /* Define to 1 if you need to in order for `stat' and other things to work. */
-#undef _POSIX_SOURCE
+/* #undef _POSIX_SOURCE */
 
 /* Define to empty if `const' does not conform to ANSI C. */
-#undef const
+/* #undef const */
 
 /* Define to `int' if <sys/types.h> doesn't define. */
-#undef gid_t
+#define gid_t int
 
 /* Define to `int' if <sys/types.h> does not define. */
-#undef mode_t
+/* #undef mode_t */
 
 /* Define to `long int' if <sys/types.h> does not define. */
-#undef off_t
+/* #undef off_t */
 
 /* Define to `int' if <sys/types.h> does not define. */
-#undef pid_t
+/* #undef pid_t */
 
 /* Define to `unsigned int' if <sys/types.h> does not define. */
-#undef size_t
+/* #undef size_t */
 
 /* Define to `int' if <sys/types.h> does not define. */
-#undef ssize_t
+/* #undef ssize_t */
 
 /* Define to `int' if <sys/types.h> doesn't define. */
-#undef uid_t
+#define uid_t int
 
 /* Define as `fork' if `vfork' does not work. */
-#undef vfork
+#define vfork fork
+
+#ifdef _MSC_VER
+#define ssize_t int
+#endif

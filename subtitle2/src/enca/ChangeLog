@@ -1,7 +1,7 @@
 #============================================================================
-# Enca v1.13 (2010-02-09)  guess and convert encoding of text files
+# Enca v1.17-dev (2014-10-20)  guess and convert encoding of text files
 # Copyright (C) 2000-2003 David Necas (Yeti) <yeti@physics.muni.cz>
-# Copyright (C) 2009-2010 Michal Cihar <michal@cihar.com>
+# Copyright (C) 2009-2014 Michal Cihar <michal@cihar.com>
 #============================================================================
 
 List of user-visible changes in Enca
@@ -10,6 +10,25 @@ More detailed log can be obtained from older changelogs or git log.
 Legend: + new feature
         * change of behaviour (including disappearing of a feature)
         - bugfix
+
+enca-1.17
+  - Fixed conversion of GB2312 encoding with iconv
+
+enca-1.16 2014-10-20
+  - Fixed typo in Belarusian language name
+  - Added aliases for Chinese and Yugoslavian languages
+
+enca-1.15 2013-09-30
+  - Documentation improvement
+  - Development moved to GitHub
+  - Do not use deprecated autoconf macros
+
+enca-1.14 2012-09-11
+  - Allow standard names for belarusian and slovenian languages, thanks 
+    to Branislav Geržo for suggestion.
+  - Reset strictness when check buffer less than file size, thanks to 
+    Sam Liao.
+  - Fixed typos in man page, thanks to A. Costa.
 
 enca-1.13 2010-02-09
   - Reverse usage of temp file while converting using recode to prevent
@@ -26,7 +45,7 @@ enca-1.11 2009-09-25
 enca-1.10 2009-08-25
   + Enca is back alive or at least in maintenance mode.
   * Enca now lives in git repository, see <http://gitorious.org/enca>.
-  - Add missing charset koi8u to belarussian language.
+  - Add missing charset koi8u to belarusian language.
   - Fixed some typos in program and documentation.
 
 enca-1.9 2005-12-18
@@ -191,7 +210,7 @@ enca-0.10.1 2002-08-29
 
 enca-0.10.0 2002-08-26
   + added support for Ukraininan (CP1251, IBM855, ISO-8859-5, KOI8-U, maccyr
-    CP1125), Belarussian (CP1251, IBM866, ISO-8859-5, KOI8-UNI, maccyr,
+    CP1125), Belarusian (CP1251, IBM866, ISO-8859-5, KOI8-UNI, maccyr,
     IBM855) and Polish (ISO-8859-2, ISO-8859-12, ISO-8859-16, Baltic, macce,
     IBM852, CP1250)
   + Enca library introduced

@@ -106,7 +106,6 @@ convert(File *file,
         EncaEncoding from_enc)
 {
   Converter *conv;
-  int extern_failed = 0;
   int err;
 
   if (options.verbosity_level) {
@@ -141,7 +140,6 @@ convert(File *file,
       fprintf(stderr, "%s: external converter failed on `%s', "
                       "probably destroying it\n",
                       program_name, ffname_w(file->name));
-      extern_failed = 1;
     }
     /* don't tempt fate in case of i/o or other serious problems */
     if (err != ERR_CANNOT)
@@ -544,7 +542,7 @@ xtable(int from_charset)
   }
 
   /* XXX XXX XXX XXX XXX Warning: Extreme brain damage! XXX XXX XXX XXX XXX
-   * When converting to ibm866 we have to replace Belarussian/Ukrainian i/I
+   * When converting to ibm866 we have to replace Belarusian/Ukrainian i/I
    * with Latin versions.  I've been told everybody expect this. */
   if (options.target_enc.charset == enca_name_to_charset("ibm866")) {
     xdata.ucs2_map[0x0406] = (byte)'I';

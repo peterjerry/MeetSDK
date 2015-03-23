@@ -170,6 +170,7 @@ detect_user_language(void)
     return s;
   }
 
+  free(s);
   return NULL;
 }
 #endif /* HAVE_SETLOCALE */
@@ -334,23 +335,35 @@ static_iso639_alias_convert(const char *locname)
   }
   const ALIASES[] = {
     { "byelarussian", "be" },
+    { "byelarusian", "be" },
     { "belarussian", "be" },
+    { "belarusian", "be" },
     { "byelorussian", "be" },
     { "belorussian", "be" },
+    { "byelorusian", "be" },
+    { "belorusian", "be" },
+    { "bosnian", "hr" },
     { "bulgarian", "bg" },
+    { "chinese", "zh" },
     { "croatian", "hr" },
     { "czech", "cs" },
     { "estonian", "et" },
     { "hungarian", "hu" },
-    { "magyar", "hu" },
     { "lativan", "lt" },
     { "lettic", "lv" },
     { "lettish", "lv" },
     { "lithuanian", "lt" },
+    { "macedonian", "bg"},
+    { "magyar", "hu" },
+    { "montenegrin-cyrilic", "bg"},
+    { "montenegrin-latin", "hr" },
     { "polish", "pl" },
     { "russian", "ru" },
+    { "serbian-cyrilic", "bg"},
+    { "serbian-latin", "hr"},
     { "slovak", "sk" },
     { "slovene", "sl" },
+    { "slovenian", "sl" },
     { "ukrainian", "uk" }
   };
 

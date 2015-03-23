@@ -1,7 +1,7 @@
 #============================================================================
-# Enca v1.13 (2010-02-09)  guess and convert encoding of text files
+# Enca v1.17-dev (2014-10-20)  guess and convert encoding of text files
 # Copyright (C) 2000-2003 David Necas (Yeti) <yeti@physics.muni.cz>
-# Copyright (C) 2009-2010 Michal Cihar <michal@cihar.com>
+# Copyright (C) 2009-2014 Michal Cihar <michal@cihar.com>
 #============================================================================
 
 Contents
@@ -11,6 +11,7 @@ Contents
   2. How to add a new surface to libenca
   3. How to add a new language to libenca
   4. Automake, autoconf, libtool, ... note
+  5. Repository and continuous integration
 
 
 0. Developing programs utilizing libenca
@@ -108,3 +109,14 @@ You have to give --enable-maintainer-mode to ./configure (or ./autogen) to
 build dists and/or the strange stuff in tools/, data/, tests/, and
 devel-docs/.
 
+
+5. Repository and continuous integration
+****************************************
+
+The git repository is located at GitHub:
+
+    http://github.com/nijel/enca
+
+There is also continuous integration on Travis:
+
+    https://travis-ci.org/nijel/enca

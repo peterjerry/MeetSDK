@@ -1,5 +1,5 @@
 Makefile
-config.h
+#config.h
 config.log
 config.status
 enca.pc
@@ -11,3 +11,9 @@ iconvcap
 autom4te.cache
 tags
 TAGS
+*.swp
+*~
+*.bak
+enca-*.tar.bz2
+enca-*.tar.gz
+enca-*.tar.xz
