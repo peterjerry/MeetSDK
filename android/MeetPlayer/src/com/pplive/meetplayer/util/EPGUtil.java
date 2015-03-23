@@ -569,6 +569,81 @@ public class EPGUtil {
         return true;
 	}
 	
+	public int[] getAvailableFT(String link) {
+		Log.i(TAG, String.format("java: getAvailableFT() %s", link));
+		
+		String user_type = null;
+		try {
+			user_type = URLEncoder.encode("userType=1", "utf-8");
+		} catch (UnsupportedEncodingException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+			return null;
+		}
+		
+		String boxplay_part2 = String.format(boxplay_fmt, link);
+		StringBuffer sbBoxPlayUrl = new StringBuffer();
+		sbBoxPlayUrl.append(boxplay_prefix);
+		sbBoxPlayUrl.append(user_type);
+		sbBoxPlayUrl.append(boxplay_part2);
+		Log.i(TAG, "Java: epg url " + sbBoxPlayUrl.toString());
+
+		HttpGet request = new HttpGet(sbBoxPlayUrl.toString());
+		
+		HttpResponse response;
+		try {
+			response = new DefaultHttpClient().execute(request);
+			if (response.getStatusLine().getStatusCode() == 200) {
+				String result = EntityUtils.toString(response.getEntity());
+				return parseCdnUrlxml_ft(result);
+			}
+		} catch (ClientProtocolException e) {
+			e.printStackTrace();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		
+		return null;
+	}
+	
+	private int[] parseCdnUrlxml_ft(String xml) {
+		Log.i(TAG, "Java: epg parseCdnUrlxml " + xml.replace("\n", ""));
+		
+		SAXBuilder builder = new SAXBuilder();
+		Reader returnQuote = new StringReader(xml);  
+        Document doc;
+		try {
+			doc = builder.build(returnQuote);
+			Element root = doc.getRootElement();
+			
+			ArrayList<CDNrid> ridList = new ArrayList<CDNrid>();
+			ArrayList<CDNItem> itemList = new ArrayList<CDNItem>();
+			
+			Element file = root.getChild("channel").getChild("file");
+			List<Element> item_list = file.getChildren("item");
+			
+			int[] ft = new int[item_list.size()];
+			for (int i=0;i<item_list.size();i++) {
+				String rid_ft = item_list.get(i).getAttributeValue("ft");
+				String rid_rid = item_list.get(i).getAttributeValue("rid");
+				CDNrid rid = new CDNrid(rid_ft, rid_rid);
+				ridList.add(rid);
+				ft[i] = Integer.valueOf(rid_ft);
+			}
+			
+			return ft;
+		}
+		catch (JDOMException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+        
+		return null;
+	}
+	
 	public String getCDNUrl(String link, String ft, boolean is_m3u8, boolean noVideo) {
 		Log.i(TAG, String.format("java: getCDNUrl() %s", link));
 		

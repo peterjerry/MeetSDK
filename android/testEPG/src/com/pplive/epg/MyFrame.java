@@ -43,6 +43,8 @@ public class MyFrame extends JFrame {
 		EPG_STATE_SEARCH,
 	}
 	
+	private final static String[] ft_desc = {"流畅","高清","超清","蓝光"};
+	
 	JButton btnOK		= new JButton("OK");
 	JButton btnReset 	= new JButton("Reset");
 	JButton btnGo 		= new JButton("Go");
@@ -154,10 +156,8 @@ public class MyFrame extends JFrame {
 		
 		this.getContentPane().add(comboItem);
 		
-		String[] ft = {"流畅","高清","超清","蓝光"};
-		comboFt = new JComboBox<String>(ft);
+		comboFt = new JComboBox<String>();
 		comboFt.setBounds(20, 110, 80, 20);
-		comboFt.setSelectedIndex(0);
 		this.getContentPane().add(comboFt);
 		
 		String[] bw_type = {"P2P", "CDNP2P", "CDN", "PPTV", "DLNA"};
@@ -176,7 +176,20 @@ public class MyFrame extends JFrame {
 	
 	private void playvideo() {
 		String link = mPlayLinkList.get(0).getId();
-		int ft = comboFt.getSelectedIndex();
+		int ft = -1;// = comboFt.getSelectedIndex();
+		String ft_desc_item = (String)comboFt.getSelectedItem();
+		for (int i=0;i<ft_desc.length;i++) {
+			if (ft_desc_item.equals(ft_desc[i])) {
+				ft = i;
+				break;
+			}
+		}
+		
+		if (ft == -1) {
+			System.out.println("failed to find ft");
+			return;
+		}
+		
 		int bw_type = comboBwType.getSelectedIndex();
 		String link_surfix = "";
 		
@@ -271,7 +284,7 @@ public class MyFrame extends JFrame {
 		
 		if (mListLive) {
 			mState = EPG_STATE.EPG_STATE_FOUND_PLAYLINK;
-			System.out.println("live playlink found! " + mPlayLinkList.get(0).getId());
+			System.out.println("live playlink found! " + vid);
 			return;
 		}
 		
@@ -292,15 +305,32 @@ public class MyFrame extends JFrame {
 		}
 		
 		if (size == 1) {
-			mState = EPG_STATE.EPG_STATE_FOUND_PLAYLINK;
 			System.out.println("playlink found! " + mPlayLinkList.get(0).getId());
+			
+			int []ft_list = mEPG.getAvailableFT(vid);
+			if (ft_list == null || ft_list.length == 0) {
+				System.out.println("failed to get available ft: " + mPlayLinkList.get(0).getId());
+				mState = EPG_STATE.EPG_STATE_ERROR;
+			}
+			else {
+				comboFt.removeAll();
+				for (int i=0;i<ft_list.length;i++) {
+					int index = ft_list[i];
+					if (index < 4)
+						comboFt.addItem(ft_desc[index]);
+				}
+				
+				comboFt.setSelectedIndex(0);
+				
+				mState = EPG_STATE.EPG_STATE_FOUND_PLAYLINK;
+			}
 		}
 		else
 			mState = EPG_STATE.EPG_STATE_LINK;
 	}
 	
 	private void init_combobox() {
-		int type = 1;
+		int type = 0;
 		
 		switch (type) {
 		case 0:
