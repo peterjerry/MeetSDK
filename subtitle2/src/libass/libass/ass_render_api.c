@@ -25,12 +25,9 @@ static void ass_reconfigure(ASS_Renderer *priv)
     ASS_Settings *settings = &priv->settings;
 
     priv->render_id++;
-    priv->cache.glyph_cache =
-        ass_glyph_cache_reset(priv->cache.glyph_cache);
-    priv->cache.bitmap_cache =
-        ass_bitmap_cache_reset(priv->cache.bitmap_cache);
-    priv->cache.composite_cache =
-        ass_composite_cache_reset(priv->cache.composite_cache);
+    ass_cache_empty(priv->cache.outline_cache, 0);
+    ass_cache_empty(priv->cache.bitmap_cache, 0);
+    ass_cache_empty(priv->cache.composite_cache, 0);
     ass_free_images(priv->prev_images_root);
     priv->prev_images_root = 0;
 
@@ -59,6 +56,17 @@ void ass_set_frame_size(ASS_Renderer *priv, int w, int h)
         }
         ass_reconfigure(priv);
     }
+}
+
+void ass_set_shaper(ASS_Renderer *priv, ASS_ShapingLevel level)
+{
+#ifdef CONFIG_HARFBUZZ
+    // select the complex shaper for illegal values
+    if (level == ASS_SHAPING_SIMPLE || level == ASS_SHAPING_COMPLEX)
+        priv->settings.shaper = level;
+    else
+        priv->settings.shaper = ASS_SHAPING_COMPLEX;
+#endif
 }
 
 void ass_set_margins(ASS_Renderer *priv, int t, int b, int l, int r)
@@ -106,6 +114,14 @@ void ass_set_hinting(ASS_Renderer *priv, ASS_Hinting ht)
 void ass_set_line_spacing(ASS_Renderer *priv, double line_spacing)
 {
     priv->settings.line_spacing = line_spacing;
+}
+
+void ass_set_line_position(ASS_Renderer *priv, double line_position)
+{
+    if (priv->settings.line_position != line_position) {
+        priv->settings.line_position = line_position;
+        ass_reconfigure(priv);
+    }
 }
 
 void ass_set_fonts(ASS_Renderer *priv, const char *default_font,

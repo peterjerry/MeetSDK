@@ -23,7 +23,7 @@
 #include <stdarg.h>
 #include "ass_types.h"
 
-#define LIBASS_VERSION 0x00911000
+#define LIBASS_VERSION 0x01010000
 
 /*
  * A linked list of images produced by an ass renderer.
@@ -59,6 +59,19 @@ typedef enum {
     ASS_HINTING_NORMAL,
     ASS_HINTING_NATIVE
 } ASS_Hinting;
+
+/**
+ * \brief Text shaping levels.
+ *
+ * SIMPLE is a fast, font-agnostic shaper that can do only substitutions.
+ * COMPLEX is a slower shaper using OpenType for substitutions and positioning.
+ *
+ * libass uses the best shaper available by default.
+ */
+typedef enum {
+    ASS_SHAPING_SIMPLE = 0,
+    ASS_SHAPING_COMPLEX
+} ASS_ShapingLevel;
 
 /**
  * \brief Initialize the library.
@@ -147,6 +160,13 @@ void ass_renderer_done(ASS_Renderer *priv);
 void ass_set_frame_size(ASS_Renderer *priv, int w, int h);
 
 /**
+ * \brief Set shaping level. This is merely a hint, the renderer will use
+ * whatever is available if the request cannot be fulfilled.
+ * \param level shaping level
+ */
+void ass_set_shaper(ASS_Renderer *priv, ASS_ShapingLevel level);
+
+/**
  * \brief Set frame margins.  These values may be negative if pan-and-scan
  * is used.
  * \param priv renderer handle
@@ -192,6 +212,14 @@ void ass_set_hinting(ASS_Renderer *priv, ASS_Hinting ht);
  * \param line_spacing line spacing in pixels
  */
 void ass_set_line_spacing(ASS_Renderer *priv, double line_spacing);
+
+/**
+ * \brief Set vertical line position.
+ * \param priv renderer handle
+ * \param line_position vertical line position of subtitles in percent
+ * (0-100: 0 = on the bottom (default), 100 = on top)
+ */
+void ass_set_line_position(ASS_Renderer *priv, double line_position);
 
 /**
  * \brief Set font lookup defaults.
@@ -380,7 +408,6 @@ void ass_clear_fonts(ASS_Library *library);
  */
 long long ass_step_sub(ASS_Track *track, long long now, int movement);
 
-// guoliangma added
 char* ass_remove_format_tag(char* src);
 
 #endif /* LIBASS_ASS_H */

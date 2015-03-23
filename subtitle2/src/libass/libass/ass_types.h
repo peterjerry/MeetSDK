@@ -102,7 +102,8 @@ typedef struct ass_track {
     enum {
         TRACK_TYPE_UNKNOWN = 0,
         TRACK_TYPE_ASS,
-        TRACK_TYPE_SSA
+        TRACK_TYPE_SSA,
+        TRACK_TYPE_SRT
     } track_type;
 
     // Script header fields
@@ -112,6 +113,7 @@ typedef struct ass_track {
     int WrapStyle;
     int ScaledBorderAndShadow;
     int Kerning;
+    char *Language;
 
     int default_style;      // index of default style
     char *name;             // file name in case of external subs, 0 for streams

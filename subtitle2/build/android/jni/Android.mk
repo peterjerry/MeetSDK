@@ -101,7 +101,7 @@ include $(BUILD_STATIC_LIBRARY)
 
 ######################## iconv ######################
 include $(CLEAR_VARS) 
-LOCAL_MODULE    := libiconv 
+LOCAL_MODULE    := iconv 
 LOCAL_CFLAGS    := \
 	-Wno-multichar \
 	-D_ANDROID \
@@ -119,6 +119,45 @@ LOCAL_SRC_FILES := \
      ../../../src/iconv/lib/relocatable.c \
      ../../../src/iconv/libcharset/lib/localcharset.c
 include $(BUILD_STATIC_LIBRARY) 
+
+######################## enca ######################
+include $(CLEAR_VARS) 
+LOCAL_MODULE    := enca
+SRC_PATH = ../../../src/enca
+LOCAL_C_INCLUDES := \
+    $(LOCAL_PATH)/../../../src/enca/ \
+    $(LOCAL_PATH)/../../../src/enca/lib/
+
+common_SRC_FILES := \
+	lib/common.c \
+	lib/ctype.c \
+	lib/enca.c \
+	lib/encnames.c \
+	lib/filters.c \
+	lib/guess.c \
+	lib/lang.c \
+	lib/lang_be.c \
+	lib/lang_bg.c \
+	lib/lang_cs.c \
+	lib/lang_et.c \
+	lib/lang_hr.c \
+	lib/lang_hu.c \
+	lib/lang_lt.c \
+	lib/lang_lv.c \
+	lib/lang_pl.c \
+	lib/lang_ru.c \
+	lib/lang_sk.c \
+	lib/lang_sl.c \
+	lib/lang_uk.c \
+	lib/lang_zh.c \
+	lib/multibyte.c \
+	lib/pair.c \
+	lib/unicodemap.c \
+	lib/utf8_double.c
+	
+LOCAL_SRC_FILES := $(addprefix $(SRC_PATH)/, $(common_SRC_FILES))
+include $(BUILD_STATIC_LIBRARY) 
+
 ######################## ass ######################
 include $(CLEAR_VARS)
 LOCAL_MODULE := ass
@@ -126,23 +165,16 @@ LOCAL_C_INCLUDES := \
 	../../src/fontconfig/ \
 	../../src/freetype/include \
 	../../src/iconv/include \
+	../../src/enca/lib \
 	../../src/libass
 SRC_PATH = ../../../src/libass
 common_SRC_FILES := \
 	libass/ass.c \
-	libass/ass_cache.c \
-	libass/ass_font.c \
-	libass/ass_fontconfig.c \
-	libass/ass_render.c \
-	libass/ass_utils.c \
-	libass/ass_bitmap.c \
 	libass/ass_library.c \
-	libass/ass_drawing.c \
-	libass/ass_parse.c \
-	libass/ass_render_api.c \
+	libass/libass_glue.c \
 	libass/ass_strtod.c
 LOCAL_SRC_FILES := $(addprefix $(SRC_PATH)/, $(common_SRC_FILES))
-LOCAL_STATIC_LIBRARIES := fontconfig iconv
+LOCAL_STATIC_LIBRARIES := fontconfig iconv enca
 include $(BUILD_STATIC_LIBRARY)
 
 ######################## tinyxml2 ######################
@@ -176,6 +208,6 @@ SRC_PATH = ../../../src/subtitle
 common_SRC_FILES := \
 	fake.cpp
 LOCAL_SRC_FILES 		:= $(addprefix $(SRC_PATH)/, $(common_SRC_FILES))
-LOCAL_STATIC_LIBRARIES 	:= subtitle iconv
+LOCAL_STATIC_LIBRARIES 	:= iconv enca subtitle
 LOCAL_LDLIBS 			:= -llog
 include $(BUILD_SHARED_LIBRARY)

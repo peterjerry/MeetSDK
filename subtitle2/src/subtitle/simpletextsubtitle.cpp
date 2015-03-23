@@ -62,8 +62,8 @@ bool CSimpleTextSubtitle::loadFile(const char* fileName)
         return false;
     }
 
-    char *codepage = "enca:zh:gb2312";
-    ASS_Track* track = ass_read_file(mAssLibrary, (char *)fileName, NULL/*codepage*/);
+    const char *codepage = "enca:zh:gb2312";
+    ASS_Track* track = ass_read_file(mAssLibrary, (char *)fileName, (char *)codepage);
 	if (!track) {
 		LOGE("track init failed: %s", fileName);
         return false;

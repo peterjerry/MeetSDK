@@ -27,6 +27,9 @@
 #include FT_GLYPH_H
 #include FT_SYNTHESIS_H
 
+// XXX: fix the inclusion mess so we can avoid doing this here
+typedef struct ass_shaper ASS_Shaper;
+
 #include "ass.h"
 #include "ass_font.h"
 #include "ass_bitmap.h"
@@ -38,6 +41,9 @@
 
 #define GLYPH_CACHE_MAX 1000
 #define BITMAP_CACHE_MAX_SIZE 30 * 1048576
+
+#define PARSED_FADE (1<<0)
+#define PARSED_A    (1<<1)
 
 typedef struct {
     double xMin;
@@ -61,6 +67,7 @@ typedef struct {
     int frame_height;
     double font_size_coeff;     // font size multiplier
     double line_spacing;        // additional line spacing (in frame pixels)
+    double line_position;       // vertical position for subtitles, 0-100 (0 = no change)
     int top_margin;             // height of top margin. Everything except toptitles is shifted down by top_margin.
     int bottom_margin;          // height of bottom margin. (frame_height - top_margin - bottom_margin) is original video height.
     int left_margin;
@@ -70,6 +77,7 @@ typedef struct {
     double aspect;              // frame aspect ratio, d_width / d_height.
     double storage_aspect;      // pixel ratio of the source image
     ASS_Hinting hinting;
+    ASS_ShapingLevel shaper;
 
     char *default_font;
     char *default_family;
@@ -93,19 +101,26 @@ typedef enum {
 
 // describes a glyph
 // GlyphInfo and TextInfo are used for text centering and word-wrapping operations
-typedef struct {
+typedef struct glyph_info {
     unsigned symbol;
     unsigned skip;              // skip glyph when layouting text
-    FT_Glyph glyph;
-    FT_Glyph outline_glyph;
+    ASS_Font *font;
+    int face_index;
+    int glyph_index;
+    double font_size;
+    ASS_Drawing *drawing;
+    FT_Outline *outline;
+    FT_Outline *border;
     Bitmap *bm;                 // glyph bitmap
     Bitmap *bm_o;               // outline bitmap
     Bitmap *bm_s;               // shadow bitmap
     FT_BBox bbox;
     FT_Vector pos;
+    FT_Vector offset;
     char linebreak;             // the first (leading) glyph of some line ?
     uint32_t c[4];              // colors
     FT_Vector advance;          // 26.6
+    FT_Vector cluster_advance;
     Effect effect_type;
     int effect_timing;          // time duration of current karaoke word
     // after process_karaoke_effects: distance in pixels from the glyph origin.
@@ -118,12 +133,26 @@ typedef struct {
     double shadow_y;
     double frx, fry, frz;       // rotation
     double fax, fay;            // text shearing
+    double scale_x, scale_y;
+    int border_style;
+    double border_x, border_y;
+    double hspacing;
+    unsigned italic;
+    unsigned bold;
+    int flags;
+
+    int bm_run_id;
+    int shape_run_id;
 
     BitmapHashKey hash_key;
+
+    // next glyph in this cluster
+    struct glyph_info *next;
 } GlyphInfo;
 
 typedef struct {
     double asc, desc;
+    int offset, len;
 } LineInfo;
 
 typedef struct {
@@ -141,13 +170,14 @@ typedef struct {
 typedef struct {
     ASS_Event *event;
     ASS_Style *style;
+    int parsed_tags;
 
     ASS_Font *font;
-    char *font_path;
     double font_size;
     int flags;                  // decoration flags (underline/strike-through)
 
     FT_Stroker stroker;
+    int stroker_radius;         // last stroker radius, for caching stroker objects
     int alignment;              // alignment overrides go here; if zero, style value will be used
     double frx, fry, frz;
     double fax, fay;            // text shearing
@@ -162,6 +192,7 @@ typedef struct {
     char have_origin;           // origin is explicitly defined; if 0, get_base_point() is used
     double scale_x, scale_y;
     double hspacing;            // distance between letters, in pixels
+    int border_style;
     double border_x;            // outline width
     double border_y;
     uint32_t c[4];              // colors(Primary, Secondary, so on) in RGBA
@@ -182,6 +213,9 @@ typedef struct {
     int effect_timing;
     int effect_skip_timing;
 
+    // bitmap run id (used for final bitmap rendering)
+    int bm_run_id;
+
     enum {
         SCROLL_LR,              // left-to-right
         SCROLL_RL,
@@ -196,13 +230,14 @@ typedef struct {
     unsigned italic;
     int treat_family_as_pattern;
     int wrap_style;
+    int font_encoding;
 } RenderContext;
 
 typedef struct {
-    Hashmap *font_cache;
-    Hashmap *glyph_cache;
-    Hashmap *bitmap_cache;
-    Hashmap *composite_cache;
+    Cache *font_cache;
+    Cache *outline_cache;
+    Cache *bitmap_cache;
+    Cache *composite_cache;
     size_t glyph_max;
     size_t bitmap_max_size;
 } CacheStore;
@@ -214,9 +249,11 @@ struct ass_renderer {
     ASS_Settings settings;
     int render_id;
     ASS_SynthPriv *synth_priv;
+    ASS_Shaper *shaper;
 
     ASS_Image *images_root;     // rendering result is stored here
     ASS_Image *prev_images_root;
+    int cache_cleared;
 
     EventImages *eimg;          // temporary buffer for sorting rendered events
     int eimg_size;              // allocated buffer size
@@ -258,7 +295,10 @@ typedef struct {
     int ha, hb;                 // left and width
 } Segment;
 
-void reset_render_context(ASS_Renderer *render_priv);
+void reset_render_context(ASS_Renderer *render_priv, ASS_Style *style);
 void ass_free_images(ASS_Image *img);
+
+// XXX: this is actually in ass.c, includes should be fixed later on
+void ass_lazy_track_init(ASS_Library *lib, ASS_Track *track);
 
 #endif /* LIBASS_RENDER_H */
