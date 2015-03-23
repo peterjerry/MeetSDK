@@ -572,7 +572,7 @@ void android_media_MediaPlayer_selectAudioChannel(JNIEnv *env, jobject thiz, int
 static
 void android_media_MediaPlayer_setSubtitleParser(JNIEnv *env, jobject thiz, jobject paser)
 {
-	PPLOGD("setSubtitleParser");
+	PPLOGI("setSubtitleParser");
 	jclass clazzSubtitle = env->FindClass("android/pplive/media/subtitle/SimpleSubTitleParser");
 	if (clazzSubtitle == NULL) {
 		PPLOGE("player is null, setSubtitleParser failed");
@@ -596,7 +596,8 @@ void android_media_MediaPlayer_setSubtitleParser(JNIEnv *env, jobject thiz, jobj
 static
 void android_media_MediaPlayer_setLooping(JNIEnv *env, jobject thiz, jboolean looping)
 {
-	PPLOGD("setLooping: %d", looping);
+	PPLOGI("setLooping: %d", looping);
+
 	IPlayer* mp = getMediaPlayer(env, thiz);
 	if (mp == NULL ) {
 		jniThrowException(env, "java/lang/IllegalStateException", NULL);
@@ -608,7 +609,7 @@ void android_media_MediaPlayer_setLooping(JNIEnv *env, jobject thiz, jboolean lo
 static
 jboolean android_media_MediaPlayer_isLooping(JNIEnv *env, jobject thiz)
 {
-	PPLOGV("isLooping");
+	PPLOGD("isLooping");
 	IPlayer* mp = getMediaPlayer(env, thiz);
 	if (mp == NULL ) {
 		jniThrowException(env, "java/lang/IllegalStateException", NULL);
@@ -620,7 +621,7 @@ jboolean android_media_MediaPlayer_isLooping(JNIEnv *env, jobject thiz)
 static
 void android_media_MediaPlayer_setVolume(JNIEnv *env, jobject thiz, float leftVolume, float rightVolume)
 {
-	PPLOGV("setVolume: left %f  right %f", leftVolume, rightVolume);
+	PPLOGI("setVolume: left %f  right %f", leftVolume, rightVolume);
 	IPlayer* mp = getMediaPlayer(env, thiz);
 	if (mp == NULL ) {
 		jniThrowException(env, "java/lang/IllegalStateException", NULL);

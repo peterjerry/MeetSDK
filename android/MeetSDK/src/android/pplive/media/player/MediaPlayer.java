@@ -224,6 +224,10 @@ public class MediaPlayer implements MediaPlayerInterface {
 		
 		mPlayer = mDecodeMode.newInstance(this);
 		
+		// 2015.3.23 guoliangma move here to fix s39h cannot play pptv url problem
+		// setLooping called after setDataSource will throw (-38, 0) when using SystemPlayer
+		setLooping();
+		
 		if (null == mPlayer)
 			throw new IllegalStateException("failed to create new instance of MediaPlayer");
 		
@@ -239,7 +243,6 @@ public class MediaPlayer implements MediaPlayerInterface {
 		
 		setSurface();
 		setAudioStreamType();
-		setLooping();
 		
 		setOnBufferingUpdateListener();
 		setOnCompletionListener();

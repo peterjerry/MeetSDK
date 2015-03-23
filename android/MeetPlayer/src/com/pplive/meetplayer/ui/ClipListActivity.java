@@ -829,12 +829,14 @@ public class ClipListActivity extends Activity implements
 	
 	private void readSettings() {
 		int value = Util.readSettingsInt(this, "isPreview");
+		Log.i(TAG, "readSettings isPreview: " + value);
 		if (value == 1)
 			mIsPreview = true;
 		else
 			mIsPreview = false;
 		
 		value = Util.readSettingsInt(this, "isLoop");
+		Log.i(TAG, "readSettings isLoop: " + value);
 		if (value == 1)
 			mIsLoop = true;
 		else
@@ -1171,6 +1173,8 @@ public class ClipListActivity extends Activity implements
 			mPlayer.setOnErrorListener(this);
 			mPlayer.setOnBufferingUpdateListener(this);
 			mPlayer.setOnInfoListener(this);
+			
+			mPlayer.setLooping(mIsLoop);
 			
 			if (path.startsWith("http://")) {
 				mWifiLock = ((WifiManager) getSystemService(Context.WIFI_SERVICE))
@@ -2116,6 +2120,7 @@ public class ClipListActivity extends Activity implements
 				item.setChecked(true);
 			mIsLoop = !mIsLoop;
 			Util.writeSettingsInt(this, "isLoop", mIsLoop ? 1 : 0);
+			Log.i(TAG, "set loop to: " + mIsLoop);
 			break;
 		case OPTION_COMMON_NO_VIDEO:
 			if (mIsNoVideo) {
@@ -2293,8 +2298,8 @@ public class ClipListActivity extends Activity implements
 		
 		// S39H call setLooping here, system player will throw error (-38, 0)
 		//if (mListLocalFile)
-		if (DecodeMode.SW == mDecMode) // ffplay
-			mPlayer.setLooping(mIsLoop);
+		//if (DecodeMode.SW == mDecMode) // ffplay
+		//	mPlayer.setLooping(mIsLoop);
 		
 		mVideoWidth = mp.getVideoWidth();
 		mVideoHeight = mp.getVideoHeight();
