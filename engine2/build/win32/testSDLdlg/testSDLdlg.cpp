@@ -10,7 +10,6 @@
 #define new DEBUG_NEW
 #endif
 
-
 // CtestSDLdlgApp
 
 BEGIN_MESSAGE_MAP(CtestSDLdlgApp, CWinApp)

@@ -1074,6 +1074,18 @@ void CtestSDLdlgDlg::Cleanup()
 
 	LOGI("PPBOX_StopP2PEngine()");
 	PPBOX_StopP2PEngine();
+
+	for (int i= USER_LIST_OFFSET; i<PROG_MAX_NUM;i++) {
+		if (url_desc[i]) {
+			delete url_desc[i];
+			url_desc[i] = NULL;
+		}
+
+		if (url_list[i]) {
+			delete url_list[i];
+			url_list[i] = NULL;
+		}
+	}
 }
 
 void CtestSDLdlgDlg::OnDestroy()

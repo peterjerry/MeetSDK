@@ -4,37 +4,40 @@
  */
 
 
-#ifndef FF_LOOP_H_
+#ifndef _EVENT_LOOP_H_
 
-#define FF_LOOP_H_
+#define _EVENT_LOOP_H_
 
 #include <pthread.h>
 #include "list.h"
 
 typedef int32_t event_id;
 
-typedef void (* EventCallback)(void *opaque);
+#define EVENT_LOOP_STOP 1001
 
-class Loop
+class EventLoop
 {
 public:
-	struct Event {
-		event_id		id;
-		uint64_t		index;
-		int64_t			realtimeUs;
-		EventCallback	action;
+	class Event {
+	public:
+		Event():m_id(0), m_index(0), m_realtimeUs(0), m_opaque(NULL){}
+		~Event(){}
+
+		event_id		m_id;
+		uint64_t		m_index;
+		int64_t			m_realtimeUs;
+		void*			m_opaque;
+		virtual void action(void *opaque, int64_t now_us) = 0;
 	};
 
-    Loop();
-    ~Loop();
+    EventLoop();
+    ~EventLoop();
 
     void start();
     
-	void stop();
+	void stop(bool flush);
 
 	bool isRunning();
-
-	void setInstance(void *ins){mInstance = ins;}
 
 	// Posts an event to the front of the queue (after all events that
     // have previously been posted to the front but before timed events).
@@ -48,9 +51,9 @@ public:
     void cancelEvent(event_id id);
 
 private:
-	Loop(const Loop &);
+	EventLoop(const EventLoop &);
     
-	Loop &operator=(const Loop &);
+	EventLoop &operator=(const EventLoop &);
 
 	void SetRunning(bool isRunning);
 
@@ -64,19 +67,33 @@ private:
 
     void threadEntry();
 
+	static void onStop(void * opaque);
+
+	int wait(int64_t usec);
+
 private:
+	class StopEvent:public EventLoop::Event {
+	public:
+		StopEvent(void * opaque){
+			m_id		= EVENT_LOOP_STOP;
+			m_opaque	= opaque;
+		}
+		~StopEvent(){}
+		virtual void action(void *opaque, int64_t now_us);
+	};
+
     pthread_t		mThread;
     pthread_mutex_t mLock;
     pthread_cond_t	mQueueNotEmptyCondition;
     pthread_cond_t	mQueueHeadChangedCondition;
-
-	void*			mInstance;
 	
     List			mEvtQueue;
     uint64_t		mEventIndex;
     
 	bool			mRunning;
+	bool			mStopped;
+
 	pthread_mutex_t mLockState;
 };
 
-#endif 
+#endif // _EVENT_LOOP_H_

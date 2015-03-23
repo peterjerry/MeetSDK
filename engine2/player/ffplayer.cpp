@@ -227,50 +227,15 @@ FFPlayer::FFPlayer()
 	mSubtitleStreamIndex	= -1;
 	mSubtitles				= NULL;
 
-	mPrepareEvent.id		= PREPRARE_EVENT;
-	mPrepareEvent.action	= FFPlayer::onPrepare;
-    mPrepareEventPending	= false;
-
-	//mStreamReadEvent.id		= PREPRARE_EVENT;
-	//mStreamReadEvent.action	= FFPlayer::onStreamRead;
-	//mStreamReadEventPending = false;
-
-	mVideoEvent.id			= VIDEO_RENDER_EVENT;
-	mVideoEvent.action		= FFPlayer::onVideo;
-    mVideoEventPending		= false;
-
-	mStreamDoneEvent.id		= STREAM_DONE_EVENT;
-	mStreamDoneEvent.action	= FFPlayer::onStreamDone;
-    mStreamDoneEventPending = false;
-
-    mBufferingUpdateEvent.id		= BUFFERING_UPDATE_EVENT;
-	mBufferingUpdateEvent.action	= FFPlayer::onBufferingUpdate;
+    mPrepareEventPending			= false;
+    mVideoEventPending				= false;
+    mStreamDoneEventPending			= false;
 	mBufferingUpdateEventPending	= false;
-
-	mSeekingEvent.id		= SEEKING_EVENT;
-	mSeekingEvent.action	= FFPlayer::onSeeking;
-    mSeekingEventPending	= false;
-
-	mCheckAudioStatusEvent.id		= CHECK_AUDIO_STATUS_EVENT;
-	mCheckAudioStatusEvent.action	= FFPlayer::onCheckAudioStatus;
+    mSeekingEventPending			= false;
     mAudioStatusEventPending		= false;
-
-	mBufferingStartEvent.id		= BUFFERING_START_EVENT;
-	mBufferingStartEvent.action	= FFPlayer::onBufferingStart;
-    mBufferingStartEventPending = false;
-
-	mBufferingEndEvent.id		= BUFFERING_END_EVENT;
-	mBufferingEndEvent.action	= FFPlayer::onBufferingEnd;
-    mBufferingEndEventPending	= false;
-
-	mSeekingCompleteEvent.id	= SEEKING_COMPLETE_EVENT;
-	mSeekingCompleteEvent.action= FFPlayer::onSeekingComplete;
-    mSeekingCompleteEventPending= false;
-
-	mIOBitrateInfoEvent.id			= IO_BITRATE_INFO_EVENT;
-	mIOBitrateInfoEvent.action		= FFPlayer::onIOBitrateInfo;
-	mMediaBitrateInfoEvent.id		= MEDIA_BITRATE_INFO_EVENT;
-	mMediaBitrateInfoEvent.action	= FFPlayer::onMediaBitrateInfo;
+    mBufferingStartEventPending		= false;
+    mBufferingEndEventPending		= false;
+    mSeekingCompleteEventPending	= false;
 
 	mTotalStartTimeMs		= 0;
 	mGapStartTimeMs			= 0;
@@ -545,9 +510,9 @@ end:
 void FFPlayer::cancelPlayerEvents_l()
 {
     LOGD("cancelPlayerEvents");
-	mMsgLoop.cancelEvent(mVideoEvent.id);
+	mMsgLoop.cancelEvent(VIDEO_RENDER_EVENT);
     mVideoEventPending = false;
-	mMsgLoop.cancelEvent(mCheckAudioStatusEvent.id);
+	mMsgLoop.cancelEvent(CHECK_AUDIO_STATUS_EVENT);
     mAudioStatusEventPending = false;
 }
 
@@ -912,7 +877,7 @@ status_t FFPlayer::resume()
 }
 
 //////////////////////////////////////////////////////////////////
-void FFPlayer::onPrepare(void *opaque)
+void FFPlayer::FFPrepareEvent::action(void *opaque, int64_t now_us)
 {
 	FFPlayer *ins= (FFPlayer *)opaque;
 	if (ins)
@@ -1244,7 +1209,7 @@ bool FFPlayer::need_drop_frame()
 	return ret;
 }
 
-void FFPlayer::onVideo(void *opaque)
+void FFPlayer::FFVideoEvent::action(void *opaque, int64_t now_us)
 {
 	FFPlayer *ins= (FFPlayer *)opaque;
 	if (ins)
@@ -1430,7 +1395,7 @@ bool FFPlayer::broadcast_refresh()
 	return false;
 }
 
-void FFPlayer::onBufferingUpdate(void *opaque)
+void FFPlayer::FFBufferingUpdateEvent::action(void *opaque, int64_t now_us)
 {
 	FFPlayer *ins= (FFPlayer *)opaque;
 	if (ins)
@@ -1475,7 +1440,7 @@ void FFPlayer::onBufferingUpdateImpl()
     postBufferingUpdateEvent_l();
 }
 
-void FFPlayer::onSeeking(void *opaque)
+void FFPlayer::FFSeekingEvent::action(void *opaque, int64_t now_us)
 {
 	FFPlayer *ins= (FFPlayer *)opaque;
 	if (ins)
@@ -1531,7 +1496,7 @@ void FFPlayer::onSeekingImpl()
     }
 }
 
-void FFPlayer::onStreamDone(void *opaque)
+void FFPlayer::FFStreamDoneEvent::action(void *opaque, int64_t now_us)
 {
 	FFPlayer *ins= (FFPlayer *)opaque;
 	if (ins)
@@ -1561,7 +1526,7 @@ void FFPlayer::onStreamDoneImpl()
     }
 }
 
-void FFPlayer::onCheckAudioStatus(void *opaque)
+void FFPlayer::FFCheckAudioStatusEvent::action(void *opaque, int64_t now_us)
 {
 	FFPlayer *ins= (FFPlayer *)opaque;
 	if (ins)
@@ -1586,7 +1551,7 @@ void FFPlayer::onCheckAudioStatusImpl()
     }
 }
 
-void FFPlayer::onBufferingStart(void *opaque)
+void FFPlayer::FFBufferingStartEvent::action(void *opaque, int64_t now_us)
 {
 	FFPlayer *ins= (FFPlayer *)opaque;
 	if (ins)
@@ -1618,7 +1583,7 @@ void FFPlayer::onBufferingStartImpl()
     }
 }
 
-void FFPlayer::onBufferingEnd(void *opaque)
+void FFPlayer::FFBufferingEndEvent::action(void *opaque, int64_t now_us)
 {
 	FFPlayer *ins= (FFPlayer *)opaque;
 	if (ins)
@@ -1655,7 +1620,7 @@ void FFPlayer::onBufferingEndImpl()
     }
 }
 
-void FFPlayer::onSeekingComplete(void *opaque)
+void FFPlayer::FFSeekingCompleteEvent::action(void *opaque, int64_t now_us)
 {
 	FFPlayer *ins= (FFPlayer *)opaque;
 	if (ins)
@@ -1678,7 +1643,7 @@ void FFPlayer::onSeekingCompleteImpl()
     notifyListener_l(MEDIA_SEEK_COMPLETE);
 }
 
-void FFPlayer::onIOBitrateInfo(void *opaque)
+void FFPlayer::FFIOBitrateInfoEvent::action(void *opaque, int64_t now_us)
 {
 	FFPlayer *ins= (FFPlayer *)opaque;
 	if (ins)
@@ -1695,7 +1660,7 @@ void FFPlayer::onIOBitrateInfoImpl()
 	notifyListener_l(MEDIA_INFO, MEDIA_INFO_TEST_BUFFERING_MSEC, msec);
 }
 
-void FFPlayer::onMediaBitrateInfo(void *opaque)
+void FFPlayer::FFMediaBitrateInfoEvent::action(void *opaque, int64_t now_us)
 {
 	FFPlayer *ins= (FFPlayer *)opaque;
 	if (ins)
@@ -1796,31 +1761,35 @@ status_t FFPlayer::seekTo_l() // called from onSeekingImpl, so MUSTN'T LOCK IT H
 
 void FFPlayer::postPrepareEvent_l()
 {
-    if (mPrepareEventPending) {
+    if (mPrepareEventPending)
         return;
-    }
 
     mPrepareEventPending = true;
-	mMsgLoop.postEventTohHeader(&mPrepareEvent);
+
+	FFPrepareEvent *evt = new FFPrepareEvent(this);
+	mMsgLoop.postEventTohHeader(evt);
 }
 
 void FFPlayer::postVideoEvent_l(int64_t delayMs)
 {
-    if (mVideoEventPending) { //prevent duplicated onVideo()
+    if (mVideoEventPending) //prevent duplicated onVideo()
         return;
-    }
 
     mVideoEventPending = true;
-	mMsgLoop.postEventWithDelay(&mVideoEvent, delayMs < 0 ? 0 : delayMs);
+
+	FFVideoEvent *evt = new FFVideoEvent(this);
+	mMsgLoop.postEventWithDelay(evt, delayMs < 0 ? 0 : delayMs);
 }
 
 void FFPlayer::postStreamDoneEvent_l()
 {
-    if (mStreamDoneEventPending) {
+    if (mStreamDoneEventPending)
         return;
-    }
+
     mStreamDoneEventPending = true;
-	mMsgLoop.postEventTohHeader(&mStreamDoneEvent);
+
+	FFStreamDoneEvent *evt = new FFStreamDoneEvent(this);
+	mMsgLoop.postEventTohHeader(evt);
 }
 
 void FFPlayer::postBufferingUpdateEvent_l()
@@ -1829,7 +1798,9 @@ void FFPlayer::postBufferingUpdateEvent_l()
         return;
 
     mBufferingUpdateEventPending = true;
-	mMsgLoop.postEventWithDelay(&mBufferingUpdateEvent, 1000); // 1sec refresh
+
+	FFBufferingUpdateEvent *evt = new FFBufferingUpdateEvent(this);
+	mMsgLoop.postEventWithDelay(evt, 1000); // 1sec refresh
 }
 
 void FFPlayer::postSeekingEvent_l(int64_t delayMs)
@@ -1838,10 +1809,13 @@ void FFPlayer::postSeekingEvent_l(int64_t delayMs)
         return;
 
     mSeekingEventPending = true;
+
+	FFSeekingEvent *evt = new FFSeekingEvent(this);
+
     if (delayMs == -1)
-		mMsgLoop.postEventTohHeader(&mSeekingEvent);
+		mMsgLoop.postEventTohHeader(evt);
     else
-		mMsgLoop.postEventWithDelay(&mSeekingEvent, delayMs);
+		mMsgLoop.postEventWithDelay(evt, delayMs);
 }
 
 
@@ -1850,16 +1824,20 @@ void FFPlayer::postCheckAudioStatusEvent_l() {
         return;
 
     mAudioStatusEventPending = true;
-	mMsgLoop.postEventWithDelay(&mCheckAudioStatusEvent, 1000);// 1sec
+
+	FFCheckAudioStatusEvent *evt = new FFCheckAudioStatusEvent(this);
+	mMsgLoop.postEventWithDelay(evt, 1000);// 1sec
 }
 
 void FFPlayer::postBufferingStartEvent_l() {
 
-    if (mBufferingStartEventPending) {
+    if (mBufferingStartEventPending)
         return;
-    }
+
     mBufferingStartEventPending = true;
-	mMsgLoop.postEventTohHeader(&mBufferingStartEvent);
+
+	FFBufferingStartEvent *evt = new FFBufferingStartEvent(this);
+	mMsgLoop.postEventTohHeader(evt);
 }
 
 void FFPlayer::postBufferingEndEvent_l() {
@@ -1867,8 +1845,11 @@ void FFPlayer::postBufferingEndEvent_l() {
     if (mBufferingEndEventPending) {
         return;
     }
+
     mBufferingEndEventPending = true;
-	mMsgLoop.postEventTohHeader(&mBufferingEndEvent);
+	
+	FFBufferingEndEvent *evt = new FFBufferingEndEvent(this);
+	mMsgLoop.postEventTohHeader(evt);
 }
 
 void FFPlayer::postSeekingCompleteEvent_l() {
@@ -1876,16 +1857,21 @@ void FFPlayer::postSeekingCompleteEvent_l() {
     if (mSeekingCompleteEventPending) {
         return;
     }
+
     mSeekingCompleteEventPending = true;
-	mMsgLoop.postEventTohHeader(&mSeekingCompleteEvent);
+	
+	FFSeekingCompleteEvent *evt = new FFSeekingCompleteEvent(this);
+	mMsgLoop.postEventTohHeader(evt);
 }
 
 void FFPlayer::postIOBitrateInfoEvent_l() {
-	mMsgLoop.postEventTohHeader(&mIOBitrateInfoEvent);
+	FFIOBitrateInfoEvent *evt = new FFIOBitrateInfoEvent(this);
+	mMsgLoop.postEventTohHeader(evt);
 }
 
 void FFPlayer::postMediaBitrateInfoEvent_l() {
-	mMsgLoop.postEventTohHeader(&mMediaBitrateInfoEvent);
+	FFMediaBitrateInfoEvent *evt = new FFMediaBitrateInfoEvent(this);
+	mMsgLoop.postEventTohHeader(evt);
 }
 
 void FFPlayer::abortPrepare_l(status_t err)
@@ -2178,7 +2164,7 @@ status_t FFPlayer::stop_l()
 	LOGI("after interrupt mDataStream");
 
     LOGI("before mMsgLoop(Loop) stop");
-	mMsgLoop.stop();
+	mMsgLoop.stop(false);
 
     // Shutdown audio first
     if (mAudioPlayer != NULL) {
@@ -2297,7 +2283,6 @@ status_t FFPlayer::prepareAsync_l()
 
 	mPlayerStatus = MEDIA_PLAYER_PREPARING;
 
-	mMsgLoop.setInstance(this);
     mMsgLoop.start();
 
     postPrepareEvent_l();
