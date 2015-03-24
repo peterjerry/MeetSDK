@@ -327,7 +327,32 @@ jboolean android_media_MediaExtractor_getTrackFormatNative(JNIEnv *env, jobject 
 
 	if (PPMEDIA_TYPE_VIDEO == native_format.media_type) {
 		PPLOGI("begin to fill video media format: %d x %d", native_format.width, native_format.height);
-		env->CallVoidMethod(mediaformat, midSetString, env->NewStringUTF("mime"), env->NewStringUTF("video/avc"));
+
+		char video_mime[64] = {0};
+		strcpy(video_mime, "video/");
+		switch (native_format.codec_id) {
+		case PPMEDIA_CODEC_ID_H264:
+			strcat(video_mime, "avc");
+			break;
+		case PPMEDIA_CODEC_ID_MPEG4:
+			strcat(video_mime, "mp4v-es");
+			break;
+		case PPMEDIA_CODEC_ID_H263:
+			strcat(video_mime, "3gpp");
+			break;
+		case PPMEDIA_CODEC_ID_VP8:
+			strcat(video_mime, "x-vnd.on2.vp8");
+			break;
+		case PPMEDIA_CODEC_ID_VP9:
+			strcat(video_mime, "x-vnd.on2.vp9");
+			break;
+		default:
+			strcat(video_mime, "unknown");
+			PPLOGE("unsupported mediacodec codec id: %d", native_format.codec_id);
+			break;
+		}
+
+		env->CallVoidMethod(mediaformat, midSetString, env->NewStringUTF("mime"), env->NewStringUTF(video_mime));
 		env->CallVoidMethod(mediaformat, midSetInteger, env->NewStringUTF("width"), native_format.width);
 		env->CallVoidMethod(mediaformat, midSetInteger, env->NewStringUTF("height"), native_format.height);
 		env->CallVoidMethod(mediaformat, midSetLong, env->NewStringUTF("durationUs"), native_format.duration_us);
@@ -341,7 +366,45 @@ jboolean android_media_MediaExtractor_getTrackFormatNative(JNIEnv *env, jobject 
 	}
 	else if (PPMEDIA_TYPE_AUDIO == native_format.media_type) {
 		PPLOGI("begin to fill audio media format: chn %d, sample_rate %d", native_format.channels, native_format.sample_rate);
-		env->CallVoidMethod(mediaformat, midSetString, env->NewStringUTF("mime"), env->NewStringUTF("audio/mp4a-latm"));
+
+		char audio_mime[64] = {0};
+		strcpy(audio_mime, "audio/");
+		switch (native_format.codec_id) {
+		case PPMEDIA_CODEC_ID_AAC:
+			strcat(audio_mime, "mp4a-latm");
+			break;
+		case PPMEDIA_CODEC_ID_MP3:
+			strcat(audio_mime, "mpeg");
+			break;
+		case PPMEDIA_CODEC_ID_AC3:
+		case PPMEDIA_CODEC_ID_EAC3:
+			strcat(audio_mime, "dd");
+			break;
+		case PPMEDIA_CODEC_ID_DTS:
+			strcat(audio_mime, "dts");
+			break;
+		case PPMEDIA_CODEC_ID_VORBIS:
+			strcat(audio_mime, "vorbis");
+			break;
+		case PPMEDIA_CODEC_ID_AMR_NB:
+			strcat(audio_mime, "3gpp");
+			break;
+		case PPMEDIA_CODEC_ID_AMR_WB:
+			strcat(audio_mime, "amr-wb");
+			break;
+		case PPMEDIA_CODEC_ID_PCM_ALAW:
+			strcat(audio_mime, "g711-alaw");
+			break;
+		case PPMEDIA_CODEC_ID_PCM_MULAW:
+			strcat(audio_mime, "g711-mlaw");
+			break;
+		default:
+			strcat(audio_mime, "unknown");
+			PPLOGE("unsupported mediacodec codec id: %d", native_format.codec_id);
+			break;
+		}
+
+		env->CallVoidMethod(mediaformat, midSetString, env->NewStringUTF("mime"), env->NewStringUTF(audio_mime));
 		env->CallVoidMethod(mediaformat, midSetInteger, env->NewStringUTF("channel-count"), native_format.channels);
 		env->CallVoidMethod(mediaformat, midSetInteger, env->NewStringUTF("sample-rate"), native_format.sample_rate);
 		env->CallVoidMethod(mediaformat, midSetInteger, env->NewStringUTF("bitrate"), native_format.bitrate);

@@ -84,10 +84,20 @@ private:
 
 	void notifyListener_l(int msg, int ext1 = 0, int ext2 = 0);
 private:
+
+enum DATASOURCE_TYPE
+{
+	TYPE_LOCAL_FILE,
+	TYPE_VOD,
+	TYPE_LIVE,
+	TYPE_UNKNOWN
+};
+
 	MediaPlayerListener*	mListener;
 
 	int32_t				m_status;
 
+	int					m_sorce_type;
 	AVFormatContext*	m_fmt_ctx;
 	char*				m_url;
 	AVStream *			m_video_stream;

@@ -32,6 +32,10 @@ enum NALUnitType {
     NAL_AUXILIARY_SLICE = 19
 };
 
+#define BUFFER_FLAG_SYNC_FRAME		1
+#define BUFFER_FLAG_CODEC_CONFIG	2
+#define BUFFER_FLAG_END_OF_STREAM	4
+
 extern "C" IExtractor* getExtractor()
 {
     return new FFExtractor();
@@ -50,7 +54,8 @@ FFExtractor::FFExtractor()
 	mListener			= NULL;
 
 	m_status			= FFEXTRACTOR_INITED;
-	
+
+	m_sorce_type		= TYPE_UNKNOWN;
 	m_url				= NULL;
 	m_fmt_ctx			= NULL;
 	m_video_stream		= NULL;
@@ -208,6 +213,13 @@ status_t FFExtractor::setDataSource(const char *path)
 	int len = strlen(path) + 1;
 	m_url = new char[len];
 	strcpy(m_url, path);
+
+	if (strncmp(m_url, "/", 1) == 0 || strncmp(m_url, "file://", 7) == 0)
+		m_sorce_type = TYPE_LOCAL_FILE;
+	else if(strstr(m_url, "type=pplive"))
+		m_sorce_type = TYPE_LIVE;
+	else
+		m_sorce_type = TYPE_VOD;
 	
 	/* open input file, and allocate format context */
     if (avformat_open_input(&m_fmt_ctx, m_url, NULL, NULL) < 0) {
@@ -841,21 +853,15 @@ status_t FFExtractor::getSampleFlags(uint32_t *sampleFlags)
 	if (is_packet_valid() < 0)
 		return ERROR;
 
-	/*
-	// Field descriptor #15 I
-	public static final int BUFFER_FLAG_SYNC_FRAME = 1;
-
-	// Field descriptor #15 I
-	public static final int BUFFER_FLAG_CODEC_CONFIG = 2;
-
-	// Field descriptor #15 I
-	public static final int BUFFER_FLAG_END_OF_STREAM = 4;
-	*/
-	int sync = (m_sample_pkt->flags & AV_PKT_FLAG_KEY);
+	//int sync = (m_sample_pkt->flags & AV_PKT_FLAG_KEY);
 	//int codec_config = 2;
-	int eof = 0;//(m_eof ? 4 : 0);
+	//int eof = 0;//(m_eof ? 4 : 0);
 
-	*sampleFlags = sync | eof; 
+	int ret = 0;
+	if (m_sorce_type == TYPE_LOCAL_FILE)
+		ret |= BUFFER_FLAG_SYNC_FRAME;
+
+	*sampleFlags = ret;
 	return OK;
 }
 

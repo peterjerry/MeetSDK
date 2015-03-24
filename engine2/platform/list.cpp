@@ -6,6 +6,7 @@
 #define LOG_TAG "List"
 #include "log.h"
 #include "autolock.h"
+#include "loop.h"
 
 List::List() : m_pHead(NULL), m_pTail(NULL), m_nLength(0)
 {
@@ -148,7 +149,7 @@ void List::Clear()
     while (m_pHead != NULL) {
         pTemp = m_pHead;
         m_pHead = m_pHead->m_pNext;
-		delete pTemp->m_data;
+		delete (Event *)pTemp->m_data;
 		pTemp->m_data = NULL;
         delete pTemp;
 		pTemp = NULL;
