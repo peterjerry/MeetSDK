@@ -385,7 +385,7 @@ FFRender::~FFRender()
 	if(mScaleFrame != NULL) {
 		av_frame_free(&mScaleFrame);
 	}
-#if defined(__CYGWIN__) || defined(_MSC_VER)
+#if defined(__CYGWIN__)
 	//todo
 #else
 	Surface_close();

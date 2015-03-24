@@ -60,7 +60,7 @@ status_t Surface_updateSurface()
 
 status_t Surface_close()
 {
-	if(g_pData) {
+	if (g_pData) {
 		delete g_pData;
 		g_pData = NULL;
 	}

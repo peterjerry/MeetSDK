@@ -18,6 +18,7 @@
 #include "approcessbmp.h" // for snapshot
 #include "apEPG.h"
 #include "urlcodec.h"
+//#include <vld.h>
 
 #pragma comment(lib, "sdl")
 #pragma comment(lib, "libppbox")
@@ -1075,12 +1076,15 @@ void CtestSDLdlgDlg::Cleanup()
 	LOGI("PPBOX_StopP2PEngine()");
 	PPBOX_StopP2PEngine();
 
+	// PPTV_RTSP_URL_OFFSET PPTV_HLS_URL_OFFSET USER_LIST_OFFSET
 	for (int i= USER_LIST_OFFSET; i<PROG_MAX_NUM;i++) {
 		if (url_desc[i]) {
 			delete url_desc[i];
 			url_desc[i] = NULL;
 		}
+	}
 
+	for (int i= PPTV_RTSP_URL_OFFSET; i<PROG_MAX_NUM;i++) {
 		if (url_list[i]) {
 			delete url_list[i];
 			url_list[i] = NULL;

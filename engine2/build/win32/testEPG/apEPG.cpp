@@ -96,6 +96,7 @@ EPG_MODULE_LIST * apEPG::frontpage()
 	curl_easy_setopt(curl, CURLOPT_WRITEDATA, this);
 
 	res = curl_easy_perform(curl);
+	curl_easy_cleanup(curl);
 	if (CURLE_OK != res) {
 		apLog::print(0, apLog::info, "curl error %s\n", curl_easy_strerror(res));
 		return NULL;
@@ -124,6 +125,7 @@ EPG_CATALOG_LIST * apEPG::catalog(int catalog_index)
 	curl_easy_setopt(curl, CURLOPT_WRITEDATA, this);
 
 	res = curl_easy_perform(curl);
+	curl_easy_cleanup(curl);
 	if (CURLE_OK != res) {
 		apLog::print(0, apLog::info, "curl error %s\n", curl_easy_strerror(res));
 		return NULL;
@@ -157,11 +159,11 @@ bool apEPG::search(const char* key, EPG_NAVIGATOR_LIST **pNav, EPG_PLAYLINK_LIST
 	curl_easy_setopt(curl, CURLOPT_WRITEDATA, this);
 
 	res = curl_easy_perform(curl);
+	curl_easy_cleanup(curl);
 	if (CURLE_OK != res) {
 		apLog::print(0, apLog::error, "curl error %s\n", curl_easy_strerror(res));
 		return false;
 	}
-	
 	
 	if (!mParserXml.parseSearch(mData, mDataSize)) {
 		apLog::print(0, apLog::error, "failed to parse search xml");
@@ -202,6 +204,7 @@ EPG_PLAYLINK_LIST * apEPG::detail(int vid)
 	curl_easy_setopt(curl, CURLOPT_WRITEDATA, this);
 
 	res = curl_easy_perform(curl);
+	curl_easy_cleanup(curl);
 	if (CURLE_OK != res) {
 		apLog::print(0, apLog::info, "curl error %s\n", curl_easy_strerror(res));
 		return NULL;

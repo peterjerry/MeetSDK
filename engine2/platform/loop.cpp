@@ -42,10 +42,14 @@
 extern JavaVM* gs_jvm;
 #endif
 
-void EventLoop::StopEvent::action(void *opaque, int64_t now_us)
+Event::~Event()
+{
+}
+
+void StopEvent::action(void *opaque, int64_t now_us)
 {
 	EventLoop *ins = (EventLoop *)opaque;
-	ins->mStopped = true;
+	ins->setStop();
 }
 
 EventLoop::EventLoop()
@@ -151,7 +155,7 @@ int64_t EventLoop::postTimedEvent(Event *evt, int64_t realtimeUs)
 	if (evt == NULL)
 		return -1;
 
-	//AutoLock autoLock(&mLock);
+	AutoLock autoLock(&mLock);
 
     // to find the proper position to place new event
 	int32_t index = 0;
@@ -232,15 +236,13 @@ void EventLoop::threadEntry() {
 
 	int64_t nowUs = 0;
 
+	pthread_mutex_lock(&mLock);
     while (!mStopped) {
-		AutoLock autoLock(&mLock);
-
 		Event* evt = NULL;
 
 		while (mEvtQueue.IsEmpty())
 			pthread_cond_wait(&mQueueNotEmptyCondition, &mLock);
 
-		event_id eventID = 0;
 		while (!mStopped) {
 			if (mEvtQueue.IsEmpty()) {
 				// The only event in the queue could have been cancelled
@@ -297,7 +299,9 @@ void EventLoop::threadEntry() {
 				// Fire event with the lock NOT held.
 			
 				LOGD("action #%lld %d", evt->index, evt->id);
+				pthread_mutex_unlock(&mLock);
 				evt->action(evt->m_opaque, nowUs);
+				pthread_mutex_lock(&mLock);
 				LOGD("action #%lld %d done", evt->index, evt->id);
 
 				delete evt;
@@ -305,6 +309,8 @@ void EventLoop::threadEntry() {
 			}
 		} // end of while() 3
     } // end of while
+
+	pthread_mutex_unlock(&mLock);
 }
 
 int EventLoop::wait(int64_t usec)
@@ -340,7 +346,7 @@ void EventLoop::dumpEventList()
     for (int i=0; i < mEvtQueue.GetLength(); i++) {
         evt = (Event *)mEvtQueue[i];
 #ifndef _MSC_VER
-		LOGI("event list: index %lld, id %d, realtime %lld", evt->index, evt->id, evt->realtimeUs);
+		LOGI("event list: index %lld, id %d, realtime %lld", evt->m_index, evt->m_id, evt->m_realtimeUs);
 #endif
 	}
 	LOGI("event list end");

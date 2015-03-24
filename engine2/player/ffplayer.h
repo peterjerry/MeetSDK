@@ -265,7 +265,7 @@ private:
 	bool					mIsVideoFrameDirty;
 
 	// event
-	class FFPrepareEvent:public EventLoop::Event {
+	class FFPrepareEvent:public Event {
 	public:
 		FFPrepareEvent(void * opaque){
 			m_id		= PREPRARE_EVENT;
@@ -274,7 +274,7 @@ private:
 		~FFPrepareEvent(){}
 		virtual void action(void *opaque, int64_t now_us);
 	};
-	class FFVideoEvent:public EventLoop::Event {
+	class FFVideoEvent:public Event {
 	public:
 		FFVideoEvent(void * opaque){
 			m_id		= VIDEO_RENDER_EVENT;
@@ -283,7 +283,7 @@ private:
 		~FFVideoEvent(){}
 		virtual void action(void *opaque, int64_t now_us);
 	};
-	class FFStreamDoneEvent:public EventLoop::Event {
+	class FFStreamDoneEvent:public Event {
 	public:
 		FFStreamDoneEvent(void * opaque){
 			m_id		= STREAM_DONE_EVENT;
@@ -292,7 +292,7 @@ private:
 		~FFStreamDoneEvent(){}
 		virtual void action(void *opaque, int64_t now_us);
 	};
-	class FFBufferingUpdateEvent:public EventLoop::Event {
+	class FFBufferingUpdateEvent:public Event {
 	public:
 		FFBufferingUpdateEvent(void * opaque){
 			m_id		= BUFFERING_UPDATE_EVENT;
@@ -301,7 +301,7 @@ private:
 		~FFBufferingUpdateEvent(){}
 		virtual void action(void *opaque, int64_t now_us);
 	};
-	class FFSeekingEvent:public EventLoop::Event {
+	class FFSeekingEvent:public Event {
 	public:
 		FFSeekingEvent(void * opaque){
 			m_id		= SEEKING_EVENT;
@@ -310,7 +310,7 @@ private:
 		~FFSeekingEvent(){}
 		virtual void action(void *opaque, int64_t now_us);
 	};
-	class FFCheckAudioStatusEvent:public EventLoop::Event {
+	class FFCheckAudioStatusEvent:public Event {
 	public:
 		FFCheckAudioStatusEvent(void * opaque){
 			m_id		= CHECK_AUDIO_STATUS_EVENT;
@@ -319,7 +319,7 @@ private:
 		~FFCheckAudioStatusEvent(){}
 		virtual void action(void *opaque, int64_t now_us);
 	};
-	class FFBufferingStartEvent:public EventLoop::Event {
+	class FFBufferingStartEvent:public Event {
 	public:
 		FFBufferingStartEvent(void * opaque){
 			m_id		= BUFFERING_START_EVENT;
@@ -328,7 +328,7 @@ private:
 		~FFBufferingStartEvent(){}
 		virtual void action(void *opaque, int64_t now_us);
 	};
-	class FFBufferingEndEvent:public EventLoop::Event {
+	class FFBufferingEndEvent:public Event {
 	public:
 		FFBufferingEndEvent(void * opaque){
 			m_id		= BUFFERING_END_EVENT;
@@ -337,7 +337,7 @@ private:
 		~FFBufferingEndEvent(){}
 		virtual void action(void *opaque, int64_t now_us);
 	};
-	class FFSeekingCompleteEvent:public EventLoop::Event {
+	class FFSeekingCompleteEvent:public Event {
 	public:
 		FFSeekingCompleteEvent(void * opaque){
 			m_id		= SEEKING_COMPLETE_EVENT;
@@ -346,7 +346,7 @@ private:
 		~FFSeekingCompleteEvent(){}
 		virtual void action(void *opaque, int64_t now_us);
 	};
-	class FFIOBitrateInfoEvent:public EventLoop::Event {
+	class FFIOBitrateInfoEvent:public Event {
 	public:
 		FFIOBitrateInfoEvent(void * opaque){
 			m_id		= IO_BITRATE_INFO_EVENT;
@@ -355,7 +355,7 @@ private:
 		~FFIOBitrateInfoEvent(){}
 		virtual void action(void *opaque, int64_t now_us);
 	};
-	class FFMediaBitrateInfoEvent:public EventLoop::Event {
+	class FFMediaBitrateInfoEvent:public Event {
 	public:
 		FFMediaBitrateInfoEvent(void * opaque){
 			m_id		= MEDIA_BITRATE_INFO_EVENT;

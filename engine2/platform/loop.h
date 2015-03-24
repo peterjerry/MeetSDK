@@ -15,21 +15,34 @@ typedef int32_t event_id;
 
 #define EVENT_LOOP_STOP 1001
 
+class Event {
+public:
+	Event()
+		:m_id(0), m_index(0), m_realtimeUs(0), m_opaque(NULL){}
+	
+	virtual ~Event() = 0;
+
+	event_id		m_id;
+	uint64_t		m_index;
+	int64_t			m_realtimeUs;
+	void*			m_opaque;
+	virtual void action(void *opaque, int64_t now_us) = 0;
+};
+
+class StopEvent:public Event {
+public:
+	StopEvent(void * opaque){
+		m_id		= EVENT_LOOP_STOP;
+		m_opaque	= opaque;
+	}
+	~StopEvent(){}
+
+	virtual void action(void *opaque, int64_t now_us);
+};
+
 class EventLoop
 {
 public:
-	class Event {
-	public:
-		Event():m_id(0), m_index(0), m_realtimeUs(0), m_opaque(NULL){}
-		~Event(){}
-
-		event_id		m_id;
-		uint64_t		m_index;
-		int64_t			m_realtimeUs;
-		void*			m_opaque;
-		virtual void action(void *opaque, int64_t now_us) = 0;
-	};
-
     EventLoop();
     ~EventLoop();
 
@@ -38,6 +51,8 @@ public:
 	void stop(bool flush);
 
 	bool isRunning();
+
+	void setStop(){mStopped = true;}
 
 	// Posts an event to the front of the queue (after all events that
     // have previously been posted to the front but before timed events).
@@ -55,8 +70,6 @@ private:
     
 	EventLoop &operator=(const EventLoop &);
 
-	void SetRunning(bool isRunning);
-
 	// If the event is to be posted at a time that has already passed,
     // it will fire as soon as possible.
     int64_t postTimedEvent(Event *evt, int64_t realtimeUs);
@@ -71,17 +84,9 @@ private:
 
 	int wait(int64_t usec);
 
-private:
-	class StopEvent:public EventLoop::Event {
-	public:
-		StopEvent(void * opaque){
-			m_id		= EVENT_LOOP_STOP;
-			m_opaque	= opaque;
-		}
-		~StopEvent(){}
-		virtual void action(void *opaque, int64_t now_us);
-	};
+	void SetRunning(bool isRunning);
 
+private:
     pthread_t		mThread;
     pthread_mutex_t mLock;
     pthread_cond_t	mQueueNotEmptyCondition;

@@ -148,7 +148,10 @@ void List::Clear()
     while (m_pHead != NULL) {
         pTemp = m_pHead;
         m_pHead = m_pHead->m_pNext;
+		delete pTemp->m_data;
+		pTemp->m_data = NULL;
         delete pTemp;
+		pTemp = NULL;
     }
 
     m_pHead = m_pTail = NULL;
