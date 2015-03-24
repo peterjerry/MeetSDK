@@ -36,10 +36,13 @@
 	"&shownav=1&type=0&mode=all&contentype=0&c=2&s=1&ver=2&platform=android3" // k=xxx
 
 apEPG::apEPG(void)
-	:mData(NULL)
+	:mData(NULL), mCurl(NULL)
 {
 	mData = new char[MAX_DATA_SIZE];
 	reset();
+
+	curl_global_init(CURL_GLOBAL_ALL);
+	mCurl = curl_easy_init();
 }
 
 
@@ -49,6 +52,13 @@ apEPG::~apEPG(void)
 		delete mData;
 		mData = NULL;
 	}
+
+	if (mCurl) {
+		curl_easy_cleanup(mCurl);
+		mCurl = NULL;
+	}
+
+	curl_global_cleanup();
 }
 
 void apEPG::reset()
@@ -79,24 +89,20 @@ size_t apEPG::write_data_impl(void *buffer, size_t size, size_t nmemb, void *use
 EPG_MODULE_LIST * apEPG::frontpage()
 {
 	reset();
-
-	CURL *curl = NULL;   
+   
 	CURLcode res;
-	curl = curl_easy_init();  
-	if (!curl){
-		return NULL;
-	}
 
 	LOGI("curl_perform(getCatalog): %s", FRONTPAGE_URL);
 
-	curl_easy_reset(curl);
+	curl_easy_reset(mCurl);
 
-	curl_easy_setopt(curl, CURLOPT_URL, FRONTPAGE_URL);
-	curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, apEPG::write_data);
-	curl_easy_setopt(curl, CURLOPT_WRITEDATA, this);
+	curl_easy_setopt(mCurl, CURLOPT_URL, FRONTPAGE_URL);
+	curl_easy_setopt(mCurl,  CURLOPT_TIMEOUT, 5); // 5 sec
+	curl_easy_setopt(mCurl,  CURLOPT_CONNECTTIMEOUT, 3); // 3 sec
+	curl_easy_setopt(mCurl, CURLOPT_WRITEFUNCTION, apEPG::write_data);
+	curl_easy_setopt(mCurl, CURLOPT_WRITEDATA, this);
 
-	res = curl_easy_perform(curl);
-	curl_easy_cleanup(curl);
+	res = curl_easy_perform(mCurl);
 	if (CURLE_OK != res) {
 		apLog::print(0, apLog::info, "curl error %s\n", curl_easy_strerror(res));
 		return NULL;
@@ -109,23 +115,19 @@ EPG_CATALOG_LIST * apEPG::catalog(int catalog_index)
 {
 	reset();
 
-	CURL *curl = NULL;   
 	CURLcode res;
-	curl = curl_easy_init();  
-	if (!curl){
-		return NULL;
-	}
 
 	LOGI("curl_perform(getCatalog): %s", FRONTPAGE_URL);
 
-	curl_easy_reset(curl);
+	curl_easy_reset(mCurl);
 
-	curl_easy_setopt(curl, CURLOPT_URL, FRONTPAGE_URL);
-	curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, apEPG::write_data);
-	curl_easy_setopt(curl, CURLOPT_WRITEDATA, this);
+	curl_easy_setopt(mCurl, CURLOPT_URL, FRONTPAGE_URL);
+	curl_easy_setopt(mCurl,  CURLOPT_TIMEOUT, 5); // 5 sec
+	curl_easy_setopt(mCurl,  CURLOPT_CONNECTTIMEOUT, 3); // 3 sec
+	curl_easy_setopt(mCurl, CURLOPT_WRITEFUNCTION, apEPG::write_data);
+	curl_easy_setopt(mCurl, CURLOPT_WRITEDATA, this);
 
-	res = curl_easy_perform(curl);
-	curl_easy_cleanup(curl);
+	res = curl_easy_perform(mCurl);
 	if (CURLE_OK != res) {
 		apLog::print(0, apLog::info, "curl error %s\n", curl_easy_strerror(res));
 		return NULL;
@@ -138,13 +140,8 @@ bool apEPG::search(const char* key, EPG_NAVIGATOR_LIST **pNav, EPG_PLAYLINK_LIST
 {
 	reset();
 
-	CURL *curl = NULL;   
 	CURLcode res;
-	curl = curl_easy_init();  
-	if (!curl){
-		return NULL;
-	}
-
+	
 	int out_len = 0;
 	char *encoded_key = urlencode(key, strlen(key), &out_len);
 
@@ -152,14 +149,15 @@ bool apEPG::search(const char* key, EPG_NAVIGATOR_LIST **pNav, EPG_PLAYLINK_LIST
 	_stprintf_s(url, SREATCH_URL_FMT, encoded_key);
 	LOGI("curl_perform(search): %s", url);
 
-	curl_easy_reset(curl);
+	curl_easy_reset(mCurl);
 
-	curl_easy_setopt(curl, CURLOPT_URL, url);
-	curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, apEPG::write_data);
-	curl_easy_setopt(curl, CURLOPT_WRITEDATA, this);
+	curl_easy_setopt(mCurl, CURLOPT_URL, url);
+	curl_easy_setopt(mCurl,  CURLOPT_TIMEOUT, 5); // 5 sec
+	curl_easy_setopt(mCurl,  CURLOPT_CONNECTTIMEOUT, 3); // 3 sec
+	curl_easy_setopt(mCurl, CURLOPT_WRITEFUNCTION, apEPG::write_data);
+	curl_easy_setopt(mCurl, CURLOPT_WRITEDATA, this);
 
-	res = curl_easy_perform(curl);
-	curl_easy_cleanup(curl);
+	res = curl_easy_perform(mCurl);
 	if (CURLE_OK != res) {
 		apLog::print(0, apLog::error, "curl error %s\n", curl_easy_strerror(res));
 		return false;
@@ -190,21 +188,15 @@ EPG_PLAYLINK_LIST * apEPG::detail(int vid)
 	_stprintf_s(url, DETAIL_URL_FMT, vid, vid);
 	LOGI("curl_perform(getPlaylink): %s", url);
 
-	CURL *curl = NULL;   
 	CURLcode res;
-	curl = curl_easy_init();  
-	if(!curl){
-		return NULL;
-	}
 
-	curl_easy_reset(curl);
+	curl_easy_reset(mCurl);
 
-	curl_easy_setopt(curl, CURLOPT_URL, url);
-	curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, apEPG::write_data);
-	curl_easy_setopt(curl, CURLOPT_WRITEDATA, this);
+	curl_easy_setopt(mCurl, CURLOPT_URL, url);
+	curl_easy_setopt(mCurl, CURLOPT_WRITEFUNCTION, apEPG::write_data);
+	curl_easy_setopt(mCurl, CURLOPT_WRITEDATA, this);
 
-	res = curl_easy_perform(curl);
-	curl_easy_cleanup(curl);
+	res = curl_easy_perform(mCurl);
 	if (CURLE_OK != res) {
 		apLog::print(0, apLog::info, "curl error %s\n", curl_easy_strerror(res));
 		return NULL;
