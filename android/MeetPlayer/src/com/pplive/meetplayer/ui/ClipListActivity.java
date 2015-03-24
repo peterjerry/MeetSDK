@@ -2759,7 +2759,7 @@ public class ClipListActivity extends Activity implements
             	
             	try {
 					wait(SLEEP_MSEC);
-					Log.i(TAG, "Java: subtitle wait");
+					//Log.d(TAG, "Java: subtitle wait");
 				} catch (InterruptedException e) {
 					// TODO Auto-generated catch block
 					Log.i(TAG, "Java: subtitle interrupted");
