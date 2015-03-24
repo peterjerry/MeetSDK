@@ -1236,6 +1236,7 @@ public class ClipListActivity extends Activity implements
 				mSubtitleThread.interrupt();
 				
 				try {
+					Log.i(TAG, "Java subtitle before join");
 					mSubtitleThread.join();
 				} catch (InterruptedException e) {
 					// TODO Auto-generated catch block
@@ -2723,12 +2724,14 @@ public class ClipListActivity extends Activity implements
         boolean isDisplay = true;
         boolean isDropItem = false;
         
-        while (true) {
-        	if (mStoped)
-                break;
-        	
+        while (!mStoped) {
         	if (isDisplay) {
         		seg = mSubtitleParser.next();
+        		if (seg == null) {
+        			Log.e(TAG, "Java: subtitle next_segment is null");
+        			break;
+        		}
+        		
         		mSubtitleText = seg.getData();
                 from_msec = seg.getFromTime();
                 to_msec = seg.getToTime();

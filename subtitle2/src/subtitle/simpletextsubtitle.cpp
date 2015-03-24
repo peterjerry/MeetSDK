@@ -220,7 +220,7 @@ bool CSimpleTextSubtitle::getNextSubtitleSegment(STSSegment** segment)
 	LOGD("getNextSubtitleSegment mNextSegment %d, size %d", mNextSegment, mSegments.size());
 
     if (mNextSegment >= mSegments.size()) {
-		LOGE("mNextSegment is too big");
+		LOGE("mNextSegment is too big %d.%d", mNextSegment, mSegments.size());
 		return false;
 	}
 	
