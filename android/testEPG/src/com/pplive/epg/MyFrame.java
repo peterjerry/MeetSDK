@@ -330,7 +330,7 @@ public class MyFrame extends JFrame {
 	}
 	
 	private void init_combobox() {
-		int type = 0;
+		int type = 2;
 		
 		switch (type) {
 		case 0:
@@ -488,7 +488,7 @@ public class MyFrame extends JFrame {
 		mPlayLinkList = mEPG.getLink();
 		int size = mPlayLinkList.size();
 		
-		for(int i=0;i<size;i++) {
+		for (int i=0;i<size;i++) {
 			System.out.println(mPlayLinkList.get(i).toString());
 			comboItem.addItem(mPlayLinkList.get(i).getTitle());
 		}

@@ -856,7 +856,7 @@ public class ClipListActivity extends Activity implements
         View view = View.inflate(this, R.layout.date_time_dialog, null); 
         final DatePicker datePicker = (DatePicker) view.findViewById(R.id.date_picker); 
         final TimePicker timePicker = (TimePicker) view.findViewById(R.id.time_picker);
-        final EditText etDuratoin = (EditText) view.findViewById(R.id.et_duration);
+        final EditText etDuration = (EditText) view.findViewById(R.id.et_duration);
         builder.setView(view); 
 
         Calendar cal = Calendar.getInstance(); 
@@ -896,15 +896,13 @@ public class ClipListActivity extends Activity implements
                         datePicker.getDayOfMonth(),
                         timePicker.getCurrentHour(),
                         timePicker.getCurrentMinute());
-
-                //mETStartTime.setText(sb);
                 
                 // step1
                 GregorianCalendar gc = new GregorianCalendar(year, month, day, hour, min, 0);
                 mStartTimeSec = gc.getTimeInMillis() / 1000;
             	
             	// step2
-            	String strDuration =  etDuratoin.getText().toString();
+            	String strDuration =  etDuration.getText().toString();
             	mDuration = Integer.parseInt(strDuration);
             	
             	Log.i(TAG, String.format("start_time %d sec, duration %d min", mStartTimeSec, mDuration));
@@ -921,7 +919,8 @@ public class ClipListActivity extends Activity implements
                 
                 dialog.cancel();
                 Toast.makeText(ClipListActivity.this, 
-                		String.format("toggle to playback mode start %s, duration %d min", sb, mDuration), 
+                		String.format("toggle to playback mode start %s, duration %d min", 
+                				sb.toString(), mDuration), 
                 		Toast.LENGTH_SHORT).show();
             } 
         });

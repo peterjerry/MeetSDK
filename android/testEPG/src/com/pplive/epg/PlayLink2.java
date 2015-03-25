@@ -14,6 +14,8 @@ public class PlayLink2 {
 	private int mWidth, mHeight;
 	private int mDurationSec;
 	
+	private String mImgUrl;
+	
 	private String mExtTitle;
 
 	@SuppressWarnings("unused")
@@ -25,13 +27,20 @@ public class PlayLink2 {
 		this(title, "", id, desc, 
 				"", "", "", 
 				"", "",
-				"", 0);
+				"", 0, "");
+	}
+	
+	public PlayLink2(String title, String id, String desc, String imgUrl) {
+		this(title, "", id, desc, 
+				"", "", "", 
+				"", "",
+				"", 0, imgUrl);
 	}
 
 	public PlayLink2(String title, String ext_title, String id, String desc, 
 			String mark, String director, String act, 
 			String year, String area,
-			String resolution, int duration_sec) {
+			String resolution, int duration_sec, String imgUrl) {
 		mTitle 			= title;
 		mExtTitle		= ext_title;
 		mId				= id;
@@ -47,11 +56,17 @@ public class PlayLink2 {
 		mResolution		= resolution;
 		mDurationSec	= duration_sec;
 		
+		mImgUrl			= imgUrl;
+		
 		setResolution();
 	}
 	
 	public String getId() {
 		return mId;
+	}
+	
+	public String getImgUrl() {
+		return mImgUrl;
 	}
 	
 	public String getTitle() {
@@ -125,6 +140,8 @@ public class PlayLink2 {
 		sb.append(", 时长: ");
 		sb.append(mDurationSec);
 		sb.append("秒");
+		sb.append(", imgUrl: ");
+		sb.append(mImgUrl);
 		
 		return sb.toString();
 	}
