@@ -11,8 +11,23 @@
 extern JavaVM* gs_jvm;
 #endif
 
+#ifdef _MSC_VER
+#ifndef INT64_MIN
+#define INT64_MIN        (INT64_C(-9223372036854775807)-1)
+#define INT64_MAX        (INT64_C(9223372036854775807))
+#endif
+#pragma comment(lib, "avutil")
+#pragma comment(lib, "avcodec")
+#pragma comment(lib, "avformat")
+
+#pragma comment(lib, "pthreadVC2")
+#endif
+
 #define MAX_PKT_SIZE (65536 * 4)
 #define DEFAULT_MAX_BUFFER_SIZE 1048576
+
+#define MEDIA_OPEN_TIMEOUT_MSEC		(120 * 1000) // 2 min
+#define MEDIA_READ_TIMEOUT_MSEC		(300 * 1000) // 5 min
 
 // NAL unit types
 enum NALUnitType {
@@ -104,9 +119,15 @@ FFExtractor::FFExtractor()
 	m_seek_flag				= 0;
 	m_seek_time_msec		= 0;
 
+	m_open_stream_start_msec= 0;
+	//m_read_stream_start_msec= 0;
+
 	m_buffering				= false;
 	m_seeking				= false;
 	m_eof					= false;
+
+	av_register_all();
+	avformat_network_init();
 }
 
 FFExtractor::~FFExtractor()
@@ -118,6 +139,43 @@ FFExtractor::~FFExtractor()
 	pthread_cond_destroy(&mCondition);
     pthread_mutex_destroy(&mLock);
 	pthread_mutex_destroy(&mLockNotify);
+
+	avformat_network_deinit();
+	LOGI("FFExtractor destrcutor done");
+}
+
+int FFExtractor::interrupt_l(void* ctx)
+{
+    //LOGD("Checking interrupt_l");
+	//return 1: error
+    
+	FFExtractor* extractor = (FFExtractor*)ctx;
+    if (extractor == NULL)
+		return 1;
+
+	if (extractor->m_open_stream_start_msec != 0) {
+		if (getNowMs() - extractor->m_open_stream_start_msec > MEDIA_OPEN_TIMEOUT_MSEC) {
+			LOGE("interrupt_l: open stream time out");
+			extractor->notifyListener_l(MEDIA_ERROR, MEDIA_ERROR_TIMED_OUT, 0);
+			return 1;
+		}
+	}
+
+	/*if (extractor->m_status == FFEXTRACTOR_STARTED) {
+		if (getNowMs() - extractor->m_read_stream_start_msec > MEDIA_READ_TIMEOUT_MSEC) {
+			LOGE("interrupt_l: read stream time out");
+			extractor->notifyListener_l(MEDIA_ERROR, MEDIA_ERROR_TIMED_OUT, 0);
+			return 1;
+		}
+	}*/
+
+    if (extractor->m_status == FFEXTRACTOR_STOPPED || extractor->m_status == FFEXTRACTOR_STOPPING) {
+        //abort av_read_frame.
+        LOGI("interrupt_l: FFSTREAM_STOPPED");
+        return 1;
+    }
+	
+	return 0;
 }
 
 status_t FFExtractor::setListener(MediaPlayerListener* listener)
@@ -221,11 +279,15 @@ status_t FFExtractor::setDataSource(const char *path)
 	else
 		m_sorce_type = TYPE_VOD;
 	
+	m_open_stream_start_msec = getNowMs();
+
 	/* open input file, and allocate format context */
     if (avformat_open_input(&m_fmt_ctx, m_url, NULL, NULL) < 0) {
 		LOGE("Could not open source file %s", m_url);
         return ERROR;
     }
+
+	m_open_stream_start_msec = 0;
 
 	/* retrieve stream information */
     if (avformat_find_stream_info(m_fmt_ctx, NULL) < 0) {
@@ -742,7 +804,27 @@ status_t FFExtractor::advance()
 
 	audio_msec = get_packet_pos(tmpPkt);
 
+	if (video_msec == AV_NOPTS_VALUE) {
+		LOGW("video pts is AV_NOPTS_VALUE, use last corrent value");
+		video_msec = m_video_clock_msec;
+	}
+	else {
+		m_video_clock_msec = video_msec;
+	}
+
+	if (audio_msec == AV_NOPTS_VALUE) {
+		LOGW("audio pts is AV_NOPTS_VALUE, use last corrent value");
+		audio_msec = m_audio_clock_msec;
+	}
+	else {
+		m_audio_clock_msec = audio_msec;
+	}
+
+#ifdef _MSC_VER
+	LOGI("v_a msec %I64d %I64d", video_msec, audio_msec);
+#else
 	LOGI("v_a msec %lld %lld", video_msec, audio_msec);
+#endif
 
 	if (video_msec - audio_msec < 100)
 		m_sample_pkt = m_video_q.get();
@@ -778,41 +860,28 @@ status_t FFExtractor::readSampleData(unsigned char *data, int32_t *sampleSize)
 	if (m_video_stream_idx == m_sample_pkt->stream_index) {
 		if (m_pBsfc_h264) {
 			// Apply MP4 to H264 Annex B filter on buffer
-			uint8_t *pOutBuf = NULL;
-			int outBufSize;
+			//int origin_size = m_sample_pkt->size;
 			int isKeyFrame = m_sample_pkt->flags & AV_PKT_FLAG_KEY;
-			av_bitstream_filter_filter(m_pBsfc_h264, m_video_stream->codec, NULL, &pOutBuf, &outBufSize, 
+			av_bitstream_filter_filter(m_pBsfc_h264, m_video_stream->codec, NULL, &m_sample_pkt->data, &m_sample_pkt->size, 
 				m_sample_pkt->data, m_sample_pkt->size, isKeyFrame);
-
-			memcpy(data, pOutBuf, outBufSize);
-			*sampleSize = outBufSize;
-
-			av_free(pOutBuf);
+			//LOGD("readSampleData_flt(video) pkt size %d, outbuf size %d", origin_size, m_sample_pkt->size);
 		}
-		else {
-			memcpy(data, m_sample_pkt->data, m_sample_pkt->size);
-			*sampleSize = m_sample_pkt->size;
-		}
+
+		memcpy(data, m_sample_pkt->data, m_sample_pkt->size);
+		*sampleSize = m_sample_pkt->size;
 	}
 	else if (m_audio_stream_idx == m_sample_pkt->stream_index) {
 		if (m_pBsfc_aac) {
-			uint8_t *pOutBuf = NULL;
-			int outBufSize;
+			// Apply aac adts to asc filter on buffer
 			int isKeyFrame = m_sample_pkt->flags & AV_PKT_FLAG_KEY;
-			av_bitstream_filter_filter(m_pBsfc_aac, m_audio_stream->codec, NULL, &pOutBuf, &outBufSize, 
+			//int origin_size = m_sample_pkt->size;
+			av_bitstream_filter_filter(m_pBsfc_aac, m_audio_stream->codec, NULL, &m_sample_pkt->data, &m_sample_pkt->size, 
 				m_sample_pkt->data, m_sample_pkt->size, isKeyFrame);
-
-			memcpy(data, pOutBuf, outBufSize);
-			*sampleSize = outBufSize;
-
-			av_free(pOutBuf);
-			LOGI("readSampleData_flt(audio) pkt size %d, outbuf size %d", m_sample_pkt->size, outBufSize);
+			//LOGD("readSampleData_flt(audio) pkt size %d, outbuf size %d", origin_size, m_sample_pkt->size);
 		}
-		else {
-			memcpy(data, m_sample_pkt->data, m_sample_pkt->size);
-			*sampleSize = m_sample_pkt->size;
-			LOGD("readSampleData(audio) pkt size %d", m_sample_pkt->size);
-		}
+		
+		memcpy(data, m_sample_pkt->data, m_sample_pkt->size);
+		*sampleSize = m_sample_pkt->size;
 	}
 	else {
 		LOGE("unknown stream index #%d", m_sample_pkt->stream_index);

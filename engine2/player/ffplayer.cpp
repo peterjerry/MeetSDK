@@ -39,6 +39,8 @@
 #ifdef USE_AV_FILTER
 #pragma comment(lib, "avfilter")
 #endif
+
+#pragma comment(lib, "pthreadVC2")
 #endif
 
 #ifdef __ANDROID__

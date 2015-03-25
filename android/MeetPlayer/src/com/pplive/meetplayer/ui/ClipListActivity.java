@@ -33,6 +33,7 @@ import android.os.Environment;
 import android.os.IBinder;
 import android.util.AttributeSet;
 import android.util.Log;
+import android.view.KeyEvent;
 import android.view.Menu;
 import android.view.SubMenu;
 import android.view.MenuItem;
@@ -135,6 +136,7 @@ public class ClipListActivity extends Activity implements
 	private Button btnSelectAudioTrack;
 	private EditText et_play_url;
 	private MyPreView mPreview;
+	private boolean mPreviewFocused = false;
 	private SurfaceHolder mHolder;
 	private MediaController mMediaController;
 	private RelativeLayout mLayout;
@@ -2803,13 +2805,13 @@ public class ClipListActivity extends Activity implements
 	@Override
 	public void onFocusChange(View v, boolean hasFocus) {
 		// TODO Auto-generated method stub
+		mPreviewFocused = hasFocus;
+		
 		if (hasFocus) {
 			if (mLayout != null) {
 				Drawable drawable1 = getResources().getDrawable(R.drawable.bg_border1); 
 				mLayout.setBackground(drawable1);
 			}
-			if (mMediaController != null)
-				mMediaController.show(5000);
 		}
 		else {
 			if (mLayout != null) {
@@ -2817,6 +2819,16 @@ public class ClipListActivity extends Activity implements
 				mLayout.setBackground(drawable2);
 			}
 		}
+	}
+	
+	@Override
+	public boolean onKeyDown(int keyCode, KeyEvent event) {
+		Log.i(TAG, "keyCode: " + keyCode);
+
+		if (keyCode == KeyEvent.KEYCODE_ENTER && mPreviewFocused)
+			mMediaController.show(5000);
+		
+		return super.onKeyDown(keyCode, event);
 	}
 	
 	static {

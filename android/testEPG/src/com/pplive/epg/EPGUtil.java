@@ -147,7 +147,12 @@ public class EPGUtil {
 	        	String title = v.getChild("title").getText();
 	        	String vid = v.getChild("vid").getText();
 	        	String nowplay = v.getChild("nowplay").getText();
-	        	String imgUrl = v.getChild("imgurl").getText();
+	        	
+	        	Element img = v.getChild("imgurl");
+		    	String imgUrl = "";
+		    	if (img != null)
+		    		imgUrl = img.getText();
+		    	
 	        	System.out.println(String.format("title: %s, id: %s, nowplay: %s", title, vid, nowplay));
 	        	PlayLink2 l = new PlayLink2(title, vid, nowplay, imgUrl);
 	        	mPlayLinkList.add(l);
@@ -550,7 +555,12 @@ public class EPGUtil {
 	    	String src_res = source.getAttributeValue("resolution");
 	    	if(src_res != null && !src_res.isEmpty())
 	    		link_resolution = src_res; // overwrite
-	    	String imgUrl = playlink2.getChild("imgurl").getText();
+	    	
+	    	Element img = playlink2.getChild("imgurl");
+	    	String imgUrl = "";
+	    	if (img != null)
+	    		imgUrl = img.getText();
+	    	
 	    	PlayLink2 l = new PlayLink2(link_title, ext_title, link_id, link_description, 
 	    			src_mark, link_director, link_act,
 	    			link_year, link_area,

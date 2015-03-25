@@ -88,16 +88,6 @@ int __pp_log_print(int prio, const char *tag,  const char *fmt, ...)
     va_start(ap, fmt);
 
 #ifdef SAVE_LOG_FILE
-	static int log_opened = 0;
-	apLog::LOG_LEVEL lvl = apLog::info;
-#ifdef DEBUG_LOG_LEVEL
-	lvl = apLog::detail;
-#endif
-	if(!log_opened) {
-		apLog::init("c:\\log\\libplayer.log", lvl);
-		log_opened = 1;
-	}
-
 	char header[128] = {0};
 	snprintf(header, 128, "[%s] %s", tag, fmt);
 

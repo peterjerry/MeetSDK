@@ -83,6 +83,8 @@ private:
 	int16_t get_aac_extradata(AVCodecContext *c);
 
 	void notifyListener_l(int msg, int ext1 = 0, int ext2 = 0);
+
+	static int interrupt_l(void* ctx);
 private:
 
 enum DATASOURCE_TYPE
@@ -145,6 +147,9 @@ enum DATASOURCE_TYPE
 	int					m_seek_flag;
 	int64_t				m_seek_time_msec; // for seek pos
 
+	// for interrupt
+	int64_t				m_open_stream_start_msec;
+	//int64_t				m_read_stream_start_msec;
 
 	bool				m_buffering;
 	bool				m_seeking;

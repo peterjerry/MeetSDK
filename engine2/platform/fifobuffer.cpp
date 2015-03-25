@@ -2,10 +2,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-#ifdef _MSC_VER
-#pragma comment(lib, "pthreadVC2")
-#endif
-
 and_fifobuffer::and_fifobuffer()
 :buf_(NULL), header_(NULL), tail_(NULL) {
 }

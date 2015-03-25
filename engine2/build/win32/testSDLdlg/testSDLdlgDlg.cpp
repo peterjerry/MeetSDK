@@ -11,6 +11,7 @@
 #include "ffplayer.h"
 #define LOG_TAG "libplayer"
 #include "log.h"
+#include "apFileLog.h"
 #include "surface.h"
 #include "sdl.h"
 #include "IPpbox.h"
@@ -222,6 +223,10 @@ BOOL CtestSDLdlgDlg::OnInitDialog()
 	SetIcon(m_hIcon, FALSE);		// 设置小图标
 
 	// TODO: 在此添加额外的初始化代码
+#ifdef SAVE_LOG_FILE
+	apLog::init("c:\\log\\libplayer.log");
+#endif
+
 	if(!startP2P())
 		return FALSE;
 

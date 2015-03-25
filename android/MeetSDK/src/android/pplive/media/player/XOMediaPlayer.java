@@ -10,7 +10,9 @@ import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import android.content.Context;
 import android.graphics.Bitmap;
@@ -82,6 +84,9 @@ public class XOMediaPlayer extends BaseMediaPlayer {
 	private long mCurrentTimeMsec 		= 0L; // getcurrentpos()
 	private long mTotalStartMsec		= 0L; // based on system clock
 	// video
+	private Lock mVideoLock;
+	private Condition mVideoNotFullCond;   
+    private Condition mVideoNotEmptyCond;
 	private long mLastOnVideoTimeMsec 	= 0L;
 	private long mRenderedFrameCnt 	= 0L;
 	private long mDecodedFrameCnt		= 0L;
@@ -94,6 +99,8 @@ public class XOMediaPlayer extends BaseMediaPlayer {
 	private long mAveAudioPktMsec		= 0L;
 	private long mLastAudioPktMSec		= 0L;
 	private long mAudioLatencyMsec		= 0L;
+	
+	private final static boolean NO_AUDIO = false;
 	
 	private Handler mMediaEventHandler = null;
 	
@@ -494,6 +501,10 @@ public class XOMediaPlayer extends BaseMediaPlayer {
 			LogUtils.info("mVideoBufferInfo size: " + mVideoBufferInfo.size);
 			LogUtils.info("mVideoBufferInfo: " + mVideoBufferInfo.toString());
 			
+			mVideoLock = new ReentrantLock();
+			mVideoNotFullCond = mVideoLock.newCondition();
+			mVideoNotEmptyCond = mVideoLock.newCondition();
+			
 			LogUtils.info("Init Video Decoder Success!!!");
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -631,33 +642,39 @@ public class XOMediaPlayer extends BaseMediaPlayer {
             		buf.render_clock_msec = info.presentationTimeUs / 1000;
             		buf.eof = ((mVideoBufferInfo.flags & MediaCodec.BUFFER_FLAG_END_OF_STREAM) != 0);
             		
+            		mVideoLock.lock();
             		mRenderList.add(buf);
+            		mVideoNotEmptyCond.signal();
+            		mVideoLock.unlock();
             		continue;
             	}
-            	else if (mAudioTrackIndex == trackIndex){
+            	else if (mAudioTrackIndex == trackIndex) {
             		LogUtils.info(String.format("[DecodeAudioBuffer] presentationTimeUs: %d, flags: %d",
             				info.presentationTimeUs, info.flags));
 
             		render = false;
             		
-            		int bufSize = info.size;
-    				if (mAudioData == null || mAudioData.length < bufSize) {
-    					// Allocate a new buffer.
-    					mAudioData = new byte[bufSize];
-    				}
-    				
-    				ByteBuffer outputBuf = codec.getOutputBuffers()[outputBufIndex];
-    				outputBuf.get(mAudioData);
-    				// would block
-    				mAudioTrack.write(mAudioData, 0, bufSize);
+            		if (!NO_AUDIO) {
+	            		int bufSize = info.size;
+	    				if (mAudioData == null || mAudioData.length < bufSize) {
+	    					// Allocate a new buffer.
+	    					mAudioData = new byte[bufSize];
+	    				}
+	    				
+	    				ByteBuffer outputBuf = codec.getOutputBuffers()[outputBufIndex];
+	    				outputBuf.get(mAudioData);
+	    				// would block
+	    				mAudioTrack.write(mAudioData, 0, bufSize);
+            		}
     				
     				// update audio clock
     				mAudioStartMsec = System.currentTimeMillis();
     				
     				mAudioPositionMsec = info.presentationTimeUs / 1000;
+    				
+    				// only audio output buffer will be released here!
+    				codec.releaseOutputBuffer(outputBufIndex, render);
             	}
-            	
-                codec.releaseOutputBuffer(outputBufIndex, render);
                 
                 if ((info.flags & MediaCodec.BUFFER_FLAG_END_OF_STREAM) != 0) {
                     Log.i(TAG, "saw output EOS.");
@@ -695,19 +712,33 @@ public class XOMediaPlayer extends BaseMediaPlayer {
 				continue;
 			}
 			
-			if (mRenderList.size() == 0) {
-				try {
-					Thread.sleep(10);
-				} catch (InterruptedException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
-				}
-				
-				continue;
-			}
+			RenderBuf buf = null;
 			
-			RenderBuf buf = mRenderList.get(0);
-			mRenderList.remove(0);
+			mVideoLock.lock();
+			try {    
+	            while (mRenderList.size() == 0 && getState() != PlayState.STOPPING)    
+	            	mVideoNotEmptyCond.await(); // how to quit?
+	            
+	            if (mRenderList.size() == 0) {
+					LogUtils.info("Java: video buf is null");
+					break;
+				}
+	            
+	            buf = mRenderList.get(0);
+				mRenderList.remove(0);
+	            mVideoNotFullCond.signal();    
+	        } catch (InterruptedException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+				LogUtils.info("Java: mVideoNotEmptyCond.await InterruptedException");
+			} finally {    
+	        	mVideoLock.unlock();
+	        }
+			
+			if (buf == null) {
+				LogUtils.info("Java: video buf is null");
+				break;
+			}
 			
 			boolean render = true;
 			
@@ -724,8 +755,10 @@ public class XOMediaPlayer extends BaseMediaPlayer {
 			mLastVideoFrameMsec = video_clock_msec;
 			mLastDelayMsec = delay_msec;
 			
-			long audio_clock_msec = (long)getCurrentPosition();
+			long audio_clock_msec = (long) getCurrentPosition();
 			long av_diff_msec = video_clock_msec - audio_clock_msec;
+			if (NO_AUDIO)
+				av_diff_msec = 0;
 			LogUtils.info(String.format("video %d, audio %d, diff_msec %d msec", 
 					video_clock_msec, audio_clock_msec, av_diff_msec));
 			
@@ -787,7 +820,7 @@ public class XOMediaPlayer extends BaseMediaPlayer {
 			long schedule_msec = mFrameTimerMsec - System.currentTimeMillis();
 			LogUtils.info("schedule_msec: " + schedule_msec);
 
-			if (schedule_msec >= 10) {
+			if (schedule_msec >= 10 && !NO_AUDIO) {
 				try {
 					Thread.sleep(schedule_msec);
 				} catch (InterruptedException e) {
@@ -889,6 +922,9 @@ public class XOMediaPlayer extends BaseMediaPlayer {
 		}
 		
 		setState(PlayState.STOPPING);
+		mVideoLock.lock();
+		mVideoNotEmptyCond.signal();
+		mVideoLock.unlock();
 		
 		if (mRenderVideoThr != null ) {
 			mRenderVideoThr.interrupt();
@@ -925,7 +961,7 @@ public class XOMediaPlayer extends BaseMediaPlayer {
 				
 				mLock.lock();
 				setState(PlayState.STOPPED);
-				notStopped.signalAll();
+				notStopped.signal();
 				mLock.unlock();
 			}
 		});
