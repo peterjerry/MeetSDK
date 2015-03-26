@@ -656,6 +656,10 @@ public class MeetVideoView extends SurfaceView implements MediaPlayerControl {
 	// 2015.1.13 guoliangma added
 	public void setDecodeMode(DecodeMode mode) {
         mDecodeMode = mode;
+        
+        if (null != mDecodeMode) {
+            mDecodeMode.setSurfaceType(getHolder());
+        }
     }
 
     public DecodeMode getDecodeMode() {

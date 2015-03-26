@@ -132,14 +132,14 @@ status_t AudioPlayer::pause()
 {
 	LOGI("AudioPlayer pause()");
 
-    if (mPlayerStatus == MEDIA_PLAYER_PAUSED)
+	if (mPlayerStatus == MEDIA_PLAYER_STARTED)
+		return pause_l();
+
+    if (mPlayerStatus == MEDIA_PLAYER_PAUSED || mPlayerStatus == MEDIA_PLAYER_PLAYBACK_COMPLETE)
         return OK;
-    else if (mPlayerStatus != MEDIA_PLAYER_STARTED) {
-		LOGE("audio player(pause) was in invalid state %d", mPlayerStatus);
-        return INVALID_OPERATION;
-	}
-    
-    return pause_l();
+
+	LOGE("audio player(pause) was in invalid state %d", mPlayerStatus);
+    return INVALID_OPERATION;
 }
 
 status_t AudioPlayer::flush()
