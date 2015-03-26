@@ -9,6 +9,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
+import java.util.GregorianCalendar;
 import java.util.List;
 
 import javax.swing.event.*;
@@ -330,7 +331,7 @@ public class MyFrame extends JFrame {
 	}
 	
 	private void init_combobox() {
-		int type = 2;
+		int type = 1;
 		
 		switch (type) {
 		case 0:
@@ -354,13 +355,41 @@ public class MyFrame extends JFrame {
 	private void search() {
 		EPGUtil epg = new EPGUtil();
 		
-		String key = "泰坦尼克";
+		LiveChannel livechn = epg.live_cdn(300156);
+		
+		if (livechn != null) {
+			String url_fmt = "http://%s/live/074094e6c24c4ebbb4bf6a82f4ceabda/" +
+					"%d.block?ft=1&platform=android3" +
+					"&type=phone.android.vip&sdk=1" +
+					"&channel=162&vvid=41&k=%s";
+			
+			// step1
+			int year = 2015;
+			int month = 3;
+			int day = 25;
+			int hour = 14;
+			int min = 43;
+            GregorianCalendar gc = new GregorianCalendar(year, month, day, hour, min, 0);
+            long start_time = gc.getTimeInMillis() / 1000;
+            long ss = start_time % 5;
+            start_time -= ss;
+            
+			String url_xxx = String.format(url_fmt, livechn.getIP(), start_time, livechn.getK());
+			System.out.println(url_xxx);
+		}
+		
+		/*String xx = "http://117.135.161.39/live/074094e6c24c4ebbb4bf6a82f4ceabda/" +
+		"1427251135.block?ft=1&platform=android3" +
+		"&type=phone.android.vip&sdk=1" +
+		"&channel=162&vvid=41&k=8a1c075cab63376c5ce8a35d5d415213-b8d0-1427265582";*/
+		
+		String key = "沈震轩PPTV独家专访";//"沈震轩PPTV独家专访";
 		int type = 0;
-		int content_type = 0;
+		int content_type = 0; // 0-只正片，1-非正片，-1=不过滤
 		
 		boolean ret;
 		
-		ret = epg.search(key, type, content_type, 2, 10);
+		ret = epg.search(key, type, content_type, 1, 10);
 		if(!ret)
 			return;
 		
