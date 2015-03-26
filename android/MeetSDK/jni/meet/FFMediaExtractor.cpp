@@ -559,11 +559,17 @@ void android_media_MediaExtractor_setDataSource(JNIEnv *env, jobject thiz, jstri
 
 	const char *pathStr = env->GetStringUTFChars(path, NULL);
 	if (pathStr == NULL) {  // Out of memory
-		jniThrowException(env, "java/lang/RuntimeException", "GetStringUTFChars: Out of memory");
+		PPLOGE("GetStringUTFChars: Out of memory");
 		return;
 	}
 
-	extractor->setDataSource(pathStr);
+	PPLOGI("setDataSource: %s", pathStr);
+
+	status_t ret = extractor->setDataSource(pathStr);
+	if (ret != OK) {
+		jniThrowException(env, "java/lang/IOException", "failed to open media");
+		return;
+	}
 
 	env->ReleaseStringUTFChars(path, pathStr);
 }

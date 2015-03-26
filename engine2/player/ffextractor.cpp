@@ -29,6 +29,8 @@ extern JavaVM* gs_jvm;
 #define MEDIA_OPEN_TIMEOUT_MSEC		(120 * 1000) // 2 min
 #define MEDIA_READ_TIMEOUT_MSEC		(300 * 1000) // 5 min
 
+#define VIDOE_POP_AHEAD_MSEC 200
+
 // NAL unit types
 enum NALUnitType {
     NAL_SLICE = 1,
@@ -170,7 +172,7 @@ int FFExtractor::interrupt_l(void* ctx)
 	}*/
 
     if (extractor->m_status == FFEXTRACTOR_STOPPED || extractor->m_status == FFEXTRACTOR_STOPPING) {
-        //abort av_read_frame.
+        //abort av_read_frame or avformat_open_input, avformat_find_stream_info
         LOGI("interrupt_l: FFSTREAM_STOPPED");
         return 1;
     }
@@ -190,6 +192,12 @@ void FFExtractor::close()
 		return;
 
 	LOGI("close()");
+
+	if (m_status == FFEXTRACTOR_PREPARING) {
+		m_status = FFEXTRACTOR_STOPPING;
+		LOGI("stop preparing media");
+		return;
+	}
 
 	if (m_status == FFEXTRACTOR_STARTED || m_status == FFEXTRACTOR_PAUSED) {
 		m_status = FFEXTRACTOR_STOPPING;
@@ -222,8 +230,11 @@ void FFExtractor::close()
 		avcodec_close(m_audio_dec_ctx);
 		m_audio_dec_ctx = NULL;
 	}
-	if (m_fmt_ctx)
+	if (m_fmt_ctx) {
+		m_fmt_ctx->interrupt_callback.callback = NULL;
+		m_fmt_ctx->interrupt_callback.opaque = NULL;
 		avformat_close_input(&m_fmt_ctx);
+	}
 	if (m_frame)
 		av_frame_free(&m_frame);
 	if (m_video_dst_data[0])
@@ -826,11 +837,13 @@ status_t FFExtractor::advance()
 	LOGI("v_a msec %lld %lld", video_msec, audio_msec);
 #endif
 
-	if (video_msec - audio_msec < 100)
+	if (video_msec - audio_msec < VIDOE_POP_AHEAD_MSEC)
 		m_sample_pkt = m_video_q.get();
 	else
 		m_sample_pkt = m_audio_q.get();
+
 	if (m_sample_pkt == NULL) {
+		LOGE("failed to get packet");
 		return ERROR;
 	}
 
@@ -840,8 +853,15 @@ status_t FFExtractor::advance()
 	m_sample_track_idx		= m_sample_pkt->stream_index;
 	m_buffered_size			-= m_sample_pkt->size;
 	m_cached_duration_msec	-= get_packet_duration(m_sample_pkt);
-
-	m_sample_clock_msec = get_packet_pos(m_sample_pkt);
+	
+	if (m_video_stream_idx == m_sample_track_idx)
+		m_sample_clock_msec = m_video_clock_msec;
+	else if (m_audio_stream_idx == m_sample_track_idx)
+		m_sample_clock_msec = m_audio_clock_msec;
+	else {
+		LOGE("invalid sample stream index %d", m_sample_track_idx);
+		return ERROR;
+	}
 
 	LOGI("advance done!");
 	return OK;

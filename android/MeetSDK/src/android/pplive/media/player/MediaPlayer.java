@@ -676,6 +676,10 @@ public class MediaPlayer implements MediaPlayerInterface {
 	 */
 	public static final int MEDIA_ERROR_TIMED_OUT = -110;
 	
+	public static final int MEDIA_ERROR_FAIL_TO_READ_PACKET		= 301;
+	public static final int MEDIA_ERROR_FAIL_TO_OPEN				= 303;
+	public static final int MEDIA_ERROR_FAIL_TO_SEEK				= 304;
+	
 	public static final int MEDIA_ERROR_AUDIO_PLAYER 	= 311;
 	public static final int MEDIA_ERROR_AUDIO_RENDER 	= 312;
 	public static final int MEDIA_ERROR_VIDEO_PLAYER 	= 313;

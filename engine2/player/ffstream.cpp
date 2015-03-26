@@ -1245,7 +1245,7 @@ int FFStream::interrupt_l(void* ctx)
     if (stream->status() == FFSTREAM_STOPPED ||
         stream->status() == FFSTREAM_STOPPING)
     {
-        //abort av_read_frame.
+        //abort av_read_frame or avformat_open_input, avformat_find_stream_info
         LOGI("interrupt_l: FFSTREAM_STOPPED");
         return 1;
     }
