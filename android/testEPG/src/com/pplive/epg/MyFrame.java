@@ -50,9 +50,10 @@ public class MyFrame extends JFrame {
 	JButton btnReset 	= new JButton("Reset");
 	JButton btnGo 		= new JButton("Go");
 	
-	JLabel lblCaption = new JLabel("PPTV");
+	JLabel lblInfo = new JLabel("info");
 	
-	String []items = {"Item1", "Item2", "Item3", "Item4", "Item5", "Item6"};
+	JLabel lbl_link = new JLabel("link");
+	JTextPane editorPlayLink = new JTextPane();
 	
 	JComboBox<String> comboItem 	= null;
 	JComboBox<String> comboFt 		= null;
@@ -60,6 +61,10 @@ public class MyFrame extends JFrame {
 	JList<String> lstType 			= null;
 	
 	JCheckBox cbNoVideo = new JCheckBox("NoVideo");
+	
+	JTextPane editorSearch = new JTextPane();
+	JButton btnSearch = new JButton("search");
+	
 
 	MyFrame() {
 		super();
@@ -77,19 +82,19 @@ public class MyFrame extends JFrame {
 
 		this.getContentPane().setLayout(null);
 		// Action
-		lblCaption.setBounds(5, 40, 120, 30);
-		this.getContentPane().add(lblCaption);
+		lblInfo.setBounds(5, 40, 300, 30);
+		this.getContentPane().add(lblInfo);
 		
 		btnOK.setBounds(0, 0, 80, 30);
 		this.getContentPane().add(btnOK);
-		btnGo.setBounds(230, 80, 50, 20);
+		btnGo.setBounds(230, 120, 50, 20);
 		this.getContentPane().add(btnGo);
-		btnReset.setBounds(280, 80, 80, 20);
+		btnReset.setBounds(280, 120, 80, 20);
 		this.getContentPane().add(btnReset);
 
 		btnOK.addActionListener(new AbstractAction() {
 			public void actionPerformed(ActionEvent e) {
-				lblCaption.setText("You Click OK!");
+				lblInfo.setText("You Click OK!");
 			}
 		});
 
@@ -114,6 +119,7 @@ public class MyFrame extends JFrame {
 				case EPG_STATE_DETAIL:
 				case EPG_STATE_LIST:
 				case EPG_STATE_LINK:
+				case EPG_STATE_SEARCH:	
 					selectLink();
 					break;
 				case EPG_STATE_FOUND_PLAYLINK:
@@ -123,8 +129,6 @@ public class MyFrame extends JFrame {
 				case EPG_STATE_CONTENT:
 					selectList();
 					break;
-				case EPG_STATE_SEARCH:
-					break;
 				default:
 					System.out.println("invalid state: " + mState.toString());
 					break;
@@ -133,10 +137,16 @@ public class MyFrame extends JFrame {
 			}
 		});
 
+		lbl_link.setBounds(20, 120, 40, 20);
+		this.getContentPane().add(lbl_link);
+		editorPlayLink.setBounds(60, 120, 100, 20);
+		editorPlayLink.setText("20986187");
+	    this.getContentPane().add(editorPlayLink);
+		
 		comboItem = new JComboBox<String>();
 		Font f = new Font("宋体", 0, 12);
 		comboItem.setFont(f);
-		comboItem.setBounds(20, 80, 200, 20);
+		comboItem.setBounds(20, 80, 300, 20);
 		comboItem.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent e) {
@@ -157,37 +167,59 @@ public class MyFrame extends JFrame {
 		
 		this.getContentPane().add(comboItem);
 		
-		comboFt = new JComboBox<String>();
-		comboFt.setBounds(20, 110, 80, 20);
+		comboFt = new JComboBox<String>(ft_desc);
+		comboFt.setBounds(20, 150, 80, 20);
+		comboFt.setSelectedIndex(1);
 		this.getContentPane().add(comboFt);
 		
 		String[] bw_type = {"P2P", "CDNP2P", "CDN", "PPTV", "DLNA"};
 		comboBwType = new JComboBox<String>(bw_type);
-		comboBwType.setBounds(120, 110, 80, 20);
+		comboBwType.setBounds(120, 150, 80, 20);
 		comboBwType.setSelectedIndex(3);
 		this.getContentPane().add(comboBwType);
 
-		cbNoVideo.setBounds(220, 110, 120, 20);
+		cbNoVideo.setBounds(220, 150, 120, 20);
 		this.getContentPane().add(cbNoVideo);
 		
 		/*String exe_filepath  = "D:/Software/ppbox/ppbox_test-win32-msvc90-mt-gd-1.1.0.exe";
 		String[] cmd = new String[] {exe_filepath, ""};
 		openExe(cmd);*/
+		
+		editorSearch.setBounds(20, 180, 200, 20);
+		editorSearch.setText("大牌直播间2015");
+	    this.getContentPane().add(editorSearch);
+	    btnSearch.setBounds(250, 180, 80, 20);
+		this.getContentPane().add(btnSearch);
+		btnSearch.addActionListener(new AbstractAction() {
+			public void actionPerformed(ActionEvent e) {
+				String key = editorSearch.getText();//"沈震轩PPTV独家专访";
+				search(key);
+			}
+		});
 	}
 	
 	private void playvideo() {
 		String link = mPlayLinkList.get(0).getId();
-		int ft = -1;// = comboFt.getSelectedIndex();
-		String ft_desc_item = (String)comboFt.getSelectedItem();
-		for (int i=0;i<ft_desc.length;i++) {
-			if (ft_desc_item.equals(ft_desc[i])) {
-				ft = i;
+		int ft = comboFt.getSelectedIndex();
+		
+		int []ft_list = mEPG.getAvailableFT(link);
+		if (ft_list == null || ft_list.length == 0) {
+			System.out.println("failed to get available ft: " + mPlayLinkList.get(0).getId());
+			mState = EPG_STATE.EPG_STATE_ERROR;
+			return;
+		}
+
+		boolean found = false;
+		for (int i=0;i<ft_list.length;i++) {
+			if (ft == ft_list[i]) {
+				found = true;
 				break;
 			}
 		}
 		
-		if (ft == -1) {
+		if (!found) {
 			System.out.println("failed to find ft");
+			mState = EPG_STATE.EPG_STATE_ERROR;
 			return;
 		}
 		
@@ -285,6 +317,8 @@ public class MyFrame extends JFrame {
 		
 		if (mListLive) {
 			mState = EPG_STATE.EPG_STATE_FOUND_PLAYLINK;
+			editorPlayLink.setText(String.valueOf(vid));
+			lblInfo.setText("live vid " + vid + " selected");
 			System.out.println("live playlink found! " + vid);
 			return;
 		}
@@ -307,24 +341,9 @@ public class MyFrame extends JFrame {
 		
 		if (size == 1) {
 			System.out.println("playlink found! " + mPlayLinkList.get(0).getId());
-			
-			int []ft_list = mEPG.getAvailableFT(vid);
-			if (ft_list == null || ft_list.length == 0) {
-				System.out.println("failed to get available ft: " + mPlayLinkList.get(0).getId());
-				mState = EPG_STATE.EPG_STATE_ERROR;
-			}
-			else {
-				comboFt.removeAll();
-				for (int i=0;i<ft_list.length;i++) {
-					int index = ft_list[i];
-					if (index < 4)
-						comboFt.addItem(ft_desc[index]);
-				}
-				
-				comboFt.setSelectedIndex(0);
-				
-				mState = EPG_STATE.EPG_STATE_FOUND_PLAYLINK;
-			}
+			editorPlayLink.setText(String.valueOf(vid));
+			lblInfo.setText("vid " + vid + " selected");
+			mState = EPG_STATE.EPG_STATE_FOUND_PLAYLINK;
 		}
 		else
 			mState = EPG_STATE.EPG_STATE_LINK;
@@ -338,9 +357,6 @@ public class MyFrame extends JFrame {
 			frontpage();
 			break;
 		case 1:
-			search();
-			break;
-		case 2:
 			contents();
 			break;
 		case 3:
@@ -352,10 +368,10 @@ public class MyFrame extends JFrame {
 		}
 	}
 	
-	private void search() {
+	private void search(String key) {
 		EPGUtil epg = new EPGUtil();
 		
-		LiveChannel livechn = epg.live_cdn(300156);
+		/*LiveChannel livechn = epg.live_cdn(300156);
 		
 		if (livechn != null) {
 			String url_fmt = "http://%s/live/074094e6c24c4ebbb4bf6a82f4ceabda/" +
@@ -376,14 +392,8 @@ public class MyFrame extends JFrame {
             
 			String url_xxx = String.format(url_fmt, livechn.getIP(), start_time, livechn.getK());
 			System.out.println(url_xxx);
-		}
+		}*/
 		
-		/*String xx = "http://117.135.161.39/live/074094e6c24c4ebbb4bf6a82f4ceabda/" +
-		"1427251135.block?ft=1&platform=android3" +
-		"&type=phone.android.vip&sdk=1" +
-		"&channel=162&vvid=41&k=8a1c075cab63376c5ce8a35d5d415213-b8d0-1427265582";*/
-		
-		String key = "沈震轩PPTV独家专访";//"沈震轩PPTV独家专访";
 		int type = 0;
 		int content_type = 0; // 0-只正片，1-非正片，-1=不过滤
 		
@@ -405,7 +415,8 @@ public class MyFrame extends JFrame {
 			System.out.println(l.toString());
 			comboItem.addItem(mPlayLinkList.get(i).getTitle());
 		}
-		
+	
+		mState = EPG_STATE.EPG_STATE_SEARCH;
 	}
 	
 	private void frontpage() {
