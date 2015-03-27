@@ -128,7 +128,7 @@ public class EPGUtil {
 		return mNavList;
 	}
 	
-	public LiveChannel live_cdn(int vid) {
+	public CDNItem live_cdn(int vid) {
 		String url = String.format(live_cdn_url_fmt, vid);
 		System.out.println(url);
 		
@@ -156,8 +156,8 @@ public class EPGUtil {
 		return null;
 	}
 	
-	private LiveChannel parseLiveCdnUrlxml(String xml) {
-		System.out.println("Java: epg parseLiveCdnUrlxml " + xml.replace("\n", ""));
+	private CDNItem parseLiveCdnUrlxml(String xml) {
+		System.out.println("Java: epg parseLiveCdnUrlxml \n" + xml.replace("\n", ""));
 		
 		SAXBuilder builder = new SAXBuilder();
 		Reader returnQuote = new StringReader(xml);  
@@ -176,12 +176,8 @@ public class EPGUtil {
 			String d_st = d.getChild("st").getText(); // server time
 			String d_key = d.getChild("key").getText();
 			
-			CDNItem item = new CDNItem(d_ft, d_sh, d_st, d_bh, d_key);
-			String key = item.getK();
-			
-			LiveChannel livechn = new LiveChannel(d_sh, rid, key);
-			
-			return livechn;
+			CDNItem item = new CDNItem(d_ft, d_sh, d_st, d_bh, d_key);	
+			return item;
 		}
 		catch (JDOMException e) {
 			// TODO Auto-generated catch block

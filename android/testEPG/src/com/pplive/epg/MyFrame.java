@@ -8,9 +8,14 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.text.DateFormat;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.GregorianCalendar;
 import java.util.List;
+import java.util.Locale;
 
 import javax.swing.event.*;
 
@@ -317,9 +322,30 @@ public class MyFrame extends JFrame {
 		
 		if (mListLive) {
 			mState = EPG_STATE.EPG_STATE_FOUND_PLAYLINK;
-			editorPlayLink.setText(String.valueOf(vid));
+			editorPlayLink.setText(vid);
 			lblInfo.setText("live vid " + vid + " selected");
 			System.out.println("live playlink found! " + vid);
+			
+			CDNItem liveitem = mEPG.live_cdn(Integer.valueOf(vid));
+			
+			if (liveitem != null) {
+				String url_fmt = "http://%s/live/074094e6c24c4ebbb4bf6a82f4ceabda/" +
+						"%d.block?ft=1&platform=android3" +
+						"&type=phone.android.vip&sdk=1" +
+						"&channel=162&vvid=41&k=%s";
+	            
+	            String st = liveitem.getST();
+	            long start_time = new Date(st).getTime() / 1000;
+	            start_time -= 45;
+	            start_time -= (start_time % 5);
+	            
+				String httpUrl = String.format(url_fmt, liveitem.getHost(), start_time, liveitem.getK());
+				System.out.println(httpUrl);
+				
+				String saveFile = String.format("d:\\%d.flv", start_time);
+				Util.httpDownload(httpUrl, saveFile);
+			}
+			
 			return;
 		}
 		
@@ -369,41 +395,16 @@ public class MyFrame extends JFrame {
 	}
 	
 	private void search(String key) {
-		EPGUtil epg = new EPGUtil();
-		
-		/*LiveChannel livechn = epg.live_cdn(300156);
-		
-		if (livechn != null) {
-			String url_fmt = "http://%s/live/074094e6c24c4ebbb4bf6a82f4ceabda/" +
-					"%d.block?ft=1&platform=android3" +
-					"&type=phone.android.vip&sdk=1" +
-					"&channel=162&vvid=41&k=%s";
-			
-			// step1
-			int year = 2015;
-			int month = 3;
-			int day = 25;
-			int hour = 14;
-			int min = 43;
-            GregorianCalendar gc = new GregorianCalendar(year, month, day, hour, min, 0);
-            long start_time = gc.getTimeInMillis() / 1000;
-            long ss = start_time % 5;
-            start_time -= ss;
-            
-			String url_xxx = String.format(url_fmt, livechn.getIP(), start_time, livechn.getK());
-			System.out.println(url_xxx);
-		}*/
-		
 		int type = 0;
 		int content_type = 0; // 0-只正片，1-非正片，-1=不过滤
 		
 		boolean ret;
 		
-		ret = epg.search(key, type, content_type, 1, 10);
+		ret = mEPG.search(key, type, content_type, 1, 10);
 		if(!ret)
 			return;
 		
-		mPlayLinkList = epg.getLink();
+		mPlayLinkList = mEPG.getLink();
 		if(mPlayLinkList.size() < 1)
 			return;
 		
