@@ -31,17 +31,20 @@ AudioRender::AudioRender()
 #if defined(__CYGWIN__) || defined(_MSC_VER)
 	mAudioLogCnt = 0;
 #endif
-	mStopping = false;
+	mStopping	= false;
+	mClosed		= false;
 }
 
 AudioRender::~AudioRender()
 {
+	close();
+
 	if (mSamples != NULL) {
 		// Free audio samples buffer
 		av_free(mSamples);
 		mSamples = NULL;
 	}
-	if(mConvertCtx != NULL) {
+	if (mConvertCtx != NULL) {
 		swr_free(&mConvertCtx);
 		mConvertCtx = NULL;
 	}
@@ -381,11 +384,15 @@ status_t AudioRender::start()
 
 status_t AudioRender::close()
 {
+	if (mClosed)
+		return OK;
+
+	// interrupt blocked write
+	mStopping = true;
+
 #if defined(__CYGWIN__) || defined(_MSC_VER)
 	SDL_CloseAudio();
 #elif defined(OSLES_IMPL)
-	mStopping = true;
-
 	if (a_render)
 		a_render->close();
 #else
@@ -393,6 +400,7 @@ status_t AudioRender::close()
 	AudioTrack_close();
 #endif
 
+	mClosed = true;
 	return OK;
 }
 

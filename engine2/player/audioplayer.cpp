@@ -209,12 +209,14 @@ status_t AudioPlayer::stop()
 	pthread_cond_signal(&mCondition);
 	pthread_mutex_unlock(&mLock);
 
-	if (mPlayerStatus == MEDIA_PLAYER_STARTED || mPlayerStatus == MEDIA_PLAYER_PAUSED) {
-		mPlayerStatus = MEDIA_PLAYER_STOPPING; // notify audio thread to exit
-		// empty fifo avoid write block
+	if (mPlayerStatus == MEDIA_PLAYER_STARTED || mPlayerStatus == MEDIA_PLAYER_PAUSED ||
+		mPlayerStatus == MEDIA_PLAYER_PLAYBACK_COMPLETE) {
 		if (mRender)
 			mRender->close();
-		
+	}
+
+	if (mPlayerStatus == MEDIA_PLAYER_STARTED || mPlayerStatus == MEDIA_PLAYER_PAUSED) {
+		mPlayerStatus = MEDIA_PLAYER_STOPPING; // notify audio thread to exit
 		LOGI("before pthread_join %p", mThread);
 		if (pthread_join(mThread, NULL) != 0)
 			LOGE("failed to join audioplayer thread");

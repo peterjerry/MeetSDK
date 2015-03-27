@@ -781,6 +781,8 @@ LRESULT CtestSDLdlgDlg::OnNotify(WPARAM wParam, LPARAM lParam)
 	else if (MEDIA_PLAYBACK_COMPLETE == msg) {
 		LOGI("MEDIA_PLAYBACK_COMPLETE");
 		mFinished = true;
+		stop_player();
+		
 		AfxMessageBox("player complete");
 	}
 	else if (MEDIA_ERROR == msg) {
@@ -788,9 +790,11 @@ LRESULT CtestSDLdlgDlg::OnNotify(WPARAM wParam, LPARAM lParam)
 		AfxMessageBox("player error");
 		
 		mFinished = true;
-		mPlayer->stop();
-		delete mPlayer;
-		mPlayer = NULL;
+		if (mPlayer) {
+			mPlayer->stop();
+			delete mPlayer;
+			mPlayer = NULL;
+		}
 	}
 	else if (MEDIA_INFO == msg) {
 		//LOGI("MEDIA_INFO ext1: %d, ext2: %d", ext1, ext2);

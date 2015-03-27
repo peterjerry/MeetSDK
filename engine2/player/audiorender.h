@@ -77,6 +77,7 @@ private:
 	int mOneSecSize;
 
 	bool mStopping;
+	bool mClosed;
 };
 
 #endif // _AUDIO_RENDER_H
