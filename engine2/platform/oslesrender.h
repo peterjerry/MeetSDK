@@ -46,8 +46,7 @@ private:
 	void*			m_osles_handle;
 	and_fifobuffer*	m_fifo;
 	char*			m_pBuf;
-	int				m_latency;
-	int				m_one_sec_byte;
+	int				m_one_sec_size;
 };
 
 #endif //AND_OSLES_H

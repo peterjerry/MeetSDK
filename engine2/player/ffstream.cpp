@@ -443,8 +443,8 @@ AVFormatContext* FFStream::open(char* uri)
         //do not buffer for local file play(uri is like "/mnt/sdcard/xxx", first character is '/').
         mMinPlayBufferCount = 1;//mFrameRate*FF_PLAYER_MIN_BUFFER_SECONDS_LOCAL_FILE;
         mUrlType = TYPE_LOCAL_FILE;
+		mMaxBufferSize = mMaxBufferSize / 4;
         LOGI("It is a local file with mMinPlayBufferCount: %d", mMinPlayBufferCount);
-		mMaxBufferSize = mMaxBufferSize / 4; // reduce maxbuffersize to let switch-audiotrack more smoothly
     }
 	else if(strstr(uri, "type=pplive"))
 	{
@@ -1004,6 +1004,7 @@ void FFStream::thread_impl()
                 if (!mDelaying || duration < mMaxPlayBufferMs) {
                     mAudioQueue.put(pPacket);
                     mBufferSize += pPacket->size;
+					LOGD("audio_queue: count %d, size %d", mAudioQueue.count(), mAudioQueue.size());
 
                     //update cached duration
                     int64_t packetPTS = 0;
@@ -1118,7 +1119,7 @@ void FFStream::thread_impl()
 
 				int64_t duration = (int64_t)(mVideoQueue.duration()*1000*av_q2d(mVideoStream->time_base));
 				LOGD("video duration:%lld", duration);
-				if((mUrlType == TYPE_BROADCAST) &&
+				if ((mUrlType == TYPE_BROADCAST) &&
 					(mRealtimeLevel == LEVEL_HIGH) &&
 					(duration > mMaxPlayBufferMs))
 				{
@@ -1133,7 +1134,7 @@ void FFStream::thread_impl()
 					}
 				}
 
-				if(mDelaying &&
+				if (mDelaying &&
 					(pPacket->flags & AV_PKT_FLAG_KEY) &&
                     (duration <= mMaxPlayBufferMs))
                 {
@@ -1149,6 +1150,8 @@ void FFStream::thread_impl()
 				else {
                     mVideoQueue.put(pPacket);
                     mBufferSize += pPacket->size;
+
+					LOGD("video_queue: count %d, size %d", mVideoQueue.count(), mVideoQueue.size());
                 }
             }
 			else if(pPacket->stream_index == mSubtitleStreamIndex)

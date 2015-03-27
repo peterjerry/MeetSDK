@@ -53,7 +53,7 @@ private:
 
 	status_t flush_l();
 
-    int decode_l(AVPacket *packet);
+    int process_pkt(AVPacket *packet);
 
 	void wait(int msec);
 

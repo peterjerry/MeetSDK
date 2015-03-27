@@ -12,7 +12,7 @@
 #if defined(__CYGWIN__) || defined(_MSC_VER)
 #include "sdl.h"
 #define SDL_AUDIO_SAMPLES		1024
-#define FIFO_BUFFER_SIZE		65536
+#define FIFO_BUFFER_SIZE		(65536 * 4)
 #endif
 
 AudioRender::AudioRender()
@@ -31,18 +31,17 @@ AudioRender::AudioRender()
 #if defined(__CYGWIN__) || defined(_MSC_VER)
 	mAudioLogCnt = 0;
 #endif
+	mStopping = false;
 }
 
 AudioRender::~AudioRender()
 {
-	if(mSamples != NULL)
-	{
+	if (mSamples != NULL) {
 		// Free audio samples buffer
 		av_free(mSamples);
 		mSamples = NULL;
 	}
-	if(mConvertCtx != NULL)
-	{
+	if(mConvertCtx != NULL) {
 		swr_free(&mConvertCtx);
 		mConvertCtx = NULL;
 	}
@@ -318,10 +317,10 @@ status_t AudioRender::render(AVFrame* audioFrame)//int16_t* buffer, uint32_t buf
 	fwrite(audio_buffer, 1, audio_buffer_size, pFile);
 #endif
 
-	int32_t size = 0;
 #if defined(__CYGWIN__) || defined(_MSC_VER)
 	int left;
 	int count = 0;
+	int written;
 	while (count < 50) { // 500 msec
 		left = mFifo.size() - mFifo.used();
 		if (left >= (int)audio_buffer_size) {
@@ -333,22 +332,21 @@ status_t AudioRender::render(AVFrame* audioFrame)//int16_t* buffer, uint32_t buf
 		count++;
 	}
 
-	size = mFifo.write((char *)audio_buffer, audio_buffer_size);
-	if (size != (int32_t)audio_buffer_size)
-		LOGW("fifo overflow(sdl audio) %d -> %d", audio_buffer_size, size);
+	written = mFifo.write((char *)audio_buffer, audio_buffer_size);
+	if (written != (int)audio_buffer_size)
+		LOGW("fifo overflow(sdl audio) %d -> %d", audio_buffer_size, written);
 #elif defined(OSLES_IMPL)
-	int count = 0;
-	while (a_render->free_size() < (int)audio_buffer_size) {
-		usleep(1000 * 5);// 5 msec
-		count++;
-		if (count > 100) { // 500 msec
-			LOGW("write audio buffer(osles) timeout 500 msec");
+	while (!mStopping) {
+		if (a_render->free_size() >= (int)audio_buffer_size)
 			break;
-		}
+		
+		usleep(1000 * 5);// 5 msec
 	}
-	size = a_render->write_data((const char *)audio_buffer, audio_buffer_size);
-	if (size != (int32_t)audio_buffer_size)
-		LOGW("fifo overflow(osles) %d -> %d", audio_buffer_size, size);
+
+	int written;
+	written = a_render->write_data((const char *)audio_buffer, audio_buffer_size);
+	if (written != (int)audio_buffer_size)
+		LOGW("fifo overflow(osles) %d -> %d", audio_buffer_size, written);
 #else
 	LOGD("before AudioTrack_write");
 	size = AudioTrack_write(audio_buffer, audio_buffer_size);
@@ -386,6 +384,8 @@ status_t AudioRender::close()
 #if defined(__CYGWIN__) || defined(_MSC_VER)
 	SDL_CloseAudio();
 #elif defined(OSLES_IMPL)
+	mStopping = true;
+
 	if (a_render)
 		a_render->close();
 #else

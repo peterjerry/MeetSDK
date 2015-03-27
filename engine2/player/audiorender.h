@@ -75,6 +75,8 @@ private:
 #endif
 	int mBitPerSample; // 8, 16, ...
 	int mOneSecSize;
+
+	bool mStopping;
 };
 
 #endif // _AUDIO_RENDER_H

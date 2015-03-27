@@ -139,7 +139,8 @@ status_t FFRender::render_neon(AVFrame* frame)
 #endif
 			}
 			else {
-				LOGW("surface memory is too small: surf_stride %d, frame_w %d", mSurfaceStride, frame->width);
+				LOGW("surface memory is too small: surf_w %d, surf_h %d, surf_stride %d, frame_w %d", 
+					mSurfaceWidth, mSurfaceHeight, mSurfaceStride, frame->width);
 			}
 
 

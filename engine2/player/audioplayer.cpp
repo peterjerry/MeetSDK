@@ -213,7 +213,7 @@ status_t AudioPlayer::stop()
 		mPlayerStatus = MEDIA_PLAYER_STOPPING; // notify audio thread to exit
 		// empty fifo avoid write block
 		if (mRender)
-			mRender->flush();
+			mRender->close();
 		
 		LOGI("before pthread_join %p", mThread);
 		if (pthread_join(mThread, NULL) != 0)
@@ -226,10 +226,7 @@ status_t AudioPlayer::stop()
 #endif
 	}
 
-    if (mRender) {
-		mRender->close();
-		LOGI("after audio render closed");
-            
+    if (mRender) {  
 		delete mRender;
         mRender = NULL;
 		LOGI("after audio render released");
@@ -259,7 +256,7 @@ status_t AudioPlayer::flush_l()
     return OK;
 }
 
-int AudioPlayer::decode_l(AVPacket *packet)
+int AudioPlayer::process_pkt(AVPacket *packet)
 {
     int got_frame = 0;
 
@@ -369,7 +366,7 @@ void AudioPlayer::audio_thread_impl()
 					AVPacket dec_pkt;
 					av_init_packet(&dec_pkt);
 					dec_pkt = *pPacket;
-					decode_l(&dec_pkt);
+					process_pkt(&dec_pkt);
                 }
             
     	        av_free_packet(pPacket);

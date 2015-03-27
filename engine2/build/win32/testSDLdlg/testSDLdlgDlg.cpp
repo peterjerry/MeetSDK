@@ -85,7 +85,7 @@ const char* url_list[PROG_MAX_NUM] = {
 	_T("http://172.16.204.106/test/hls/600000/noend.m3u8"),
 	_T("D:\\Archive\\media\\[圣斗士星矢Ω].[hysub]Saint.Seiya.Omega_11_[GB_mp4][480p].mp4"),
 	//_T("D:\\Archive\\media\\mv\\G.NA_Secret.mp4"),
-	_T("D:\\Archive\\media\\dragon_trainer_4audio.mkv"),
+	_T("D:\\Archive\\media\\test\\liuyan\\PPBOX-3417_wmv播放卡顿_ASF_WMV3_MP@ML_640×480@29.97_723K_WMA2_48K_Stereo_06.wmv"),
 
 	_T("http://zb.v.qq.com:1863/?progid=1975434150"),
 	_T("http://zb.v.qq.com:1863/?progid=3900155972"),
@@ -227,17 +227,17 @@ BOOL CtestSDLdlgDlg::OnInitDialog()
 	apLog::init("c:\\log\\libplayer.log");
 #endif
 
-	if(!startP2P())
+	if (!startP2P())
 		return FALSE;
 
-	for(int i=0;i<sizeof(pptv_channel_id) / sizeof(int);i++) {
+	for (int i=0;i<sizeof(pptv_channel_id) / sizeof(int);i++) {
 		char *new_item = (char *)malloc(256);
 		_snprintf(new_item, 256, pptv_rtsp_playlink_fmt, HOST, mrtspPort, pptv_channel_id[i]);
 		strcat(new_item, pptv_playlink_surfix);
 		url_list[PPTV_RTSP_URL_OFFSET + i] = new_item;
 	}
 
-	for(int i=0;i<sizeof(pptv_channel_id) / sizeof(int);i++) {
+	for (int i=0;i<sizeof(pptv_channel_id) / sizeof(int);i++) {
 		char *new_item = (char *)malloc(256);
 		_snprintf(new_item, 256, pptv_http_playlink_fmt, HOST, mhttpPort, pptv_channel_id[i]);
 		strcat(new_item, pptv_playlink_surfix);
@@ -257,7 +257,7 @@ BOOL CtestSDLdlgDlg::OnInitDialog()
 		char *p = NULL;
 		p = strtok(data, "\n");
 		int i=0;
-		while(p) {
+		while (p) {
 			char *new_ptr = new char[strlen(p) + 1];
 			strcpy(new_ptr, p);
 			if (i%2 == 0)
@@ -273,14 +273,14 @@ BOOL CtestSDLdlgDlg::OnInitDialog()
 		delete data;
 	}
 
-	for(int i=0;i<PROG_MAX_NUM;i++) {
-		if(url_desc[i] == NULL)
+	for (int i=0;i<PROG_MAX_NUM;i++) {
+		if (url_desc[i] == NULL)
 			break;
 
 		mComboURL.AddString(url_desc[i]);
 	}
 
-	mComboURL.SetCurSel(4/*PPTV_HLS_URL_OFFSET + 3*/);
+	mComboURL.SetCurSel(3/*PPTV_HLS_URL_OFFSET + 3*/);
 
 	//mCheckLooping.SetCheck(TRUE);
 
