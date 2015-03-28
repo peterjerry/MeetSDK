@@ -2066,7 +2066,28 @@ status_t FFPlayer::prepareVideo_l()
 		mVideoFrame = av_frame_alloc();
         mIsVideoFrameDirty = true;
 
-        mVideoRenderer = new FFRender(mSurface, mVideoWidth, mVideoHeight, mVideoFormat);
+		uint32_t render_w, render_h;
+		render_w = mVideoWidth;
+		render_h = mVideoHeight;
+#ifdef _MSC_VER
+		if (render_w > MAX_DISPLAY_WIDTH) {
+			double ratio	= (double)render_w / MAX_DISPLAY_WIDTH;
+			render_w		= MAX_DISPLAY_WIDTH;
+			render_h		= (int32_t)(render_h / ratio);
+			LOGI("video resolution %d x %d, display resolution switch to %d x %d", 
+				mVideoWidth, mVideoHeight, render_w, render_h);
+		}
+
+		if (render_h > MAX_DISPLAY_HEIGHT) {
+			double ratio	= (double)render_h / MAX_DISPLAY_HEIGHT;
+			render_h		= MAX_DISPLAY_HEIGHT;
+			render_w		= (int32_t)(render_w / ratio);
+			LOGI("video resolution %d x %d, display resolution switch to %d x %d",
+				mVideoWidth, mVideoHeight, render_w, render_h);
+		}
+#endif
+
+        mVideoRenderer = new FFRender(mSurface, render_w, render_h, mVideoFormat);
 		bool force_sw = false;
 #ifdef USE_AV_FILTER
 		if (mVideoFiltFrame) {

@@ -877,6 +877,19 @@ bool CtestSDLdlgDlg::OnPrepared()
 		return false;
 	}
 
+	// fix too big resolution
+	if (mWidth > MAX_DISPLAY_WIDTH) {
+		mWidth	= MAX_DISPLAY_WIDTH;
+		double ratio = (double)mWidth / MAX_DISPLAY_WIDTH;
+		mHeight	= (int32_t)(mHeight / ratio);
+	}
+
+	if (mHeight > MAX_DISPLAY_HEIGHT) {
+		mHeight	= MAX_DISPLAY_HEIGHT;
+		double ratio = (double)mHeight / MAX_DISPLAY_HEIGHT;
+		mWidth	= (int32_t)(mWidth / ratio);
+	}
+
 	SDL_Rect rect;
 	rect.x = 0;
 	rect.y = 0;

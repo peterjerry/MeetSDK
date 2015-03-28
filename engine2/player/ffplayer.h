@@ -35,6 +35,11 @@ struct AVFilterContext;
 #define AV_SYNC_THRESHOLD_MSEC				100 // 100 msec
 #define AV_NOSYNC_THRESHOLD					10000 // 10 sec
 
+#ifdef _MSC_VER
+#define MAX_DISPLAY_WIDTH	1280
+#define MAX_DISPLAY_HEIGHT	720
+#endif
+
 class FFPlayer : public IPlayer, MediaPlayerListener
 {
 public:

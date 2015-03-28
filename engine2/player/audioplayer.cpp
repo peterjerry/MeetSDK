@@ -159,6 +159,7 @@ int64_t AudioPlayer::getMediaTimeMs()
 	if (mSeeking)
 		return mSeekTimeMs;
 
+	LOGD("getMediaTimeMs audio_time %lld, lat %d", mAudioPlayingTimeMs, mRender->get_latency());
 	int64_t audioNowMs = mAudioPlayingTimeMs - mRender->get_latency(); // |-------pts#######latency#########play->audio_hardware
 	if (audioNowMs < 0)
 		audioNowMs = 0;
@@ -243,6 +244,7 @@ status_t AudioPlayer::pause_l()
 {
     if (mRender->pause() != OK)
         return ERROR;
+
     mPlayerStatus = MEDIA_PLAYER_PAUSED;
 	AutoLock autoLock(&mLock);
     pthread_cond_signal(&mCondition);
@@ -295,7 +297,9 @@ int AudioPlayer::process_pkt(AVPacket *packet)
 						return -1;
 					}
 
-					mAudioPlayingTimeMs += ( mAudioFrame->nb_samples * 1000 / mAudioContext->codec->sample_rate); // fix me!!!
+					mAudioPlayingTimeMs += ( mAudioFrame->nb_samples * 1000 / mAudioContext->codec->sample_rate);
+					LOGD("update mAudioPlayingTimeMs %lld", mAudioPlayingTimeMs);
+
 				}
 			}
 		}
@@ -362,7 +366,7 @@ void AudioPlayer::audio_thread_impl()
 				// drop frame when seeking
                 if (!mSeeking) {
 					mAudioPlayingTimeMs = (int64_t)(pPacket->pts * av_q2d(mAudioContext->time_base) * 1000);
-					LOGD("set mAudioPlayingTimeMs %lld", mAudioPlayingTimeMs);
+					LOGD("set mAudioPlayingTimeMs %lld, pts %lld time_base %.6f", mAudioPlayingTimeMs, pPacket->pts, av_q2d(mAudioContext->time_base));
         	        // maybe blocked by write buffer
 					// 2015.2.26 michael.ma added dec_pkt fix release changed pkt data/size
 					AVPacket dec_pkt;
