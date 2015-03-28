@@ -2306,7 +2306,6 @@ public class ClipListActivity extends Activity implements
 		mVideoWidth = mp.getVideoWidth();
 		mVideoHeight = mp.getVideoHeight();
 		
-		/*
 		// view
 		int width = mLayout.getWidth();
 		int height = mLayout.getHeight();
@@ -2315,6 +2314,7 @@ public class ClipListActivity extends Activity implements
 		
 		mPreview.getHolder().setFixedSize(mVideoWidth, mVideoHeight);
 		
+		/*
 		RelativeLayout.LayoutParams sufaceviewParams = (RelativeLayout.LayoutParams) mPreview.getLayoutParams();
 		if ( mVideoWidth * height  > width * mVideoHeight ) { 
 			Log.i(TAG, "surfaceview is too tall, correcting");

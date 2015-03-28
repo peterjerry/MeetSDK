@@ -38,8 +38,19 @@ public class PlayerPolicy {
 		if (null == url || url.equals(""))
 			return DecodeMode.SW;
 		
+		String buildString = android.os.Build.ID;
+		
 		if (!url.startsWith("/") && !url.startsWith("file://")) {
-			// network stream use ffplay
+			// network stream
+			if (url.startsWith("http://") && (url.endsWith(".mp4") || url.endsWith(".3gp"))) {
+				if (buildString.startsWith(BUILDID_PPBOXMINI) || buildString.startsWith(BUILDID_PPBOX1S) ||
+						buildString.startsWith(BULDID_XIANFENG_TV))
+				{
+					// fix dlna push cell-phone recorded clip play stuck problem
+					return DecodeMode.HW_SYSTEM;
+				}
+			}
+			
 			return DecodeMode.SW;
 		}
 		
@@ -56,8 +67,6 @@ public class PlayerPolicy {
 		if (audiolist.size() > 0) {
 			audioCodecName = audiolist.get(0).getCodecName();
 		}
-		
-		String buildString = android.os.Build.ID;
 		
 		LogUtils.info(String.format("Java: getDeviceCapabilities url %s, format %s, video %s, audio %s", 
 				url, formatName, videoCodecName, audioCodecName));

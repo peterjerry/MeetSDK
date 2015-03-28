@@ -9,7 +9,7 @@
 #include "afxdialogex.h"
 
 #include "ffplayer.h"
-#define LOG_TAG "libplayer"
+#define LOG_TAG "testSDLdlg"
 #include "log.h"
 #include "apFileLog.h"
 #include "surface.h"
@@ -83,9 +83,9 @@ const char* url_list[PROG_MAX_NUM] = {
 	_T("E:\\Work\\HEVC\\Transformers3-720p.mp4"),
 	_T("http://172.16.204.106/test/hls/600000/index.m3u8"),
 	_T("http://172.16.204.106/test/hls/600000/noend.m3u8"),
-	_T("D:\\Archive\\media\\[圣斗士星矢Ω].[hysub]Saint.Seiya.Omega_11_[GB_mp4][480p].mp4"),
-	//_T("D:\\Archive\\media\\mv\\G.NA_Secret.mp4"),
-	_T("D:\\Archive\\media\\test\\liuyan\\PPBOX-3417_wmv播放卡顿_ASF_WMV3_MP@ML_640×480@29.97_723K_WMA2_48K_Stereo_06.wmv"),
+	//_T("D:\\Archive\\media\\[圣斗士星矢Ω].[hysub]Saint.Seiya.Omega_11_[GB_mp4][480p].mp4"),
+	_T("D:\\Archive\\media\\test\\liuyan\\PPBOX-3170_快进后音频异常_断续_爱情雨08.rmvb"),
+	_T("D:\\Archive\\media\\mv\\G.NA_Secret.mp4"),
 
 	_T("http://zb.v.qq.com:1863/?progid=1975434150"),
 	_T("http://zb.v.qq.com:1863/?progid=3900155972"),
@@ -1096,7 +1096,10 @@ void CtestSDLdlgDlg::Cleanup()
 	SDL_Quit();
 
 	LOGI("PPBOX_StopP2PEngine()");
-	PPBOX_StopP2PEngine();
+	// fix me. would stuck
+	//PPBOX_StopP2PEngine();
+
+	LOGI("P2PEngine stopped");
 
 	// PPTV_RTSP_URL_OFFSET PPTV_HLS_URL_OFFSET USER_LIST_OFFSET
 	for (int i= USER_LIST_OFFSET; i<PROG_MAX_NUM;i++) {
@@ -1112,6 +1115,8 @@ void CtestSDLdlgDlg::Cleanup()
 			url_list[i] = NULL;
 		}
 	}
+
+	LOGI("all clean up done!");
 }
 
 void CtestSDLdlgDlg::OnDestroy()

@@ -549,9 +549,14 @@ status_t FFPlayer::selectAudioChannel(int32_t index)
 {
 	LOGI("player op selectAudioChannel(%d)", index);
 
+	// save last codec context
+	AVStream *last_audio_stream = mDataStream->getAudioStream();
+
 	// verify if index is available
 	if (mDataStream->selectAudioChannel(index) != OK)
 		return ERROR;
+
+	LOGI("after demuxer selectAudioChannel");
 
 	mAudioStreamIndex = index;
 
@@ -559,6 +564,12 @@ status_t FFPlayer::selectAudioChannel(int32_t index)
 		delete mAudioPlayer;
 		mAudioPlayer = NULL;
 	}
+
+	LOGI("after release audio player");
+
+	if (last_audio_stream)
+		avcodec_close(last_audio_stream->codec);
+	LOGI("after close audio codec");
 
 	// 2015.3.18 guoliangma fix multi-channel diff channel_layout problem
 	if (prepareAudio_l() != OK) {
@@ -1266,7 +1277,7 @@ void FFPlayer::onVideoImpl()
 
 				mNeedSyncFrame = broadcast_refresh();
 
-				if(!mNeedSyncFrame) {
+				if (!mNeedSyncFrame) {
 					// 1st frame is good for render
 					LOGI("video sync done!");
 				}
@@ -1298,28 +1309,25 @@ void FFPlayer::onVideoImpl()
 			av_free(pPacket);
 			pPacket = NULL;
 
-			if(ret != OK) {
+			if (ret != OK) {
 	            postVideoEvent_l(0);
                 return;
             }
 		}
-		else if(ret == FFSTREAM_ERROR_FLUSHING)
-		{
-			LOGI("FFSTREAM_ERROR_FLUSHING");
+		else if (ret == FFSTREAM_ERROR_FLUSHING) {
+			LOGI("onVideo FFSTREAM_ERROR_FLUSHING: flush codec");
 			avcodec_flush_buffers(mVideoStream->codec);
 			av_free(pPacket);
 			pPacket = NULL;
 			postVideoEvent_l(10);
 			return;
 		}
-		else if(ret == FFSTREAM_ERROR_BUFFERING)
-		{
+		else if(ret == FFSTREAM_ERROR_BUFFERING) {
 			LOGD("video queue no data");
 			postVideoEvent_l(10);
 			return;
 		}
-		else if(ret == FFSTREAM_ERROR_EOF)
-		{
+		else if(ret == FFSTREAM_ERROR_EOF) {
 			LOGI("reach clip stream end");
 
 			/*
@@ -1344,16 +1352,15 @@ void FFPlayer::onVideoImpl()
 			postStreamDoneEvent_l(); // just finish NOW!
 #else
 			
-			if (mAudioStream == NULL) {
+			if (mAudioStream == NULL)
 				postStreamDoneEvent_l();
-			}
 
 			// no any more onVideo()
 			return;
 #endif
 		}
 		else {
-			LOGE("read video packet error:%d", ret);
+			LOGE("read video packet error: %d", ret);
 			notifyListener_l(MEDIA_ERROR, MEDIA_ERROR_FAIL_TO_READ_PACKET, ret);
 			// no any more onVideo()
 			return;
@@ -2123,6 +2130,11 @@ status_t FFPlayer::play_l()
 {
 	mDataStream->setLooping(mLooping);
 
+	// 2015.3.28 guoliangma move "set status" ahead "kick video playback event"
+	// fix cannot re-start problem paused seek
+	ResetStatics();
+    mPlayerStatus = MEDIA_PLAYER_STARTED;
+
 	if (mAudioPlayer != NULL) {
         if(mAudioPlayer->start() != OK) {
             LOGE("audio player starts failed");
@@ -2145,8 +2157,6 @@ status_t FFPlayer::play_l()
         LOGI("no video stream");
     }
 
-	ResetStatics();
-    mPlayerStatus = MEDIA_PLAYER_STARTED;
     return OK;
 }
 
@@ -2377,7 +2387,7 @@ status_t FFPlayer::decode_l(AVPacket *packet)
 #endif
 
 	if (ret < 0) {
-		LOGE("Failed to decode video frame with ret:%d", ret);
+		LOGE("Failed to decode video frame with ret: %d", ret);
 		return ERROR;
 	}
 

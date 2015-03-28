@@ -49,8 +49,6 @@ public:
 		AV_SYNC_EXTERNAL_MASTER,
 	};
 
-	
-
     FFPlayer();
     ~FFPlayer();
 

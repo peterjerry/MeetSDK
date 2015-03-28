@@ -29,32 +29,6 @@ static apLog::LOG_LEVEL get_log_level2(int lvl)
 
 	return ret_level;
 }
-
-static apLog::LOG_LEVEL get_log_level_ff(int lvl)
-{
-	apLog::LOG_LEVEL ret_level;
-
-	switch(lvl) {
-	case AV_LOG_VERBOSE:
-	case AV_LOG_DEBUG:
-		ret_level = apLog::detail;
-		break;
-	case AV_LOG_INFO:
-		ret_level = apLog::info;
-		break;
-	case AV_LOG_WARNING:
-		ret_level = apLog::warning;
-		break;
-	case AV_LOG_ERROR:
-		ret_level = apLog::error;
-		break;
-	default:
-		ret_level = apLog::info;
-		break;
-	}
-
-	return ret_level;
-}
 #endif
 
 #ifdef _MSC_VER

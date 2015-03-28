@@ -211,7 +211,9 @@ status_t FFStream::selectAudioChannel(int32_t index)
 	}
 
 	// 2015.3.18 guoliangma fix unfree resource
-	avcodec_close(mMovieFile->streams[mAudioStreamIndex]->codec);
+	// 2015.3.28 guoliangma cannot release here because audio player is decoding
+	// will cause crash
+	//avcodec_close(mMovieFile->streams[mAudioStreamIndex]->codec);
 
 	if (mAudioStreamIndex == index) {
 		LOGI("audio channel is already in use: #%d", mAudioStreamIndex);
@@ -222,29 +224,6 @@ status_t FFStream::selectAudioChannel(int32_t index)
 	
 	mAudioStreamIndex = index;
 	mAudioStream = mMovieFile->streams[mAudioStreamIndex];
-
-	/*
-	// cause stuck!!!
-	flush_l();
-	mGopDuration = 0;
-    mGopStart = 0;
-    mGopEnd = 0;
-
-	if (mAudioStream != NULL) {
-		AVPacket* flushAudioPkt = (AVPacket*)av_malloc(sizeof(AVPacket));
-		av_init_packet(flushAudioPkt);
-		flushAudioPkt->size = 0;
-		flushAudioPkt->data = (uint8_t*)"FLUSH_AUDIO";
-		mAudioQueue.put(flushAudioPkt);
-	}
-
-	if (mVideoStream != NULL) {
-		AVPacket* flushVideoPkt = (AVPacket*)av_malloc(sizeof(AVPacket));
-		av_init_packet(flushVideoPkt);
-		flushVideoPkt->size = 0;
-		flushVideoPkt->data = (uint8_t*)"FLUSH_VIDEO";
-		mVideoQueue.put(flushVideoPkt);
-	}*/
 
     return OK;
 }
@@ -686,7 +665,7 @@ status_t FFStream::getPacket(int32_t streamIndex, AVPacket** packet)
 		}
     }
     else {
-        LOGE("Unknown stream index: %d", streamIndex);
+        LOGD("Unknown stream index: %d", streamIndex);
         return FFSTERAM_ERROR_SWITCH_AUDIO;//FFSTREAM_ERROR_STREAMINDEX;
     }
 }

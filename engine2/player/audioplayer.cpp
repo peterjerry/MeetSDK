@@ -41,6 +41,7 @@ AudioPlayer::AudioPlayer(FFStream* dataStream, AVStream* context, int32_t stream
     
     pthread_mutex_init(&mLock, NULL);
     pthread_cond_init(&mCondition, NULL);
+	pthread_mutex_init(&mClockLock, NULL);
 
     mSeeking = false;
 	mPlayerStatus = MEDIA_PLAYER_INITIALIZED;
@@ -65,6 +66,8 @@ AudioPlayer::~AudioPlayer()
         
     pthread_mutex_destroy(&mLock);
     pthread_cond_destroy(&mCondition);
+	pthread_mutex_destroy(&mClockLock);
+	
 	LOGI("AudioPlayer destructor() done.");
 }
 
@@ -159,8 +162,7 @@ int64_t AudioPlayer::getMediaTimeMs()
 	if (mSeeking)
 		return mSeekTimeMs;
 
-	LOGD("getMediaTimeMs audio_time %lld, lat %d", mAudioPlayingTimeMs, mRender->get_latency());
-	int64_t audioNowMs = mAudioPlayingTimeMs - mRender->get_latency(); // |-------pts#######latency#########play->audio_hardware
+	int64_t audioNowMs = get_time_msec() - mRender->get_latency(); // |-------pts#######latency#########play->audio_hardware
 	if (audioNowMs < 0)
 		audioNowMs = 0;
     return audioNowMs;
@@ -175,7 +177,7 @@ status_t AudioPlayer::seekTo(int64_t msec)
 	if (mRender)
 		mRender->flush();
 
-	LOGI("audio seeking...");
+	LOGI("audio seek done");
     return OK;
 }
 
@@ -297,8 +299,10 @@ int AudioPlayer::process_pkt(AVPacket *packet)
 						return -1;
 					}
 
-					mAudioPlayingTimeMs += ( mAudioFrame->nb_samples * 1000 / mAudioContext->codec->sample_rate);
-					LOGD("update mAudioPlayingTimeMs %lld", mAudioPlayingTimeMs);
+					int64_t pos = get_time_msec();
+					pos += (mAudioFrame->nb_samples * 1000 / mAudioContext->codec->sample_rate);
+					set_time_msec(pos);
+					LOGD("update mAudioPlayingTimeMs %lld", pos);
 
 				}
 			}
@@ -365,8 +369,9 @@ void AudioPlayer::audio_thread_impl()
 			if (ret == FFSTREAM_OK) {
 				// drop frame when seeking
                 if (!mSeeking) {
-					mAudioPlayingTimeMs = (int64_t)(pPacket->pts * av_q2d(mAudioContext->time_base) * 1000);
-					LOGD("set mAudioPlayingTimeMs %lld, pts %lld time_base %.6f", mAudioPlayingTimeMs, pPacket->pts, av_q2d(mAudioContext->time_base));
+					int64_t pos = (int64_t)(pPacket->pts * av_q2d(mAudioContext->time_base) * 1000);
+					set_time_msec(pos);
+					LOGD("set mAudioPlayingTimeMs %lld, pts %lld time_base %.6f", pos, pPacket->pts, av_q2d(mAudioContext->time_base));
         	        // maybe blocked by write buffer
 					// 2015.2.26 michael.ma added dec_pkt fix release changed pkt data/size
 					AVPacket dec_pkt;
@@ -383,11 +388,11 @@ void AudioPlayer::audio_thread_impl()
             else if (ret == FFSTREAM_ERROR_FLUSHING)
             {
 				// seek is done!
-				LOGI("audio seek is done!");
+				LOGI("audio FFSTREAM_ERROR_FLUSHING flush codec");
                 mSeeking = false;
 				// update pts at once because update from decode audio packet maybe late
 				// fix seek ape seekbar "re-jump"
-				mAudioPlayingTimeMs = mSeekTimeMs; 
+				set_time_msec(mSeekTimeMs); 
                 avcodec_flush_buffers(mAudioContext->codec);
                 av_free(pPacket);
                 pPacket = NULL;
@@ -463,6 +468,18 @@ status_t AudioPlayer::selectAudioChannel(int32_t index)
 
 	LOGI("audioPlayer select audio #%d", index);
 	return OK;
+}
+
+int64_t AudioPlayer::get_time_msec()
+{
+	AutoLock lock(&mClockLock);
+	return mAudioPlayingTimeMs;
+}
+
+void AudioPlayer::set_time_msec(int64_t msec)
+{
+	AutoLock lock(&mClockLock);
+	mAudioPlayingTimeMs = msec;
 }
 
 int64_t AudioPlayer::get_channel_layout(uint64_t channel_layout, int channels)

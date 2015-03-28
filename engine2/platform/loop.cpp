@@ -176,9 +176,9 @@ int64_t EventLoop::postTimedEvent(Event *evt, int64_t realtimeUs)
 	mEvtQueue.Insert(index, evt);
 
 #ifdef _MSC_VER
-	LOGD("Insert event:%I64d(%d)", evt->index, evt->id);
+	LOGD("Insert event:%I64d(%d)", evt->m_index, evt->m_id);
 #else
-	LOGD("Insert event:%lld(%d)", evt->index, evt->id);
+	LOGD("Insert event:%lld(%d)", evt->m_index, evt->m_id);
 #endif
 	mEventIndex++;
 
@@ -298,11 +298,11 @@ void EventLoop::threadEntry() {
 			if (evt) {
 				// Fire event with the lock NOT held.
 			
-				LOGD("action #%lld %d", evt->index, evt->id);
+				LOGD("action #%lld %d", evt->m_index, evt->m_id);
 				pthread_mutex_unlock(&mLock);
 				evt->action(evt->m_opaque, nowUs);
 				pthread_mutex_lock(&mLock);
-				LOGD("action #%lld %d done", evt->index, evt->id);
+				LOGD("action #%lld %d done", evt->m_index, evt->m_id);
 
 				delete evt;
 				evt = NULL;

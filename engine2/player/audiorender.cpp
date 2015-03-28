@@ -294,24 +294,30 @@ status_t AudioRender::render(AVFrame* audioFrame)//int16_t* buffer, uint32_t buf
 			LOGE("Audio convert sampleformat(%d) failed, ret %d", mSampleFormat, sampleCountOutput);
 			return ERROR;
 		}
-		else if (sampleCountOutput > 0) {
+		else if (sampleCountOutput == 0) {
+			LOGW("no audio data in the frame");
+			return OK;
+		}
+		else {
 			audio_buffer = mSamples;
 			audio_buffer_size = sampleCountOutput * mChannelsOutput * mFormatSizeOutput;
 			LOGD("swr output: sample:%d, size:%d", sampleCountOutput, audio_buffer_size);
 		}
+
 #ifndef NDEBUG
 		int64_t end_decode = getNowMs();
 		LOGD("convert audio cost %lld[ms]", end_decode - begin_decode);
 #endif
 	}
-	else
-	{
+	else {
 		audio_buffer = audioFrame->data[0];
 		// 2015.1.28 guoliangma fix noisy audio play problem 
 		// some clip linesize is bigger than actual data size
 		// e.g. linesize[0] = 2048 and nb_samples = 502
 		audio_buffer_size = audioFrame->nb_samples * mChannels * mBitPerSample / 8;
 	}
+
+	LOGD("audio nb_samples %d, linesize %d, audio_buffer_size %d", audioFrame->nb_samples, audioFrame->linesize[0], audio_buffer_size);
 
 #ifdef _DUMP_PCM_DATA_
 	static FILE *pFile = NULL;
@@ -348,7 +354,7 @@ status_t AudioRender::render(AVFrame* audioFrame)//int16_t* buffer, uint32_t buf
 
 	int written;
 	written = a_render->write_data((const char *)audio_buffer, audio_buffer_size);
-	if (written != (int)audio_buffer_size)
+	if (written != (int)audio_buffer_size) // may occur when stopping
 		LOGW("fifo overflow(osles) %d -> %d", audio_buffer_size, written);
 #else
 	LOGD("before AudioTrack_write");
