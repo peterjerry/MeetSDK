@@ -162,6 +162,8 @@ enum NALUnitType {
 static int open_codec_context(int *stream_idx,
                               AVFormatContext *fmt_ctx, enum AVMediaType type);
 
+static void ff_log_callback(void* avcl, int level, const char* fmt, va_list vl);
+
 extern "C" IPlayer* getPlayer(void* context)
 {
 #ifdef __ANDROID__
@@ -3772,6 +3774,44 @@ SnapShot * FFPlayer::getSnapShot(int width, int height, int fmt, int msec)
 
 	LOGI("getSnapShot() done! %dx%d(stride %d, fmt %d)", ss->width, ss->height, ss->stride, ss->picture_fmt);
 	return ss;
+}
+
+static void ff_log_callback(void* avcl, int level, const char* fmt, va_list vl)
+{
+    AVClass* avc = avcl ? *(AVClass**)avcl : NULL;
+	const char * class_name = ((avc != NULL) ? avc->class_name : "N/A");
+	
+	static char msg[1024] = {0};
+	vsnprintf(msg, sizeof(msg), fmt, vl);
+	static char log[4096] = {0};
+#ifdef _MSC_VER
+	_snprintf(log, 4096, "ffmpeg[%d][%s] %s", level, class_name, msg);
+#else
+	snprintf(log, 4096, "ffmpeg[%d][%s] %s", level, class_name, msg);
+#endif
+
+	switch(level) {
+		case AV_LOG_PANIC:
+		case AV_LOG_FATAL:
+		case AV_LOG_ERROR:
+			LOGE("%s", log);
+			break;
+		case AV_LOG_WARNING:
+            LOGW("%s", log);
+			break;
+		case AV_LOG_INFO:
+            LOGI("%s", log);
+			break;
+		case AV_LOG_DEBUG:
+            LOGD("%s", log);
+			break;
+		case AV_LOG_VERBOSE:
+            LOGV("%s", log);
+			break;
+		default:
+			LOGI("%s", log);
+			break;
+	}
 }
 
 static int open_codec_context(int *stream_idx,

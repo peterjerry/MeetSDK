@@ -55,8 +55,6 @@ int __pp_log_print(int prio, const char *tag,  const char *fmt, ...);
 
 #define LOGE(...) __pp_log_print(WIN32_LOG_ERROR, LOG_TAG, __VA_ARGS__)
 
-void ff_log_callback(void* avcl, int level, const char* fmt, va_list vl);
-
 #ifdef __cplusplus
 }
 #endif

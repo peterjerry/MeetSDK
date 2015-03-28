@@ -103,16 +103,3 @@ int __pp_log_print(int prio, const char *tag,  const char *fmt, ...)
 
 	return cnt;
 }
-
-void ff_log_callback(void* avcl, int level, const char* fmt, va_list vl)
-{
-    AVClass* avc = avcl ? *(AVClass**)avcl : NULL;
-	
-	static char msg[1024] = {0};
-	vsnprintf(msg, sizeof(msg), fmt, vl);
-#ifdef SAVE_LOG_FILE
-	apLog::print(0, get_log_level_ff(level), "ffmpeg[%d] [%s]%s", level, (avc != NULL) ? avc->class_name : "", msg);
-#else
-	printf("ffmpeg[%d] [%s]%s", level, (avc != NULL) ? avc->class_name : "", msg);
-#endif
-}
