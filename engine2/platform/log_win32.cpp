@@ -1,7 +1,5 @@
 #include "log_win32.h"
-
-//#include "libavutil/log.h"
-#include "ppffmpeg.h"
+#include "utils.h"
 
 #ifdef SAVE_LOG_FILE
 #include "apFilelog.h"
@@ -94,8 +92,8 @@ int __pp_log_print(int prio, const char *tag,  const char *fmt, ...)
 	int cnt = _vsnprintf_s(msg, sizeof(msg), header, ap);
 	apLog::print(0, get_log_level2(prio), "%s", msg); // "%s", msg : avoid url "%" error
 #else
-	int64_t msec = av_gettime();
-	snprintf(msg, 1024, "[%.3f sec] [%s] [%s] %s\n", (double)(msec % 1000000000) / (double)1000000, get_log_level(prio), tag, fmt);
+	int64_t msec = getNowMs();
+	_snprintf_s(msg, 1024, "[%.3f sec] [%s] [%s] %s\n", (double)(msec % 1000000000) / (double)1000000, get_log_level(prio), tag, fmt);
 	int cnt = vprintf(msg, ap);
 #endif
 
