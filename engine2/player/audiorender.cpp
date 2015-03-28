@@ -352,17 +352,18 @@ status_t AudioRender::render(AVFrame* audioFrame)//int16_t* buffer, uint32_t buf
 		LOGW("fifo overflow(osles) %d -> %d", audio_buffer_size, written);
 #else
 	LOGD("before AudioTrack_write");
-	size = AudioTrack_write(audio_buffer, audio_buffer_size);
+	int32_t written;
+	written = AudioTrack_write(audio_buffer, audio_buffer_size);
 	LOGD("after AudioTrack_write");
-	if (size < 0) {
-		LOGE("failed to write audio sample %d %d", audio_buffer_size, size);
+	if (written < 0) {
+		LOGE("failed to write audio sample %d %d", audio_buffer_size, written);
 		return ERROR;
 	}
-	else if (size < (int)audio_buffer_size) {
-		LOGW("write audio sample partially %d %d", audio_buffer_size, size);
+	else if (written < (int)audio_buffer_size) {
+		LOGW("write audio sample partially %d %d", audio_buffer_size, written);
 	}
 
-	LOGD("Write audio sample size:%d", size);
+	LOGD("Write audio sample size:%d", written);
 #endif
 	return OK;
 }
