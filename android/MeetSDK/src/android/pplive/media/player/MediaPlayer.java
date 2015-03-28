@@ -85,7 +85,7 @@ public class MediaPlayer implements MediaPlayerInterface {
         HW_XOPLAYER {
         	@Override
             public MediaPlayerInterface newInstance(MediaPlayer mp) {
-            	LogUtils.info("use xoplayer");
+            	LogUtils.info("player_select xoplayer");
                 return new XOMediaPlayer(mp);
             }
         	
@@ -97,7 +97,7 @@ public class MediaPlayer implements MediaPlayerInterface {
         SW {
             @Override
             public MediaPlayerInterface newInstance(MediaPlayer mp) {
-            	LogUtils.info("use ffplayer");
+            	LogUtils.info("player_select ffplayer");
                 return new FFMediaPlayer(mp);
             }
             
@@ -110,7 +110,7 @@ public class MediaPlayer implements MediaPlayerInterface {
         AUTO, UNKNOWN;
 
         public MediaPlayerInterface newInstance(MediaPlayer mp) {
-        	LogUtils.info("use system player");
+        	LogUtils.info("player_select system player");
             return new SystemMediaPlayer(mp);
         }
         
@@ -223,6 +223,10 @@ public class MediaPlayer implements MediaPlayerInterface {
 		}
 		
 		mPlayer = mDecodeMode.newInstance(this);
+		
+		// 2015.3.23 guoliangma move here to fix s39h cannot play pptv url problem
+		// setLooping called after setDataSource will throw (-38, 0) when using SystemPlayer
+		setLooping();
 		
 		if (null == mPlayer)
 			throw new IllegalStateException("failed to create new instance of MediaPlayer");
@@ -411,10 +415,16 @@ public class MediaPlayer implements MediaPlayerInterface {
 		return false;
 	}
 	
+	private boolean mLooping = false;
 	@Override
-	public void setLooping (boolean looping) {
+	public void setLooping(boolean looping) {
+		LogUtils.info("MediaPlayer setLooping: " + looping);
+		mLooping = looping;
+	}
+	
+	private void setLooping() {
 		if (mPlayer != null) {
-			mPlayer.setLooping(looping);
+			mPlayer.setLooping(mLooping);
 		}
 	}
 	
@@ -665,6 +675,10 @@ public class MediaPlayer implements MediaPlayerInterface {
 	 * Some operation takes too long to complete, usually more than 3-5 seconds.
 	 */
 	public static final int MEDIA_ERROR_TIMED_OUT = -110;
+	
+	public static final int MEDIA_ERROR_FAIL_TO_READ_PACKET		= 301;
+	public static final int MEDIA_ERROR_FAIL_TO_OPEN				= 303;
+	public static final int MEDIA_ERROR_FAIL_TO_SEEK				= 304;
 	
 	public static final int MEDIA_ERROR_AUDIO_PLAYER 	= 311;
 	public static final int MEDIA_ERROR_AUDIO_RENDER 	= 312;

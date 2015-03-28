@@ -21,6 +21,8 @@
 
 AudioPlayer::AudioPlayer(FFStream* dataStream, AVStream* context, int32_t streamIndex)
 {
+	LOGI("AudioPlayer constructor()");
+
     mDataStream = dataStream;
     if (dataStream)
         mDurationMs = dataStream->getDurationMs();
@@ -39,9 +41,11 @@ AudioPlayer::AudioPlayer(FFStream* dataStream, AVStream* context, int32_t stream
     
     pthread_mutex_init(&mLock, NULL);
     pthread_cond_init(&mCondition, NULL);
+	pthread_mutex_init(&mClockLock, NULL);
 
     mSeeking = false;
 	mPlayerStatus = MEDIA_PLAYER_INITIALIZED;
+	LOGI("AudioPlayer inited");
 }
 
 AudioPlayer::~AudioPlayer()
@@ -62,6 +66,8 @@ AudioPlayer::~AudioPlayer()
         
     pthread_mutex_destroy(&mLock);
     pthread_cond_destroy(&mCondition);
+	pthread_mutex_destroy(&mClockLock);
+	
 	LOGI("AudioPlayer destructor() done.");
 }
 
@@ -69,8 +75,10 @@ status_t AudioPlayer::prepare()
 {
 	if (mPlayerStatus == MEDIA_PLAYER_PREPARED)
 		return OK;
-	if (mPlayerStatus != MEDIA_PLAYER_INITIALIZED)
+	else if (mPlayerStatus != MEDIA_PLAYER_INITIALIZED) {
+		LOGE("audio player(prepare) was in invalid state %d", mPlayerStatus);
 		return INVALID_OPERATION;
+	}
 
 	if (mAudioContext == NULL || mDataStream == NULL) {
 		LOGE("audio stream is null");
@@ -109,27 +117,38 @@ status_t AudioPlayer::setup_render()
 
 status_t AudioPlayer::start()
 {
-    if(mPlayerStatus == MEDIA_PLAYER_STARTED)
+	LOGI("AudioPlayer start()");
+
+    if (mPlayerStatus == MEDIA_PLAYER_STARTED)
         return OK;
-    if(mPlayerStatus != MEDIA_PLAYER_PREPARED &&
+    else if (mPlayerStatus != MEDIA_PLAYER_PREPARED &&
         mPlayerStatus != MEDIA_PLAYER_PAUSED)
+	{
+		LOGE("audio player(start) was in invalid state %d", mPlayerStatus);
         return INVALID_OPERATION;
+	}
     
     return start_l();
 }
 
 status_t AudioPlayer::pause()
 {
-    if(mPlayerStatus == MEDIA_PLAYER_PAUSED)
+	LOGI("AudioPlayer pause()");
+
+	if (mPlayerStatus == MEDIA_PLAYER_STARTED)
+		return pause_l();
+
+    if (mPlayerStatus == MEDIA_PLAYER_PAUSED || mPlayerStatus == MEDIA_PLAYER_PLAYBACK_COMPLETE)
         return OK;
-    if(mPlayerStatus != MEDIA_PLAYER_STARTED)
-        return INVALID_OPERATION;
-    
-    return pause_l();
+
+	LOGE("audio player(pause) was in invalid state %d", mPlayerStatus);
+    return INVALID_OPERATION;
 }
 
 status_t AudioPlayer::flush()
 {
+	LOGI("AudioPlayer flush()");
+
     return flush_l();
 }
 
@@ -143,7 +162,7 @@ int64_t AudioPlayer::getMediaTimeMs()
 	if (mSeeking)
 		return mSeekTimeMs;
 
-	int64_t audioNowMs = mAudioPlayingTimeMs - mRender->get_latency(); // |-------pts#######latency#########play->audio_hardware
+	int64_t audioNowMs = get_time_msec() - mRender->get_latency(); // |-------pts#######latency#########play->audio_hardware
 	if (audioNowMs < 0)
 		audioNowMs = 0;
     return audioNowMs;
@@ -151,12 +170,14 @@ int64_t AudioPlayer::getMediaTimeMs()
 
 status_t AudioPlayer::seekTo(int64_t msec)
 {
+	LOGI("AudioPlayer seekTo() %lld", msec);
+
 	mSeekTimeMs = msec;
 	mSeeking	= true;
 	if (mRender)
 		mRender->flush();
 
-	LOGI("audio seeking...");
+	LOGI("audio seek done");
     return OK;
 }
 
@@ -173,12 +194,13 @@ status_t AudioPlayer::start_l()
     }
     
     mPlayerStatus = MEDIA_PLAYER_STARTED;
+	LOGI("AudioPlayer stared");
     return OK;
 }
 
 status_t AudioPlayer::stop()
 {
-	LOGI("stop_l()");
+	LOGI("AudioPlayer stop()");
 
 	// avoid duplicated stop()
     if (mPlayerStatus == MEDIA_PLAYER_STOPPED)
@@ -190,12 +212,14 @@ status_t AudioPlayer::stop()
 	pthread_cond_signal(&mCondition);
 	pthread_mutex_unlock(&mLock);
 
+	if (mPlayerStatus == MEDIA_PLAYER_STARTED || mPlayerStatus == MEDIA_PLAYER_PAUSED ||
+		mPlayerStatus == MEDIA_PLAYER_PLAYBACK_COMPLETE) {
+		if (mRender)
+			mRender->close();
+	}
+
 	if (mPlayerStatus == MEDIA_PLAYER_STARTED || mPlayerStatus == MEDIA_PLAYER_PAUSED) {
 		mPlayerStatus = MEDIA_PLAYER_STOPPING; // notify audio thread to exit
-		// empty fifo avoid write block
-		if (mRender)
-			mRender->flush();
-		
 		LOGI("before pthread_join %p", mThread);
 		if (pthread_join(mThread, NULL) != 0)
 			LOGE("failed to join audioplayer thread");
@@ -207,17 +231,14 @@ status_t AudioPlayer::stop()
 #endif
 	}
 
-    if (mRender) {
-		mRender->close();
-		LOGI("after audio render closed");
-            
+    if (mRender) {  
 		delete mRender;
         mRender = NULL;
 		LOGI("after audio render released");
     }
 
 	mPlayerStatus = MEDIA_PLAYER_STOPPED;
-    LOGI("after stop_l()");
+    LOGI("AudioPlayer stoped");
     return OK;
 }
 
@@ -225,6 +246,7 @@ status_t AudioPlayer::pause_l()
 {
     if (mRender->pause() != OK)
         return ERROR;
+
     mPlayerStatus = MEDIA_PLAYER_PAUSED;
 	AutoLock autoLock(&mLock);
     pthread_cond_signal(&mCondition);
@@ -240,7 +262,7 @@ status_t AudioPlayer::flush_l()
     return OK;
 }
 
-int AudioPlayer::decode_l(AVPacket *packet)
+int AudioPlayer::process_pkt(AVPacket *packet)
 {
     int got_frame = 0;
 
@@ -277,7 +299,11 @@ int AudioPlayer::decode_l(AVPacket *packet)
 						return -1;
 					}
 
-					mAudioPlayingTimeMs += ( mAudioFrame->nb_samples * 1000 / mAudioContext->codec->sample_rate); // fix me!!!
+					int64_t pos = get_time_msec();
+					pos += (mAudioFrame->nb_samples * 1000 / mAudioContext->codec->sample_rate);
+					set_time_msec(pos);
+					LOGD("update mAudioPlayingTimeMs %lld", pos);
+
 				}
 			}
 		}
@@ -343,14 +369,15 @@ void AudioPlayer::audio_thread_impl()
 			if (ret == FFSTREAM_OK) {
 				// drop frame when seeking
                 if (!mSeeking) {
-					mAudioPlayingTimeMs = (int64_t)(pPacket->pts * av_q2d(mAudioContext->time_base) * 1000);
-					LOGD("set mAudioPlayingTimeMs %lld", mAudioPlayingTimeMs);
+					int64_t pos = (int64_t)(pPacket->pts * av_q2d(mAudioContext->time_base) * 1000);
+					set_time_msec(pos);
+					LOGD("set mAudioPlayingTimeMs %lld, pts %lld time_base %.6f", pos, pPacket->pts, av_q2d(mAudioContext->time_base));
         	        // maybe blocked by write buffer
 					// 2015.2.26 michael.ma added dec_pkt fix release changed pkt data/size
 					AVPacket dec_pkt;
 					av_init_packet(&dec_pkt);
 					dec_pkt = *pPacket;
-					decode_l(&dec_pkt);
+					process_pkt(&dec_pkt);
                 }
             
     	        av_free_packet(pPacket);
@@ -361,11 +388,11 @@ void AudioPlayer::audio_thread_impl()
             else if (ret == FFSTREAM_ERROR_FLUSHING)
             {
 				// seek is done!
-				LOGI("audio seek is done!");
+				LOGI("audio FFSTREAM_ERROR_FLUSHING flush codec");
                 mSeeking = false;
 				// update pts at once because update from decode audio packet maybe late
 				// fix seek ape seekbar "re-jump"
-				mAudioPlayingTimeMs = mSeekTimeMs; 
+				set_time_msec(mSeekTimeMs); 
                 avcodec_flush_buffers(mAudioContext->codec);
                 av_free(pPacket);
                 pPacket = NULL;
@@ -432,6 +459,8 @@ void AudioPlayer::notifyListener_l(int msg, int ext1, int ext2)
 
 status_t AudioPlayer::selectAudioChannel(int32_t index)
 {
+	LOGI("AudioPlayer selectAudioChannel() %d", index);
+
 	mAudioStreamIndex = index;
 	if (mRender) {
 		mRender->flush();
@@ -439,6 +468,18 @@ status_t AudioPlayer::selectAudioChannel(int32_t index)
 
 	LOGI("audioPlayer select audio #%d", index);
 	return OK;
+}
+
+int64_t AudioPlayer::get_time_msec()
+{
+	AutoLock lock(&mClockLock);
+	return mAudioPlayingTimeMs;
+}
+
+void AudioPlayer::set_time_msec(int64_t msec)
+{
+	AutoLock lock(&mClockLock);
+	mAudioPlayingTimeMs = msec;
 }
 
 int64_t AudioPlayer::get_channel_layout(uint64_t channel_layout, int channels)

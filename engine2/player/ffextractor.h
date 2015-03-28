@@ -14,12 +14,13 @@ struct AVBitStreamFilterContext;
 
 class MediaPlayerListener;
 
-#define FFEXTRACTOR_INITED 1
-#define FFEXTRACTOR_PREPARED 2
-#define FFEXTRACTOR_STARTED 3
-#define FFEXTRACTOR_PAUSED 4
-#define FFEXTRACTOR_STOPPED 5
-#define FFEXTRACTOR_STOPPING 6
+#define FFEXTRACTOR_INITED		1
+#define FFEXTRACTOR_PREPARING	2
+#define FFEXTRACTOR_PREPARED	3
+#define FFEXTRACTOR_STARTED		4
+#define FFEXTRACTOR_PAUSED		5
+#define FFEXTRACTOR_STOPPING	6
+#define FFEXTRACTOR_STOPPED		7
 
 class FFExtractor : public IExtractor
 {
@@ -83,11 +84,23 @@ private:
 	int16_t get_aac_extradata(AVCodecContext *c);
 
 	void notifyListener_l(int msg, int ext1 = 0, int ext2 = 0);
+
+	static int interrupt_l(void* ctx);
 private:
+
+enum DATASOURCE_TYPE
+{
+	TYPE_LOCAL_FILE,
+	TYPE_VOD,
+	TYPE_LIVE,
+	TYPE_UNKNOWN
+};
+
 	MediaPlayerListener*	mListener;
 
 	int32_t				m_status;
 
+	int					m_sorce_type;
 	AVFormatContext*	m_fmt_ctx;
 	char*				m_url;
 	AVStream *			m_video_stream;
@@ -135,6 +148,9 @@ private:
 	int					m_seek_flag;
 	int64_t				m_seek_time_msec; // for seek pos
 
+	// for interrupt
+	int64_t				m_open_stream_start_msec;
+	//int64_t				m_read_stream_start_msec;
 
 	bool				m_buffering;
 	bool				m_seeking;

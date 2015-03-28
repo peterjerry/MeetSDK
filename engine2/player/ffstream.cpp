@@ -211,7 +211,9 @@ status_t FFStream::selectAudioChannel(int32_t index)
 	}
 
 	// 2015.3.18 guoliangma fix unfree resource
-	avcodec_close(mMovieFile->streams[mAudioStreamIndex]->codec);
+	// 2015.3.28 guoliangma cannot release here because audio player is decoding
+	// will cause crash
+	//avcodec_close(mMovieFile->streams[mAudioStreamIndex]->codec);
 
 	if (mAudioStreamIndex == index) {
 		LOGI("audio channel is already in use: #%d", mAudioStreamIndex);
@@ -222,29 +224,6 @@ status_t FFStream::selectAudioChannel(int32_t index)
 	
 	mAudioStreamIndex = index;
 	mAudioStream = mMovieFile->streams[mAudioStreamIndex];
-
-	/*
-	// cause stuck!!!
-	flush_l();
-	mGopDuration = 0;
-    mGopStart = 0;
-    mGopEnd = 0;
-
-	if (mAudioStream != NULL) {
-		AVPacket* flushAudioPkt = (AVPacket*)av_malloc(sizeof(AVPacket));
-		av_init_packet(flushAudioPkt);
-		flushAudioPkt->size = 0;
-		flushAudioPkt->data = (uint8_t*)"FLUSH_AUDIO";
-		mAudioQueue.put(flushAudioPkt);
-	}
-
-	if (mVideoStream != NULL) {
-		AVPacket* flushVideoPkt = (AVPacket*)av_malloc(sizeof(AVPacket));
-		av_init_packet(flushVideoPkt);
-		flushVideoPkt->size = 0;
-		flushVideoPkt->data = (uint8_t*)"FLUSH_VIDEO";
-		mVideoQueue.put(flushVideoPkt);
-	}*/
 
     return OK;
 }
@@ -443,8 +422,8 @@ AVFormatContext* FFStream::open(char* uri)
         //do not buffer for local file play(uri is like "/mnt/sdcard/xxx", first character is '/').
         mMinPlayBufferCount = 1;//mFrameRate*FF_PLAYER_MIN_BUFFER_SECONDS_LOCAL_FILE;
         mUrlType = TYPE_LOCAL_FILE;
+		mMaxBufferSize = mMaxBufferSize / 4;
         LOGI("It is a local file with mMinPlayBufferCount: %d", mMinPlayBufferCount);
-		mMaxBufferSize = mMaxBufferSize / 4; // reduce maxbuffersize to let switch-audiotrack more smoothly
     }
 	else if(strstr(uri, "type=pplive"))
 	{
@@ -686,7 +665,7 @@ status_t FFStream::getPacket(int32_t streamIndex, AVPacket** packet)
 		}
     }
     else {
-        LOGE("Unknown stream index: %d", streamIndex);
+        LOGD("Unknown stream index: %d", streamIndex);
         return FFSTERAM_ERROR_SWITCH_AUDIO;//FFSTREAM_ERROR_STREAMINDEX;
     }
 }
@@ -1004,6 +983,7 @@ void FFStream::thread_impl()
                 if (!mDelaying || duration < mMaxPlayBufferMs) {
                     mAudioQueue.put(pPacket);
                     mBufferSize += pPacket->size;
+					LOGD("audio_queue: count %d, size %d", mAudioQueue.count(), mAudioQueue.size());
 
                     //update cached duration
                     int64_t packetPTS = 0;
@@ -1118,7 +1098,7 @@ void FFStream::thread_impl()
 
 				int64_t duration = (int64_t)(mVideoQueue.duration()*1000*av_q2d(mVideoStream->time_base));
 				LOGD("video duration:%lld", duration);
-				if((mUrlType == TYPE_BROADCAST) &&
+				if ((mUrlType == TYPE_BROADCAST) &&
 					(mRealtimeLevel == LEVEL_HIGH) &&
 					(duration > mMaxPlayBufferMs))
 				{
@@ -1133,7 +1113,7 @@ void FFStream::thread_impl()
 					}
 				}
 
-				if(mDelaying &&
+				if (mDelaying &&
 					(pPacket->flags & AV_PKT_FLAG_KEY) &&
                     (duration <= mMaxPlayBufferMs))
                 {
@@ -1149,6 +1129,8 @@ void FFStream::thread_impl()
 				else {
                     mVideoQueue.put(pPacket);
                     mBufferSize += pPacket->size;
+
+					LOGD("video_queue: count %d, size %d", mVideoQueue.count(), mVideoQueue.size());
                 }
             }
 			else if(pPacket->stream_index == mSubtitleStreamIndex)
@@ -1245,7 +1227,7 @@ int FFStream::interrupt_l(void* ctx)
     if (stream->status() == FFSTREAM_STOPPED ||
         stream->status() == FFSTREAM_STOPPING)
     {
-        //abort av_read_frame.
+        //abort av_read_frame or avformat_open_input, avformat_find_stream_info
         LOGI("interrupt_l: FFSTREAM_STOPPED");
         return 1;
     }

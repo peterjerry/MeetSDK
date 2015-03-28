@@ -57,6 +57,16 @@ LOCAL_MODULE := fontconfig
 include $(PREBUILT_STATIC_LIBRARY)
 
 include $(CLEAR_VARS)
+LOCAL_SRC_FILES := $(MY_PLATFORM_LIBPATH)/libiconv.a
+LOCAL_MODULE := iconv
+include $(PREBUILT_STATIC_LIBRARY)
+
+include $(CLEAR_VARS)
+LOCAL_SRC_FILES := $(MY_PLATFORM_LIBPATH)/libenca.a
+LOCAL_MODULE := enca
+include $(PREBUILT_STATIC_LIBRARY)
+
+include $(CLEAR_VARS)
 LOCAL_SRC_FILES := $(MY_PLATFORM_LIBPATH)/libft2.a
 LOCAL_MODULE := ft2
 include $(PREBUILT_STATIC_LIBRARY)
@@ -70,7 +80,7 @@ include $(CLEAR_VARS)
 LOCAL_C_INCLUDES 		:= $(SUBTITLE_BASE)/output/android/include
 LOCAL_SRC_FILES 		:= $(JNI_BASE)/SimpleSubTitleParser.cpp
 LOCAL_LDLIBS 			:= -llog
-LOCAL_STATIC_LIBRARIES 	:= subtitle ass tinyxml2 fontconfig ft2 expat
+LOCAL_STATIC_LIBRARIES 	:= subtitle ass iconv enca tinyxml2 fontconfig ft2 expat  
 LOCAL_MODULE 			:= subtitle-jni
 include $(BUILD_SHARED_LIBRARY)
 

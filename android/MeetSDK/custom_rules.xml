@@ -21,7 +21,7 @@
 		<isset property="Version" />
 	</condition>
 
-	<target name="gen_version">
+	<target name="-gen_version">
 		<condition property="config.sdk.version" value="${sdk.version}" else="${sdk.version}_debug" >
 			<isfalse value="${debug}" />
 		</condition>
@@ -56,7 +56,7 @@
 		<zip destfile="${dist.dir}/${SdkName}_symbol_${sdk.version}.zip" basedir="${symbol.dir}"/>
 	</target>
 	
-	<target name="-pre-build" depends="gen_version,-ndk-build"> 
+	<target name="-pre-build" depends="-gen_version, -ndk-build"> 
 	</target> 
 	
 	<target name="-ndk-build"> 
@@ -70,7 +70,11 @@
 		<exec executable="${ndk-build-command}" failonerror="true" /> 
 	</target>
 	
-	<target name="-post-build" depends="-symbol">
+	<target name="-set-custom-debug-mode">
+		<property name="debug" value="true" />
+	</target>
+	
+	<target name="-post-build">
 		<mkdir dir="${output.dir}" />
 		<copy 
 			file="${out.absolute.dir}/classes.jar" 
@@ -83,8 +87,19 @@
 				<filename name="**/*.so" />
 			</fileset>
 		</copy>
-		<zip destfile="${dist.dir}/${SdkName}_release_${sdk.version}.zip" basedir="${output.dir}" />
+		<condition property="build.config" value="release" else="debug" >
+			<isfalse value="${debug}" />
+		</condition>
+		<zip destfile="${dist.dir}/${SdkName}_${build.config}_${sdk.version}.zip" basedir="${output.dir}" />
 	</target>
+	
+	<target
+        name="debug"
+        depends="-set-custom-debug-mode, android_rules.debug" />
+
+    <target
+        name="release"
+        depends="android_rules.release, -symbol" />
 	
 	<target name="-pre-clean" >
 		<delete dir="${obj.dir}" />

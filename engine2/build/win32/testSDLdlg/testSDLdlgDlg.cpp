@@ -9,8 +9,9 @@
 #include "afxdialogex.h"
 
 #include "ffplayer.h"
-#define LOG_TAG "libplayer"
+#define LOG_TAG "testSDLdlg"
 #include "log.h"
+#include "apFileLog.h"
 #include "surface.h"
 #include "sdl.h"
 #include "IPpbox.h"
@@ -18,6 +19,7 @@
 #include "approcessbmp.h" // for snapshot
 #include "apEPG.h"
 #include "urlcodec.h"
+//#include <vld.h>
 
 #pragma comment(lib, "sdl")
 #pragma comment(lib, "libppbox")
@@ -81,9 +83,9 @@ const char* url_list[PROG_MAX_NUM] = {
 	_T("E:\\Work\\HEVC\\Transformers3-720p.mp4"),
 	_T("http://172.16.204.106/test/hls/600000/index.m3u8"),
 	_T("http://172.16.204.106/test/hls/600000/noend.m3u8"),
-	_T("D:\\Archive\\media\\[圣斗士星矢Ω].[hysub]Saint.Seiya.Omega_11_[GB_mp4][480p].mp4"),
-	//_T("D:\\Archive\\media\\mv\\G.NA_Secret.mp4"),
-	_T("D:\\Archive\\media\\dragon_trainer_4audio.mkv"),
+	//_T("D:\\Archive\\media\\[圣斗士星矢Ω].[hysub]Saint.Seiya.Omega_11_[GB_mp4][480p].mp4"),
+	_T("D:\\Archive\\media\\test\\liuyan\\PPBOX-3170_快进后音频异常_断续_爱情雨08.rmvb"),
+	_T("D:\\Archive\\media\\mv\\G.NA_Secret.mp4"),
 
 	_T("http://zb.v.qq.com:1863/?progid=1975434150"),
 	_T("http://zb.v.qq.com:1863/?progid=3900155972"),
@@ -221,17 +223,21 @@ BOOL CtestSDLdlgDlg::OnInitDialog()
 	SetIcon(m_hIcon, FALSE);		// 设置小图标
 
 	// TODO: 在此添加额外的初始化代码
-	if(!startP2P())
+#ifdef SAVE_LOG_FILE
+	apLog::init("c:\\log\\libplayer.log");
+#endif
+
+	if (!startP2P())
 		return FALSE;
 
-	for(int i=0;i<sizeof(pptv_channel_id) / sizeof(int);i++) {
+	for (int i=0;i<sizeof(pptv_channel_id) / sizeof(int);i++) {
 		char *new_item = (char *)malloc(256);
 		_snprintf(new_item, 256, pptv_rtsp_playlink_fmt, HOST, mrtspPort, pptv_channel_id[i]);
 		strcat(new_item, pptv_playlink_surfix);
 		url_list[PPTV_RTSP_URL_OFFSET + i] = new_item;
 	}
 
-	for(int i=0;i<sizeof(pptv_channel_id) / sizeof(int);i++) {
+	for (int i=0;i<sizeof(pptv_channel_id) / sizeof(int);i++) {
 		char *new_item = (char *)malloc(256);
 		_snprintf(new_item, 256, pptv_http_playlink_fmt, HOST, mhttpPort, pptv_channel_id[i]);
 		strcat(new_item, pptv_playlink_surfix);
@@ -251,7 +257,7 @@ BOOL CtestSDLdlgDlg::OnInitDialog()
 		char *p = NULL;
 		p = strtok(data, "\n");
 		int i=0;
-		while(p) {
+		while (p) {
 			char *new_ptr = new char[strlen(p) + 1];
 			strcpy(new_ptr, p);
 			if (i%2 == 0)
@@ -267,14 +273,14 @@ BOOL CtestSDLdlgDlg::OnInitDialog()
 		delete data;
 	}
 
-	for(int i=0;i<PROG_MAX_NUM;i++) {
-		if(url_desc[i] == NULL)
+	for (int i=0;i<PROG_MAX_NUM;i++) {
+		if (url_desc[i] == NULL)
 			break;
 
 		mComboURL.AddString(url_desc[i]);
 	}
 
-	mComboURL.SetCurSel(4/*PPTV_HLS_URL_OFFSET + 3*/);
+	mComboURL.SetCurSel(3/*PPTV_HLS_URL_OFFSET + 3*/);
 
 	//mCheckLooping.SetCheck(TRUE);
 
@@ -775,6 +781,8 @@ LRESULT CtestSDLdlgDlg::OnNotify(WPARAM wParam, LPARAM lParam)
 	else if (MEDIA_PLAYBACK_COMPLETE == msg) {
 		LOGI("MEDIA_PLAYBACK_COMPLETE");
 		mFinished = true;
+		stop_player();
+		
 		AfxMessageBox("player complete");
 	}
 	else if (MEDIA_ERROR == msg) {
@@ -782,9 +790,11 @@ LRESULT CtestSDLdlgDlg::OnNotify(WPARAM wParam, LPARAM lParam)
 		AfxMessageBox("player error");
 		
 		mFinished = true;
-		mPlayer->stop();
-		delete mPlayer;
-		mPlayer = NULL;
+		if (mPlayer) {
+			mPlayer->stop();
+			delete mPlayer;
+			mPlayer = NULL;
+		}
 	}
 	else if (MEDIA_INFO == msg) {
 		//LOGI("MEDIA_INFO ext1: %d, ext2: %d", ext1, ext2);
@@ -865,6 +875,19 @@ bool CtestSDLdlgDlg::OnPrepared()
 		AfxMessageBox(msg);
 		LOGE(msg);
 		return false;
+	}
+
+	// fix too big resolution
+	if (mWidth > MAX_DISPLAY_WIDTH) {
+		mWidth	= MAX_DISPLAY_WIDTH;
+		double ratio = (double)mWidth / MAX_DISPLAY_WIDTH;
+		mHeight	= (int32_t)(mHeight / ratio);
+	}
+
+	if (mHeight > MAX_DISPLAY_HEIGHT) {
+		mHeight	= MAX_DISPLAY_HEIGHT;
+		double ratio = (double)mHeight / MAX_DISPLAY_HEIGHT;
+		mWidth	= (int32_t)(mWidth / ratio);
 	}
 
 	SDL_Rect rect;
@@ -1073,7 +1096,27 @@ void CtestSDLdlgDlg::Cleanup()
 	SDL_Quit();
 
 	LOGI("PPBOX_StopP2PEngine()");
-	PPBOX_StopP2PEngine();
+	// fix me. would stuck
+	//PPBOX_StopP2PEngine();
+
+	LOGI("P2PEngine stopped");
+
+	// PPTV_RTSP_URL_OFFSET PPTV_HLS_URL_OFFSET USER_LIST_OFFSET
+	for (int i= USER_LIST_OFFSET; i<PROG_MAX_NUM;i++) {
+		if (url_desc[i]) {
+			delete url_desc[i];
+			url_desc[i] = NULL;
+		}
+	}
+
+	for (int i= PPTV_RTSP_URL_OFFSET; i<PROG_MAX_NUM;i++) {
+		if (url_list[i]) {
+			delete url_list[i];
+			url_list[i] = NULL;
+		}
+	}
+
+	LOGI("all clean up done!");
 }
 
 void CtestSDLdlgDlg::OnDestroy()

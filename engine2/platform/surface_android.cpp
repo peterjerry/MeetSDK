@@ -255,8 +255,9 @@ status_t Surface_getPixels(uint32_t* width, uint32_t* height, uint32_t* stride, 
 {
 #ifdef NDK_NATIVE_WINDOW_IMPL
 	ANativeWindow_Buffer buffer = {0};
-	if (ANativeWindow_lock(window, &buffer, NULL) != 0) {
-		LOGE("failed to lock native window");
+	int32_t ret = ANativeWindow_lock(window, &buffer, NULL);
+	if (ret != 0) {
+		LOGE("failed to lock native window: %d", ret);
 		return ERROR;
 	}
 

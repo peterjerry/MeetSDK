@@ -18,6 +18,12 @@ extern "C" {
 #include "yuv2rgb565.h" // from strongplayer
 #endif
 
+#ifdef _MSC_VER
+static int s_swsFlag = SWS_BICUBIC;
+#else
+static int s_swsFlag = SWS_POINT;
+#endif
+
 FFRender::FFRender(void* surface, uint32_t frameWidth, uint32_t frameHeight, int32_t format)
 {
 	mSurface		= surface;
@@ -27,7 +33,6 @@ FFRender::FFRender(void* surface, uint32_t frameWidth, uint32_t frameHeight, int
 	mSurfaceWidth	= 0;
 	mSurfaceHeight	= 0;
 	mSurfaceStride	= 0;
-	mSwsFlags		= SWS_POINT;
 	mAveScaleTimeMs = 0;
 	mConvertCtx		= NULL;
 	mSurfaceFrame	= NULL;
@@ -43,20 +48,12 @@ status_t FFRender::init(bool force_sw)
 
 #ifdef __ANDROID__
 	if (Surface_open(mSurface)!= OK)
-	{
 		return ERROR;
-	}
-	//if (Surface_getRes(&mSurfaceWidth, &mSurfaceHeight, &mSurfaceStride) != OK)
-	//{
-	//    return ERROR;
-	//}
 #endif
 
 #ifdef OS_IOS
 	if (Surface_open(mSurface, mFrameWidth, mFrameHeight, mFrameFormat) != OK)
-	{
 		return ERROR;
-	}
 #endif
 	//adjust();
 	return OK;
@@ -139,7 +136,8 @@ status_t FFRender::render_neon(AVFrame* frame)
 #endif
 			}
 			else {
-				LOGW("surface memory is too small: surf_stride %d, frame_w %d", mSurfaceStride, frame->width);
+				LOGW("surface memory is too small: surf_w %d, surf_h %d, surf_stride %d, frame_w %d", 
+					mSurfaceWidth, mSurfaceHeight, mSurfaceStride, frame->width);
 			}
 
 
@@ -268,11 +266,11 @@ status_t FFRender::render_sws(AVFrame* frame)
 #endif
 #endif
 		mConvertCtx = sws_getContext(
-			mFrameWidth, mFrameHeight,
-			(AVPixelFormat)mFrameFormat,
+			frame->width, frame->height,
+			(AVPixelFormat)frame->format,
 			mFrameWidth, mFrameHeight,
 			out_fmt, 
-			mSwsFlags, NULL, NULL, NULL);
+			s_swsFlag, NULL, NULL, NULL);
 		if (mConvertCtx == NULL) {
 			LOGE("create convert ctx failed, width:%d, height:%d, pix:%d",
 				mFrameWidth,
@@ -294,23 +292,9 @@ status_t FFRender::render_sws(AVFrame* frame)
 	if (Surface_getPixels(&mSurfaceWidth, &mSurfaceHeight, &mSurfaceStride, &surfacePixels) != OK)
 		return ERROR;
 
-	/*
-	int ret = avpicture_fill((AVPicture *)mSurfaceFrame,
-	(uint8_t *)surfacePixels,
-	PIX_FMT_RGB0,
-	mSurfaceWidth,
-	mSurfaceHeight);
-	if(ret < 0)
-	{
-	LOGE("avpicture_fill failed, ret:%d", ret);
-	return ERROR;
-	}
-	*/
-
 	// Convert the image
 	int64_t begin_scale = getNowMs();
-	if(mSurfaceStride >= mFrameWidth)
-	{
+	if (mSurfaceStride >= mFrameWidth) {
 		mSurfaceFrame->data[0] = (uint8_t*)surfacePixels;
 #ifdef RENDER_RGB565
 		mSurfaceFrame->linesize[0] = mSurfaceStride * 2;
@@ -385,7 +369,7 @@ FFRender::~FFRender()
 	if(mScaleFrame != NULL) {
 		av_frame_free(&mScaleFrame);
 	}
-#if defined(__CYGWIN__) || defined(_MSC_VER)
+#if defined(__CYGWIN__)
 	//todo
 #else
 	Surface_close();

@@ -33,6 +33,7 @@ import android.os.Environment;
 import android.os.IBinder;
 import android.util.AttributeSet;
 import android.util.Log;
+import android.view.KeyEvent;
 import android.view.Menu;
 import android.view.SubMenu;
 import android.view.MenuItem;
@@ -135,6 +136,7 @@ public class ClipListActivity extends Activity implements
 	private Button btnSelectAudioTrack;
 	private EditText et_play_url;
 	private MyPreView mPreview;
+	private boolean mPreviewFocused = false;
 	private SurfaceHolder mHolder;
 	private MediaController mMediaController;
 	private RelativeLayout mLayout;
@@ -365,8 +367,6 @@ public class ClipListActivity extends Activity implements
 		mLayout.setFocusable(true);
 		mLayout.setOnFocusChangeListener(this);
 		mLayout.addView(mTextViewInfo);
-		mLayout.setFocusable(true);
-		mLayout.setOnFocusChangeListener(this);
 		addContentView(mControllerLayout, new LayoutParams(LayoutParams.MATCH_PARENT,
 				LayoutParams.WRAP_CONTENT));
 		
@@ -831,12 +831,14 @@ public class ClipListActivity extends Activity implements
 	
 	private void readSettings() {
 		int value = Util.readSettingsInt(this, "isPreview");
+		Log.i(TAG, "readSettings isPreview: " + value);
 		if (value == 1)
 			mIsPreview = true;
 		else
 			mIsPreview = false;
 		
 		value = Util.readSettingsInt(this, "isLoop");
+		Log.i(TAG, "readSettings isLoop: " + value);
 		if (value == 1)
 			mIsLoop = true;
 		else
@@ -856,7 +858,7 @@ public class ClipListActivity extends Activity implements
         View view = View.inflate(this, R.layout.date_time_dialog, null); 
         final DatePicker datePicker = (DatePicker) view.findViewById(R.id.date_picker); 
         final TimePicker timePicker = (TimePicker) view.findViewById(R.id.time_picker);
-        final EditText etDuratoin = (EditText) view.findViewById(R.id.et_duration);
+        final EditText etDuration = (EditText) view.findViewById(R.id.et_duration);
         builder.setView(view); 
 
         Calendar cal = Calendar.getInstance(); 
@@ -896,15 +898,13 @@ public class ClipListActivity extends Activity implements
                         datePicker.getDayOfMonth(),
                         timePicker.getCurrentHour(),
                         timePicker.getCurrentMinute());
-
-                //mETStartTime.setText(sb);
                 
                 // step1
                 GregorianCalendar gc = new GregorianCalendar(year, month, day, hour, min, 0);
                 mStartTimeSec = gc.getTimeInMillis() / 1000;
             	
             	// step2
-            	String strDuration =  etDuratoin.getText().toString();
+            	String strDuration =  etDuration.getText().toString();
             	mDuration = Integer.parseInt(strDuration);
             	
             	Log.i(TAG, String.format("start_time %d sec, duration %d min", mStartTimeSec, mDuration));
@@ -921,7 +921,8 @@ public class ClipListActivity extends Activity implements
                 
                 dialog.cancel();
                 Toast.makeText(ClipListActivity.this, 
-                		String.format("toggle to playback mode start %s, duration %d min", sb, mDuration), 
+                		String.format("toggle to playback mode start %s, duration %d min", 
+                				sb.toString(), mDuration), 
                 		Toast.LENGTH_SHORT).show();
             } 
         });
@@ -1174,6 +1175,8 @@ public class ClipListActivity extends Activity implements
 			mPlayer.setOnBufferingUpdateListener(this);
 			mPlayer.setOnInfoListener(this);
 			
+			mPlayer.setLooping(mIsLoop);
+			
 			if (path.startsWith("http://")) {
 				mWifiLock = ((WifiManager) getSystemService(Context.WIFI_SERVICE))
 					    .createWifiLock(WifiManager.WIFI_MODE_FULL, "mylock");
@@ -1234,6 +1237,7 @@ public class ClipListActivity extends Activity implements
 				mSubtitleThread.interrupt();
 				
 				try {
+					Log.i(TAG, "Java subtitle before join");
 					mSubtitleThread.join();
 				} catch (InterruptedException e) {
 					// TODO Auto-generated catch block
@@ -1264,8 +1268,9 @@ public class ClipListActivity extends Activity implements
 				mIsBuffering = false;
 			}
 			
-			if (mPlayUrl.startsWith("http://127.0.0.1"))
-				close_hls();
+			// cannot run in main thread
+			//if (mPlayUrl.startsWith("http://127.0.0.1"))
+			//	close_hls();
 		}
 	}
 	
@@ -2117,6 +2122,7 @@ public class ClipListActivity extends Activity implements
 				item.setChecked(true);
 			mIsLoop = !mIsLoop;
 			Util.writeSettingsInt(this, "isLoop", mIsLoop ? 1 : 0);
+			Log.i(TAG, "set loop to: " + mIsLoop);
 			break;
 		case OPTION_COMMON_NO_VIDEO:
 			if (mIsNoVideo) {
@@ -2294,13 +2300,12 @@ public class ClipListActivity extends Activity implements
 		
 		// S39H call setLooping here, system player will throw error (-38, 0)
 		//if (mListLocalFile)
-		if (DecodeMode.SW == mDecMode) // ffplay
-			mPlayer.setLooping(mIsLoop);
+		//if (DecodeMode.SW == mDecMode) // ffplay
+		//	mPlayer.setLooping(mIsLoop);
 		
 		mVideoWidth = mp.getVideoWidth();
 		mVideoHeight = mp.getVideoHeight();
 		
-		/*
 		// view
 		int width = mLayout.getWidth();
 		int height = mLayout.getHeight();
@@ -2309,6 +2314,7 @@ public class ClipListActivity extends Activity implements
 		
 		mPreview.getHolder().setFixedSize(mVideoWidth, mVideoHeight);
 		
+		/*
 		RelativeLayout.LayoutParams sufaceviewParams = (RelativeLayout.LayoutParams) mPreview.getLayoutParams();
 		if ( mVideoWidth * height  > width * mVideoHeight ) { 
 			Log.i(TAG, "surfaceview is too tall, correcting");
@@ -2719,12 +2725,14 @@ public class ClipListActivity extends Activity implements
         boolean isDisplay = true;
         boolean isDropItem = false;
         
-        while (true) {
-        	if (mStoped)
-                break;
-        	
+        while (!mStoped) {
         	if (isDisplay) {
         		seg = mSubtitleParser.next();
+        		if (seg == null) {
+        			Log.e(TAG, "Java: subtitle next_segment is null");
+        			break;
+        		}
+        		
         		mSubtitleText = seg.getData();
                 from_msec = seg.getFromTime();
                 to_msec = seg.getToTime();
@@ -2752,7 +2760,7 @@ public class ClipListActivity extends Activity implements
             	
             	try {
 					wait(SLEEP_MSEC);
-					Log.i(TAG, "Java: subtitle wait");
+					//Log.d(TAG, "Java: subtitle wait");
 				} catch (InterruptedException e) {
 					// TODO Auto-generated catch block
 					Log.i(TAG, "Java: subtitle interrupted");
@@ -2797,13 +2805,13 @@ public class ClipListActivity extends Activity implements
 	@Override
 	public void onFocusChange(View v, boolean hasFocus) {
 		// TODO Auto-generated method stub
+		mPreviewFocused = hasFocus;
+		
 		if (hasFocus) {
 			if (mLayout != null) {
 				Drawable drawable1 = getResources().getDrawable(R.drawable.bg_border1); 
 				mLayout.setBackground(drawable1);
 			}
-			if (mMediaController != null)
-				mMediaController.show(5000);
 		}
 		else {
 			if (mLayout != null) {
@@ -2811,6 +2819,16 @@ public class ClipListActivity extends Activity implements
 				mLayout.setBackground(drawable2);
 			}
 		}
+	}
+	
+	@Override
+	public boolean onKeyDown(int keyCode, KeyEvent event) {
+		Log.i(TAG, "keyCode: " + keyCode);
+
+		if (keyCode == KeyEvent.KEYCODE_ENTER && mPreviewFocused)
+			mMediaController.show(5000);
+		
+		return super.onKeyDown(keyCode, event);
 	}
 	
 	static {

@@ -21,13 +21,16 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#ifndef _WIN32
 #include <strings.h>
+#endif
 #include <assert.h>
 #include <errno.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
 #include <inttypes.h>
+#include <ctype.h>
 
 #ifdef CONFIG_ICONV
 #include <iconv.h>
@@ -44,7 +47,9 @@ typedef enum {
     PST_INFO,
     PST_STYLES,
     PST_EVENTS,
-    PST_FONTS
+    PST_FONTS,
+    PST_SRT_TIME,
+    PST_SRT_TEXT
 } ParserState;
 
 struct parser_priv {
@@ -53,12 +58,16 @@ struct parser_priv {
     char *fontdata;
     int fontdata_size;
     int fontdata_used;
+    // SRT
+    long long start;
+    long long end;
+    char *srt_text;
+    size_t srt_text_len;
 };
 
 #define ASS_STYLES_ALLOC 20
 #define ASS_EVENTS_ALLOC 200
 
-//guoliangma added
 char* ass_remove_format_tag(char* src)
 {
     char *p1 = src;
@@ -112,10 +121,12 @@ void ass_free_track(ASS_Track *track)
     if (track->parser_priv) {
         free(track->parser_priv->fontname);
         free(track->parser_priv->fontdata);
+        free(track->parser_priv->srt_text);
         free(track->parser_priv);
     }
     free(track->style_format);
     free(track->event_format);
+    free(track->Language);
     if (track->styles) {
         for (i = 0; i < track->n_styles; ++i)
             ass_free_style(track, i);
@@ -211,28 +222,29 @@ static void rskip_spaces(char **str, char *limit)
 }
 
 /**
- * \brief find style by name
- * \param track track
- * \param name style name
- * \return index in track->styles
- * Returnes 0 if no styles found => expects at least 1 style.
- * Parsing code always adds "Default" style in the end.
+ * \brief Set up default style
+ * \param style style to edit to defaults
+ * The parameters are mostly taken directly from VSFilter source for
+ * best compatibility.
  */
-static int lookup_style(ASS_Track *track, char *name)
+static void set_default_style(ASS_Style *style)
 {
-    int i;
-    if (*name == '*')
-        ++name;                 // FIXME: what does '*' really mean ?
-    for (i = track->n_styles - 1; i >= 0; --i) {
-        // FIXME: mb strcasecmp ?
-        if (strcmp(track->styles[i].Name, name) == 0)
-            return i;
-    }
-    i = track->default_style;
-    ass_msg(track->library, MSGL_WARN,
-            "[%p]: Warning: no style named '%s' found, using '%s'",
-            track, name, track->styles[i].Name);
-    return i;                   // use the first style
+    style->Name             = strdup("Default");
+    style->FontName         = strdup("Arial");
+    style->FontSize         = 18;
+    style->PrimaryColour    = 0xffffff00;
+    style->SecondaryColour  = 0x00ffff00;
+    style->OutlineColour    = 0x00000000;
+    style->BackColour       = 0x00000080;
+    style->Bold             = 200;
+    style->ScaleX           = 1.0;
+    style->ScaleY           = 1.0;
+    style->Spacing          = 0;
+    style->BorderStyle      = 1;
+    style->Outline          = 2;
+    style->Shadow           = 3;
+    style->Alignment        = 2;
+    style->MarginL = style->MarginR = style->MarginV = 20;
 }
 
 static uint32_t string2color(ASS_Library *library, char *p)
@@ -253,6 +265,18 @@ static long long string2timecode(ASS_Library *library, char *p)
     }
     tm = ((h * 60 + m) * 60 + s) * 1000 + ms * 10;
     return tm;
+}
+
+static int string2timecode_srt(ASS_Library *library, char *p, long long *start, long long *end)
+{
+    char sep;
+    int hh1, mm1, ss1, ms1, hh2, mm2, ss2, ms2;
+    int c = sscanf(p, "%d%c%d%c%d%c%d --> %d%c%d%c%d%c%d", 
+        &hh1, &sep, &mm1, &sep, &ss1, &sep, &ms1,
+        &hh2, &sep, &mm2, &sep, &ss2, &sep, &ms2);
+    if (c == 14) {
+    }
+    return 1;
 }
 
 /**
@@ -355,8 +379,8 @@ static int process_event_tail(ASS_Track *track, ASS_Event *event,
         // add "Default" style to the end
         // will be used if track does not contain a default style (or even does not contain styles at all)
         int sid = ass_alloc_style(track);
-        track->styles[sid].Name = strdup("Default");
-        track->styles[sid].FontName = strdup("Arial");
+        set_default_style(&track->styles[sid]);
+        track->default_style = sid;
     }
 
     for (i = 0; i < n_ignored; ++i) {
@@ -367,7 +391,7 @@ static int process_event_tail(ASS_Track *track, ASS_Event *event,
         NEXT(q, tname);
         if (strcasecmp(tname, "Text") == 0) {
             char *last;
-            event->Text = strdup(p);
+            event->Text = ass_remove_format_tag(strdup(p));
             if (*event->Text != 0) {
                 last = event->Text + strlen(event->Text) - 1;
                 if (last >= event->Text && *last == '\r')
@@ -515,6 +539,14 @@ static int process_style(ASS_Track *track, char *str)
 
     q = format = strdup(track->style_format);
 
+    // Add default style first
+    if (track->n_styles == 0) {
+        // will be used if track does not contain a default style (or even does not contain styles at all)
+        int sid = ass_alloc_style(track);
+        set_default_style(&track->styles[sid]);
+        track->default_style = sid;
+    }
+
     ass_msg(track->library, MSGL_V, "[%p] Style: %s", track, str);
 
     sid = ass_alloc_style(track);
@@ -609,6 +641,12 @@ static int process_info_line(ASS_Track *track, char *str)
         track->ScaledBorderAndShadow = parse_bool(str + 22);
     } else if (!strncmp(str, "Kerning:", 8)) {
         track->Kerning = parse_bool(str + 8);
+    } else if (!strncmp(str, "Language:", 9)) {
+        char *p = str + 9;
+        while (*p && isspace(*p)) p++;
+        track->Language = malloc(3);
+        strncpy(track->Language, p, 2);
+        track->Language[2] = 0;
     }
     return 0;
 }
@@ -652,6 +690,11 @@ static int process_events_line(ASS_Track *track, char *str)
             event_format_fallback(track);
 
         process_event_tail(track, event, str, 0);
+
+        if (strlen(event->Text) == 0) {
+            ass_free_event(track, eid);
+            track->n_events--;
+        }
     } else {
         ass_msg(track->library, MSGL_V, "Not understood: '%.30s'", str);
     }
@@ -710,8 +753,10 @@ static int decode_font(ASS_Track *track)
     assert(dsize <= size / 4 * 3 + 2);
 
     if (track->library->extract_fonts) {
+/*
         ass_add_font(track->library, track->parser_priv->fontname,
                      (char *) buf, dsize);
+*/
     }
 
 error_decode_font:
@@ -766,6 +811,60 @@ static int process_fonts_line(ASS_Track *track, char *str)
     return 0;
 }
 
+/*
+ * \brief Parse srt line
+ * \param track track
+ * \param str string to parse, zero-terminated
+ */
+static int process_srt_line(ASS_Track *track, char *str)
+{
+    switch(track->parser_priv->state) {
+    case PST_UNKNOWN:
+    case PST_SRT_TIME:
+        {
+            char sep;
+            int hh1, mm1, ss1, ms1, hh2, mm2, ss2, ms2;
+            int c = sscanf(str, "%d%c%d%c%d%c%d --> %d%c%d%c%d%c%d\n", 
+                &hh1, &sep, &mm1, &sep, &ss1, &sep, &ms1,
+                &hh2, &sep, &mm2, &sep, &ss2, &sep, &ms2);
+            if ( c == 14) {
+                track->parser_priv->start = (((hh1*60 + mm1)*60) + ss1)*1000 + ms1;
+                track->parser_priv->end   = (((hh2*60 + mm2)*60) + ss2)*1000 + ms2;
+                if (track->parser_priv->end > track->parser_priv->start) {
+                    track->parser_priv->state = PST_SRT_TEXT;
+                }
+            }
+        }
+        break;
+    case PST_SRT_TEXT:
+        if (!str || strlen(str) == 0) {
+            int eid;
+            ASS_Event *event;
+
+            eid = ass_alloc_event(track);
+            event = track->events + eid;
+            event->Start = track->parser_priv->start;
+            event->Duration = track->parser_priv->end - track->parser_priv->start;
+            event->Text = ass_remove_format_tag(strdup(track->parser_priv->srt_text));
+            track->parser_priv->srt_text[0] = '\x0';
+            track->parser_priv->state = PST_SRT_TIME;
+            
+            if (strlen(event->Text) == 0) {
+                ass_free_event(track, eid);
+                track->n_events--;
+            }
+        } else {
+            if (track->parser_priv->srt_text
+                && track->parser_priv->srt_text[0] != '\x0') {
+                    mystrcat(&track->parser_priv->srt_text, &track->parser_priv->srt_text_len, "\\N");
+            }
+
+            mystrcat(&track->parser_priv->srt_text, &track->parser_priv->srt_text_len, str);
+        }
+        break;
+    }
+    return 0;
+}
 /**
  * \brief Parse a header line
  * \param track track
@@ -773,7 +872,22 @@ static int process_fonts_line(ASS_Track *track, char *str)
 */
 static int process_line(ASS_Track *track, char *str)
 {
-    if (!strncasecmp(str, "[Script Info]", 13)) {
+    if (track->track_type == TRACK_TYPE_UNKNOWN) {
+        if (str && strlen(str) > 0) {
+            char *p = str;
+            // 第一行全部为数字，认为是srt格式
+            while(*p && *p >= '0' && *p <= '9') {
+                p++;
+            }
+            if (*p == '\0') {
+                track->track_type = TRACK_TYPE_SRT;
+            }
+        }
+    }
+
+    if (track->track_type == TRACK_TYPE_SRT) {
+        process_srt_line(track, str);
+    } else if (!strncasecmp(str, "[Script Info]", 13)) {
         track->parser_priv->state = PST_INFO;
     } else if (!strncasecmp(str, "[V4 Styles]", 11)) {
         track->parser_priv->state = PST_STYLES;
@@ -815,20 +929,17 @@ static int process_line(ASS_Track *track, char *str)
 static int process_text(ASS_Track *track, char *str)
 {
     char *p = str;
+    if (p[0] == '\xef' && p[1] == '\xbb' && p[2] == '\xbf') {
+        p += 3;         // U+FFFE (BOM)
+    }
     while (1) {
         char *q;
-        while (1) {
-            if ((*p == '\r') || (*p == '\n'))
-                ++p;
-            else if (p[0] == '\xef' && p[1] == '\xbb' && p[2] == '\xbf')
-                p += 3;         // U+FFFE (BOM)
-            else
-                break;
-        }
         for (q = p; ((*q != '\0') && (*q != '\r') && (*q != '\n')); ++q) {
         };
-        if (q == p)
-            break;
+        if (*q == '\r' && *(q + 1) == '\n') { // windows \r\n 
+            *(q++) = '\0';
+        }
+
         if (*q != '\0')
             *(q++) = '\0';
         process_line(track, p);
@@ -969,6 +1080,7 @@ static char *sub_recode(ASS_Library *library, char *data, size_t size,
     iconv_t icdsc;
     char *tocp = "UTF-8";
     char *outbuf;
+    int discard = 1; 
     assert(codepage);
 
     {
@@ -985,8 +1097,15 @@ static char *sub_recode(ASS_Library *library, char *data, size_t size,
 #endif
         if ((icdsc = iconv_open(tocp, cp_tmp)) != (iconv_t) (-1)) {
             ass_msg(library, MSGL_V, "Opened iconv descriptor");
-        } else
+            iconvctl(icdsc, ICONV_SET_DISCARD_ILSEQ, &discard);
+        } else {
             ass_msg(library, MSGL_ERR, "Error opening iconv descriptor");
+        }
+#ifdef CONFIG_ENCA
+        if (cp_tmp != codepage) {
+            free((void*)cp_tmp);
+        }
+#endif
     }
 
     {
@@ -1282,4 +1401,37 @@ ASS_Track *ass_new_track(ASS_Library *library)
     track->ScaledBorderAndShadow = 1;
     track->parser_priv = calloc(1, sizeof(ASS_ParserPriv));
     return track;
+}
+
+/**
+ * \brief Prepare track for rendering
+ */
+void ass_lazy_track_init(ASS_Library *lib, ASS_Track *track)
+{
+    if (track->PlayResX && track->PlayResY)
+        return;
+    if (!track->PlayResX && !track->PlayResY) {
+        ass_msg(lib, MSGL_WARN,
+               "Neither PlayResX nor PlayResY defined. Assuming 384x288");
+        track->PlayResX = 384;
+        track->PlayResY = 288;
+    } else {
+        if (!track->PlayResY && track->PlayResX == 1280) {
+            track->PlayResY = 1024;
+            ass_msg(lib, MSGL_WARN,
+                   "PlayResY undefined, setting to %d", track->PlayResY);
+        } else if (!track->PlayResY) {
+            track->PlayResY = track->PlayResX * 3 / 4;
+            ass_msg(lib, MSGL_WARN,
+                   "PlayResY undefined, setting to %d", track->PlayResY);
+        } else if (!track->PlayResX && track->PlayResY == 1024) {
+            track->PlayResX = 1280;
+            ass_msg(lib, MSGL_WARN,
+                   "PlayResX undefined, setting to %d", track->PlayResX);
+        } else if (!track->PlayResX) {
+            track->PlayResX = track->PlayResY * 4 / 3;
+            ass_msg(lib, MSGL_WARN,
+                   "PlayResX undefined, setting to %d", track->PlayResX);
+        }
+    }
 }

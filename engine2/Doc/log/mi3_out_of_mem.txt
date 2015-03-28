@@ -1,0 +1,143 @@
+03-20 11:34:42.727: I/MyPreView(25671): Java: MyPreview touch 2: 720.000 442.000
+03-20 11:34:42.737: I/MyGestureListener(25671): onSingleTapUp : 1
+03-20 11:34:42.737: I/MyPreView(25671): Java: MyPreview touch 1: 720.000 442.000
+03-20 11:34:42.997: I/MyGestureListener(25671): onSingleTapConfirmed : 0
+03-20 11:34:43.047: I/ffmpeg(25671): [URLContext]http_open_cnx: http://127.0.0.1:9106/5.ts
+03-20 11:34:43.317: I/Neon-FFPlayer(25671): player op seekTo()
+03-20 11:34:43.327: I/Neon-FFPlayer(25671): seekto:1785402 ms
+03-20 11:34:43.327: I/AudioPlayer(25671): audio seeking...
+03-20 11:34:43.327: I/Neon-FFStream(25671): seekTimeMs 1785402(1785 sec)(final seek_time 1785402 msec), incr 1
+03-20 11:34:43.327: I/Neon-FFStream(25671): Seek during reading frame
+03-20 11:34:43.327: I/Neon-FFStream(25671): before seek to :1785402(ms)
+03-20 11:34:43.327: I/Neon-FFStream(25671): after seek to :1785402(ms)
+03-20 11:34:43.337: I/Neon-FFStream(25671): send event MEDIA_SEEK_COMPLETE
+03-20 11:34:43.337: I/ffmpeg(25671): [URLContext]http_open_cnx: http://127.0.0.1:9106/358.ts
+03-20 11:34:43.337: I/AudioPlayer(25671): audio seek is done!
+03-20 11:34:43.337: I/Neon-FFStream(25671): audio MEDIA_INFO_BUFFERING_START, offset 22243
+03-20 11:34:43.347: I/ClipList(25671): Java: MEDIA_INFO_BUFFERING_START
+03-20 11:34:43.377: W/OpenSLesPlayer(25671): audio data underflow 8192 0, fill mute(cnt 0)
+03-20 11:34:43.427: W/OpenSLesPlayer(25671): audio data underflow 8192 0, fill mute(cnt 1)
+03-20 11:34:43.467: W/OpenSLesPlayer(25671): audio data underflow 8192 0, fill mute(cnt 2)
+03-20 11:34:43.497: W/OpenSLesPlayer(25671): audio data underflow 8192 0, fill mute(cnt 3)
+03-20 11:34:43.547: W/OpenSLesPlayer(25671): audio data underflow 8192 0, fill mute(cnt 4)
+03-20 11:34:44.337: I/System.out(25671): resolveUri failed on bad bitmap uri: /storage/emulated/0/test/Transformers3-720p.mp4
+03-20 11:34:44.397: I/System.out(25671): resolveUri failed on bad bitmap uri: /storage/emulated/0/test/Transformers3-480p.mp4
+03-20 11:34:44.457: I/dalvikvm-heap(25671): Grow heap (frag case) to 57.503MB for 20155408-byte allocation
+03-20 11:34:44.457: I/ffmpeg(25671): [URLContext]http_open_cnx: http://127.0.0.1:9106/359.ts
+03-20 11:34:44.597: I/dalvikvm-heap(25671): Forcing collection of SoftReferences for 75494364-byte allocation
+03-20 11:34:44.617: E/dalvikvm-heap(25671): Out of memory on a 75494364-byte allocation.
+03-20 11:34:44.617: I/dalvikvm(25671): "main" prio=5 tid=1 RUNNABLE
+03-20 11:34:44.617: I/dalvikvm(25671):   | group="main" sCount=0 dsCount=0 obj=0x4170be58 self=0x4162b910
+03-20 11:34:44.617: I/dalvikvm(25671):   | sysTid=25671 nice=0 sched=0/0 cgrp=apps handle=1073963348
+03-20 11:34:44.617: I/dalvikvm(25671):   | state=R schedstat=( 8982313701 2182087199 24657 ) utm=704 stm=194 core=3
+03-20 11:34:44.617: I/dalvikvm(25671):   at android.graphics.BitmapFactory.nativeDecodeStream(Native Method)
+03-20 11:34:44.617: I/dalvikvm(25671):   at android.graphics.BitmapFactory.decodeStreamInternal(BitmapFactory.java:623)
+03-20 11:34:44.617: I/dalvikvm(25671):   at android.graphics.BitmapFactory.decodeStream(BitmapFactory.java:599)
+03-20 11:34:44.617: I/dalvikvm(25671):   at android.graphics.BitmapFactory.decodeFile(BitmapFactory.java:378)
+03-20 11:34:44.617: I/dalvikvm(25671):   at android.graphics.BitmapFactory.decodeFile(BitmapFactory.java:405)
+03-20 11:34:44.617: I/dalvikvm(25671):   at android.graphics.drawable.Drawable.createFromPath(Drawable.java:952)
+03-20 11:34:44.617: I/dalvikvm(25671):   at android.widget.ImageView.resolveUri(ImageView.java:673)
+03-20 11:34:44.617: I/dalvikvm(25671):   at android.widget.ImageView.setImageURI(ImageView.java:399)
+03-20 11:34:44.617: I/dalvikvm(25671):   at android.widget.SimpleAdapter.setViewImage(SimpleAdapter.java:264)
+03-20 11:34:44.617: I/dalvikvm(25671):   at com.pplive.meetplayer.ui.MyAdapter.setViewImage(MyAdapter.java:41)
+03-20 11:34:44.617: I/dalvikvm(25671):   at android.widget.SimpleAdapter.bindView(SimpleAdapter.java:192)
+03-20 11:34:44.617: I/dalvikvm(25671):   at android.widget.SimpleAdapter.createViewFromResource(SimpleAdapter.java:126)
+03-20 11:34:44.617: I/dalvikvm(25671):   at android.widget.SimpleAdapter.getView(SimpleAdapter.java:114)
+03-20 11:34:44.617: I/dalvikvm(25671):   at android.widget.AbsListView.obtainView(AbsListView.java:2271)
+03-20 11:34:44.617: I/dalvikvm(25671):   at android.widget.ListView.makeAndAddView(ListView.java:1790)
+03-20 11:34:44.617: I/dalvikvm(25671):   at android.widget.ListView.fillUp(ListView.java:725)
+03-20 11:34:44.617: I/dalvikvm(25671):   at android.widget.ListView.fillGap(ListView.java:664)
+03-20 11:34:44.617: I/dalvikvm(25671):   at android.widget.AbsListView.trackMotionScroll(AbsListView.java:5309)
+03-20 11:34:44.617: I/dalvikvm(25671):   at android.widget.AbsListView$FlingRunnable.run(AbsListView.java:4316)
+03-20 11:34:44.617: I/dalvikvm(25671):   at android.view.Choreographer$CallbackRecord.run(Choreographer.java:761)
+03-20 11:34:44.617: I/dalvikvm(25671):   at android.view.Choreographer.doCallbacks(Choreographer.java:574)
+03-20 11:34:44.617: I/dalvikvm(25671):   at android.view.Choreographer.doFrame(Choreographer.java:543)
+03-20 11:34:44.617: I/dalvikvm(25671):   at android.view.Choreographer$FrameDisplayEventReceiver.run(Choreographer.java:747)
+03-20 11:34:44.617: I/dalvikvm(25671):   at android.os.Handler.handleCallback(Handler.java:733)
+03-20 11:34:44.617: I/dalvikvm(25671):   at android.os.Handler.dispatchMessage(Handler.java:95)
+03-20 11:34:44.617: I/dalvikvm(25671):   at android.os.Looper.loop(Looper.java:136)
+03-20 11:34:44.617: I/dalvikvm(25671):   at android.app.ActivityThread.main(ActivityThread.java:5047)
+03-20 11:34:44.617: I/dalvikvm(25671):   at java.lang.reflect.Method.invokeNative(Native Method)
+03-20 11:34:44.617: I/dalvikvm(25671):   at java.lang.reflect.Method.invoke(Method.java:515)
+03-20 11:34:44.617: I/dalvikvm(25671):   at com.android.internal.os.ZygoteInit$MethodAndArgsCaller.run(ZygoteInit.java:806)
+03-20 11:34:44.617: I/dalvikvm(25671):   at com.android.internal.os.ZygoteInit.main(ZygoteInit.java:622)
+03-20 11:34:44.617: I/dalvikvm(25671):   at dalvik.system.NativeStart.main(Native Method)
+03-20 11:34:44.617: W/dalvikvm(25671): threadid=1: thread exiting with uncaught exception (group=0x4170ad58)
+03-20 11:34:44.617: E/AndroidRuntime(25671): FATAL EXCEPTION: main
+03-20 11:34:44.617: E/AndroidRuntime(25671): Process: com.pplive.meetplayer, PID: 25671
+03-20 11:34:44.617: E/AndroidRuntime(25671): java.lang.OutOfMemoryError
+03-20 11:34:44.617: E/AndroidRuntime(25671): 	at android.graphics.BitmapFactory.nativeDecodeStream(Native Method)
+03-20 11:34:44.617: E/AndroidRuntime(25671): 	at android.graphics.BitmapFactory.decodeStreamInternal(BitmapFactory.java:623)
+03-20 11:34:44.617: E/AndroidRuntime(25671): 	at android.graphics.BitmapFactory.decodeStream(BitmapFactory.java:599)
+03-20 11:34:44.617: E/AndroidRuntime(25671): 	at android.graphics.BitmapFactory.decodeFile(BitmapFactory.java:378)
+03-20 11:34:44.617: E/AndroidRuntime(25671): 	at android.graphics.BitmapFactory.decodeFile(BitmapFactory.java:405)
+03-20 11:34:44.617: E/AndroidRuntime(25671): 	at android.graphics.drawable.Drawable.createFromPath(Drawable.java:952)
+03-20 11:34:44.617: E/AndroidRuntime(25671): 	at android.widget.ImageView.resolveUri(ImageView.java:673)
+03-20 11:34:44.617: E/AndroidRuntime(25671): 	at android.widget.ImageView.setImageURI(ImageView.java:399)
+03-20 11:34:44.617: E/AndroidRuntime(25671): 	at android.widget.SimpleAdapter.setViewImage(SimpleAdapter.java:264)
+03-20 11:34:44.617: E/AndroidRuntime(25671): 	at com.pplive.meetplayer.ui.MyAdapter.setViewImage(MyAdapter.java:41)
+03-20 11:34:44.617: E/AndroidRuntime(25671): 	at android.widget.SimpleAdapter.bindView(SimpleAdapter.java:192)
+03-20 11:34:44.617: E/AndroidRuntime(25671): 	at android.widget.SimpleAdapter.createViewFromResource(SimpleAdapter.java:126)
+03-20 11:34:44.617: E/AndroidRuntime(25671): 	at android.widget.SimpleAdapter.getView(SimpleAdapter.java:114)
+03-20 11:34:44.617: E/AndroidRuntime(25671): 	at android.widget.AbsListView.obtainView(AbsListView.java:2271)
+03-20 11:34:44.617: E/AndroidRuntime(25671): 	at android.widget.ListView.makeAndAddView(ListView.java:1790)
+03-20 11:34:44.617: E/AndroidRuntime(25671): 	at android.widget.ListView.fillUp(ListView.java:725)
+03-20 11:34:44.617: E/AndroidRuntime(25671): 	at android.widget.ListView.fillGap(ListView.java:664)
+03-20 11:34:44.617: E/AndroidRuntime(25671): 	at android.widget.AbsListView.trackMotionScroll(AbsListView.java:5309)
+03-20 11:34:44.617: E/AndroidRuntime(25671): 	at android.widget.AbsListView$FlingRunnable.run(AbsListView.java:4316)
+03-20 11:34:44.617: E/AndroidRuntime(25671): 	at android.view.Choreographer$CallbackRecord.run(Choreographer.java:761)
+03-20 11:34:44.617: E/AndroidRuntime(25671): 	at android.view.Choreographer.doCallbacks(Choreographer.java:574)
+03-20 11:34:44.617: E/AndroidRuntime(25671): 	at android.view.Choreographer.doFrame(Choreographer.java:543)
+03-20 11:34:44.617: E/AndroidRuntime(25671): 	at android.view.Choreographer$FrameDisplayEventReceiver.run(Choreographer.java:747)
+03-20 11:34:44.617: E/AndroidRuntime(25671): 	at android.os.Handler.handleCallback(Handler.java:733)
+03-20 11:34:44.617: E/AndroidRuntime(25671): 	at android.os.Handler.dispatchMessage(Handler.java:95)
+03-20 11:34:44.617: E/AndroidRuntime(25671): 	at android.os.Looper.loop(Looper.java:136)
+03-20 11:34:44.617: E/AndroidRuntime(25671): 	at android.app.ActivityThread.main(ActivityThread.java:5047)
+03-20 11:34:44.617: E/AndroidRuntime(25671): 	at java.lang.reflect.Method.invokeNative(Native Method)
+03-20 11:34:44.617: E/AndroidRuntime(25671): 	at java.lang.reflect.Method.invoke(Method.java:515)
+03-20 11:34:44.617: E/AndroidRuntime(25671): 	at com.android.internal.os.ZygoteInit$MethodAndArgsCaller.run(ZygoteInit.java:806)
+03-20 11:34:44.617: E/AndroidRuntime(25671): 	at com.android.internal.os.ZygoteInit.main(ZygoteInit.java:622)
+03-20 11:34:44.617: E/AndroidRuntime(25671): 	at dalvik.system.NativeStart.main(Native Method)
+03-20 11:34:45.207: I/ffmpeg(25671): [URLContext]http_open_cnx: http://127.0.0.1:9106/360.ts
+03-20 11:34:45.547: I/Neon-FFStream(25671): MEDIA_INFO_BUFFERING_END, offset 22243
+03-20 11:34:45.557: I/Neon-FFPlayer(25671): FFSTREAM_ERROR_FLUSHING
+03-20 11:34:45.577: I/Neon-FFPlayer(25671): video sync done!
+03-20 11:34:45.737: I/Neon-FFPlayer(25671): drop frame: video late by 257 ms, mDiscardLevel:8, mDiscardCount:2
+03-20 11:34:45.747: I/Neon-FFPlayer(25671): drop frame: video late by 251 ms, mDiscardLevel:8, mDiscardCount:2
+03-20 11:34:45.747: I/Neon-FFPlayer(25671): drop frame: video late by 291 ms, mDiscardLevel:8, mDiscardCount:2
+03-20 11:34:45.747: I/Neon-FFPlayer(25671): drop frame: video late by 331 ms, mDiscardLevel:8, mDiscardCount:3
+03-20 11:34:45.747: I/Neon-FFPlayer(25671): drop frame: video late by 371 ms, mDiscardLevel:16, mDiscardCount:4
+03-20 11:34:45.757: I/Neon-FFPlayer(25671): drop frame: video late by 411 ms, mDiscardLevel:16, mDiscardCount:4
+03-20 11:34:45.927: I/Process(25671): Sending signal. PID: 25671 SIG: 9
+
+
+03-20 17:57:56.084: I/Neon-FFPlayer(13244): subtitle index:0 -> languagecode:chi
+03-20 17:57:56.085: I/Neon-FFPlayer(13244): subtitle index:0 -> langugaetitle:中上英下
+03-20 17:57:56.087: I/Neon-FFPlayer(13244): subtitle index:1 -> languagecode:eng
+03-20 17:57:56.088: I/Neon-FFPlayer(13244): subtitle index:1 -> langugaetitle:英上中下
+03-20 17:57:56.089: I/Neon-FFPlayer(13244): subtitle index:2 -> languagecode:chi
+03-20 17:57:56.091: I/Neon-FFPlayer(13244): subtitle index:2 -> langugaetitle:简体中文
+03-20 17:57:56.092: I/Neon-FFPlayer(13244): subtitle index:3 -> languagecode:eng
+03-20 17:57:56.116: I/MeetVideoView_setVideoURI_-1(13244): setVideoURI:file:///storage/usbotg/usbotg-sda1/subtitle/%5B%E5%86%B3%E8%83%9C21%E7%82%B9%5D.21.2008.BluRay.720p.x264.AC3.2Audios-CMCT.mkv
+03-20 17:57:56.520: I/Neon-FFPlayer(13244): subtitle index:0 -> languagecode:chi
+03-20 17:57:56.522: I/Neon-FFPlayer(13244): subtitle index:0 -> langugaetitle:中上英下
+03-20 17:57:56.524: I/Neon-FFPlayer(13244): subtitle index:1 -> languagecode:eng
+03-20 17:57:56.530: I/Neon-FFPlayer(13244): subtitle index:1 -> langugaetitle:英上中下
+03-20 17:57:56.608: I/Neon-FFPlayer(13244): subtitle index:2 -> languagecode:chi
+03-20 17:57:56.616: I/Neon-FFPlayer(13244): subtitle index:2 -> langugaetitle:简体中文
+03-20 17:57:56.618: I/Neon-FFPlayer(13244): subtitle index:3 -> languagecode:eng
+03-20 17:57:56.889: I/Neon-FFPlayer(13244): subtitle index:0 -> languagecode:chi
+03-20 17:57:56.890: I/Neon-FFPlayer(13244): subtitle index:0 -> langugaetitle:中上英下
+03-20 17:57:56.892: I/Neon-FFPlayer(13244): subtitle index:1 -> languagecode:eng
+03-20 17:57:56.893: I/Neon-FFPlayer(13244): subtitle index:1 -> langugaetitle:英上中下
+03-20 17:57:56.896: I/Neon-FFPlayer(13244): subtitle index:2 -> languagecode:chi
+03-20 17:57:56.897: I/Neon-FFPlayer(13244): subtitle index:2 -> langugaetitle:简体中文
+03-20 17:57:56.898: I/Neon-FFPlayer(13244): subtitle index:3 -> languagecode:eng
+03-20 17:57:57.099: I/Neon-FFStream(13244): open url:/storage/usbotg/usbotg-sda1/subtitle/[决胜21点].21.2008.BluRay.720p.x264.AC3.2Audios-CMCT.mkv
+03-20 17:57:58.514: I/Neon-FFPlayer(13244): subtitle index:0 -> languagecode:chi
+03-20 17:57:58.515: I/Neon-FFPlayer(13244): subtitle index:0 -> langugaetitle:中上英下
+03-20 17:57:58.516: I/Neon-FFPlayer(13244): subtitle index:1 -> languagecode:eng
+03-20 17:57:58.517: I/Neon-FFPlayer(13244): subtitle index:1 -> langugaetitle:英上中下
+03-20 17:57:58.518: I/Neon-FFPlayer(13244): subtitle index:2 -> languagecode:chi
+03-20 17:57:58.520: I/Neon-FFPlayer(13244): subtitle index:2 -> langugaetitle:简体中文
+03-20 17:57:58.521: I/Neon-FFPlayer(13244): subtitle index:3 -> languagecode:eng

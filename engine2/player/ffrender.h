@@ -47,32 +47,6 @@ public:
     status_t render_sws(AVFrame* frame);
 
 private:
-    /*
-    void adjust()
-    {
-#ifdef __ANDROID__
-        if(mSurfaceWidth <= 480)
-        {
-            mOptiSurfaceWidth = mFrameWidth&0xFFC0;//+64;
-        }
-        else
-        {
-            mOptiSurfaceWidth = mFrameWidth&0xFFE0;//+32;
-        }
-        mOptiSurfaceHeight = mFrameHeight;
-#endif
-
-#ifdef OS_IOS
-        mOptiSurfaceWidth = mFrameWidth;
-        mOptiSurfaceHeight = mFrameHeight;
-#endif
-
-        LOGD("mSurfaceWidth:%d", mSurfaceWidth);
-        LOGD("mSurfaceHeight:%d", mSurfaceHeight);
-        LOGD("mOptiSurfaceWidth:%d", mOptiSurfaceWidth);
-        LOGD("mOptiSurfaceHeight:%d", mOptiSurfaceHeight);
-    }
-    */
 
     //For debug
     void saveFrameRGB(void* data, int stride, int height, char* path);
@@ -89,9 +63,6 @@ private:
     uint32_t mSurfaceWidth;
     uint32_t mSurfaceHeight;
     uint32_t mSurfaceStride;
-    //uint32_t mOptiSurfaceWidth;
-    //uint32_t mOptiSurfaceHeight;
-    int mSwsFlags;
     int64_t mAveScaleTimeMs;
 	bool mForceSW;
 	bool mDoOnce;

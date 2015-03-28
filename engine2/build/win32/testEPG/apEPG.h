@@ -33,5 +33,6 @@ private:
 	unsigned int			mDataSize;
 	apJsonParser			mParser;
 	apXmlParser				mParserXml;
+	void*					mCurl;
 };
 

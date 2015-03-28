@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2012 Roger Shen  rogershen@pptv.com
+ * Copyright (C) 2015 guoliangma@pptv.com
  *
  */
  
@@ -53,7 +53,7 @@ private:
 
 	status_t flush_l();
 
-    int decode_l(AVPacket *packet);
+    int process_pkt(AVPacket *packet);
 
 	void wait(int msec);
 
@@ -67,6 +67,9 @@ private:
 
 	status_t setup_render();
 
+	int64_t get_time_msec();
+
+	void set_time_msec(int64_t msec);
 private:
     uint32_t mPlayerStatus;
     int16_t* mSamples;
@@ -90,6 +93,7 @@ private:
     pthread_t mThread;
     pthread_mutex_t mLock;
     pthread_cond_t mCondition;
+	pthread_mutex_t mClockLock;
 
 };
 

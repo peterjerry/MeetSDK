@@ -27,7 +27,7 @@ typedef int32_t status_t;
  
 enum {
     OK					= 0,    // Everything's swell.
-    ERROR				= -1,    // errors.
+	ERROR				= -1,    // errors.
     
     UNKNOWN_ERROR       = 0x80000000,
 

@@ -39,7 +39,6 @@ extern "C" {
 #endif
 
 void __ios_log(const char* tag, const char *fmt, ...);
-void ff_log_callback(void* avcl, int level, const char* fmt, va_list vl);
 
 #if __cplusplus
 }

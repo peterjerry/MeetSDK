@@ -1,11 +1,9 @@
 /*
- * Copyright (C) 2012 Roger Shen  rogershen@pptv.com
+ * Copyright (C) 2015 Guoliang Ma  guoliangma@pptv.com
  *
  */
 
-//#undef __STRICT_ANSI__
 #define __STDINT_LIMITS
-//#define __STDC_LIMIT_MACROS
 
 #include "loop.h"
 
@@ -19,7 +17,7 @@
 #include <stdint.h>
 #include "autolock.h"
 #include "utils.h"
-#define LOG_TAG "Loop"
+#define LOG_TAG "EventLoop"
 #include "log.h"
 
 #if defined(__CYGWIN__)
@@ -44,19 +42,32 @@
 extern JavaVM* gs_jvm;
 #endif
 
-Loop::Loop()
+Event::~Event()
 {
-    mRunning = false;
-    mEventIndex = 1;
+}
+
+void StopEvent::action(void *opaque, int64_t now_us)
+{
+	EventLoop *ins = (EventLoop *)opaque;
+	ins->setStop();
+}
+
+EventLoop::EventLoop()
+{
+    mRunning			= false;
+	mStopped			= false;
+
+    mEventIndex			= 0;
+
     pthread_mutex_init(&mLock, NULL);
 	pthread_mutex_init(&mLockState, NULL);
     pthread_cond_init(&mQueueNotEmptyCondition, NULL);
     pthread_cond_init(&mQueueHeadChangedCondition, NULL);
 }
 
-Loop::~Loop()
+EventLoop::~EventLoop()
 {
-    stop();
+    stop(false);
     
     pthread_mutex_destroy(&mLock);
 	pthread_mutex_destroy(&mLockState);
@@ -65,7 +76,7 @@ Loop::~Loop()
     LOGI("Loop destructor finished");
 }
 
-void Loop::start()
+void EventLoop::start()
 {
     if (isRunning())
         return;
@@ -81,48 +92,41 @@ void Loop::start()
     pthread_attr_destroy(&attr);
 }
 
-void Loop::stop()
+void EventLoop::stop(bool flush)
 {
     if (!isRunning())
         return;
 
-	LOGI("Loop stop()");
-	SetRunning(false);
-	LOGI("Set running to false");
+	StopEvent *stopEvent = new StopEvent(this);
+	if (flush)
+		postEventToBack(stopEvent);
+	else
+		postTimedEvent(stopEvent, INT64_MIN);
 
-	pthread_mutex_lock(&mLock);
-	pthread_cond_signal(&mQueueNotEmptyCondition);
-    pthread_mutex_unlock(&mLock);
-
-	LOGI("mQueueNotEmptyCondition signal");
-
-	pthread_mutex_lock(&mLock);
-	pthread_cond_signal(&mQueueHeadChangedCondition);
-    pthread_mutex_unlock(&mLock);
-
-	LOGI("mQueueHeadChangedCondition signal");
-
+	void *dummy;
 	LOGI("before pthread_join %p", mThread);
-    pthread_join(mThread, NULL);
+	pthread_join(mThread, &dummy);
 
-    mEvtQueue.Clear();
-	LOGI("after Loop stop()");
+	mEvtQueue.Clear();
+
+	mRunning = false;
+	LOGI("after EventLoop stop()");
 }
 
-bool Loop::isRunning()
+bool EventLoop::isRunning()
 {
 	AutoLock autoLock(&mLockState);
 	return mRunning;
 }
 
-void Loop::SetRunning(bool isRunning)
+void EventLoop::SetRunning(bool isRunning)
 {
 	AutoLock autoLock(&mLockState);
 	mRunning = isRunning;
 }
 
 
-int64_t Loop::postEventTohHeader(Event *evt)
+int64_t EventLoop::postEventTohHeader(Event *evt)
 {
     // Reserve an earlier timeslot an INT64_MIN to be able to post
     // the StopEvent to the absolute head of the queue.
@@ -133,17 +137,17 @@ int64_t Loop::postEventTohHeader(Event *evt)
 #endif
 }
 
-int64_t Loop::postEventToBack(Event *evt)
+int64_t EventLoop::postEventToBack(Event *evt)
 {
     return postTimedEvent(evt, INT64_MAX);
 }
 
-int64_t Loop::postEventWithDelay(Event *evt, int64_t delayMs)
+int64_t EventLoop::postEventWithDelay(Event *evt, int64_t delayMs)
 {
     return postTimedEvent(evt, getNowUs() + delayMs * 1000ll);
 }
 
-int64_t Loop::postTimedEvent(Event *evt, int64_t realtimeUs)
+int64_t EventLoop::postTimedEvent(Event *evt, int64_t realtimeUs)
 {
 	if (!isRunning())
 		return -1;
@@ -151,49 +155,43 @@ int64_t Loop::postTimedEvent(Event *evt, int64_t realtimeUs)
 	if (evt == NULL)
 		return -1;
 
+	AutoLock autoLock(&mLock);
+
     // to find the proper position to place new event
 	int32_t index = 0;
     while (index < mEvtQueue.GetLength()) {
         Event* item = (Event *)mEvtQueue[index];
-		if (item && (realtimeUs < item->realtimeUs))
+		if (item && (realtimeUs < item->m_realtimeUs))
 			break;
 
         index++;
 	}
 
-    Event* new_evt		= new Event();
-	new_evt->id			= evt->id;
-	new_evt->index		= mEventIndex;
-	new_evt->action		= evt->action;
-    new_evt->realtimeUs	= realtimeUs;
-	mEvtQueue.Insert(index, new_evt);
+	evt->m_index		= mEventIndex;
+	evt->m_realtimeUs	= realtimeUs;
+
+	if (index == 0)
+		pthread_cond_signal(&mQueueHeadChangedCondition);
+
+	mEvtQueue.Insert(index, evt);
+
 #ifdef _MSC_VER
-	LOGD("Insert event:%I64d(%d)", new_evt->index, new_evt->id);
+	LOGD("Insert event:%I64d(%d)", evt->m_index, evt->m_id);
 #else
-	LOGD("Insert event:%lld(%d)", new_evt->index, new_evt->id);
+	LOGD("Insert event:%lld(%d)", evt->m_index, evt->m_id);
 #endif
 	mEventIndex++;
 
-	if (mEvtQueue.GetLength() == 1) {// size change from 0 to 1
-		pthread_mutex_lock(&mLock);
-        pthread_cond_signal(&mQueueNotEmptyCondition);
-		pthread_mutex_unlock(&mLock);
-	}
+	pthread_cond_signal(&mQueueNotEmptyCondition);
 
-    if (index == 0) {
-		pthread_mutex_lock(&mLock);
-        pthread_cond_signal(&mQueueHeadChangedCondition);
-		pthread_mutex_unlock(&mLock);
-	}
-
-    return new_evt->index;
+    return evt->m_index;
 }
 
-void Loop::cancelEvent(event_id id) {
+void EventLoop::cancelEvent(event_id id) {
 	Event* evt = NULL;
     for (int i=0; i < mEvtQueue.GetLength(); i++) {
         evt = (Event *)mEvtQueue[i];
-		if(evt->id == id) {
+		if(evt->m_id == id) {
 			mEvtQueue.Remove(i);
 			if (i == 0) {
 				pthread_mutex_lock(&mLock);
@@ -208,7 +206,7 @@ void Loop::cancelEvent(event_id id) {
 }
 
 // static
-void *Loop::ThreadWrapper(void *me)
+void * EventLoop::ThreadWrapper(void *me)
 {
 #ifdef __ANDROID__
     JNIEnv *env = NULL;
@@ -223,116 +221,132 @@ void *Loop::ThreadWrapper(void *me)
     LOGD("getpriority after:%d", getpriority(PRIO_PROCESS, 0));
 #endif
     
-	LOGI("Loop thread started");
-    static_cast<Loop *>(me)->threadEntry();
+	LOGI("EventLoop thread started");
+    static_cast<EventLoop *>(me)->threadEntry();
     
 #ifdef __ANDROID__
     gs_jvm->DetachCurrentThread();
 #endif
-    LOGI("Loop thread exited");
+    LOGI("EventLoop thread exited");
     return NULL;
 }
 
-void Loop::threadEntry() {
+void EventLoop::threadEntry() {
     //prctl(PR_SET_NAME, (unsigned long)"ffplayer Loop", 0, 0, 0);
 
 	int64_t nowUs = 0;
-	Event* evt = NULL;
-	//uint64_t eventIndex;
 
-    while (isRunning()) {
-        if (mEvtQueue.IsEmpty()) {
-			pthread_mutex_lock(&mLock);
+	pthread_mutex_lock(&mLock);
+    while (!mStopped) {
+		Event* evt = NULL;
+
+		while (mEvtQueue.IsEmpty())
 			pthread_cond_wait(&mQueueNotEmptyCondition, &mLock);
-			pthread_mutex_unlock(&mLock);
-		}
 
-		if (mEvtQueue.IsEmpty()) {
-			LOGI("event loop receive finish signal");
-			break;
-		}
+		while (!mStopped) {
+			if (mEvtQueue.IsEmpty()) {
+				// The only event in the queue could have been cancelled
+				// while we were waiting for its scheduled time.
+				break;
+			}
 
-		evt = (Event *)mEvtQueue[0];
-		//eventIndex = evt->index;
+			evt = (Event *)mEvtQueue[0];
 
-		nowUs = getNowUs();
-		int64_t whenUs = evt->realtimeUs;
+			nowUs = getNowUs();
+			int64_t whenUs = evt->m_realtimeUs;
 #ifdef _MSC_VER
 		//LOGI("nowUs:%I64d, whenUs:%I64d", nowUs, whenUs);
 #else
 		//LOGI("nowUs:%lld, whenUs:%lld", nowUs, whenUs);
 #endif
-		int64_t delayUs = 0;
-		if (whenUs < 0 || whenUs == INT64_MAX)
-			delayUs = 0;
-		else
-			delayUs = whenUs - nowUs;
 
-		if (delayUs > 0) {
-#ifdef _MSC_VER
-			//LOGI("delayUs: %I64d", delayUs);
-#else
-			//LOGI("delayUs: %lld", delayUs);
-#endif
-			struct timespec ts;
-			int32_t err;
+			int64_t delayUs;
+			if (whenUs < 0 || whenUs == INT64_MAX) {
+				delayUs = 0;
+			} else {
+				delayUs = whenUs - nowUs;
+			}
 
-			ts.tv_sec = delayUs / 1000000ll; // unit: sec
-			ts.tv_nsec = (delayUs % 1000000ll) * 1000ll;
-			pthread_mutex_lock(&mLock);
-#if defined(__CYGWIN__) || defined(_MSC_VER)
-			int64_t now_usec = getNowUs();
-			int64_t now_sec = now_usec / 1000000;
-			now_usec = now_usec - now_sec * 1000000;
-			ts.tv_sec	+= now_sec;
-            ts.tv_nsec	+= (long)now_usec * 1000;
-			//ts.tv_sec = (long)(evt->realtimeUs / 1000000ll);
-			//ts.tv_nsec = (long)(evt->realtimeUs - ts.tv_sec * 1000000ll);
-			//LOGI("getNowMS %I64d, %I64d(%I64d)", getNowMs(), evt->realtimeUs / 1000, evt->realtimeUs / 1000 - getNowMs());
+			if (delayUs > 0) {
+				static int64_t kMaxTimeoutUs = 10000000ll;  // 10 secs
+				bool timeoutCapped = false;
+				if (delayUs > kMaxTimeoutUs) {
+					LOGW("delay_us exceeds max timeout: %lld us", delayUs);
+
+					// We'll never block for more than 10 secs, instead
+					// we will split up the full timeout into chunks of
+					// 10 secs at a time. This will also avoid overflow
+					// when converting from us to ns.
+					delayUs = kMaxTimeoutUs;
+					timeoutCapped = true;
+				}
+
+				int32_t err = wait(delayUs);
+
+				if (!timeoutCapped && err == -ETIMEDOUT) {
+					// We finally hit the time this event is supposed to
+					// trigger.
+					nowUs = getNowUs();
+					break;
+				}
+			}
+
+			//dumpEventList();
+
+			//this time, get 1st evt(may be different from the one before sleep)
+			evt = (Event *)mEvtQueue.Remove(0);
+			if (evt) {
+				// Fire event with the lock NOT held.
 			
-			err = pthread_cond_timedwait(&mQueueHeadChangedCondition, &mLock, &ts);
-#else
-			err = pthread_cond_timedwait_relative_np(&mQueueHeadChangedCondition, &mLock, &ts);
-#endif
-			pthread_mutex_unlock(&mLock);
-			if (0 == err) {
-				// interrupted by more urgent job!
-				LOGD("interrupted by more urgent job");
-				continue;
+				LOGD("action #%lld %d", evt->m_index, evt->m_id);
+				pthread_mutex_unlock(&mLock);
+				evt->action(evt->m_opaque, nowUs);
+				pthread_mutex_lock(&mLock);
+				LOGD("action #%lld %d done", evt->m_index, evt->m_id);
+
+				delete evt;
+				evt = NULL;
 			}
-
-			LOGD("pthread_cond_timedwait err = %d", err); // ETIMEDOUT 110(linux define 138)
-
-			// wait interrupted by quit signal
-			if(!isRunning()) {
-				// all un-fired event is omited
-				break;
-			}
-		}
-
-		//dumpEventList();
-
-		//this time, get 1st evt(may be different from the one before sleep)
-        evt = (Event *)mEvtQueue.Remove(0);
-		if (evt) {
-            // Fire event with the lock NOT held.
-			if(mInstance) {
-				LOGD("fire %d %lld", evt->id, evt->index);
-				evt->action(mInstance);
-				LOGD("fire %d %lld done", evt->id, evt->index);
-			}
-        }
+		} // end of while() 3
     } // end of while
+
+	pthread_mutex_unlock(&mLock);
 }
 
-void Loop::dumpEventList()
+int EventLoop::wait(int64_t usec)
+{
+	struct timespec ts;
+	ts.tv_sec = usec / 1000000ll; // unit: sec
+	ts.tv_nsec = (usec % 1000000ll) * 1000ll;
+
+#if defined(__CYGWIN__) || defined(_MSC_VER)
+	int64_t now_usec = getNowUs();
+	int64_t now_sec = now_usec / 1000000;
+	now_usec = now_usec - now_sec * 1000000;
+	ts.tv_sec	+= now_sec;
+	ts.tv_nsec	+= (long)now_usec * 1000;
+			
+	return pthread_cond_timedwait(&mQueueHeadChangedCondition, &mLock, &ts);
+#else
+	return pthread_cond_timedwait_relative_np(&mQueueHeadChangedCondition, &mLock, &ts);
+#endif
+}
+
+void EventLoop::onStop(void * opaque)
+{
+	EventLoop *ins = (EventLoop *)opaque;
+	ins->mStopped = true;
+	LOGI("onStop set mStopped done!");
+}
+
+void EventLoop::dumpEventList()
 {
 	Event* evt = NULL;
 	LOGI("event list start, len = %d", mEvtQueue.GetLength());
     for (int i=0; i < mEvtQueue.GetLength(); i++) {
         evt = (Event *)mEvtQueue[i];
 #ifndef _MSC_VER
-		LOGI("event list: index %lld, id %d, realtime %lld", evt->index, evt->id, evt->realtimeUs);
+		LOGI("event list: index %lld, id %d, realtime %lld", evt->m_index, evt->m_id, evt->m_realtimeUs);
 #endif
 	}
 	LOGI("event list end");

@@ -33,11 +33,25 @@
 
 #else // MSC
 
+int win32_log_print(int prio, const char *tag,  const char *fmt, ...);
+
+typedef enum WIN32_LOGPriority {
+	WIN32_LOG_UNKNOWN = 0,
+    WIN32_LOG_DEFAULT,    /* only for SetMinPriority() */
+    WIN32_LOG_VERBOSE,
+    WIN32_LOG_DEBUG,
+    WIN32_LOG_INFO,
+    WIN32_LOG_WARN,
+    WIN32_LOG_ERROR,
+    WIN32_LOG_FATAL,
+    WIN32_LOG_SILENT,     /* only for SetMinPriority(); must be last */
+} WIN32_LOGPriority;
+
 #define LOGV(...) ((void)0)
 #define LOGD(...) ((void)0)
-#define LOGI(...) ((void)0)
-#define LOGW(...) ((void)0)
-#define LOGE(...) ((void)0)
+#define LOGI(...) win32_log_print(WIN32_LOG_INFO, LOG_TAG, __VA_ARGS__)
+#define LOGW(...) win32_log_print(WIN32_LOG_WARN, LOG_TAG, __VA_ARGS__)
+#define LOGE(...) win32_log_print(WIN32_LOG_ERROR, LOG_TAG, __VA_ARGS__)
 
 #endif
 

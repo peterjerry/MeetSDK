@@ -292,48 +292,17 @@ bool CSubtitleManager::addEmbeddingSubtitleEntity(int index, int64_t startTime, 
 
 bool ISubtitles::create(ISubtitles** subtitle)
 {
-    if (!subtitle)
+    if (!subtitle) {
+		LOGE("subtitle pointer is null");
         return false;
-
-    *subtitle = new CSubtitleManager;
-    if (*subtitle) {
-		LOGE("failed to new CSubtitleManager");
-        return true;
 	}
 
-    return false;
+    *subtitle = new CSubtitleManager;
+    if (*subtitle == NULL) {
+		LOGE("failed to new CSubtitleManager");
+        return false;
+	}
+
+    return true;
 }
-
-#ifdef _TEST
-#include <atlbase.h>
-#include <atlconv.h>
-
-int main(int argc, char* argv[])
-{
-    _CrtSetDbgFlag( _CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
-
-    ISubtitles* subtitle = NULL;
-    if (!ISubtitles::create(&subtitle)) {
-        return 0;
-    }
-    subtitle->loadSubtitle("Universal Soldier Day of Reckoning 2012 UNCUT 1080p BluRay DTS x264-ENCOUNTERS.ass", false);
-    subtitle->seekTo(0);
-
-    STSSegment* segment = NULL;
-    while(subtitle->getNextSubtitleSegment(&segment)) {
-        int64_t startTime = segment->getStartTime();
-        int64_t stopTime = segment->getStopTime();
-        printf("%01d:%02d:%02d.%02d  --> %01d:%02d:%02d.%02d  ",
-            int(startTime/1000/3600), int(startTime/1000%3600/60), int(startTime/1000%60), int(startTime%1000)/10,
-            int(stopTime/1000/3600), int(stopTime/1000%3600/60), int(stopTime/1000%60), int(stopTime%1000)/10);
-
-        char subtitleText[1024];
-        segment->getSubtitleText(subtitleText, 1024);
-        printf("%s\n", CW2A(CA2W(subtitleText, CP_UTF8)));
-    }
-
-    subtitle->close();
-    return 0;
-}
-#endif // _TEST
 

@@ -14,7 +14,8 @@
 
 // 2014.9.17 guoliangma wmv video audio frame is too big, about 200ms per frame(about 50k data)
 // so need a big fifo to hold this buffer
-#define AUDIO_FIFO_SIZE		65536 //16384// 64k -> 16k
+// 2015.3.27 guoliangma value * 4 to compatible with about 1/3 sec GAINT wmv audio packet
+#define AUDIO_FIFO_SIZE		(65536 * 4)
 
 // aux effect on the output mix, used by the buffer queue player
 //const SLEnvironmentalReverbSettings reverbSettings = SL_I3DL2_ENVIRONMENT_PRESET_STONECORRIDOR;
@@ -44,7 +45,7 @@ static void bqPlayerCallback(SLAndroidSimpleBufferQueueItf bq, void *context);
 	return -1;}
 
 and_osles::and_osles(void)
-:m_osles_handle(NULL), m_fifo(NULL), m_pBuf(NULL), m_latency(0), m_one_sec_byte(0)
+:m_osles_handle(NULL), m_fifo(NULL), m_pBuf(NULL), m_one_sec_size(0)
 {
 }
 
@@ -81,11 +82,10 @@ int and_osles::open(int sample_rate, int channel, int bitsPerSample)
 	m_fifo = new and_fifobuffer;
 	m_fifo->create(AUDIO_FIFO_SIZE);
 
-	m_one_sec_byte = sample_rate * channel * bitsPerSample / 8;
-	m_latency = AUDIO_FIFO_SIZE  * 1000 / m_one_sec_byte;
+	m_one_sec_size = sample_rate * channel * bitsPerSample / 8;
 
-	LOGI("osles opened: rate %d, chn %d, bit %d, latency %d", 
-		sample_rate, channel, bitsPerSample, m_latency);
+	LOGI("osles opened: rate %d, chn %d, bit %d, one_sec_size %d", 
+		sample_rate, channel, bitsPerSample, m_one_sec_size);
 	return 0;
 }
 
@@ -325,7 +325,7 @@ void and_osles::flush()
 
 int and_osles::get_latency()
 {
-	return m_fifo->used() * 1000 / m_one_sec_byte; // msec
+	return m_fifo->used() * 1000 / m_one_sec_size; // msec
 }
 
 // create buffer queue audio player

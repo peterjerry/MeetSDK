@@ -10,7 +10,9 @@ import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import android.content.Context;
 import android.graphics.Bitmap;
@@ -58,6 +60,7 @@ public class XOMediaPlayer extends BaseMediaPlayer {
 	private int mVideoHeight = 0;
 
 	private AudioTrack mAudioTrack = null;
+	private AudioTrack.OnPlaybackPositionUpdateListener mAudioPositionUpdateListener = null;
 	
 	private MediaFormat mAudioFormat = null;
 	private MediaFormat mVideoFormat = null;
@@ -82,6 +85,10 @@ public class XOMediaPlayer extends BaseMediaPlayer {
 	private long mCurrentTimeMsec 		= 0L; // getcurrentpos()
 	private long mTotalStartMsec		= 0L; // based on system clock
 	// video
+	private boolean mVideoFirstFrame;
+	private Lock mVideoLock;
+	private Condition mVideoNotFullCond;   
+    private Condition mVideoNotEmptyCond;
 	private long mLastOnVideoTimeMsec 	= 0L;
 	private long mRenderedFrameCnt 	= 0L;
 	private long mDecodedFrameCnt		= 0L;
@@ -94,6 +101,8 @@ public class XOMediaPlayer extends BaseMediaPlayer {
 	private long mAveAudioPktMsec		= 0L;
 	private long mLastAudioPktMSec		= 0L;
 	private long mAudioLatencyMsec		= 0L;
+	
+	private final static boolean NO_AUDIO = false;
 	
 	private Handler mMediaEventHandler = null;
 	
@@ -264,26 +273,57 @@ public class XOMediaPlayer extends BaseMediaPlayer {
 				mLock.lock();
 				LogUtils.info("onPrepareAsyncEvent Start!!!");
 				
-				if (initMediaExtractor() && 
-					initAudioTrack() &&
-					initAudioDecoder() &&
-					initVideoDecoder()) {
+				boolean ret;
+				ret = initMediaExtractor();
+				if (!ret) {
+					// omit stop when preparing
+					if (getState() != PlayState.STOPPING) {
+						Message msg = mEventHandler.obtainMessage(MediaPlayer.MEDIA_ERROR);
+						msg.arg1 = MediaPlayer.MEDIA_ERROR_FAIL_TO_OPEN;
+						msg.sendToTarget();
+					}
 					
-					setState(PlayState.PREPARED);
-					
-					Message msg = mEventHandler.obtainMessage(MediaPlayer.MEDIA_INFO);
-					msg.arg1 = MediaPlayer.MEDIA_INFO_TEST_PLAYER_TYPE; // extra
-					msg.arg2 = MediaPlayer.PLAYER_IMPL_TYPE_XO_PLAYER;
-					msg.sendToTarget();				
-					
-					mEventHandler.sendEmptyMessage(MediaPlayer.MEDIA_PREPARED);
-					
-					mRenderedFrameCnt = 0;
-				} else {
-					setState(PlayState.ERROR);
-					mEventHandler.sendEmptyMessage(MediaPlayer.MEDIA_ERROR);
+					mLock.unlock();
+					return;
 				}
 				
+				ret = initAudioTrack();
+				if (!ret) {
+					Message msg = mEventHandler.obtainMessage(MediaPlayer.MEDIA_ERROR);
+					msg.arg1 = MediaPlayer.MEDIA_ERROR_AUDIO_RENDER;
+					msg.sendToTarget();
+					mLock.unlock();
+					return;
+				}
+				
+				ret = initAudioDecoder();
+				if (!ret) {
+					Message msg = mEventHandler.obtainMessage(MediaPlayer.MEDIA_ERROR);
+					msg.arg1 = MediaPlayer.MEDIA_ERROR_AUDIO_DECODER;
+					msg.sendToTarget();
+					mLock.unlock();
+					return;
+				}
+				
+				ret = initVideoDecoder();
+				if (!ret) {
+					Message msg = mEventHandler.obtainMessage(MediaPlayer.MEDIA_ERROR);
+					msg.arg1 = MediaPlayer.MEDIA_ERROR_VIDEO_DECODER;
+					msg.sendToTarget();
+					mLock.unlock();
+					return;
+				}
+					
+				setState(PlayState.PREPARED);
+					
+				Message msg = mEventHandler.obtainMessage(MediaPlayer.MEDIA_INFO);
+				msg.arg1 = MediaPlayer.MEDIA_INFO_TEST_PLAYER_TYPE; // extra
+				msg.arg2 = MediaPlayer.PLAYER_IMPL_TYPE_XO_PLAYER;
+				msg.sendToTarget();				
+				
+				mEventHandler.sendEmptyMessage(MediaPlayer.MEDIA_PREPARED);
+				
+				mRenderedFrameCnt = 0;
 				mLock.unlock();
 			}
 		});
@@ -292,9 +332,11 @@ public class XOMediaPlayer extends BaseMediaPlayer {
 	private boolean initMediaExtractor() {
 	    LogUtils.debug("start initMediaExtractor");
 		try {
+			// would block
 			mExtractor.setDataSource(mUrl);
-		} catch (Exception e) {
-		    LogUtils.error("Exception", e);
+		} catch (IOException e) {
+			e.printStackTrace();
+			LogUtils.error("IOException", e);
 			return false;
 		}
 
@@ -413,19 +455,19 @@ public class XOMediaPlayer extends BaseMediaPlayer {
 		}
 		
 		int channelCount = mAudioFormat.getInteger(MediaFormat.KEY_CHANNEL_COUNT);
-		if (channelCount > 2) {
+		if (channelCount < 1 || channelCount > 2) {
 			LogUtils.error("audio track NOT support channelCount: " + channelCount);
 			return false;
 		}
 		
-		int channelConfig = (channelCount >= 2) ? AudioFormat.CHANNEL_OUT_STEREO : AudioFormat.CHANNEL_OUT_MONO;
+		int channelConfig = (channelCount == 1) ? AudioFormat.CHANNEL_OUT_MONO : AudioFormat.CHANNEL_OUT_STEREO;
 		
 		int sampleRate = mAudioFormat.getInteger(MediaFormat.KEY_SAMPLE_RATE);
 		
 		int minSize = AudioTrack.getMinBufferSize(
 				sampleRate, channelConfig, AudioFormat.ENCODING_PCM_16BIT);
 		
-		mAudioLatencyMsec = minSize * 1000 / (sampleRate * channelCount * 2/*s16*/);
+		mAudioLatencyMsec = minSize * 2 * 1000 / (sampleRate * channelCount * 2/*s16*/);
 		
 		LogUtils.info(String.format("audio format: channels %d, channel_cfg %d, sample_rate %d, minbufsize %d, latency %d", 
 				channelCount, channelConfig, sampleRate, minSize, mAudioLatencyMsec));
@@ -436,11 +478,33 @@ public class XOMediaPlayer extends BaseMediaPlayer {
 				sampleRate,
 				channelConfig, 
 				AudioFormat.ENCODING_PCM_16BIT,
-				minSize,
+				minSize * 2,
 				AudioTrack.MODE_STREAM);
 		
-		if (mAudioTrack.getState() == AudioTrack.STATE_INITIALIZED)
-			mAudioTrack.play();
+		mAudioPositionUpdateListener = new AudioTrack.OnPlaybackPositionUpdateListener() {
+
+					@Override
+					public void onMarkerReached(AudioTrack audiotrack) {
+						// TODO Auto-generated method stub
+						LogUtils.info("Java: AudioTrack onMarkerReached");
+					}
+
+					@Override
+					public void onPeriodicNotification(AudioTrack audiotrack) {
+						// TODO Auto-generated method stub
+						LogUtils.info("Java: AudioTrack onPeriodicNotification");
+					}
+			
+		};
+		
+		mAudioTrack.setPlaybackPositionUpdateListener(mAudioPositionUpdateListener);
+		
+		if (mAudioTrack.getState() != AudioTrack.STATE_INITIALIZED) {
+			LogUtils.error("failed to new AudioTrack: " + mAudioTrack.getState());
+			return false;
+		}
+		
+		mAudioTrack.play();
 		
 		LogUtils.info("Init Audio Track Success!!!");
 		return true;
@@ -494,6 +558,10 @@ public class XOMediaPlayer extends BaseMediaPlayer {
 			LogUtils.info("mVideoBufferInfo size: " + mVideoBufferInfo.size);
 			LogUtils.info("mVideoBufferInfo: " + mVideoBufferInfo.toString());
 			
+			mVideoLock = new ReentrantLock();
+			mVideoNotFullCond = mVideoLock.newCondition();
+			mVideoNotEmptyCond = mVideoLock.newCondition();
+			
 			LogUtils.info("Init Video Decoder Success!!!");
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -504,7 +572,7 @@ public class XOMediaPlayer extends BaseMediaPlayer {
 		}
 		
 		mRenderList = new ArrayList<RenderBuf>();
-		
+		mVideoFirstFrame = false;
 		return ret;
 	}
 	
@@ -631,33 +699,45 @@ public class XOMediaPlayer extends BaseMediaPlayer {
             		buf.render_clock_msec = info.presentationTimeUs / 1000;
             		buf.eof = ((mVideoBufferInfo.flags & MediaCodec.BUFFER_FLAG_END_OF_STREAM) != 0);
             		
+            		mVideoLock.lock();
             		mRenderList.add(buf);
+            		mVideoNotEmptyCond.signal();
+            		mVideoLock.unlock();
+            		
+            		if (!mVideoFirstFrame) {
+            			LogUtils.info("Java: first video frame out");
+            			mVideoFirstFrame = true;
+            		}
+            		
             		continue;
             	}
-            	else if (mAudioTrackIndex == trackIndex){
+            	else if (mAudioTrackIndex == trackIndex) {
             		LogUtils.info(String.format("[DecodeAudioBuffer] presentationTimeUs: %d, flags: %d",
             				info.presentationTimeUs, info.flags));
 
             		render = false;
             		
-            		int bufSize = info.size;
-    				if (mAudioData == null || mAudioData.length < bufSize) {
-    					// Allocate a new buffer.
-    					mAudioData = new byte[bufSize];
-    				}
-    				
-    				ByteBuffer outputBuf = codec.getOutputBuffers()[outputBufIndex];
-    				outputBuf.get(mAudioData);
-    				// would block
-    				mAudioTrack.write(mAudioData, 0, bufSize);
-    				
-    				// update audio clock
-    				mAudioStartMsec = System.currentTimeMillis();
-    				
-    				mAudioPositionMsec = info.presentationTimeUs / 1000;
+            		if (!NO_AUDIO) {
+	            		int bufSize = info.size;
+	    				if (mAudioData == null || mAudioData.length < bufSize) {
+	    					// Allocate a new buffer.
+	    					mAudioData = new byte[bufSize];
+	    				}
+	    				
+	    				ByteBuffer outputBuf = codec.getOutputBuffers()[outputBufIndex];
+	    				outputBuf.get(mAudioData);
+	    				// would block
+	    				mAudioTrack.write(mAudioData, 0, bufSize);
+	    				
+	    				// update audio clock
+	    				mAudioStartMsec = System.currentTimeMillis();
+	    				
+	    				mAudioPositionMsec = info.presentationTimeUs / 1000;
+            		}
+            		
+    				// only audio output buffer will be released here!
+    				codec.releaseOutputBuffer(outputBufIndex, render);
             	}
-            	
-                codec.releaseOutputBuffer(outputBufIndex, render);
                 
                 if ((info.flags & MediaCodec.BUFFER_FLAG_END_OF_STREAM) != 0) {
                     Log.i(TAG, "saw output EOS.");
@@ -695,19 +775,33 @@ public class XOMediaPlayer extends BaseMediaPlayer {
 				continue;
 			}
 			
-			if (mRenderList.size() == 0) {
-				try {
-					Thread.sleep(10);
-				} catch (InterruptedException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
-				}
-				
-				continue;
-			}
+			RenderBuf buf = null;
 			
-			RenderBuf buf = mRenderList.get(0);
-			mRenderList.remove(0);
+			mVideoLock.lock();
+			try {    
+	            while (mRenderList.size() == 0 && getState() != PlayState.STOPPING)    
+	            	mVideoNotEmptyCond.await(); // how to quit?
+	            
+	            if (mRenderList.size() == 0) {
+					LogUtils.info("Java: video buf is null");
+					break;
+				}
+	            
+	            buf = mRenderList.get(0);
+				mRenderList.remove(0);
+	            mVideoNotFullCond.signal();    
+	        } catch (InterruptedException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+				LogUtils.info("Java: mVideoNotEmptyCond.await InterruptedException");
+			} finally {    
+	        	mVideoLock.unlock();
+	        }
+			
+			if (buf == null) {
+				LogUtils.info("Java: video buf is null");
+				break;
+			}
 			
 			boolean render = true;
 			
@@ -724,8 +818,10 @@ public class XOMediaPlayer extends BaseMediaPlayer {
 			mLastVideoFrameMsec = video_clock_msec;
 			mLastDelayMsec = delay_msec;
 			
-			long audio_clock_msec = (long)getCurrentPosition();
+			long audio_clock_msec = (long) getCurrentPosition();
 			long av_diff_msec = video_clock_msec - audio_clock_msec;
+			if (NO_AUDIO)
+				av_diff_msec = 0;
 			LogUtils.info(String.format("video %d, audio %d, diff_msec %d msec", 
 					video_clock_msec, audio_clock_msec, av_diff_msec));
 			
@@ -787,7 +883,7 @@ public class XOMediaPlayer extends BaseMediaPlayer {
 			long schedule_msec = mFrameTimerMsec - System.currentTimeMillis();
 			LogUtils.info("schedule_msec: " + schedule_msec);
 
-			if (schedule_msec >= 10) {
+			if (schedule_msec >= 10 && !NO_AUDIO) {
 				try {
 					Thread.sleep(schedule_msec);
 				} catch (InterruptedException e) {
@@ -883,35 +979,42 @@ public class XOMediaPlayer extends BaseMediaPlayer {
 	public void stop() {
 	    LogUtils.debug("stop() 1");
 		
-		if (getState() == PlayState.STOPPED) {
+	    PlayState state = getState();
+		if (state == PlayState.STOPPED) {
 		    LogUtils.debug("Already stopped");
 			return;
 		}
 		
-		setState(PlayState.STOPPING);
-		
-		if (mRenderVideoThr != null ) {
-			mRenderVideoThr.interrupt();
-			try {
-				LogUtils.info("before mRenderVideoThr join");
-				mRenderVideoThr.join();
-			} catch (InterruptedException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
+		if (state == PlayState.STARTED || state ==  PlayState.PAUSED) {
+			setState(PlayState.STOPPING);
+			
+			mVideoLock.lock();
+			mVideoNotEmptyCond.signal();
+			mVideoLock.unlock();
+			
+			if (mRenderVideoThr != null ) {
+				mRenderVideoThr.interrupt();
+				try {
+					LogUtils.info("before mRenderVideoThr join");
+					mRenderVideoThr.join();
+				} catch (InterruptedException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+			}
+			
+			if (mReadSampleThr != null ) {
+				mReadSampleThr.interrupt();
+				try {
+					LogUtils.info("before mReadSampleThr join");
+					mReadSampleThr.join();
+				} catch (InterruptedException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
 			}
 		}
-		
-		if (mReadSampleThr != null ) {
-			mReadSampleThr.interrupt();
-			try {
-				LogUtils.info("before mReadSampleThr join");
-				mReadSampleThr.join();
-			} catch (InterruptedException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
-		}
-		
+			
 		LogUtils.info("before workder thread join done!");
 		
 		stayAwake(false);
@@ -919,13 +1022,13 @@ public class XOMediaPlayer extends BaseMediaPlayer {
 		mMediaEventHandler.postAtFrontOfQueue(new Runnable() {
 			@Override
 			public void run() {
-		        LogUtils.debug("stop() 2");
+		        LogUtils.info("Java: removeAllEvents");
 				
 				removeAllEvents();
 				
 				mLock.lock();
 				setState(PlayState.STOPPED);
-				notStopped.signalAll();
+				notStopped.signal();
 				mLock.unlock();
 			}
 		});

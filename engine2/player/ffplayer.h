@@ -35,6 +35,11 @@ struct AVFilterContext;
 #define AV_SYNC_THRESHOLD_MSEC				100 // 100 msec
 #define AV_NOSYNC_THRESHOLD					10000 // 10 sec
 
+#ifdef _MSC_VER
+#define MAX_DISPLAY_WIDTH	1280
+#define MAX_DISPLAY_HEIGHT	720
+#endif
+
 class FFPlayer : public IPlayer, MediaPlayerListener
 {
 public:
@@ -43,8 +48,6 @@ public:
 		AV_SYNC_VIDEO_MASTER,
 		AV_SYNC_EXTERNAL_MASTER,
 	};
-
-	
 
     FFPlayer();
     ~FFPlayer();
@@ -265,30 +268,117 @@ private:
 	bool					mIsVideoFrameDirty;
 
 	// event
-	Loop::Event			mPrepareEvent;
-	bool				mPrepareEventPending;
-    Loop::Event			mVideoEvent;
-    bool				mVideoEventPending; // pending is set to true when event sent. reset to false when onXXX event callback envoked
-    //Loop::Event		mStreamReadEvent;
-	//bool				mStreamReadEventPending;
-    Loop::Event			mStreamDoneEvent;
-    bool				mStreamDoneEventPending;
-    Loop::Event			mBufferingUpdateEvent;
-    bool				mBufferingUpdateEventPending;
-    Loop::Event			mSeekingEvent;
-    bool				mSeekingEventPending;
-    Loop::Event			mCheckAudioStatusEvent;
-    bool				mAudioStatusEventPending;
-    Loop::Event			mBufferingStartEvent;
-    bool				mBufferingStartEventPending;
-    Loop::Event			mBufferingEndEvent;
-    bool				mBufferingEndEventPending;
-    Loop::Event			mSeekingCompleteEvent;
-    bool				mSeekingCompleteEventPending;
-	Loop::Event			mIOBitrateInfoEvent;
-	Loop::Event			mMediaBitrateInfoEvent;
+	class FFPrepareEvent:public Event {
+	public:
+		FFPrepareEvent(void * opaque){
+			m_id		= PREPRARE_EVENT;
+			m_opaque	= opaque;
+		}
+		~FFPrepareEvent(){}
+		virtual void action(void *opaque, int64_t now_us);
+	};
+	class FFVideoEvent:public Event {
+	public:
+		FFVideoEvent(void * opaque){
+			m_id		= VIDEO_RENDER_EVENT;
+			m_opaque	= opaque;
+		}
+		~FFVideoEvent(){}
+		virtual void action(void *opaque, int64_t now_us);
+	};
+	class FFStreamDoneEvent:public Event {
+	public:
+		FFStreamDoneEvent(void * opaque){
+			m_id		= STREAM_DONE_EVENT;
+			m_opaque	= opaque;
+		}
+		~FFStreamDoneEvent(){}
+		virtual void action(void *opaque, int64_t now_us);
+	};
+	class FFBufferingUpdateEvent:public Event {
+	public:
+		FFBufferingUpdateEvent(void * opaque){
+			m_id		= BUFFERING_UPDATE_EVENT;
+			m_opaque	= opaque;
+		}
+		~FFBufferingUpdateEvent(){}
+		virtual void action(void *opaque, int64_t now_us);
+	};
+	class FFSeekingEvent:public Event {
+	public:
+		FFSeekingEvent(void * opaque){
+			m_id		= SEEKING_EVENT;
+			m_opaque	= opaque;
+		}
+		~FFSeekingEvent(){}
+		virtual void action(void *opaque, int64_t now_us);
+	};
+	class FFCheckAudioStatusEvent:public Event {
+	public:
+		FFCheckAudioStatusEvent(void * opaque){
+			m_id		= CHECK_AUDIO_STATUS_EVENT;
+			m_opaque	= opaque;
+		}
+		~FFCheckAudioStatusEvent(){}
+		virtual void action(void *opaque, int64_t now_us);
+	};
+	class FFBufferingStartEvent:public Event {
+	public:
+		FFBufferingStartEvent(void * opaque){
+			m_id		= BUFFERING_START_EVENT;
+			m_opaque	= opaque;
+		}
+		~FFBufferingStartEvent(){}
+		virtual void action(void *opaque, int64_t now_us);
+	};
+	class FFBufferingEndEvent:public Event {
+	public:
+		FFBufferingEndEvent(void * opaque){
+			m_id		= BUFFERING_END_EVENT;
+			m_opaque	= opaque;
+		}
+		~FFBufferingEndEvent(){}
+		virtual void action(void *opaque, int64_t now_us);
+	};
+	class FFSeekingCompleteEvent:public Event {
+	public:
+		FFSeekingCompleteEvent(void * opaque){
+			m_id		= SEEKING_COMPLETE_EVENT;
+			m_opaque	= opaque;
+		}
+		~FFSeekingCompleteEvent(){}
+		virtual void action(void *opaque, int64_t now_us);
+	};
+	class FFIOBitrateInfoEvent:public Event {
+	public:
+		FFIOBitrateInfoEvent(void * opaque){
+			m_id		= IO_BITRATE_INFO_EVENT;
+			m_opaque	= opaque;
+		}
+		~FFIOBitrateInfoEvent(){}
+		virtual void action(void *opaque, int64_t now_us);
+	};
+	class FFMediaBitrateInfoEvent:public Event {
+	public:
+		FFMediaBitrateInfoEvent(void * opaque){
+			m_id		= MEDIA_BITRATE_INFO_EVENT;
+			m_opaque	= opaque;
+		}
+		~FFMediaBitrateInfoEvent(){}
+		virtual void action(void *opaque, int64_t now_us);
+	};
 	
-    Loop				mMsgLoop;
+	bool					mPrepareEventPending;
+    bool					mVideoEventPending; // pending is set to true when event sent. reset to false when onXXX event callback envoked
+    bool					mStreamDoneEventPending;
+    bool					mBufferingUpdateEventPending;
+    bool					mSeekingEventPending;
+    bool					mAudioStatusEventPending;
+    bool					mBufferingStartEventPending;
+    bool					mBufferingEndEventPending;
+    bool					mSeekingCompleteEventPending;
+	
+    EventLoop			mMsgLoop;
     pthread_mutex_t		mLock; // for xxx_impl(event callback)
 	pthread_mutex_t		mPlayerLock; // for xxx_l
 	pthread_mutex_t		mPreparedLock;

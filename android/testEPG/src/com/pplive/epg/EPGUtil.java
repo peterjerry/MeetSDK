@@ -12,6 +12,7 @@ import java.util.List;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.methods.HttpGet;
+import org.apache.http.impl.client.DefaultHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.util.EntityUtils;
 import org.jdom2.Document;
@@ -40,7 +41,8 @@ public class EPGUtil {
 			+ "&appver=4.1.3&canal=@SHIP.TO.31415926PI@"
 			+ "&userLevel=0&hasVirtual=1"
 			+ "&k=%s"
-			+ "&conlen=0&shownav=1"
+			+ "&conlen=0"
+			+ "&shownav=1"
 			+ "&type=%d"
 			+ "&mode=all"
 			+ "&contentype=%d"// 0-只正片，1-非正片，-1=不过滤
@@ -74,6 +76,16 @@ public class EPGUtil {
 			+ "&type=%d" // 156 地方台, 164 卫视
 			+ "&nowplay=1"
 			+ "&appid=com.pplive.androidphone&appver=4.1.3&appplt=aph";
+	
+	private final static String live_cdn_url_fmt = "http://play.api.pptv.com//boxplay.api?" +
+			"ft=1" +
+			"&platform=android3" +
+			"&type=phone.android.vip" +
+			"&sdk=1" +
+			"&channel=162" +
+			"&vvid=41" +
+			"&auth=55b7c50dc1adfc3bcabe2d9b2015e35c" +
+			"&id=%d";
 	
 	private final static String boxplay_prefix = "http://play.api.pptv.com/boxplay.api?" + 
 			"platform=android3&type=phone.android.vip&sv=4.0.1&param=";
@@ -116,6 +128,68 @@ public class EPGUtil {
 		return mNavList;
 	}
 	
+	public CDNItem live_cdn(int vid) {
+		String url = String.format(live_cdn_url_fmt, vid);
+		System.out.println(url);
+		
+		HttpGet request = new HttpGet(url);
+		
+		HttpResponse response;
+		try {
+			response = HttpClients.createDefault().execute(request);
+			if (response.getStatusLine().getStatusCode() != 200){
+				return null;
+			}
+			
+			String result = EntityUtils.toString(response.getEntity());
+			System.out.println(result);
+			
+			return parseLiveCdnUrlxml(result);
+		} catch (ClientProtocolException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+		return null;
+	}
+	
+	private CDNItem parseLiveCdnUrlxml(String xml) {
+		System.out.println("Java: epg parseLiveCdnUrlxml \n" + xml.replace("\n", ""));
+		
+		SAXBuilder builder = new SAXBuilder();
+		Reader returnQuote = new StringReader(xml);  
+        Document doc;
+		try {
+			doc = builder.build(returnQuote);
+			Element root = doc.getRootElement();
+			
+			String rid = root.getChild("channel").getAttributeValue("rid");
+			
+			Element d = root.getChildren("dt").get(0);
+			
+			String d_ft = d.getAttributeValue("ft");
+			String d_sh = d.getChild("sh").getText(); // main server
+			String d_bh = d.getChild("bh").getText(); // backup server
+			String d_st = d.getChild("st").getText(); // server time
+			String d_key = d.getChild("key").getText();
+			
+			CDNItem item = new CDNItem(d_ft, d_sh, d_st, d_bh, d_key);	
+			return item;
+		}
+		catch (JDOMException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+        
+		return null;
+	}
+	
 	public boolean live(int start_page, int count, int type) {
 		String url = String.format(live_url_fmt, start_page, count, type);
 		System.out.println(url);
@@ -146,8 +220,14 @@ public class EPGUtil {
 	        	String title = v.getChild("title").getText();
 	        	String vid = v.getChild("vid").getText();
 	        	String nowplay = v.getChild("nowplay").getText();
+	        	
+	        	Element img = v.getChild("imgurl");
+		    	String imgUrl = "";
+		    	if (img != null)
+		    		imgUrl = img.getText();
+		    	
 	        	System.out.println(String.format("title: %s, id: %s, nowplay: %s", title, vid, nowplay));
-	        	PlayLink2 l = new PlayLink2(title, vid, nowplay);
+	        	PlayLink2 l = new PlayLink2(title, vid, nowplay, imgUrl);
 	        	mPlayLinkList.add(l);
 	        }
 		} catch (ClientProtocolException e) {
@@ -548,14 +628,95 @@ public class EPGUtil {
 	    	String src_res = source.getAttributeValue("resolution");
 	    	if(src_res != null && !src_res.isEmpty())
 	    		link_resolution = src_res; // overwrite
+	    	
+	    	Element img = playlink2.getChild("imgurl");
+	    	String imgUrl = "";
+	    	if (img != null)
+	    		imgUrl = img.getText();
+	    	
 	    	PlayLink2 l = new PlayLink2(link_title, ext_title, link_id, link_description, 
 	    			src_mark, link_director, link_act,
 	    			link_year, link_area,
-	    			link_resolution, duration_sec);
+	    			link_resolution, duration_sec, imgUrl);
 	    	mPlayLinkList.add(l);
         }
         
         return true;
+	}
+	
+	public int[] getAvailableFT(String link) {
+		System.out.println("Java: getAvailableFT() " + link);
+		
+		String user_type = null;
+		try {
+			user_type = URLEncoder.encode("userType=1", "utf-8");
+		} catch (UnsupportedEncodingException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+			return null;
+		}
+		
+		String boxplay_part2 = String.format(boxplay_fmt, link);
+		StringBuffer sbBoxPlayUrl = new StringBuffer();
+		sbBoxPlayUrl.append(boxplay_prefix);
+		sbBoxPlayUrl.append(user_type);
+		sbBoxPlayUrl.append(boxplay_part2);
+		System.out.println("Java: epg url " + sbBoxPlayUrl.toString());
+
+		HttpGet request = new HttpGet(sbBoxPlayUrl.toString());
+		
+		HttpResponse response;
+		try {
+			response = HttpClients.createDefault().execute(request);
+			if (response.getStatusLine().getStatusCode() == 200) {
+				String result = EntityUtils.toString(response.getEntity());
+				return parseCdnUrlxml_ft(result);
+			}
+		} catch (ClientProtocolException e) {
+			e.printStackTrace();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		
+		return null;
+	}
+	
+	private int[] parseCdnUrlxml_ft(String xml) {
+		System.out.println("Java: epg parseCdnUrlxml " + xml.replace("\n", ""));
+		
+		SAXBuilder builder = new SAXBuilder();
+		Reader returnQuote = new StringReader(xml);  
+        Document doc;
+		try {
+			doc = builder.build(returnQuote);
+			Element root = doc.getRootElement();
+			
+			ArrayList<CDNrid> ridList = new ArrayList<CDNrid>();
+			ArrayList<CDNItem> itemList = new ArrayList<CDNItem>();
+			
+			Element file = root.getChild("channel").getChild("file");
+			List<Element> item_list = file.getChildren("item");
+			
+			int[] ft = new int[item_list.size()];
+			for (int i=0;i<item_list.size();i++) {
+				String rid_ft = item_list.get(i).getAttributeValue("ft");
+				String rid_rid = item_list.get(i).getAttributeValue("rid");
+				CDNrid rid = new CDNrid(rid_ft, rid_rid);
+				ridList.add(rid);
+				ft[i] = Integer.valueOf(rid_ft);
+			}
+			
+			return ft;
+		}
+		catch (JDOMException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+        
+		return null;
 	}
 	
 	public String getCDNUrl(String link, String ft, boolean is_m3u8, boolean noVideo) {
@@ -756,4 +917,5 @@ public class EPGUtil {
 		
 		return ret;
 	}
+	
 }

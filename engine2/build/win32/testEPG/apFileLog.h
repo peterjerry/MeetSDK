@@ -22,7 +22,7 @@ public:
 
 	} LOG_LEVEL;
 
-	static bool init(const _TCHAR* szLogName, apLog::LOG_LEVEL l = LOG_LEVEL::info);
+	static bool init(const char* szLogName, apLog::LOG_LEVEL l = LOG_LEVEL::info);
 	static void clear();
 
 	static void print(long instanceID, enum LOG_LEVEL level, const char* szFmt, ...);

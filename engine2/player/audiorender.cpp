@@ -12,7 +12,7 @@
 #if defined(__CYGWIN__) || defined(_MSC_VER)
 #include "sdl.h"
 #define SDL_AUDIO_SAMPLES		1024
-#define FIFO_BUFFER_SIZE		65536
+#define FIFO_BUFFER_SIZE		(65536 * 4)
 #endif
 
 AudioRender::AudioRender()
@@ -31,18 +31,20 @@ AudioRender::AudioRender()
 #if defined(__CYGWIN__) || defined(_MSC_VER)
 	mAudioLogCnt = 0;
 #endif
+	mStopping	= false;
+	mClosed		= false;
 }
 
 AudioRender::~AudioRender()
 {
-	if(mSamples != NULL)
-	{
+	close();
+
+	if (mSamples != NULL) {
 		// Free audio samples buffer
 		av_free(mSamples);
 		mSamples = NULL;
 	}
-	if(mConvertCtx != NULL)
-	{
+	if (mConvertCtx != NULL) {
 		swr_free(&mConvertCtx);
 		mConvertCtx = NULL;
 	}
@@ -292,24 +294,30 @@ status_t AudioRender::render(AVFrame* audioFrame)//int16_t* buffer, uint32_t buf
 			LOGE("Audio convert sampleformat(%d) failed, ret %d", mSampleFormat, sampleCountOutput);
 			return ERROR;
 		}
-		else if (sampleCountOutput > 0) {
+		else if (sampleCountOutput == 0) {
+			LOGW("no audio data in the frame");
+			return OK;
+		}
+		else {
 			audio_buffer = mSamples;
 			audio_buffer_size = sampleCountOutput * mChannelsOutput * mFormatSizeOutput;
 			LOGD("swr output: sample:%d, size:%d", sampleCountOutput, audio_buffer_size);
 		}
+
 #ifndef NDEBUG
 		int64_t end_decode = getNowMs();
 		LOGD("convert audio cost %lld[ms]", end_decode - begin_decode);
 #endif
 	}
-	else
-	{
+	else {
 		audio_buffer = audioFrame->data[0];
 		// 2015.1.28 guoliangma fix noisy audio play problem 
 		// some clip linesize is bigger than actual data size
 		// e.g. linesize[0] = 2048 and nb_samples = 502
 		audio_buffer_size = audioFrame->nb_samples * mChannels * mBitPerSample / 8;
 	}
+
+	LOGD("audio nb_samples %d, linesize %d, audio_buffer_size %d", audioFrame->nb_samples, audioFrame->linesize[0], audio_buffer_size);
 
 #ifdef _DUMP_PCM_DATA_
 	static FILE *pFile = NULL;
@@ -318,10 +326,10 @@ status_t AudioRender::render(AVFrame* audioFrame)//int16_t* buffer, uint32_t buf
 	fwrite(audio_buffer, 1, audio_buffer_size, pFile);
 #endif
 
-	int32_t size = 0;
 #if defined(__CYGWIN__) || defined(_MSC_VER)
 	int left;
 	int count = 0;
+	int written;
 	while (count < 50) { // 500 msec
 		left = mFifo.size() - mFifo.used();
 		if (left >= (int)audio_buffer_size) {
@@ -333,35 +341,35 @@ status_t AudioRender::render(AVFrame* audioFrame)//int16_t* buffer, uint32_t buf
 		count++;
 	}
 
-	size = mFifo.write((char *)audio_buffer, audio_buffer_size);
-	if (size != (int32_t)audio_buffer_size)
-		LOGW("fifo overflow(sdl audio) %d -> %d", audio_buffer_size, size);
+	written = mFifo.write((char *)audio_buffer, audio_buffer_size);
+	if (written != (int)audio_buffer_size)
+		LOGW("fifo overflow(sdl audio) %d -> %d", audio_buffer_size, written);
 #elif defined(OSLES_IMPL)
-	int count = 0;
-	while (a_render->free_size() < (int)audio_buffer_size) {
-		usleep(1000 * 5);// 5 msec
-		count++;
-		if (count > 100) { // 500 msec
-			LOGW("write audio buffer(osles) timeout 500 msec");
+	while (!mStopping) {
+		if (a_render->free_size() >= (int)audio_buffer_size)
 			break;
-		}
-	}
-	size = a_render->write_data((const char *)audio_buffer, audio_buffer_size);
-	if (size != (int32_t)audio_buffer_size)
-		LOGW("fifo overflow(osles) %d -> %d", audio_buffer_size, size);
-#else
-	LOGD("before AudioTrack_write");
-	size = AudioTrack_write(audio_buffer, audio_buffer_size);
-	LOGD("after AudioTrack_write");
-	if (size < 0) {
-		LOGE("failed to write audio sample %d %d", audio_buffer_size, size);
-		return ERROR;
-	}
-	else if (size < (int)audio_buffer_size) {
-		LOGW("write audio sample partially %d %d", audio_buffer_size, size);
+		
+		usleep(1000 * 5);// 5 msec
 	}
 
-	LOGD("Write audio sample size:%d", size);
+	int written;
+	written = a_render->write_data((const char *)audio_buffer, audio_buffer_size);
+	if (written != (int)audio_buffer_size) // may occur when stopping
+		LOGW("fifo overflow(osles) %d -> %d", audio_buffer_size, written);
+#else
+	LOGD("before AudioTrack_write");
+	int32_t written;
+	written = AudioTrack_write(audio_buffer, audio_buffer_size);
+	LOGD("after AudioTrack_write");
+	if (written < 0) {
+		LOGE("failed to write audio sample %d %d", audio_buffer_size, written);
+		return ERROR;
+	}
+	else if (written < (int)audio_buffer_size) {
+		LOGW("write audio sample partially %d %d", audio_buffer_size, written);
+	}
+
+	LOGD("Write audio sample size:%d", written);
 #endif
 	return OK;
 }
@@ -383,6 +391,12 @@ status_t AudioRender::start()
 
 status_t AudioRender::close()
 {
+	if (mClosed)
+		return OK;
+
+	// interrupt blocked write
+	mStopping = true;
+
 #if defined(__CYGWIN__) || defined(_MSC_VER)
 	SDL_CloseAudio();
 #elif defined(OSLES_IMPL)
@@ -393,6 +407,7 @@ status_t AudioRender::close()
 	AudioTrack_close();
 #endif
 
+	mClosed = true;
 	return OK;
 }
 

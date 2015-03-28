@@ -1,7 +1,5 @@
 #include "log_win32.h"
-
-//#include "libavutil/log.h"
-#include "ppffmpeg.h"
+#include "utils.h"
 
 #ifdef SAVE_LOG_FILE
 #include "apFilelog.h"
@@ -22,32 +20,6 @@ static apLog::LOG_LEVEL get_log_level2(int lvl)
 		ret_level = apLog::warning;
 		break;
 	case WIN32_LOG_ERROR:
-		ret_level = apLog::error;
-		break;
-	default:
-		ret_level = apLog::info;
-		break;
-	}
-
-	return ret_level;
-}
-
-static apLog::LOG_LEVEL get_log_level_ff(int lvl)
-{
-	apLog::LOG_LEVEL ret_level;
-
-	switch(lvl) {
-	case AV_LOG_VERBOSE:
-	case AV_LOG_DEBUG:
-		ret_level = apLog::detail;
-		break;
-	case AV_LOG_INFO:
-		ret_level = apLog::info;
-		break;
-	case AV_LOG_WARNING:
-		ret_level = apLog::warning;
-		break;
-	case AV_LOG_ERROR:
 		ret_level = apLog::error;
 		break;
 	default:
@@ -88,41 +60,18 @@ int __pp_log_print(int prio, const char *tag,  const char *fmt, ...)
     va_start(ap, fmt);
 
 #ifdef SAVE_LOG_FILE
-	static int log_opened = 0;
-	apLog::LOG_LEVEL lvl = apLog::info;
-#ifdef DEBUG_LOG_LEVEL
-	lvl = apLog::detail;
-#endif
-	if(!log_opened) {
-		apLog::init("c:\\log\\libplayer.log", lvl);
-		log_opened = 1;
-	}
-
 	char header[128] = {0};
 	snprintf(header, 128, "[%s] %s", tag, fmt);
 
 	int cnt = _vsnprintf_s(msg, sizeof(msg), header, ap);
 	apLog::print(0, get_log_level2(prio), "%s", msg); // "%s", msg : avoid url "%" error
 #else
-	int64_t msec = av_gettime();
-	snprintf(msg, 1024, "[%.3f sec] [%s] [%s] %s\n", (double)(msec % 1000000000) / (double)1000000, get_log_level(prio), tag, fmt);
+	int64_t msec = getNowMs();
+	_snprintf_s(msg, 1024, "[%.3f sec] [%s] [%s] %s\n", (double)(msec % 1000000000) / (double)1000000, get_log_level(prio), tag, fmt);
 	int cnt = vprintf(msg, ap);
 #endif
 
     va_end(ap);
 
 	return cnt;
-}
-
-void ff_log_callback(void* avcl, int level, const char* fmt, va_list vl)
-{
-    AVClass* avc = avcl ? *(AVClass**)avcl : NULL;
-	
-	static char msg[1024] = {0};
-	vsnprintf(msg, sizeof(msg), fmt, vl);
-#ifdef SAVE_LOG_FILE
-	apLog::print(0, get_log_level_ff(level), "ffmpeg[%d] [%s]%s", level, (avc != NULL) ? avc->class_name : "", msg);
-#else
-	printf("ffmpeg[%d] [%s]%s", level, (avc != NULL) ? avc->class_name : "", msg);
-#endif
 }

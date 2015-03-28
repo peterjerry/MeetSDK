@@ -38,19 +38,17 @@ public class MyAdapter extends SimpleAdapter {
     public void setViewImage(ImageView view, String value) {
 		Log.d(TAG, "Java: setViewImage: " + value);
 		
-		super.setViewImage(view, value);
+		// fix xiaomi 3 crash when scrolling
+		//super.setViewImage(view, value);
 		
 		mView = view;
 				
 		//new ThumbNailTask().execute(value); // async task will cause thumbnail mismatch	
 		
-		Log.d(TAG, "Java: setViewImage: start: " + value + ", scrolling:" + mScrolling);
 		if (mScrolling)
 			view.setImageResource(R.drawable.clip);
 		else
-			((ImageView)view).setImageBitmap(MeetSDK.createVideoThumbnail(value, Thumbnails.MICRO_KIND)); 
-		
-		Log.d(TAG, "Java: setViewImage: stop: " + value);
+			((ImageView)view).setImageBitmap(MeetSDK.createVideoThumbnail(value, Thumbnails.MICRO_KIND));
 		
 		// system thumnnail
         /*Bitmap bitmap = getVideoThumb(value);
