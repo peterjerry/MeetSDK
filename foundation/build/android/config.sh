@@ -150,7 +150,7 @@ fi
 --disable-muxers \
 --disable-devices \
 --disable-filters \
---enable-filter=rotate,transpose,hflip,vflip \
+--enable-filter=rotate,transpose,hflip,vflip,yadif \
 --disable-vfp \
 $EXTRA_PARAMETERS
 

@@ -179,6 +179,9 @@ private:
 
 	int64_t getFramePTS_l(AVFrame* frame);
 
+	// for interlace
+	bool FixInterlace(AVStream *video_st);
+
 	// for auto video rotation
 	bool FixRotateVideo(AVStream *video_st);
 

@@ -111,6 +111,7 @@ public class XOMediaPlayer extends BaseMediaPlayer {
 	private Lock mLock = new ReentrantLock();
 	private Condition notStopped = mLock.newCondition();
 	
+	private Thread mPrepareThr;
 	private Thread mReadSampleThr;
 	private Thread mRenderVideoThr;
 	private List<RenderBuf> mRenderList;
@@ -266,71 +267,82 @@ public class XOMediaPlayer extends BaseMediaPlayer {
 
 		setState(PlayState.PREPARING);
 		
-		mMediaEventHandler.postAtFrontOfQueue(new Runnable() {
-			
+		if (mPrepareThr != null) {
+			throw new IllegalStateException("mPrepareThr is running");
+		}
+		
+		mPrepareThr = new Thread(new Runnable(){
 			@Override
-			public void run() {
-				mLock.lock();
-				LogUtils.info("onPrepareAsyncEvent Start!!!");
-				
-				boolean ret;
-				ret = initMediaExtractor();
-				if (!ret) {
-					// omit stop when preparing
-					if (getState() != PlayState.STOPPING) {
-						Message msg = mEventHandler.obtainMessage(MediaPlayer.MEDIA_ERROR);
-						msg.arg1 = MediaPlayer.MEDIA_ERROR_FAIL_TO_OPEN;
-						msg.sendToTarget();
-					}
-					
-					mLock.unlock();
-					return;
-				}
-				
-				ret = initAudioTrack();
-				if (!ret) {
-					Message msg = mEventHandler.obtainMessage(MediaPlayer.MEDIA_ERROR);
-					msg.arg1 = MediaPlayer.MEDIA_ERROR_AUDIO_RENDER;
-					msg.sendToTarget();
-					mLock.unlock();
-					return;
-				}
-				
-				ret = initAudioDecoder();
-				if (!ret) {
-					Message msg = mEventHandler.obtainMessage(MediaPlayer.MEDIA_ERROR);
-					msg.arg1 = MediaPlayer.MEDIA_ERROR_AUDIO_DECODER;
-					msg.sendToTarget();
-					mLock.unlock();
-					return;
-				}
-				
-				ret = initVideoDecoder();
-				if (!ret) {
-					Message msg = mEventHandler.obtainMessage(MediaPlayer.MEDIA_ERROR);
-					msg.arg1 = MediaPlayer.MEDIA_ERROR_VIDEO_DECODER;
-					msg.sendToTarget();
-					mLock.unlock();
-					return;
-				}
-					
-				setState(PlayState.PREPARED);
-					
-				Message msg = mEventHandler.obtainMessage(MediaPlayer.MEDIA_INFO);
-				msg.arg1 = MediaPlayer.MEDIA_INFO_TEST_PLAYER_TYPE; // extra
-				msg.arg2 = MediaPlayer.PLAYER_IMPL_TYPE_XO_PLAYER;
-				msg.sendToTarget();				
-				
-				mEventHandler.sendEmptyMessage(MediaPlayer.MEDIA_PREPARED);
-				
-				mRenderedFrameCnt = 0;
-				mLock.unlock();
-			}
+			public void run(){
+		        prepare_proc();
+		    }
 		});
+		mPrepareThr.start();
 	}
-	
+
+	private boolean prepare_proc() {
+		mLock.lock();
+		
+		boolean ret;
+		
+		// would block
+		ret = initMediaExtractor();
+		if (!ret) {
+			// omit stop when preparing
+			if (getState() != PlayState.STOPPING) {
+				Message msg = mEventHandler.obtainMessage(MediaPlayer.MEDIA_ERROR);
+				msg.arg1 = MediaPlayer.MEDIA_ERROR_FAIL_TO_OPEN;
+				msg.sendToTarget();
+			}
+			
+			mLock.unlock();
+			return false;
+		}
+		
+		ret = initAudioTrack();
+		if (!ret) {
+			Message msg = mEventHandler.obtainMessage(MediaPlayer.MEDIA_ERROR);
+			msg.arg1 = MediaPlayer.MEDIA_ERROR_AUDIO_RENDER;
+			msg.sendToTarget();
+			mLock.unlock();
+			return false;
+		}
+		
+		ret = initAudioDecoder();
+		if (!ret) {
+			Message msg = mEventHandler.obtainMessage(MediaPlayer.MEDIA_ERROR);
+			msg.arg1 = MediaPlayer.MEDIA_ERROR_AUDIO_DECODER;
+			msg.sendToTarget();
+			mLock.unlock();
+			return false;
+		}
+		
+		ret = initVideoDecoder();
+		if (!ret) {
+			Message msg = mEventHandler.obtainMessage(MediaPlayer.MEDIA_ERROR);
+			msg.arg1 = MediaPlayer.MEDIA_ERROR_VIDEO_DECODER;
+			msg.sendToTarget();
+			mLock.unlock();
+			return false;
+		}
+			
+		setState(PlayState.PREPARED);
+			
+		Message msg = mEventHandler.obtainMessage(MediaPlayer.MEDIA_INFO);
+		msg.arg1 = MediaPlayer.MEDIA_INFO_TEST_PLAYER_TYPE; // extra
+		msg.arg2 = MediaPlayer.PLAYER_IMPL_TYPE_XO_PLAYER;
+		msg.sendToTarget();				
+		
+		mEventHandler.sendEmptyMessage(MediaPlayer.MEDIA_PREPARED);
+		
+		mLock.unlock();
+		mRenderedFrameCnt = 0;
+		
+		return true;
+	}
+
 	private boolean initMediaExtractor() {
-	    LogUtils.debug("start initMediaExtractor");
+	    LogUtils.info("start initMediaExtractor");
 		try {
 			// would block
 			mExtractor.setDataSource(mUrl);
@@ -1018,31 +1030,12 @@ public class XOMediaPlayer extends BaseMediaPlayer {
 		LogUtils.info("before workder thread join done!");
 		
 		stayAwake(false);
+
+        LogUtils.info("Java: removeAllEvents");
 		
-		mMediaEventHandler.postAtFrontOfQueue(new Runnable() {
-			@Override
-			public void run() {
-		        LogUtils.info("Java: removeAllEvents");
-				
-				removeAllEvents();
-				
-				mLock.lock();
-				setState(PlayState.STOPPED);
-				notStopped.signal();
-				mLock.unlock();
-			}
-		});
+		removeAllEvents();
 		
-		mLock.lock();
-		try {
-			while (getState() != PlayState.STOPPED) {
-				notStopped.await(1, TimeUnit.SECONDS);
-			}
-		} catch (InterruptedException e) {
-			LogUtils.error("InterruptedException", e);
-		} finally {
-			mLock.unlock();
-		}
+		setState(PlayState.STOPPED);
 	}
 
 	@Override
@@ -1132,56 +1125,50 @@ public class XOMediaPlayer extends BaseMediaPlayer {
 	private void release_l() {
 	    LogUtils.info("release_l()");
 		
-		mMediaEventHandler.postAtFrontOfQueue(new Runnable() {
-			
-			@Override
-			public void run() {
-				LogUtils.info("before removeAllEvents()");
-				removeAllEvents();
-				
-				try {
-					LogUtils.info("before release audio codec");
-					// release Audio Codec
-					if (mAudioCodec != null) {
-						mAudioCodec.flush();
-						mAudioCodec.stop();
-						mAudioCodec.release();
-						mAudioCodec = null;
-					}
-					
-					LogUtils.info("before release video codec");
-					// release Video Codec
-					if (mVideoCodec != null) {
-						mVideoCodec.flush();
-						mVideoCodec.stop();
-						mVideoCodec.release();
-						mVideoCodec = null;
-					}
-				}
-				catch (IllegalStateException e) {
-					e.printStackTrace();
-					LogUtils.error("close codec exception " + e.toString());
-				}
-				
-				// release AudioTrack
-				LogUtils.info("before release audio track");
-				if (mAudioTrack != null) {
-					mAudioTrack.flush();
-					mAudioTrack.stop();
-					mAudioTrack.release();
-					mAudioTrack = null;
-				}
-				
-				// release MediaExtractor
-				LogUtils.info("before release extractor");
-				if (mExtractor != null) {
-					mExtractor.release();
-					mExtractor = null;
-				}
-				
-				setState(PlayState.END);
+		removeAllEvents();
+		LogUtils.info("after removeAllEvents()");
+		
+		try {
+			LogUtils.info("before release audio codec");
+			// release Audio Codec
+			if (mAudioCodec != null) {
+				mAudioCodec.flush();
+				mAudioCodec.stop();
+				mAudioCodec.release();
+				mAudioCodec = null;
 			}
-		});
+			
+			LogUtils.info("before release video codec");
+			// release Video Codec
+			if (mVideoCodec != null) {
+				mVideoCodec.flush();
+				mVideoCodec.stop();
+				mVideoCodec.release();
+				mVideoCodec = null;
+			}
+		}
+		catch (IllegalStateException e) {
+			e.printStackTrace();
+			LogUtils.error("close codec exception " + e.toString());
+		}
+		
+		// release AudioTrack
+		LogUtils.info("before release audio track");
+		if (mAudioTrack != null) {
+			mAudioTrack.flush();
+			mAudioTrack.stop();
+			mAudioTrack.release();
+			mAudioTrack = null;
+		}
+		
+		// release MediaExtractor
+		LogUtils.info("before release extractor");
+		if (mExtractor != null) {
+			mExtractor.release();
+			mExtractor = null;
+		}
+		
+		setState(PlayState.END);
 	}
 	
 	@Override

@@ -315,6 +315,19 @@ void FFPlayer::SwapResolution(int32_t *width, int32_t *height)
 	*width = tmp;
 }
 
+bool FFPlayer::FixInterlace(AVStream *video_st)
+{
+#ifdef USE_AV_FILTER
+	mFilterDescr[0] = "yadif";
+	if (!init_filters(mFilterDescr)) {
+		LOGE("failed to init filters");
+		return false;
+	}
+	mVideoFiltFrame = av_frame_alloc();
+#endif
+	return true;
+}
+
 bool FFPlayer::FixRotateVideo(AVStream *video_st)
 {
 #ifdef USE_AV_FILTER
@@ -2057,8 +2070,13 @@ status_t FFPlayer::prepareVideo_l()
         }
 		mVideoGapMs = 1000 / mVideoFrameRate;
 
+		/*if (!FixInterlace(mVideoStream)) {
+			LOGE("failed to fix interlaced video");
+			return ERROR;
+		}*/
+
 		// would change width and height
-		if(!FixRotateVideo(mVideoStream)) {
+		if (!FixRotateVideo(mVideoStream)) {
 			LOGE("failed to fix rotate video");
 			return ERROR;
 		}

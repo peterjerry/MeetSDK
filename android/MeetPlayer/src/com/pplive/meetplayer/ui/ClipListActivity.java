@@ -1111,34 +1111,31 @@ public class ClipListActivity extends Activity implements
 		}
 		else {
 			MediaInfo info;
-			File file = new File(path);
-			if (file.exists()) {
-				info = MeetSDK.getMediaDetailInfo(file);
-				if (info != null) {
-					ArrayList<TrackInfo> audioTrackList = info.getAudioChannelsInfo();
-					for (TrackInfo trackInfo : audioTrackList) {
-						Log.i(TAG, String.format("Java: audio Trackinfo: streamindex #%d id %d, codec %s, lang %s, title %s", 
-							trackInfo.getStreamIndex(), 
-							trackInfo.getId(), 
-							trackInfo.getCodecName(), 
-							trackInfo.getLanguage(),
-							trackInfo.getTitle()));
-					}
-					
-					if (info.getAudioChannels() > 1)
-						btnSelectAudioTrack.setVisibility(View.VISIBLE);	
-					
-					ArrayList<TrackInfo> subtitleTrackList = info.getSubtitleChannelsInfo();
-					for (TrackInfo trackInfo : subtitleTrackList) {
-						Log.i(TAG, String.format("Java: subtitle Trackinfo: streamindex #%d id %d, codec %s, lang %s, title %s", 
-							trackInfo.getStreamIndex(), 
-							trackInfo.getId(), 
-							trackInfo.getCodecName(), 
-							trackInfo.getLanguage(),
-							trackInfo.getTitle()));
-					}
+			
+			info = MeetSDK.getMediaDetailInfo(path);
+			if (info != null) {
+				ArrayList<TrackInfo> audioTrackList = info.getAudioChannelsInfo();
+				for (TrackInfo trackInfo : audioTrackList) {
+					Log.i(TAG, String.format("Java: audio Trackinfo: streamindex #%d id %d, codec %s, lang %s, title %s", 
+						trackInfo.getStreamIndex(), 
+						trackInfo.getId(), 
+						trackInfo.getCodecName(), 
+						trackInfo.getLanguage(),
+						trackInfo.getTitle()));
 				}
 				
+				if (info.getAudioChannels() > 1)
+					btnSelectAudioTrack.setVisibility(View.VISIBLE);	
+				
+				ArrayList<TrackInfo> subtitleTrackList = info.getSubtitleChannelsInfo();
+				for (TrackInfo trackInfo : subtitleTrackList) {
+					Log.i(TAG, String.format("Java: subtitle Trackinfo: streamindex #%d id %d, codec %s, lang %s, title %s", 
+						trackInfo.getStreamIndex(), 
+						trackInfo.getId(), 
+						trackInfo.getCodecName(), 
+						trackInfo.getLanguage(),
+						trackInfo.getTitle()));
+				}
 			}
 			
 			if (DecodeMode.AUTO == mDecMode) {

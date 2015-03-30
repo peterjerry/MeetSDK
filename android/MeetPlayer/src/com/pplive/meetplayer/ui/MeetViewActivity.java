@@ -7,9 +7,9 @@ import java.util.Map;
 
 import com.pplive.meetplayer.R;
 import com.pplive.meetplayer.ui.widget.MiniMediaController;
+import com.pplive.meetplayer.util.Catalog;
 import com.pplive.meetplayer.util.Content;
 import com.pplive.meetplayer.util.EPGUtil;
-import com.pplive.meetplayer.util.Module;
 import com.pplive.meetplayer.util.PlayLink2;
 import com.pplive.meetplayer.util.PlayLinkUtil;
 import com.pplive.meetplayer.util.Util;
@@ -21,6 +21,7 @@ import android.app.Dialog;
 import android.content.DialogInterface;
 import android.content.pm.ActivityInfo;
 import android.content.res.Configuration;
+import android.graphics.drawable.Drawable;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
@@ -34,8 +35,8 @@ import android.util.Log;
 import android.view.GestureDetector;
 import android.view.KeyEvent;
 import android.view.MotionEvent;
-import android.view.OrientationEventListener;
 import android.view.View;
+import android.view.View.OnFocusChangeListener;
 import android.view.Window;
 import android.view.WindowManager;
 import android.widget.AdapterView;
@@ -45,7 +46,7 @@ import android.widget.ProgressBar;
 import android.widget.RelativeLayout;
 import android.widget.Toast;
 
-public class MeetViewActivity extends Activity {
+public class MeetViewActivity extends Activity implements OnFocusChangeListener {
 
 	private final static String TAG = "MeetViewActivity";
 	private final static String []mode_desc = {"自适应", "铺满屏幕", "放大裁切", "原始大小"};
@@ -60,19 +61,21 @@ public class MeetViewActivity extends Activity {
 	private final int LIST_MOVIE 		= 1;
 	private final int LIST_TV_SERIES 	= 2;
 	private final int LIST_LIVE		= 3;
+	private final int LIST_FRONTPAGE	= 4;
 	
 	private final String[] from = { "title", "desc", "ft", "duration", "resolution" };
 	
 	private final int[] to = { R.id.tv_title, R.id.tv_description, 
 			R.id.tv_ft, R.id.tv_duration, R.id.resolution};
 	
-	private int mListType = LIST_TV_SERIES;
+	private int mListType = LIST_FRONTPAGE;
 	private int mPageNum = 1;
 	private Uri mUri = null;
-	private RelativeLayout mLayout;
+	private RelativeLayout mPreviewLayout;
+	private RelativeLayout mCtrlLayout;
 	private MeetVideoView mVideoView;
 	private MiniMediaController mController;
-	private int preview_height = 0;
+
 	private int mBufferingPertent = 0;
 	
 	private ProgressBar mBufferingProgressBar = null;
@@ -84,6 +87,9 @@ public class MeetViewActivity extends Activity {
 	private Button btnTVSeries;
 	private Button btnLive;
 	private Button btnNextPage;
+	
+	private boolean mPreviewFocused = false;
+	private boolean mStartFromPortrait = false;
 	
 	private MyAdapter mAdapter;
 	private ListView lv_pptvlist;
@@ -103,7 +109,11 @@ public class MeetViewActivity extends Activity {
 		
 		setContentView(R.layout.activity_meet_videoview);
 		
-		this.mLayout = (RelativeLayout) findViewById(R.id.view_preview);
+		this.mPreviewLayout = (RelativeLayout) findViewById(R.id.view_preview);
+		this.mCtrlLayout = (RelativeLayout) findViewById(R.id.layout_ctrl);
+		
+		mPreviewLayout.setFocusable(true);
+		mPreviewLayout.setOnFocusChangeListener(this);
 		
 		Util.initMeetSDK(this);
 		Util.startP2PEngine(this);
@@ -197,21 +207,25 @@ public class MeetViewActivity extends Activity {
 				// TODO Auto-generated method stub
 				Log.i(TAG, String.format("Java: onItemClick %d %d", position, id));
 				
-				HashMap<String, Object> item = (HashMap<String, Object>) lv_pptvlist.getItemAtPosition(position);
-				String title = (String)item.get("title");
-				String vid = (String)item.get("vid");
-				Log.i(TAG, String.format("Java: title %s, vid %s", title, vid));
-				
-				short http_port = MediaSDK.getPort("http");
-				Log.i(TAG, "Http port is: " + http_port);
-				String uri = PlayLinkUtil.getPlayUrl(Integer.valueOf(vid), http_port, 1, 3, "");
-				mUri = Uri.parse(uri);
-				
-				setupPlayer();
+				start_player(position);
 			}
 		});
 	}
 
+	private void start_player(int index) {
+		HashMap<String, Object> item = (HashMap<String, Object>) lv_pptvlist.getItemAtPosition(index);
+		String title = (String)item.get("title");
+		String vid = (String)item.get("vid");
+		Log.i(TAG, String.format("Java: title %s, vid %s", title, vid));
+		
+		short http_port = MediaSDK.getPort("http");
+		Log.i(TAG, "Http port is: " + http_port);
+		String uri = PlayLinkUtil.getPlayUrl(Integer.valueOf(vid), http_port, 1, 3, "");
+		mUri = Uri.parse(uri);
+		
+		setupPlayer();
+	}
+	
 	private class ListPPTVTask extends AsyncTask<Integer, Integer, Boolean> {
 
 		@Override
@@ -234,18 +248,66 @@ public class MeetViewActivity extends Activity {
 			case LIST_LIVE:
 				ret = fill_list_live(start_page);
 				break;
+			case LIST_FRONTPAGE:
+				ret = fill_list_frontpage();
+				break;
 			default:
 				Log.e(TAG, "invalid list type : " + list_type);
 				return false;
 			}
 			
-			if(!ret)
+			if (!ret)
 				mHandler.sendEmptyMessage(MSG_FAIL_TO_GET_DETAIL);
 			else
 				mHandler.sendEmptyMessage(MSG_PPTV_CLIP_LIST_DONE);
 			
 			return ret;
 		}
+	}
+	
+	private boolean fill_list_frontpage() {
+		EPGUtil util = new EPGUtil();
+		boolean ret = util.catalog(0);
+		if (!ret)
+			return false;
+		
+		List<Catalog> list = util.getCatalog();
+		if (list == null)
+			return false;
+		
+		String vid = list.get(1).getVid();
+		if (vid == null) {
+			Log.e(TAG, "vid is null");
+			return false;
+		}
+		
+		ret = util.detail(vid);
+		if (!ret) {
+			Log.e(TAG, "failed to get detail");
+			return false;
+		}
+		
+		List<PlayLink2> playlinkList = util.getLink();
+		int size = playlinkList.size();
+		
+		for (int i=0;i<size;i++) {
+			HashMap<String, Object> new_item = new HashMap<String, Object>();
+			PlayLink2 link = playlinkList.get(i);
+			String desc = link.getDescription();
+			if (desc.length() > MAX_DESC_LEN)
+				desc = desc.substring(0, MAX_DESC_LEN) + "...";
+			
+			new_item.put("title", link.getTitle());
+			new_item.put("desc", desc);
+			new_item.put("ft", "1");
+			new_item.put("duration", "N/A");
+			new_item.put("resolution", "N/A");
+			
+			new_item.put("vid", link.getId());
+			mPPTVClipList.add(new_item);
+		}
+		
+		return true;
 	}
 	
 	private boolean fill_list_live(int start_page) {
@@ -401,17 +463,42 @@ public class MeetViewActivity extends Activity {
 		Log.i(TAG, "Java: onStart");
 	}
 	
-	void update_preview_size(boolean isLandscape) {
+	void setup_layout(boolean isLandscape) {
 		DisplayMetrics dm = new DisplayMetrics(); 
 		getWindowManager().getDefaultDisplay().getMetrics(dm); 
 		int screen_width	= dm.widthPixels; 
 		int screen_height	= dm.heightPixels;
 		
-		if (isLandscape)
-			mLayout.getLayoutParams().height = screen_height;
-		else
-			mLayout.getLayoutParams().height = screen_height * 2 / 5;
-		mLayout.requestLayout();
+		RelativeLayout.LayoutParams paramsPreview = (RelativeLayout.LayoutParams)mPreviewLayout.getLayoutParams();
+		RelativeLayout.LayoutParams paramsCtrl = (RelativeLayout.LayoutParams)mCtrlLayout.getLayoutParams();
+		
+		if (isLandscape) {
+			if (mStartFromPortrait) {
+				paramsPreview.width = screen_width;
+				paramsPreview.height = screen_height;
+				paramsPreview.addRule(RelativeLayout.BELOW, R.id.layout_preview);
+			}
+			else {
+				paramsPreview.height = screen_height;
+				paramsPreview.addRule(RelativeLayout.RIGHT_OF, R.id.layout_ctrl);
+				
+				paramsCtrl.width = screen_width / 4;
+				paramsCtrl.addRule(RelativeLayout.ALIGN_PARENT_LEFT);
+			}
+		}
+		else {
+			paramsPreview.height = screen_height * 2 / 5;
+			paramsPreview.addRule(RelativeLayout.ALIGN_PARENT_TOP);
+			
+			paramsCtrl.addRule(RelativeLayout.BELOW, R.id.view_preview);
+		}
+		
+		// lp4.addRule(RelativeLayout.CENTER_HORIZONTAL, RelativeLayout.TRUE);
+		
+		mCtrlLayout.setLayoutParams(paramsCtrl);
+		mPreviewLayout.setLayoutParams(paramsPreview);
+		
+		//mPreviewLayout.requestLayout();
 	}
 	
 	@Override
@@ -424,7 +511,8 @@ public class MeetViewActivity extends Activity {
 		Log.i(TAG, "Java: orient " + orient);
 		
 		boolean isLandscape = (ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE == orient);
-		update_preview_size(isLandscape);
+		mStartFromPortrait = !isLandscape;
+		setup_layout(isLandscape);
 		
 		if (mVideoView != null)
 			mVideoView.start();
@@ -497,7 +585,14 @@ public class MeetViewActivity extends Activity {
 		public void onCompletion(MediaPlayer mp) {
 			Log.d(TAG, "MEDIA_PLAYBACK_COMPLETE");
 			mVideoView.stopPlayback();
-			finish();
+			
+			// play next clip
+			int pos = lv_pptvlist.getCheckedItemPosition();
+			pos++;
+			if (pos >= lv_pptvlist.getCount())
+				pos = 0;
+			
+			start_player(pos);
 		}
 	};
 
@@ -607,36 +702,16 @@ public class MeetViewActivity extends Activity {
 		
 		Log.d(TAG, "keyCode: " + keyCode);
 		int incr = -1;
-		int mode;
+		
+		if (!mPreviewFocused)
+			return super.onKeyDown(keyCode, event);
 		
 		switch (keyCode) {
+			case KeyEvent.KEYCODE_ENTER:
+			case KeyEvent.KEYCODE_DPAD_CENTER:
 			case KeyEvent.KEYCODE_MENU:
-			case KeyEvent.KEYCODE_DPAD_LEFT:
-			case KeyEvent.KEYCODE_DPAD_RIGHT:
-				
-				if (KeyEvent.KEYCODE_DPAD_RIGHT == keyCode) {
-					int pos = mVideoView.getCurrentPosition();
-					pos += 30000;
-					if(pos > mVideoView.getDuration())
-						pos = mVideoView.getDuration();
-					mVideoView.seekTo(pos);
-				}
-				else if (KeyEvent.KEYCODE_DPAD_LEFT == keyCode) {
-					int pos = mVideoView.getCurrentPosition();
-					pos -= 30000;
-					if(pos < 0)
-						pos = 0;
-					mVideoView.seekTo(pos);
-				}
-				
-				return true;
-			case KeyEvent.KEYCODE_ENTER: // 66
-				if (mVideoView.isPlaying()) {
-					mVideoView.pause();
-				}
-				else {
-					mVideoView.start();
-				}
+				if (mController != null)
+					mController.show(5000);
 				return true;
 			case KeyEvent.KEYCODE_DPAD_DOWN:
 			case KeyEvent.KEYCODE_DPAD_UP:
@@ -660,7 +735,7 @@ public class MeetViewActivity extends Activity {
 		int orientation = getRequestedOrientation();
 		Log.i(TAG, "Java: orientation " + orientation);
 		boolean isLandscape = (orientation == ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
-		update_preview_size(isLandscape);
+		setup_layout(isLandscape);
 	}  
 	
 	private void toggleMediaControlsVisiblity() {
@@ -672,5 +747,26 @@ public class MeetViewActivity extends Activity {
 	        }
     	}
     }
+
+	@Override
+	public void onFocusChange(View v, boolean hasFocus) {
+		// TODO Auto-generated method stub
+		mPreviewFocused = hasFocus;
+		
+		if (hasFocus) {
+			if (mPreviewLayout != null) {
+				Drawable drawable1 = getResources().getDrawable(R.drawable.bg_border1); 
+				mPreviewLayout.setBackground(drawable1);
+				if (mController != null)
+					mController.show(5000);
+			}
+		}
+		else {
+			if (mPreviewLayout != null) {
+				Drawable drawable2 = getResources().getDrawable(R.drawable.bg_border2); 
+				mPreviewLayout.setBackground(drawable2);
+			}
+		}
+	}
 	
 }

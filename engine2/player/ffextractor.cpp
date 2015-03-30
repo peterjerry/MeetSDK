@@ -1175,8 +1175,10 @@ int FFExtractor::start()
 
 	pthread_create(&mThread, NULL, demux_thread, this);
 
-	advance();
+	m_buffering = true;
 	m_status = FFEXTRACTOR_STARTED;
+	advance();
+
 	return 0;
 }
 
@@ -1228,7 +1230,7 @@ void FFExtractor::thread_impl()
 	LOGI("FFExtractor start to demux media");
 	
 	// fix MEDIA_INFO_BUFFERING_END sent before MEDIA_INFO_BUFFERING_START problem
-	notifyListener_l(MEDIA_INFO, MEDIA_INFO_BUFFERING_START);
+	//notifyListener_l(MEDIA_INFO, MEDIA_INFO_BUFFERING_START);
 
 	while (FFEXTRACTOR_STOPPING != m_status) {
 

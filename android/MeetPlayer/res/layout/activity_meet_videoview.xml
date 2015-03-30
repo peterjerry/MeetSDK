@@ -1,8 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="fill_parent"
-    android:layout_height="fill_parent"
-    android:orientation="vertical" >
+    android:layout_height="fill_parent" >
 	
 	<RelativeLayout
 		android:id="@+id/view_preview"
@@ -14,6 +13,10 @@
 			android:id="@+id/surface_view2"
 			android:layout_width="wrap_content"
 			android:layout_height="wrap_content"
+			android:layout_marginLeft="10dp"
+			android:layout_marginRight="10dp"
+			android:layout_marginTop="10dp"
+			android:layout_marginBottom="10dp"
 			android:layout_centerInParent="true" />
 		
 		<ProgressBar 
@@ -32,44 +35,48 @@
 			android:visibility="gone" />
 	</RelativeLayout>
 	
-	<RelativeLayout 
-		android:layout_width="fill_parent"
-		android:layout_height="50dp" >
-		<Button
-			android:id="@+id/btn_player_impl"
-			android:layout_width="wrap_content"
+	<RelativeLayout
+		android:id="@+id/layout_ctrl"	
+		android:layout_width="wrap_content"
+		android:layout_height="fill_parent" >
+		<LinearLayout
+			android:id="@+id/layout_buttons"
+			android:layout_width="fill_parent"
+			android:layout_height="wrap_content"
+			android:orientation="horizontal" >	
+			<Button
+				android:id="@+id/btn_player_impl"
+				android:layout_width="wrap_content"
+				android:layout_height="wrap_content"
+				android:text="impl"/>
+			<Button
+				android:id="@+id/btn_movies"
+				android:layout_width="wrap_content"
+				android:layout_height="wrap_content"
+				android:text="movies"/>
+			<Button
+				android:id="@+id/btn_tv_series"
+				android:layout_width="wrap_content"
+				android:layout_height="wrap_content"
+				android:text="tv"/>
+			<Button
+				android:id="@+id/btn_live"
+				android:layout_width="wrap_content"
+				android:layout_height="fill_parent"
+				android:text="live"/>
+			<Button
+				android:id="@+id/btn_next_page"
+				android:layout_width="wrap_content"
+				android:layout_height="fill_parent"
+				android:text="next"/>
+		</LinearLayout>
+			
+		<ListView	
+			android:id="@+id/lv_pptvlist"
+			android:layout_width="fill_parent"
 			android:layout_height="fill_parent"
-			android:text="impl"/>
-		<Button
-			android:id="@+id/btn_movies"
-			android:layout_width="wrap_content"
-			android:layout_height="fill_parent"
-			android:layout_toRightOf="@+id/btn_player_impl"
-			android:text="movies"/>
-		<Button
-			android:id="@+id/btn_tv_series"
-			android:layout_width="wrap_content"
-			android:layout_height="fill_parent"
-			android:layout_toRightOf="@+id/btn_movies"
-			android:text="tv"/>
-		<Button
-			android:id="@+id/btn_live"
-			android:layout_width="wrap_content"
-			android:layout_height="fill_parent"
-			android:layout_toRightOf="@+id/btn_tv_series"
-			android:text="live"/>
-		<Button
-			android:id="@+id/btn_next_page"
-			android:layout_width="wrap_content"
-			android:layout_height="fill_parent"
-			android:layout_toRightOf="@+id/btn_live"
-			android:text="next"/>
+			android:layout_below="@id/layout_buttons" >
+		</ListView>
 	</RelativeLayout>
 	
-	<ListView
-        android:layout_width="fill_parent"
-        android:layout_height="fill_parent"
-        android:id="@+id/lv_pptvlist">
-    </ListView>
-	
-</LinearLayout>
+</RelativeLayout>

@@ -292,7 +292,7 @@ public class MyFrame extends JFrame {
 		
 		ret = mEPG.detail(vid);
 		if (!ret) {
-			System.out.println("vid is null");
+			System.out.println("failed to get detail");
 			return;
 		}
 		
@@ -376,7 +376,7 @@ public class MyFrame extends JFrame {
 	}
 	
 	private void init_combobox() {
-		int type = 1;
+		int type = 0;
 		
 		switch (type) {
 		case 0:
@@ -384,9 +384,6 @@ public class MyFrame extends JFrame {
 			break;
 		case 1:
 			contents();
-			break;
-		case 3:
-			//live();
 			break;
 		default:
 			System.out.println("unknown type: " + type);
