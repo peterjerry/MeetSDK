@@ -58,6 +58,8 @@ enum pp_media_coded_id {
 	PPMEDIA_CODEC_ID_HEVC_HM91 = 172 + 1000,
     PPMEDIA_CODEC_ID_HEVC_HM10,
     PPMEDIA_CODEC_ID_HEVC_STRONGNE,
+	
+	PPMEDIA_CODEC_ID_HEVC = MKBETAG('H','2','6','5'),
 
 	 /* various PCM "codecs" */
     PPMEDIA_CODEC_ID_FIRST_AUDIO = 0x10000,     ///< A dummy id pointing at the start of audio codecs
@@ -258,6 +260,8 @@ public:
     virtual status_t getCachedDuration(int64_t *durationUs, bool *eos) = 0;
 
 	virtual status_t setListener(MediaPlayerListener* listener) = 0;
+
+	virtual status_t stop() = 0;
 
 	virtual ~IExtractor() {}
 };

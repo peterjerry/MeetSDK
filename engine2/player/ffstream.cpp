@@ -698,7 +698,7 @@ void FFStream::thread_impl()
             break;
         }
         
-		if(mStatus == FFSTREAM_PAUSED || mReachEndStream) {
+		if (mStatus == FFSTREAM_PAUSED || mReachEndStream) {
 			// loop when "pause"
 			// wait for exit when "eof"
             struct timespec ts;
@@ -763,7 +763,7 @@ void FFStream::thread_impl()
                 mGopStart = 0;
                 mGopEnd = 0;
 #ifdef TEST_PERFORMANCE_BITRATE
-				if(mMovieFile->pb)
+				if (mMovieFile->pb)
 					last_sum = mMovieFile->pb->bytes_read;
 				else
 					last_sum = 0;

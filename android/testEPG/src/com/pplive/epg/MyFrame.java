@@ -180,7 +180,7 @@ public class MyFrame extends JFrame {
 		String[] bw_type = {"P2P", "CDNP2P", "CDN", "PPTV", "DLNA"};
 		comboBwType = new JComboBox<String>(bw_type);
 		comboBwType.setBounds(120, 150, 80, 20);
-		comboBwType.setSelectedIndex(3);
+		comboBwType.setSelectedIndex(4);
 		this.getContentPane().add(comboBwType);
 
 		cbNoVideo.setBounds(220, 150, 120, 20);
@@ -376,7 +376,7 @@ public class MyFrame extends JFrame {
 	}
 	
 	private void init_combobox() {
-		int type = 0;
+		int type = 1;
 		
 		switch (type) {
 		case 0:

@@ -54,6 +54,8 @@ public:
 
 	status_t setListener(MediaPlayerListener* listener);
 
+	status_t stop();
+
 private:
 	int open_codec_context(int *stream_idx, int media_type);
 

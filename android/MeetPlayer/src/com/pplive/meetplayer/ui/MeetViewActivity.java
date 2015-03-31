@@ -94,6 +94,7 @@ public class MeetViewActivity extends Activity implements OnFocusChangeListener 
 	private MyAdapter mAdapter;
 	private ListView lv_pptvlist;
 	private List<Map<String, Object>> mPPTVClipList = null;
+	private int mLastPlayItemPos = -1;
 	
 	@Override
 	public void onCreate(Bundle savedInstanceState) {
@@ -127,6 +128,7 @@ public class MeetViewActivity extends Activity implements OnFocusChangeListener 
 		mController = (MiniMediaController) findViewById(R.id.video_controller2);
 		
 		mController.setInstance(this);
+		mController.setFocusable(true);
 		
 		mBufferingProgressBar = (ProgressBar) findViewById(R.id.progressbar_buffering2);
 		
@@ -207,7 +209,8 @@ public class MeetViewActivity extends Activity implements OnFocusChangeListener 
 				// TODO Auto-generated method stub
 				Log.i(TAG, String.format("Java: onItemClick %d %d", position, id));
 				
-				start_player(position);
+				mLastPlayItemPos = position;
+				start_player(mLastPlayItemPos);
 			}
 		});
 	}
@@ -216,11 +219,16 @@ public class MeetViewActivity extends Activity implements OnFocusChangeListener 
 		HashMap<String, Object> item = (HashMap<String, Object>) lv_pptvlist.getItemAtPosition(index);
 		String title = (String)item.get("title");
 		String vid = (String)item.get("vid");
-		Log.i(TAG, String.format("Java: title %s, vid %s", title, vid));
+		Integer ft = (Integer)item.get("ft");
+		String info = String.format("title %s, vid %s ft %d", title, vid, ft);
+		Log.i(TAG, "Java: " + info);
+		Toast.makeText(this, "play " + info, Toast.LENGTH_SHORT).show();
 		
 		short http_port = MediaSDK.getPort("http");
 		Log.i(TAG, "Http port is: " + http_port);
-		String uri = PlayLinkUtil.getPlayUrl(Integer.valueOf(vid), http_port, 1, 3, "");
+		
+		String uri = PlayLinkUtil.getPlayUrl(Integer.valueOf(vid), http_port, ft, 3, "");
+		Log.i(TAG, "Java: getPlayerUrl " + uri);
 		mUri = Uri.parse(uri);
 		
 		setupPlayer();
@@ -249,7 +257,7 @@ public class MeetViewActivity extends Activity implements OnFocusChangeListener 
 				ret = fill_list_live(start_page);
 				break;
 			case LIST_FRONTPAGE:
-				ret = fill_list_frontpage();
+				ret = fill_list_frontpage(start_page);
 				break;
 			default:
 				Log.e(TAG, "invalid list type : " + list_type);
@@ -265,41 +273,75 @@ public class MeetViewActivity extends Activity implements OnFocusChangeListener 
 		}
 	}
 	
-	private boolean fill_list_frontpage() {
+	private boolean fill_list_frontpage(int index) {
 		EPGUtil util = new EPGUtil();
-		boolean ret = util.catalog(0);
+		boolean ret = util.catalog(2); // 今日热点
 		if (!ret)
 			return false;
 		
 		List<Catalog> list = util.getCatalog();
-		if (list == null)
+		if (list == null || list.size() == 0)
 			return false;
 		
-		String vid = list.get(1).getVid();
-		if (vid == null) {
-			Log.e(TAG, "vid is null");
+		List<PlayLink2> playlinkList = null;
+		
+		int found_cnt = 0;
+		for (int i=0;i<list.size();i++) {
+			String vid = list.get(2).getVid();
+			if (vid == null) {
+				Log.e(TAG, "vid is null");
+				return false;
+			}
+			
+			ret = util.detail(vid);
+			if (!ret) {
+				Log.e(TAG, "failed to get detail");
+				return false;
+			}
+			
+			playlinkList = util.getLink();
+			int size = playlinkList.size();
+			if (size > 3) {
+				found_cnt++;
+				
+				if (found_cnt == index)
+					break;
+			}
+		}
+		
+		if (playlinkList == null || playlinkList.size() <= 3) {
+			mPageNum = 1;
 			return false;
 		}
 		
-		ret = util.detail(vid);
-		if (!ret) {
-			Log.e(TAG, "failed to get detail");
-			return false;
-		}
-		
-		List<PlayLink2> playlinkList = util.getLink();
 		int size = playlinkList.size();
 		
 		for (int i=0;i<size;i++) {
-			HashMap<String, Object> new_item = new HashMap<String, Object>();
 			PlayLink2 link = playlinkList.get(i);
 			String desc = link.getDescription();
 			if (desc.length() > MAX_DESC_LEN)
 				desc = desc.substring(0, MAX_DESC_LEN) + "...";
 			
+			int []ft_list = util.getAvailableFT(link.getId());
+			if (ft_list == null || ft_list.length == 0)
+				continue;
+			
+			int ft = -1;
+			for (int j=ft_list.length - 1;j>=0;j--) {
+				if (ft_list[j] >=0 && ft_list[j] <= 3) {
+					ft = ft_list[j];
+					break;
+				}
+			}
+			
+			if (ft == -1)
+				continue;
+			
+			HashMap<String, Object> new_item = new HashMap<String, Object>();
+			
 			new_item.put("title", link.getTitle());
 			new_item.put("desc", desc);
-			new_item.put("ft", "1");
+			new_item.put("ft", ft);
 			new_item.put("duration", "N/A");
 			new_item.put("resolution", "N/A");
 			
@@ -330,7 +372,7 @@ public class MeetViewActivity extends Activity implements OnFocusChangeListener 
 			
 			new_item.put("title", link.getTitle());
 			new_item.put("desc", desc);
-			new_item.put("ft", "1");
+			new_item.put("ft", 1);
 			new_item.put("duration", "N/A");
 			new_item.put("resolution", "N/A");
 			
@@ -361,7 +403,7 @@ public class MeetViewActivity extends Activity implements OnFocusChangeListener 
 			
 			new_item.put("title", link.getTitle());
 			new_item.put("desc", desc);
-			new_item.put("ft", "1");
+			new_item.put("ft", 1);
 			new_item.put("duration", String.valueOf(link.getDuration() / 60));
 			new_item.put("resolution", link.getResolution().replace('|', 'x'));
 			
@@ -410,7 +452,7 @@ public class MeetViewActivity extends Activity implements OnFocusChangeListener 
 			
 			new_item.put("title", link2.getTitle());
 			new_item.put("desc", desc);
-			new_item.put("ft", "1");
+			new_item.put("ft", 1);
 			new_item.put("duration", String.valueOf(link2.getDuration() / 60));
 			new_item.put("resolution", link2.getResolution().replace('|', 'x'));
 			
@@ -583,22 +625,27 @@ public class MeetViewActivity extends Activity implements OnFocusChangeListener 
 
 	private MediaPlayer.OnCompletionListener mCompletionListener = new MediaPlayer.OnCompletionListener() {
 		public void onCompletion(MediaPlayer mp) {
-			Log.d(TAG, "MEDIA_PLAYBACK_COMPLETE");
+			Log.i(TAG, "MEDIA_PLAYBACK_COMPLETE");
+			Toast.makeText(MeetViewActivity.this, "OnCompletionListener", Toast.LENGTH_SHORT).show();
+					
 			mVideoView.stopPlayback();
 			
 			// play next clip
-			int pos = lv_pptvlist.getCheckedItemPosition();
-			pos++;
-			if (pos >= lv_pptvlist.getCount())
-				pos = 0;
+			mLastPlayItemPos++;
+			if (mLastPlayItemPos >= lv_pptvlist.getCount())
+				mLastPlayItemPos = 0;
 			
-			start_player(pos);
+			lv_pptvlist.setSelection(mLastPlayItemPos);
+			Log.i(TAG, "play next item pos: " + mLastPlayItemPos);
+			start_player(mLastPlayItemPos);
 		}
 	};
 
 	private MediaPlayer.OnErrorListener mErrorListener = new MediaPlayer.OnErrorListener() {
 		public boolean onError(MediaPlayer mp, int framework_err, int impl_err) {
-			Log.d(TAG, "Error: " + framework_err + "," + impl_err);
+			Log.i(TAG, "Error: " + framework_err + "," + impl_err);
+			Toast.makeText(MeetViewActivity.this, 
+					String.format("onError what: %d, extra %d", framework_err, impl_err), Toast.LENGTH_SHORT).show();
 			mVideoView.stopPlayback();
 			mBufferingProgressBar.setVisibility(View.INVISIBLE);
 			mIsBuffering = false;
@@ -757,7 +804,7 @@ public class MeetViewActivity extends Activity implements OnFocusChangeListener 
 			if (mPreviewLayout != null) {
 				Drawable drawable1 = getResources().getDrawable(R.drawable.bg_border1); 
 				mPreviewLayout.setBackground(drawable1);
-				if (mController != null)
+				if (mUri != null && mController != null)
 					mController.show(5000);
 			}
 		}

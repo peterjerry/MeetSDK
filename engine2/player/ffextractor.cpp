@@ -186,18 +186,19 @@ status_t FFExtractor::setListener(MediaPlayerListener* listener)
     return OK;
 }
 
+status_t FFExtractor::stop()
+{
+	m_status = FFEXTRACTOR_STOPPING;
+	LOGI("stop preparing media");
+	return OK;
+}
+
 void FFExtractor::close()
 {
 	if (FFEXTRACTOR_STOPPED == m_status)
 		return;
 
 	LOGI("close()");
-
-	if (m_status == FFEXTRACTOR_PREPARING) {
-		m_status = FFEXTRACTOR_STOPPING;
-		LOGI("stop preparing media");
-		return;
-	}
 
 	if (m_status == FFEXTRACTOR_STARTED || m_status == FFEXTRACTOR_PAUSED) {
 		m_status = FFEXTRACTOR_STOPPING;
@@ -252,7 +253,7 @@ void FFExtractor::close()
 
 void FFExtractor::notifyListener_l(int msg, int ext1, int ext2)
 {
-	LOGI("notifyListener_l %p %d %d %d", mListener, msg, ext1, ext2);
+	LOGD("notifyListener_l %p %d %d %d", mListener, msg, ext1, ext2);
 
 	AutoLock lock(&mLockNotify);
 
@@ -260,8 +261,6 @@ void FFExtractor::notifyListener_l(int msg, int ext1, int ext2)
         mListener->notify(msg, ext1, ext2);
     else
 		LOGE("mListener is null");
-
-	LOGI("notifyListener_l %d %d %d done", msg, ext1, ext2);
 }
 
 status_t FFExtractor::setDataSource(const char *path)
@@ -291,6 +290,10 @@ status_t FFExtractor::setDataSource(const char *path)
 		m_sorce_type = TYPE_VOD;
 	
 	m_open_stream_start_msec = getNowMs();
+
+	m_fmt_ctx = avformat_alloc_context();
+	AVIOInterruptCB cb = {interrupt_l, this};
+    m_fmt_ctx->interrupt_callback = cb;
 
 	/* open input file, and allocate format context */
     if (avformat_open_input(&m_fmt_ctx, m_url, NULL, NULL) < 0) {
@@ -759,6 +762,28 @@ bool FFExtractor::seek_l()
 
 	flush_l();
 
+	LOGI("put flush packet"); 
+
+	if (m_video_stream) {
+		AVPacket* flush_pkt = (AVPacket*)av_malloc(sizeof(AVPacket));
+		av_init_packet(flush_pkt);
+
+		flush_pkt->data = (uint8_t*)"FLUSH";
+		flush_pkt->size = 5;
+
+		m_video_q.put(flush_pkt);
+	}
+
+	if (m_audio_stream) {
+		AVPacket* flush_pkt = (AVPacket*)av_malloc(sizeof(AVPacket));
+		av_init_packet(flush_pkt);
+
+		flush_pkt->data = (uint8_t*)"FLUSH";
+		flush_pkt->size = 5;
+
+		m_audio_q.put(flush_pkt);
+	}
+
 	return true;
 }
 
@@ -767,7 +792,7 @@ void FFExtractor::flush_l()
 	m_video_q.flush();
 	m_audio_q.flush();
     m_buffered_size = 0;
-	m_cached_duration_msec = 0;
+	m_cached_duration_msec = m_seek_time_msec;
 }
 
 status_t FFExtractor::advance()
@@ -775,7 +800,8 @@ status_t FFExtractor::advance()
 	LOGI("advance()");
 
 	if (m_sample_pkt) {
-		av_free_packet(m_sample_pkt);
+		if (m_sample_pkt->data && strncmp((const char *)m_sample_pkt->data, "FLUSH", 5) != 0)
+			av_free_packet(m_sample_pkt);
 		av_free(m_sample_pkt);
 		m_sample_pkt = NULL;
 	}
@@ -794,7 +820,9 @@ status_t FFExtractor::advance()
 				return ERROR;
 			}
 		}
-		LOGI("buffering finished");
+
+		LOGI("notifyListener_l MEDIA_INFO_BUFFERING_END");
+		notifyListener_l(MEDIA_INFO, MEDIA_INFO_BUFFERING_END);
 	}
 
 	int64_t video_msec, audio_msec;
@@ -804,13 +832,27 @@ status_t FFExtractor::advance()
 		LOGE("failed to peek video pkt");
 		return ERROR;
 	}
-	
+
+	if (tmpPkt->data && strncmp((const char *)tmpPkt->data, "FLUSH", 5) == 0) {
+		LOGI("found video flush pkt");
+		m_sample_pkt = m_video_q.get();
+		m_sample_track_idx	= m_sample_pkt->stream_index;
+		return OK;
+	}
+
 	video_msec = get_packet_pos(tmpPkt);
 	
 	tmpPkt = m_audio_q.peek();
 	if (tmpPkt == NULL) {
 		LOGE("failed to peek video pkt");
 		return ERROR;
+	}
+
+	if (tmpPkt->data && strncmp((const char *)tmpPkt->data, "FLUSH", 5) == 0) {
+		LOGI("found audio flush pkt");
+		m_sample_pkt = m_audio_q.get();
+		m_sample_track_idx	= m_sample_pkt->stream_index;
+		return OK;
 	}
 
 	audio_msec = get_packet_pos(tmpPkt);
@@ -832,9 +874,9 @@ status_t FFExtractor::advance()
 	}
 
 #ifdef _MSC_VER
-	LOGI("v_a msec %I64d %I64d", video_msec, audio_msec);
+	LOGD("v_a msec %I64d %I64d", video_msec, audio_msec);
 #else
-	LOGI("v_a msec %lld %lld", video_msec, audio_msec);
+	LOGD("v_a msec %lld %lld", video_msec, audio_msec);
 #endif
 
 	if (video_msec - audio_msec < VIDOE_POP_AHEAD_MSEC)
@@ -863,7 +905,6 @@ status_t FFExtractor::advance()
 		return ERROR;
 	}
 
-	LOGI("advance done!");
 	return OK;
 }
 
@@ -878,7 +919,7 @@ status_t FFExtractor::readSampleData(unsigned char *data, int32_t *sampleSize)
 		return ERROR;
 
 	if (m_video_stream_idx == m_sample_pkt->stream_index) {
-		if (m_pBsfc_h264) {
+		if (m_sample_pkt->data && strncmp((const char *)m_sample_pkt->data, "FLUSH", 5) != 0 && m_pBsfc_h264) {
 			// Apply MP4 to H264 Annex B filter on buffer
 			//int origin_size = m_sample_pkt->size;
 			int isKeyFrame = m_sample_pkt->flags & AV_PKT_FLAG_KEY;
@@ -891,7 +932,7 @@ status_t FFExtractor::readSampleData(unsigned char *data, int32_t *sampleSize)
 		*sampleSize = m_sample_pkt->size;
 	}
 	else if (m_audio_stream_idx == m_sample_pkt->stream_index) {
-		if (m_pBsfc_aac) {
+		if (m_sample_pkt->data && strncmp((const char *)m_sample_pkt->data, "FLUSH", 5) != 0 && m_pBsfc_aac) {
 			// Apply aac adts to asc filter on buffer
 			int isKeyFrame = m_sample_pkt->flags & AV_PKT_FLAG_KEY;
 			//int origin_size = m_sample_pkt->size;
@@ -1260,8 +1301,6 @@ void FFExtractor::thread_impl()
 			if ( video_enough && audio_enough) {
 				// packet queue is enough for play
 				m_buffering = false;
-				LOGI("notifyListener_l MEDIA_INFO_BUFFERING_END");
-				notifyListener_l(MEDIA_INFO, MEDIA_INFO_BUFFERING_END);
 			}
 		}
 

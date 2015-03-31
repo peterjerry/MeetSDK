@@ -289,7 +289,7 @@ public class ClipListActivity extends Activity implements
 	
 	private String mCurrentFolder;
 	
-	private final static String home_folder		= "/test2";
+	private final static String home_folder		= "";//"/test2";
 	
 	private final static String HTTP_UPDATE_APK_URL = "http://172.16.204.106/test/test/";
 	
@@ -1110,31 +1110,34 @@ public class ClipListActivity extends Activity implements
 			start_fullscreen_play(uri, mPlayerImpl);
 		}
 		else {
-			MediaInfo info;
-			
-			info = MeetSDK.getMediaDetailInfo(path);
-			if (info != null) {
-				ArrayList<TrackInfo> audioTrackList = info.getAudioChannelsInfo();
-				for (TrackInfo trackInfo : audioTrackList) {
-					Log.i(TAG, String.format("Java: audio Trackinfo: streamindex #%d id %d, codec %s, lang %s, title %s", 
-						trackInfo.getStreamIndex(), 
-						trackInfo.getId(), 
-						trackInfo.getCodecName(), 
-						trackInfo.getLanguage(),
-						trackInfo.getTitle()));
-				}
+			if (path.startsWith("file://") || path.startsWith("/")) {
+				// only get mediainfo from local file
+				MediaInfo info;
 				
-				if (info.getAudioChannels() > 1)
-					btnSelectAudioTrack.setVisibility(View.VISIBLE);	
-				
-				ArrayList<TrackInfo> subtitleTrackList = info.getSubtitleChannelsInfo();
-				for (TrackInfo trackInfo : subtitleTrackList) {
-					Log.i(TAG, String.format("Java: subtitle Trackinfo: streamindex #%d id %d, codec %s, lang %s, title %s", 
-						trackInfo.getStreamIndex(), 
-						trackInfo.getId(), 
-						trackInfo.getCodecName(), 
-						trackInfo.getLanguage(),
-						trackInfo.getTitle()));
+				info = MeetSDK.getMediaDetailInfo(path);
+				if (info != null) {
+					ArrayList<TrackInfo> audioTrackList = info.getAudioChannelsInfo();
+					for (TrackInfo trackInfo : audioTrackList) {
+						Log.i(TAG, String.format("Java: audio Trackinfo: streamindex #%d id %d, codec %s, lang %s, title %s", 
+							trackInfo.getStreamIndex(), 
+							trackInfo.getId(), 
+							trackInfo.getCodecName(), 
+							trackInfo.getLanguage(),
+							trackInfo.getTitle()));
+					}
+					
+					if (info.getAudioChannels() > 1)
+						btnSelectAudioTrack.setVisibility(View.VISIBLE);	
+					
+					ArrayList<TrackInfo> subtitleTrackList = info.getSubtitleChannelsInfo();
+					for (TrackInfo trackInfo : subtitleTrackList) {
+						Log.i(TAG, String.format("Java: subtitle Trackinfo: streamindex #%d id %d, codec %s, lang %s, title %s", 
+							trackInfo.getStreamIndex(), 
+							trackInfo.getId(), 
+							trackInfo.getCodecName(), 
+							trackInfo.getLanguage(),
+							trackInfo.getTitle()));
+					}
 				}
 			}
 			

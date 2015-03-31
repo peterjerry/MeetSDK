@@ -84,9 +84,11 @@ public class XOMediaPlayer extends BaseMediaPlayer {
 	private long mSeekingTimeMsec 		= 0L; // for seek
 	private long mCurrentTimeMsec 		= 0L; // getcurrentpos()
 	private long mTotalStartMsec		= 0L; // based on system clock
+	private Lock mPlayLock;
+	private Condition mPlayCond;
 	// video
 	private boolean mVideoFirstFrame;
-	private Lock mVideoLock;
+	private Lock mVideoListLock;
 	private Condition mVideoNotFullCond;   
     private Condition mVideoNotEmptyCond;
 	private long mLastOnVideoTimeMsec 	= 0L;
@@ -96,6 +98,7 @@ public class XOMediaPlayer extends BaseMediaPlayer {
 	private long mLastVideoFrameMsec	= 0L;
 	private long mFrameTimerMsec		= 0L;
 	// audio
+	private boolean mAudioTrackPlaying = false;
 	private long mAudioStartMsec		= 0L;
 	private long mAudioPositionMsec	= 0L;
 	private long mAveAudioPktMsec		= 0L;
@@ -124,6 +127,9 @@ public class XOMediaPlayer extends BaseMediaPlayer {
 	
 	public XOMediaPlayer(MediaPlayer mp) {
 		super(mp);
+		
+		mPlayLock = new ReentrantLock();
+		mPlayCond = mPlayLock.newCondition();
 		
 		HandlerThread ht = new HandlerThread("MediaEventHandler");
 		ht.start();
@@ -346,7 +352,7 @@ public class XOMediaPlayer extends BaseMediaPlayer {
 		try {
 			// would block
 			mExtractor.setDataSource(mUrl);
-		} catch (IOException e) {
+		} catch (Exception e) {
 			e.printStackTrace();
 			LogUtils.error("IOException", e);
 			return false;
@@ -516,7 +522,7 @@ public class XOMediaPlayer extends BaseMediaPlayer {
 			return false;
 		}
 		
-		mAudioTrack.play();
+		//mAudioTrack.play();
 		
 		LogUtils.info("Init Audio Track Success!!!");
 		return true;
@@ -570,9 +576,9 @@ public class XOMediaPlayer extends BaseMediaPlayer {
 			LogUtils.info("mVideoBufferInfo size: " + mVideoBufferInfo.size);
 			LogUtils.info("mVideoBufferInfo: " + mVideoBufferInfo.toString());
 			
-			mVideoLock = new ReentrantLock();
-			mVideoNotFullCond = mVideoLock.newCondition();
-			mVideoNotEmptyCond = mVideoLock.newCondition();
+			mVideoListLock = new ReentrantLock();
+			mVideoNotFullCond = mVideoListLock.newCondition();
+			mVideoNotEmptyCond = mVideoListLock.newCondition();
 			
 			LogUtils.info("Init Video Decoder Success!!!");
 		} catch (Exception e) {
@@ -584,7 +590,7 @@ public class XOMediaPlayer extends BaseMediaPlayer {
 		}
 		
 		mRenderList = new ArrayList<RenderBuf>();
-		mVideoFirstFrame = false;
+		
 		return ret;
 	}
 	
@@ -628,7 +634,41 @@ public class XOMediaPlayer extends BaseMediaPlayer {
 			mRenderVideoThr.start();
 		}
 		
+		mPlayLock.lock();
+		mPlayCond.signalAll();
+		mPlayLock.unlock();
+		
 		postBufferingUpdateCheckEvent();
+	}
+	
+	private long get_audio_clock() {
+		long audio_clock_msec;
+		
+		long playedDiffMsec = 0; // time gap between last start position and current time
+        
+		if (mAudioStartMsec == 0) { // after "seek" and "start" getNowMs()
+        	playedDiffMsec = 0;
+        }
+        else {
+			// because audio timestamp is not continous, so should guess current position(msec)
+        	playedDiffMsec = System.currentTimeMillis() - mAudioStartMsec;
+            if (playedDiffMsec < 0)
+            	playedDiffMsec = 0;
+            else if (mAveAudioPktMsec > 0 && playedDiffMsec > mAveAudioPktMsec) {
+				// eliminate audio buffer jitter，
+            	// still got stable audio clock when audio frame wasn't decoded out at common pace
+            	playedDiffMsec = mAveAudioPktMsec;
+			}
+        }
+        
+		LogUtils.debug(String.format("audio_clock: pos %d, lat %d, diff %d msec",
+				mAudioPositionMsec, mAudioLatencyMsec, playedDiffMsec));
+        // |----diff----pts################play->audio_hardware
+		audio_clock_msec = mAudioPositionMsec - mAudioLatencyMsec + playedDiffMsec;
+		if (audio_clock_msec < 0)
+			audio_clock_msec = 0;
+		
+		return audio_clock_msec;
 	}
 	
 	private void read_sample_proc() {
@@ -639,15 +679,24 @@ public class XOMediaPlayer extends BaseMediaPlayer {
 		while (getState() != PlayState.STOPPING && !sawInputEOS) {
 			if (getState() == PlayState.PAUSED) {
 				try {
-					Thread.sleep(100);
+					mPlayLock.lock();
+					mPlayCond.await();
 				} catch (InterruptedException e) {
 					// TODO Auto-generated catch block
 					e.printStackTrace();
 				}
-				continue;
+				finally {
+					mPlayLock.unlock();
+				}
+				
+				if (getState() == PlayState.PAUSED) {
+					LogUtils.info("receive exit signal when paused");
+					break;
+				}
 			}
 			
 			int trackIndex = mExtractor.getSampleTrackIndex();
+			
 			MediaCodec codec = getCodec(trackIndex);
 			BufferInfo info = (trackIndex == mVideoTrackIndex ? mVideoBufferInfo : mAudioBufferInfo);
 			int inputBufIndex;
@@ -661,6 +710,7 @@ public class XOMediaPlayer extends BaseMediaPlayer {
 			}
 			
 			if (inputBufIndex >= 0) {
+				
 				ByteBuffer dstBuf = codec.getInputBuffers()[inputBufIndex];
                 int sampleSize = mExtractor.readSampleData(dstBuf, 0 /* offset */);
                 long presentationTimeUs = 0;
@@ -675,6 +725,35 @@ public class XOMediaPlayer extends BaseMediaPlayer {
                     	mSawInputEOS = true;
                     }*/
                 }
+                
+                String str_flush = "FLUSH";
+                byte[] byte_ctx = new byte[5];
+                dstBuf.get(byte_ctx);
+                String strPkt = new String(byte_ctx);
+                if (str_flush.equals(strPkt)) {
+                	LogUtils.info("Java: found flush pkt");
+                	
+                	if (trackIndex == mVideoTrackIndex) {
+	                	LogUtils.info("Java: flush before clear render list");
+	    				mVideoListLock.lock();
+	    				mRenderList.clear();
+	    				mVideoCodec.flush();
+	    				mVideoListLock.unlock();
+	    				
+	    				ResetStatics();
+	    				mCurrentTimeMsec = mSeekingTimeMsec;
+                	}
+                	else {
+                		mAudioCodec.flush();
+                		
+                		mAudioPositionMsec 	= mSeekingTimeMsec;
+                		mSeeking = false;
+                	}
+
+                	mExtractor.advance();
+                	continue;
+                }
+                
                 int flags = mExtractor.getSampleFlags();
                 codec.queueInputBuffer(
                         inputBufIndex,
@@ -683,7 +762,7 @@ public class XOMediaPlayer extends BaseMediaPlayer {
                         presentationTimeUs,
                         sawInputEOS ? MediaCodec.BUFFER_FLAG_END_OF_STREAM : 0);
                 
-                LogUtils.info(String.format("track #%d(%s): size %d, pts %d msec, flags %d", 
+                LogUtils.debug(String.format("track #%d(%s): size %d, pts %d msec, flags %d", 
     					trackIndex, 
     					trackIndex == mVideoTrackIndex ? "video" : "audio",
     					sampleSize, presentationTimeUs / 1000, flags));
@@ -692,7 +771,15 @@ public class XOMediaPlayer extends BaseMediaPlayer {
                 	mExtractor.advance();
                 }
 			} // end of inputBufIndex >= 0
-			int res = codec.dequeueOutputBuffer(info, TIMEOUT);
+			int res;
+			try {
+				res = codec.dequeueOutputBuffer(info, TIMEOUT);
+			}
+			catch (IllegalStateException e) {
+				e.printStackTrace();
+				LogUtils.error("codec dequeueOutputBuffer exception" + e.getMessage());
+				break;
+			}
             //deadDecoderCounter++;
             if (res >= 0) {
             	if (info.size > 0) {
@@ -703,7 +790,7 @@ public class XOMediaPlayer extends BaseMediaPlayer {
             	boolean render = true;
             	
             	if (mVideoTrackIndex == trackIndex) {
-            		LogUtils.info(String.format("[DecodeVideoBuffer] presentationTimeUs: %d, flags: %d",
+            		LogUtils.debug(String.format("[DecodeVideoBuffer] presentationTimeUs: %d, flags: %d",
             				info.presentationTimeUs, info.flags));
 
             		RenderBuf buf = new RenderBuf();
@@ -711,10 +798,10 @@ public class XOMediaPlayer extends BaseMediaPlayer {
             		buf.render_clock_msec = info.presentationTimeUs / 1000;
             		buf.eof = ((mVideoBufferInfo.flags & MediaCodec.BUFFER_FLAG_END_OF_STREAM) != 0);
             		
-            		mVideoLock.lock();
+            		mVideoListLock.lock();
             		mRenderList.add(buf);
             		mVideoNotEmptyCond.signal();
-            		mVideoLock.unlock();
+            		mVideoListLock.unlock();
             		
             		if (!mVideoFirstFrame) {
             			LogUtils.info("Java: first video frame out");
@@ -724,7 +811,7 @@ public class XOMediaPlayer extends BaseMediaPlayer {
             		continue;
             	}
             	else if (mAudioTrackIndex == trackIndex) {
-            		LogUtils.info(String.format("[DecodeAudioBuffer] presentationTimeUs: %d, flags: %d",
+            		LogUtils.debug(String.format("[DecodeAudioBuffer] presentationTimeUs: %d, flags: %d",
             				info.presentationTimeUs, info.flags));
 
             		render = false;
@@ -740,6 +827,13 @@ public class XOMediaPlayer extends BaseMediaPlayer {
 	    				outputBuf.get(mAudioData);
 	    				// would block
 	    				mAudioTrack.write(mAudioData, 0, bufSize);
+	    				
+	    				if (mVideoFirstFrame) {
+	    					if (!mAudioTrackPlaying) {
+	    						mAudioTrack.play();
+	    						mAudioTrackPlaying = true;
+	    					}
+	    				}
 	    				
 	    				// update audio clock
 	    				mAudioStartMsec = System.currentTimeMillis();
@@ -778,18 +872,24 @@ public class XOMediaPlayer extends BaseMediaPlayer {
 		while (getState() != PlayState.STOPPING && !sawInputEOS) {
 			if (getState() == PlayState.PAUSED) {
 				try {
-					Thread.sleep(100);
+					mPlayLock.lock();
+					mPlayCond.await();
 				} catch (InterruptedException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
+					
+				}
+				finally {
+					mPlayLock.unlock();
 				}
 				
-				continue;
+				if (getState() == PlayState.PAUSED) {
+					LogUtils.info("receive exit signal when paused");
+					break;
+				}
 			}
 			
 			RenderBuf buf = null;
 			
-			mVideoLock.lock();
+			mVideoListLock.lock();
 			try {    
 	            while (mRenderList.size() == 0 && getState() != PlayState.STOPPING)    
 	            	mVideoNotEmptyCond.await(); // how to quit?
@@ -806,9 +906,7 @@ public class XOMediaPlayer extends BaseMediaPlayer {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
 				LogUtils.info("Java: mVideoNotEmptyCond.await InterruptedException");
-			} finally {    
-	        	mVideoLock.unlock();
-	        }
+			}
 			
 			if (buf == null) {
 				LogUtils.info("Java: video buf is null");
@@ -828,14 +926,15 @@ public class XOMediaPlayer extends BaseMediaPlayer {
 			}
 			
 			mLastVideoFrameMsec = video_clock_msec;
+			mCurrentTimeMsec = video_clock_msec; // fix me!!!
 			mLastDelayMsec = delay_msec;
 			
-			long audio_clock_msec = (long) getCurrentPosition();
+			long audio_clock_msec = get_audio_clock();
 			long av_diff_msec = video_clock_msec - audio_clock_msec;
 			if (NO_AUDIO)
 				av_diff_msec = 0;
-			LogUtils.info(String.format("video %d, audio %d, diff_msec %d msec", 
-					video_clock_msec, audio_clock_msec, av_diff_msec));
+			LogUtils.debug(String.format("video %d, audio %d, diff_msec %d msec", 
+				video_clock_msec, audio_clock_msec, av_diff_msec));
 			
 			Message msg = mEventHandler.obtainMessage(MediaPlayer.MEDIA_INFO);
 			msg.arg1 = MediaPlayer.MEDIA_INFO_TEST_LATENCY_MSEC;
@@ -866,6 +965,7 @@ public class XOMediaPlayer extends BaseMediaPlayer {
 			
 			// render it!
 			mVideoCodec.releaseOutputBuffer(bufIndex, render);
+			mVideoListLock.unlock();
 			
             if (render) {
 				mRenderedFrameCnt++;
@@ -899,8 +999,6 @@ public class XOMediaPlayer extends BaseMediaPlayer {
 				try {
 					Thread.sleep(schedule_msec);
 				} catch (InterruptedException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
 				}
 			}
 		} // end of while
@@ -914,6 +1012,9 @@ public class XOMediaPlayer extends BaseMediaPlayer {
 		mRenderedFrameCnt	= 0L;
 		mTotalStartMsec		= System.currentTimeMillis();
 		mFrameTimerMsec		= System.currentTimeMillis();
+		mVideoFirstFrame 	= false;
+		
+		mAudioTrackPlaying 	= false;
 	}
 	
 	private MediaCodec getCodec(int trackIndex) {
@@ -954,7 +1055,6 @@ public class XOMediaPlayer extends BaseMediaPlayer {
 	}
 	
 	private void postBufferingUpdateEvent() {
-		long currentTimeUs = getCurrentPosition() * 1000;
 		long cachedDurationUs = mExtractor.getCachedDuration();
 		
 		cachedDurationUs = cachedDurationUs > 0 ? cachedDurationUs : 0;
@@ -992,17 +1092,39 @@ public class XOMediaPlayer extends BaseMediaPlayer {
 	    LogUtils.debug("stop() 1");
 		
 	    PlayState state = getState();
-		if (state == PlayState.STOPPED) {
+		if (PlayState.STOPPED == state) {
 		    LogUtils.debug("Already stopped");
 			return;
+		}
+		
+		if (PlayState.PAUSED == state) {
+			mPlayLock.lock();
+			mPlayCond.signal();
+			mPlayLock.unlock();
+		}
+		
+		if (PlayState.PREPARING == state) {
+			if (mPrepareThr != null ) {
+				if (mExtractor != null) {
+					mExtractor.stop();
+				}
+				
+				try {
+					LogUtils.info("before mPrepareThr join");
+					mPrepareThr.join();
+				} catch (InterruptedException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+			}
 		}
 		
 		if (state == PlayState.STARTED || state ==  PlayState.PAUSED) {
 			setState(PlayState.STOPPING);
 			
-			mVideoLock.lock();
+			mVideoListLock.lock();
 			mVideoNotEmptyCond.signal();
-			mVideoLock.unlock();
+			mVideoListLock.unlock();
 			
 			if (mRenderVideoThr != null ) {
 				mRenderVideoThr.interrupt();
@@ -1027,7 +1149,7 @@ public class XOMediaPlayer extends BaseMediaPlayer {
 			}
 		}
 			
-		LogUtils.info("before workder thread join done!");
+		LogUtils.info("worker thread join done!");
 		
 		stayAwake(false);
 
@@ -1087,28 +1209,20 @@ public class XOMediaPlayer extends BaseMediaPlayer {
 		}
 		
 		mSeekingTimeMsec = (long)seekingTime;
-		mAudioPositionMsec = mSeekingTimeMsec;
 		mSeeking = true;
+		LogUtils.info("Java: set mSeeking to true");
 		
 		Message msg = mMediaEventHandler.obtainMessage(EVENT_SEEKTO);
 		mMediaEventHandler.sendMessageAtFrontOfQueue(msg);
 	}
 	
 	private void onSeekToEvent() {
-	    LogUtils.debug("onSeekToEvent()");
+	    LogUtils.info("onSeekToEvent()");
+	    
+	    mAudioTrack.pause();
+	    mAudioTrackPlaying = false;
 	    
 		mExtractor.seekTo(mSeekingTimeMsec * 1000, MediaExtractor.SEEK_TO_CLOSEST_SYNC);
-		
-		ResetStatics();
-		
-		postSeekCompletionEvent();
-		
-		mSeeking = false;
-	}
-	
-	private void postSeekCompletionEvent() {
-	    LogUtils.debug("postSeekCompletionEvent()");
-		mEventHandler.sendEmptyMessage(MediaPlayer.MEDIA_SEEK_COMPLETE);
 	}
 
 	@Override
@@ -1188,38 +1302,10 @@ public class XOMediaPlayer extends BaseMediaPlayer {
 
 	@Override
 	public int getCurrentPosition() {
-		long currentPosition = 0L; // msec
-		
-		if (!mSeeking) {
-			long playedDiffMsec = 0; // time gap between last start position and current time
-	        
-			if (mAudioStartMsec == 0) { // after "seek" and "start" getNowMs()
-	        	playedDiffMsec = 0;
-	        }
-	        else {
-				// because audio timestamp is not continous, so should guess current position(msec)
-	        	playedDiffMsec = System.currentTimeMillis() - mAudioStartMsec;
-	            if (playedDiffMsec < 0)
-	            	playedDiffMsec = 0;
-	            else if (mAveAudioPktMsec > 0 && playedDiffMsec > mAveAudioPktMsec) {
-					// eliminate audio buffer jitter，
-	            	// still got stable audio clock when audio frame wasn't decoded out at common pace
-	            	playedDiffMsec = mAveAudioPktMsec;
-				}
-	        }
-	        
-			LogUtils.info(String.format("calc_current_pos: pos %d, lat %d, diff %d msec",
-					mAudioPositionMsec, mAudioLatencyMsec, playedDiffMsec));
-	        // |----diff----pts################play->audio_hardware
-			currentPosition = mAudioPositionMsec - mAudioLatencyMsec + playedDiffMsec; 
-			if (currentPosition < 0)
-				currentPosition = 0;
-		} else {
-			currentPosition = mSeekingTimeMsec;
-		}
-		
-		mCurrentTimeMsec = currentPosition;
-		return (int)mCurrentTimeMsec;
+		if (mSeeking)
+			return (int)mSeekingTimeMsec;
+		else
+			return (int)mCurrentTimeMsec;
 	}
 
 	@Override
