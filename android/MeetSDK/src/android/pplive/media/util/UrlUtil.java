@@ -31,7 +31,6 @@ public class UrlUtil {
 	
 	public static boolean isUseSystemExtractor(String url) {
 		return false;
-		
 		/*String url_lower = url.toLowerCase();
 		if (url_lower.startsWith("http://")) {
 			if (url_lower.indexOf(".m3u8") != -1)

@@ -494,7 +494,11 @@ jint android_media_MediaExtractor_readSampleData(JNIEnv *env, jobject thiz, jobj
         env->ReleaseByteArrayElements(byteArray, (jbyte *)dst, 0);
     }
 
-	if (err != OK) {
+	if (err == READ_EOF) {
+		PPLOGI("find eof");
+		return -1;
+	}
+	else if (err != OK) {
 		PPLOGE("failed to call readSampleData() %d", err);
         return -1;
     }

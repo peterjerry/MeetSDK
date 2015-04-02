@@ -797,7 +797,7 @@ void FFExtractor::flush_l()
 
 status_t FFExtractor::advance()
 {
-	LOGI("advance()");
+	LOGD("advance()");
 
 	if (m_sample_pkt) {
 		if (m_sample_pkt->data && strncmp((const char *)m_sample_pkt->data, "FLUSH", 5) != 0)
@@ -807,6 +807,11 @@ status_t FFExtractor::advance()
 	}
 
 	if (m_video_q.count() == 0 || m_audio_q.count() == 0) {
+		if (m_eof) {
+			LOGI("advance meet eof");
+			return OK;
+		}
+
 		m_buffering = true;
 
 		LOGI("notifyListener_l MEDIA_INFO_BUFFERING_START");
@@ -910,13 +915,17 @@ status_t FFExtractor::advance()
 
 status_t FFExtractor::readSampleData(unsigned char *data, int32_t *sampleSize)
 {
-	LOGI("readSampleData()");
+	LOGD("readSampleData()");
 	
 	if (start() < 0)
 		return ERROR;
 
-	if (is_packet_valid() < 0)
+	if (!is_packet_valid()) {
+		if (m_eof)
+			return READ_EOF;
+		
 		return ERROR;
+	}
 
 	if (m_video_stream_idx == m_sample_pkt->stream_index) {
 		if (m_sample_pkt->data && strncmp((const char *)m_sample_pkt->data, "FLUSH", 5) != 0 && m_pBsfc_h264) {
@@ -952,12 +961,9 @@ status_t FFExtractor::readSampleData(unsigned char *data, int32_t *sampleSize)
 	return OK;
 }
 
-int FFExtractor::is_packet_valid()
+bool FFExtractor::is_packet_valid()
 {
-	if (/*m_eof || */NULL == m_sample_pkt)
-		return -1;
-
-	return 0;
+	return (NULL != m_sample_pkt);
 }
 
 status_t FFExtractor::getSampleTrackIndex(int32_t *trackIndex)
@@ -971,7 +977,7 @@ status_t FFExtractor::getSampleTrackIndex(int32_t *trackIndex)
 
 status_t FFExtractor::getSampleTime(int64_t *sampleTimeUs)
 {
-	if (is_packet_valid() < 0)
+	if (!is_packet_valid())
 		return ERROR;
 
 	*sampleTimeUs = m_sample_clock_msec * 1000;
@@ -980,7 +986,7 @@ status_t FFExtractor::getSampleTime(int64_t *sampleTimeUs)
 
 status_t FFExtractor::getSampleFlags(uint32_t *sampleFlags)
 {
-	if (is_packet_valid() < 0)
+	if (!is_packet_valid())
 		return ERROR;
 
 	//int sync = (m_sample_pkt->flags & AV_PKT_FLAG_KEY);
@@ -1273,7 +1279,11 @@ void FFExtractor::thread_impl()
 	// fix MEDIA_INFO_BUFFERING_END sent before MEDIA_INFO_BUFFERING_START problem
 	//notifyListener_l(MEDIA_INFO, MEDIA_INFO_BUFFERING_START);
 
-	while (FFEXTRACTOR_STOPPING != m_status) {
+	while (1) {
+		if (FFEXTRACTOR_STOPPING == m_status || FFEXTRACTOR_STOPPING ==  m_status) {
+            LOGI("FFExtractor is stopping");
+            break;
+        }
 
 		if (m_seeking) {
 			m_video_keyframe_sync = false;
@@ -1348,8 +1358,18 @@ void FFExtractor::thread_impl()
 			av_free_packet(pPacket);
 			av_free(pPacket);
 			m_eof = true;
-			LOGW("av_read_frame() eof");
-			break;
+			LOGI("av_read_frame() eof");
+
+			// 2014.8.25 guoliangma added, to fix cannot play clip which duration is less than 3sec
+			if (m_buffering) {
+				m_buffering = false;
+				LOGI("MEDIA_INFO_BUFFERING_END because of stream end");
+				notifyListener_l(MEDIA_INFO, MEDIA_INFO_BUFFERING_END);
+			}
+
+			// continue for seek back
+			av_usleep(10 * 1000); // 10 msec
+			continue;
 		}
 		else if (ret < 0) {
 			char msg[128] = {0};

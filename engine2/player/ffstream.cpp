@@ -893,13 +893,17 @@ void FFStream::thread_impl()
 
                 //end of stream
                 mReachEndStream = true;
-                LOGW("reach end of stream");
+                LOGI("reach end of stream");
 				
 				// 2014.8.25 guoliangma added, to fix cannot play clip which duration is less than 3sec
-				mIsBuffering = false;
-				LOGI("MEDIA_INFO_BUFFERING_END because of stream end");
-				notifyListener_l(MEDIA_INFO, MEDIA_INFO_BUFFERING_END);
+				if (mIsBuffering) {
+					mIsBuffering = false;
+					LOGI("MEDIA_INFO_BUFFERING_END because of stream end");
+					notifyListener_l(MEDIA_INFO, MEDIA_INFO_BUFFERING_END);
+				}
 
+				// continue for seek back
+				av_usleep(10 * 1000); // 10 msec
                 continue;
             }
             else if(ret == AVERROR_EXIT) {

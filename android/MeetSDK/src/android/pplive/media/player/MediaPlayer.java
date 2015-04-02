@@ -873,7 +873,8 @@ public class MediaPlayer implements MediaPlayerInterface {
 	@Override
 	public Bitmap getSnapShot(int width, int height, int fmt, int msec) {
 		if (mPlayer != null) {
-			if (mPlayer instanceof FFMediaPlayer) { // mDecodeMode == DecodeMode.SW 
+			if (mPlayer instanceof FFMediaPlayer || mPlayer instanceof XOMediaPlayer) { 
+				// mDecodeMode == DecodeMode.SW || DecodeMode.HW_XOPLAYER
 				LogUtils.info("getSnapShot: " + msec);
 				return mPlayer.getSnapShot(width, height, fmt, msec);
 			}

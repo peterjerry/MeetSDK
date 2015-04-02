@@ -65,7 +65,7 @@ private:
 
 	void close();
 
-	int is_packet_valid();
+	bool is_packet_valid();
 
 	static void* demux_thread(void* ptr);
 
