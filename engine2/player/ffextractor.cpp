@@ -1122,7 +1122,6 @@ int FFExtractor::open_codec_context_idx(int stream_idx)
 
 		LOGI("media framerate: %d", m_framerate);
 
-		LOGI("xxxx %s", m_url);
 		if (strncmp(m_url, "/", 1) != 0 && strstr(m_url, "file://") == NULL)  
 			m_min_play_buf_count = m_framerate * 4;
 	}

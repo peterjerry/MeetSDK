@@ -222,6 +222,7 @@ public class ClipListActivity extends Activity implements
 	private final int EPG_ITEM_CONTENT_SURFIX	= 6;
 	private final int EPG_ITEM_LIST			= 7;
 	private final int EPG_ITEM_CDN				= 11;
+	private final int EPG_ITEM_FT				= 12;
 
 	private boolean mListLocalFile				= true;
 	
@@ -284,6 +285,7 @@ public class ClipListActivity extends Activity implements
 	private static final int MSG_WRONG_PARAM						= 513;
 	private static final int MSG_PUSH_CDN_CLIP					= 601;
 	private static final int MSG_PLAY_CDN_URL						= 602;
+	private static final int MSG_PLAY_CDN_FT						= 603;
 	
 	private ProgressDialog progDlg 				= null;
 	
@@ -1469,11 +1471,14 @@ public class ClipListActivity extends Activity implements
 					if (!ret)
 						Toast.makeText(ClipListActivity.this, "failed to save play history", Toast.LENGTH_SHORT).show();
 					
+					et_playlink.setText(mEPGLinkList.get(0).getId());
+					
 					Toast.makeText(
 							ClipListActivity.this,
 							String.format("\"%s\" was selected", mEPGLinkList.get(0).getTitle()),
 							Toast.LENGTH_SHORT).show();
-					et_playlink.setText(mEPGLinkList.get(0).getId());
+					
+					new EPGTask().execute(EPG_ITEM_FT, Integer.valueOf(mEPGLinkList.get(0).getId()));
 				}
 				else {
 					popupEPGCollectionDlg();
@@ -1503,8 +1508,12 @@ public class ClipListActivity extends Activity implements
 				stop_player();
 				start_player(mDLNAPushUrl);
 				break;
+			case MSG_PLAY_CDN_FT:
+				btn_ft.setText(String.valueOf(msg.arg1));
+				Log.i(TAG, "Java: set ft to: "+ msg.arg1);
+				break;
 			default:
-				Log.w(TAG, "unknown msg.what " + msg.what);
+				Log.w(TAG, "Java: unknown msg.what " + msg.what);
 				break;
 			}			 
         }
@@ -1557,6 +1566,15 @@ public class ClipListActivity extends Activity implements
 							}
 							else {
 								mEPGtype = null;
+							}
+							
+							if (mEPGtype.contains("type=211118")) {
+								btn_bw_type.setText("4");
+								if (!mIsNoVideo) {
+									mIsNoVideo = true;
+									imageNoVideo.setVisibility(View.VISIBLE);
+								}
+								Log.i(TAG, "Java: switch to audio mode");
 							}
 							
 							Toast.makeText(ClipListActivity.this, "loading epg clip...", Toast.LENGTH_SHORT).show();
@@ -1876,7 +1894,7 @@ public class ClipListActivity extends Activity implements
 
     			mHandler.sendEmptyMessage(MSG_EPG_LIST_DONE);
         	}
-        	else if (EPG_ITEM_CDN == type){
+        	else if (EPG_ITEM_CDN == type) {
         		Log.i(TAG, "Java: EPGTask start to getCDNUrl");
         		mDLNAPushUrl = mEPG.getCDNUrl(String.valueOf(id), btn_ft.getText().toString(), false, mIsNoVideo);
         		if (mDLNAPushUrl == null) {
@@ -1888,6 +1906,31 @@ public class ClipListActivity extends Activity implements
         			mHandler.sendEmptyMessage(MSG_PLAY_CDN_URL);
         		else
         			push_cdn_clip();
+        	}
+        	else if (EPG_ITEM_FT == type) {
+        		Log.i(TAG, "Java: EPGTask start to getCDNUrl");
+        		int []ft_list = mEPG.getAvailableFT(String.valueOf(id));
+        		if (ft_list == null || ft_list.length == 0) {
+        			mHandler.sendEmptyMessage(MSG_FAIL_TO_CONNECT_EPG_SERVER);
+            		return false;
+        		}
+        		
+        		
+        		int ft = -1;
+        		for (int i=ft_list.length - 1;i>=0;i--) {
+        			if (ft_list[i] >= 0 && ft_list[i] < 4) {
+        				ft = ft_list[i];
+        				break;
+        			}
+        		}
+        		
+        		if (ft == -1) {
+        			mHandler.sendEmptyMessage(MSG_FAIL_TO_CONNECT_EPG_SERVER);
+            		return false;
+        		}
+        		
+        		Message msg = mHandler.obtainMessage(MSG_PLAY_CDN_FT, ft, 0);
+    	        msg.sendToTarget();
         	}
         	else {
         		Log.w(TAG, "Java: EPGTask invalid type: " + type);

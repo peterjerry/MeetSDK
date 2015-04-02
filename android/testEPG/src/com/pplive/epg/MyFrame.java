@@ -516,7 +516,7 @@ public class MyFrame extends JFrame {
 			ret = mEPG.live(1, 15, type);
 		}
 		else
-			ret = mEPG.list(param, mContentType, 1, "order=n", 10);
+			ret = mEPG.list(param, mContentType, 1, "order=t", 10);
 		
 		if (!ret)
 			return;

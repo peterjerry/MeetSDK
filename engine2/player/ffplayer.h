@@ -11,7 +11,6 @@
 #include "loop.h"
 #include "audioplayer.h"
 #include "ffstream.h"
-//#include "../subtitle/subtitle.h"
 
 class ISubtitles;
 class FFRender;
