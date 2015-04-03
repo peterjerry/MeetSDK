@@ -2439,19 +2439,6 @@ status_t FFPlayer::decode_l(AVPacket *packet)
 	}
 
 	return OK;
-
-	
-	/*if (packet->dts == AV_NOPTS_VALUE && mFrame->opaque
-			&& *(uint64_t*) mFrame->opaque != AV_NOPTS_VALUE) {
-		pts = *(uint64_t *) mFrame->opaque;
-	} else if (packet->dts != AV_NOPTS_VALUE) {
-		pts = packet->dts;
-	} else {
-		pts = 0;
-	}
-	pts *= av_q2d(mStream->time_base);
-	LOGV("Video pts:%d", pts);
-	*/
 }
 
 static void decodeNAL(uint8_t* dst, uint8_t* src, int32_t size )

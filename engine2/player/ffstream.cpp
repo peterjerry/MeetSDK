@@ -602,7 +602,7 @@ status_t FFStream::getPacket(int32_t streamIndex, AVPacket** packet)
             }
             else { // queue is empty but not EOF
 		        LOGD("audio queue empty");
-                if(!mIsBuffering) {
+                if (!mIsBuffering) {
                     mIsBuffering = true;
 					int64_t offset = (mMovieFile->pb ? avio_tell(mMovieFile->pb) : 0);
 #ifdef _MSC_VER	

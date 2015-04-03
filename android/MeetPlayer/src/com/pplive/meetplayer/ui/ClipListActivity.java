@@ -763,9 +763,11 @@ public class ClipListActivity extends Activity implements
 				if (ppbox_playid >= 300000 && ppbox_playid < 300999 && 
 						(mPlayerLinkSurfix == null || mPlayerLinkSurfix.equals(""))) {
 					mIsLivePlay = true;
+					Log.i(TAG, "Java: set mIsLivePlay to true");
 				}
 				else {
 					mIsLivePlay = false;
+					Log.i(TAG, "Java: set mIsLivePlay to false");
 				}
 				
 				if (ppbox_bw_type == 4) {// dlna
@@ -1000,39 +1002,6 @@ public class ClipListActivity extends Activity implements
 		}
 	}
 	
-	protected void onActivityResult(int requestCode, int resultCode, Intent intent) {
-        super.onActivityResult(requestCode, resultCode, intent);
-        switch(requestCode){//判断父activity中的哪个按钮
-            case 1://如果是按钮1
-            	break;
-            case 2://如果是按钮2
-            	break;
-            default:
-            	break;
-        }
-        
-        switch(resultCode){//判断是哪个子activity
-            case 1://如果是子activity1
-            	String strStartTime = intent.getStringExtra("start_time");
-            	long start_time = intent.getLongExtra("start_time_sec", 0);
-                int duration = intent.getIntExtra("duration_min", 60);
-                Log.i(TAG, String.format("activity return result: %s %d(%d min)", strStartTime, start_time, duration));
-                
-                mPlayerLinkSurfix = String.format("&begin_time=%d&end_time=%d", start_time, start_time + duration * 60);
-                try {
-                	mPlayerLinkSurfix = URLEncoder.encode(mPlayerLinkSurfix, "utf-8");
-				} catch (UnsupportedEncodingException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
-				}
-            	break;
-            case 2://如果是子activity2
-            	break;
-            default:
-            	break;
-        }
-	}
-	
 	@SuppressWarnings("deprecation") // avoid setType warning
 	private int start_player(String path) {
 		mPlayUrl = path;
@@ -1186,7 +1155,6 @@ public class ClipListActivity extends Activity implements
 				mWifiLock.acquire();
 			}
 
-			mIsLivePlay 		= false;
 			mStoped 			= false;
 			mHomed 				= false;
 			mBufferingPertent 	= 0;
@@ -1250,6 +1218,8 @@ public class ClipListActivity extends Activity implements
 			mPlayer.stop();
 			mPlayer.release();
 			mPlayer = null;
+
+			mIsLivePlay = false;
 			
 			if (mWifiLock != null) {
 				try {
@@ -1563,18 +1533,18 @@ public class ClipListActivity extends Activity implements
 							int pos = mLink.indexOf("type=");
 							if (pos != -1) {
 								mEPGtype = mLink.substring(pos, mLink.length());
+								
+								if (mEPGtype.contains("type=211118")) {
+									btn_bw_type.setText("4");
+									if (!mIsNoVideo) {
+										mIsNoVideo = true;
+										imageNoVideo.setVisibility(View.VISIBLE);
+									}
+									Log.i(TAG, "Java: switch to audio mode");
+								}
 							}
 							else {
 								mEPGtype = null;
-							}
-							
-							if (mEPGtype.contains("type=211118")) {
-								btn_bw_type.setText("4");
-								if (!mIsNoVideo) {
-									mIsNoVideo = true;
-									imageNoVideo.setVisibility(View.VISIBLE);
-								}
-								Log.i(TAG, "Java: switch to audio mode");
 							}
 							
 							Toast.makeText(ClipListActivity.this, "loading epg clip...", Toast.LENGTH_SHORT).show();
