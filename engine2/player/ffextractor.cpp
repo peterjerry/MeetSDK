@@ -677,6 +677,8 @@ int16_t FFExtractor::get_aac_extradata(AVCodecContext *c)
 
 status_t FFExtractor::selectTrack(int32_t index)
 {
+	LOGI("selectTrack %d", index);
+
 	if (index < 0 || index >= (int)m_fmt_ctx->nb_streams) {
 		LOGE("invalid stream idx: %d to selectTrack", index);
 		return ERROR;
@@ -692,6 +694,8 @@ status_t FFExtractor::selectTrack(int32_t index)
 
 status_t FFExtractor::unselectTrack(int32_t index)
 {
+	LOGI("unselectTrack %d", index);
+
 	if (index >= (int)m_fmt_ctx->nb_streams) {
 		LOGE("invalid stream idx: %d to unselectTrack", index);
 		return ERROR;
@@ -768,8 +772,9 @@ bool FFExtractor::seek_l()
 		AVPacket* flush_pkt = (AVPacket*)av_malloc(sizeof(AVPacket));
 		av_init_packet(flush_pkt);
 
-		flush_pkt->data = (uint8_t*)"FLUSH";
-		flush_pkt->size = 5;
+		flush_pkt->stream_index	= m_video_stream_idx;
+		flush_pkt->data			= (uint8_t*)"FLUSH";
+		flush_pkt->size			= 5;
 
 		m_video_q.put(flush_pkt);
 	}
@@ -778,8 +783,9 @@ bool FFExtractor::seek_l()
 		AVPacket* flush_pkt = (AVPacket*)av_malloc(sizeof(AVPacket));
 		av_init_packet(flush_pkt);
 
-		flush_pkt->data = (uint8_t*)"FLUSH";
-		flush_pkt->size = 5;
+		flush_pkt->stream_index	= m_audio_stream_idx;
+		flush_pkt->data			= (uint8_t*)"FLUSH";
+		flush_pkt->size			= 5;
 
 		m_audio_q.put(flush_pkt);
 	}
@@ -1405,8 +1411,10 @@ void FFExtractor::thread_impl()
 			}
 		}
 		else {
-			LOGE("invalid packet found: stream_idx %d", pPacket->stream_index);
-			break;
+			LOGW("invalid packet found: stream_idx %d", pPacket->stream_index);
+			av_free_packet(pPacket);
+			av_free(pPacket);
+			continue;
 		}
 
 		m_buffered_size += pPacket->size;

@@ -657,6 +657,7 @@ public class XOMediaPlayer extends BaseMediaPlayer {
 		}
 		
 		mAudioTrack.play();
+		mAudioStartMsec = mSeekingTimeMsec;
 		
 		mPlayLock.lock();
 		mPlayCond.signalAll();
@@ -690,7 +691,9 @@ public class XOMediaPlayer extends BaseMediaPlayer {
         // |----diff----pts################play->audio_hardware
 		audio_clock_msec = mAudioPositionMsec - mAudioLatencyMsec + playedDiffMsec;
 
-		return mAudioTrack.getPlaybackHeadPosition() * 1000 / mAudioTrack.getSampleRate();
+		LogUtils.info(String.format("aaaa %d %d %d %d", audio_clock_msec, mAudioStartMsec, mAudioTrack.getPlaybackHeadPosition(),
+				mAudioTrack.getPlaybackHeadPosition() * 1000 / mAudioTrack.getSampleRate()));
+		return mAudioStartMsec + mAudioTrack.getPlaybackHeadPosition() * 1000 / mAudioTrack.getSampleRate();
 	}
 	
 	private void read_sample_proc() {
@@ -731,7 +734,7 @@ public class XOMediaPlayer extends BaseMediaPlayer {
 			int trackIndex = mExtractor.getSampleTrackIndex();
 			
 			MediaCodec codec = getCodec(trackIndex);
-			int inputBufIndex;
+			int inputBufIndex = -1;
 			try {
 				Lock lock;
 				if (mVideoTrackIndex == trackIndex)
@@ -745,13 +748,13 @@ public class XOMediaPlayer extends BaseMediaPlayer {
 			}
 			catch (IllegalStateException e) {
 				e.printStackTrace();
-				LogUtils.error("codec dequeueInputBuffer exception: " + e.getMessage());
+				LogUtils.warn("codec dequeueInputBuffer exception: " + e.getMessage());
 				
-				Message msg = mEventHandler.obtainMessage(MediaPlayer.MEDIA_ERROR);
+				/*Message msg = mEventHandler.obtainMessage(MediaPlayer.MEDIA_ERROR);
 				msg.arg1 = MediaPlayer.MEDIA_ERROR_DEMUXER;
 				msg.arg2 = 0;
 				msg.sendToTarget();
-				break;
+				break;*/
 			}
 			
 			if (inputBufIndex >= 0) {
@@ -760,9 +763,11 @@ public class XOMediaPlayer extends BaseMediaPlayer {
                 int sampleSize = mExtractor.readSampleData(dstBuf, 0 /* offset */);
                 long presentationTimeUs = 0;
                 if (sampleSize < 0) {
-                    LogUtils.info("saw input EOS.");
-                    sawInputEOS = true;
-                    sampleSize = 0;
+                	//if (mExtractor.hasCachedReachedEndOfStream()) {
+	                    LogUtils.info("saw input EOS.");
+	                    sawInputEOS = true;
+	                    sampleSize = 0;
+                	//}
                 } else {
                     presentationTimeUs = mExtractor.getSampleTime();
                     sawInputEOS = false;
@@ -884,14 +889,17 @@ public class XOMediaPlayer extends BaseMediaPlayer {
 				codec.flush();
 				
 				if (isVideo) {
-					LogUtils.info("Java: flush before clear render list");
+					LogUtils.info("Java: flush video");
 					list.clear();
 					ResetStatics();
 					mCurrentTimeMsec = mSeekingTimeMsec;
 				}
 				else {
-					mAudioPositionMsec 	= mSeekingTimeMsec;
+					LogUtils.info("Java: flush audio");
+					mAudioTrack.pause();
+					mAudioTrack.flush();
 					mAudioTrack.play();
+					mAudioStartMsec = mSeekingTimeMsec;
 					mSeeking = false;
 				}
 
@@ -1164,7 +1172,7 @@ public class XOMediaPlayer extends BaseMediaPlayer {
     				mAudioTrack.write(mAudioData, 0, bufSize);
 
     				// update audio clock
-    				mAudioStartMsec = System.currentTimeMillis();
+    				//mAudioStartMsec = System.currentTimeMillis();
     				
     				mAudioPositionMsec = info.presentationTimeUs / 1000;
         		}
@@ -1403,8 +1411,6 @@ public class XOMediaPlayer extends BaseMediaPlayer {
 		mSeekingTimeMsec = (long)seekingTime;
 		mSeeking = true;
 		LogUtils.info("Java: set mSeeking to true");
-		
-		mAudioTrack.pause();
 		
 		Message msg = mMediaEventHandler.obtainMessage(EVENT_SEEKTO);
 		mMediaEventHandler.sendMessageAtFrontOfQueue(msg);
