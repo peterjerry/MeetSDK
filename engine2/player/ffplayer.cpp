@@ -3353,7 +3353,7 @@ bool FFPlayer::getMediaDetailInfo(const char* url, MediaInfo* info)
     return true;
 }
 
-bool FFPlayer::getThumbnail(const char* url, MediaInfo* info)
+bool FFPlayer::getThumbnail2(const char* url, MediaInfo* info)
 {
 	LOGD("getThumbnail()");
 
@@ -3530,7 +3530,7 @@ bool FFPlayer::getThumbnail(const char* url, MediaInfo* info)
     return ret;
 }
 
-bool FFPlayer::getThumbnail2(const char* url, MediaInfo* info)
+bool FFPlayer::getThumbnail(const char* url, MediaInfo* info)
 {
 	LOGI("getThumbnail2()");
 
@@ -3613,7 +3613,7 @@ bool FFPlayer::getThumbnail2(const char* url, MediaInfo* info)
         goto end;
     }
 
-	if(info->duration_ms > 0 && info->duration_ms < seekPosition * 1000)
+	if (info->duration_ms > 0 && info->duration_ms < seekPosition * 1000)
 		seekPosition = info->duration_ms / 1000;
 	seek_target = seekPosition * AV_TIME_BASE;
 

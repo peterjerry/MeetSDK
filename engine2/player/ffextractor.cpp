@@ -29,7 +29,7 @@ extern JavaVM* gs_jvm;
 #define MEDIA_OPEN_TIMEOUT_MSEC		(120 * 1000) // 2 min
 #define MEDIA_READ_TIMEOUT_MSEC		(300 * 1000) // 5 min
 
-#define VIDOE_POP_AHEAD_MSEC 200
+#define VIDOE_POP_AHEAD_MSEC 0
 
 // NAL unit types
 enum NALUnitType {

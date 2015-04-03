@@ -72,7 +72,9 @@ public class XOMediaPlayer extends BaseMediaPlayer {
 	private boolean mHaveAudio = false;
 	private boolean mHaveVideo = false;
 	
+	private Lock mAudioCodecLock = null;
 	private MediaCodec mAudioCodec = null;
+	private Lock mVideoCodecLock = null;
 	private MediaCodec mVideoCodec = null;
 	
 	private byte[] mAudioData = null;
@@ -492,7 +494,7 @@ public class XOMediaPlayer extends BaseMediaPlayer {
 		int minSize = AudioTrack.getMinBufferSize(
 				sampleRate, channelConfig, AudioFormat.ENCODING_PCM_16BIT);
 		
-		mAudioLatencyMsec = minSize * 2 * 1000 / (sampleRate * channelCount * 2/*s16*/);
+		mAudioLatencyMsec = minSize * 1000 / (sampleRate * channelCount * 2/*s16*/);
 		
 		LogUtils.info(String.format("audio format: channels %d, channel_cfg %d, sample_rate %d, minbufsize %d, latency %d", 
 				channelCount, channelConfig, sampleRate, minSize, mAudioLatencyMsec));
@@ -503,7 +505,7 @@ public class XOMediaPlayer extends BaseMediaPlayer {
 				sampleRate,
 				channelConfig, 
 				AudioFormat.ENCODING_PCM_16BIT,
-				minSize * 2,
+				minSize,
 				AudioTrack.MODE_STREAM);
 		
 		mAudioPositionUpdateListener = new AudioTrack.OnPlaybackPositionUpdateListener() {
@@ -528,9 +530,7 @@ public class XOMediaPlayer extends BaseMediaPlayer {
 			LogUtils.error("failed to new AudioTrack: " + mAudioTrack.getState());
 			return false;
 		}
-		
-		mAudioTrack.play();
-		
+
 		LogUtils.info("Init Audio Track Success!!!");
 		return true;
 	}
@@ -547,6 +547,8 @@ public class XOMediaPlayer extends BaseMediaPlayer {
 			
 			mAudioCodec.configure(mAudioFormat, null /* surface */, null /* crypto */, 0 /* flags */);
 			mAudioCodec.start();
+			
+			mAudioCodecLock = new ReentrantLock();
 			
 			mExtractor.selectTrack(mAudioTrackIndex);
 		} catch (Exception e) {
@@ -579,6 +581,8 @@ public class XOMediaPlayer extends BaseMediaPlayer {
 			mVideoCodec.configure(mVideoFormat, mSurface /* surface */, null /* crypto */, 0 /* flags */);
 			mVideoCodec.start();
 	
+			mVideoCodecLock = new ReentrantLock();
+			
 			mExtractor.selectTrack(mVideoTrackIndex);
 
 			LogUtils.info(String.format("Video Decoder inputBuf count: %d, outputBuf count: %d",
@@ -652,6 +656,8 @@ public class XOMediaPlayer extends BaseMediaPlayer {
 			mRenderAudioThr.start();
 		}
 		
+		mAudioTrack.play();
+		
 		mPlayLock.lock();
 		mPlayCond.signalAll();
 		mPlayLock.unlock();
@@ -683,10 +689,8 @@ public class XOMediaPlayer extends BaseMediaPlayer {
 				mAudioPositionMsec, mAudioLatencyMsec, playedDiffMsec));
         // |----diff----pts################play->audio_hardware
 		audio_clock_msec = mAudioPositionMsec - mAudioLatencyMsec + playedDiffMsec;
-		if (audio_clock_msec < 0)
-			audio_clock_msec = 0;
-		
-		return audio_clock_msec;
+
+		return mAudioTrack.getPlaybackHeadPosition() * 1000 / mAudioTrack.getSampleRate();
 	}
 	
 	private void read_sample_proc() {
@@ -729,11 +733,24 @@ public class XOMediaPlayer extends BaseMediaPlayer {
 			MediaCodec codec = getCodec(trackIndex);
 			int inputBufIndex;
 			try {
+				Lock lock;
+				if (mVideoTrackIndex == trackIndex)
+					lock = mVideoCodecLock;
+				else
+					lock = mAudioCodecLock;
+				
+				lock.lock();
 				inputBufIndex = codec.dequeueInputBuffer(TIMEOUT);
+				lock.unlock();
 			}
 			catch (IllegalStateException e) {
 				e.printStackTrace();
-				LogUtils.error("codec dequeueInputBuffer exception" + e.getMessage());
+				LogUtils.error("codec dequeueInputBuffer exception: " + e.getMessage());
+				
+				Message msg = mEventHandler.obtainMessage(MediaPlayer.MEDIA_ERROR);
+				msg.arg1 = MediaPlayer.MEDIA_ERROR_DEMUXER;
+				msg.arg2 = 0;
+				msg.sendToTarget();
 				break;
 			}
 			
@@ -750,37 +767,7 @@ public class XOMediaPlayer extends BaseMediaPlayer {
                     presentationTimeUs = mExtractor.getSampleTime();
                     sawInputEOS = false;
                 }
-                
-                if (sampleSize >= 5) {
-                	String str_flush = "FLUSH";
-                    byte[] byte_ctx = new byte[5];
-                    dstBuf.get(byte_ctx);
-                    String strPkt = new String(byte_ctx);
-                    if (str_flush.equals(strPkt)) {
-                    	LogUtils.info("Java: found flush pkt");
-                    	
-                    	if (trackIndex == mVideoTrackIndex) {
-    	                	LogUtils.info("Java: flush before clear render list");
-    	    				mVideoListLock.lock();
-    	    				mVideoPktList.clear();
-    	    				mVideoCodec.flush();
-    	    				mVideoListLock.unlock();
-    	    				
-    	    				ResetStatics();
-    	    				mCurrentTimeMsec = mSeekingTimeMsec;
-                    	}
-                    	else {
-                    		mAudioCodec.flush();
-                    		
-                    		mAudioPositionMsec 	= mSeekingTimeMsec;
-                    		mSeeking = false;
-                    	}
 
-                    	mExtractor.advance();
-                    	continue;
-                    }
-                }
-                
                 int flags = mExtractor.getSampleFlags();
                 
                 PacketBuf buf 	= new PacketBuf();
@@ -817,35 +804,42 @@ public class XOMediaPlayer extends BaseMediaPlayer {
 		LogUtils.info("read sample thread exited");
 	}
 	
-	private void queue_packet(boolean isVideo) {
+	private boolean queue_packet(boolean isVideo) {
+		boolean ret = true;
 		PacketBuf buf = null;
 		
 		List<PacketBuf> list = null;
+		Lock codecLock = null;
 		Lock lock = null;
 		Condition notFullCond = null;
+		Condition notEmptyCond = null;
 		MediaCodec codec = null;
 		
 		if (isVideo) {
 			codec 			= mVideoCodec;
+			codecLock		= mVideoCodecLock;
 			list 			= mVideoPktList;
 			lock 			= mVideoListLock;
 			notFullCond		= mVideoNotFullCond;
+			notEmptyCond	= mVideoNotEmptyCond;
 		}
 		else {
 			codec 			= mAudioCodec;
+			codecLock		= mAudioCodecLock;
 			list 			= mAudioPktList;
 			lock 			= mAudioListLock;
 			notFullCond		= mAudioNotFullCond;
+			notEmptyCond	= mAudioNotEmptyCond;
 		}
 		
 		try {
 			lock.lock();
             while (list.size() == 0 && getState() != PlayState.STOPPING)    
-            	mVideoNotEmptyCond.await(); // how to quit?
+            	notEmptyCond.await(); // how to quit?
             
-            if (mVideoPktList.size() == 0) {
+            if (list.size() == 0) {
 				LogUtils.info(String.format("Java: %s list is empty", isVideo ? "video" : "audio"));
-				return;
+				return false;
 			}
             
             buf = list.get(0);
@@ -862,7 +856,7 @@ public class XOMediaPlayer extends BaseMediaPlayer {
 		
 		if (buf == null) {
 			LogUtils.info(String.format("Java: %s buf is null", isVideo ? "video" : "audio"));
-			return;
+			return false;
 		}
 		
 		int trackIndex			= buf.track_index;
@@ -871,21 +865,55 @@ public class XOMediaPlayer extends BaseMediaPlayer {
 		long presentationTimeUs	= buf.presentationTimeUs;
 		int flags				= buf.flags;
 		
+		//codecLock.lock();
+		
 		boolean sawInputEOS = false;
 		if (sampleSize < 0) {
 			sawInputEOS = true;
 			LogUtils.info("saw video Input EOS.");
 		}
+		else if (sampleSize >= 5) {
+			String str_flush = "FLUSH";
+			byte[] byte_ctx = new byte[5];
+			ByteBuffer dstBuf = codec.getInputBuffers()[inputBufIndex];
+			dstBuf.get(byte_ctx);
+			String strPkt = new String(byte_ctx);
+			if (str_flush.equals(strPkt)) {
+				LogUtils.info("Java: found flush pkt");
+				
+				codec.flush();
+				
+				if (isVideo) {
+					LogUtils.info("Java: flush before clear render list");
+					list.clear();
+					ResetStatics();
+					mCurrentTimeMsec = mSeekingTimeMsec;
+				}
+				else {
+					mAudioPositionMsec 	= mSeekingTimeMsec;
+					mAudioTrack.play();
+					mSeeking = false;
+				}
 
-		codec.queueInputBuffer(
+				ret = false;
+			}
+		}
+
+		if (ret) {
+			codec.queueInputBuffer(
                 inputBufIndex,
                 0 /* offset */,
                 sampleSize,
                 presentationTimeUs,
                 sawInputEOS ? MediaCodec.BUFFER_FLAG_END_OF_STREAM : 0);
-        
-        LogUtils.debug(String.format("track #%d(%s): size %d, pts %d msec, flags %d", 
+				
+			LogUtils.debug(String.format("track #%d(%s): size %d, pts %d msec, flags %d", 
         		trackIndex, isVideo ? "video" : "audio", sampleSize, presentationTimeUs / 1000, flags));
+		}
+		
+		//codecLock.unlock();
+
+		return ret;
 	}
 	
 	private void video_proc() {
@@ -912,56 +940,8 @@ public class XOMediaPlayer extends BaseMediaPlayer {
 				}
 			}
 			
-			PacketBuf buf = null;
-			
-			try {
-				mVideoListLock.lock();
-	            while (mVideoPktList.size() == 0 && getState() != PlayState.STOPPING)    
-	            	mVideoNotEmptyCond.await(); // how to quit?
-	            
-	            if (mVideoPktList.size() == 0) {
-					LogUtils.info("Java: video list is empty");
-					break;
-				}
-	            
-	            buf = mVideoPktList.get(0);
-				mVideoPktList.remove(0);
-	            mVideoNotFullCond.signal();    
-	        } catch (InterruptedException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-				LogUtils.info("Java: mVideoNotEmptyCond.await InterruptedException");
-			} finally {
-				mVideoListLock.unlock();
-			}
-			
-			if (buf == null) {
-				LogUtils.info("Java: video buf is null");
-				break;
-			}
-			
-			int trackIndex			= buf.track_index;
-			int inputBufIndex 		= buf.buf_index;
-			int sampleSize 			= buf.buf_size;
-			long presentationTimeUs	= buf.presentationTimeUs;
-			int flags				= buf.flags;
-			
-			boolean sawInputEOS = false;
-			if (sampleSize < 0)
-				sawInputEOS = true;
-			
-			if (sawOutputEOS)
-				LogUtils.info("saw video Output EOS.");
-			
-			mVideoCodec.queueInputBuffer(
-                    inputBufIndex,
-                    0 /* offset */,
-                    sampleSize,
-                    presentationTimeUs,
-                    sawInputEOS ? MediaCodec.BUFFER_FLAG_END_OF_STREAM : 0);
-            
-            LogUtils.debug(String.format("track #%d(video): size %d, pts %d msec, flags %d", 
-            		trackIndex, sampleSize, presentationTimeUs / 1000, flags));
+			if (!queue_packet(true))
+				continue;
 			
             int res;
 			try {
@@ -1126,58 +1106,8 @@ public class XOMediaPlayer extends BaseMediaPlayer {
 				}
 			}
 			
-			PacketBuf buf = null;
-			
-			
-			try {    
-				mAudioListLock.lock();
-				while (mAudioPktList.size() == 0 && getState() != PlayState.STOPPING)    
-	            	mAudioNotEmptyCond.await(); // how to quit?
-	            
-	            if (mAudioPktList.size() == 0) {
-					LogUtils.info("Java: audio list is empty");
-					break;
-				}
-	            
-	            buf = mAudioPktList.get(0);
-	            mAudioPktList.remove(0);
-	            mAudioNotFullCond.signal();    
-	        } catch (InterruptedException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-				LogUtils.info("Java: mAudioNotEmptyCond.await InterruptedException");
-			}
-			finally {
-				mAudioListLock.unlock();
-			}
-			
-			if (buf == null) {
-				LogUtils.info("Java: audio buf is null");
-				break;
-			}
-			
-			int trackIndex			= buf.track_index;
-			int inputBufIndex 		= buf.buf_index;
-			int sampleSize 			= buf.buf_size;
-			long presentationTimeUs	= buf.presentationTimeUs;
-			int flags				= buf.flags;
-			
-			boolean sawInputEOS = false;
-			if (sampleSize < 0)
-				sawInputEOS = true;
-			
-			if (sawOutputEOS)
-				LogUtils.info("saw video Output EOS.");
-			
-			mAudioCodec.queueInputBuffer(
-                    inputBufIndex,
-                    0 /* offset */,
-                    sampleSize,
-                    presentationTimeUs,
-                    sawInputEOS ? MediaCodec.BUFFER_FLAG_END_OF_STREAM : 0);
-            
-            LogUtils.debug(String.format("track #%d(audio): size %d, pts %d msec, flags %d", 
-            		trackIndex, sampleSize, presentationTimeUs / 1000, flags));
+			if (!queue_packet(false))
+				continue;
 			
             int res;
 			try {
@@ -1429,6 +1359,8 @@ public class XOMediaPlayer extends BaseMediaPlayer {
 			return;
 		}
 		
+		mAudioTrack.pause();
+		
 		stayAwake(false);
 		
 		setState(PlayState.PAUSED);
@@ -1471,6 +1403,8 @@ public class XOMediaPlayer extends BaseMediaPlayer {
 		mSeekingTimeMsec = (long)seekingTime;
 		mSeeking = true;
 		LogUtils.info("Java: set mSeeking to true");
+		
+		mAudioTrack.pause();
 		
 		Message msg = mMediaEventHandler.obtainMessage(EVENT_SEEKTO);
 		mMediaEventHandler.sendMessageAtFrontOfQueue(msg);
