@@ -691,9 +691,12 @@ public class XOMediaPlayer extends BaseMediaPlayer {
         // |----diff----pts################play->audio_hardware
 		audio_clock_msec = mAudioPositionMsec - mAudioLatencyMsec + playedDiffMsec;
 
-		LogUtils.info(String.format("aaaa %d %d %d %d", audio_clock_msec, mAudioStartMsec, mAudioTrack.getPlaybackHeadPosition(),
+		if (audio_clock_msec < 0)
+			audio_clock_msec = 0;
+		/*LogUtils.info(String.format("aaaa %d %d %d %d", audio_clock_msec, mAudioStartMsec, mAudioTrack.getPlaybackHeadPosition(),
 				mAudioTrack.getPlaybackHeadPosition() * 1000 / mAudioTrack.getSampleRate()));
-		return mAudioStartMsec + mAudioTrack.getPlaybackHeadPosition() * 1000 / mAudioTrack.getSampleRate();
+		return mAudioStartMsec + mAudioTrack.getPlaybackHeadPosition() * 1000 / mAudioTrack.getSampleRate();*/
+		return audio_clock_msec;
 	}
 	
 	private void read_sample_proc() {
@@ -886,7 +889,7 @@ public class XOMediaPlayer extends BaseMediaPlayer {
 			if (str_flush.equals(strPkt)) {
 				LogUtils.info("Java: found flush pkt");
 				
-				codec.flush();
+				//codec.flush();
 				
 				if (isVideo) {
 					LogUtils.info("Java: flush video");
@@ -1172,7 +1175,7 @@ public class XOMediaPlayer extends BaseMediaPlayer {
     				mAudioTrack.write(mAudioData, 0, bufSize);
 
     				// update audio clock
-    				//mAudioStartMsec = System.currentTimeMillis();
+    				mAudioStartMsec = System.currentTimeMillis();
     				
     				mAudioPositionMsec = info.presentationTimeUs / 1000;
         		}
