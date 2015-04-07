@@ -55,8 +55,6 @@ import android.widget.LinearLayout;
 import android.widget.RelativeLayout;
 import android.widget.TimePicker;
 import android.widget.Toast;
-import android.widget.MediaController;
-import android.widget.MediaController.MediaPlayerControl;
 import android.os.Build;
 import android.media.AudioManager;
 import android.graphics.Bitmap;
@@ -68,7 +66,6 @@ import android.view.ViewGroup.LayoutParams;
 import android.widget.TextView;
 import android.graphics.drawable.Drawable;
 import android.graphics.Color;
-import android.graphics.drawable.Drawable;
 import android.util.DisplayMetrics; // for display width and height
 import android.content.DialogInterface;
 import android.app.AlertDialog;
@@ -91,6 +88,7 @@ import com.pplive.meetplayer.util.Module;
 import com.pplive.meetplayer.util.PlayLink2;
 import com.pplive.meetplayer.util.PlayLinkUtil;
 import com.pplive.meetplayer.util.Util;
+import com.pplive.meetplayer.ui.widget.MiniMediaController;
 import com.pplive.meetplayer.ui.widget.MySimpleMediaController;
 import com.pplive.dlna.DLNASdk;
 
@@ -106,6 +104,7 @@ import com.pplive.dlna.DLNASdk;
 import android.os.Handler;  
 import android.os.Message;
 import android.pplive.media.MeetSDK;
+import android.pplive.media.player.MediaController.MediaPlayerControl;
 import android.pplive.media.player.MediaPlayer;
 import android.pplive.media.player.MediaInfo;
 import android.pplive.media.subtitle.SimpleSubTitleParser;
@@ -139,7 +138,7 @@ public class ClipListActivity extends Activity implements
 	private MyPreView mPreview;
 	private boolean mPreviewFocused = false;
 	private SurfaceHolder mHolder;
-	private MediaController mMediaController;
+	private MiniMediaController mMediaController;
 	private RelativeLayout mLayout;
 	private ProgressBar mBufferingProgressBar;
 	private EditText et_playlink;
@@ -353,8 +352,10 @@ public class ClipListActivity extends Activity implements
 		this.mBufferingProgressBar = (ProgressBar) findViewById(R.id.progressbar_buffering);
 		this.mSubtitleTextView = (TextView) findViewById(R.id.textview_subtitle);
 		
-		this.mMediaController = new MySimpleMediaController(this);
+		this.mMediaController = (MiniMediaController) findViewById(R.id.mmc);
 	
+		mMediaController.setInstance(this);
+		
 		readSettings();
 		
 		mTextViewInfo = new TextView(this);
@@ -1355,14 +1356,7 @@ public class ClipListActivity extends Activity implements
 
 	public boolean canSeekForward() {
 		return true;
-	}
-	
-	@Override
-	public int getAudioSessionId() {
-		// TODO Auto-generated method stub
-		return 0;
-	}
-	
+	}	
 	//end of : implements MediaPlayerControl
 	//////////////////////////////////////////
 	
@@ -1397,11 +1391,20 @@ public class ClipListActivity extends Activity implements
 				break;
 			case MSG_UPDATE_PLAY_INFO:
 			case MSG_UPDATE_RENDER_INFO:
-				mTextViewInfo.setText(String.format("%02d|%03d v-a: %+04d\n"
-						+ "dec/render %d(%d)/%d(%d) fps/msec\nbitrate %d kbps", 
-					render_frame_num % 25, decode_drop_frame % 1000, av_latency_msec, 
-					decode_fps, decode_avg_msec, render_fps, render_avg_msec,
-					video_bitrate));
+				if (isLandscape) {
+					mTextViewInfo.setText(String.format("%02d|%03d v-a: %+04d"
+							+ "dec/render %d(%d)/%d(%d) fps/msec bitrate %d kbps", 
+						render_frame_num % 25, decode_drop_frame % 1000, av_latency_msec, 
+						decode_fps, decode_avg_msec, render_fps, render_avg_msec,
+						video_bitrate));
+				}
+				else {
+					mTextViewInfo.setText(String.format("%02d|%03d v-a: %+04d\n"
+							+ "dec/render %d(%d)/%d(%d) fps/msec\nbitrate %d kbps", 
+						render_frame_num % 25, decode_drop_frame % 1000, av_latency_msec, 
+						decode_fps, decode_avg_msec, render_fps, render_avg_msec,
+						video_bitrate));
+				}
 				break;
 			case MSG_CLIP_PLAY_DONE:
 				Toast.makeText(ClipListActivity.this, "clip completed", Toast.LENGTH_SHORT).show();
@@ -2677,12 +2680,8 @@ public class ClipListActivity extends Activity implements
 	
     private void attachMediaController() {
         mMediaController.setMediaPlayer(this);
-        mMediaController.setAnchorView(mPreview);
-        //mMediaController.setPadding(0, 0, 0, 0);
         mMediaController.setEnabled(true);
-        
-        if (isLandscape)
-        	mMediaController.show(5000);
+        mMediaController.show(5000);
     }
     
 	@Override
@@ -2841,10 +2840,25 @@ public class ClipListActivity extends Activity implements
 	
 	@Override
 	public boolean onKeyDown(int keyCode, KeyEvent event) {
-		Log.i(TAG, "keyCode: " + keyCode);
-
-		if (keyCode == KeyEvent.KEYCODE_ENTER && mPreviewFocused)
-			mMediaController.show(5000);
+		Log.d(TAG, "keyCode: " + keyCode);
+		int incr = -1;
+		
+		if (!mPreviewFocused)
+			return super.onKeyDown(keyCode, event);
+		
+		switch (keyCode) {
+			case KeyEvent.KEYCODE_ENTER:
+			case KeyEvent.KEYCODE_DPAD_CENTER:
+			case KeyEvent.KEYCODE_MENU:
+				if (mPlayer != null && !mMediaController.isShowing()) {
+					mMediaController.show(5000);
+					return true;
+				}
+				break;
+			default:
+				Log.d(TAG, "no spec action: " + keyCode);
+				break;
+			}
 		
 		return super.onKeyDown(keyCode, event);
 	}

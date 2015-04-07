@@ -1,5 +1,7 @@
 package com.pplive.meetplayer.ui;
 
+import com.pplive.meetplayer.ui.widget.MiniMediaController;
+
 import android.content.Context;
 import android.util.AttributeSet;
 import android.util.Log;
@@ -9,7 +11,6 @@ import android.view.View.MeasureSpec;
 import android.view.Gravity;
 import android.view.GestureDetector; 
 import android.widget.RelativeLayout;
-import android.widget.MediaController;
 import android.view.KeyEvent;
 import android.view.MotionEvent;
 import android.pplive.media.player.MediaPlayer;
@@ -27,7 +28,7 @@ public class MyPreView extends SurfaceView {
 	private int mLayoutWidth			= 0;
 	private int mLayoutHeight			= 0;
 	//private RelativeLayout mLayout 		= null;
-	private MediaController mController;
+	private MiniMediaController mController;
 	private MediaPlayer mPlayer;
 	private GestureDetector mDetector;
 	
@@ -49,7 +50,7 @@ public class MyPreView extends SurfaceView {
 		mVideoHeight	= height;
 	}
 	
-	void BindInstance(MediaController controller, MediaPlayer player) {
+	void BindInstance(MiniMediaController controller, MediaPlayer player) {
 		mController = controller;
 		mPlayer = player;
 		
@@ -63,7 +64,7 @@ public class MyPreView extends SurfaceView {
             }  
         });  
 	}
-	
+
 	@Override
 	public boolean onTouchEvent(MotionEvent e) {
 		float x 	= e.getX();
@@ -71,10 +72,9 @@ public class MyPreView extends SurfaceView {
 		int mask 	= e.getActionMasked();
 		Log.i(TAG, String.format("Java: MyPreview touch %d: %.3f %.3f", mask, x, y));
 		if (MotionEvent.ACTION_UP == mask) {
-			if(mController != null) {
-        		if(!mController.isShowing()) {
-        				mController.show(3000);
-	    		}
+			if (mController != null) {
+        		if (!mController.isShowing())
+        			mController.show(3000);
 			}
 		}
 		

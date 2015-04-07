@@ -62,6 +62,12 @@
 			android:src="@drawable/novideo"
 			android:scaleType="fitXY" 
 			android:visibility="gone" />
+		<com.pplive.meetplayer.ui.widget.MiniMediaController
+			android:id="@+id/mmc"
+			android:layout_width="wrap_content"
+			android:layout_height="wrap_content"
+			android:layout_alignParentBottom="true" 
+			android:visibility="gone" />
 	</RelativeLayout>
 	
 	<LinearLayout  
