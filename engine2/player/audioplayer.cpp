@@ -19,6 +19,8 @@
 #include "audiorender.h"
 #include "audiotrack.h"
 
+#define MAX_AUDIO_CACHE_MSEC 100
+
 AudioPlayer::AudioPlayer(FFStream* dataStream, AVStream* context, int32_t streamIndex)
 {
 	LOGI("AudioPlayer constructor()");
@@ -364,6 +366,18 @@ void AudioPlayer::audio_thread_impl()
         }
         else
         {
+#ifndef __APPLE__ // ios NOT do this!!!
+			while (mRender->get_latency() > MAX_AUDIO_CACHE_MSEC) {
+				av_usleep(5 * 1000);
+
+				if (mPlayerStatus == MEDIA_PLAYER_STOPPED ||
+					mPlayerStatus == MEDIA_PLAYER_STOPPING)
+				{
+					LOGI("sleep interrupted by stopping");
+					break;
+				}
+			}
+#endif
             AVPacket* pPacket = NULL;
             status_t ret = mDataStream->getPacket(mAudioStreamIndex, &pPacket);
 			if (ret == FFSTREAM_OK) {

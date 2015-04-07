@@ -28,6 +28,7 @@ import android.content.Context;
 import android.content.ServiceConnection;
 import android.view.ContextThemeWrapper;
 import android.graphics.PixelFormat;
+import android.graphics.Typeface;
 import android.os.Bundle;
 import android.os.Environment;
 import android.os.IBinder;
@@ -359,6 +360,7 @@ public class ClipListActivity extends Activity implements
 		mTextViewInfo = new TextView(this);
 		mTextViewInfo.setTextColor(Color.RED);
 		mTextViewInfo.setTextSize(18);
+		mTextViewInfo.setTypeface(Typeface.MONOSPACE);
 		mTextViewInfo.setText("play info");
 		
 		mControllerLayout = new LinearLayout(this);
@@ -1273,6 +1275,8 @@ public class ClipListActivity extends Activity implements
 			}
 			
 			// update mBufferingPertent
+			if (pos <= 0)
+				pos = 1; // avoid to be devided by zero
 			mBufferingPertent = pos * 100 / mPlayer.getDuration() + 1;
 			if (mBufferingPertent > 100)
 				mBufferingPertent = 100;
@@ -1393,7 +1397,8 @@ public class ClipListActivity extends Activity implements
 				break;
 			case MSG_UPDATE_PLAY_INFO:
 			case MSG_UPDATE_RENDER_INFO:
-				mTextViewInfo.setText(String.format("%02d|%03d av:%+04d fps/msec %d(%d)/%d(%d)\n %d kbps", 
+				mTextViewInfo.setText(String.format("%02d|%03d v-a: %+04d\n"
+						+ "dec/render %d(%d)/%d(%d) fps/msec\nbitrate %d kbps", 
 					render_frame_num % 25, decode_drop_frame % 1000, av_latency_msec, 
 					decode_fps, decode_avg_msec, render_fps, render_avg_msec,
 					video_bitrate));

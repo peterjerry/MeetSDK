@@ -14,11 +14,7 @@
 #define SDL_AUDIO_SAMPLES		1024
 // 2015.4.3 64k * 4 buf_size cause hls_live always buffring problem
 // change to 64k * 4 because some WMV clip has GIANT audio pkt (about 1/3 sec)
-#ifdef _MSC_VER
-#define FIFO_BUFFER_SIZE		65536
-#else
 #define FIFO_BUFFER_SIZE		(65536 * 4)
-#endif
 #endif
 
 AudioRender::AudioRender()

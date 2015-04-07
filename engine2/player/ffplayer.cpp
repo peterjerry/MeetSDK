@@ -3532,7 +3532,7 @@ bool FFPlayer::getThumbnail2(const char* url, MediaInfo* info)
 
 bool FFPlayer::getThumbnail(const char* url, MediaInfo* info)
 {
-	LOGI("getThumbnail2()");
+	LOGD("getThumbnail2()");
 
 	if (url == NULL || info == NULL)
 		return false;
@@ -3680,10 +3680,18 @@ bool FFPlayer::getThumbnail(const char* url, MediaInfo* info)
     }
 
 end:
-    avcodec_close(video_dec_ctx);
-    avcodec_close(audio_dec_ctx);
-    avformat_close_input(&movieFile);
-    av_frame_free(&frame);
+    if (video_dec_ctx) {
+		avcodec_close(video_dec_ctx);
+		video_dec_ctx = NULL;
+	}
+	if (audio_dec_ctx) {
+		avcodec_close(audio_dec_ctx);
+		audio_dec_ctx = NULL;
+	}
+	if (movieFile)
+		avformat_close_input(&movieFile);
+	if (frame)
+		av_frame_free(&frame);
 
 	return (got_thumbnail > 0);
 }

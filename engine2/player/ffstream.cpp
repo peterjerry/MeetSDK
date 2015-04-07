@@ -837,7 +837,7 @@ void FFStream::thread_impl()
 					while (mBufferSize > mMaxBufferSize ) {
 						struct timespec ts;
 						ts.tv_sec = 0;
-						ts.tv_nsec = 250000000ll; // 250 msec
+						ts.tv_nsec = 100000000ll; // 100 msec
 						AutoLock autoLock(&mLock);
 #if defined(__CYGWIN__) || defined(_MSC_VER)
 						int64_t now_usec = getNowUs();

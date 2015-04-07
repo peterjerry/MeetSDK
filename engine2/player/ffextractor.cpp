@@ -53,6 +53,8 @@ enum NALUnitType {
 #define BUFFER_FLAG_CODEC_CONFIG	2
 #define BUFFER_FLAG_END_OF_STREAM	4
 
+static void ff_log_callback(void* avcl, int level, const char* fmt, va_list vl);
+
 extern "C" IExtractor* getExtractor()
 {
     return new FFExtractor();
@@ -130,6 +132,11 @@ FFExtractor::FFExtractor()
 
 	av_register_all();
 	avformat_network_init();
+
+	av_log_set_callback(ff_log_callback);
+#ifndef NDEBUG
+	av_log_set_level(AV_LOG_DEBUG);
+#endif
 }
 
 FFExtractor::~FFExtractor()
@@ -1432,3 +1439,42 @@ void FFExtractor::thread_impl()
 
 	LOGI("CurrentThread Detached");
 }
+
+static void ff_log_callback(void* avcl, int level, const char* fmt, va_list vl)
+{
+    AVClass* avc = avcl ? *(AVClass**)avcl : NULL;
+	const char * class_name = ((avc != NULL) ? avc->class_name : "N/A");
+	
+	static char msg[1024] = {0};
+	vsnprintf(msg, sizeof(msg), fmt, vl);
+	static char log[4096] = {0};
+#ifdef _MSC_VER
+	_snprintf(log, 4096, "ffmpeg[%d][%s] %s", level, class_name, msg);
+#else
+	snprintf(log, 4096, "ffmpeg[%d][%s] %s", level, class_name, msg);
+#endif
+
+	switch(level) {
+		case AV_LOG_PANIC:
+		case AV_LOG_FATAL:
+		case AV_LOG_ERROR:
+			LOGE("%s", log);
+			break;
+		case AV_LOG_WARNING:
+            LOGW("%s", log);
+			break;
+		case AV_LOG_INFO:
+            LOGI("%s", log);
+			break;
+		case AV_LOG_DEBUG:
+            LOGD("%s", log);
+			break;
+		case AV_LOG_VERBOSE:
+            LOGV("%s", log);
+			break;
+		default:
+			LOGI("%s", log);
+			break;
+	}
+}
+
