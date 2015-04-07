@@ -42,6 +42,7 @@ import android.view.SurfaceHolder;
 import android.view.View;
 import android.view.View.MeasureSpec;
 import android.view.View.OnFocusChangeListener;
+import android.view.WindowManager;
 import android.widget.AbsListView;
 import android.widget.AbsListView.OnScrollListener;
 import android.widget.AdapterView;
@@ -308,17 +309,22 @@ public class ClipListActivity extends Activity implements
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
-		
+		    
 		// compatible with tvbox
 		if (getResources().getConfiguration().orientation == 1) 
 			isLandscape = false;
 		else
 			isLandscape = true;
 		
-		if(isLandscape)
+		if (isLandscape) {
 			setContentView(R.layout.list_landscape);
-		else
+			
+			getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_VISIBLE
+	                | WindowManager.LayoutParams.SOFT_INPUT_ADJUST_PAN);
+		}
+		else {
 			setContentView(R.layout.list);
+		}
 		
 		Log.i(TAG, "Java: onCreate()");
 		
