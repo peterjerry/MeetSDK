@@ -5,15 +5,11 @@ import android.util.AttributeSet;
 import android.util.Log;
 import android.view.SurfaceView;
 import android.view.View;
-import android.view.View.MeasureSpec;
-import android.view.Gravity;
-import android.view.GestureDetector; 
-import android.widget.RelativeLayout;
-import android.widget.MediaController;
-import android.view.KeyEvent;
+import android.view.GestureDetector;
 import android.view.MotionEvent;
 
 import android.pplive.media.player.MediaPlayer;
+import com.pplive.meetplayer.ui.widget.MiniMediaController;
 
 /**
  * Displays a video file.  The VideoView class
@@ -27,9 +23,17 @@ public class MyPreView2 extends SurfaceView {
 	private int mVideoHeight			= 0;
 	private int mLayoutWidth			= 0;
 	private int mLayoutHeight			= 0;
-	private MediaController mController;
+	private MiniMediaController mController;
 	private MediaPlayer mPlayer;
 	private GestureDetector mDetector;
+	
+	// display mode
+	public static final int SCREEN_FIT = 0; // 自适应
+    public static final int SCREEN_STRETCH = 1; // 铺满屏幕 
+    public static final int SCREEN_FILL = 2; // 放大裁切
+    public static final int SCREEN_CENTER = 3; // 原始大小
+	
+	private int mDisplayMode = SCREEN_FIT;
 	
 	public MyPreView2(Context context) {
 		super(context);
@@ -49,7 +53,7 @@ public class MyPreView2 extends SurfaceView {
 		mVideoHeight	= height;
 	}
 	
-	public void BindInstance(MediaController controller, MediaPlayer player) {
+	public void BindInstance(MiniMediaController controller, MediaPlayer player) {
 		mController = controller;
 		mPlayer = player;
 		
@@ -81,4 +85,38 @@ public class MyPreView2 extends SurfaceView {
 		return true;
 	}
 	
+	/*
+	@Override
+    protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
+        int width = getDefaultSize(mVideoWidth, widthMeasureSpec);
+        int height = getDefaultSize(mVideoHeight, heightMeasureSpec);
+
+        if (mVideoWidth > 0 && mVideoHeight > 0) {
+            switch (mDisplayMode) {
+            case SCREEN_CENTER:
+                width = mVideoWidth;
+                height = mVideoHeight;
+                break;
+            case SCREEN_FIT:
+                if (mVideoWidth * height > width * mVideoHeight) {
+                    height = width * mVideoHeight / mVideoWidth;
+                } else if (mVideoWidth * height < width * mVideoHeight) {
+                    width = height * mVideoWidth / mVideoHeight;
+                }
+            case SCREEN_FILL:
+                if (mVideoWidth * height > width * mVideoHeight) {
+                    width = height * mVideoWidth / mVideoHeight;
+                } else if (mVideoWidth * height < width * mVideoHeight) {
+                    height = width * mVideoHeight / mVideoWidth;
+                }
+            case SCREEN_STRETCH:
+            	// do nothing
+                break;
+            default:
+                break;
+            }
+        }
+        setMeasuredDimension(width, height);
+    }
+	*/
 }

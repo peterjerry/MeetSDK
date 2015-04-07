@@ -146,9 +146,9 @@ public class MiniMediaController extends MediaController {
     }
 	
 	private int setProgress() {
-		if(mPlayer == null) {
-			Log.e(TAG, "aaaaa setProgress() player is null");
-		}
+		if (mPlayer == null)
+			return 0;
+		
 		int position = mPlayer.getCurrentPosition();
 		return setProgress(position);
 	}

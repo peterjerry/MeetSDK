@@ -109,9 +109,8 @@
 		android:id="@+id/layout_preview"
 		android:layout_width="fill_parent"
 		android:layout_height="fill_parent"
-		android:background="@android:color/black"
-		android:gravity="center" >
-		<com.pplive.meetplayer.ui.MyPreView
+		android:background="@android:color/black" >
+		<com.pplive.meetplayer.ui.MyPreView2
 			android:id="@+id/preview"
 			android:layout_marginLeft="10dp"
 			android:layout_marginRight="10dp"

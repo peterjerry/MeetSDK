@@ -73,6 +73,7 @@ import android.app.Dialog;
 import android.content.SharedPreferences;
 
 import com.pplive.meetplayer.R;
+
 import com.pplive.meetplayer.service.DLNAService;
 import com.pplive.meetplayer.util.AtvUtils;
 import com.pplive.meetplayer.util.Catalog;
@@ -135,7 +136,7 @@ public class ClipListActivity extends Activity implements
 	private Button btnTakeSnapShot;
 	private Button btnSelectAudioTrack;
 	private EditText et_play_url;
-	private MyPreView mPreview;
+	private MyPreView2 mPreview;
 	private boolean mPreviewFocused = false;
 	private SurfaceHolder mHolder;
 	private MiniMediaController mMediaController;
@@ -346,7 +347,7 @@ public class ClipListActivity extends Activity implements
 		this.imageDMR = (ImageView) findViewById(R.id.iv_dlna_dmc);
 		this.imageNoVideo = (ImageView) findViewById(R.id.iv_novideo);
 		
-		this.mPreview = (MyPreView) findViewById(R.id.preview);
+		this.mPreview = (MyPreView2) findViewById(R.id.preview);
 		this.mLayout = (RelativeLayout) findViewById(R.id.layout_preview);
 		
 		this.mBufferingProgressBar = (ProgressBar) findViewById(R.id.progressbar_buffering);
@@ -1205,6 +1206,8 @@ public class ClipListActivity extends Activity implements
 	
 	void stop_player() {
 		if (mPlayer != null) {
+			mMediaController.hide();
+			
 			mStoped = true;
 			if (mIsSubtitleUsed) {
 				mSubtitleThread.interrupt();
@@ -1392,7 +1395,7 @@ public class ClipListActivity extends Activity implements
 			case MSG_UPDATE_PLAY_INFO:
 			case MSG_UPDATE_RENDER_INFO:
 				if (isLandscape) {
-					mTextViewInfo.setText(String.format("%02d|%03d v-a: %+04d"
+					mTextViewInfo.setText(String.format("%02d|%03d v-a: %+04d "
 							+ "dec/render %d(%d)/%d(%d) fps/msec bitrate %d kbps", 
 						render_frame_num % 25, decode_drop_frame % 1000, av_latency_msec, 
 						decode_fps, decode_avg_msec, render_fps, render_avg_msec,
@@ -2319,41 +2322,39 @@ public class ClipListActivity extends Activity implements
 		render_frame_num = 0;
 		decode_drop_frame = 0;
 		
-		// S39H call setLooping here, system player will throw error (-38, 0)
-		//if (mListLocalFile)
-		//if (DecodeMode.SW == mDecMode) // ffplay
-		//	mPlayer.setLooping(mIsLoop);
-		
 		mVideoWidth = mp.getVideoWidth();
 		mVideoHeight = mp.getVideoHeight();
 		
 		// view
-		int width = mLayout.getWidth();
-		int height = mLayout.getHeight();
+		/*int w = View.MeasureSpec.makeMeasureSpec(0,View.MeasureSpec.AT_MOST); 
+		int h = View.MeasureSpec.makeMeasureSpec(0,View.MeasureSpec.AT_MOST); 
+		mPreview.measure(w, h);*/
+		int width	= mLayout.getMeasuredWidth();
+		int height 	= mLayout.getMeasuredHeight();
 		
-		Log.i(TAG, String.format("surfaceview %d x %d, video %d x %d", width, height, mVideoWidth, mVideoHeight)); 
+		Log.i(TAG, String.format("adjust_ui preview %d x %d, video %d x %d", width, height, mVideoWidth, mVideoHeight)); 
 		
 		mPreview.getHolder().setFixedSize(mVideoWidth, mVideoHeight);
 		
-		/*
 		RelativeLayout.LayoutParams sufaceviewParams = (RelativeLayout.LayoutParams) mPreview.getLayoutParams();
 		if ( mVideoWidth * height  > width * mVideoHeight ) { 
-			Log.i(TAG, "surfaceview is too tall, correcting");
+			Log.i(TAG, "adjust_ui surfaceview is too tall, correcting");
+			sufaceviewParams.width	= width;
 			sufaceviewParams.height = width * mVideoHeight / mVideoWidth;
 		}
-		else if ( mVideoWidth * height  < width * mVideoHeight ) 
-		{ 
-			Log.i(TAG, "surfaceview is too wide, correcting"); 
-			sufaceviewParams.width = height * mVideoWidth / mVideoHeight; 
+		else if ( mVideoWidth * height  < width * mVideoHeight ) { 
+			Log.i(TAG, "adjust_ui surfaceview is too wide, correcting"); 
+			sufaceviewParams.width = height * mVideoWidth / mVideoHeight;
+			sufaceviewParams.height= height;
 		}
 		else {
-           sufaceviewParams.height= height;
-           sufaceviewParams.width = width;
+           sufaceviewParams.height	= height;
+           sufaceviewParams.width 	= width;
 		}
 		
-		Log.i(TAG, String.format("surfaceview setLayoutParams %d %d", 
+		Log.i(TAG, String.format("adjust_ui surfaceview setLayoutParams %d %d", 
 				sufaceviewParams.width, sufaceviewParams.height)); 
-		mPreview.setLayoutParams(sufaceviewParams);*/
+		mPreview.setLayoutParams(sufaceviewParams);
 		
 		mPreview.BindInstance(mMediaController, mPlayer);
 		
@@ -2681,7 +2682,6 @@ public class ClipListActivity extends Activity implements
     private void attachMediaController() {
         mMediaController.setMediaPlayer(this);
         mMediaController.setEnabled(true);
-        mMediaController.show(5000);
     }
     
 	@Override

@@ -7,11 +7,7 @@ import android.util.AttributeSet;
 import android.util.Log;
 import android.view.SurfaceView;
 import android.view.View;
-import android.view.View.MeasureSpec;
-import android.view.Gravity;
-import android.view.GestureDetector; 
-import android.widget.RelativeLayout;
-import android.view.KeyEvent;
+import android.view.GestureDetector;
 import android.view.MotionEvent;
 import android.pplive.media.player.MediaPlayer;
 

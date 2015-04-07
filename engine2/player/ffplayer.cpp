@@ -566,8 +566,10 @@ status_t FFPlayer::selectAudioChannel(int32_t index)
 	AVStream *last_audio_stream = mDataStream->getAudioStream();
 
 	// verify if index is available
-	if (mDataStream->selectAudioChannel(index) != OK)
+	if (mDataStream->selectAudioChannel(index) != OK) {
+		LOGE("failed to call demux selectAudioChannel");
 		return ERROR;
+	}
 
 	LOGI("after demuxer selectAudioChannel");
 
@@ -825,8 +827,8 @@ status_t FFPlayer::getCurrentPosition(int32_t* positionMs)
         }
         else {
 			*positionMs = 0;
-            LOGE("No available time reference");
-			return ERROR;
+            LOGW("getCurrentPosition: No available time reference");
+			return OK;
         }
     }
 
