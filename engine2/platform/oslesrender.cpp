@@ -52,6 +52,16 @@ and_osles::and_osles(void)
 and_osles::~and_osles(void)
 {
 	close();
+
+	if (m_pBuf) {
+		free(m_pBuf);
+		m_pBuf = NULL;
+	}
+
+	if (m_fifo) {
+		delete m_fifo;
+		m_fifo = NULL;
+	}
 }
 
 int and_osles::open(int sample_rate, int channel, int bitsPerSample)
@@ -150,7 +160,7 @@ void and_osles::close()
 {
 	//and_log_writeline_simple(0, LOG_DEBUG, "and_osles close()");
 
-	if(!m_osles_handle) {
+	if (!m_osles_handle) {
 		return;
 	}
 
@@ -194,16 +204,6 @@ void and_osles::close()
 	LOGI("before del ogles handle");
 	free(m_osles_handle);
 	m_osles_handle = NULL;
-
-	if(m_pBuf) {
-		free(m_pBuf);
-		m_pBuf = NULL;
-	}
-
-	if(m_fifo) {
-		delete m_fifo;
-		m_fifo = NULL;
-	}
 
 	LOGI("and_osles closed");
 }

@@ -180,7 +180,7 @@ public class MyFrame extends JFrame {
 		String[] bw_type = {"P2P", "CDNP2P", "CDN", "PPTV", "DLNA"};
 		comboBwType = new JComboBox<String>(bw_type);
 		comboBwType.setBounds(120, 150, 80, 20);
-		comboBwType.setSelectedIndex(3);
+		comboBwType.setSelectedIndex(4);
 		this.getContentPane().add(comboBwType);
 
 		cbNoVideo.setBounds(220, 150, 120, 20);
@@ -292,7 +292,7 @@ public class MyFrame extends JFrame {
 		
 		ret = mEPG.detail(vid);
 		if (!ret) {
-			System.out.println("vid is null");
+			System.out.println("failed to get detail");
 			return;
 		}
 		
@@ -384,9 +384,6 @@ public class MyFrame extends JFrame {
 			break;
 		case 1:
 			contents();
-			break;
-		case 3:
-			//live();
 			break;
 		default:
 			System.out.println("unknown type: " + type);
@@ -519,7 +516,7 @@ public class MyFrame extends JFrame {
 			ret = mEPG.live(1, 15, type);
 		}
 		else
-			ret = mEPG.list(param, mContentType, 1, "order=n", 10);
+			ret = mEPG.list(param, mContentType, 1, "order=t", 10);
 		
 		if (!ret)
 			return;

@@ -315,6 +315,19 @@ void FFPlayer::SwapResolution(int32_t *width, int32_t *height)
 	*width = tmp;
 }
 
+bool FFPlayer::FixInterlace(AVStream *video_st)
+{
+#ifdef USE_AV_FILTER
+	mFilterDescr[0] = "yadif";
+	if (!init_filters(mFilterDescr)) {
+		LOGE("failed to init filters");
+		return false;
+	}
+	mVideoFiltFrame = av_frame_alloc();
+#endif
+	return true;
+}
+
 bool FFPlayer::FixRotateVideo(AVStream *video_st)
 {
 #ifdef USE_AV_FILTER
@@ -2057,8 +2070,13 @@ status_t FFPlayer::prepareVideo_l()
         }
 		mVideoGapMs = 1000 / mVideoFrameRate;
 
+		/*if (!FixInterlace(mVideoStream)) {
+			LOGE("failed to fix interlaced video");
+			return ERROR;
+		}*/
+
 		// would change width and height
-		if(!FixRotateVideo(mVideoStream)) {
+		if (!FixRotateVideo(mVideoStream)) {
 			LOGE("failed to fix rotate video");
 			return ERROR;
 		}
@@ -2421,19 +2439,6 @@ status_t FFPlayer::decode_l(AVPacket *packet)
 	}
 
 	return OK;
-
-	
-	/*if (packet->dts == AV_NOPTS_VALUE && mFrame->opaque
-			&& *(uint64_t*) mFrame->opaque != AV_NOPTS_VALUE) {
-		pts = *(uint64_t *) mFrame->opaque;
-	} else if (packet->dts != AV_NOPTS_VALUE) {
-		pts = packet->dts;
-	} else {
-		pts = 0;
-	}
-	pts *= av_q2d(mStream->time_base);
-	LOGV("Video pts:%d", pts);
-	*/
 }
 
 static void decodeNAL(uint8_t* dst, uint8_t* src, int32_t size )
@@ -3348,7 +3353,7 @@ bool FFPlayer::getMediaDetailInfo(const char* url, MediaInfo* info)
     return true;
 }
 
-bool FFPlayer::getThumbnail(const char* url, MediaInfo* info)
+bool FFPlayer::getThumbnail2(const char* url, MediaInfo* info)
 {
 	LOGD("getThumbnail()");
 
@@ -3525,9 +3530,9 @@ bool FFPlayer::getThumbnail(const char* url, MediaInfo* info)
     return ret;
 }
 
-bool FFPlayer::getThumbnail2(const char* url, MediaInfo* info)
+bool FFPlayer::getThumbnail(const char* url, MediaInfo* info)
 {
-	LOGI("getThumbnail2()");
+	LOGD("getThumbnail2()");
 
 	if (url == NULL || info == NULL)
 		return false;
@@ -3608,7 +3613,7 @@ bool FFPlayer::getThumbnail2(const char* url, MediaInfo* info)
         goto end;
     }
 
-	if(info->duration_ms > 0 && info->duration_ms < seekPosition * 1000)
+	if (info->duration_ms > 0 && info->duration_ms < seekPosition * 1000)
 		seekPosition = info->duration_ms / 1000;
 	seek_target = seekPosition * AV_TIME_BASE;
 
@@ -3675,10 +3680,18 @@ bool FFPlayer::getThumbnail2(const char* url, MediaInfo* info)
     }
 
 end:
-    avcodec_close(video_dec_ctx);
-    avcodec_close(audio_dec_ctx);
-    avformat_close_input(&movieFile);
-    av_frame_free(&frame);
+    if (video_dec_ctx) {
+		avcodec_close(video_dec_ctx);
+		video_dec_ctx = NULL;
+	}
+	if (audio_dec_ctx) {
+		avcodec_close(audio_dec_ctx);
+		audio_dec_ctx = NULL;
+	}
+	if (movieFile)
+		avformat_close_input(&movieFile);
+	if (frame)
+		av_frame_free(&frame);
 
 	return (got_thumbnail > 0);
 }

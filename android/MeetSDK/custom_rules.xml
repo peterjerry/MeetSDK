@@ -82,6 +82,12 @@
 			filtering="true" 
 			overwrite="true" >
 		</copy>
+		<copy 
+			file="${out.absolute.dir}/classes.jar" 
+			tofile="${out.absolute.dir}/${ant.project.name}.jar" 
+			filtering="true" 
+			overwrite="true" >
+		</copy>
 		<copy todir="${output.dir}/libs" overwrite="true" verbose="true">
 			<fileset dir="${libs.dir}">
 				<filename name="**/*.so" />

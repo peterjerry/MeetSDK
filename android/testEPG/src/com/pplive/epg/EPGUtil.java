@@ -34,7 +34,16 @@ public class EPGUtil {
 	private final static String catalog_url_prefix = "http://mtbu.api.pptv.com/v4/module"
 			+ "?lang=zh_cn&platform=aphone&appid=com.pplive.androidphone"
 			+ "&appver=4.1.3&appplt=aph&userLevel=0&channel=@SHIP.TO.31415926PI@";
-			//+ "&location=app%3A%2F%2Faph.pptv.com%2Fv4%2Fcate";
+	
+	private final static String ppi = "&ppi=1:eyJpbmZvIjp7ImMiOjEsInMiOjIsImFjIjpbMiwyMDA0M10sImV" +
+			"oIjoiMjAxNTA0MDIwMCJ9LCJkcyI6Ik1Dd0NGQkd0SjZnelpSUWJ4dUJZdCtlUnhCWXJ2Nm1iQ" +
+			"WhRZGNJUU9YWjEvN2o1WThaaWpXZG5hU3hRd2l3PT0ifQ";
+	
+	private final static String catalog_url_prefix2 = "http://mtbu.api.pptv.com/v4/module" +
+			"?lang=zh_cn&platform=aphone&appid=com.pplive.androidphone" +
+			"&appver=5.0.3&appplt=aph&userLevel=1" +
+			ppi + 
+			"&channel=82";
 	
 	private final static String search_url_fmt = "http://so.api.pptv.com/search_smart.api"
 			+ "?auth=d410fafad87e7bbf6c6dd62434345818"
@@ -65,7 +74,7 @@ public class EPGUtil {
 			+ "&s=%d" // start page index
 			+ "&%s" // order=xx 最受好评, param: order=g|最高人气, param: order=t|最新更新, param: order=n
 			+ "&c=%d" // count
-			+ "&vt=3,21" // 21 -> 3,21 视频, param: vt=3, 合集, param: vt=21,22
+			//+ "&vt=3,21" // 21 -> 3,21 视频, param: vt=3, 合集, param: vt=21,22
 			+ "&ver=2";
 	
 	private final static String live_url_fmt = "http://epg.api.pptv.com/live-list.api?"
@@ -255,7 +264,7 @@ public class EPGUtil {
 			return false;
 		}
 		
-		String url = catalog_url_prefix + "&location=" + cate;
+		String url = catalog_url_prefix2 + "&location=" + cate;
 		
 		System.out.println(url);
 		
@@ -480,6 +489,7 @@ public class EPGUtil {
 		url += "&";
 		url += encoded_param;
 		url += "&appid=com.pplive.androidphone&appplt=aph";
+		url += ppi;
 		System.out.println(url);
 		
 		boolean ret = false;

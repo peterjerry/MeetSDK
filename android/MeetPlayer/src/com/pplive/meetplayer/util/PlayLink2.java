@@ -55,6 +55,10 @@ public class PlayLink2 {
 	}
 	
 	public String getTitle() {
+		// fix catalog main title + sub title
+		if (mExtTitle != null && mExtTitle.length() > 5)
+			return mExtTitle;
+		
 		StringBuffer sb = new StringBuffer();
 		sb.append(mTitle);
 		if (mExtTitle != null && !mExtTitle.isEmpty()) {

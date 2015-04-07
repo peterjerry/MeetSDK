@@ -88,6 +88,9 @@ public class FFMediaExtractor implements MediaExtractable {
 
 	@Override
 	public native void release();
+	
+	@Override
+	public native void stop();
 
 	@Override
 	public native void seekTo(long timeUs, int mode);

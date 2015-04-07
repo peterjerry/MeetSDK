@@ -28,6 +28,7 @@ import android.content.Context;
 import android.content.ServiceConnection;
 import android.view.ContextThemeWrapper;
 import android.graphics.PixelFormat;
+import android.graphics.Typeface;
 import android.os.Bundle;
 import android.os.Environment;
 import android.os.IBinder;
@@ -222,6 +223,7 @@ public class ClipListActivity extends Activity implements
 	private final int EPG_ITEM_CONTENT_SURFIX	= 6;
 	private final int EPG_ITEM_LIST			= 7;
 	private final int EPG_ITEM_CDN				= 11;
+	private final int EPG_ITEM_FT				= 12;
 
 	private boolean mListLocalFile				= true;
 	
@@ -284,12 +286,13 @@ public class ClipListActivity extends Activity implements
 	private static final int MSG_WRONG_PARAM						= 513;
 	private static final int MSG_PUSH_CDN_CLIP					= 601;
 	private static final int MSG_PLAY_CDN_URL						= 602;
+	private static final int MSG_PLAY_CDN_FT						= 603;
 	
 	private ProgressDialog progDlg 				= null;
 	
 	private String mCurrentFolder;
 	
-	private final static String home_folder		= "/test2";
+	private final static String home_folder		= "";//"/test2";
 	
 	private final static String HTTP_UPDATE_APK_URL = "http://172.16.204.106/test/test/";
 	
@@ -357,6 +360,7 @@ public class ClipListActivity extends Activity implements
 		mTextViewInfo = new TextView(this);
 		mTextViewInfo.setTextColor(Color.RED);
 		mTextViewInfo.setTextSize(18);
+		mTextViewInfo.setTypeface(Typeface.MONOSPACE);
 		mTextViewInfo.setText("play info");
 		
 		mControllerLayout = new LinearLayout(this);
@@ -761,9 +765,11 @@ public class ClipListActivity extends Activity implements
 				if (ppbox_playid >= 300000 && ppbox_playid < 300999 && 
 						(mPlayerLinkSurfix == null || mPlayerLinkSurfix.equals(""))) {
 					mIsLivePlay = true;
+					Log.i(TAG, "Java: set mIsLivePlay to true");
 				}
 				else {
 					mIsLivePlay = false;
+					Log.i(TAG, "Java: set mIsLivePlay to false");
 				}
 				
 				if (ppbox_bw_type == 4) {// dlna
@@ -998,39 +1004,6 @@ public class ClipListActivity extends Activity implements
 		}
 	}
 	
-	protected void onActivityResult(int requestCode, int resultCode, Intent intent) {
-        super.onActivityResult(requestCode, resultCode, intent);
-        switch(requestCode){//判断父activity中的哪个按钮
-            case 1://如果是按钮1
-            	break;
-            case 2://如果是按钮2
-            	break;
-            default:
-            	break;
-        }
-        
-        switch(resultCode){//判断是哪个子activity
-            case 1://如果是子activity1
-            	String strStartTime = intent.getStringExtra("start_time");
-            	long start_time = intent.getLongExtra("start_time_sec", 0);
-                int duration = intent.getIntExtra("duration_min", 60);
-                Log.i(TAG, String.format("activity return result: %s %d(%d min)", strStartTime, start_time, duration));
-                
-                mPlayerLinkSurfix = String.format("&begin_time=%d&end_time=%d", start_time, start_time + duration * 60);
-                try {
-                	mPlayerLinkSurfix = URLEncoder.encode(mPlayerLinkSurfix, "utf-8");
-				} catch (UnsupportedEncodingException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
-				}
-            	break;
-            case 2://如果是子activity2
-            	break;
-            default:
-            	break;
-        }
-	}
-	
 	@SuppressWarnings("deprecation") // avoid setType warning
 	private int start_player(String path) {
 		mPlayUrl = path;
@@ -1110,10 +1083,11 @@ public class ClipListActivity extends Activity implements
 			start_fullscreen_play(uri, mPlayerImpl);
 		}
 		else {
-			MediaInfo info;
-			File file = new File(path);
-			if (file.exists()) {
-				info = MeetSDK.getMediaDetailInfo(file);
+			if (path.startsWith("file://") || path.startsWith("/")) {
+				// only get mediainfo from local file
+				MediaInfo info;
+				
+				info = MeetSDK.getMediaDetailInfo(path);
 				if (info != null) {
 					ArrayList<TrackInfo> audioTrackList = info.getAudioChannelsInfo();
 					for (TrackInfo trackInfo : audioTrackList) {
@@ -1138,7 +1112,6 @@ public class ClipListActivity extends Activity implements
 							trackInfo.getTitle()));
 					}
 				}
-				
 			}
 			
 			if (DecodeMode.AUTO == mDecMode) {
@@ -1184,7 +1157,6 @@ public class ClipListActivity extends Activity implements
 				mWifiLock.acquire();
 			}
 
-			mIsLivePlay 		= false;
 			mStoped 			= false;
 			mHomed 				= false;
 			mBufferingPertent 	= 0;
@@ -1248,6 +1220,8 @@ public class ClipListActivity extends Activity implements
 			mPlayer.stop();
 			mPlayer.release();
 			mPlayer = null;
+
+			mIsLivePlay = false;
 			
 			if (mWifiLock != null) {
 				try {
@@ -1301,6 +1275,8 @@ public class ClipListActivity extends Activity implements
 			}
 			
 			// update mBufferingPertent
+			if (pos <= 0)
+				pos = 1; // avoid to be devided by zero
 			mBufferingPertent = pos * 100 / mPlayer.getDuration() + 1;
 			if (mBufferingPertent > 100)
 				mBufferingPertent = 100;
@@ -1421,7 +1397,8 @@ public class ClipListActivity extends Activity implements
 				break;
 			case MSG_UPDATE_PLAY_INFO:
 			case MSG_UPDATE_RENDER_INFO:
-				mTextViewInfo.setText(String.format("%02d|%03d av:%+04d fps/msec %d(%d)/%d(%d)\n %d kbps", 
+				mTextViewInfo.setText(String.format("%02d|%03d v-a: %+04d\n"
+						+ "dec/render %d(%d)/%d(%d) fps/msec\nbitrate %d kbps", 
 					render_frame_num % 25, decode_drop_frame % 1000, av_latency_msec, 
 					decode_fps, decode_avg_msec, render_fps, render_avg_msec,
 					video_bitrate));
@@ -1469,11 +1446,14 @@ public class ClipListActivity extends Activity implements
 					if (!ret)
 						Toast.makeText(ClipListActivity.this, "failed to save play history", Toast.LENGTH_SHORT).show();
 					
+					et_playlink.setText(mEPGLinkList.get(0).getId());
+					
 					Toast.makeText(
 							ClipListActivity.this,
 							String.format("\"%s\" was selected", mEPGLinkList.get(0).getTitle()),
 							Toast.LENGTH_SHORT).show();
-					et_playlink.setText(mEPGLinkList.get(0).getId());
+					
+					new EPGTask().execute(EPG_ITEM_FT, Integer.valueOf(mEPGLinkList.get(0).getId()));
 				}
 				else {
 					popupEPGCollectionDlg();
@@ -1503,8 +1483,12 @@ public class ClipListActivity extends Activity implements
 				stop_player();
 				start_player(mDLNAPushUrl);
 				break;
+			case MSG_PLAY_CDN_FT:
+				btn_ft.setText(String.valueOf(msg.arg1));
+				Log.i(TAG, "Java: set ft to: "+ msg.arg1);
+				break;
 			default:
-				Log.w(TAG, "unknown msg.what " + msg.what);
+				Log.w(TAG, "Java: unknown msg.what " + msg.what);
 				break;
 			}			 
         }
@@ -1554,6 +1538,15 @@ public class ClipListActivity extends Activity implements
 							int pos = mLink.indexOf("type=");
 							if (pos != -1) {
 								mEPGtype = mLink.substring(pos, mLink.length());
+								
+								if (mEPGtype.contains("type=211118")) {
+									btn_bw_type.setText("4");
+									if (!mIsNoVideo) {
+										mIsNoVideo = true;
+										imageNoVideo.setVisibility(View.VISIBLE);
+									}
+									Log.i(TAG, "Java: switch to audio mode");
+								}
 							}
 							else {
 								mEPGtype = null;
@@ -1876,7 +1869,7 @@ public class ClipListActivity extends Activity implements
 
     			mHandler.sendEmptyMessage(MSG_EPG_LIST_DONE);
         	}
-        	else if (EPG_ITEM_CDN == type){
+        	else if (EPG_ITEM_CDN == type) {
         		Log.i(TAG, "Java: EPGTask start to getCDNUrl");
         		mDLNAPushUrl = mEPG.getCDNUrl(String.valueOf(id), btn_ft.getText().toString(), false, mIsNoVideo);
         		if (mDLNAPushUrl == null) {
@@ -1888,6 +1881,31 @@ public class ClipListActivity extends Activity implements
         			mHandler.sendEmptyMessage(MSG_PLAY_CDN_URL);
         		else
         			push_cdn_clip();
+        	}
+        	else if (EPG_ITEM_FT == type) {
+        		Log.i(TAG, "Java: EPGTask start to getCDNUrl");
+        		int []ft_list = mEPG.getAvailableFT(String.valueOf(id));
+        		if (ft_list == null || ft_list.length == 0) {
+        			mHandler.sendEmptyMessage(MSG_FAIL_TO_CONNECT_EPG_SERVER);
+            		return false;
+        		}
+        		
+        		
+        		int ft = -1;
+        		for (int i=ft_list.length - 1;i>=0;i--) {
+        			if (ft_list[i] >= 0 && ft_list[i] < 4) {
+        				ft = ft_list[i];
+        				break;
+        			}
+        		}
+        		
+        		if (ft == -1) {
+        			mHandler.sendEmptyMessage(MSG_FAIL_TO_CONNECT_EPG_SERVER);
+            		return false;
+        		}
+        		
+        		Message msg = mHandler.obtainMessage(MSG_PLAY_CDN_FT, ft, 0);
+    	        msg.sendToTarget();
         	}
         	else {
         		Log.w(TAG, "Java: EPGTask invalid type: " + type);

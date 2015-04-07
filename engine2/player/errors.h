@@ -56,6 +56,9 @@ enum {
 	READ_REACH_STREAM_EDN,
 	READ_ABORTED,
 	READ_PACKET_UNAVAILABLE,
+	
+	// 2015.4.1 guoliangma added
+	READ_EOF			= 0x20000000,
 };
 
 #endif // FF_ERRORS_H

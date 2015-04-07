@@ -602,7 +602,7 @@ status_t FFStream::getPacket(int32_t streamIndex, AVPacket** packet)
             }
             else { // queue is empty but not EOF
 		        LOGD("audio queue empty");
-                if(!mIsBuffering) {
+                if (!mIsBuffering) {
                     mIsBuffering = true;
 					int64_t offset = (mMovieFile->pb ? avio_tell(mMovieFile->pb) : 0);
 #ifdef _MSC_VER	
@@ -698,7 +698,7 @@ void FFStream::thread_impl()
             break;
         }
         
-		if(mStatus == FFSTREAM_PAUSED || mReachEndStream) {
+		if (mStatus == FFSTREAM_PAUSED || mReachEndStream) {
 			// loop when "pause"
 			// wait for exit when "eof"
             struct timespec ts;
@@ -763,7 +763,7 @@ void FFStream::thread_impl()
                 mGopStart = 0;
                 mGopEnd = 0;
 #ifdef TEST_PERFORMANCE_BITRATE
-				if(mMovieFile->pb)
+				if (mMovieFile->pb)
 					last_sum = mMovieFile->pb->bytes_read;
 				else
 					last_sum = 0;
@@ -837,7 +837,7 @@ void FFStream::thread_impl()
 					while (mBufferSize > mMaxBufferSize ) {
 						struct timespec ts;
 						ts.tv_sec = 0;
-						ts.tv_nsec = 250000000ll; // 250 msec
+						ts.tv_nsec = 100000000ll; // 100 msec
 						AutoLock autoLock(&mLock);
 #if defined(__CYGWIN__) || defined(_MSC_VER)
 						int64_t now_usec = getNowUs();
@@ -893,13 +893,17 @@ void FFStream::thread_impl()
 
                 //end of stream
                 mReachEndStream = true;
-                LOGW("reach end of stream");
+                LOGI("reach end of stream");
 				
 				// 2014.8.25 guoliangma added, to fix cannot play clip which duration is less than 3sec
-				mIsBuffering = false;
-				LOGI("MEDIA_INFO_BUFFERING_END because of stream end");
-				notifyListener_l(MEDIA_INFO, MEDIA_INFO_BUFFERING_END);
+				if (mIsBuffering) {
+					mIsBuffering = false;
+					LOGI("MEDIA_INFO_BUFFERING_END because of stream end");
+					notifyListener_l(MEDIA_INFO, MEDIA_INFO_BUFFERING_END);
+				}
 
+				// continue for seek back
+				av_usleep(10 * 1000); // 10 msec
                 continue;
             }
             else if(ret == AVERROR_EXIT) {

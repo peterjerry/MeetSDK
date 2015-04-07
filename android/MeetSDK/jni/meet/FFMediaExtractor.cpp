@@ -99,7 +99,6 @@ void XOMediaPlayerListener::notify(int msg, int ext1, int ext2)
 {
 	JNIEnv *env = getAttachedJNIEnv();
 
-	PPLOGI("xxxxxx %p, %p, %p, %d %d %d", env, fields.post_event, mObject, msg, ext1, ext2);
 	if (env)
 		env->CallStaticVoidMethod(mClass, fields.post_event, mObject, msg, ext1, ext2, 0);
 }
@@ -334,6 +333,9 @@ jboolean android_media_MediaExtractor_getTrackFormatNative(JNIEnv *env, jobject 
 		case PPMEDIA_CODEC_ID_H264:
 			strcat(video_mime, "avc");
 			break;
+		case PPMEDIA_CODEC_ID_HEVC:
+			strcat(video_mime, "hevc");
+			break;
 		case PPMEDIA_CODEC_ID_MPEG4:
 			strcat(video_mime, "mp4v-es");
 			break;
@@ -492,12 +494,33 @@ jint android_media_MediaExtractor_readSampleData(JNIEnv *env, jobject thiz, jobj
         env->ReleaseByteArrayElements(byteArray, (jbyte *)dst, 0);
     }
 
-	if (err != OK) {
+	if (err == READ_EOF) {
+		PPLOGI("find eof");
+		return -1;
+	}
+	else if (err != OK) {
 		PPLOGE("failed to call readSampleData() %d", err);
         return -1;
     }
 
 	return sample_size;
+}
+
+void android_media_MediaExtractor_stop(JNIEnv *env, jobject thiz)
+{
+	PPLOGI("stop");
+
+	IExtractor* extractor = getMediaExtractor(env, thiz);
+	if (extractor == NULL ) {
+		PPLOGE("failed to get ffextractor");
+		jniThrowException(env, "java/lang/IllegalStateException", "failed to get ffextractor");
+		return;
+	}
+
+	if (OK != extractor->stop()) {
+		PPLOGE("failed to stop");
+		jniThrowException(env, "java/lang/IllegalStateException", "failed to stop");
+	}
 }
 
 void android_media_MediaExtractor_release(JNIEnv *env, jobject thiz)
@@ -552,7 +575,7 @@ void android_media_MediaExtractor_setDataSource(JNIEnv *env, jobject thiz, jstri
 	}
 
 	if (path == NULL) {
-		jniThrowException(env, "java/lang/IOException", "Path is NULL.");
+		jniThrowException(env, "java/lang/Exception", "Path is NULL.");
 		PPLOGE("Path is NULL");
 		return;
 	}
@@ -567,7 +590,7 @@ void android_media_MediaExtractor_setDataSource(JNIEnv *env, jobject thiz, jstri
 
 	status_t ret = extractor->setDataSource(pathStr);
 	if (ret != OK) {
-		jniThrowException(env, "java/lang/IOException", "failed to open media");
+		jniThrowException(env, "java/lang/Exception", "failed to open media");
 		return;
 	}
 
@@ -650,6 +673,7 @@ static JNINativeMethod gExtractorMethods[] = {
 	{"readSampleData",       "(Ljava/nio/ByteBuffer;I)I",		(void *)android_media_MediaExtractor_readSampleData},
 
 	{"release",       "()V",		(void *)android_media_MediaExtractor_release},
+	{"stop",       "()V",		(void *)android_media_MediaExtractor_stop},
 	{"seekTo",       "(JI)V",		(void *)android_media_MediaExtractor_seekTo},
 	{"selectTrack",       "(I)V",		(void *)android_media_MediaExtractor_selectTrack},
 	{"setDataSource",       "(Ljava/lang/String;)V",		(void *)android_media_MediaExtractor_setDataSource},

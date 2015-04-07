@@ -7,10 +7,6 @@ import android.media.MediaExtractor;
 import android.media.MediaFormat;
 import android.pplive.media.util.LogUtils;
 
-/**
- * @author leoxie
- * 
- */
 class DefaultMediaExtractor implements MediaExtractable {
 	
 	private MediaExtractor mExtractor;
@@ -94,6 +90,12 @@ class DefaultMediaExtractor implements MediaExtractable {
 	@Override
 	public void unselectTrack(int index) {
 		mExtractor.unselectTrack(index);
+	}
+
+	@Override
+	public void stop() {
+		// TODO Auto-generated method stub
+		
 	}
 
 }

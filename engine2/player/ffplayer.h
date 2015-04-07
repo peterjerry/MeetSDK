@@ -11,7 +11,6 @@
 #include "loop.h"
 #include "audioplayer.h"
 #include "ffstream.h"
-//#include "../subtitle/subtitle.h"
 
 class ISubtitles;
 class FFRender;
@@ -178,6 +177,9 @@ private:
 	void notifyVideoDelay(int64_t video_clock, int64_t audio_clock, int64_t frame_delay);
 
 	int64_t getFramePTS_l(AVFrame* frame);
+
+	// for interlace
+	bool FixInterlace(AVStream *video_st);
 
 	// for auto video rotation
 	bool FixRotateVideo(AVStream *video_st);

@@ -20,6 +20,7 @@
 #include "apEPG.h"
 #include "urlcodec.h"
 //#include <vld.h>
+#include <time.h>
 
 #pragma comment(lib, "sdl")
 #pragma comment(lib, "libppbox")

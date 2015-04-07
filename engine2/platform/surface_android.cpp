@@ -262,11 +262,17 @@ status_t Surface_getPixels(uint32_t* width, uint32_t* height, uint32_t* stride, 
 	}
 
 	if ((WINDOW_FORMAT_RGBX_8888 != buffer.format) && (WINDOW_FORMAT_RGBA_8888 != buffer.format)) {
+		// 2015.3.31 guoliangma added to fix "already locked" problem when window_format is invalid
+		ANativeWindow_unlockAndPost(window);
+
 		LOGE("native window format is not valid: %d", buffer.format);
 		return ERROR;
 	}
 
 	if (NULL == buffer.bits) {
+		// 2015.3.31 guoliangma added
+		ANativeWindow_unlockAndPost(window);
+
 		LOGE("native window bits is null");
 		return ERROR;
 	}
