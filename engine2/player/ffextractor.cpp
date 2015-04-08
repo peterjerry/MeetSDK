@@ -130,7 +130,9 @@ FFExtractor::FFExtractor()
 	m_seeking				= false;
 	m_eof					= false;
 
+	/* register all formats and codecs */
 	av_register_all();
+
 	avformat_network_init();
 
 	av_log_set_callback(ff_log_callback);
@@ -273,9 +275,6 @@ void FFExtractor::notifyListener_l(int msg, int ext1, int ext2)
 status_t FFExtractor::setDataSource(const char *path)
 {
 	LOGI("setDataSource() %s", path);
-
-	/* register all formats and codecs */
-    av_register_all();
 
 	if (!path || strcmp(path, "") == 0) {
 		LOGE("url is empty");
@@ -474,6 +473,27 @@ status_t FFExtractor::getTrackFormat(int32_t index, MediaFormat *format)
 		format->frame_rate = frame_rate;
 	}
 	else if (AVMEDIA_TYPE_AUDIO == type) {
+		LOGI("audio codec: codec_id %d, channels %d, channel_layout %lld, sample_rate %d, sample_fmt %d",
+			codec_id, c->channels, c->channel_layout, c->sample_rate, c->sample_fmt);
+
+/*
+#define FF_PROFILE_UNKNOWN -99
+#define FF_PROFILE_RESERVED -100
+
+#define FF_PROFILE_AAC_MAIN 0
+#define FF_PROFILE_AAC_LOW  1
+#define FF_PROFILE_AAC_SSR  2
+#define FF_PROFILE_AAC_LTP  3
+#define FF_PROFILE_AAC_HE   4
+#define FF_PROFILE_AAC_HE_V2 28
+#define FF_PROFILE_AAC_LD   22
+#define FF_PROFILE_AAC_ELD  38
+#define FF_PROFILE_MPEG2_AAC_LOW 128
+#define FF_PROFILE_MPEG2_AAC_HE  131
+*/
+		if (CODEC_ID_AAC == codec_id)
+			LOGI("aac profile %d", c->profile);
+
 		format->media_type		= PPMEDIA_TYPE_AUDIO;
 		format->codec_id		= (int32_t)codec_id;
 		format->channels		= c->channels;
@@ -598,7 +618,13 @@ int16_t FFExtractor::get_aac_extradata(AVCodecContext *c)
 	14: Reserved
 	15: frequency is written explictly
 	*/
-	switch(c->sample_rate / 2) {
+	int sample_rate = c->sample_rate;
+	// That's not a bug. HE-AAC files contain half their actual sampling rate in their headers
+	// mkvmerge will issue warnings in such a case, and you have to select with --aac-is-sbr (or mmg's corresponding GUI element).
+	if (c->profile == FF_PROFILE_AAC_HE || c->profile == FF_PROFILE_AAC_HE_V2)
+		sample_rate /= 2;
+
+	switch (sample_rate) {
 	case 96000:
 		sampleRateIdx = 0;
 		break;
@@ -639,44 +665,49 @@ int16_t FFExtractor::get_aac_extradata(AVCodecContext *c)
 		sampleRateIdx = 12;
 		break;
 	default:
-		LOGE("unsupported audio sample rate %lld", c->sample_rate);
+		LOGE("unsupported audio sample rate %d", sample_rate);
 		return ERROR;
 	}
 
-	/*Channel Configurations
-	0: Defined in AOT Specifc Config
-	1: 1 channel: front-center
-	2: 2 channels: front-left, front-right
-	3: 3 channels: front-center, front-left, front-right
-	4: 4 channels: front-center, front-left, front-right, back-center
-	5: 5 channels: front-center, front-left, front-right, back-left, back-right
-	6: 6 channels: front-center, front-left, front-right, back-left, back-right, LFE-channel
-	7: 8 channels: front-center, front-left, front-right, side-left, side-right, back-left, back-right, LFE-channel
-	8-15: Reserved*/
-	switch(c->channel_layout) {
-	case AV_CH_LAYOUT_MONO:
-		numChannels = 1; 
-		break;
-	case AV_CH_LAYOUT_STEREO:
-		numChannels = 2; 
-		break;
-	case AV_CH_LAYOUT_2POINT1:
-	case AV_CH_LAYOUT_2_1:
-	case AV_CH_LAYOUT_SURROUND:
-		numChannels = 3; 
-		break;
-	case AV_CH_LAYOUT_4POINT0:
-		numChannels = 4; 
-		break;
-	case AV_CH_LAYOUT_5POINT0_BACK:
-		numChannels = 5; 
-		break;
-	case AV_CH_LAYOUT_5POINT1_BACK:
-		numChannels = 6; 
-		break;
-	default:
-		LOGE("unsupported audio channel layout %lld", c->channel_layout);
-		return ERROR;
+	if (c->channels != 0) {
+		numChannels = c->channels;
+	}
+	else {
+		/*Channel Configurations
+		0: Defined in AOT Specifc Config
+		1: 1 channel: front-center
+		2: 2 channels: front-left, front-right
+		3: 3 channels: front-center, front-left, front-right
+		4: 4 channels: front-center, front-left, front-right, back-center
+		5: 5 channels: front-center, front-left, front-right, back-left, back-right
+		6: 6 channels: front-center, front-left, front-right, back-left, back-right, LFE-channel
+		7: 8 channels: front-center, front-left, front-right, side-left, side-right, back-left, back-right, LFE-channel
+		8-15: Reserved*/
+		switch(c->channel_layout) {
+		case AV_CH_LAYOUT_MONO:
+			numChannels = 1; 
+			break;
+		case AV_CH_LAYOUT_STEREO:
+			numChannels = 2; 
+			break;
+		case AV_CH_LAYOUT_2POINT1:
+		case AV_CH_LAYOUT_2_1:
+		case AV_CH_LAYOUT_SURROUND:
+			numChannels = 3; 
+			break;
+		case AV_CH_LAYOUT_4POINT0:
+			numChannels = 4; 
+			break;
+		case AV_CH_LAYOUT_5POINT0_BACK:
+			numChannels = 5; 
+			break;
+		case AV_CH_LAYOUT_5POINT1_BACK:
+			numChannels = 6; 
+			break;
+		default:
+			LOGE("unsupported audio channel layout %lld", c->channel_layout);
+			return ERROR;
+		}
 	}
 
 	return (aacObjectType << 11) | (sampleRateIdx << 7) | (numChannels << 3);
@@ -773,8 +804,9 @@ bool FFExtractor::seek_l()
 
 	flush_l();
 
-	LOGI("put flush packet"); 
+	m_video_clock_msec = m_audio_clock_msec = m_seek_time_msec;
 
+	LOGI("put flush packet"); 
 	if (m_video_stream) {
 		AVPacket* flush_pkt = (AVPacket*)av_malloc(sizeof(AVPacket));
 		av_init_packet(flush_pkt);
@@ -876,7 +908,7 @@ status_t FFExtractor::advance()
 	audio_msec = get_packet_pos(tmpPkt);
 
 	if (video_msec == AV_NOPTS_VALUE) {
-		LOGW("video pts is AV_NOPTS_VALUE, use last corrent value");
+		LOGW("video pts is AV_NOPTS_VALUE, use last corrent value, set to %lld", m_video_clock_msec);
 		video_msec = m_video_clock_msec;
 	}
 	else {
@@ -884,7 +916,7 @@ status_t FFExtractor::advance()
 	}
 
 	if (audio_msec == AV_NOPTS_VALUE) {
-		LOGW("audio pts is AV_NOPTS_VALUE, use last corrent value");
+		LOGW("audio pts is AV_NOPTS_VALUE, use last corrent value, set to %lld", m_audio_clock_msec);
 		audio_msec = m_audio_clock_msec;
 	}
 	else {

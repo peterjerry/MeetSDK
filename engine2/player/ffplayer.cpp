@@ -3554,7 +3554,7 @@ bool FFPlayer::getThumbnail(const char* url, MediaInfo* info)
     AVFormatContext* movieFile = avformat_alloc_context();
 	AVStream *video_stream = NULL;
 	AVCodecContext *video_dec_ctx = NULL;
-	AVFrame *frame;
+	AVFrame *frame = NULL;
 	int video_stream_idx;
 
 	AVStream *audio_stream = NULL;
