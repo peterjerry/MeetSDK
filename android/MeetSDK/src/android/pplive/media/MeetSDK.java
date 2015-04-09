@@ -358,20 +358,25 @@ public final class MeetSDK {
 		try {
 			bitmap = getThumbnailFromDiskCache(UrlUtil.encode(filePath));
 			if (bitmap != null) {
-				
+				LogUtils.info("createVideoThumbnail from diskcache: " + filePath);
 				return bitmap;
-			} else {
-				bitmap = Build.VERSION.SDK_INT >= 8 ? 
-						ThumbnailUtils.createVideoThumbnail(filePath, MediaStore.Video.Thumbnails.MICRO_KIND) : null;
-				
-				bitmap = bitmap == null ?
-						MeetPlayerHelper.createVideoThumbnail(filePath, kind) : bitmap;
 			}
 			
+			if (Build.VERSION.SDK_INT >= 8)
+				bitmap = ThumbnailUtils.createVideoThumbnail(filePath, MediaStore.Video.Thumbnails.MICRO_KIND);
+			
 			if (bitmap != null) {
-				addThumbnailToDiskCache(UrlUtil.encode(filePath), bitmap);
+				LogUtils.info("createVideoThumbnail from ThumbnailUtils: " + filePath);
 			}
+			else {
+				bitmap = MeetPlayerHelper.createVideoThumbnail(filePath, kind);
+				LogUtils.info("createVideoThumbnail from ffmpeg: " + filePath);
+			}
+			
+			if (bitmap != null)
+				addThumbnailToDiskCache(UrlUtil.encode(filePath), bitmap);
 		} catch (LinkageError e) {
+			e.printStackTrace();
 			LogUtils.error("LinkageError", e);
 		}
 

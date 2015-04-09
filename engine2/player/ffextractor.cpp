@@ -29,7 +29,7 @@ extern JavaVM* gs_jvm;
 #define MEDIA_OPEN_TIMEOUT_MSEC		(120 * 1000) // 2 min
 #define MEDIA_READ_TIMEOUT_MSEC		(300 * 1000) // 5 min
 
-#define VIDOE_POP_AHEAD_MSEC 0
+#define VIDOE_POP_AHEAD_MSEC 200
 
 // NAL unit types
 enum NALUnitType {
@@ -48,10 +48,6 @@ enum NALUnitType {
     NAL_SPS_EXT,
     NAL_AUXILIARY_SLICE = 19
 };
-
-#define BUFFER_FLAG_SYNC_FRAME		1
-#define BUFFER_FLAG_CODEC_CONFIG	2
-#define BUFFER_FLAG_END_OF_STREAM	4
 
 static void ff_log_callback(void* avcl, int level, const char* fmt, va_list vl);
 
@@ -790,10 +786,11 @@ bool FFExtractor::seek_l()
 	seek_target= av_rescale_q(seek_target, AV_TIME_BASE_Q, m_fmt_ctx->streams[stream_index]->time_base);
 #endif
 
+	/* useless code
 	pthread_mutex_lock(&mLock);
 	m_seeking = true;
 	pthread_cond_signal(&mCondition);
-	pthread_mutex_unlock(&mLock);
+	pthread_mutex_unlock(&mLock);*/
 
     if (av_seek_frame(m_fmt_ctx, stream_index, seek_target, m_seek_flag) < 0) {
         LOGW("failed to seek to: %lld msec", m_seek_time_msec);
@@ -1371,7 +1368,7 @@ void FFExtractor::thread_impl()
 				while (m_buffered_size > m_max_buffersize) {
 					struct timespec ts;
 					ts.tv_sec = 0;
-					ts.tv_nsec = 250000000ll; // 250 msec
+					ts.tv_nsec = 100000000ll; // 100 msec
 					AutoLock autoLock(&mLock);
 #if defined(__CYGWIN__) || defined(_MSC_VER)
 					int64_t now_usec = getNowUs();
@@ -1401,9 +1398,12 @@ void FFExtractor::thread_impl()
 		if (ret == AVERROR_EOF) {
 			av_free_packet(pPacket);
 			av_free(pPacket);
-			m_eof = true;
-			LOGI("av_read_frame() eof");
 
+			if (!m_eof) {
+				LOGI("av_read_frame() eof");
+				m_eof = true;
+			}
+			
 			// 2014.8.25 guoliangma added, to fix cannot play clip which duration is less than 3sec
 			if (m_buffering) {
 				m_buffering = false;
@@ -1429,7 +1429,7 @@ void FFExtractor::thread_impl()
 					m_video_keyframe_sync = true;
 				}
 				else {
-					LOGW("drop no sync video frame");
+					LOGW("drop no sync video pkt");
 					av_free_packet(pPacket);
 					pPacket = NULL;
 					continue;
@@ -1439,6 +1439,13 @@ void FFExtractor::thread_impl()
 			m_video_q.put(pPacket);
 		}
 		else if(pPacket->stream_index == m_audio_stream_idx) {
+			if (!m_video_keyframe_sync) {
+				LOGW("drop no sync audio pkt");
+				av_free_packet(pPacket);
+				pPacket = NULL;
+				continue;
+			}
+
 			m_audio_q.put(pPacket);
 
 			if (pPacket->stream_index == m_audio_stream_idx) {

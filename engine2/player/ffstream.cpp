@@ -892,8 +892,10 @@ void FFStream::thread_impl()
                 av_free(pPacket);
 
                 //end of stream
-                mReachEndStream = true;
-                LOGI("reach end of stream");
+				if (!mReachEndStream) {
+					mReachEndStream = true;
+					LOGI("reach end of stream");
+				}
 				
 				// 2014.8.25 guoliangma added, to fix cannot play clip which duration is less than 3sec
 				if (mIsBuffering) {
