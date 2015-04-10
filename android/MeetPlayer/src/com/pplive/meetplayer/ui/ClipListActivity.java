@@ -293,7 +293,7 @@ public class ClipListActivity extends Activity implements
 	
 	private String mCurrentFolder;
 	
-	private final static String home_folder		= "";//"/test2";
+	private final static String home_folder		= "";//"/test4";
 	
 	private final static String HTTP_UPDATE_APK_URL = "http://172.16.204.106/test/test/";
 	
@@ -599,7 +599,7 @@ public class ClipListActivity extends Activity implements
 				final String[] ft = {"流畅", "高清", "超清", "蓝光"};
 				
 				Dialog choose_ft_dlg = new AlertDialog.Builder(ClipListActivity.this)
-				.setTitle("select player impl")
+				.setTitle("select ft")
 				.setSingleChoiceItems(ft, Integer.parseInt(btn_ft.getText().toString()), /*default selection item number*/
 					new DialogInterface.OnClickListener(){
 						public void onClick(DialogInterface dialog, int whichButton){
@@ -620,7 +620,7 @@ public class ClipListActivity extends Activity implements
 				final String[] bw_type = {"P2P", "CDNP2P", "CDN", "PPTV", "DLNA"};
 
 				Dialog choose_bw_type_dlg = new AlertDialog.Builder(ClipListActivity.this)
-				.setTitle("select player impl")
+				.setTitle("select bw_type")
 				.setSingleChoiceItems(bw_type, Integer.parseInt((String) btn_bw_type.getText()), /*default selection item number*/
 					new DialogInterface.OnClickListener(){
 						public void onClick(DialogInterface dialog, int whichButton){
