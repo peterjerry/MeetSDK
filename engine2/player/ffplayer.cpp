@@ -3534,7 +3534,7 @@ bool FFPlayer::getThumbnail2(const char* url, MediaInfo* info)
 
 bool FFPlayer::getThumbnail(const char* url, MediaInfo* info)
 {
-	LOGD("getThumbnail2()");
+	LOGD("getThumbnail()");
 
 	if (url == NULL || info == NULL)
 		return false;
@@ -3555,11 +3555,11 @@ bool FFPlayer::getThumbnail(const char* url, MediaInfo* info)
 	AVStream *video_stream = NULL;
 	AVCodecContext *video_dec_ctx = NULL;
 	AVFrame *frame = NULL;
-	int video_stream_idx;
+	int video_stream_idx = -1;
 
 	AVStream *audio_stream = NULL;
 	AVCodecContext *audio_dec_ctx = NULL;
-	int audio_stream_idx;
+	int audio_stream_idx = -1;
 
 	AVPacket pkt;
 
@@ -3593,7 +3593,9 @@ bool FFPlayer::getThumbnail(const char* url, MediaInfo* info)
     if (open_codec_context(&audio_stream_idx, movieFile, AVMEDIA_TYPE_AUDIO) >= 0) {
         audio_stream = movieFile->streams[audio_stream_idx];
         audio_dec_ctx = audio_stream->codec;
-		info->audiocodec_names[0] = (char *)audio_dec_ctx->codec->name;
+		int len = strlen(audio_dec_ctx->codec->name) + 1;
+		info->audiocodec_names[0] = new char[len];
+		strcpy(info->audiocodec_names[0], audio_dec_ctx->codec->name);
     }
 
 	/* dump input information to stderr */

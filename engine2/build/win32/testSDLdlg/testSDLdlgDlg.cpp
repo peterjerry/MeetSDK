@@ -498,7 +498,7 @@ void CtestSDLdlgDlg::OnBnClickedStart()
 	mPlayLive = false;
 	SetDlgItemText(IDC_STATIC_START_TIME, "N/A");
 
-	if(mUrl.Find(HOST) != -1 && sel < USER_LIST_OFFSET) {
+	if (mUrl.Find(HOST) != -1 && sel < USER_LIST_OFFSET) {
 		int64_t start_time = getSec();
 		int duration_min = GetDlgItemInt(IDC_EDIT_VOD_DURATION);
 		CString strTime;
