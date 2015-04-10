@@ -42,11 +42,12 @@ public class PlayerPolicy {
 		
 		if (!url.startsWith("/") && !url.startsWith("file://")) {
 			// network stream
-			if (url.startsWith("http://") && (url.endsWith(".mp4") || url.endsWith(".3gp"))) {
+			if (url.startsWith("http://")) {
 				if (buildString.startsWith(BUILDID_PPBOXMINI) || buildString.startsWith(BUILDID_PPBOX1S) ||
 						buildString.startsWith(BULDID_XIANFENG_TV))
 				{
 					// fix dlna push cell-phone recorded clip play stuck problem
+					// fix blue-disk airplay play stuck problem
 					return DecodeMode.HW_SYSTEM;
 				}
 			}
@@ -214,6 +215,20 @@ public class PlayerPolicy {
 				 audioCodecName.equals("amr_wb"))) {
 				return DecodeMode.HW_SYSTEM;
 			}
+		}
+		else if (url.toLowerCase().endsWith("avi")) {
+			if ((null == videoCodecName || 
+					 videoCodecName.equals("xvid") || videoCodecName.equals("h264") || 
+					 videoCodecName.equals("hevc") || videoCodecName.equals("mpeg4") ||
+					 videoCodecName.equals("mjpeg") || videoCodecName.equals("h263") ||
+					 videoCodecName.equals("wmv3")) 
+					 && 
+					 (null == audioCodecName || audioCodecName.equals("mp1") ||
+					 audioCodecName.equals("mp2") || audioCodecName.equals("mp3") || 
+					 audioCodecName.equals("aac") || audioCodecName.equals("ac3") || 
+					 audioCodecName.equals("wmav1"))) {
+					return DecodeMode.HW_SYSTEM;
+				}
 		}
 		else if (url.toLowerCase().endsWith("wmv") || url.toLowerCase().endsWith("asf") ||
 				url.toLowerCase().endsWith("wma")) {

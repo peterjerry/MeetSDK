@@ -29,7 +29,7 @@ extern JavaVM* gs_jvm;
 #define MEDIA_OPEN_TIMEOUT_MSEC		(120 * 1000) // 2 min
 #define MEDIA_READ_TIMEOUT_MSEC		(300 * 1000) // 5 min
 
-#define VIDOE_POP_AHEAD_MSEC 0
+#define VIDOE_POP_AHEAD_MSEC 200
 
 // NAL unit types
 enum NALUnitType {
@@ -48,10 +48,6 @@ enum NALUnitType {
     NAL_SPS_EXT,
     NAL_AUXILIARY_SLICE = 19
 };
-
-#define BUFFER_FLAG_SYNC_FRAME		1
-#define BUFFER_FLAG_CODEC_CONFIG	2
-#define BUFFER_FLAG_END_OF_STREAM	4
 
 static void ff_log_callback(void* avcl, int level, const char* fmt, va_list vl);
 
@@ -130,7 +126,9 @@ FFExtractor::FFExtractor()
 	m_seeking				= false;
 	m_eof					= false;
 
+	/* register all formats and codecs */
 	av_register_all();
+
 	avformat_network_init();
 
 	av_log_set_callback(ff_log_callback);
@@ -273,9 +271,6 @@ void FFExtractor::notifyListener_l(int msg, int ext1, int ext2)
 status_t FFExtractor::setDataSource(const char *path)
 {
 	LOGI("setDataSource() %s", path);
-
-	/* register all formats and codecs */
-    av_register_all();
 
 	if (!path || strcmp(path, "") == 0) {
 		LOGE("url is empty");
@@ -474,6 +469,27 @@ status_t FFExtractor::getTrackFormat(int32_t index, MediaFormat *format)
 		format->frame_rate = frame_rate;
 	}
 	else if (AVMEDIA_TYPE_AUDIO == type) {
+		LOGI("audio codec: codec_id %d, channels %d, channel_layout %lld, sample_rate %d, sample_fmt %d",
+			codec_id, c->channels, c->channel_layout, c->sample_rate, c->sample_fmt);
+
+/*
+#define FF_PROFILE_UNKNOWN -99
+#define FF_PROFILE_RESERVED -100
+
+#define FF_PROFILE_AAC_MAIN 0
+#define FF_PROFILE_AAC_LOW  1
+#define FF_PROFILE_AAC_SSR  2
+#define FF_PROFILE_AAC_LTP  3
+#define FF_PROFILE_AAC_HE   4
+#define FF_PROFILE_AAC_HE_V2 28
+#define FF_PROFILE_AAC_LD   22
+#define FF_PROFILE_AAC_ELD  38
+#define FF_PROFILE_MPEG2_AAC_LOW 128
+#define FF_PROFILE_MPEG2_AAC_HE  131
+*/
+		if (CODEC_ID_AAC == codec_id)
+			LOGI("aac profile %d", c->profile);
+
 		format->media_type		= PPMEDIA_TYPE_AUDIO;
 		format->codec_id		= (int32_t)codec_id;
 		format->channels		= c->channels;
@@ -598,7 +614,13 @@ int16_t FFExtractor::get_aac_extradata(AVCodecContext *c)
 	14: Reserved
 	15: frequency is written explictly
 	*/
-	switch(c->sample_rate / 2) {
+	int sample_rate = c->sample_rate;
+	// That's not a bug. HE-AAC files contain half their actual sampling rate in their headers
+	// mkvmerge will issue warnings in such a case, and you have to select with --aac-is-sbr (or mmg's corresponding GUI element).
+	if (c->profile == FF_PROFILE_AAC_HE || c->profile == FF_PROFILE_AAC_HE_V2)
+		sample_rate /= 2;
+
+	switch (sample_rate) {
 	case 96000:
 		sampleRateIdx = 0;
 		break;
@@ -639,44 +661,49 @@ int16_t FFExtractor::get_aac_extradata(AVCodecContext *c)
 		sampleRateIdx = 12;
 		break;
 	default:
-		LOGE("unsupported audio sample rate %lld", c->sample_rate);
+		LOGE("unsupported audio sample rate %d", sample_rate);
 		return ERROR;
 	}
 
-	/*Channel Configurations
-	0: Defined in AOT Specifc Config
-	1: 1 channel: front-center
-	2: 2 channels: front-left, front-right
-	3: 3 channels: front-center, front-left, front-right
-	4: 4 channels: front-center, front-left, front-right, back-center
-	5: 5 channels: front-center, front-left, front-right, back-left, back-right
-	6: 6 channels: front-center, front-left, front-right, back-left, back-right, LFE-channel
-	7: 8 channels: front-center, front-left, front-right, side-left, side-right, back-left, back-right, LFE-channel
-	8-15: Reserved*/
-	switch(c->channel_layout) {
-	case AV_CH_LAYOUT_MONO:
-		numChannels = 1; 
-		break;
-	case AV_CH_LAYOUT_STEREO:
-		numChannels = 2; 
-		break;
-	case AV_CH_LAYOUT_2POINT1:
-	case AV_CH_LAYOUT_2_1:
-	case AV_CH_LAYOUT_SURROUND:
-		numChannels = 3; 
-		break;
-	case AV_CH_LAYOUT_4POINT0:
-		numChannels = 4; 
-		break;
-	case AV_CH_LAYOUT_5POINT0_BACK:
-		numChannels = 5; 
-		break;
-	case AV_CH_LAYOUT_5POINT1_BACK:
-		numChannels = 6; 
-		break;
-	default:
-		LOGE("unsupported audio channel layout %lld", c->channel_layout);
-		return ERROR;
+	if (c->channels != 0) {
+		numChannels = c->channels;
+	}
+	else {
+		/*Channel Configurations
+		0: Defined in AOT Specifc Config
+		1: 1 channel: front-center
+		2: 2 channels: front-left, front-right
+		3: 3 channels: front-center, front-left, front-right
+		4: 4 channels: front-center, front-left, front-right, back-center
+		5: 5 channels: front-center, front-left, front-right, back-left, back-right
+		6: 6 channels: front-center, front-left, front-right, back-left, back-right, LFE-channel
+		7: 8 channels: front-center, front-left, front-right, side-left, side-right, back-left, back-right, LFE-channel
+		8-15: Reserved*/
+		switch(c->channel_layout) {
+		case AV_CH_LAYOUT_MONO:
+			numChannels = 1; 
+			break;
+		case AV_CH_LAYOUT_STEREO:
+			numChannels = 2; 
+			break;
+		case AV_CH_LAYOUT_2POINT1:
+		case AV_CH_LAYOUT_2_1:
+		case AV_CH_LAYOUT_SURROUND:
+			numChannels = 3; 
+			break;
+		case AV_CH_LAYOUT_4POINT0:
+			numChannels = 4; 
+			break;
+		case AV_CH_LAYOUT_5POINT0_BACK:
+			numChannels = 5; 
+			break;
+		case AV_CH_LAYOUT_5POINT1_BACK:
+			numChannels = 6; 
+			break;
+		default:
+			LOGE("unsupported audio channel layout %lld", c->channel_layout);
+			return ERROR;
+		}
 	}
 
 	return (aacObjectType << 11) | (sampleRateIdx << 7) | (numChannels << 3);
@@ -759,10 +786,11 @@ bool FFExtractor::seek_l()
 	seek_target= av_rescale_q(seek_target, AV_TIME_BASE_Q, m_fmt_ctx->streams[stream_index]->time_base);
 #endif
 
+	/* useless code
 	pthread_mutex_lock(&mLock);
 	m_seeking = true;
 	pthread_cond_signal(&mCondition);
-	pthread_mutex_unlock(&mLock);
+	pthread_mutex_unlock(&mLock);*/
 
     if (av_seek_frame(m_fmt_ctx, stream_index, seek_target, m_seek_flag) < 0) {
         LOGW("failed to seek to: %lld msec", m_seek_time_msec);
@@ -773,8 +801,9 @@ bool FFExtractor::seek_l()
 
 	flush_l();
 
-	LOGI("put flush packet"); 
+	m_video_clock_msec = m_audio_clock_msec = m_seek_time_msec;
 
+	LOGI("put flush packet"); 
 	if (m_video_stream) {
 		AVPacket* flush_pkt = (AVPacket*)av_malloc(sizeof(AVPacket));
 		av_init_packet(flush_pkt);
@@ -876,7 +905,7 @@ status_t FFExtractor::advance()
 	audio_msec = get_packet_pos(tmpPkt);
 
 	if (video_msec == AV_NOPTS_VALUE) {
-		LOGW("video pts is AV_NOPTS_VALUE, use last corrent value");
+		LOGW("video pts is AV_NOPTS_VALUE, use last corrent value, set to %lld", m_video_clock_msec);
 		video_msec = m_video_clock_msec;
 	}
 	else {
@@ -884,7 +913,7 @@ status_t FFExtractor::advance()
 	}
 
 	if (audio_msec == AV_NOPTS_VALUE) {
-		LOGW("audio pts is AV_NOPTS_VALUE, use last corrent value");
+		LOGW("audio pts is AV_NOPTS_VALUE, use last corrent value, set to %lld", m_audio_clock_msec);
 		audio_msec = m_audio_clock_msec;
 	}
 	else {
@@ -1339,7 +1368,7 @@ void FFExtractor::thread_impl()
 				while (m_buffered_size > m_max_buffersize) {
 					struct timespec ts;
 					ts.tv_sec = 0;
-					ts.tv_nsec = 250000000ll; // 250 msec
+					ts.tv_nsec = 100000000ll; // 100 msec
 					AutoLock autoLock(&mLock);
 #if defined(__CYGWIN__) || defined(_MSC_VER)
 					int64_t now_usec = getNowUs();
@@ -1369,9 +1398,12 @@ void FFExtractor::thread_impl()
 		if (ret == AVERROR_EOF) {
 			av_free_packet(pPacket);
 			av_free(pPacket);
-			m_eof = true;
-			LOGI("av_read_frame() eof");
 
+			if (!m_eof) {
+				LOGI("av_read_frame() eof");
+				m_eof = true;
+			}
+			
 			// 2014.8.25 guoliangma added, to fix cannot play clip which duration is less than 3sec
 			if (m_buffering) {
 				m_buffering = false;
@@ -1397,7 +1429,7 @@ void FFExtractor::thread_impl()
 					m_video_keyframe_sync = true;
 				}
 				else {
-					LOGW("drop no sync video frame");
+					LOGW("drop no sync video pkt");
 					av_free_packet(pPacket);
 					pPacket = NULL;
 					continue;
@@ -1407,6 +1439,13 @@ void FFExtractor::thread_impl()
 			m_video_q.put(pPacket);
 		}
 		else if(pPacket->stream_index == m_audio_stream_idx) {
+			if (!m_video_keyframe_sync) {
+				LOGW("drop no sync audio pkt");
+				av_free_packet(pPacket);
+				pPacket = NULL;
+				continue;
+			}
+
 			m_audio_q.put(pPacket);
 
 			if (pPacket->stream_index == m_audio_stream_idx) {

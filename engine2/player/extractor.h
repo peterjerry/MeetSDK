@@ -7,6 +7,14 @@
 #include "errors.h"
 #endif
 
+#define SEEK_TO_CLOSEST_SYNC		2 // If possible, seek to the sync sample closest to the specified time
+#define SEEK_TO_NEXT_SYNC			1 // If possible, seek to a sync sample at or after the specified time
+#define SEEK_TO_PREVIOUS_SYNC		0 // If possible, seek to a sync sample at or before the specified time (0x00000000)
+
+#define BUFFER_FLAG_SYNC_FRAME		1
+#define BUFFER_FLAG_CODEC_CONFIG	2
+#define BUFFER_FLAG_END_OF_STREAM	4
+
 class MediaPlayerListener;
 
 #define MKTAG(a,b,c,d) ((a) | ((b) << 8) | ((c) << 16) | ((unsigned)(d) << 24))

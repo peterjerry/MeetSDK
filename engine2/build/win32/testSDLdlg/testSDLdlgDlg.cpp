@@ -112,7 +112,7 @@ int pptv_channel_id[] = {
 const char *pptv_rtsp_playlink_fmt = "rtsp://%s:%d/play.es?type=pplive3&playlink=%d";
 const char *pptv_http_playlink_fmt = "http://%s:%d/play.m3u8?type=pplive3&playlink=%d";
 const char *pptv_playlink_surfix = "%3Fft%3D1%26bwtype%3D0%26platform%3Dandroid3%26type%3Dphone.android.vip";
-const char *pptv_playlink_ppvod2_fmt = "http://%s:%d/record.m3u8?type=ppvod2&playlink=%s&mux.M3U8.segment_duration=5";
+const char *pptv_playlink_ppvod2_fmt = "http://%s:%d/record.m3u8?type=ppvod2&playlink=%s";
 
 void genHMSM(int pos_msec, int *hour, int *minute, int *sec, int *msec);
 
@@ -294,7 +294,7 @@ BOOL CtestSDLdlgDlg::OnInitDialog()
 	SetDlgItemText(IDC_EDIT_VOD_DURATION, "90");
 	//SetDlgItemText(IDC_EDIT_VLC_PATH, "C:\\Program Files (x86)\\VideoLAN\\VLC\\vlc.exe");
 
-	SetDlgItemText(IDC_EDIT_PLAYLINK, "19534153");
+	SetDlgItemText(IDC_EDIT_PLAYLINK, "17493573");
 	SetDlgItemText(IDC_EDIT_FT, "1");
 	SetDlgItemText(IDC_EDIT_BWTYPE, "3");
 	mEPGQueryType = EPG_QUERY_FRONTPAGE;
@@ -498,7 +498,7 @@ void CtestSDLdlgDlg::OnBnClickedStart()
 	mPlayLive = false;
 	SetDlgItemText(IDC_STATIC_START_TIME, "N/A");
 
-	if(mUrl.Find(HOST) != -1 && sel < USER_LIST_OFFSET) {
+	if (mUrl.Find(HOST) != -1 && sel < USER_LIST_OFFSET) {
 		int64_t start_time = getSec();
 		int duration_min = GetDlgItemInt(IDC_EDIT_VOD_DURATION);
 		CString strTime;
@@ -1177,7 +1177,7 @@ void CtestSDLdlgDlg::OnBnClickedButtonPlayEpg()
 	ft = GetDlgItemInt(IDC_EDIT_FT);
 	bw_type = GetDlgItemInt(IDC_EDIT_BWTYPE);
 
-	_snprintf(str_playlink, 512, "%d?ft=%d&bwtype=%d&platform=android3&type=phone.android.vip&sv=4.1.3&param=userType%3D1", 
+	_snprintf(str_playlink, 512, "%d?ft=%d&bwtype=%d&platform=android3&type=phone.android.vip&sv=4.1.3", // &param=userType%3D1
 		link, ft, bw_type);
 	LOGI("playlink before urlencode: %s", str_playlink);
 	int out_len = 0;
@@ -1185,6 +1185,7 @@ void CtestSDLdlgDlg::OnBnClickedButtonPlayEpg()
 	LOGI("playlink after urlencode: %s", encoded_playlink);
 
 	_snprintf(str_url, 1024, pptv_playlink_ppvod2_fmt, HOST, mhttpPort, encoded_playlink);
+	strcat(str_url, "%26param%3DuserType%253D1&mux.M3U8.segment_duration=5");
 	LOGI("final vod url: %s", str_url);
 	start_player(str_url);
 }

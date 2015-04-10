@@ -63,7 +63,8 @@
 				android:layout_width="120dp"
 				android:layout_height="wrap_content"
 				android:text="17493573"
-				android:numeric="integer" />
+				android:numeric="integer"
+				android:singleLine="true" />
 			<TextView
 				android:layout_width="wrap_content"
 				android:layout_height="wrap_content"
@@ -109,9 +110,8 @@
 		android:id="@+id/layout_preview"
 		android:layout_width="fill_parent"
 		android:layout_height="fill_parent"
-		android:background="@android:color/black"
-		android:gravity="center" >
-		<com.pplive.meetplayer.ui.MyPreView
+		android:background="@android:color/black" >
+		<com.pplive.meetplayer.ui.MyPreView2
 			android:id="@+id/preview"
 			android:layout_marginLeft="10dp"
 			android:layout_marginRight="10dp"
@@ -167,6 +167,12 @@
 			android:layout_centerInParent="true" 
 			android:src="@drawable/novideo"
 			android:scaleType="fitXY" 
+			android:visibility="gone" />
+		<com.pplive.meetplayer.ui.widget.MiniMediaController
+			android:id="@+id/mmc"
+			android:layout_width="wrap_content"
+			android:layout_height="wrap_content"
+			android:layout_alignParentBottom="true" 
 			android:visibility="gone" />
 	</RelativeLayout>	
  

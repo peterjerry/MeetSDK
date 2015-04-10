@@ -12,11 +12,13 @@ import android.os.Message;
 import android.util.AttributeSet;
 import android.util.Log;
 import android.view.GestureDetector;
+import android.view.GestureDetector.OnGestureListener;
 import android.view.KeyEvent;
 import android.view.LayoutInflater;
 import android.view.MotionEvent;
 import android.view.OrientationEventListener;
 import android.view.View;
+import android.view.ViewGroup;
 import android.widget.ImageButton;
 import android.widget.ProgressBar;
 import android.widget.SeekBar;
@@ -47,9 +49,9 @@ public class MiniMediaController extends MediaController {
     private boolean mVolumerDragging = false;
     private boolean mIsShowing = false;
     
-    private ImageButton mPlayPauseBtn;
+    private ImageButton mPauseBtn;
     private ImageButton mFwdBtn;
-    private ImageButton mBwdBtn;
+    private ImageButton mRewBtn;
     private ImageButton	 mFullScreenBtn;
     
     private Activity mInstance;
@@ -64,6 +66,9 @@ public class MiniMediaController extends MediaController {
     
 	public MiniMediaController(Context context, AttributeSet attr) {
 		super(context, attr);
+		
+		setFocusable(true);
+        setFocusableInTouchMode(true);
 		
 		mControllerView = makeControllerView();
 	}
@@ -85,15 +90,15 @@ public class MiniMediaController extends MediaController {
 	}
 	
 	private void initControllerView(View v) {
-		mPlayPauseBtn = (ImageButton) v.findViewById(R.id.player_play_pause_btn);
-		if (mPlayPauseBtn != null) {
-			mPlayPauseBtn.requestFocus();
-			mPlayPauseBtn.setOnClickListener(mPlayPauseListener);
+		mPauseBtn = (ImageButton) v.findViewById(R.id.player_play_pause_btn);
+		if (mPauseBtn != null) {
+			mPauseBtn.requestFocus();
+			mPauseBtn.setOnClickListener(mPlayPauseListener);
         }
 		
-		mBwdBtn = (ImageButton) v.findViewById(R.id.player_bf_btn);
-		if (mBwdBtn != null) {
-			mBwdBtn.setOnClickListener(mBwdListener);
+		mRewBtn = (ImageButton) v.findViewById(R.id.player_bf_btn);
+		if (mRewBtn != null) {
+			mRewBtn.setOnClickListener(mBwdListener);
         }
 		
 		mFwdBtn = (ImageButton) v.findViewById(R.id.player_ff_btn);
@@ -141,9 +146,9 @@ public class MiniMediaController extends MediaController {
     }
 	
 	private int setProgress() {
-		if(mPlayer == null) {
-			Log.e(TAG, "aaaaa setProgress() player is null");
-		}
+		if (mPlayer == null)
+			return 0;
+		
 		int position = mPlayer.getCurrentPosition();
 		return setProgress(position);
 	}
@@ -193,15 +198,58 @@ public class MiniMediaController extends MediaController {
 		this.show(sDefaultTimeout);
 	}
 	
-	public void show(int timeout) {
-		mHandler.sendEmptyMessage(SHOW);
+	/**
+     * Disable pause or seek buttons if the stream cannot be paused or seeked.
+     * This requires the control interface to be a MediaPlayerControlExt
+     */
+    private void disableUnsupportedButtons() {
+        try {
+            if (mPauseBtn != null && !mPlayer.canPause()) {
+            	mPauseBtn.setEnabled(false);
+            }
+            if (mRewBtn != null && !mPlayer.canSeekBackward()) {
+                mRewBtn.setEnabled(false);
+            }
+            if (mFwdBtn != null && !mPlayer.canSeekForward()) {
+            	mFwdBtn.setEnabled(false);
+            }
+        } catch (IncompatibleClassChangeError ex) {
+            // We were given an old version of the interface, that doesn't have
+            // the canPause/canSeekXYZ methods. This is OK, it just means we
+            // assume the media can be paused and seeked, and so we don't disable
+            // the buttons.
+        }
+    }
+	
+	/**
+     * Show the controller on screen. It will go away
+     * automatically after 'timeout' milliseconds of inactivity.
+     * @param timeout The timeout in milliseconds. Use 0 to show
+     * the controller until hide() is called.
+     */
+    public void show(int timeout) {
+        if (!mIsShowing) {
+            setProgress();
+            if (mPauseBtn != null) {
+            	mPauseBtn.requestFocus();
+            }
+            disableUnsupportedButtons();
+            mControllerView.setVisibility(View.VISIBLE);
+            mIsShowing = true;
+        }
+        updatePausePlay();
+        
+        // cause the progress bar to be updated even if mShowing
+        // was already true.  This happens, for example, if we're
+        // paused with the progress bar showing the user hits play.
+        mHandler.sendEmptyMessage(UPDATE_PROGRESS);
 
         Message msg = mHandler.obtainMessage(FADE_OUT);
         if (timeout != 0) {
             mHandler.removeMessages(FADE_OUT);
             mHandler.sendMessageDelayed(msg, timeout);
         }
-	}
+    }
 	
 	private Handler mHandler = new Handler() {
 		@Override
@@ -214,17 +262,17 @@ public class MiniMediaController extends MediaController {
                 	mControllerView.setVisibility(View.INVISIBLE);
                 	mIsShowing = false;
                     break;
-                case SHOW:
+                /*case SHOW:
                 	mControllerView.setVisibility(View.VISIBLE);
                 	mHandler.sendEmptyMessage(UPDATE_PROGRESS);
                 	mIsShowing = true;
-                    break;
+                    break;*/
                case UPDATE_PROGRESS:
                    pos = setProgress();
                    // keep UI always show up
                    if (isShowing() && mPlayer.isPlaying()) {
                        msg = obtainMessage(UPDATE_PROGRESS);
-                       sendMessageDelayed(msg, 500);
+                       sendMessageDelayed(msg, 1000 - (pos % 1000));
                    }
             	   break;
                default:
@@ -233,6 +281,24 @@ public class MiniMediaController extends MediaController {
             }
         }
 	};
+	
+	@Override
+    public void setEnabled(boolean enabled) {
+        if (mPauseBtn != null) {
+        	mPauseBtn.setEnabled(enabled);
+        }
+        if (mFwdBtn != null) {
+            mFwdBtn.setEnabled(enabled);
+        }
+        if (mRewBtn != null) {
+        	mRewBtn.setEnabled(enabled);
+        }
+        if (mProgressBar != null) {
+        	mProgressBar.setEnabled(enabled);
+        }
+        disableUnsupportedButtons();
+        super.setEnabled(enabled);
+    }
 	
 	private View.OnClickListener mPlayPauseListener = new View.OnClickListener() {
         public void onClick(View v) {
@@ -252,13 +318,13 @@ public class MiniMediaController extends MediaController {
     }
     
     private void updatePausePlay() {
-        if (mPlayPauseBtn == null)
+        if (mPauseBtn == null)
             return;
 
         if (mPlayer.isPlaying()) {
-            mPlayPauseBtn.setImageResource(R.drawable.player_pause_btn);
+            mPauseBtn.setImageResource(R.drawable.player_pause_btn);
         } else {
-        	mPlayPauseBtn.setImageResource(R.drawable.player_play_btn);
+        	mPauseBtn.setImageResource(R.drawable.player_play_btn);
         }
     }
     
@@ -313,34 +379,90 @@ public class MiniMediaController extends MediaController {
         }
     };
     
-    private GestureDetector mGestureDetector = new GestureDetector(new GestureDetector.SimpleOnGestureListener(){
-    	
-    	public boolean onDoubleTap(MotionEvent e) {
-//    		Log.d(TAG, "onDoubleTap!!!");
-    		
-    		if (mPlayer instanceof MediaPlayerControl) {
-    			((MediaPlayerControl) mPlayer).switchDisplayMode();
-    		}
-    		
-    		return false;
-    	};
-    	
-    	public boolean onSingleTapConfirmed(MotionEvent e) {
-//    		Log.d(TAG, "onSingleTapConfirmed!!!");
-    		
-    		
-    		return false;
-    	};
-    });
-    
     private OnTouchListener mTouchListener = new OnTouchListener() {
-		
-		@Override
-		public boolean onTouch(View v, MotionEvent event) {
-			
-			return mGestureDetector.onTouchEvent(event);
-		}
-	};
+        public boolean onTouch(View v, MotionEvent event) {
+            if (event.getAction() == MotionEvent.ACTION_DOWN) {
+                if (mIsShowing) {
+                    hide();
+                }
+            }
+            return false;
+        }
+    };
+    
+    @Override
+    public boolean onTrackballEvent(MotionEvent ev) {
+        show(sDefaultTimeout);
+        return false;
+    }
+    
+    @Override
+    public boolean dispatchKeyEvent(KeyEvent event) {
+        int keyCode = event.getKeyCode();
+        final boolean uniqueDown = event.getRepeatCount() == 0
+                && event.getAction() == KeyEvent.ACTION_DOWN;
+        if (keyCode ==  KeyEvent.KEYCODE_HEADSETHOOK
+                || keyCode == KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE
+                || keyCode == KeyEvent.KEYCODE_SPACE) {
+            if (uniqueDown) {
+                doPauseResume();
+                show(sDefaultTimeout);
+                if (mPauseBtn != null) {
+                	mPauseBtn.requestFocus();
+                }
+            }
+            return true;
+        } else if (keyCode == KeyEvent.KEYCODE_MEDIA_PLAY) {
+            if (uniqueDown && !mPlayer.isPlaying()) {
+                mPlayer.start();
+                updatePausePlay();
+                show(sDefaultTimeout);
+            }
+            return true;
+        } else if (keyCode == KeyEvent.KEYCODE_MEDIA_STOP
+                || keyCode == KeyEvent.KEYCODE_MEDIA_PAUSE) {
+            if (uniqueDown && mPlayer.isPlaying()) {
+                mPlayer.pause();
+                updatePausePlay();
+                show(sDefaultTimeout);
+            }
+            return true;
+        } else if (keyCode == KeyEvent.KEYCODE_DPAD_LEFT) {
+        	int pos = mPlayer.getCurrentPosition();
+        	pos -= 30000;
+        	if (pos < 0)
+        		pos = 0;
+        	mPlayer.seekTo(pos);
+        	if (mRewBtn != null) {
+        		mRewBtn.requestFocus();
+            }
+        	return true;
+        } else if (keyCode == KeyEvent.KEYCODE_DPAD_RIGHT) {
+        	int pos = mPlayer.getCurrentPosition();
+        	pos += 30000;
+        	if (pos > mPlayer.getDuration())
+        		pos = mPlayer.getDuration();
+        	mPlayer.seekTo(pos);
+        	if (mFwdBtn != null) {
+        		mFwdBtn.requestFocus();
+            }
+        	return true;
+        } else if (keyCode == KeyEvent.KEYCODE_VOLUME_DOWN
+                || keyCode == KeyEvent.KEYCODE_VOLUME_UP
+                || keyCode == KeyEvent.KEYCODE_VOLUME_MUTE
+                || keyCode == KeyEvent.KEYCODE_CAMERA) {
+            // don't show the controls for volume adjustment
+            return super.dispatchKeyEvent(event);
+        } else if (keyCode == KeyEvent.KEYCODE_BACK || keyCode == KeyEvent.KEYCODE_MENU) {
+            if (uniqueDown) {
+                hide();
+            }
+            return true;
+        }
+
+        show(sDefaultTimeout);
+        return super.dispatchKeyEvent(event);
+    }
 	
 	private OnSeekBarChangeListener mProgressChangeListener = new OnSeekBarChangeListener() {
 		

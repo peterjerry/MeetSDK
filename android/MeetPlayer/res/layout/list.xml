@@ -8,12 +8,11 @@
 		android:layout_width="fill_parent"
 		android:layout_height="200dp"
 		android:background="@android:color/black" >
-		<com.pplive.meetplayer.ui.MyPreView
+		<com.pplive.meetplayer.ui.MyPreView2
 			android:id="@+id/preview"
 			android:layout_width="wrap_content"
 			android:layout_height="wrap_content"
-			android:layout_centerInParent="true"
-			android:gravity="center" />
+			android:layout_centerInParent="true" />
 		<ProgressBar 
 			android:id="@+id/progressbar_buffering"
 			style="@android:style/Widget.ProgressBar.Large"
@@ -61,6 +60,12 @@
 			android:layout_centerInParent="true" 
 			android:src="@drawable/novideo"
 			android:scaleType="fitXY" 
+			android:visibility="gone" />
+		<com.pplive.meetplayer.ui.widget.MiniMediaController
+			android:id="@+id/mmc"
+			android:layout_width="wrap_content"
+			android:layout_height="wrap_content"
+			android:layout_alignParentBottom="true" 
 			android:visibility="gone" />
 	</RelativeLayout>
 	

@@ -42,6 +42,7 @@ import android.view.SurfaceHolder;
 import android.view.View;
 import android.view.View.MeasureSpec;
 import android.view.View.OnFocusChangeListener;
+import android.view.WindowManager;
 import android.widget.AbsListView;
 import android.widget.AbsListView.OnScrollListener;
 import android.widget.AdapterView;
@@ -55,8 +56,6 @@ import android.widget.LinearLayout;
 import android.widget.RelativeLayout;
 import android.widget.TimePicker;
 import android.widget.Toast;
-import android.widget.MediaController;
-import android.widget.MediaController.MediaPlayerControl;
 import android.os.Build;
 import android.media.AudioManager;
 import android.graphics.Bitmap;
@@ -68,7 +67,6 @@ import android.view.ViewGroup.LayoutParams;
 import android.widget.TextView;
 import android.graphics.drawable.Drawable;
 import android.graphics.Color;
-import android.graphics.drawable.Drawable;
 import android.util.DisplayMetrics; // for display width and height
 import android.content.DialogInterface;
 import android.app.AlertDialog;
@@ -76,6 +74,7 @@ import android.app.Dialog;
 import android.content.SharedPreferences;
 
 import com.pplive.meetplayer.R;
+
 import com.pplive.meetplayer.service.DLNAService;
 import com.pplive.meetplayer.util.AtvUtils;
 import com.pplive.meetplayer.util.Catalog;
@@ -91,6 +90,7 @@ import com.pplive.meetplayer.util.Module;
 import com.pplive.meetplayer.util.PlayLink2;
 import com.pplive.meetplayer.util.PlayLinkUtil;
 import com.pplive.meetplayer.util.Util;
+import com.pplive.meetplayer.ui.widget.MiniMediaController;
 import com.pplive.meetplayer.ui.widget.MySimpleMediaController;
 import com.pplive.dlna.DLNASdk;
 
@@ -106,6 +106,7 @@ import com.pplive.dlna.DLNASdk;
 import android.os.Handler;  
 import android.os.Message;
 import android.pplive.media.MeetSDK;
+import android.pplive.media.player.MediaController.MediaPlayerControl;
 import android.pplive.media.player.MediaPlayer;
 import android.pplive.media.player.MediaInfo;
 import android.pplive.media.subtitle.SimpleSubTitleParser;
@@ -136,10 +137,10 @@ public class ClipListActivity extends Activity implements
 	private Button btnTakeSnapShot;
 	private Button btnSelectAudioTrack;
 	private EditText et_play_url;
-	private MyPreView mPreview;
+	private MyPreView2 mPreview;
 	private boolean mPreviewFocused = false;
 	private SurfaceHolder mHolder;
-	private MediaController mMediaController;
+	private MiniMediaController mMediaController;
 	private RelativeLayout mLayout;
 	private ProgressBar mBufferingProgressBar;
 	private EditText et_playlink;
@@ -292,7 +293,7 @@ public class ClipListActivity extends Activity implements
 	
 	private String mCurrentFolder;
 	
-	private final static String home_folder		= "";//"/test2";
+	private final static String home_folder		= "";//"/test4";
 	
 	private final static String HTTP_UPDATE_APK_URL = "http://172.16.204.106/test/test/";
 	
@@ -308,17 +309,22 @@ public class ClipListActivity extends Activity implements
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
-		
+		    
 		// compatible with tvbox
 		if (getResources().getConfiguration().orientation == 1) 
 			isLandscape = false;
 		else
 			isLandscape = true;
 		
-		if(isLandscape)
+		if (isLandscape) {
 			setContentView(R.layout.list_landscape);
-		else
+			
+			getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_VISIBLE
+	                | WindowManager.LayoutParams.SOFT_INPUT_ADJUST_PAN);
+		}
+		else {
 			setContentView(R.layout.list);
+		}
 		
 		Log.i(TAG, "Java: onCreate()");
 		
@@ -347,14 +353,16 @@ public class ClipListActivity extends Activity implements
 		this.imageDMR = (ImageView) findViewById(R.id.iv_dlna_dmc);
 		this.imageNoVideo = (ImageView) findViewById(R.id.iv_novideo);
 		
-		this.mPreview = (MyPreView) findViewById(R.id.preview);
+		this.mPreview = (MyPreView2) findViewById(R.id.preview);
 		this.mLayout = (RelativeLayout) findViewById(R.id.layout_preview);
 		
 		this.mBufferingProgressBar = (ProgressBar) findViewById(R.id.progressbar_buffering);
 		this.mSubtitleTextView = (TextView) findViewById(R.id.textview_subtitle);
 		
-		this.mMediaController = new MySimpleMediaController(this);
+		this.mMediaController = (MiniMediaController) findViewById(R.id.mmc);
 	
+		mMediaController.setInstance(this);
+		
 		readSettings();
 		
 		mTextViewInfo = new TextView(this);
@@ -591,7 +599,7 @@ public class ClipListActivity extends Activity implements
 				final String[] ft = {"流畅", "高清", "超清", "蓝光"};
 				
 				Dialog choose_ft_dlg = new AlertDialog.Builder(ClipListActivity.this)
-				.setTitle("select player impl")
+				.setTitle("select ft")
 				.setSingleChoiceItems(ft, Integer.parseInt(btn_ft.getText().toString()), /*default selection item number*/
 					new DialogInterface.OnClickListener(){
 						public void onClick(DialogInterface dialog, int whichButton){
@@ -612,7 +620,7 @@ public class ClipListActivity extends Activity implements
 				final String[] bw_type = {"P2P", "CDNP2P", "CDN", "PPTV", "DLNA"};
 
 				Dialog choose_bw_type_dlg = new AlertDialog.Builder(ClipListActivity.this)
-				.setTitle("select player impl")
+				.setTitle("select bw_type")
 				.setSingleChoiceItems(bw_type, Integer.parseInt((String) btn_bw_type.getText()), /*default selection item number*/
 					new DialogInterface.OnClickListener(){
 						public void onClick(DialogInterface dialog, int whichButton){
@@ -1204,6 +1212,8 @@ public class ClipListActivity extends Activity implements
 	
 	void stop_player() {
 		if (mPlayer != null) {
+			mMediaController.hide();
+			
 			mStoped = true;
 			if (mIsSubtitleUsed) {
 				mSubtitleThread.interrupt();
@@ -1355,14 +1365,7 @@ public class ClipListActivity extends Activity implements
 
 	public boolean canSeekForward() {
 		return true;
-	}
-	
-	@Override
-	public int getAudioSessionId() {
-		// TODO Auto-generated method stub
-		return 0;
-	}
-	
+	}	
 	//end of : implements MediaPlayerControl
 	//////////////////////////////////////////
 	
@@ -1397,11 +1400,20 @@ public class ClipListActivity extends Activity implements
 				break;
 			case MSG_UPDATE_PLAY_INFO:
 			case MSG_UPDATE_RENDER_INFO:
-				mTextViewInfo.setText(String.format("%02d|%03d v-a: %+04d\n"
-						+ "dec/render %d(%d)/%d(%d) fps/msec\nbitrate %d kbps", 
-					render_frame_num % 25, decode_drop_frame % 1000, av_latency_msec, 
-					decode_fps, decode_avg_msec, render_fps, render_avg_msec,
-					video_bitrate));
+				if (isLandscape) {
+					mTextViewInfo.setText(String.format("%02d|%03d v-a: %+04d "
+							+ "dec/render %d(%d)/%d(%d) fps/msec bitrate %d kbps", 
+						render_frame_num % 25, decode_drop_frame % 1000, av_latency_msec, 
+						decode_fps, decode_avg_msec, render_fps, render_avg_msec,
+						video_bitrate));
+				}
+				else {
+					mTextViewInfo.setText(String.format("%02d|%03d v-a: %+04d\n"
+							+ "dec/render %d(%d)/%d(%d) fps/msec\nbitrate %d kbps", 
+						render_frame_num % 25, decode_drop_frame % 1000, av_latency_msec, 
+						decode_fps, decode_avg_msec, render_fps, render_avg_msec,
+						video_bitrate));
+				}
 				break;
 			case MSG_CLIP_PLAY_DONE:
 				Toast.makeText(ClipListActivity.this, "clip completed", Toast.LENGTH_SHORT).show();
@@ -2316,41 +2328,39 @@ public class ClipListActivity extends Activity implements
 		render_frame_num = 0;
 		decode_drop_frame = 0;
 		
-		// S39H call setLooping here, system player will throw error (-38, 0)
-		//if (mListLocalFile)
-		//if (DecodeMode.SW == mDecMode) // ffplay
-		//	mPlayer.setLooping(mIsLoop);
-		
 		mVideoWidth = mp.getVideoWidth();
 		mVideoHeight = mp.getVideoHeight();
 		
 		// view
-		int width = mLayout.getWidth();
-		int height = mLayout.getHeight();
+		/*int w = View.MeasureSpec.makeMeasureSpec(0,View.MeasureSpec.AT_MOST); 
+		int h = View.MeasureSpec.makeMeasureSpec(0,View.MeasureSpec.AT_MOST); 
+		mPreview.measure(w, h);*/
+		int width	= mLayout.getMeasuredWidth();
+		int height 	= mLayout.getMeasuredHeight();
 		
-		Log.i(TAG, String.format("surfaceview %d x %d, video %d x %d", width, height, mVideoWidth, mVideoHeight)); 
+		Log.i(TAG, String.format("adjust_ui preview %d x %d, video %d x %d", width, height, mVideoWidth, mVideoHeight)); 
 		
 		mPreview.getHolder().setFixedSize(mVideoWidth, mVideoHeight);
 		
-		/*
 		RelativeLayout.LayoutParams sufaceviewParams = (RelativeLayout.LayoutParams) mPreview.getLayoutParams();
 		if ( mVideoWidth * height  > width * mVideoHeight ) { 
-			Log.i(TAG, "surfaceview is too tall, correcting");
+			Log.i(TAG, "adjust_ui surfaceview is too tall, correcting");
+			sufaceviewParams.width	= width;
 			sufaceviewParams.height = width * mVideoHeight / mVideoWidth;
 		}
-		else if ( mVideoWidth * height  < width * mVideoHeight ) 
-		{ 
-			Log.i(TAG, "surfaceview is too wide, correcting"); 
-			sufaceviewParams.width = height * mVideoWidth / mVideoHeight; 
+		else if ( mVideoWidth * height  < width * mVideoHeight ) { 
+			Log.i(TAG, "adjust_ui surfaceview is too wide, correcting"); 
+			sufaceviewParams.width = height * mVideoWidth / mVideoHeight;
+			sufaceviewParams.height= height;
 		}
 		else {
-           sufaceviewParams.height= height;
-           sufaceviewParams.width = width;
+           sufaceviewParams.height	= height;
+           sufaceviewParams.width 	= width;
 		}
 		
-		Log.i(TAG, String.format("surfaceview setLayoutParams %d %d", 
+		Log.i(TAG, String.format("adjust_ui surfaceview setLayoutParams %d %d", 
 				sufaceviewParams.width, sufaceviewParams.height)); 
-		mPreview.setLayoutParams(sufaceviewParams);*/
+		mPreview.setLayoutParams(sufaceviewParams);
 		
 		mPreview.BindInstance(mMediaController, mPlayer);
 		
@@ -2677,12 +2687,7 @@ public class ClipListActivity extends Activity implements
 	
     private void attachMediaController() {
         mMediaController.setMediaPlayer(this);
-        mMediaController.setAnchorView(mPreview);
-        //mMediaController.setPadding(0, 0, 0, 0);
         mMediaController.setEnabled(true);
-        
-        if (isLandscape)
-        	mMediaController.show(5000);
     }
     
 	@Override
@@ -2841,10 +2846,25 @@ public class ClipListActivity extends Activity implements
 	
 	@Override
 	public boolean onKeyDown(int keyCode, KeyEvent event) {
-		Log.i(TAG, "keyCode: " + keyCode);
-
-		if (keyCode == KeyEvent.KEYCODE_ENTER && mPreviewFocused)
-			mMediaController.show(5000);
+		Log.d(TAG, "keyCode: " + keyCode);
+		int incr = -1;
+		
+		if (!mPreviewFocused)
+			return super.onKeyDown(keyCode, event);
+		
+		switch (keyCode) {
+			case KeyEvent.KEYCODE_ENTER:
+			case KeyEvent.KEYCODE_DPAD_CENTER:
+			case KeyEvent.KEYCODE_MENU:
+				if (mPlayer != null && !mMediaController.isShowing()) {
+					mMediaController.show(5000);
+					return true;
+				}
+				break;
+			default:
+				Log.d(TAG, "no spec action: " + keyCode);
+				break;
+			}
 		
 		return super.onKeyDown(keyCode, event);
 	}

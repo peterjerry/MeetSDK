@@ -222,7 +222,7 @@ static void process_media_player_call(JNIEnv *env, jobject thiz, status_t opStat
 	if (exception == NULL) {  // Don't throw exception. Instead, send an event.
 		if (opStatus != (status_t) OK) {
 			IPlayer* mp = getMediaPlayer(env, thiz);
-			if (mp != 0) {
+			if (mp) {
 				PPLOGE("process_media_player_call: call player's notify status=%d", opStatus);
 				mp->notify(MEDIA_ERROR, opStatus, 0);
 			}
