@@ -753,21 +753,11 @@ public class XOMediaPlayer extends BaseMediaPlayer {
 			}
 			
 			if (inputBufIndex >= 0) {
-				String xxx;
-				if (trackIndex == mVideoTrackIndex) {
-					mVideoCodecLock.lock();
-					xxx = "video";
-				}
-				else {
-					mAudioCodecLock.lock();
-					xxx= "audio";
-				}
-				LogUtils.info("diff_msec readsample: " + xxx);
-				ByteBuffer dstBuf = codec.getInputBuffers()[inputBufIndex];
 				if (trackIndex == mVideoTrackIndex)
-					mVideoCodecLock.unlock();
+					mVideoCodecLock.lock();
 				else
-					mAudioCodecLock.unlock();
+					mAudioCodecLock.lock();
+				ByteBuffer dstBuf = codec.getInputBuffers()[inputBufIndex];
                 int sampleSize = mExtractor.readSampleData(dstBuf, 0 /* offset */);
                 long presentationTimeUs = 0;
                 if (sampleSize < 0) {
@@ -804,8 +794,19 @@ public class XOMediaPlayer extends BaseMediaPlayer {
         		}
         		else {
         			LogUtils.error("got unknown track packet: #" + trackIndex);
+					
+					if (trackIndex == mVideoTrackIndex)
+						mVideoCodecLock.unlock();
+					else
+						mAudioCodecLock.unlock();
+					
         			break;
         		}
+				
+				if (trackIndex == mVideoTrackIndex)
+					mVideoCodecLock.unlock();
+				else
+					mAudioCodecLock.unlock();
 
                 if (!sawInputEOS) {
                 	mExtractor.advance();
@@ -900,8 +901,10 @@ public class XOMediaPlayer extends BaseMediaPlayer {
 					mVideoCodecLock.unlock();
 				else
 					mAudioCodecLock.unlock();
-					
+				
+				lock.lock();				
 				list.clear();
+				lock.unlock();
 				
 				if (isVideo) {
 					LogUtils.info("Java: flush video");
@@ -917,18 +920,28 @@ public class XOMediaPlayer extends BaseMediaPlayer {
 					mSeeking = false;
 				}
 
-				ret = false;
+				return false;
 			}
 		}
 
 		if (ret) {
+			if (isVideo)
+				mVideoCodecLock.lock();
+			else
+				mAudioCodecLock.lock();
+			
 			codec.queueInputBuffer(
                 inputBufIndex,
                 0 /* offset */,
                 sampleSize,
                 presentationTimeUs,
                 sawInputEOS ? MediaCodec.BUFFER_FLAG_END_OF_STREAM : 0);
-				
+			
+			if (isVideo)
+				mVideoCodecLock.unlock();
+			else
+				mAudioCodecLock.unlock();
+			
 			LogUtils.debug(String.format("queueInputBuffer track #%d(%s): size %d, pts %d msec, flags %d", 
         		trackIndex, isVideo ? "video" : "audio", sampleSize, presentationTimeUs / 1000, flags));
 		}
@@ -1018,7 +1031,7 @@ public class XOMediaPlayer extends BaseMediaPlayer {
         			LogUtils.info("Java: first video frame out");
 					mTotalStartMsec		= System.currentTimeMillis();
 					mFrameTimerMsec		= System.currentTimeMillis();
-        			mVideoFirstFrame = true;
+        			mVideoFirstFrame	= true;
         		}
         		
         		long video_clock_msec = info.presentationTimeUs / 1000;
@@ -1097,7 +1110,7 @@ public class XOMediaPlayer extends BaseMediaPlayer {
 	            MediaFormat oformat = mVideoCodec.getOutputFormat();
 	            Log.i(TAG, "output format has changed to " + oformat);
 	        } else {
-	            Log.i(TAG, "no output");
+	            Log.i(TAG, "video no output: " + res);
 	        }
 		} // end of while
 		
@@ -1182,8 +1195,11 @@ public class XOMediaPlayer extends BaseMediaPlayer {
     				
     				ByteBuffer outputBuf = mAudioCodec.getOutputBuffers()[outputBufIndex];
     				outputBuf.get(mAudioData);
-    				// would block
-    				mAudioTrack.write(mAudioData, 0, bufSize);
+					
+					if (mVideoFirstFrame) {
+						// would block
+						mAudioTrack.write(mAudioData, 0, bufSize);
+					}
 
     				// update audio clock
     				mAudioStartMsec = System.currentTimeMillis();
@@ -1200,7 +1216,7 @@ public class XOMediaPlayer extends BaseMediaPlayer {
 	            MediaFormat oformat = mAudioCodec.getOutputFormat();
 	            Log.i(TAG, "output format has changed to " + oformat);
 	        } else {
-	            Log.i(TAG, "no output");
+	            Log.i(TAG, "audio no output: " + res);
 	        }
 		} // end of while
 		

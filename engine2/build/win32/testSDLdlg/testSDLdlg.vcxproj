@@ -54,7 +54,7 @@
       <PrecompiledHeader>Use</PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
-      <PreprocessorDefinitions>_DUMP_PCM_DATA_;MARKUP_STL;CURL_STATICLIB;DEBUG_LOG_LEVEL__;SAVE_LOG_FILE;USE_AV_FILTER;TEST_PERFORMANCE;TEST_PERFORMANCE_BITRATE;NDEBUG;_CRT_SECURE_NO_WARNINGS;WIN32;_WINDOWS;_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>MARKUP_STL;CURL_STATICLIB;DEBUG_LOG_LEVEL__;SAVE_LOG_FILE;USE_AV_FILTER;TEST_PERFORMANCE;TEST_PERFORMANCE_BITRATE;NDEBUG;_CRT_SECURE_NO_WARNINGS;WIN32;_WINDOWS;_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <SDLCheck>true</SDLCheck>
       <AdditionalIncludeDirectories>.\;.\ppbox\include;..\testEPG;..\..\..\player;..\..\..\platform;..\testEPG\libjsoncpp\include;..\testEPG\libcurl\include;..\..\..\..\foundation\output\win32\full\include;..\..\..\..\subtitle2\output\android\include;D:\Archive\SDK\pthread\pthreads-w32-2-9-1-release\Pre-built.2\include;D:\Archive\SDK\SDL\SDL-1.2.15\include;D:\Archive\SDK\pthread\pthreads-w32-2-9-1-release\Pre-built.2\include;D:\Software\Visual Leak Detector\include</AdditionalIncludeDirectories>
     </ClCompile>

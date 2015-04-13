@@ -293,7 +293,7 @@ public class ClipListActivity extends Activity implements
 	
 	private String mCurrentFolder;
 	
-	private final static String home_folder		= "";//"/test4";
+	private final static String home_folder		= "/test2";
 	
 	private final static String HTTP_UPDATE_APK_URL = "http://172.16.204.106/test/test/";
 	
@@ -1035,7 +1035,8 @@ public class ClipListActivity extends Activity implements
 			else if (path.startsWith("/") || path.startsWith("file://")) {
 				MediaInfo info = MeetSDK.getMediaDetailInfo(path);
 				if (info != null) {
-					if (info.getVideoCodecName() != null && info.getVideoCodecName().equals("h264")) {
+					if (info.getVideoCodecName() != null && 
+					(info.getVideoCodecName().equals("h264") || info.getVideoCodecName().equals("hevc"))) {
 						if (info.getAudioChannels() == 0)
 							canPlay = true;
 						else {
