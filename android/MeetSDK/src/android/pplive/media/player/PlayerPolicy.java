@@ -81,7 +81,7 @@ public class PlayerPolicy {
 			return getDeviceCapabilitiesPPBox(url, formatName, videoCodecName, audioCodecName);
 		}
 		else if (buildString.startsWith(BULDID_XIANFENG_TV)) {
-			LogUtils.info("Java: use getDeviceCapabilitiesPPBox");
+			LogUtils.info("Java: use getDeviceCapabilitiesXianFengTV");
 			return getDeviceCapabilitiesXianFengTV(url, formatName, videoCodecName, audioCodecName);
 		}
 		else {
