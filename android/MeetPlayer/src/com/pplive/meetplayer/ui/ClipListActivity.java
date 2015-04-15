@@ -14,10 +14,8 @@ import java.util.Calendar;
 import java.util.Date;
 import java.util.GregorianCalendar;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Random;
-import java.util.Set;
 
 import android.app.Activity;
 import android.app.ProgressDialog;
@@ -93,6 +91,8 @@ import com.pplive.meetplayer.util.Util;
 import com.pplive.meetplayer.ui.widget.MiniMediaController;
 import com.pplive.meetplayer.ui.widget.MySimpleMediaController;
 import com.pplive.dlna.DLNASdk;
+import com.pplive.dlna.DLNASdk.DLNASdkInterface;
+import com.pplive.dlna.DLNASdkDMSItemInfo;
 
 
 
@@ -122,7 +122,8 @@ public class ClipListActivity extends Activity implements
 		MediaPlayer.OnPreparedListener, MediaPlayer.OnCompletionListener,
 		MediaPlayer.OnErrorListener, MediaPlayer.OnInfoListener,
 		MediaPlayer.OnVideoSizeChangedListener, MediaPlayer.OnBufferingUpdateListener,
-		MediaPlayerControl, SurfaceHolder.Callback, SubTitleParser.Callback, OnFocusChangeListener {
+		MediaPlayerControl, SurfaceHolder.Callback, SubTitleParser.Callback, OnFocusChangeListener, 
+		DLNASdkInterface {
 
 	private final static String TAG = "ClipList";
 	
@@ -255,10 +256,11 @@ public class ClipListActivity extends Activity implements
 	final static int UPLOAD_CRASH_REPORT		= Menu.FIRST + 3;
 	final static int QUIT 						= Menu.FIRST + 4;
 	final static int OPTION_COMMON				= Menu.FIRST + 11;
-	final static int OPTION_DLNA_LIST			= Menu.FIRST + 12;
-	final static int OPTION_EPG_FRONTPAGE		= Menu.FIRST + 13;
-	final static int OPTION_EPG_CONTENT		= Menu.FIRST + 14;
-	final static int OPTION_EPG_SEARCH			= Menu.FIRST + 15;
+	final static int OPTION_DLNA_DMR			= Menu.FIRST + 12;
+	final static int OPTION_DLNA_DMS			= Menu.FIRST + 13;
+	final static int OPTION_EPG_FRONTPAGE		= Menu.FIRST + 14;
+	final static int OPTION_EPG_CONTENT		= Menu.FIRST + 15;
+	final static int OPTION_EPG_SEARCH			= Menu.FIRST + 16;
 	final static int OPTION_COMMON_PREVIEW		= Menu.FIRST + 21;
 	final static int OPTION_COMMON_LOOP		= Menu.FIRST + 22;
 	final static int OPTION_COMMON_NO_VIDEO	= Menu.FIRST + 23;
@@ -1739,18 +1741,43 @@ public class ClipListActivity extends Activity implements
 		}
 	}
 	
+	private void popupDMSDlg() {
+		int dev_num = IDlnaCallback.mDMSmap.size();
+		
+		if (dev_num == 0) {
+			Log.i(TAG, "Java: dlna no dms device found");
+			Toast.makeText(this, "no dlna dms device found", Toast.LENGTH_SHORT).show();
+			return;
+		}
+		
+		ArrayList<String> dev_list = new ArrayList<String>();
+		ArrayList<String> uuid_list = new ArrayList<String>();
+		for (Object obj : IDlnaCallback.mDMSmap.keySet()){
+	          Object name = IDlnaCallback.mDMSmap.get(obj);
+	          Log.d(TAG, "Java: dlna [dlna dev] uuid: " + obj.toString() + " name: " + name.toString());
+	          uuid_list.add(obj.toString());
+	          dev_list.add(name.toString());
+	    }
+		
+		final String[] str_uuid_list = (String[])uuid_list.toArray(new String[uuid_list.size()]);
+		final String[] str_dev_list = (String[])dev_list.toArray(new String[dev_list.size()]);
+		
+		Dialog choose_dms_dlg = new AlertDialog.Builder(ClipListActivity.this)
+		.setTitle("select dms")
+		.setItems(str_dev_list, /*default selection item number*/
+			new DialogInterface.OnClickListener(){
+				public void onClick(DialogInterface dialog, int whichButton){
+					
+					dialog.dismiss();
+				}
+			})
+		.create();
+		choose_dms_dlg.show();	
+	}
+	
 	private void push_cdn_clip() {
 		//mDLNA.EnableRendererControler(true);
 		mDLNA.SetURI(mDlnaDeviceUUID, mDLNAPushUrl);
-		try {
-			Thread.sleep(500);
-		}
-		catch(Exception e) {
-			e.printStackTrace();
-		}
-		
-		mDLNA.Play(mDlnaDeviceUUID);
-		
 		mHandler.sendEmptyMessage(MSG_PUSH_CDN_CLIP);
 	}
 	
@@ -2014,7 +2041,7 @@ public class ClipListActivity extends Activity implements
 			return;
 		}
 		
-		int dev_num = IDlnaCallback.mDeviceMap.size();
+		int dev_num = IDlnaCallback.mDMRmap.size();
 		
 		if (dev_num == 0) {
 			Log.i(TAG, "Java: dlna no dlna device found");
@@ -2024,8 +2051,8 @@ public class ClipListActivity extends Activity implements
 		
 		ArrayList<String> dev_list = new ArrayList<String>();
 		ArrayList<String> uuid_list = new ArrayList<String>();
-		for (Object obj : IDlnaCallback.mDeviceMap.keySet()){
-	          Object name = IDlnaCallback.mDeviceMap.get(obj);
+		for (Object obj : IDlnaCallback.mDMRmap.keySet()){
+	          Object name = IDlnaCallback.mDMRmap.get(obj);
 	          Log.d(TAG, "Java: dlna [dlna dev] uuid: " + obj.toString() + " name: " + name.toString());
 	          uuid_list.add(obj.toString());
 	          dev_list.add(name.toString());
@@ -2081,11 +2108,12 @@ public class ClipListActivity extends Activity implements
 		
 		SubMenu commonMenu = OptSubMenu.addSubMenu(Menu.NONE, OPTION_COMMON, Menu.FIRST, "common");
 		// dlna
-		OptSubMenu.add(Menu.NONE, OPTION_DLNA_LIST, Menu.FIRST + 1, "dlna");
+		OptSubMenu.add(Menu.NONE, OPTION_DLNA_DMR, Menu.FIRST + 1, "dlna dmr");
+		//OptSubMenu.add(Menu.NONE, OPTION_DLNA_DMS, Menu.FIRST + 2, "dlna dms");
 		// epg
-		OptSubMenu.add(Menu.NONE, OPTION_EPG_FRONTPAGE, Menu.FIRST + 2, "epg frontpage");
-		OptSubMenu.add(Menu.NONE, OPTION_EPG_CONTENT, Menu.FIRST + 3, "epg content");
-		OptSubMenu.add(Menu.NONE, OPTION_EPG_SEARCH, Menu.FIRST + 4, "epg search");
+		OptSubMenu.add(Menu.NONE, OPTION_EPG_FRONTPAGE, Menu.FIRST + 3, "epg frontpage");
+		OptSubMenu.add(Menu.NONE, OPTION_EPG_CONTENT, Menu.FIRST + 4, "epg content");
+		OptSubMenu.add(Menu.NONE, OPTION_EPG_SEARCH, Menu.FIRST + 5, "epg search");
 				
 		MenuItem previewMenuItem = commonMenu.add(Menu.NONE, OPTION_COMMON_PREVIEW, Menu.FIRST, "Preview");
 		previewMenuItem.setCheckable(true);
@@ -2171,8 +2199,11 @@ public class ClipListActivity extends Activity implements
 			Intent intent = new Intent(ClipListActivity.this, MeetViewActivity.class);
 			startActivity(intent);
 			break;
-		case OPTION_DLNA_LIST:
+		case OPTION_DLNA_DMR:
 			push_to_dmr();
+			break;
+		case OPTION_DLNA_DMS:
+			popupDMSDlg();
 			break;
 		case OPTION_EPG_FRONTPAGE:
 			/*if (mEPGModuleList != null)
@@ -2671,7 +2702,7 @@ public class ClipListActivity extends Activity implements
 			return false;
 		}
 		
-		mDLNAcallback = new IDlnaCallback();
+		mDLNAcallback = new IDlnaCallback(this);
 		//mDLNA.setLogPath(Environment.getExternalStorageDirectory().getAbsolutePath() + "/xxxx_dlna.log");
 		mDLNA.Init(mDLNAcallback);
 		mDLNA.EnableRendererControler(true);
@@ -2872,5 +2903,129 @@ public class ClipListActivity extends Activity implements
 	
 	static {
 		//System.loadLibrary("lenthevcdec");
+	}
+
+	// dlna interface
+	@Override
+	public void OnDeviceAdded(String uuid, String firendname, String logourl,
+			int devicetype) {}
+
+	@Override
+	public void OnDeviceRemoved(String uuid, int devicetype) {}
+
+	@Override
+	public void OnLogPrintf(String msg) {}
+
+	@Override
+	public boolean OnConnect(String uuid, String requestName) {
+		// TODO Auto-generated method stub
+		return false;
+	}
+
+	@Override
+	public void OnConnectCallback(String uuid, int state) {}
+
+	@Override
+	public void OnDisConnect(String uuid) {}
+
+	@Override
+	public void OnDisConnectCallback(String uuid, boolean isTimeout) {}
+
+	@Override
+	public void OnRemoveTransportFile(String uuid, String transportuuid) {}
+
+	@Override
+	public void OnRemoveTransportFileCallback(String uuid,
+			String transportuuid, boolean isTimeout) {}
+
+	@Override
+	public void OnAddTransportFile(String uuid, String transportuuid,
+			String fileurl, String filename, String thumburl) {}
+
+	@Override
+	public void OnAddTransportFileCallback(String uuid, String transportuuid,
+			int state) {}
+
+	@Override
+	public int OnSetURI(String url, String urltitle, String remoteip,
+			int mediatype) {
+		// TODO Auto-generated method stub
+		if (mDLNA != null)
+			mDLNA.Play(mDlnaDeviceUUID);
+		
+		return 0;
+	}
+
+	@Override
+	public void OnPlay() {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public void OnPause() {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public void OnStop() {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public void OnSeek(long position) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public void OnSetVolume(long volume) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public void OnSetMute(boolean mute) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public void OnVolumeChanged(String uuid, long lVolume) {}
+
+	@Override
+	public void OnMuteChanged(String uuid, boolean bMute) {}
+
+	@Override
+	public void OnPlayStateChanged(String uuid, String state) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public void OnPlayUrlChanged(String uuid, String url) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public void OnContainerChanged(String uuid, String item_id, String update_id) {}
+
+	@Override
+	public void OnGetCaps(String uuid, String caps) {}
+
+	@Override
+	public void OnSetUrl(String uuid, long error) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public void OnBrowse(boolean success, String uuid, String objectid,
+			long count, long total, DLNASdkDMSItemInfo[] filelists) {
+		// TODO Auto-generated method stub
+		
 	}
 }

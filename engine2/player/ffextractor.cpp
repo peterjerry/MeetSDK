@@ -402,6 +402,7 @@ status_t FFExtractor::getTrackFormat(int32_t index, MediaFormat *format)
 		else if (strstr(m_fmt_ctx->iformat->name, "mpegts") != NULL ||
 			strstr(m_fmt_ctx->iformat->name, "hls,applehttp") != NULL) 
 		{	
+			// mpegts and hls has no extra data
 			m_fmt_ctx->streams[index]->discard = AVDISCARD_NONE;
 
 			AVPacket pkt;
@@ -786,14 +787,8 @@ bool FFExtractor::seek_l()
 	seek_target= av_rescale_q(seek_target, AV_TIME_BASE_Q, m_fmt_ctx->streams[stream_index]->time_base);
 #endif
 
-	/* useless code
-	pthread_mutex_lock(&mLock);
-	m_seeking = true;
-	pthread_cond_signal(&mCondition);
-	pthread_mutex_unlock(&mLock);*/
-
     if (av_seek_frame(m_fmt_ctx, stream_index, seek_target, m_seek_flag) < 0) {
-        LOGW("failed to seek to: %lld msec", m_seek_time_msec);
+        LOGE("failed to seek to: %lld msec", m_seek_time_msec);
 		return false;
     }
 				
@@ -1457,7 +1452,7 @@ void FFExtractor::thread_impl()
 			}
 		}
 		else {
-			LOGW("invalid packet found: stream_idx %d", pPacket->stream_index);
+			LOGD("invalid packet found: stream_idx %d", pPacket->stream_index);
 			av_free_packet(pPacket);
 			av_free(pPacket);
 			continue;

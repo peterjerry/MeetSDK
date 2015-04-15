@@ -11,34 +11,50 @@ import com.pplive.dlna.DLNASdkDMSItemInfo;
 public class IDlnaCallback implements DLNASdk.DLNASdkInterface {
 	private final static String TAG = "dlna";
 	
-	public static Map<String, String> mDeviceMap = new HashMap<String,String>();
+	public static Map<String, String> mDMRmap = new HashMap<String,String>();
+	public static Map<String, String> mDMSmap = new HashMap<String,String>();
+	private DLNASdk.DLNASdkInterface mCallback;
 	
-	synchronized public void OnDeviceAdded(String uuid, String firendname, String logourl, int devicetype)
-	{
-		Log.i(TAG, "Java: dlna [add] uuid: "+ uuid +", name:" + firendname);
+	public IDlnaCallback(DLNASdk.DLNASdkInterface callback) {
+		mCallback = callback;
+	}
+	
+	synchronized public void OnDeviceAdded(String uuid, String firendname, String logourl, int devicetype) {
+		Log.i(TAG, "Java: dlna [add] uuid: "+ uuid +", name:" + firendname + ", type: " + devicetype);
 		
 		if (devicetype == 1)
-			mDeviceMap.put(uuid,firendname); 
+			mDMRmap.put(uuid,firendname);
+		else if(devicetype == 2) {
+			
+		}
+			
 	}
 
-	synchronized public void OnDeviceRemoved(String uuid, int devicetype)
-	{
+	synchronized public void OnDeviceRemoved(String uuid, int devicetype) {
 		Log.i(TAG, "Java: dlna [remove] uuid:" + uuid);
 		if (devicetype == 1)
-			mDeviceMap.remove(uuid); 
+			mDMRmap.remove(uuid); 
 	}
 	
-	public void OnLogPrintf(String msg)
-	{
+	public void OnLogPrintf(String msg) {
 		Log.d("dlna_print", msg);
 	}
 
 	//////////////////////////////////////////////////////////////////////////
 	// mediashaker callback function
-	public boolean OnConnect(String uuid, String requestName){return true;}
-	public void OnConnectCallback(String uuid, int state){}
-	public void OnDisConnect(String uuid){}
-	public void OnDisConnectCallback(String uuid, boolean isTimeout){}
+	public boolean OnConnect(String uuid, String requestName) {
+		return true;
+	}
+	
+	public void OnConnectCallback(String uuid, int state) {
+	}
+	
+	public void OnDisConnect(String uuid) {
+	}
+	
+	public void OnDisConnectCallback(String uuid, boolean isTimeout) {
+	}
+	
 	public void OnRemoveTransportFile(String uuid, String transportuuid){}
 	public void OnRemoveTransportFileCallback(String uuid, String transportuuid, boolean isTimeout){}
 	public void OnAddTransportFile(String uuid, String transportuuid, String fileurl, String filename, String thumburl){}
@@ -48,6 +64,9 @@ public class IDlnaCallback implements DLNASdk.DLNASdkInterface {
 	public int OnSetURI(String url, String urltitle, String remoteip, int mediatype) {
 		Log.i(TAG, String.format("Java: dlna OnSetURI() url: %s, title %s, remoteip %s, mediatype %d", 
 				url, urltitle, remoteip, mediatype));
+		if (mCallback != null)
+			mCallback.OnSetURI(url, urltitle, remoteip, mediatype);
+			
 		return 0;
 	}
 	
@@ -78,5 +97,7 @@ public class IDlnaCallback implements DLNASdk.DLNASdkInterface {
 	public void OnContainerChanged(String uuid, String item_id, String update_id){}
 	public void OnGetCaps(String uuid, String caps){}
 	public void OnSetUrl(String uuid, long error){}
-	public void OnBrowse(boolean success, String uuid, String objectid, long count, long total, DLNASdkDMSItemInfo[] filelists){}
+	public void OnBrowse(boolean success, 
+			String uuid, String objectid, long count, long total, DLNASdkDMSItemInfo[] filelists) {
+	}
 }

@@ -22,7 +22,7 @@ public class DLNAService extends Service {
 	private final static int DLNA_LISTEN_PORT = 10010;
 	
 	public DLNASdk getSDK() {return mDLNA;}
-	public Map<String, String> getDeviceList() {return mDLNAcallback.mDeviceMap;}
+	public Map<String, String> getDeviceList() {return mDLNAcallback.mDMRmap;}
 	
 	private MyBinder binder = new MyBinder();
 	private int count;

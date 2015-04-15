@@ -3852,7 +3852,7 @@ static int open_codec_context(int *stream_idx,
 
     ret = av_find_best_stream(fmt_ctx, type, -1, -1, NULL, 0);
     if (ret < 0) {
-        LOGE("Could not find %s stream in input file", av_get_media_type_string(type));
+        LOGW("Could not find %s stream in input file", av_get_media_type_string(type));
         return ret;
     } else {
         *stream_idx = ret;
