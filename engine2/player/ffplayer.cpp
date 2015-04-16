@@ -3618,30 +3618,33 @@ bool FFPlayer::getThumbnail(const char* url, MediaInfo* info)
     }
 
 	if (info->duration_ms > 0 && info->duration_ms < seekPosition * 1000)
-		seekPosition = info->duration_ms / 1000;
-	seek_target = seekPosition * AV_TIME_BASE;
+		seekPosition = 0;
 
-	if (video_stream_idx >= 0)
-		stream_index = video_stream_idx;
-	else if (audio_stream_idx >= 0)
-		stream_index = audio_stream_idx;
+	if (seekPosition != 0) {
+		seek_target = seekPosition * AV_TIME_BASE;
 
-	if (stream_index < 0) {
-		LOGE("no stream to seek");
-		goto end;
-	}
+		if (video_stream_idx >= 0)
+			stream_index = video_stream_idx;
+		else if (audio_stream_idx >= 0)
+			stream_index = audio_stream_idx;
+
+		if (stream_index < 0) {
+			LOGE("no stream to seek");
+			goto end;
+		}
 
 #ifdef _MSC_VER
-	AVRational ra;
-	ra.num = 1;
-	ra.den = AV_TIME_BASE;
-	seek_target = av_rescale_q(seek_target, ra, movieFile->streams[stream_index]->time_base);
+		AVRational ra;
+		ra.num = 1;
+		ra.den = AV_TIME_BASE;
+		seek_target = av_rescale_q(seek_target, ra, movieFile->streams[stream_index]->time_base);
 #else
-	seek_target= av_rescale_q(seek_target, AV_TIME_BASE_Q, movieFile->streams[stream_index]->time_base);
+		seek_target= av_rescale_q(seek_target, AV_TIME_BASE_Q, movieFile->streams[stream_index]->time_base);
 #endif
-    if (av_seek_frame(movieFile, -1, seek_target, 0) < 0) {
-        LOGE("failed to seek file");
-		goto end;
+		if (av_seek_frame(movieFile, -1, seek_target, 0) < 0) {
+			LOGE("failed to seek file");
+			goto end;
+		}
     }
 
 	/* initialize packet, set data to NULL, let the demuxer fill it */

@@ -110,6 +110,10 @@ public class FFMediaPlayer extends BaseMediaPlayer {
 	static Bitmap createVideoThumbnail(String mediaFilePath, int kind) {
 		Bitmap bitmap = null;
 		
+		if (mediaFilePath.toLowerCase().endsWith("flac") || mediaFilePath.toLowerCase().endsWith("ape") ||
+				mediaFilePath.toLowerCase().endsWith("wav"))
+			return null;
+		
 		MediaInfo info = getThumbnail(mediaFilePath);
 		if (null != info) {
 			int[] colors = info.getThumbnail();

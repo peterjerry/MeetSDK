@@ -18,17 +18,16 @@ import android.provider.MediaStore.Video.Thumbnails;
 
 import com.pplive.meetplayer.R;
 
-public class PPTVAdapter extends BaseAdapter {
+public class LocalFileAdapter extends BaseAdapter {
 
-	private final static String TAG = "PPTVAdapter";
+	private final static String TAG = "LocalFileAdapter";
 	
 	private Context mContext;
 	private int mResource;
-	private ImageView mView = null;
 	private List<Map<String, Object>> mData;
 	private LayoutInflater mInflater = null;
 	
-	public PPTVAdapter(Context context, List<Map<String, Object>> data, int resource) {
+	public LocalFileAdapter(Context context, List<Map<String, Object>> data, int resource) {
         // TODO Auto-generated constructor stub
 		this.mContext = context;
 		this.mResource = resource;
@@ -42,10 +41,11 @@ public class PPTVAdapter extends BaseAdapter {
 
 	static class ViewHolder
     {
-        public TextView tv_title;
-        public TextView tv_desc;
-        public TextView tv_ft;
-        public TextView tv_duration;
+        public ImageView thumb;
+        public TextView tv_filename;
+        public TextView tv_mediainfo;
+        public TextView tv_folder;
+        public TextView tv_filesize;
         public TextView tv_resolution;
     }
 	
@@ -73,17 +73,13 @@ public class PPTVAdapter extends BaseAdapter {
 		ViewHolder holder;
         if (convertView == null) {
         	holder = new ViewHolder();
-        	convertView = mInflater.inflate(R.layout.pptv_list, null);
+        	convertView = mInflater.inflate(R.layout.sd_list, null);
         	
-        	//private final String[] from = { "title", "desc", "ft", "duration", "resolution" };
-        	
-        	//private final int[] to = { R.id.tv_title, R.id.tv_description, 
-        	//		R.id.tv_ft, R.id.tv_duration, R.id.resolution};
-        	
-        	holder.tv_title = (TextView)convertView.findViewById(R.id.tv_title);
-        	holder.tv_desc = (TextView)convertView.findViewById(R.id.tv_description);
-        	holder.tv_ft = (TextView)convertView.findViewById(R.id.tv_ft);
-        	holder.tv_duration = (TextView)convertView.findViewById(R.id.tv_duration);
+        	holder.thumb = (ImageView)convertView.findViewById(R.id.iv_thumb);
+        	holder.tv_filename = (TextView)convertView.findViewById(R.id.tv_filename);
+        	holder.tv_mediainfo = (TextView)convertView.findViewById(R.id.tv_mediainfo);
+        	holder.tv_folder = (TextView)convertView.findViewById(R.id.tv_folder);
+        	holder.tv_filesize = (TextView)convertView.findViewById(R.id.tv_filesize);
         	holder.tv_resolution = (TextView)convertView.findViewById(R.id.tv_resolution);
         	
             convertView.setTag(holder);
@@ -91,18 +87,32 @@ public class PPTVAdapter extends BaseAdapter {
         else {
         	holder = (ViewHolder)convertView.getTag();
         }
-        
+        	
     	Map<String, Object> item = mData.get(position);
-	    String title = (String)item.get("title");
-	    String desc = (String)item.get("desc");
-	    int ft = (Integer)item.get("ft");
-	    String duration = (String)item.get("duration");
+	    String file_name = (String)item.get("filename");
+	    String media_info = (String)item.get("mediainfo");
+	    String folder = (String)item.get("folder");
+	    String filesize = (String)item.get("filesize");
 	    String resolution = (String)item.get("resolution");
+		String fullpath = (String)item.get("fullpath");
 		
-		holder.tv_title.setText(title);
-		holder.tv_desc.setText(desc);
-		holder.tv_ft.setText(String.valueOf(ft));
-		holder.tv_duration.setText(duration);
+		Object obj = item.get("thumb") ;
+		if (obj instanceof Integer) {
+			int thumb_id = (Integer)obj;
+			holder.thumb.setImageResource(thumb_id);
+		}
+		else {
+			Bitmap bm = MeetSDK.createVideoThumbnail(fullpath, Thumbnails.MICRO_KIND);
+			if (bm == null)
+				holder.thumb.setImageResource(R.drawable.clip);
+			else
+				holder.thumb.setImageBitmap(bm);
+		}
+		
+		holder.tv_filename.setText(file_name);
+		holder.tv_mediainfo.setText(media_info);
+		holder.tv_folder.setText(folder);
+		holder.tv_filesize.setText(filesize);
 		holder.tv_resolution.setText(resolution);
 
 		return convertView;

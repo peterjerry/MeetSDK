@@ -91,7 +91,7 @@ public class MeetViewActivity extends Activity implements OnFocusChangeListener 
 	private boolean mPreviewFocused = false;
 	private boolean mStartFromPortrait = false;
 	
-	private MyAdapter mAdapter;
+	private PPTVAdapter mAdapter;
 	private ListView lv_pptvlist;
 	private List<Map<String, Object>> mPPTVClipList = null;
 	private int mLastPlayItemPos = -1;
@@ -484,9 +484,14 @@ public class MeetViewActivity extends Activity implements OnFocusChangeListener 
         public void handleMessage(Message msg) {  
             switch(msg.what) {
 			case MSG_PPTV_CLIP_LIST_DONE:
-				mAdapter = new MyAdapter(MeetViewActivity.this, mPPTVClipList, R.layout.pptv_list,
-						from, to);
-				lv_pptvlist.setAdapter(mAdapter);
+				if (mAdapter == null) {
+					mAdapter = new PPTVAdapter(MeetViewActivity.this, mPPTVClipList, R.layout.pptv_list);
+					lv_pptvlist.setAdapter(mAdapter);
+				}
+				else {
+					mAdapter.updateData(mPPTVClipList);
+					mAdapter.notifyDataSetChanged();
+				}
 				break;
 			case MSG_FAIL_TO_GET_DETAIL:
 				Toast.makeText(MeetViewActivity.this, "failed to connect to server", Toast.LENGTH_SHORT).show();
@@ -757,9 +762,11 @@ public class MeetViewActivity extends Activity implements OnFocusChangeListener 
 			case KeyEvent.KEYCODE_ENTER:
 			case KeyEvent.KEYCODE_DPAD_CENTER:
 			case KeyEvent.KEYCODE_MENU:
-				if (mController != null)
+				if (mVideoView != null && !mController.isShowing()) {
 					mController.show(5000);
-				return true;
+					return true;
+				}
+				break;
 			case KeyEvent.KEYCODE_DPAD_DOWN:
 			case KeyEvent.KEYCODE_DPAD_UP:
 				if (KeyEvent.KEYCODE_DPAD_DOWN == keyCode)
@@ -770,8 +777,11 @@ public class MeetViewActivity extends Activity implements OnFocusChangeListener 
 				switchDisplayMode(incr);
 				return true;
 			default:
-				return super.onKeyDown(keyCode, event);
+				Log.d(TAG, "no spec action: " + keyCode);
+				break;
 			}
+		
+		return super.onKeyDown(keyCode, event);
 	}
 	
 	public void onConfigurationChanged(Configuration conf) {
@@ -804,8 +814,6 @@ public class MeetViewActivity extends Activity implements OnFocusChangeListener 
 			if (mPreviewLayout != null) {
 				Drawable drawable1 = getResources().getDrawable(R.drawable.bg_border1); 
 				mPreviewLayout.setBackground(drawable1);
-				if (mUri != null && mController != null)
-					mController.show(5000);
 			}
 		}
 		else {

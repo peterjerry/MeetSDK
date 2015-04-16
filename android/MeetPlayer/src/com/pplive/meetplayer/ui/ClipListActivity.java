@@ -150,7 +150,7 @@ public class ClipListActivity extends Activity implements
 	private ImageView imageDMR;
 	private ImageView imageNoVideo;
 	private MediaPlayer mPlayer 				= null;
-	private PPTVAdapter mAdapter;
+	private LocalFileAdapter mAdapter;
 	private ListView lv_filelist;
 	
 	private ProgressBar mDownloadProgressBar;
@@ -1397,8 +1397,14 @@ public class ClipListActivity extends Activity implements
         public void handleMessage(Message msg) {  
             switch(msg.what) {
 			case MSG_CLIP_LIST_DONE:
-				mAdapter = new PPTVAdapter(ClipListActivity.this, mListUtil.getList());
-				lv_filelist.setAdapter(mAdapter);
+				if (mAdapter == null) {
+					mAdapter = new LocalFileAdapter(ClipListActivity.this, mListUtil.getList(), R.layout.pptv_list);
+					lv_filelist.setAdapter(mAdapter);
+				}
+				else {
+					mAdapter.updateData(mListUtil.getList());
+					mAdapter.notifyDataSetChanged();
+				}
 				break;
 			case MSG_UPDATE_PLAY_INFO:
 			case MSG_UPDATE_RENDER_INFO:
