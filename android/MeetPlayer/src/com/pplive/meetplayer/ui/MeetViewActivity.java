@@ -66,7 +66,7 @@ public class MeetViewActivity extends Activity implements OnFocusChangeListener 
 	private final String[] from = { "title", "desc", "ft", "duration", "resolution" };
 	
 	private final int[] to = { R.id.tv_title, R.id.tv_description, 
-			R.id.tv_ft, R.id.tv_duration, R.id.resolution};
+			R.id.tv_ft, R.id.tv_duration, R.id.tv_resolution};
 	
 	private int mListType = LIST_FRONTPAGE;
 	private int mPageNum = 1;

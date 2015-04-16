@@ -1061,6 +1061,9 @@ public class XOMediaPlayer extends BaseMediaPlayer {
     				msg.sendToTarget();
     			}
     			
+    			if (mSeeking)
+    				render = false;
+    			
     			// render it!
     			mVideoCodec.releaseOutputBuffer(outputBufIndex, render);
 
