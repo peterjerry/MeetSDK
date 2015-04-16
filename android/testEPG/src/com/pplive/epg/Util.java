@@ -37,7 +37,7 @@ public class Util {
                 fs.write(buffer, 0, byteread);
             }
             
-            System.out.println(String.format("file: %s, donload done, size %d, save to %s",
+            System.out.println(String.format("file: %s, download done, size %d, save to %s",
             		httpUrl, bytesum, saveFile));
             return true;
         } catch (FileNotFoundException e) {

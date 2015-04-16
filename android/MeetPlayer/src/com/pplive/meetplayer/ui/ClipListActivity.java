@@ -150,7 +150,7 @@ public class ClipListActivity extends Activity implements
 	private ImageView imageDMR;
 	private ImageView imageNoVideo;
 	private MediaPlayer mPlayer 				= null;
-	private MyAdapter mAdapter;
+	private PPTVAdapter mAdapter;
 	private ListView lv_filelist;
 	
 	private ProgressBar mDownloadProgressBar;
@@ -518,7 +518,7 @@ public class ClipListActivity extends Activity implements
 					}
 				});
 				
-		this.lv_filelist.setOnScrollListener(new AbsListView.OnScrollListener() {
+		/*this.lv_filelist.setOnScrollListener(new AbsListView.OnScrollListener() {
 
 			@Override
 			public void onScroll(AbsListView view, int arg1, int arg2, int arg3) {
@@ -531,17 +531,17 @@ public class ClipListActivity extends Activity implements
 				// TODO Auto-generated method stub
 				switch (scrollState) {
 		        case OnScrollListener.SCROLL_STATE_IDLE:
-		        	mAdapter.SetScrolling(false);
+		        	//mAdapter.SetScrolling(false);
 		        	mAdapter.notifyDataSetChanged();
 		            break;
 		        case OnScrollListener.SCROLL_STATE_TOUCH_SCROLL:
-		        	mAdapter.SetScrolling(true);
+		        	//mAdapter.SetScrolling(true);
 		            break;
 		        case OnScrollListener.SCROLL_STATE_FLING:
-		        	mAdapter.SetScrolling(true);
+		        	//mAdapter.SetScrolling(true);
 				}
 			}
-		});
+		});*/
 		
 		this.lv_filelist.setOnItemLongClickListener(new ListView.OnItemLongClickListener(){
 
@@ -1397,8 +1397,7 @@ public class ClipListActivity extends Activity implements
         public void handleMessage(Message msg) {  
             switch(msg.what) {
 			case MSG_CLIP_LIST_DONE:
-				mAdapter = new MyAdapter(ClipListActivity.this, mListUtil.getList(), R.layout.sd_list,
-						from, to);
+				mAdapter = new PPTVAdapter(ClipListActivity.this, mListUtil.getList());
 				lv_filelist.setAdapter(mAdapter);
 				break;
 			case MSG_UPDATE_PLAY_INFO:
