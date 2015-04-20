@@ -199,6 +199,18 @@ int and_fifobuffer::used()
 	return (int)used_;
 }
 
+filesize_t and_fifobuffer::total_write()
+{
+	AutoLock lock(&mutex_);
+	return (int)llPos_;
+}
+
+filesize_t and_fifobuffer::total_read()
+{
+	AutoLock lock(&mutex_);
+	return (int)llTotal_;
+}
+
 void and_fifobuffer::reset_impl()
 {
 	header_	= buf_;

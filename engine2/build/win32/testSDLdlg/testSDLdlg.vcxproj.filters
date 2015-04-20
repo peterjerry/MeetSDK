@@ -22,6 +22,9 @@
     <Filter Include="源文件\player">
       <UniqueIdentifier>{443b3a57-6a92-4033-ae5f-6517f4e006cc}</UniqueIdentifier>
     </Filter>
+    <Filter Include="源文件\audiodump">
+      <UniqueIdentifier>{709deb7b-a897-426d-8b2f-7ee0fa8f4a49}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <Text Include="ReadMe.txt" />
@@ -52,6 +55,9 @@
       <Filter>头文件</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\player\extractor.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="apAudioEncoder.h">
       <Filter>头文件</Filter>
     </ClInclude>
   </ItemGroup>
@@ -148,6 +154,27 @@
     </ClCompile>
     <ClCompile Include="..\..\..\player\ffextractor.cpp">
       <Filter>源文件\player</Filter>
+    </ClCompile>
+    <ClCompile Include="apsimpleUDP.cpp">
+      <Filter>源文件\audiodump</Filter>
+    </ClCompile>
+    <ClCompile Include="apNetWork.cpp">
+      <Filter>源文件\audiodump</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\platform\clsocket\ActiveSocket.cpp">
+      <Filter>源文件\audiodump</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\platform\clsocket\PassiveSocket.cpp">
+      <Filter>源文件\audiodump</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\platform\clsocket\SimpleSocket.cpp">
+      <Filter>源文件\audiodump</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\player\apAudioEncoder.cpp">
+      <Filter>源文件\audiodump</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\platform\apProxyUDP.cpp">
+      <Filter>源文件\audiodump</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

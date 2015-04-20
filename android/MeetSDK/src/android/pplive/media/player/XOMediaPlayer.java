@@ -1392,7 +1392,7 @@ public class XOMediaPlayer extends BaseMediaPlayer {
 	
 	private void pause_l() {
 		removeAllEvents();
-		postBufferingUpdateCheckEvent();
+		removeBufferingUpdateCheckEvent();
 	}
 	
 	public boolean suspend() {

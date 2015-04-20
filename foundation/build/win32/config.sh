@@ -10,13 +10,17 @@ cd $FFMPEG_HOME
 if [ ${1}x == 'lite'x ]
 then
 echo "lite build"
-EXTRA_PARAMETERS="$EXTRA_PARAMETERS \
+EXTRA_FF_BUILD_OPTION="\
 	--disable-decoders \
 	--enable-decoder=h263,h264,hevc,flv,mpeg1video,mpeg2video,mpeg4,ac3,aac,mp1,mp2,mp3,rv30,rv40,cook,wmv1,wmv2,wmv3,wmv3image \
 	--disable-demuxers \
 	--enable-demuxer=rm,mpegvideo,avi,h263,h264,hevc,mkv,aac,flv,mpegts,mp4,mov,ape,hls,rtsp \
 	--disable-parsers \
-	--enable-parser=h263,h264,hevc,vp8,mpegaudio,mpeg4video,aac,ac3"
+	--enable-parser=h263,h264,hevc,vp8,mpegaudio,mpeg4video,aac,ac3 \
+	--disable-muxers \
+	--enable-muxer=mpegts,mp4,mov,flv,mkv,hls \
+	--disable-encoders \
+	--enable-encoder=h264,aac,mp1,mp2"
 PREFIX=$PREFIX/lite
 else
 echo "full build"

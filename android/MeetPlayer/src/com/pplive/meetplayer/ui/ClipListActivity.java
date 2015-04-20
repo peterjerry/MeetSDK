@@ -229,7 +229,6 @@ public class ClipListActivity extends Activity implements
 
 	private boolean mListLocalFile				= true;
 	
-	private LinearLayout mControllerLayout 		= null;
 	private TextView mTextViewInfo 				= null;
 	
 	private int decode_fps						= 0;
@@ -330,7 +329,7 @@ public class ClipListActivity extends Activity implements
 		
 		Log.i(TAG, "Java: onCreate()");
 		
-		DisplayMetrics dm = new DisplayMetrics(); 
+		/*DisplayMetrics dm = new DisplayMetrics(); 
 		getWindowManager().getDefaultDisplay().getMetrics(dm); 
 		int screen_width	= dm.widthPixels; 
 		int screen_height	= dm.heightPixels;
@@ -338,7 +337,7 @@ public class ClipListActivity extends Activity implements
 			preview_height = screen_height;
 		else
 			preview_height = screen_height * 2 / 5;
-		Log.i(TAG, String.format("screen %dx%d, preview height %d", screen_width, screen_height, preview_height));
+		Log.i(TAG, String.format("screen %dx%d, preview height %d", screen_width, screen_height, preview_height));*/
 		// end of tvbox
 		
 		this.btnPlay = (Button) findViewById(R.id.btn_play);
@@ -367,22 +366,14 @@ public class ClipListActivity extends Activity implements
 		
 		readSettings();
 		
-		mTextViewInfo = new TextView(this);
+		mTextViewInfo = (TextView) findViewById(R.id.tv_info);
 		mTextViewInfo.setTextColor(Color.RED);
 		mTextViewInfo.setTextSize(18);
 		mTextViewInfo.setTypeface(Typeface.MONOSPACE);
-		mTextViewInfo.setText("play info");
 		
-		mControllerLayout = new LinearLayout(this);
-		mControllerLayout.setLayoutParams(new LayoutParams(LayoutParams.MATCH_PARENT,
-				LayoutParams.WRAP_CONTENT));
-		mControllerLayout.setOrientation(LinearLayout.VERTICAL);
-		//mControllerLayout.addView(mTextViewInfo);
 		mLayout.setFocusable(true);
 		mLayout.setOnFocusChangeListener(this);
-		mLayout.addView(mTextViewInfo);
-		addContentView(mControllerLayout, new LayoutParams(LayoutParams.MATCH_PARENT,
-				LayoutParams.WRAP_CONTENT));
+		//mLayout.addView(mTextViewInfo);
 		
 		if (home_folder.equals("")) {
 			mCurrentFolder = "";
@@ -2369,9 +2360,6 @@ public class ClipListActivity extends Activity implements
 		mVideoHeight = mp.getVideoHeight();
 		
 		// view
-		/*int w = View.MeasureSpec.makeMeasureSpec(0,View.MeasureSpec.AT_MOST); 
-		int h = View.MeasureSpec.makeMeasureSpec(0,View.MeasureSpec.AT_MOST); 
-		mPreview.measure(w, h);*/
 		int width	= mLayout.getMeasuredWidth();
 		int height 	= mLayout.getMeasuredHeight();
 		
@@ -2568,11 +2556,17 @@ public class ClipListActivity extends Activity implements
 		
 		Log.i(TAG, "Java: onResume()");
 
-		
-		mLayout.getLayoutParams().height = preview_height;
-		mLayout.requestLayout(); //or invalidate();
-		
-		Log.i(TAG, "onResume()");
+		DisplayMetrics dm = new DisplayMetrics(); 
+		getWindowManager().getDefaultDisplay().getMetrics(dm); 
+		int screen_width	= dm.widthPixels; 
+		int screen_height	= dm.heightPixels;
+		if (!isLandscape) {
+			Log.i(TAG, String.format("screen %dx%d, preview height %d", screen_width, screen_height, preview_height));
+			
+			preview_height = screen_height * 2 / 5;
+			mLayout.getLayoutParams().height = preview_height;
+			mLayout.requestLayout(); //or invalidate();
+		}
 	}
 	
 	@Override
