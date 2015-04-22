@@ -15,6 +15,20 @@ public class PlayerPolicy {
 	private static final String BUILDID_PPBOX1S		= "ppbox1s";
 	private static final String BUILDID_PPBOXMINI		= "ppboxmini";
 	private static final String BULDID_XIANFENG_TV 	= "PR_CVT";
+	
+	private static String sPlayerPolicy;
+	
+	public static void setPlayerPolicy(String xml) {
+		LogUtils.info("setPlayerPolicy()");
+		if (xml != null && !xml.isEmpty()) {
+			String tmp = xml;
+			if (tmp.length() > 32)
+				tmp = tmp.substring(0, 32).replace("\n", "");
+			LogUtils.info("setPlayerPolicy xml context: " + tmp);
+			
+			sPlayerPolicy = xml;
+		}
+	}
 
 	public static DecodeMode getDeviceCapabilities(Uri uri) {
 		if (null == uri) {
@@ -72,7 +86,10 @@ public class PlayerPolicy {
 		LogUtils.info(String.format("Java: getDeviceCapabilities url %s, format %s, video %s, audio %s", 
 				url, formatName, videoCodecName, audioCodecName));
 		
-		if (buildString.startsWith(BUILDID_PPBOXMINI)) {
+		if (sPlayerPolicy != null && !sPlayerPolicy.isEmpty()) {
+			return getDeviceCapabilitiesCustomized(url, formatName, videoCodecName, audioCodecName);
+		}
+		else if (buildString.startsWith(BUILDID_PPBOXMINI)) {
 			LogUtils.info("Java: use getDeviceCapabilitiesPPBoxMini");
 			return getDeviceCapabilitiesPPBoxMini(url, formatName, videoCodecName, audioCodecName);
 		}
@@ -319,5 +336,11 @@ public class PlayerPolicy {
 	private static DecodeMode getDeviceCapabilitiesPPBox(
 			String url, String formatName, String videoCodecName, String audioCodecName) {
 		return getDeviceCapabilitiesCommon(url, formatName, videoCodecName, audioCodecName);
+	}
+	
+	private static DecodeMode getDeviceCapabilitiesCustomized(
+			String url, String formatName, String videoCodecName, String audioCodecName) {
+		// todo
+		return DecodeMode.HW_SYSTEM;
 	}
 }

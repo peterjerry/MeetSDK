@@ -2001,8 +2001,8 @@ public class ClipListActivity extends Activity implements
         protected void onPreExecute() {
 			progDlg = new ProgressDialog(ClipListActivity.this);
 			progDlg.setMessage("Loading clips");
-			progDlg.setCancelable(false);
-			progDlg.show(); 
+			progDlg.setCancelable(true);
+			progDlg.show();
         }
 
         @Override
