@@ -1,6 +1,7 @@
 package com.pplive.meetplayer.ui;
 
 import java.io.File;
+import java.io.FileFilter;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -192,6 +193,7 @@ public class ClipListActivity extends Activity implements
 	private Thread mSubtitleThread;
 	private boolean mSubtitleSeeking = false;
 	private boolean mIsSubtitleUsed;
+	private String subtitle_filename;
 	
 	// dlna
 	private DLNASdk mDLNA;
@@ -264,6 +266,7 @@ public class ClipListActivity extends Activity implements
 	final static int OPTION_COMMON_LOOP		= Menu.FIRST + 22;
 	final static int OPTION_COMMON_NO_VIDEO	= Menu.FIRST + 23;
 	final static int OPTION_COMMON_MEETVIEW	= Menu.FIRST + 24;
+	final static int OPTION_COMMON_SUBTITLE	= Menu.FIRST + 25;
 	
 	
 	// message
@@ -508,31 +511,6 @@ public class ClipListActivity extends Activity implements
 						}
 					}
 				});
-				
-		/*this.lv_filelist.setOnScrollListener(new AbsListView.OnScrollListener() {
-
-			@Override
-			public void onScroll(AbsListView view, int arg1, int arg2, int arg3) {
-				// TODO Auto-generated method stub
-				
-			}
-
-			@Override
-			public void onScrollStateChanged(AbsListView view, int scrollState) {
-				// TODO Auto-generated method stub
-				switch (scrollState) {
-		        case OnScrollListener.SCROLL_STATE_IDLE:
-		        	//mAdapter.SetScrolling(false);
-		        	mAdapter.notifyDataSetChanged();
-		            break;
-		        case OnScrollListener.SCROLL_STATE_TOUCH_SCROLL:
-		        	//mAdapter.SetScrolling(true);
-		            break;
-		        case OnScrollListener.SCROLL_STATE_FLING:
-		        	//mAdapter.SetScrolling(true);
-				}
-			}
-		});*/
 		
 		this.lv_filelist.setOnItemLongClickListener(new ListView.OnItemLongClickListener(){
 
@@ -1219,6 +1197,8 @@ public class ClipListActivity extends Activity implements
 					// TODO Auto-generated catch block
 					e.printStackTrace();
 				}
+				
+				subtitle_filename = null;
 			}
 			
 			mPlayer.stop();
@@ -1737,6 +1717,68 @@ public class ClipListActivity extends Activity implements
 		}
 	}
 	
+	private void popupSelectSubtitle() {
+		final String sub_folder = Environment.getExternalStorageDirectory().getAbsolutePath() + "/test2";
+		File file = new File(sub_folder);
+		String []list = {"srt", "ass"};
+		File [] subtitle_files = file.listFiles(new FileFilterTest(list));
+		if (subtitle_files == null) {
+			Toast.makeText(this, "no subtitle file found", Toast.LENGTH_SHORT).show();
+			return;
+		}
+		
+		List<String> filename_list = new ArrayList<String>();
+		for (int i=0;i<subtitle_files.length;i++) {
+			filename_list.add(subtitle_files[i].getName());
+		}
+		final String[] str_file_list = (String[])filename_list.toArray(new String[filename_list.size()]);
+		
+		Dialog choose_subtitle_dlg = new AlertDialog.Builder(ClipListActivity.this)
+		.setTitle("select subtitle")
+		.setItems(str_file_list, new DialogInterface.OnClickListener(){
+				public void onClick(DialogInterface dialog, int whichButton){
+					subtitle_filename = sub_folder + "/" + str_file_list[whichButton];
+					Log.i(TAG, "Load subtitle file: " + subtitle_filename);
+					Toast.makeText(ClipListActivity.this, 
+							"Load subtitle file: " + subtitle_filename, Toast.LENGTH_SHORT).show();
+					dialog.dismiss();
+				}
+			})
+		.create();
+		choose_subtitle_dlg.show();
+	}
+	
+	private class FileFilterTest implements FileFilter {
+
+		String []condition = null;
+
+		public FileFilterTest(String []condition) {
+			this.condition = condition;
+		}
+
+		@Override
+		public boolean accept(File pathname) {
+			// TODO Auto-generated method stub
+			if (condition == null || condition.length == 0)
+				return false;
+			
+			String filename = pathname.getName();
+			String ext = filename;
+			int pos = filename.lastIndexOf('.');
+			if (pos == -1)
+				return false;
+			
+			ext = filename.substring(pos + 1, filename.length());
+			for (int i=0;i<condition.length;i++) {
+				if (ext.equals(condition[i]))
+					return true;
+			}
+			
+			return false;
+		}
+	}
+
+	
 	private void popupDMSDlg() {
 		int dev_num = IDlnaCallback.mDMSmap.size();
 		
@@ -2131,6 +2173,7 @@ public class ClipListActivity extends Activity implements
 			noVideoMenuItem.setChecked(false);
 		
 		commonMenu.add(Menu.NONE, OPTION_COMMON_MEETVIEW, Menu.FIRST + 3, "test view");
+		commonMenu.add(Menu.NONE, OPTION_COMMON_SUBTITLE, Menu.FIRST + 4, "load subtitle");
 		
 		menu.add(Menu.NONE, UPDATE_CLIP_LIST, Menu.FIRST + 1, "Update list")
 			.setIcon(R.drawable.list);
@@ -2194,6 +2237,9 @@ public class ClipListActivity extends Activity implements
 		case OPTION_COMMON_MEETVIEW:
 			Intent intent = new Intent(ClipListActivity.this, MeetViewActivity.class);
 			startActivity(intent);
+			break;
+		case OPTION_COMMON_SUBTITLE:
+			popupSelectSubtitle();
 			break;
 		case OPTION_DLNA_DMR:
 			push_to_dmr();
@@ -2400,26 +2446,32 @@ public class ClipListActivity extends Activity implements
 		// subtitle
 		if (mPlayUrl.startsWith("/")) {
 			// local file
-			String subtitle_full_path;
-			int index = mPlayUrl.lastIndexOf('.') + 1;
-			String tmp = mPlayUrl.substring(0, index);
-			
-			String[] exts = {"srt", "ass"};
-			for(String ext:exts) {
-				subtitle_full_path = tmp + ext;
+			if (subtitle_filename == null) {
+				String subtitle_full_path;
+				int index = mPlayUrl.lastIndexOf('.') + 1;
+				String tmp = mPlayUrl.substring(0, index);
 				
-				File subfile = new File(subtitle_full_path);
-				//Log.d(TAG, "Java: subtitle: subtitle file: " + subtitle_full_path);
-		        if (subfile.exists()) {
-		        	Log.i(TAG, "Java: subtitle: subtitle file found: " + subtitle_full_path);
-		        	
-					mSubtitleParser = new SimpleSubTitleParser();
-					mSubtitleParser.setOnPreparedListener(this);
+				String[] exts = {"srt", "ass"};
+				for(String ext:exts) {
+					subtitle_full_path = tmp + ext;
 					
-					mSubtitleParser.setDataSource(subtitle_full_path);
-					mSubtitleParser.prepareAsync();
-					break;
-		        }
+					File subfile = new File(subtitle_full_path);
+					//Log.d(TAG, "Java: subtitle: subtitle file: " + subtitle_full_path);
+			        if (subfile.exists()) {
+			        	subtitle_filename = subtitle_full_path;
+						break;
+			        }
+				}
+			}
+			
+			if (subtitle_filename != null) {
+				Log.i(TAG, "Java: subtitle: subtitle file found: " + subtitle_filename);
+	        	
+				mSubtitleParser = new SimpleSubTitleParser();
+				mSubtitleParser.setOnPreparedListener(this);
+				
+				mSubtitleParser.setDataSource(subtitle_filename);
+				mSubtitleParser.prepareAsync();
 			}
 		}
 	}
