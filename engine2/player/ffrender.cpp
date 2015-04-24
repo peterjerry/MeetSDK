@@ -111,7 +111,9 @@ status_t FFRender::render_neon(AVFrame* frame)
 				mDoOnce = false;
 			}
 
-			if (mSurfaceStride >= mFrameWidth) {
+			// 2015.4.24 guoliangma modify mSurfaceStride to mSurfaceWidth
+			// fix crash when play some small res clip then play big res clip 
+			if (mSurfaceWidth >= frame->width) {
 #ifdef RENDER_RGB565
 				/*yuv420_2_rgb565((uint8_t *)surfacePixels, 
 					frame->data[0], frame->data[1], frame->data[2],
