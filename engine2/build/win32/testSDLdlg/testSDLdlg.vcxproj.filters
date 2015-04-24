@@ -54,6 +54,9 @@
     <ClInclude Include="..\..\..\player\extractor.h">
       <Filter>头文件</Filter>
     </ClInclude>
+    <ClInclude Include="apAudioEncoder.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="testSDLdlg.cpp">

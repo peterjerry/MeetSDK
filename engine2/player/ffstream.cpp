@@ -450,8 +450,7 @@ AVFormatContext* FFStream::open(char* uri)
             mMinPlayBufferCount,
             mMaxPlayBufferMs);
     }
-    else
-    {
+    else {
         mMinPlayBufferCount = mFrameRate * FF_PLAYER_MIN_BUFFER_SECONDS_VOD;
         mUrlType = TYPE_ONDEMAND;
         LOGI("It is a online ondemand stream with mMinPlayBufferCount:%d", mMinPlayBufferCount);

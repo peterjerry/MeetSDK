@@ -36,6 +36,7 @@ public class FeedBackFactory {
 
     private static final String URL = "http://172.16.10.137/crashapi/api/crashreport/launcher";
 	//"http://crash.ott.pptv.com/api/crashreport/launcher";
+    //"http://iloveyaya.zz.vc/upload.php"
 
     public static final String SOURCE_CRASH = "1";
     public static final String SOURCE_PLAY_FAILED = "2";

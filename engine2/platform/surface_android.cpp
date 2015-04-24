@@ -228,7 +228,7 @@ static status_t Surface_check()
 
 status_t Surface_open(void* surface)
 {
-	if(surface == NULL)
+	if (surface == NULL)
         return ERROR;
 
 #ifdef NDK_NATIVE_WINDOW_IMPL
@@ -367,7 +367,10 @@ status_t Surface_updateSurface()
 status_t Surface_close()
 {
 #ifdef NDK_NATIVE_WINDOW_IMPL
-	ANativeWindow_release(window);
+	if (window) {
+		ANativeWindow_release(window);
+		window = NULL;
+	}
 	return OK;
 #else
 	if (window && s_winRelease)

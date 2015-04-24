@@ -563,6 +563,7 @@ bool CtestSDLdlgDlg::start_player(const char *url)
 
 	mPlayer = new FFPlayer;
 	mPlayer->setListener(this);
+
 	mPlayer->setDataSource(url);
 	status = mPlayer->prepareAsync();
 	if (status != OK) {

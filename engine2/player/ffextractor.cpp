@@ -49,7 +49,21 @@ enum NALUnitType {
     NAL_AUXILIARY_SLICE = 19
 };
 
+typedef struct
+{
+	int write_adts;
+	int objecttype;
+	int sample_rate_index;
+	int channel_conf;
+}ADTSContext;
+
+#define ADTS_HEADER_SIZE 7
+
 static void ff_log_callback(void* avcl, int level, const char* fmt, va_list vl);
+
+static int aac_decode_extradata(ADTSContext *adts, unsigned char *pbuf, int bufsize);
+
+static int aac_set_adts_head(ADTSContext *acfg, unsigned char *buf, int size);
 
 extern "C" IExtractor* getExtractor()
 {
@@ -402,6 +416,7 @@ status_t FFExtractor::getTrackFormat(int32_t index, MediaFormat *format)
 		else if (strstr(m_fmt_ctx->iformat->name, "mpegts") != NULL ||
 			strstr(m_fmt_ctx->iformat->name, "hls,applehttp") != NULL) 
 		{	
+			// mpegts and hls has no extra data
 			m_fmt_ctx->streams[index]->discard = AVDISCARD_NONE;
 
 			AVPacket pkt;
@@ -786,14 +801,8 @@ bool FFExtractor::seek_l()
 	seek_target= av_rescale_q(seek_target, AV_TIME_BASE_Q, m_fmt_ctx->streams[stream_index]->time_base);
 #endif
 
-	/* useless code
-	pthread_mutex_lock(&mLock);
-	m_seeking = true;
-	pthread_cond_signal(&mCondition);
-	pthread_mutex_unlock(&mLock);*/
-
     if (av_seek_frame(m_fmt_ctx, stream_index, seek_target, m_seek_flag) < 0) {
-        LOGW("failed to seek to: %lld msec", m_seek_time_msec);
+        LOGE("failed to seek to: %lld msec", m_seek_time_msec);
 		return false;
     }
 				
@@ -1457,7 +1466,7 @@ void FFExtractor::thread_impl()
 			}
 		}
 		else {
-			LOGW("invalid packet found: stream_idx %d", pPacket->stream_index);
+			LOGD("invalid packet found: stream_idx %d", pPacket->stream_index);
 			av_free_packet(pPacket);
 			av_free(pPacket);
 			continue;
@@ -1517,3 +1526,73 @@ static void ff_log_callback(void* avcl, int level, const char* fmt, va_list vl)
 	}
 }
 
+static int aac_decode_extradata(ADTSContext *adts, unsigned char *pbuf, int bufsize)
+{
+	int aot, aotext, samfreindex;
+	int channelconfig;
+	unsigned char *p = pbuf;
+
+	if (!adts || !pbuf || bufsize < 2)
+		return -1;
+
+	aot = (p[0]>>3)&0x1f;
+	if (aot == 31) {
+		aotext = (p[0]<<3 | (p[1]>>5)) & 0x3f;
+		aot = 32 + aotext;
+		samfreindex = (p[1]>>1) & 0x0f;
+
+		if (samfreindex == 0x0f)
+			channelconfig = ((p[4]<<3) | (p[5]>>5)) & 0x0f;
+		else
+			channelconfig = ((p[1]<<3)|(p[2]>>5)) & 0x0f;
+	}
+	else {
+		samfreindex = ((p[0]<<1)|p[1]>>7) & 0x0f;
+		if (samfreindex == 0x0f)
+			channelconfig = (p[4]>>3) & 0x0f;
+		else
+			channelconfig = (p[1]>>3) & 0x0f;
+	}
+
+#ifdef AOT_PROFILE_CTRL
+	if (aot < 2) aot = 2;
+#endif
+	adts->objecttype = aot-1;
+	adts->sample_rate_index = samfreindex;
+	adts->channel_conf = channelconfig;
+	adts->write_adts = 1;
+
+	return 0;
+}
+
+static int aac_set_adts_head(ADTSContext *acfg, unsigned char *buf, int size)
+{       
+	unsigned char byte;
+
+	if (size < ADTS_HEADER_SIZE)
+		return -1;
+
+	buf[0] = 0xff;
+	buf[1] = 0xf1;
+	byte = 0;
+	byte |= (acfg->objecttype & 0x03) << 6;
+	byte |= (acfg->sample_rate_index & 0x0f) << 2;
+	byte |= (acfg->channel_conf & 0x07) >> 2;
+	buf[2] = byte;
+	byte = 0;
+	byte |= (acfg->channel_conf & 0x07) << 6;
+	byte |= (ADTS_HEADER_SIZE + size) >> 11;
+	buf[3] = byte;
+	byte = 0;
+	byte |= (ADTS_HEADER_SIZE + size) >> 3;
+	buf[4] = byte;
+	byte = 0;
+	byte |= ((ADTS_HEADER_SIZE + size) & 0x7) << 5;
+	byte |= (0x7ff >> 6) & 0x1f;
+	buf[5] = byte;
+	byte = 0;
+	byte |= (0x7ff & 0x3f) << 2;
+	buf[6] = byte;
+
+	return 0;
+}

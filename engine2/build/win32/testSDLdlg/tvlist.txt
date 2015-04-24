@@ -5,15 +5,27 @@ rtsp 广西卫视
 rtsp://127.0.0.1:5154/play.es?type=pplive3&playlink=300178%3Fft%3D1%26bwtype%3D0%26platform%3Dandroid3%26type%3Dphone.android.vip%26bitrate%3D1200
 rtsp 江苏卫视
 rtsp://127.0.0.1:5154/play.es?type=pplive3&playlink=300163%3Fft%3D1%26bwtype%3D0%26platform%3Dandroid3%26type%3Dphone.android.vip
-测试 hls
-http://172.16.204.106/test/hls/009/600000/index.m3u8
 rtsp 新闻综合 5min
 rtsp://127.0.0.1:5154/play.es?type=pplive3&playlink=300156%3Fft%3D1%26bwtype%3D0%26platform%3Dandroid3%26type%3Dphone.android.vip%26delaytime%3D0%26begin_time%3D1416823200%26end_time%3D1416825000
 myFTP
 ftp://u455123614.wnpllrzodiac:daqiao1@ftp.iloveyaya.zz.vc/test/[SumiSora][Mayoi_Neko_OVERRUN][BDRip][SP][04][BIG5][PSP_480P].mp4
-xxxxx
-http://127.0.0.1:9006/record.m3u8?mux.M3U8.segment_duration=5&serialnum=3&type=ppvod2&playlink=10302145%3Fft%3D0%26bwtype%3D0%26platform%3Dandroid3%26type%3Dphone%2Eandroid%2Evip%26sv%3D4%2E2%2E0%26video%3Dtrue%26p2p%2Eadvtime%3D0
-yyyy
-http://172.16.204.106/test/testcase/kalin_piaoxue.ape
+test_hls1
+http://172.16.204.106/test/hls/test/town/7000000/index.m3u8
+test_hls2
+http://172.16.204.106/test/hls/test/GoriaShow/7000000/index.m3u8
+五星体育
+http://112.25.62.3:55336/tslive/c27_ts_wxtyHD_t10/c27_ts_wxtyHD_t10.m3u8?key=90109341505b0aad
+第一财经
+http://111.1.46.170:55336/tslive/c12_ts_dycjHD_t10/c12_ts_dycjHD_t10.m3u8?key=b4176dc1fe623f65
+中国之声
+http://rtmpcnr001.cnr.cn/live/zgzs/playlist.m3u8
+神州之声
+http://rtmpcnr006.cnr.cn/live/szzs/playlist.m3u8
+测试
+http://117.135.161.64:80/cc51dc6a42e5a1ce48b15670104b54e4.m3u8?w=1&key=8b31334eb6a4a54683f78a437387334c&k=2a3f618235e2a087d06ee8856f9fdde7-78a2-1428652038&type=phone.android.vip&sv=5.0.4&platform=android3&ft=3&accessType=wifi&vvid=203727ee-980b-4736-91f7-9160912bf196&video=false
+eason
+http://m5.file.xiami.com/135/135/387489/1769598754_2611700_l.mp3?auth_key=2e5fd0f6c22e9431b80b18f0a0c0609a-1438185600-0-null
+#EXT-X-BYTERANGE:329421@1400
+http://117.135.161.68:80/live/074094e6c24c4ebbb4bf6a82f4ceabda/1429089420.block?ft=1&platform=android3&type=phone.android.vip&sdk=1&channel=162&vvid=41&k=f1570149699cd7b803b2b858e94e4197
 
 

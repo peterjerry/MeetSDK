@@ -1919,7 +1919,7 @@ status_t FFPlayer::prepareSubtitle_l()
 		AVCodec* SubCodec = avcodec_find_decoder(SubCodecCtx->codec_id);
 		// Open codec
     	if (avcodec_open2(SubCodecCtx, SubCodec, NULL) < 0) {
-    		LOGE("failed to open subtitle decoder: %d %s", SubCodecCtx->codec_id, avcodec_get_name(SubCodecCtx->codec_id));
+    		LOGE("failed to open subtitle decoder: id %d, name %s", SubCodecCtx->codec_id, avcodec_get_name(SubCodecCtx->codec_id));
 			return ERROR;
 		}
 
@@ -1945,7 +1945,7 @@ status_t FFPlayer::prepareAudio_l()
     AVCodec* codec = avcodec_find_decoder(codec_ctx->codec_id);
 
     if (NULL == codec) {
-		LOGE("Failed to find audio decoder: %d %s", codec_ctx->codec_id, avcodec_get_name(codec_ctx->codec_id));
+		LOGE("Failed to find audio decoder: id: %d, name %s", codec_ctx->codec_id, avcodec_get_name(codec_ctx->codec_id));
 		//notifyListener_l(MEDIA_ERROR, MEDIA_ERROR_UNSUPPORTED, 0);
 		return ERROR;
 	}
@@ -1995,145 +1995,140 @@ status_t FFPlayer::prepareVideo_l()
 	mVideoStreamIndex = mDataStream->getVideoStreamIndex();
 	mVideoStream = mDataStream->getVideoStream();
 	if (mVideoStreamIndex == -1 || mVideoStream == NULL) {
-        LOGD("No video stream");
+        LOGI("No video stream");
         notifyListener_l(MEDIA_SET_VIDEO_SIZE, 0, 0);
 		return OK;
 	}
-    else {
-    	// Get a pointer to the codec context for the video stream
-    	AVCodecContext* codec_ctx = mVideoStream->codec;
-#ifdef OS_IOS
-		// ios use auto thread_count
-		//int core_number = sysconf(_SC_NPROCESSORS_CONF);
-#endif
+
+    // Get a pointer to the codec context for the video stream
+    AVCodecContext* codec_ctx = mVideoStream->codec;
 #ifdef __ANDROID__
-		int core_number = android_getCpuCount();
-		codec_ctx->thread_count = core_number;
-		LOGI("set thread_count to %d", core_number);
-		if (AV_CODEC_ID_HEVC == codec_ctx->codec_id) {
-			codec_ctx->thread_type = FF_THREAD_SLICE;
-			LOGI("set thread_type to FF_THREAD_SLICE(hevc)");
-		}
+	int core_number = android_getCpuCount();
+	codec_ctx->thread_count = core_number;
+	LOGI("set thread_count to %d", core_number);
+	if (AV_CODEC_ID_HEVC == codec_ctx->codec_id) {
+		codec_ctx->thread_type = FF_THREAD_SLICE;
+		LOGI("set thread_type to FF_THREAD_SLICE(hevc)");
+	}
 #endif
-		/*if (AV_CODEC_ID_H264 == codec_ctx->codec_id) {
-			// decode_unregistered_user_data
-			// key word "user data"
-			codec_ctx->debug |= FF_DEBUG_BUGS; // gather x264 encoder config from SEI
-		}*/
+	/*if (AV_CODEC_ID_H264 == codec_ctx->codec_id) {
+		// decode_unregistered_user_data
+		// key word "user data"
+		codec_ctx->debug |= FF_DEBUG_BUGS; // gather x264 encoder config from SEI
+	}*/
 
-		AVCodec* codec = NULL;
-		codec = avcodec_find_decoder(codec_ctx->codec_id);
+	AVCodec* codec = NULL;
+	codec = avcodec_find_decoder(codec_ctx->codec_id);
 
-		/*
-		// for strongene decoder test
-		if (AV_CODEC_ID_HEVC == codec_ctx->codec_id) {
-			if (strcmp(mMediaFile->iformat->name, "mpegts") == 0 || strcmp(mMediaFile->iformat->name, "flv") == 0) {
-				LOGI("force to use liblenthevc");
-				codec = avcodec_find_decoder_by_name("liblenthevc");//liblenthevc
-			}
-			else {
-				codec = avcodec_find_decoder(codec_ctx->codec_id);
-			}
+	/*
+	// for strongene decoder test
+	if (AV_CODEC_ID_HEVC == codec_ctx->codec_id) {
+		if (strcmp(mMediaFile->iformat->name, "mpegts") == 0 || strcmp(mMediaFile->iformat->name, "flv") == 0) {
+			LOGI("force to use liblenthevc");
+			codec = avcodec_find_decoder_by_name("liblenthevc");//liblenthevc
 		}
 		else {
 			codec = avcodec_find_decoder(codec_ctx->codec_id);
-		}*/
-
-    	if (codec == NULL) {
-			LOGE("failed to find video codec: %d %s", codec_ctx->codec_id, avcodec_get_name(codec_ctx->codec_id));
-    		return ERROR;
-    	}
-
-    	// Open codec
-    	if (avcodec_open2(codec_ctx, codec, NULL) < 0) {
-    		LOGE("failed to open video decoder: %d %s", codec_ctx->codec_id, avcodec_get_name(codec_ctx->codec_id));
-			return ERROR;
 		}
+	}
+	else {
+		codec = avcodec_find_decoder(codec_ctx->codec_id);
+	}*/
 
-    	mVideoWidth = codec_ctx->width;
-    	mVideoHeight = codec_ctx->height;
-        mVideoFormat = (int32_t)codec_ctx->pix_fmt;
-
-		if (0 == mVideoWidth || 0 == mVideoHeight) {
-			LOGE("failed to get video resolution: %d %d", mVideoWidth, mVideoHeight);
-			return ERROR;
-		}
-
-        if (mVideoFormat == AV_PIX_FMT_NONE) {
-            mVideoFormat = AV_PIX_FMT_YUV420P;
-            LOGW("failed to get video color format, but still try to render it as YUV420P");
-        }
-
-        if (mVideoStream->avg_frame_rate.den > 0) {
-            mVideoFrameRate = mVideoStream->avg_frame_rate.num / mVideoStream->avg_frame_rate.den;
-        }
-        else {
-            mVideoFrameRate = 25;//give a guessed value.
-        }
-		mVideoGapMs = 1000 / mVideoFrameRate;
-
-		/*if (!FixInterlace(mVideoStream)) {
-			LOGE("failed to fix interlaced video");
-			return ERROR;
-		}*/
-
-		// would change width and height
-		if (!FixRotateVideo(mVideoStream)) {
-			LOGE("failed to fix rotate video");
-			return ERROR;
-		}
-
-        LOGI("mVideoWidth: %d, mVideoHeight: %d, mVideoFormat: %d", mVideoWidth, mVideoHeight, mVideoFormat);
-        LOGI("mVideoFrameRate: %d fps(display gap %d msec)", mVideoFrameRate, mVideoGapMs);
-		LOGI("video codec id: %d(%s), codec_name: %s", codec_ctx->codec_id, avcodec_get_name(codec_ctx->codec_id), codec->long_name);
-		if (codec_ctx->bit_rate > 0)
-			LOGI("bitrate %d bit/s", codec_ctx->bit_rate);
-		else
-			LOGI("bitrate N/A");
-
-        //init videoplayer related data.
-		mVideoFrame = av_frame_alloc();
-        mIsVideoFrameDirty = true;
-
-		uint32_t render_w, render_h;
-		render_w = mVideoWidth;
-		render_h = mVideoHeight;
-#ifdef _MSC_VER
-		if (render_w > MAX_DISPLAY_WIDTH) {
-			double ratio	= (double)render_w / MAX_DISPLAY_WIDTH;
-			render_w		= MAX_DISPLAY_WIDTH;
-			render_h		= (int32_t)(render_h / ratio);
-			LOGI("video resolution %d x %d, display resolution switch to %d x %d", 
-				mVideoWidth, mVideoHeight, render_w, render_h);
-		}
-
-		if (render_h > MAX_DISPLAY_HEIGHT) {
-			double ratio	= (double)render_h / MAX_DISPLAY_HEIGHT;
-			render_h		= MAX_DISPLAY_HEIGHT;
-			render_w		= (int32_t)(render_w / ratio);
-			LOGI("video resolution %d x %d, display resolution switch to %d x %d",
-				mVideoWidth, mVideoHeight, render_w, render_h);
-		}
-#endif
-
-        mVideoRenderer = new FFRender(mSurface, render_w, render_h, mVideoFormat);
-		bool force_sw = false;
-#ifdef USE_AV_FILTER
-		if (mVideoFiltFrame) {
-			LOGI("set video render to use software sws");
-			force_sw = true;
-		}
-#endif
-        if (mVideoRenderer->init(force_sw) != OK) {
-         	LOGE("Initing video render failed");
-            return ERROR;
-        }
-
-        uint32_t surfaceWidth = 0, surfaceHeight = 0;
-        mVideoRenderer->width(surfaceWidth);
-        mVideoRenderer->height(surfaceHeight);
-        notifyListener_l(MEDIA_SET_VIDEO_SIZE, surfaceWidth, surfaceHeight);
+    if (codec == NULL) {
+		LOGE("failed to find video codec: id: %d, name: %s", codec_ctx->codec_id, avcodec_get_name(codec_ctx->codec_id));
+    	return ERROR;
     }
+
+    // Open codec
+    if (avcodec_open2(codec_ctx, codec, NULL) < 0) {
+    	LOGE("failed to open video decoder: id: %d, name: %s", codec_ctx->codec_id, avcodec_get_name(codec_ctx->codec_id));
+		return ERROR;
+	}
+
+    mVideoWidth = codec_ctx->width;
+    mVideoHeight = codec_ctx->height;
+    mVideoFormat = (int32_t)codec_ctx->pix_fmt;
+
+	if (0 == mVideoWidth || 0 == mVideoHeight) {
+		LOGE("failed to get video resolution: %d %d", mVideoWidth, mVideoHeight);
+		return ERROR;
+	}
+
+    if (mVideoFormat == AV_PIX_FMT_NONE) {
+        mVideoFormat = AV_PIX_FMT_YUV420P;
+        LOGW("failed to get video color format, but still try to render it as YUV420P");
+    }
+
+    if (mVideoStream->avg_frame_rate.den > 0) {
+        mVideoFrameRate = mVideoStream->avg_frame_rate.num / mVideoStream->avg_frame_rate.den;
+    }
+    else {
+        mVideoFrameRate = 25;//give a guessed value.
+    }
+	mVideoGapMs = 1000 / mVideoFrameRate;
+
+	/*if (!FixInterlace(mVideoStream)) {
+		LOGE("failed to fix interlaced video");
+		return ERROR;
+	}*/
+
+	// would change width and height
+	if (!FixRotateVideo(mVideoStream)) {
+		LOGE("failed to fix rotate video");
+		return ERROR;
+	}
+
+    LOGI("mVideoWidth: %d, mVideoHeight: %d, mVideoFormat: %d", mVideoWidth, mVideoHeight, mVideoFormat);
+    LOGI("mVideoFrameRate: %d fps(display gap %d msec)", mVideoFrameRate, mVideoGapMs);
+	LOGI("video codec id: %d(%s), codec_name: %s", codec_ctx->codec_id, avcodec_get_name(codec_ctx->codec_id), codec->long_name);
+	if (codec_ctx->bit_rate > 0)
+		LOGI("bitrate %d bit/s", codec_ctx->bit_rate);
+	else
+		LOGI("bitrate N/A");
+
+    //init videoplayer related data.
+	mVideoFrame = av_frame_alloc();
+    mIsVideoFrameDirty = true;
+
+	uint32_t render_w, render_h;
+	render_w = mVideoWidth;
+	render_h = mVideoHeight;
+#ifdef _MSC_VER
+	if (render_w > MAX_DISPLAY_WIDTH) {
+		double ratio	= (double)render_w / MAX_DISPLAY_WIDTH;
+		render_w		= MAX_DISPLAY_WIDTH;
+		render_h		= (int32_t)(render_h / ratio);
+		LOGI("video resolution %d x %d, display resolution switch to %d x %d", 
+			mVideoWidth, mVideoHeight, render_w, render_h);
+	}
+
+	if (render_h > MAX_DISPLAY_HEIGHT) {
+		double ratio	= (double)render_h / MAX_DISPLAY_HEIGHT;
+		render_h		= MAX_DISPLAY_HEIGHT;
+		render_w		= (int32_t)(render_w / ratio);
+		LOGI("video resolution %d x %d, display resolution switch to %d x %d",
+			mVideoWidth, mVideoHeight, render_w, render_h);
+	}
+#endif
+
+    mVideoRenderer = new FFRender(mSurface, render_w, render_h, mVideoFormat);
+	bool force_sw = false;
+#ifdef USE_AV_FILTER
+	if (mVideoFiltFrame) {
+		LOGI("set video render to use software sws");
+		force_sw = true;
+	}
+#endif
+    if (mVideoRenderer->init(force_sw) != OK) {
+        LOGE("Initing video render failed");
+        return ERROR;
+    }
+
+    uint32_t surfaceWidth = 0, surfaceHeight = 0;
+    mVideoRenderer->width(surfaceWidth);
+    mVideoRenderer->height(surfaceHeight);
+    notifyListener_l(MEDIA_SET_VIDEO_SIZE, surfaceWidth, surfaceHeight);
 
 	return OK;
 }
@@ -2161,10 +2156,8 @@ status_t FFPlayer::play_l()
             return ERROR;
         }
 
-        if(mAudioStream != NULL)
+        if (mAudioStream != NULL)
             postCheckAudioStatusEvent_l();
-        else
-            LOGI("no audio stream");
     }
 
     if (mVideoRenderer != NULL && mVideoStream != NULL) {
@@ -2172,9 +2165,6 @@ status_t FFPlayer::play_l()
 		LOGI("Kick off video playback event %d", mVideoEventPending);
 		// avoid 1st onVideo call render_frame but state is still MEDIA_PLAYER_PAUSED
         postVideoEvent_l(mVideoGapMs);
-    }
-    else {
-        LOGI("no video stream");
     }
 
     return OK;
@@ -3618,30 +3608,33 @@ bool FFPlayer::getThumbnail(const char* url, MediaInfo* info)
     }
 
 	if (info->duration_ms > 0 && info->duration_ms < seekPosition * 1000)
-		seekPosition = info->duration_ms / 1000;
-	seek_target = seekPosition * AV_TIME_BASE;
+		seekPosition = 0;
 
-	if (video_stream_idx >= 0)
-		stream_index = video_stream_idx;
-	else if (audio_stream_idx >= 0)
-		stream_index = audio_stream_idx;
+	if (seekPosition != 0) {
+		seek_target = seekPosition * AV_TIME_BASE;
 
-	if (stream_index < 0) {
-		LOGE("no stream to seek");
-		goto end;
-	}
+		if (video_stream_idx >= 0)
+			stream_index = video_stream_idx;
+		else if (audio_stream_idx >= 0)
+			stream_index = audio_stream_idx;
+
+		if (stream_index < 0) {
+			LOGE("no stream to seek");
+			goto end;
+		}
 
 #ifdef _MSC_VER
-	AVRational ra;
-	ra.num = 1;
-	ra.den = AV_TIME_BASE;
-	seek_target = av_rescale_q(seek_target, ra, movieFile->streams[stream_index]->time_base);
+		AVRational ra;
+		ra.num = 1;
+		ra.den = AV_TIME_BASE;
+		seek_target = av_rescale_q(seek_target, ra, movieFile->streams[stream_index]->time_base);
 #else
-	seek_target= av_rescale_q(seek_target, AV_TIME_BASE_Q, movieFile->streams[stream_index]->time_base);
+		seek_target= av_rescale_q(seek_target, AV_TIME_BASE_Q, movieFile->streams[stream_index]->time_base);
 #endif
-    if (av_seek_frame(movieFile, -1, seek_target, 0) < 0) {
-        LOGE("failed to seek file");
-		goto end;
+		if (av_seek_frame(movieFile, -1, seek_target, 0) < 0) {
+			LOGE("failed to seek file");
+			goto end;
+		}
     }
 
 	/* initialize packet, set data to NULL, let the demuxer fill it */
@@ -3852,7 +3845,7 @@ static int open_codec_context(int *stream_idx,
 
     ret = av_find_best_stream(fmt_ctx, type, -1, -1, NULL, 0);
     if (ret < 0) {
-        LOGE("Could not find %s stream in input file", av_get_media_type_string(type));
+        LOGW("Could not find %s stream in input file", av_get_media_type_string(type));
         return ret;
     } else {
         *stream_idx = ret;
