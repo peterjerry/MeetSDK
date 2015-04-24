@@ -108,7 +108,8 @@ if [ ${2}x == 'lite'x ]
 then
 echo "lite build"
 EXTRA_PARAMETERS="$EXTRA_PARAMETERS \
-	--disable-decoders \	--enable-decoder=h263,h264,hevc,flv,mpeg1video,mpeg2video,mpeg4,ac3,aac,mp1,mp2,mp3,rv30,rv40,cook,wmv1,wmv2,wmv3,wmv3image,ape,flac,wmav1,wmav2,wmapro,pcm_s16be,pcm_s16be_planar,pcm_s16le,pcm_s16le_planar \
+	--disable-decoders \
+	--enable-decoder=h263,h264,hevc,flv,mpeg1video,mpeg2video,mpeg4,ac3,aac,mp1,mp2,mp3,rv30,rv40,cook,wmv1,wmv2,wmv3,wmv3image,ape,flac,wmav1,wmav2,wmapro,pcm_s16be,pcm_s16be_planar,pcm_s16le,pcm_s16le_planar \
 	--disable-demuxers \
 	--enable-demuxer=rm,mpegvideo,avi,h263,h264,hevc,matroska,aac,flv,mpegts,mp4,m4v,mov,ape,hls,flac,rawvideo,realtext,rtsp,vc1,mp3,wav,asf \
 	--disable-parsers \
