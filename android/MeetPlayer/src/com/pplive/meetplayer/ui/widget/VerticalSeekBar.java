@@ -34,19 +34,19 @@ public class VerticalSeekBar extends SeekBar {
 		mOnSeekBarChangeListener = l;
 	}
 
-	private void onStartTrackingTouch() {
+	private void onStartTrackingTouch2() {
 		if (mOnSeekBarChangeListener != null) {
 			mOnSeekBarChangeListener.onStartTrackingTouch(this);
 		}
 	}
 
-	private void onStopTrackingTouch() {
+	private void onStopTrackingTouch2() {
 		if (mOnSeekBarChangeListener != null) {
 			mOnSeekBarChangeListener.onStopTrackingTouch(this);
 		}
 	}
 
-	private void onProgressRefresh(float scale, boolean fromUser) {
+	private void onProgressRefresh2(float scale, boolean fromUser) {
 //		Log.d("", "scale:" + scale + ",fromUser:" + fromUser);
 
 		Drawable thumb = mThumb;
@@ -115,7 +115,7 @@ public class VerticalSeekBar extends SeekBar {
 		switch (event.getAction()) {
 		case MotionEvent.ACTION_DOWN:
 			setPressed(true);
-			onStartTrackingTouch();
+			onStartTrackingTouch2();
 			trackTouchEvent(event);
 			break;
 
@@ -126,12 +126,12 @@ public class VerticalSeekBar extends SeekBar {
 
 		case MotionEvent.ACTION_UP:
 			trackTouchEvent(event);
-			onStopTrackingTouch();
+			onStopTrackingTouch2();
 			setPressed(false);
 			break;
 
 		case MotionEvent.ACTION_CANCEL:
-			onStopTrackingTouch();
+			onStopTrackingTouch2();
 			setPressed(false);
 			break;
 		}

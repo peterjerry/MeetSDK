@@ -1,6 +1,16 @@
 package android.pplive.media.player;
 
+import java.io.IOException;
+import java.io.Reader;
+import java.io.StringReader;
 import java.util.ArrayList;
+import java.util.List;
+import java.util.StringTokenizer;
+
+import org.jdom2.Document;
+import org.jdom2.Element;
+import org.jdom2.JDOMException;
+import org.jdom2.input.SAXBuilder;
 
 import android.net.Uri;
 import android.pplive.media.player.MediaPlayer.DecodeMode;
@@ -190,7 +200,8 @@ public class PlayerPolicy {
 				 videoCodecName.equals("xvid") ||  videoCodecName.equals("divx")) 
 				 && 
 				 (null == audioCodecName || audioCodecName.equals("aac") || 
-				 audioCodecName.equals("vorbis") || audioCodecName.equals("wma"))) {
+				 audioCodecName.equals("vorbis") || 
+				 audioCodecName.equals("wmav1") || audioCodecName.equals("wmav2"))) {
 				return DecodeMode.HW_SYSTEM;
 			}
 		}
@@ -341,6 +352,95 @@ public class PlayerPolicy {
 	private static DecodeMode getDeviceCapabilitiesCustomized(
 			String url, String formatName, String videoCodecName, String audioCodecName) {
 		// todo
-		return DecodeMode.HW_SYSTEM;
+		SAXBuilder builder = new SAXBuilder();
+		Reader returnQuote = new StringReader(sPlayerPolicy);  
+        Document doc;
+        try {
+			doc = builder.build(returnQuote);
+			Element root = doc.getRootElement();
+			
+			String device_desc = root.getChild("DeviceDesc").getText();
+			int device_id = Integer.valueOf(root.getChild("DeviceId").getText());
+			String supported_protocol = root.getChild("Protocol").getText();
+			String supported_picture = root.getChild("Picture").getChild("Ext").getText();
+			String supported_music = root.getChild("Music").getChild("Ext").getText();
+
+			StringTokenizer st;
+			st = new StringTokenizer(supported_protocol, ",", true);
+			while (st.hasMoreElements()) {
+				String protocol = st.nextToken();
+				if (url.startsWith(protocol))
+					return DecodeMode.HW_SYSTEM;
+			}
+			
+			st = new StringTokenizer(supported_picture, ",", true);
+			while (st.hasMoreElements()) {
+				String ext = st.nextToken();
+				if (url.toLowerCase().endsWith(ext))
+					return DecodeMode.HW_SYSTEM;
+			}
+			
+			st = new StringTokenizer(supported_music, ",", true);
+			while (st.hasMoreElements()) {
+				String ext = st.nextToken();
+				if (url.toLowerCase().endsWith(ext))
+					return DecodeMode.HW_SYSTEM;
+			}
+			
+			List<Element> videos = root.getChildren("Video");
+			LogUtils.info("Java: video list size: " + videos.size());
+			for (int i=0;i<videos.size();i++) {
+				LogUtils.info("Java: video item: " + videos.get(i).toString());
+				
+				String supported_ext = videos.get(i).getChild("Ext").getText();
+				String supported_demuxer = videos.get(i).getChild("Demuxer").getText();
+				String supported_video_codec = videos.get(i).getChild("VideoCodec").getText();
+				String supported_audio_codec = videos.get(i).getChild("AudioCodec").getText();
+				
+				StringTokenizer st1, st2, st3, st4;
+				st1 = new StringTokenizer(supported_ext, ",", true);
+				st2 = new StringTokenizer(supported_demuxer, ",", true);
+				st3 = new StringTokenizer(supported_video_codec, ",", true);
+				st4 = new StringTokenizer(supported_audio_codec, ",", true);
+				
+				while (st1.hasMoreElements()) {
+					String ext = st1.nextToken();
+					if (url.toLowerCase().endsWith(ext)) {
+						boolean video_done = false;
+						if (videoCodecName == null)
+							video_done = true;
+						else {
+							while (st3.hasMoreElements()) {
+								String v_codec = st3.nextToken();
+								if (v_codec.equals(videoCodecName)) {
+									video_done = true;
+									break;
+								}
+							}
+						}
+						
+						if (video_done) {
+							if (audioCodecName == null)
+								return DecodeMode.HW_SYSTEM;
+							
+							while (st4.hasMoreElements()) {
+								String a_codec = st4.nextToken();
+								if (a_codec.equals(audioCodecName))
+									return DecodeMode.HW_SYSTEM;
+							}
+						}
+					}
+				}
+			}
+		}
+		catch (JDOMException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+        
+		return DecodeMode.SW;
 	}
 }

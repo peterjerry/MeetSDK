@@ -56,7 +56,7 @@ public class LocalFileAdapter extends BaseAdapter {
 	}
 
 	@Override
-	public Object getItem(int index) {
+	public Map<String, Object> getItem(int index) {
 		// TODO Auto-generated method stub
 		return mData.get(index);
 	}

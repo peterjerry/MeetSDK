@@ -16,6 +16,7 @@ import java.util.Date;
 import java.util.GregorianCalendar;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Random;
 
 import android.app.Activity;
@@ -446,7 +447,7 @@ public class ClipListActivity extends Activity implements
 						// TODO Auto-generated method stub
 						Log.i(TAG, String.format("onItemClick %d %d", position, id));
 						
-						HashMap<String, Object> item = (HashMap<String, Object>) lv_filelist.getItemAtPosition(position);
+						Map<String, Object> item = mAdapter.getItem(position);
 						String file_name = (String)item.get("filename");
 						String file_path = (String)item.get("fullpath");
 						Log.i(TAG, String.format("Java: full_path %s", file_path));
@@ -519,7 +520,7 @@ public class ClipListActivity extends Activity implements
 					int position, long id) {
 				// TODO Auto-generated method stub
 				final String[] action = {"delete", "detail"};
-				HashMap<String, Object> item = (HashMap<String, Object>) lv_filelist.getItemAtPosition(position);
+				Map<String, Object> item = mAdapter.getItem(position);
 				final String file_name = (String)item.get("filename");
 				final String file_path = (String)item.get("fullpath");
 
@@ -1778,7 +1779,6 @@ public class ClipListActivity extends Activity implements
 		}
 	}
 
-	
 	private void popupDMSDlg() {
 		int dev_num = IDlnaCallback.mDMSmap.size();
 		
@@ -2131,8 +2131,7 @@ public class ClipListActivity extends Activity implements
 		choose_device_dlg.show();
 	}
 	
-	private String intToIp(int i) {       
-        
+	private String intToIp(int i) {
         return (i & 0xFF ) + "." +       
       ((i >> 8 ) & 0xFF) + "." +       
       ((i >> 16 ) & 0xFF) + "." +       
@@ -2671,17 +2670,6 @@ public class ClipListActivity extends Activity implements
 		else {
 			mHomed = true;
 		}
-	}
-	
-	@Deprecated
-	private boolean initMeetSDK() {
-		// upload util will upload /data/data/pacake_name/Cache/xxx
-		// so must NOT change path
-		MeetSDK.setLogPath(
-				getCacheDir().getAbsolutePath() + "/meetplayer.log", 
-				getCacheDir().getParentFile().getAbsolutePath() + "/");
-		// /data/data/com.svox.pico/
-		return MeetSDK.initSDK(this, "");
 	}
 	
 	private void initFeedback() {

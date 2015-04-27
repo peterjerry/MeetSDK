@@ -234,6 +234,10 @@ public final class MeetSDK {
 		return path;
 	}
 
+	public static void setPlayerPolicy(String xml) {
+		PlayerPolicy.setPlayerPolicy(xml);
+	}
+	
 	public static DecodeMode getPlayerType(Uri uri) {
 		return PlayerPolicy.getDeviceCapabilities(uri);
 	}
