@@ -17,4 +17,5 @@ obj/
 sdk/
 syms/
 bin/
-libs/
+libs/armeabi
+libs/x86

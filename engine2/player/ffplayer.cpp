@@ -1763,7 +1763,7 @@ status_t FFPlayer::pause_l()
 status_t FFPlayer::seekTo_l() // called from onSeekingImpl, so MUSTN'T LOCK IT HERE
 {
 	if (mAudioPlayer != NULL)
-        mAudioPlayer->seekTo(mSeekTimeMs);
+       mAudioPlayer->seekTo(mSeekTimeMs);
 
 	// will notify seek_complete
     if (mDataStream->seek(mSeekTimeMs, mSeekIncr) != OK) {

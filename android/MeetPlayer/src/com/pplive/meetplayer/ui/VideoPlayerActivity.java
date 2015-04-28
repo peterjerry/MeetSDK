@@ -1,5 +1,9 @@
 package com.pplive.meetplayer.ui;
 
+import java.io.File;
+import java.util.ArrayList;
+import java.util.List;
+
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.Dialog;
@@ -7,27 +11,34 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.Environment;
+import android.os.Handler;
+import android.os.Message;
 import android.util.Log;
 import android.view.GestureDetector;
 import android.view.KeyEvent;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
 import android.view.MotionEvent;
 import android.view.View;
-import android.view.View.OnTouchListener;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import com.pplive.meetplayer.R;
 import com.pplive.meetplayer.ui.widget.MyMediaController;
+import com.pplive.meetplayer.util.FileFilterTest;
 import com.pplive.meetplayer.util.Util;
 
-import android.pplive.media.MeetSDK;
-import android.pplive.media.player.MediaInfo;
 import android.pplive.media.player.MediaPlayer;
 import android.pplive.media.player.MeetVideoView;
 import android.pplive.media.player.MediaPlayer.DecodeMode;
+import android.pplive.media.subtitle.SimpleSubTitleParser;
+import android.pplive.media.subtitle.SubTitleSegment;
+import android.pplive.media.subtitle.SubTitleParser.Callback;
 
-public class VideoPlayerActivity extends Activity {
+public class VideoPlayerActivity extends Activity implements Callback {
 
 	private final static String TAG = "VideoPlayerActivity";
 	
@@ -40,12 +51,19 @@ public class VideoPlayerActivity extends Activity {
 	private ProgressBar mBufferingProgressBar = null;
 	
 	private boolean mIsBuffering = false;
-
-	private ProgressBar mDownloadProgressBar = null;
-	private TextView mProgressTextView = null;
-	private Dialog mUpdateDialog = null;
 	
-	private boolean needUpdate = false;
+	// subtitle
+	private SimpleSubTitleParser mSubtitleParser;
+	private TextView mSubtitleTextView;
+	private String mSubtitleText;
+	private Thread mSubtitleThread;
+	private boolean mSubtitleSeeking = false;
+	private boolean mIsSubtitleUsed = false;
+	private String subtitle_filename;
+	private boolean mSubtitleStoped = false;
+	
+	private static final int MSG_DISPLAY_SUBTITLE					= 401;
+	private static final int MSG_HIDE_SUBTITLE					= 402;
 	
 	@Override
 	public void onCreate(Bundle savedInstanceState) {
@@ -76,9 +94,38 @@ public class VideoPlayerActivity extends Activity {
 
 		setContentView(R.layout.activity_video_player);
 		
+		this.mSubtitleTextView = (TextView) findViewById(R.id.textview_subtitle);
+		this.mBufferingProgressBar = (ProgressBar) findViewById(R.id.progressbar_buffering);
+		
 		Util.initMeetSDK(this);
 		
 	}
+	
+	@Override
+    public boolean onCreateOptionsMenu(Menu menu) {  
+        MenuInflater menuInflater = new MenuInflater(getApplication());  
+        menuInflater.inflate(R.menu.videoplayer_menu, menu);  
+        return super.onCreateOptionsMenu(menu);  
+    }
+    
+    @Override
+	public boolean onOptionsItemSelected(MenuItem item) {
+		int id = item.getItemId();
+		Log.i(TAG, "Java: onOptionsItemSelected " + id);
+		
+		switch (id) {
+		case R.id.select_subtitle:
+			popupSelectSubtitle();
+			break;
+		case R.id.toggle_debug_info:
+			break;
+		default:
+			Log.w(TAG, "unknown menu id " + id);
+			break;
+		}
+		
+		return true;
+    }
 
 	@Override
 	protected void onStart() {
@@ -112,17 +159,81 @@ public class VideoPlayerActivity extends Activity {
 		Log.i(TAG, "Java: onStop()");
 
 		mVideoView.stopPlayback();
+		stop_subtitle();
+	}
+
+	private void popupSelectSubtitle() {
+		final String sub_folder = Environment.getExternalStorageDirectory().getAbsolutePath() + 
+				"/test2/subtitle";
+		
+		File file = new File(sub_folder);
+		String []list = {"srt", "ass"};
+		File [] subtitle_files = file.listFiles(new FileFilterTest(list));
+		if (subtitle_files == null) {
+			Toast.makeText(this, "no subtitle file found", Toast.LENGTH_SHORT).show();
+			return;
+		}
+		
+		List<String> filename_list = new ArrayList<String>();
+		for (int i=0;i<subtitle_files.length;i++) {
+			filename_list.add(subtitle_files[i].getName());
+		}
+		final String[] str_file_list = (String[])filename_list.toArray(new String[filename_list.size()]);
+		
+		Dialog choose_subtitle_dlg = new AlertDialog.Builder(VideoPlayerActivity.this)
+		.setTitle("select subtitle")
+		.setItems(str_file_list, new DialogInterface.OnClickListener(){
+				public void onClick(DialogInterface dialog, int whichButton){
+					subtitle_filename = sub_folder + "/" + str_file_list[whichButton];
+					Log.i(TAG, "Load subtitle file: " + subtitle_filename);
+					Toast.makeText(VideoPlayerActivity.this, 
+							"Load subtitle file: " + subtitle_filename, Toast.LENGTH_SHORT).show();
+					if (mVideoView != null) {
+						start_subtitle(subtitle_filename);
+					}
+					
+					dialog.dismiss();
+				}
+			})
+		.create();
+		choose_subtitle_dlg.show();
 	}
 	
-	@Deprecated
-	private void setupSDK() {
-		MeetSDK.setLogPath(getCacheDir().getAbsolutePath() + "/meetplayer.log", 
-				getCacheDir().getAbsolutePath() + "/");
-		MeetSDK.initSDK(this, "");
-
-		Util.startP2PEngine(this);
+	private boolean start_subtitle(String filename) {
+		Log.i(TAG, "Java: subtitle start_subtitle " + filename);
+    	
+		stop_subtitle();
+		
+		mSubtitleParser = new SimpleSubTitleParser();
+		mSubtitleParser.setOnPreparedListener(this);
+		
+		mSubtitleParser.setDataSource(filename);
+		mSubtitleParser.prepareAsync();
+		
+		return true;
 	}
-
+	
+	private void stop_subtitle() {
+		Log.i(TAG, "Java: subtitle stop_subtitle");
+		
+		if (mIsSubtitleUsed) {
+			mSubtitleStoped = true;
+			mSubtitleThread.interrupt();
+			
+			try {
+				Log.i(TAG, "Java subtitle before join");
+				mSubtitleThread.join();
+			} catch (InterruptedException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+			
+			subtitle_filename = null;
+			mIsSubtitleUsed = false;
+			mSubtitleStoped = false;
+		}
+	}
+	
 	private void setupPlayer() {
 		Log.i(TAG,"Step: setupPlayer()");
 
@@ -147,10 +258,10 @@ public class VideoPlayerActivity extends Activity {
 		
 		String name = getFileName(path);
 		mController.setFileName(name);
-		
-		mBufferingProgressBar = (ProgressBar) findViewById(R.id.progressbar_buffering);
-		
+
 		mVideoView.start();
+		
+		mBufferingProgressBar.setVisibility(View.VISIBLE);
 	}
 
 	private String getFileName(String path) {
@@ -198,7 +309,7 @@ public class VideoPlayerActivity extends Activity {
 	
 	private MediaPlayer.OnCompletionListener mCompletionListener = new MediaPlayer.OnCompletionListener() {
 		public void onCompletion(MediaPlayer mp) {
-			Log.d(TAG, "MEDIA_PLAYBACK_COMPLETE");
+			Log.i(TAG, "MEDIA_PLAYBACK_COMPLETE");
 			mVideoView.stopPlayback();
 			finish();
 		}
@@ -206,7 +317,9 @@ public class VideoPlayerActivity extends Activity {
 
 	private MediaPlayer.OnErrorListener mErrorListener = new MediaPlayer.OnErrorListener() {
 		public boolean onError(MediaPlayer mp, int framework_err, int impl_err) {
-			Log.d(TAG, "Error: " + framework_err + "," + impl_err);
+			Log.e(TAG, "Error: " + framework_err + "," + impl_err);
+			
+			mBufferingProgressBar.setVisibility(View.GONE);
 			mVideoView.stopPlayback();
 			finish();
 			return true;
@@ -247,9 +360,10 @@ public class VideoPlayerActivity extends Activity {
 	private MediaPlayer.OnPreparedListener mPreparedListener = new MediaPlayer.OnPreparedListener() {
 
 		@Override
-		public void onPrepared(MediaPlayer arg0) {
+		public void onPrepared(MediaPlayer mp) {
 			Log.i(TAG, "Java: OnPrepared");
 			mController.show();
+			mBufferingProgressBar.setVisibility(View.GONE);
 		}
 	};
 	
@@ -309,10 +423,8 @@ public class VideoPlayerActivity extends Activity {
 		
 		Log.d(TAG, "keyCode: " + keyCode);
 		int incr = -1;
-		int mode;
 		
 		switch (keyCode) {
-			case KeyEvent.KEYCODE_MENU:
 			case KeyEvent.KEYCODE_DPAD_LEFT:
 			case KeyEvent.KEYCODE_DPAD_RIGHT:
 				mController.show();
@@ -371,5 +483,168 @@ public class VideoPlayerActivity extends Activity {
 	        }
     	}
     }
+
+	@Override
+	public void onPrepared(boolean success, String msg) {
+		// TODO Auto-generated method stub
+		Log.i(TAG, String.format("Java: subtitle onPrepared() %s, %s", success?"done":"failed", msg));
+		
+		if (success) {
+			mSubtitleThread = new Thread(new Runnable(){
+				@Override
+				public void run() {
+					display_subtitle_thr();
+				}
+			});
+			mSubtitleThread.start();
+			mIsSubtitleUsed = true;
+			
+			mSubtitleTextView.setVisibility(View.VISIBLE);
+		}
+		else {
+			mSubtitleTextView.setVisibility(View.INVISIBLE);
+		}
+	}
+
+	@Override
+	public void onSeekComplete() {
+		// TODO Auto-generated method stub
+		Log.i(TAG, "Java: subtitle onSeekComplete");
+		mSubtitleSeeking = false;
+	}
 	
+	private synchronized void display_subtitle_thr() {
+        Log.i(TAG, "Java: subtitle thread started");
+
+        final int SLEEP_MSEC = 50;
+        SubTitleSegment seg;
+        long from_msec = 0;
+        long to_msec = 0;
+        long hold_msec;
+        long target_msec;
+        
+        boolean isDisplay = true;
+        boolean isDropItem = false;
+        
+        if (mVideoView != null) {
+        	mSubtitleParser.seekTo(mVideoView.getCurrentPosition());
+        }
+        
+        while (!mSubtitleStoped) {
+        	if (isDisplay) {
+        		seg = mSubtitleParser.next();
+        		if (seg == null) {
+        			Log.e(TAG, "Java: subtitle next_segment is null");
+        			break;
+        		}
+        		
+        		mSubtitleText = seg.getData();
+                from_msec = seg.getFromTime();
+                to_msec = seg.getToTime();
+                hold_msec = to_msec - from_msec;
+                Log.i(TAG, String.format("Java: subtitle frome %d, to %d, hold %d, %s", 
+                	seg.getFromTime(), seg.getToTime(), hold_msec,
+                	seg.getData()));
+                target_msec = from_msec;
+        	}
+        	else {
+            	target_msec = to_msec;
+        	}
+        	
+    		if (mSubtitleSeeking == true) {
+    			isDropItem = true;
+    			target_msec = mVideoView.getDuration();
+        	}
+        
+            while (mVideoView != null && mVideoView.getCurrentPosition() < target_msec) {
+            	if (isDropItem == true) {
+            		if (mSubtitleSeeking == false) {
+            			break;
+            		}
+            	}
+            	
+            	try {
+					wait(SLEEP_MSEC);
+					//Log.d(TAG, "Java: subtitle wait");
+				} catch (InterruptedException e) {
+					// TODO Auto-generated catch block
+					Log.i(TAG, "Java: subtitle interrupted");
+					e.printStackTrace();
+					break;
+				}
+            }
+            
+            Log.i(TAG, "Java: subtitle mSubtitleSeeking: " + mSubtitleSeeking);
+            if (isDropItem == true) {
+        		// drop last subtitle item
+        		isDisplay = true;
+        		isDropItem = false;
+        		mHandler.sendEmptyMessage(MSG_HIDE_SUBTITLE);
+        		continue;
+        	}
+
+            if (isDisplay) {
+            	mHandler.sendEmptyMessage(MSG_DISPLAY_SUBTITLE);
+            }
+            else {
+            	mHandler.sendEmptyMessage(MSG_HIDE_SUBTITLE);
+            }
+            
+            isDisplay = !isDisplay;
+        }
+        
+        mHandler.sendEmptyMessage(MSG_HIDE_SUBTITLE);
+        mSubtitleParser.close();
+        mSubtitleParser = null;
+        Log.i(TAG, "Java: subtitle thread exited");
+    }
+	
+	private Handler mHandler = new Handler(){  
+		  
+        @Override  
+        public void handleMessage(Message msg) {  
+            switch(msg.what) {
+			/*case MSG_CLIP_LIST_DONE:
+				if (mAdapter == null) {
+					mAdapter = new LocalFileAdapter(ClipListActivity.this, mListUtil.getList(), R.layout.pptv_list);
+					lv_filelist.setAdapter(mAdapter);
+				}
+				else {
+					mAdapter.updateData(mListUtil.getList());
+					mAdapter.notifyDataSetChanged();
+				}
+				break;
+			case MSG_UPDATE_PLAY_INFO:
+			case MSG_UPDATE_RENDER_INFO:
+				if (isLandscape) {
+					mTextViewInfo.setText(String.format("%02d|%03d v-a: %+04d "
+							+ "dec/render %d(%d)/%d(%d) fps/msec bitrate %d kbps", 
+						render_frame_num % 25, decode_drop_frame % 1000, av_latency_msec, 
+						decode_fps, decode_avg_msec, render_fps, render_avg_msec,
+						video_bitrate));
+				}
+				else {
+					mTextViewInfo.setText(String.format("%02d|%03d v-a: %+04d\n"
+							+ "dec/render %d(%d)/%d(%d) fps/msec\nbitrate %d kbps", 
+						render_frame_num % 25, decode_drop_frame % 1000, av_latency_msec, 
+						decode_fps, decode_avg_msec, render_fps, render_avg_msec,
+						video_bitrate));
+				}
+				break;
+			case MSG_CLIP_PLAY_DONE:
+				Toast.makeText(ClipListActivity.this, "clip completed", Toast.LENGTH_SHORT).show();
+				mTextViewInfo.setText("play info");
+				break;*/
+			case MSG_DISPLAY_SUBTITLE:
+				mSubtitleTextView.setText(mSubtitleText);
+				break;
+			case MSG_HIDE_SUBTITLE:
+				mSubtitleTextView.setText("");
+				break;
+			default:
+				Log.w(TAG, "Java: unknown msg.what " + msg.what);
+				break;
+			}			 
+        }
+	}; 
 }

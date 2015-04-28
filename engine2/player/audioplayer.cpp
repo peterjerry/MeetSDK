@@ -271,7 +271,7 @@ int AudioPlayer::process_pkt(AVPacket *packet)
 	av_frame_unref(mAudioFrame);
 
 	int ret;
-	while(1) {
+	while (1) {
 		ret = avcodec_decode_audio4(mAudioContext->codec, mAudioFrame, &got_frame, packet);
 		if (ret < 0) {
 			LOGE("decode audio failed, ret:%d", ret);

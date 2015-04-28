@@ -80,6 +80,7 @@ import com.pplive.meetplayer.util.Content;
 import com.pplive.meetplayer.util.DownloadAsyncTask;
 import com.pplive.meetplayer.util.EPGUtil;
 import com.pplive.meetplayer.util.FeedBackFactory;
+import com.pplive.meetplayer.util.FileFilterTest;
 import com.pplive.meetplayer.util.IDlnaCallback;
 import com.pplive.meetplayer.util.ListMediaUtil;
 import com.pplive.meetplayer.util.LoadPlayLinkUtil;
@@ -1746,36 +1747,6 @@ public class ClipListActivity extends Activity implements
 			})
 		.create();
 		choose_subtitle_dlg.show();
-	}
-	
-	private class FileFilterTest implements FileFilter {
-
-		String []condition = null;
-
-		public FileFilterTest(String []condition) {
-			this.condition = condition;
-		}
-
-		@Override
-		public boolean accept(File pathname) {
-			// TODO Auto-generated method stub
-			if (condition == null || condition.length == 0)
-				return false;
-			
-			String filename = pathname.getName();
-			String ext = filename;
-			int pos = filename.lastIndexOf('.');
-			if (pos == -1)
-				return false;
-			
-			ext = filename.substring(pos + 1, filename.length());
-			for (int i=0;i<condition.length;i++) {
-				if (ext.equals(condition[i]))
-					return true;
-			}
-			
-			return false;
-		}
 	}
 
 	private void popupDMSDlg() {

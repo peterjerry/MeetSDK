@@ -918,7 +918,7 @@ public class MediaPlayer implements MediaPlayerInterface {
 	}
 	
 	private void setOption() {
-		if (mPlayer != null) {
+		if (mPlayer != null && mOption != null) {
 			mPlayer.setOption(mOption);
 		}
 	}
