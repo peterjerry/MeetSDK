@@ -351,7 +351,6 @@ public class PlayerPolicy {
 	
 	private static DecodeMode getDeviceCapabilitiesCustomized(
 			String url, String formatName, String videoCodecName, String audioCodecName) {
-		// todo
 		SAXBuilder builder = new SAXBuilder();
 		Reader returnQuote = new StringReader(sPlayerPolicy);  
         Document doc;
@@ -361,6 +360,9 @@ public class PlayerPolicy {
 			
 			String device_desc = root.getChild("DeviceDesc").getText();
 			int device_id = Integer.valueOf(root.getChild("DeviceId").getText());
+			LogUtils.info(String.format("Java: device description %s, id %d",
+					device_desc, device_id));
+			
 			String supported_protocol = root.getChild("Protocol").getText();
 			String supported_picture = root.getChild("Picture").getChild("Ext").getText();
 			String supported_music = root.getChild("Music").getChild("Ext").getText();
@@ -369,6 +371,7 @@ public class PlayerPolicy {
 			st = new StringTokenizer(supported_protocol, ",", true);
 			while (st.hasMoreElements()) {
 				String protocol = st.nextToken();
+				LogUtils.info("Java: protocol " + protocol);
 				if (url.startsWith(protocol))
 					return DecodeMode.HW_SYSTEM;
 			}
@@ -390,8 +393,6 @@ public class PlayerPolicy {
 			List<Element> videos = root.getChildren("Video");
 			LogUtils.info("Java: video list size: " + videos.size());
 			for (int i=0;i<videos.size();i++) {
-				LogUtils.info("Java: video item: " + videos.get(i).toString());
-				
 				String supported_ext = videos.get(i).getChild("Ext").getText();
 				String supported_demuxer = videos.get(i).getChild("Demuxer").getText();
 				String supported_video_codec = videos.get(i).getChild("VideoCodec").getText();
@@ -403,31 +404,47 @@ public class PlayerPolicy {
 				st3 = new StringTokenizer(supported_video_codec, ",", true);
 				st4 = new StringTokenizer(supported_audio_codec, ",", true);
 				
+				boolean format_done = false;
 				while (st1.hasMoreElements()) {
 					String ext = st1.nextToken();
 					if (url.toLowerCase().endsWith(ext)) {
-						boolean video_done = false;
-						if (videoCodecName == null)
-							video_done = true;
-						else {
-							while (st3.hasMoreElements()) {
-								String v_codec = st3.nextToken();
-								if (v_codec.equals(videoCodecName)) {
-									video_done = true;
-									break;
-								}
+						format_done = true;
+						break;
+					}
+				}
+
+				if (!format_done) {
+					while (st2.hasMoreElements()) {
+						String demuxer = st2.nextToken();
+						if (formatName.equals(demuxer)) {
+							format_done = true;
+							break;
+						}
+					}
+				}
+					
+				if (format_done) {
+					boolean video_done = false;
+					if (videoCodecName == null)
+						video_done = true;
+					else {
+						while (st3.hasMoreElements()) {
+							String v_codec = st3.nextToken();
+							if (v_codec.equals(videoCodecName)) {
+								video_done = true;
+								break;
 							}
 						}
+					}
+					
+					if (video_done) {
+						if (audioCodecName == null)
+							return DecodeMode.HW_SYSTEM;
 						
-						if (video_done) {
-							if (audioCodecName == null)
+						while (st4.hasMoreElements()) {
+							String a_codec = st4.nextToken();
+							if (a_codec.equals(audioCodecName))
 								return DecodeMode.HW_SYSTEM;
-							
-							while (st4.hasMoreElements()) {
-								String a_codec = st4.nextToken();
-								if (a_codec.equals(audioCodecName))
-									return DecodeMode.HW_SYSTEM;
-							}
 						}
 					}
 				}
@@ -436,9 +453,11 @@ public class PlayerPolicy {
 		catch (JDOMException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
+			LogUtils.error("Java: PlayerPolicy xml context is broken " + e.getMessage());
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
+			LogUtils.error("Java: PlayerPolicy xml IOException " + e.getMessage());
 		}
         
 		return DecodeMode.SW;
