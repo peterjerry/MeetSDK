@@ -39,7 +39,7 @@ protected:
 	HICON m_hIcon;
 	virtual void notify(int msg, int ext1, int ext2);
 	BOOL PreTranslateMessage(MSG* pMsg);
-	void Shuttle(int sec);
+	void Seek(int msec);
 	virtual void thread_proc();
 
 	// 生成的消息映射函数
@@ -96,6 +96,10 @@ private:
 	int mIOBitrate;
 	int mBitrate;
 	int mBufferingTimeMsec;
+
+	ISubtitles*	mSubtitleParser;
+	int64_t mSubtitleStartTime;
+	int64_t mSubtitleStopTime;
 private:
 	bool startP2P();
 	bool play_url(const char *url);

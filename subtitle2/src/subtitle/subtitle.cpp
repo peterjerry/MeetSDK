@@ -9,7 +9,11 @@
 #include <stdarg.h>
 
 #define LOG_TAG "subtitle"
+#ifdef _TEST_SUBTITLE
 #include "logutil.h"
+#else
+#include "log.h"
+#endif
 
 extern "C" {
 #include "libass/ass.h"
@@ -69,8 +73,8 @@ protected:
 	
     CSimpleTextSubtitle* getSelectedSimpleTextSubtitle()
     {
-		LOGI("getSelectedSimpleTextSubtitle mSubtitles size= %d", mSubtitles.size());
-		LOGI("getSelectedSimpleTextSubtitle mSelected= %d", mSelected);
+		LOGD("getSelectedSimpleTextSubtitle mSubtitles size= %d", mSubtitles.size());
+		LOGD("getSelectedSimpleTextSubtitle mSelected= %d", mSelected);
         if (mSelected >= 0 && mSelected < mSubtitles.size()) {
             return mSubtitles[mSelected];
         }

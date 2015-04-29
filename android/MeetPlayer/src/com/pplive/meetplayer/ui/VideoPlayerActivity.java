@@ -425,8 +425,13 @@ public class VideoPlayerActivity extends Activity implements Callback {
 		int incr = -1;
 		
 		switch (keyCode) {
-			case KeyEvent.KEYCODE_DPAD_LEFT:
-			case KeyEvent.KEYCODE_DPAD_RIGHT:
+		case KeyEvent.KEYCODE_MENU:
+		case KeyEvent.KEYCODE_DPAD_LEFT:
+		case KeyEvent.KEYCODE_DPAD_RIGHT:
+		case KeyEvent.KEYCODE_DPAD_DOWN:
+		case KeyEvent.KEYCODE_DPAD_UP:
+		case KeyEvent.KEYCODE_DPAD_CENTER:
+		case KeyEvent.KEYCODE_ENTER:
 				mController.show();
 				
 				if (KeyEvent.KEYCODE_DPAD_RIGHT == keyCode || 
@@ -448,26 +453,16 @@ public class VideoPlayerActivity extends Activity implements Callback {
 						pos = 0;
 					mVideoView.seekTo(pos);
 				}
-				
-				return true;
-			case KeyEvent.KEYCODE_ENTER: // 66
-				if (mVideoView.isPlaying()) {
-					mVideoView.pause();
-					mController.show(10000000);
+				else if (KeyEvent.KEYCODE_DPAD_DOWN == keyCode || 
+						KeyEvent.KEYCODE_DPAD_UP == keyCode) {
+					if (KeyEvent.KEYCODE_DPAD_DOWN == keyCode)
+						incr = 1;
+					else
+						incr = -1;
+					
+					switchDisplayMode(incr);
 				}
-				else {
-					mVideoView.start();
-					mController.show();
-				}
-				return true;
-			case KeyEvent.KEYCODE_DPAD_DOWN:
-			case KeyEvent.KEYCODE_DPAD_UP:
-				if (KeyEvent.KEYCODE_DPAD_DOWN == keyCode)
-					incr = 1;
-				else
-					incr = -1;
 				
-				switchDisplayMode(incr);
 				return true;
 			default:
 				return super.onKeyDown(keyCode, event);

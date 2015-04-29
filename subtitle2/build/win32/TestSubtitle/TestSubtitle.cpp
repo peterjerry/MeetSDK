@@ -10,7 +10,7 @@
 #pragma comment(lib, "libass")
 #pragma comment(lib, "pthreadVC2")
 
-#define SUB_FILE_PATH "E:\\1.srt"
+#define SUB_FILE_PATH "E:\\QQDownload\\Manhattan.S01E08.720p.HDTV.x264-KILLERS\\Manhattan.S01E08.720p.HDTV.x264-KILLERS.¼òÌå.srt"
 
 int _tmain(int argc, _TCHAR* argv[])
 {
@@ -35,7 +35,8 @@ int _tmain(int argc, _TCHAR* argv[])
     STSSegment* segment = NULL;
 	char subtitleText[1024] = {0};
 
-    while(subtitle->getNextSubtitleSegment(&segment)) {
+	int line = 0;
+    while(line < 20 && subtitle->getNextSubtitleSegment(&segment)) {
         int64_t startTime = segment->getStartTime();
         int64_t stopTime = segment->getStopTime();
         printf("%01d:%02d:%02d.%02d  --> %01d:%02d:%02d.%02d  ",
@@ -44,8 +45,8 @@ int _tmain(int argc, _TCHAR* argv[])
 
         segment->getSubtitleText(subtitleText, 1024);
         printf("%s\n", CW2A(CA2W(subtitleText, CP_UTF8)));
-		
 		getchar();
+		line++;
     }
 
     subtitle->close();

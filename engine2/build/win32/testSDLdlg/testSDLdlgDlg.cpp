@@ -19,11 +19,14 @@
 #include "approcessbmp.h" // for snapshot
 #include "apEPG.h"
 #include "urlcodec.h"
+#include "subtitle.h"
 //#include <vld.h>
-#include <time.h>
+
+#define SUB_FILE_PATH "E:\\QQDownload\\Manhattan.S01E08.720p.HDTV.x264-KILLERS\\1.ass"
 
 #pragma comment(lib, "sdl")
 #pragma comment(lib, "libppbox")
+#pragma comment(lib, "libass")
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -159,7 +162,9 @@ CtestSDLdlgDlg::CtestSDLdlgDlg(CWnd* pParent /*=NULL*/)
 	mDropFrames(0), mRenderFrames(0), mLatency(0), mIOBitrate(0), mBitrate(0),
 	mBufferingTimeMsec(0), mBufferPercentage(0), 
 	mUserAddChnNum(0), 
-	mEPGQueryType(EPG_QUERY_CATALOG), mEPGValue(-1)
+	mEPGQueryType(EPG_QUERY_CATALOG), mEPGValue(-1),
+	mSubtitleParser(NULL), 
+	mSubtitleStartTime(0), mSubtitleStopTime(0)
 {
 	m_hIcon = AfxGetApp()->LoadIcon(IDR_MAINFRAME);
 }
@@ -418,6 +423,57 @@ void CtestSDLdlgDlg::OnTimer(UINT_PTR nIDEvent)
 
 	drawBuffering();
 
+	if (mSubtitleParser) {
+		STSSegment* segment = NULL;
+		char subtitleText[1024] = {0};
+
+		if (curr_pos > mSubtitleStopTime) {
+			bool ret = mSubtitleParser->getNextSubtitleSegment(&segment);
+			
+			if (ret) {
+
+				mSubtitleStartTime = segment->getStartTime();
+				mSubtitleStopTime = segment->getStopTime();
+				segment->getSubtitleText(subtitleText, 1024);
+				LOGI("%01d:%02d:%02d.%02d  --> %01d:%02d:%02d.%02d  %s",
+					int(mSubtitleStartTime/1000/3600), int(mSubtitleStartTime/1000%3600/60), 
+					int(mSubtitleStartTime/1000%60), int(mSubtitleStartTime%1000)/10,
+					int(mSubtitleStartTime/1000/3600), int(mSubtitleStartTime/1000%3600/60), 
+					int(mSubtitleStartTime/1000%60), int(mSubtitleStartTime%1000)/10,
+					CW2A(CA2W(subtitleText, CP_UTF8)));
+
+				RECT rect;
+				GetClientRect(&rect);
+				rect.top = rect.bottom - 20;
+
+				CDC *pDC = GetDC();
+
+				CFont newfont;
+				newfont.CreateFont(20,            // nHeight
+					0,           // nWidth
+					0,           // nEscapement
+					0,           // nOrientation
+					FW_BOLD,     // nWeight
+					FALSE,        // bItalic
+					FALSE,       // bUnderline
+					0,           // cStrikeOut
+					ANSI_CHARSET,              // nCharSet
+					OUT_DEFAULT_PRECIS,        // nOutPrecision
+					CLIP_DEFAULT_PRECIS,       // nClipPrecision
+					DEFAULT_QUALITY,           // nQuality
+					DEFAULT_PITCH | FF_SWISS, // nPitchAndFamily
+					_T("微软雅黑"));              // lpszFac
+				CFont* pOldFont = pDC->SelectObject(&newfont);
+
+				CString str_text = CW2A(CA2W(subtitleText, CP_UTF8));
+				pDC->DrawText(str_text, &rect, 0);
+
+				pDC->SelectObject(&pOldFont);
+				ReleaseDC(pDC);
+			}
+		}
+	}
+
 	CDialogEx::OnTimer(nIDEvent);
 }
 
@@ -594,6 +650,13 @@ void CtestSDLdlgDlg::stop_player()
 			mSurface2 = NULL;
 		}
 	}
+
+	if (mSubtitleParser) {
+		mSubtitleParser->close();
+		mSubtitleParser = NULL;
+
+		mSubtitleStartTime = mSubtitleStopTime = 0;
+	}
 }
 
 void CtestSDLdlgDlg::notify(int msg, int ext1, int ext2)
@@ -626,8 +689,8 @@ void CtestSDLdlgDlg::OnLButtonUp(UINT nFlags, CPoint point)
 		else {
 			new_pos = point.x * (int64_t)mDuration / width;
 		}
-		mPlayer->seekTo((int32_t)new_pos);
-		mProgClip.SetPos((int32_t)(new_pos / 1000));
+
+		Seek((int)new_pos);
 	}
 
 	__super::OnLButtonUp(nFlags, point);
@@ -667,6 +730,7 @@ BOOL CtestSDLdlgDlg::PreTranslateMessage(MSG* pMsg)
 	{
 		if (mPlayer) {
 			status_t stat;
+			int32_t pos;
 
 			switch (pMsg->wParam)
 			{
@@ -679,10 +743,12 @@ BOOL CtestSDLdlgDlg::PreTranslateMessage(MSG* pMsg)
 				mPaused = !mPaused;
 				break;
 			case 'a': // backward 10sec
-				Shuttle(-10);
+				mPlayer->getCurrentPosition(&pos);
+				Seek(pos - 10 * 1000);
 				break;
 			case 'd': // forward 10sec
-				Shuttle(10);
+				mPlayer->getCurrentPosition(&pos);
+				Seek(pos + 10 * 1000);
 				break;
 			case 'x': // take a snapshot
 				{
@@ -719,17 +785,14 @@ BOOL CtestSDLdlgDlg::PreTranslateMessage(MSG* pMsg)
 	return CDialog::PreTranslateMessage(pMsg);
 }
 
-void CtestSDLdlgDlg::Shuttle(int sec)
+void CtestSDLdlgDlg::Seek(int msec)
 {
-	int32_t pos;
-	status_t stat;
+	if (msec >= 0 && msec <= mDuration) {
+		mPlayer->seekTo(msec);
+		mProgClip.SetPos(msec / 1000);
 
-	stat = mPlayer->getCurrentPosition(&pos);
-	if (stat == OK) {
-		pos += (sec * 1000);
-		if (pos >= 0 && pos <= mDuration) {
-			mPlayer->seekTo((int32_t)pos);
-			mProgClip.SetPos((int32_t)(pos / 1000));
+		if (mSubtitleParser) {
+			mSubtitleParser->seekTo(msec);
 		}
 	}
 }
@@ -934,6 +997,17 @@ bool CtestSDLdlgDlg::OnPrepared()
 	SetTimer(0, 100, NULL);
 
 	Invalidate();
+
+	if (!ISubtitles::create(&mSubtitleParser)) {
+		LOGE("failed to create subtitle instance.");
+        return false;
+    }
+    
+	if (!mSubtitleParser->loadSubtitle(SUB_FILE_PATH, false)) {
+		LOGE("failed to load subtitle: %s", SUB_FILE_PATH);
+		return false;
+	}
+
 	return true;
 }
 

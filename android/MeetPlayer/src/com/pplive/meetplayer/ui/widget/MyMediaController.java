@@ -222,6 +222,7 @@ public class MyMediaController extends MediaController {
                     break;
                 case SHOW:
                 	mControllerView.setVisibility(View.VISIBLE);
+                	mPlayPauseBtn.requestFocus();
                 	mHandler.sendEmptyMessage(UPDATE_PROGRESS);
                 	mIsShowing = true;
                     break;

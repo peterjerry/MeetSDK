@@ -8,7 +8,11 @@
 #include "simpletextsubtitle.h"
 
 #define LOG_TAG "simple_subtitle"
+#ifdef _TEST_SUBTITLE
 #include "logutil.h"
+#else
+#include "log.h"
+#endif
 
 #ifdef _MSC_VER 
 #define strdup _strdup
@@ -62,7 +66,11 @@ bool CSimpleTextSubtitle::loadFile(const char* fileName)
         return false;
     }
 
-    const char *codepage = "enca:zh:gb2312";
+#ifdef _MSC_VER
+    const char *codepage = "UTF-8";
+#else
+	const char *codepage = "enca:zh:gb2312";
+#endif
     ASS_Track* track = ass_read_file(mAssLibrary, (char *)fileName, (char *)codepage);
 	if (!track) {
 		LOGE("track init failed: %s", fileName);
@@ -164,11 +172,13 @@ bool CSimpleTextSubtitle::arrangeTrack(ASS_Track* track)
         ASS_Event* event = &track->events[i];
         int64_t startTime = event->Start;
         int64_t stopTime  = event->Start + event->Duration;
-		LOGI("arrangeTrack = %s", event->Text);
+		LOGD("arrangeTrack = %s", event->Text);
 
         size_t j = 0;
         for (j = 0; j < mSegments.size() && mSegments[j]->mStartTime < startTime; ++j) {
+			// do nothing
         }
+
         for (; j < mSegments.size() && mSegments[j]->mStopTime <= stopTime; ++j) {
             CSTSSegment* s = mSegments[j];
             for (int l = 0, m = s->mSubs.size(); l <= m; l++) {
