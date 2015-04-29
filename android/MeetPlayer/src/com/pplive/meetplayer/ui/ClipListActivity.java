@@ -1224,6 +1224,8 @@ public class ClipListActivity extends Activity implements
 			// cannot run in main thread
 			//if (mPlayUrl.startsWith("http://127.0.0.1"))
 			//	close_hls();
+			
+			subtitle_filename = null;
 		}
 	}
 	
@@ -1264,8 +1266,8 @@ public class ClipListActivity extends Activity implements
 		
 		if (mSubtitleParser != null) {
 			mSubtitleThread.interrupt();
-			mSubtitleSeeking = true;
 			
+			mSubtitleSeeking = true;
 			mSubtitleParser.seekTo(pos);
 		}
 		
@@ -2824,9 +2826,15 @@ public class ClipListActivity extends Activity implements
 			mIsSubtitleUsed = true;
 			
 			mSubtitleTextView.setVisibility(View.VISIBLE);
+			Toast.makeText(ClipListActivity.this, 
+					"subtitle: " + subtitle_filename + " loaded", 
+					Toast.LENGTH_SHORT).show();
 		}
 		else {
 			mSubtitleTextView.setVisibility(View.INVISIBLE);
+			Toast.makeText(ClipListActivity.this, 
+					"failed to load subtitle: " + subtitle_filename + " , msg: " + msg, 
+					Toast.LENGTH_SHORT).show();
 		}
 	}
 	
@@ -2844,7 +2852,18 @@ public class ClipListActivity extends Activity implements
         boolean isDropItem = false;
         
         if (mPlayer != null) {
+        	// sync position
+        	mSubtitleSeeking = true;
         	mSubtitleParser.seekTo(mPlayer.getCurrentPosition());
+        	
+        	while (mSubtitleSeeking && !mSubtitleStoped) {
+        		try {
+					Thread.sleep(SLEEP_MSEC);
+				} catch (InterruptedException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+        	}
         }
         
         while (!mSubtitleStoped) {
@@ -2859,7 +2878,7 @@ public class ClipListActivity extends Activity implements
                 from_msec = seg.getFromTime();
                 to_msec = seg.getToTime();
                 hold_msec = to_msec - from_msec;
-                Log.i(TAG, String.format("Java: subtitle frome %d, to %d, hold %d, %s", 
+                Log.i(TAG, String.format("Java: subtitle from %d, to %d, hold %d, %s", 
                 	seg.getFromTime(), seg.getToTime(), hold_msec,
                 	seg.getData()));
                 target_msec = from_msec;
@@ -2891,12 +2910,12 @@ public class ClipListActivity extends Activity implements
 				}
             }
             
-            Log.i(TAG, "Java: subtitle mSubtitleSeeking: " + mSubtitleSeeking);
             if (isDropItem == true) {
         		// drop last subtitle item
         		isDisplay = true;
         		isDropItem = false;
         		mHandler.sendEmptyMessage(MSG_HIDE_SUBTITLE);
+        		Log.i(TAG, "Java: subtitle send hide");
         		continue;
         	}
 

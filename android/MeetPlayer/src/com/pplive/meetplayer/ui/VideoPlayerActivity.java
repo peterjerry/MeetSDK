@@ -522,7 +522,18 @@ public class VideoPlayerActivity extends Activity implements Callback {
         boolean isDropItem = false;
         
         if (mVideoView != null) {
+        	// sync position
+        	mSubtitleSeeking = true;
         	mSubtitleParser.seekTo(mVideoView.getCurrentPosition());
+        	
+        	while (mSubtitleSeeking && !mSubtitleStoped) {
+        		try {
+					Thread.sleep(SLEEP_MSEC);
+				} catch (InterruptedException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+        	}
         }
         
         while (!mSubtitleStoped) {
