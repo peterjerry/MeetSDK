@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Policy>
+	<DeviceDesc>TuDouTV</DeviceDesc>
+	<DeviceId>100123</DeviceId>
+	<Protocol>http,hls,samba</Protocol>
+	<Picture>
+		<Ext>bmp,gif,jpeg,jpg,png</Ext>
+	</Picture>
+	<Music>
+		<Ext>flac,mp3,ogg,wav,mid,amr,ape,pcm</Ext>
+	</Music>
+	<Video>
+		<Ext>mp4,3gp,flv,ts,mkv,m2ts</Ext>
+		<Demuxer>mpegts,matroska</Demuxer>
+		<VideoCodec>hevc,h264,h263,mpeg4,xvid,divx</VideoCodec>
+		<AudioCodec>aac,vorbis,wmav1,wmav2</AudioCodec>
+	</Video>
+	<Video>
+		<Ext>avi</Ext>
+		<Demuxer>avi</Demuxer>
+		<VideoCodec>h264</VideoCodec>
+		<AudioCodec>aac</AudioCodec>
+	</Video>
+</Policy>

@@ -65,20 +65,28 @@ public class PlayerPolicy {
 		String buildString = android.os.Build.ID;
 		
 		if (!url.startsWith("/") && !url.startsWith("file://")) {
-			// network stream
-			if (url.startsWith("http://")) {
+			if (sPlayerPolicy != null && !sPlayerPolicy.isEmpty()) {
+				if (is_supported_protocol(url))
+					return DecodeMode.HW_SYSTEM;
+			}
+			else {
+				// common case
+				// network stream
+				
 				if (buildString.startsWith(BUILDID_PPBOXMINI) || buildString.startsWith(BUILDID_PPBOX1S) ||
 						buildString.startsWith(BULDID_XIANFENG_TV))
 				{
 					// fix dlna push cell-phone recorded clip play stuck problem
 					// fix blue-disk airplay play stuck problem
-					return DecodeMode.HW_SYSTEM;
+					if (url.startsWith("http://"))
+						return DecodeMode.HW_SYSTEM;
 				}
 			}
 			
 			return DecodeMode.SW;
 		}
 		
+		// only local file will get media info
 		MediaInfo info = MeetPlayerHelper.getMediaDetailInfo(url);
 		if (info == null) {
 			LogUtils.warn("Java: failed to get media info");
@@ -115,6 +123,36 @@ public class PlayerPolicy {
 			LogUtils.info("Java: use getDeviceCapabilitiesCommon");
 			return getDeviceCapabilitiesCommon(url, formatName, videoCodecName, audioCodecName);
 		}
+	}
+	
+	private static boolean is_supported_protocol(String url) {
+		SAXBuilder builder = new SAXBuilder();
+		Reader returnQuote = new StringReader(sPlayerPolicy);  
+        Document doc;
+        try {
+			doc = builder.build(returnQuote);
+			Element root = doc.getRootElement();
+			
+			String supported_protocol = root.getChild("Protocol").getText();
+			StringTokenizer st = new StringTokenizer(supported_protocol, ",", false);
+			while (st.hasMoreElements()) {
+				String protocol = st.nextToken();
+				LogUtils.info("Java: protocol " + protocol);
+				if (url.toLowerCase().endsWith(protocol))
+					return true;
+			}
+		}
+		catch (JDOMException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+			LogUtils.error("Java: PlayerPolicy xml context is broken " + e.getMessage());
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+			LogUtils.error("Java: PlayerPolicy xml IOException " + e.getMessage());
+		}
+        
+		return false;
 	}
 	
 	private static DecodeMode getDeviceCapabilitiesCommon(
@@ -363,27 +401,20 @@ public class PlayerPolicy {
 			LogUtils.info(String.format("Java: device description %s, id %d",
 					device_desc, device_id));
 			
-			String supported_protocol = root.getChild("Protocol").getText();
 			String supported_picture = root.getChild("Picture").getChild("Ext").getText();
 			String supported_music = root.getChild("Music").getChild("Ext").getText();
 
 			StringTokenizer st;
-			st = new StringTokenizer(supported_protocol, ",", true);
-			while (st.hasMoreElements()) {
-				String protocol = st.nextToken();
-				LogUtils.info("Java: protocol " + protocol);
-				if (url.startsWith(protocol))
-					return DecodeMode.HW_SYSTEM;
-			}
 			
-			st = new StringTokenizer(supported_picture, ",", true);
+			st = new StringTokenizer(supported_picture, ",", false);
 			while (st.hasMoreElements()) {
 				String ext = st.nextToken();
+				LogUtils.info("Java: ext " + ext);
 				if (url.toLowerCase().endsWith(ext))
 					return DecodeMode.HW_SYSTEM;
 			}
 			
-			st = new StringTokenizer(supported_music, ",", true);
+			st = new StringTokenizer(supported_music, ",", false);
 			while (st.hasMoreElements()) {
 				String ext = st.nextToken();
 				if (url.toLowerCase().endsWith(ext))
@@ -399,10 +430,10 @@ public class PlayerPolicy {
 				String supported_audio_codec = videos.get(i).getChild("AudioCodec").getText();
 				
 				StringTokenizer st1, st2, st3, st4;
-				st1 = new StringTokenizer(supported_ext, ",", true);
-				st2 = new StringTokenizer(supported_demuxer, ",", true);
-				st3 = new StringTokenizer(supported_video_codec, ",", true);
-				st4 = new StringTokenizer(supported_audio_codec, ",", true);
+				st1 = new StringTokenizer(supported_ext, ",", false);
+				st2 = new StringTokenizer(supported_demuxer, ",", false);
+				st3 = new StringTokenizer(supported_video_codec, ",", false);
+				st4 = new StringTokenizer(supported_audio_codec, ",", false);
 				
 				boolean format_done = false;
 				while (st1.hasMoreElements()) {
