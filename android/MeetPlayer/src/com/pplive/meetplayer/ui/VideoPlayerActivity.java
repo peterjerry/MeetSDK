@@ -495,9 +495,15 @@ public class VideoPlayerActivity extends Activity implements Callback {
 			mIsSubtitleUsed = true;
 			
 			mSubtitleTextView.setVisibility(View.VISIBLE);
+			Toast.makeText(VideoPlayerActivity.this, 
+					"subtitle: " + subtitle_filename + " loaded", 
+					Toast.LENGTH_SHORT).show();
 		}
 		else {
 			mSubtitleTextView.setVisibility(View.INVISIBLE);
+			Toast.makeText(VideoPlayerActivity.this, 
+					"failed to load subtitle: " + subtitle_filename + " , msg: " + msg, 
+					Toast.LENGTH_SHORT).show();
 		}
 	}
 
