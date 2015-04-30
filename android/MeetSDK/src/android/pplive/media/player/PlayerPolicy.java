@@ -105,6 +105,7 @@ public class PlayerPolicy {
 				url, formatName, videoCodecName, audioCodecName));
 		
 		if (sPlayerPolicy != null && !sPlayerPolicy.isEmpty()) {
+			LogUtils.info("Java: use getDeviceCapabilitiesCustomized");
 			return getDeviceCapabilitiesCustomized(url, formatName, videoCodecName, audioCodecName);
 		}
 		else if (buildString.startsWith(BUILDID_PPBOXMINI)) {
@@ -134,6 +135,7 @@ public class PlayerPolicy {
 			Element root = doc.getRootElement();
 			
 			String supported_protocol = root.getChild("Protocol").getText();
+			LogUtils.info("Java: supported_protocol " + supported_protocol);
 			StringTokenizer st = new StringTokenizer(supported_protocol, ",", false);
 			while (st.hasMoreElements()) {
 				String protocol = st.nextToken();
@@ -308,7 +310,8 @@ public class PlayerPolicy {
 				return DecodeMode.HW_SYSTEM;
 			}
 		}
-		else if (url.toLowerCase().endsWith("mkv") || url.toLowerCase().endsWith("webm")) {
+		else if (url.toLowerCase().endsWith("mkv") || url.toLowerCase().endsWith("webm") ||
+				formatName.equals("matroska")) {
 			if ((null == videoCodecName || 
 				 videoCodecName.equals("mpeg4") || videoCodecName.equals("h264") || 
 				 videoCodecName.equals("hevc") || videoCodecName.equals("mjpeg") ||
@@ -360,7 +363,7 @@ public class PlayerPolicy {
 		}
 		else if (url.toLowerCase().endsWith("ogm") || formatName.equals("ogg")) {
 			if ((null == videoCodecName || 
-				 videoCodecName.equals("mpeg2video") || videoCodecName.equals("mp4") ||
+				 videoCodecName.equals("mpeg2video") || videoCodecName.equals("mpeg4") ||
 				 videoCodecName.equals("h264") || videoCodecName.equals("mjpeg"))) {
 				return DecodeMode.HW_SYSTEM;
 			}

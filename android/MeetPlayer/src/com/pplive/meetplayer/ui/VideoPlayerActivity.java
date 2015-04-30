@@ -425,7 +425,6 @@ public class VideoPlayerActivity extends Activity implements Callback {
 		int incr = -1;
 		
 		switch (keyCode) {
-		case KeyEvent.KEYCODE_MENU:
 		case KeyEvent.KEYCODE_DPAD_LEFT:
 		case KeyEvent.KEYCODE_DPAD_RIGHT:
 		case KeyEvent.KEYCODE_DPAD_DOWN:
