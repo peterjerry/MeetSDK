@@ -620,6 +620,20 @@ bool CtestSDLdlgDlg::start_player(const char *url)
 	mPlayer = new FFPlayer;
 	mPlayer->setListener(this);
 
+	if (!ISubtitles::create(&mSubtitleParser)) {
+		LOGE("failed to create subtitle instance.");
+        return false;
+    }
+
+#ifdef ENABLE_EXTRA_SUBTITLE_PARSER 
+	if (!mSubtitleParser->loadSubtitle(SUB_FILE_PATH, false)) {
+		LOGE("failed to load subtitle: %s", SUB_FILE_PATH);
+		return false;
+	}
+#else
+	mPlayer->setISubtitle(mSubtitleParser);
+#endif
+
 	mPlayer->setDataSource(url);
 	status = mPlayer->prepareAsync();
 	if (status != OK) {
@@ -997,16 +1011,6 @@ bool CtestSDLdlgDlg::OnPrepared()
 	SetTimer(0, 100, NULL);
 
 	Invalidate();
-
-	if (!ISubtitles::create(&mSubtitleParser)) {
-		LOGE("failed to create subtitle instance.");
-        return false;
-    }
-    
-	if (!mSubtitleParser->loadSubtitle(SUB_FILE_PATH, false)) {
-		LOGE("failed to load subtitle: %s", SUB_FILE_PATH);
-		return false;
-	}
 
 	return true;
 }

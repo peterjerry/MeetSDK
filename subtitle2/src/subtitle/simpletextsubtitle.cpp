@@ -9,9 +9,9 @@
 
 #define LOG_TAG "simple_subtitle"
 #ifdef _TEST_SUBTITLE
-#include "logutil.h"
-#else
 #include "log.h"
+#else
+#include "logutil.h"
 #endif
 
 #ifdef _MSC_VER 
@@ -82,6 +82,7 @@ bool CSimpleTextSubtitle::loadFile(const char* fileName)
 		LOGE("failed to arrange track %s", fileName);
         return false;
     }
+
     mAssTrack = track;
     mFileName = strdup(fileName);
 
@@ -144,7 +145,7 @@ bool CSimpleTextSubtitle::parseXMLNode(const char* fileName, tinyxml2::XMLElemen
 
 bool CSimpleTextSubtitle::arrangeTrack(ASS_Track* track)
 {
-	LOGI("arrangeTrack()");
+	LOGD("arrangeTrack()");
 
     std::set<int64_t> breakpoints;
     for (int i = 0; i < track->n_events; ++i) {
@@ -210,6 +211,7 @@ bool CSimpleTextSubtitle::seekTo(int64_t time)
             break;
         }
     }
+
     mNextSegment = nextPos;
     return true;
 }
@@ -224,13 +226,15 @@ bool CSimpleTextSubtitle::getNextSubtitleSegment(STSSegment** segment)
 		LOGD("getNextSubtitleSegment mDirty ");
         pthread_mutex_lock(mEmbeddingLock);
         arrangeTrack(mAssTrack);
+		// 2015.4.30 guoliangma added to fix duplicated text problem
+		mDirty = false;
         pthread_mutex_unlock(mEmbeddingLock);
     }
 	
 	LOGD("getNextSubtitleSegment mNextSegment %d, size %d", mNextSegment, mSegments.size());
 
     if (mNextSegment >= mSegments.size()) {
-		LOGE("mNextSegment is too big %d.%d", mNextSegment, mSegments.size());
+		LOGE("no more segment is available need %d, size %d", mNextSegment, mSegments.size());
 		return false;
 	}
 	
@@ -293,8 +297,10 @@ bool CSimpleTextSubtitle::addEmbeddingEntity(int64_t startTime, int64_t duration
             mAssTrack->n_events--;
         }
     } else if (mCodecId == SUBTITLE_CODEC_ID_ASS){
-        //__android_log_print(ANDROID_LOG_DEBUG,"FFStream","addEmbeddingEntity ass_process_chunk = %s", text);
-        ass_process_chunk(mAssTrack, (char*)text, textLen, startTime, duration);
+        LOGD("addEmbeddingEntity ass_process_chunk = %s", text);
+		// 2015.4.30 guoliangma modify function call to fix add event problem
+        //ass_process_chunk(mAssTrack, (char*)text, textLen, startTime, duration);
+		ass_process_data(mAssTrack, (char*)text, textLen);
     }
 
     mDirty = true;

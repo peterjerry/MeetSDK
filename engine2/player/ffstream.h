@@ -177,6 +177,7 @@ private:
 	int32_t			mSubtitleStreamIndex;
 	AVStream*		mSubtitleStream;
 	AVSubtitle*		mAVSubtitle;
+	int32_t			mSubtitleTrackIndex;
 	ISubtitles*		mISubtitle;
 	
     pthread_t		mThread;

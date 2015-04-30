@@ -29,25 +29,25 @@
     <ClCompile Include="stdafx.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="TestSubtitle.cpp">
+    <ClCompile Include="testExtractor.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\src\subtitle\subtitle.cpp">
+    <ClCompile Include="..\..\..\player\ffextractor.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\src\subtitle\simpletextsubtitle.cpp">
+    <ClCompile Include="..\..\..\platform\packetqueue.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\src\tinyxml2\tinyxml2.cpp">
+    <ClCompile Include="..\..\..\platform\list.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\src\subtitle\stssegment.cpp">
+    <ClCompile Include="..\..\..\platform\utils.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\engine2\platform\log_win32.cpp">
+    <ClCompile Include="..\..\..\platform\log_win32.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\engine2\platform\utils.cpp">
+    <ClCompile Include="..\testEPG\apFileLog.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
   </ItemGroup>

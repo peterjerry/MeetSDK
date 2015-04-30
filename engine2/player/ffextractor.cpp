@@ -61,9 +61,9 @@ typedef struct
 
 static void ff_log_callback(void* avcl, int level, const char* fmt, va_list vl);
 
-static int aac_decode_extradata(ADTSContext *adts, unsigned char *pbuf, int bufsize);
+int aac_decode_extradata(ADTSContext *adts, unsigned char *pbuf, int bufsize);
 
-static int aac_set_adts_head(ADTSContext *acfg, unsigned char *buf, int size);
+int aac_set_adts_head(ADTSContext *acfg, unsigned char *buf, int size);
 
 extern "C" IExtractor* getExtractor()
 {
@@ -1526,7 +1526,7 @@ static void ff_log_callback(void* avcl, int level, const char* fmt, va_list vl)
 	}
 }
 
-static int aac_decode_extradata(ADTSContext *adts, unsigned char *pbuf, int bufsize)
+int aac_decode_extradata(ADTSContext *adts, unsigned char *pbuf, int bufsize)
 {
 	int aot, aotext, samfreindex;
 	int channelconfig;
@@ -1565,7 +1565,7 @@ static int aac_decode_extradata(ADTSContext *adts, unsigned char *pbuf, int bufs
 	return 0;
 }
 
-static int aac_set_adts_head(ADTSContext *acfg, unsigned char *buf, int size)
+int aac_set_adts_head(ADTSContext *acfg, unsigned char *buf, int size)
 {       
 	unsigned char byte;
 
