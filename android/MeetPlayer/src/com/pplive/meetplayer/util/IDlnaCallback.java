@@ -16,7 +16,8 @@ public class IDlnaCallback implements DLNASdk.DLNASdkInterface {
 	private DLNASdk.DLNASdkInterface mCallback;
 	
 	public IDlnaCallback(DLNASdk.DLNASdkInterface callback) {
-		mCallback = callback;
+		if (callback != null)
+			mCallback = callback;
 	}
 	
 	synchronized public void OnDeviceAdded(String uuid, String firendname, String logourl, int devicetype) {

@@ -2,6 +2,7 @@ package com.pplive.meetplayer.util;
 
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.InputStream;
 
@@ -28,9 +29,9 @@ public class Util {
 		String pid = "161";
 		String auth = "08ae1acd062ea3ab65924e07717d5994";
 
-		String libPath = "/data/data/com.pplive.meetplayer/lib";
-		MediaSDK.libPath = libPath; // Environment.getExternalStorageDirectory().getAbsolutePath() + "/ppp";
-		MediaSDK.logPath = "/data/data/com.pplive.meetplayer/cache";
+		String libPath = context.getFilesDir().getPath() + "data/com.pplive.meetplayer/lib";
+		MediaSDK.libPath = libPath;
+		MediaSDK.logPath = context.getFilesDir().getPath() + "data/com.pplive.meetplayer/cache";
 		MediaSDK.logOn = false;
 		MediaSDK.setConfig("", "HttpManager", "addr", "127.0.0.1:9106+");
 		MediaSDK.setConfig("", "RtspManager", "addr", "127.0.0.1:5156+");
@@ -50,6 +51,28 @@ public class Util {
 	public static boolean initMeetSDK(Context ctx) {
 		// upload util will upload /data/data/pacake_name/Cache/xxx
 		// so must NOT change path
+		String path = Environment.getExternalStorageDirectory().getAbsolutePath() + "/PlayerPolicy.xml";
+		File file = new File(path);
+		try{
+			FileInputStream fin = new FileInputStream(file);
+			Log.i(TAG, "Java: PlayerPolicy file size: " + fin.available());
+			
+			byte[] buf = new byte[fin.available()];
+			int readed = fin.read(buf);
+			Log.i(TAG, "Java: PlayerPolicy read size: " + readed);
+			String xml = new String(buf);
+			Log.i(TAG, "Java: PlayerPolicy xml: " + xml);
+			MeetSDK.setPlayerPolicy(new String(buf));
+		}
+		catch (FileNotFoundException e) {
+			e.printStackTrace();
+			Log.e(TAG, "file not found");
+		}
+		catch(Exception e){   
+			e.printStackTrace();
+			Log.e(TAG, "an error occured while load policy", e);
+		}
+		
 		MeetSDK.setLogPath(
 				ctx.getCacheDir().getAbsolutePath() + "/meetplayer.log", 
 				ctx.getCacheDir().getParentFile().getAbsolutePath() + "/");

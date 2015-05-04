@@ -1313,11 +1313,6 @@ jobject android_media_MediaPlayer_native_getTrackInfo(JNIEnv *env, jobject thiz)
 		return NULL;
 	}	
 	
-	/*TrackInfo **native_trackinfo = NULL;
-	native_trackinfo = mp->getTrackInfo();
-	if (native_trackinfo == NULL)
-		return false;*/
-	
 	return NULL;
 }
 
@@ -1355,7 +1350,29 @@ jboolean android_media_MediaPlayer_native_supportSoftDecode()
 static
 void android_media_MediaPlayer_native_set_option(JNIEnv *env, jobject thiz, jstring option)
 {
-	//todo
+	PPLOGI("set_option");
+
+	IPlayer* mp = getMediaPlayer(env, thiz);
+	if (mp == NULL ) {
+		jniThrowException(env, "java/lang/IllegalStateException", NULL);
+		return;
+	}
+
+	if (option == NULL) {
+		jniThrowException(env, "java/lang/IllegalArgumentException", NULL);
+		return;
+	}
+
+	const char *optStr = env->GetStringUTFChars(option, NULL);
+	if (optStr == NULL) {  // Out of memory
+		jniThrowException(env, "java/lang/RuntimeException", "GetStringUTFChars: Out of memory");
+		return;
+	}
+
+	PPLOGI("set_option %s", optStr);
+	mp->set_opt(optStr);
+
+	env->ReleaseStringUTFChars(option, optStr);
 }
 
 // ----------------------------------------------------------------------------

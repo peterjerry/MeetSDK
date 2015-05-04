@@ -9,7 +9,11 @@
 #include <stdarg.h>
 
 #define LOG_TAG "subtitle"
+#ifdef _TEST_SUBTITLE
+#include "log.h"
+#else
 #include "logutil.h"
+#endif
 
 extern "C" {
 #include "libass/ass.h"
@@ -66,11 +70,13 @@ public:
         const char* text, int textLen);
 protected:
     bool loadPPSubtitle(const char* fileName);
+
+	static void ass_log(int, const char *, va_list, void *);
 	
     CSimpleTextSubtitle* getSelectedSimpleTextSubtitle()
     {
-		LOGI("getSelectedSimpleTextSubtitle mSubtitles size= %d", mSubtitles.size());
-		LOGI("getSelectedSimpleTextSubtitle mSelected= %d", mSelected);
+		LOGD("getSelectedSimpleTextSubtitle mSubtitles size= %d", mSubtitles.size());
+		LOGD("getSelectedSimpleTextSubtitle mSelected= %d", mSelected);
         if (mSelected >= 0 && mSelected < mSubtitles.size()) {
             return mSubtitles[mSelected];
         }
@@ -85,6 +91,7 @@ protected:
 CSubtitleManager::CSubtitleManager()
 {
     mAssLibrary = ass_library_init();
+	ass_set_message_cb(mAssLibrary, ass_log, this);
     mSelected = 0;
 }
 
@@ -98,6 +105,26 @@ CSubtitleManager::~CSubtitleManager()
         delete *itr;
     }
     mSubtitles.clear();
+}
+
+void CSubtitleManager::ass_log(int level, const char *fmt, va_list va, void *data)
+{
+/*
+#define MSGL_FATAL 0
+#define MSGL_ERR 1
+#define MSGL_WARN 2
+#define MSGL_INFO 4
+#define MSGL_V 6
+#define MSGL_DBG2 7
+*/
+
+	if (level > 4)
+		return;
+
+	static char msg[1024] = {0};
+    const char *header = "[ass] ";
+    vsnprintf(msg, 1024, fmt, va);
+	LOGI("%s %s", header, msg);
 }
 
 void CSubtitleManager::close() 

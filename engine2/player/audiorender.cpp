@@ -277,6 +277,7 @@ status_t AudioRender::render(AVFrame* audioFrame)//int16_t* buffer, uint32_t buf
 {
 	void* audio_buffer = NULL;
 	uint32_t audio_buffer_size = 0;
+
 	if (mConvertCtx != NULL) {
 #ifndef NDEBUG
 		int64_t begin_decode = getNowMs();
@@ -491,9 +492,8 @@ int AudioRender::get_latency()
 void AudioRender::audio_callback(void *userdata, Uint8 *stream, int len)
 {
 	AudioRender *ins = (AudioRender *)userdata;
-	if (ins) {
+	if (ins)
 		ins->audio_callback_impl(stream, len);
-	}
 }
 
 void AudioRender::audio_callback_impl(Uint8 *stream, int len)

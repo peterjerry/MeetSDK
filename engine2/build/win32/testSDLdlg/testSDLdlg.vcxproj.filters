@@ -22,6 +22,9 @@
     <Filter Include="源文件\player">
       <UniqueIdentifier>{443b3a57-6a92-4033-ae5f-6517f4e006cc}</UniqueIdentifier>
     </Filter>
+    <Filter Include="源文件\subtitle">
+      <UniqueIdentifier>{26050087-65e7-42e1-abca-4de6ce531647}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <Text Include="ReadMe.txt" />
@@ -151,6 +154,18 @@
     </ClCompile>
     <ClCompile Include="..\..\..\player\ffextractor.cpp">
       <Filter>源文件\player</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\subtitle2\src\subtitle\simpletextsubtitle.cpp">
+      <Filter>源文件\subtitle</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\subtitle2\src\subtitle\stssegment.cpp">
+      <Filter>源文件\subtitle</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\subtitle2\src\subtitle\subtitle.cpp">
+      <Filter>源文件\subtitle</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\subtitle2\src\tinyxml2\tinyxml2.cpp">
+      <Filter>源文件\subtitle</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

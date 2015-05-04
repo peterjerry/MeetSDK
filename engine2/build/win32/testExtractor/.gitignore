@@ -1,0 +1,7 @@
+*.suo
+/Debug
+/InvisibleFolder
+pp*
+playhistory*
+*.dat
+*.tmp

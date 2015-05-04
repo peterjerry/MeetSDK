@@ -995,11 +995,6 @@ void FFPlayer::onPrepareImpl()
         return;
     }
 
-	/*if(prepareSubtitle_l() != OK) {
-     	LOGE("Initing subtitle decoder failed");
-        abortPrepare_l(ERROR);
-        return;
-    }*/
 
     //mPrepareResult = OK;
     //mPlayerStatus = MEDIA_PLAYER_PREPARED;
@@ -1701,14 +1696,13 @@ void FFPlayer::onMediaBitrateInfoImpl()
 
 status_t FFPlayer::setISubtitle(ISubtitles* subtitle)
 {
-    if(subtitle != 0)
-    {
-        mSubtitles = subtitle;
-		return OK;
-    }
-
-	else
+	if (!subtitle) {
+		LOGE("subtitle interface is null");
 		return ERROR;
+	}
+    
+    mSubtitles = subtitle;
+	return OK;
 }
 
 void FFPlayer::notify(int32_t msg, int32_t ext1, int32_t ext2)
@@ -1763,7 +1757,7 @@ status_t FFPlayer::pause_l()
 status_t FFPlayer::seekTo_l() // called from onSeekingImpl, so MUSTN'T LOCK IT HERE
 {
 	if (mAudioPlayer != NULL)
-        mAudioPlayer->seekTo(mSeekTimeMs);
+       mAudioPlayer->seekTo(mSeekTimeMs);
 
 	// will notify seek_complete
     if (mDataStream->seek(mSeekTimeMs, mSeekIncr) != OK) {
@@ -1912,21 +1906,6 @@ void FFPlayer::abortPrepare_l(status_t err)
 
 status_t FFPlayer::prepareSubtitle_l()
 {
-	mSubtitleStreamIndex = mDataStream->getSubtitleStreamIndex();
-	mSubtitleStream = mDataStream->getSubtitleStream();
-	if (mSubtitleStream) {
-		AVCodecContext *SubCodecCtx = mSubtitleStream->codec;
-		AVCodec* SubCodec = avcodec_find_decoder(SubCodecCtx->codec_id);
-		// Open codec
-    	if (avcodec_open2(SubCodecCtx, SubCodec, NULL) < 0) {
-    		LOGE("failed to open subtitle decoder: id %d, name %s", SubCodecCtx->codec_id, avcodec_get_name(SubCodecCtx->codec_id));
-			return ERROR;
-		}
-
-		LOGI("subtitle codec id: %d(%s), codec_name: %s", 
-			SubCodecCtx->codec_id, avcodec_get_name(SubCodecCtx->codec_id), SubCodec->long_name);
-	}
-
 	return OK;
 }
 

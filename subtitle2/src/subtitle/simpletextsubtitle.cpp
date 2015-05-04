@@ -8,7 +8,11 @@
 #include "simpletextsubtitle.h"
 
 #define LOG_TAG "simple_subtitle"
+#ifdef _TEST_SUBTITLE
+#include "log.h"
+#else
 #include "logutil.h"
+#endif
 
 #ifdef _MSC_VER 
 #define strdup _strdup
@@ -62,7 +66,11 @@ bool CSimpleTextSubtitle::loadFile(const char* fileName)
         return false;
     }
 
-    const char *codepage = "enca:zh:gb2312";
+#ifdef _MSC_VER
+    const char *codepage = "UTF-8";
+#else
+	const char *codepage = "enca:zh:gb2312";
+#endif
     ASS_Track* track = ass_read_file(mAssLibrary, (char *)fileName, (char *)codepage);
 	if (!track) {
 		LOGE("track init failed: %s", fileName);
@@ -74,6 +82,7 @@ bool CSimpleTextSubtitle::loadFile(const char* fileName)
 		LOGE("failed to arrange track %s", fileName);
         return false;
     }
+
     mAssTrack = track;
     mFileName = strdup(fileName);
 
@@ -136,7 +145,7 @@ bool CSimpleTextSubtitle::parseXMLNode(const char* fileName, tinyxml2::XMLElemen
 
 bool CSimpleTextSubtitle::arrangeTrack(ASS_Track* track)
 {
-	LOGI("arrangeTrack()");
+	LOGD("arrangeTrack()");
 
     std::set<int64_t> breakpoints;
     for (int i = 0; i < track->n_events; ++i) {
@@ -164,11 +173,13 @@ bool CSimpleTextSubtitle::arrangeTrack(ASS_Track* track)
         ASS_Event* event = &track->events[i];
         int64_t startTime = event->Start;
         int64_t stopTime  = event->Start + event->Duration;
-		LOGI("arrangeTrack = %s", event->Text);
+		LOGD("arrangeTrack = %s", event->Text);
 
         size_t j = 0;
         for (j = 0; j < mSegments.size() && mSegments[j]->mStartTime < startTime; ++j) {
+			// do nothing
         }
+
         for (; j < mSegments.size() && mSegments[j]->mStopTime <= stopTime; ++j) {
             CSTSSegment* s = mSegments[j];
             for (int l = 0, m = s->mSubs.size(); l <= m; l++) {
@@ -200,6 +211,7 @@ bool CSimpleTextSubtitle::seekTo(int64_t time)
             break;
         }
     }
+
     mNextSegment = nextPos;
     return true;
 }
@@ -214,13 +226,15 @@ bool CSimpleTextSubtitle::getNextSubtitleSegment(STSSegment** segment)
 		LOGD("getNextSubtitleSegment mDirty ");
         pthread_mutex_lock(mEmbeddingLock);
         arrangeTrack(mAssTrack);
+		// 2015.4.30 guoliangma added to fix duplicated text problem
+		mDirty = false;
         pthread_mutex_unlock(mEmbeddingLock);
     }
 	
 	LOGD("getNextSubtitleSegment mNextSegment %d, size %d", mNextSegment, mSegments.size());
 
     if (mNextSegment >= mSegments.size()) {
-		LOGE("mNextSegment is too big %d.%d", mNextSegment, mSegments.size());
+		LOGE("no more segment is available need %d, size %d", mNextSegment, mSegments.size());
 		return false;
 	}
 	
@@ -283,8 +297,10 @@ bool CSimpleTextSubtitle::addEmbeddingEntity(int64_t startTime, int64_t duration
             mAssTrack->n_events--;
         }
     } else if (mCodecId == SUBTITLE_CODEC_ID_ASS){
-        //__android_log_print(ANDROID_LOG_DEBUG,"FFStream","addEmbeddingEntity ass_process_chunk = %s", text);
-        ass_process_chunk(mAssTrack, (char*)text, textLen, startTime, duration);
+        LOGD("addEmbeddingEntity ass_process_chunk = %s", text);
+		// 2015.4.30 guoliangma modify function call to fix add event problem
+        //ass_process_chunk(mAssTrack, (char*)text, textLen, startTime, duration);
+		ass_process_data(mAssTrack, (char*)text, textLen);
     }
 
     mDirty = true;

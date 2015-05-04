@@ -15,6 +15,7 @@ import java.util.Date;
 import java.util.GregorianCalendar;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Random;
 
 import android.app.Activity;
@@ -61,7 +62,6 @@ import android.net.Uri;
 import android.net.wifi.WifiManager;
 import android.net.wifi.WifiManager.WifiLock;
 import android.os.AsyncTask;
-import android.view.ViewGroup.LayoutParams;
 import android.widget.TextView;
 import android.graphics.drawable.Drawable;
 import android.graphics.Color;
@@ -69,7 +69,6 @@ import android.util.DisplayMetrics; // for display width and height
 import android.content.DialogInterface;
 import android.app.AlertDialog;
 import android.app.Dialog;
-import android.content.SharedPreferences;
 
 import com.pplive.meetplayer.R;
 
@@ -80,6 +79,7 @@ import com.pplive.meetplayer.util.Content;
 import com.pplive.meetplayer.util.DownloadAsyncTask;
 import com.pplive.meetplayer.util.EPGUtil;
 import com.pplive.meetplayer.util.FeedBackFactory;
+import com.pplive.meetplayer.util.FileFilterTest;
 import com.pplive.meetplayer.util.IDlnaCallback;
 import com.pplive.meetplayer.util.ListMediaUtil;
 import com.pplive.meetplayer.util.LoadPlayLinkUtil;
@@ -89,7 +89,6 @@ import com.pplive.meetplayer.util.PlayLink2;
 import com.pplive.meetplayer.util.PlayLinkUtil;
 import com.pplive.meetplayer.util.Util;
 import com.pplive.meetplayer.ui.widget.MiniMediaController;
-import com.pplive.meetplayer.ui.widget.MySimpleMediaController;
 import com.pplive.dlna.DLNASdk;
 import com.pplive.dlna.DLNASdk.DLNASdkInterface;
 import com.pplive.dlna.DLNASdkDMSItemInfo;
@@ -122,8 +121,7 @@ public class ClipListActivity extends Activity implements
 		MediaPlayer.OnPreparedListener, MediaPlayer.OnCompletionListener,
 		MediaPlayer.OnErrorListener, MediaPlayer.OnInfoListener,
 		MediaPlayer.OnVideoSizeChangedListener, MediaPlayer.OnBufferingUpdateListener,
-		MediaPlayerControl, SurfaceHolder.Callback, SubTitleParser.Callback, OnFocusChangeListener, 
-		DLNASdkInterface {
+		MediaPlayerControl, SurfaceHolder.Callback, SubTitleParser.Callback, OnFocusChangeListener {
 
 	private final static String TAG = "ClipList";
 	
@@ -165,7 +163,7 @@ public class ClipListActivity extends Activity implements
 	
 	private int mBufferingPertent				= 0;
 	private boolean mIsBuffering 				= false;
-	private boolean mStoped					= false;
+	private boolean mSubtitleStoped			= false;
 	private boolean mHomed						= false;
 	
 	private WifiLock mWifiLock;
@@ -191,7 +189,8 @@ public class ClipListActivity extends Activity implements
 	private String mSubtitleText;
 	private Thread mSubtitleThread;
 	private boolean mSubtitleSeeking = false;
-	private boolean mIsSubtitleUsed;
+	private boolean mIsSubtitleUsed = false;
+	private String subtitle_filename;
 	
 	// dlna
 	private DLNASdk mDLNA;
@@ -244,6 +243,8 @@ public class ClipListActivity extends Activity implements
 	
 	private String mPlayerLinkSurfix;
 	private boolean mIsLivePlay = false;
+	
+	private String mAudioDst;
 
 	final static int ONE_MAGEBYTE 				= 1048576;
 	final static int ONE_KILOBYTE 				= 1024;
@@ -264,6 +265,8 @@ public class ClipListActivity extends Activity implements
 	final static int OPTION_COMMON_LOOP		= Menu.FIRST + 22;
 	final static int OPTION_COMMON_NO_VIDEO	= Menu.FIRST + 23;
 	final static int OPTION_COMMON_MEETVIEW	= Menu.FIRST + 24;
+	final static int OPTION_COMMON_SUBTITLE	= Menu.FIRST + 25;
+	final static int OPTION_COMMON_AUDIO_DST	= Menu.FIRST + 26;
 	
 	
 	// message
@@ -443,7 +446,7 @@ public class ClipListActivity extends Activity implements
 						// TODO Auto-generated method stub
 						Log.i(TAG, String.format("onItemClick %d %d", position, id));
 						
-						HashMap<String, Object> item = (HashMap<String, Object>) lv_filelist.getItemAtPosition(position);
+						Map<String, Object> item = mAdapter.getItem(position);
 						String file_name = (String)item.get("filename");
 						String file_path = (String)item.get("fullpath");
 						Log.i(TAG, String.format("Java: full_path %s", file_path));
@@ -508,31 +511,6 @@ public class ClipListActivity extends Activity implements
 						}
 					}
 				});
-				
-		/*this.lv_filelist.setOnScrollListener(new AbsListView.OnScrollListener() {
-
-			@Override
-			public void onScroll(AbsListView view, int arg1, int arg2, int arg3) {
-				// TODO Auto-generated method stub
-				
-			}
-
-			@Override
-			public void onScrollStateChanged(AbsListView view, int scrollState) {
-				// TODO Auto-generated method stub
-				switch (scrollState) {
-		        case OnScrollListener.SCROLL_STATE_IDLE:
-		        	//mAdapter.SetScrolling(false);
-		        	mAdapter.notifyDataSetChanged();
-		            break;
-		        case OnScrollListener.SCROLL_STATE_TOUCH_SCROLL:
-		        	//mAdapter.SetScrolling(true);
-		            break;
-		        case OnScrollListener.SCROLL_STATE_FLING:
-		        	//mAdapter.SetScrolling(true);
-				}
-			}
-		});*/
 		
 		this.lv_filelist.setOnItemLongClickListener(new ListView.OnItemLongClickListener(){
 
@@ -541,7 +519,7 @@ public class ClipListActivity extends Activity implements
 					int position, long id) {
 				// TODO Auto-generated method stub
 				final String[] action = {"delete", "detail"};
-				HashMap<String, Object> item = (HashMap<String, Object>) lv_filelist.getItemAtPosition(position);
+				Map<String, Object> item = mAdapter.getItem(position);
 				final String file_name = (String)item.get("filename");
 				final String file_path = (String)item.get("fullpath");
 
@@ -858,6 +836,7 @@ public class ClipListActivity extends Activity implements
 			mIsNoVideo = false;
 		
 		mPlayerImpl = Util.readSettingsInt(this, "PlayerImpl");
+		mAudioDst = Util.readSettings(this, "last_audio_ip_port");
 	}
 	
 	private void setPlaybackTime() {
@@ -1152,6 +1131,11 @@ public class ClipListActivity extends Activity implements
 			
 			mPlayer.setLooping(mIsLoop);
 			
+			if (mAudioDst != null && !mAudioDst.isEmpty()) {
+				Log.i(TAG, "Java: set player option: " + mAudioDst);
+				mPlayer.setOption(mAudioDst);
+			}
+			
 			if (path.startsWith("http://")) {
 				mWifiLock = ((WifiManager) getSystemService(Context.WIFI_SERVICE))
 					    .createWifiLock(WifiManager.WIFI_MODE_FULL, "mylock");
@@ -1159,7 +1143,7 @@ public class ClipListActivity extends Activity implements
 				mWifiLock.acquire();
 			}
 
-			mStoped 			= false;
+			mSubtitleStoped 	= false;
 			mHomed 				= false;
 			mBufferingPertent 	= 0;
 			mDMRcontrolling		= false;
@@ -1208,18 +1192,7 @@ public class ClipListActivity extends Activity implements
 		if (mPlayer != null) {
 			mMediaController.hide();
 			
-			mStoped = true;
-			if (mIsSubtitleUsed) {
-				mSubtitleThread.interrupt();
-				
-				try {
-					Log.i(TAG, "Java subtitle before join");
-					mSubtitleThread.join();
-				} catch (InterruptedException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
-				}
-			}
+			stop_subtitle();
 			
 			mPlayer.stop();
 			mPlayer.release();
@@ -1249,6 +1222,8 @@ public class ClipListActivity extends Activity implements
 			// cannot run in main thread
 			//if (mPlayUrl.startsWith("http://127.0.0.1"))
 			//	close_hls();
+			
+			subtitle_filename = null;
 		}
 	}
 	
@@ -1289,8 +1264,8 @@ public class ClipListActivity extends Activity implements
 		
 		if (mSubtitleParser != null) {
 			mSubtitleThread.interrupt();
-			mSubtitleSeeking = true;
 			
+			mSubtitleSeeking = true;
 			mSubtitleParser.seekTo(pos);
 		}
 		
@@ -1737,6 +1712,43 @@ public class ClipListActivity extends Activity implements
 		}
 	}
 	
+	private void popupSelectSubtitle() {
+		final String sub_folder = Environment.getExternalStorageDirectory().getAbsolutePath() + 
+				"/test2/subtitle";
+		
+		File file = new File(sub_folder);
+		String []list = {"srt", "ass"};
+		File [] subtitle_files = file.listFiles(new FileFilterTest(list));
+		if (subtitle_files == null) {
+			Toast.makeText(this, "no subtitle file found", Toast.LENGTH_SHORT).show();
+			return;
+		}
+		
+		List<String> filename_list = new ArrayList<String>();
+		for (int i=0;i<subtitle_files.length;i++) {
+			filename_list.add(subtitle_files[i].getName());
+		}
+		final String[] str_file_list = (String[])filename_list.toArray(new String[filename_list.size()]);
+		
+		Dialog choose_subtitle_dlg = new AlertDialog.Builder(ClipListActivity.this)
+		.setTitle("select subtitle")
+		.setItems(str_file_list, new DialogInterface.OnClickListener(){
+				public void onClick(DialogInterface dialog, int whichButton){
+					subtitle_filename = sub_folder + "/" + str_file_list[whichButton];
+					Log.i(TAG, "Load subtitle file: " + subtitle_filename);
+					Toast.makeText(ClipListActivity.this, 
+							"Load subtitle file: " + subtitle_filename, Toast.LENGTH_SHORT).show();
+					if (mPlayer != null) {
+						start_subtitle(subtitle_filename);
+					}
+					
+					dialog.dismiss();
+				}
+			})
+		.create();
+		choose_subtitle_dlg.show();
+	}
+
 	private void popupDMSDlg() {
 		int dev_num = IDlnaCallback.mDMSmap.size();
 		
@@ -1755,7 +1767,6 @@ public class ClipListActivity extends Activity implements
 	          dev_list.add(name.toString());
 	    }
 		
-		final String[] str_uuid_list = (String[])uuid_list.toArray(new String[uuid_list.size()]);
 		final String[] str_dev_list = (String[])dev_list.toArray(new String[dev_list.size()]);
 		
 		Dialog choose_dms_dlg = new AlertDialog.Builder(ClipListActivity.this)
@@ -1774,6 +1785,16 @@ public class ClipListActivity extends Activity implements
 	private void push_cdn_clip() {
 		//mDLNA.EnableRendererControler(true);
 		mDLNA.SetURI(mDlnaDeviceUUID, mDLNAPushUrl);
+		
+		try {
+			Thread.sleep(200);
+		} catch (InterruptedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+		mDLNA.Play(mDlnaDeviceUUID);
+		
 		mHandler.sendEmptyMessage(MSG_PUSH_CDN_CLIP);
 	}
 	
@@ -2089,14 +2110,46 @@ public class ClipListActivity extends Activity implements
 		choose_device_dlg.show();
 	}
 	
-	private String intToIp(int i) {       
-        
-        return (i & 0xFF ) + "." +       
-      ((i >> 8 ) & 0xFF) + "." +       
-      ((i >> 16 ) & 0xFF) + "." +       
-      ( i >> 24 & 0xFF) ;  
-   }   
+	private String intToIp(int i) {
+		return (i & 0xFF) + "." + ((i >> 8) & 0xFF) + "." + ((i >> 16) & 0xFF)
+				+ "." + (i >> 24 & 0xFF);
+	}
 	
+	private boolean start_subtitle(String filename) {
+		Log.i(TAG, "Java: subtitle start_subtitle " + filename);
+    	
+		stop_subtitle();
+		
+		mSubtitleParser = new SimpleSubTitleParser();
+		mSubtitleParser.setOnPreparedListener(this);
+		
+		mSubtitleParser.setDataSource(filename);
+		mSubtitleParser.prepareAsync();
+		
+		return true;
+	}
+	
+	private void stop_subtitle() {
+		Log.i(TAG, "Java: subtitle stop_subtitle");
+		
+		if (mIsSubtitleUsed) {
+			mSubtitleStoped = true;
+			mSubtitleThread.interrupt();
+			
+			try {
+				Log.i(TAG, "Java subtitle before join");
+				mSubtitleThread.join();
+			} catch (InterruptedException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+			
+			subtitle_filename = null;
+			mIsSubtitleUsed = false;
+			mSubtitleStoped = false;
+		}
+	}
+
 	@Override
 	public boolean onCreateOptionsMenu(Menu menu) {
 		SubMenu OptSubMenu = menu.addSubMenu(Menu.NONE, OPTION, Menu.FIRST, "Option");
@@ -2131,6 +2184,8 @@ public class ClipListActivity extends Activity implements
 			noVideoMenuItem.setChecked(false);
 		
 		commonMenu.add(Menu.NONE, OPTION_COMMON_MEETVIEW, Menu.FIRST + 3, "test view");
+		commonMenu.add(Menu.NONE, OPTION_COMMON_SUBTITLE, Menu.FIRST + 4, "load subtitle");
+		commonMenu.add(Menu.NONE, OPTION_COMMON_AUDIO_DST, Menu.FIRST + 5, "audio dst");
 		
 		menu.add(Menu.NONE, UPDATE_CLIP_LIST, Menu.FIRST + 1, "Update list")
 			.setIcon(R.drawable.list);
@@ -2145,7 +2200,10 @@ public class ClipListActivity extends Activity implements
 
 	@Override
 	public boolean onOptionsItemSelected(MenuItem item) {
+		AlertDialog.Builder builder;
+		
 		int id = item.getItemId();
+		
 		switch (id) {
 		case UPDATE_CLIP_LIST:
 			if (mListLocalFile) {
@@ -2195,6 +2253,31 @@ public class ClipListActivity extends Activity implements
 			Intent intent = new Intent(ClipListActivity.this, MeetViewActivity.class);
 			startActivity(intent);
 			break;
+		case OPTION_COMMON_SUBTITLE:
+			popupSelectSubtitle();
+			break;
+		case OPTION_COMMON_AUDIO_DST:
+			final EditText inputDst = new EditText(this);
+			String last_ip_port = Util.readSettings(this, "last_audio_ip_port");
+			inputDst.setText(last_ip_port);
+			inputDst.setHint("input ip/port");
+			
+	        builder = new AlertDialog.Builder(this);
+	        builder.setTitle("input ip and port")
+	        	.setIcon(android.R.drawable.ic_dialog_info)
+	        	.setView(inputDst)
+	        	.setNegativeButton("Cancel", null);
+	        builder.setPositiveButton("Ok", new DialogInterface.OnClickListener() {
+
+	            public void onClick(DialogInterface dialog, int which) {
+	            	mAudioDst = inputDst.getText().toString();
+	            	Log.i(TAG, "Java save last_audio_ip_port: " + mAudioDst);
+	            	Util.writeSettings(ClipListActivity.this, "last_audio_ip_port", mAudioDst);
+	            	Toast.makeText(ClipListActivity.this, "set audio dst to: " + mAudioDst, Toast.LENGTH_SHORT).show();
+	             }
+	        });
+	        builder.show();
+			break;
 		case OPTION_DLNA_DMR:
 			push_to_dmr();
 			break;
@@ -2216,7 +2299,7 @@ public class ClipListActivity extends Activity implements
         	inputKey.setText(last_key);
 			inputKey.setHint("input search key");
 			
-	        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+	        builder = new AlertDialog.Builder(this);
 	        builder.setTitle("input key").setIcon(android.R.drawable.ic_dialog_info).setView(inputKey)
 	                .setNegativeButton("Cancel", null);
 	        builder.setPositiveButton("Ok", new DialogInterface.OnClickListener() {
@@ -2400,26 +2483,27 @@ public class ClipListActivity extends Activity implements
 		// subtitle
 		if (mPlayUrl.startsWith("/")) {
 			// local file
-			String subtitle_full_path;
-			int index = mPlayUrl.lastIndexOf('.') + 1;
-			String tmp = mPlayUrl.substring(0, index);
-			
-			String[] exts = {"srt", "ass"};
-			for(String ext:exts) {
-				subtitle_full_path = tmp + ext;
+			if (subtitle_filename == null) {
+				String subtitle_full_path;
+				int index = mPlayUrl.lastIndexOf('.') + 1;
+				String tmp = mPlayUrl.substring(0, index);
 				
-				File subfile = new File(subtitle_full_path);
-				//Log.d(TAG, "Java: subtitle: subtitle file: " + subtitle_full_path);
-		        if (subfile.exists()) {
-		        	Log.i(TAG, "Java: subtitle: subtitle file found: " + subtitle_full_path);
-		        	
-					mSubtitleParser = new SimpleSubTitleParser();
-					mSubtitleParser.setOnPreparedListener(this);
+				String[] exts = {"srt", "ass"};
+				for(String ext:exts) {
+					subtitle_full_path = tmp + ext;
 					
-					mSubtitleParser.setDataSource(subtitle_full_path);
-					mSubtitleParser.prepareAsync();
-					break;
-		        }
+					File subfile = new File(subtitle_full_path);
+					//Log.d(TAG, "Java: subtitle: subtitle file: " + subtitle_full_path);
+			        if (subfile.exists()) {
+			        	subtitle_filename = subtitle_full_path;
+						break;
+			        }
+				}
+			}
+			
+			if (subtitle_filename != null) {
+				Log.i(TAG, "Java: subtitle: subtitle file found: " + subtitle_filename);
+				start_subtitle(subtitle_filename);
 			}
 		}
 	}
@@ -2600,7 +2684,7 @@ public class ClipListActivity extends Activity implements
 
 		if (isFinishing()) {
 			if (mPlayer != null) {
-				mStoped = true;
+				mSubtitleStoped = true;
 				
 				if (mIsSubtitleUsed) {
 					mSubtitleThread.interrupt();
@@ -2619,17 +2703,6 @@ public class ClipListActivity extends Activity implements
 		else {
 			mHomed = true;
 		}
-	}
-	
-	@Deprecated
-	private boolean initMeetSDK() {
-		// upload util will upload /data/data/pacake_name/Cache/xxx
-		// so must NOT change path
-		MeetSDK.setLogPath(
-				getCacheDir().getAbsolutePath() + "/meetplayer.log", 
-				getCacheDir().getParentFile().getAbsolutePath() + "/");
-		// /data/data/com.svox.pico/
-		return MeetSDK.initSDK(this, "");
 	}
 	
 	private void initFeedback() {
@@ -2701,7 +2774,7 @@ public class ClipListActivity extends Activity implements
 			return false;
 		}
 		
-		mDLNAcallback = new IDlnaCallback(this);
+		mDLNAcallback = new IDlnaCallback(null);
 		//mDLNA.setLogPath(Environment.getExternalStorageDirectory().getAbsolutePath() + "/xxxx_dlna.log");
 		mDLNA.Init(mDLNAcallback);
 		mDLNA.EnableRendererControler(true);
@@ -2760,9 +2833,15 @@ public class ClipListActivity extends Activity implements
 			mIsSubtitleUsed = true;
 			
 			mSubtitleTextView.setVisibility(View.VISIBLE);
+			Toast.makeText(ClipListActivity.this, 
+					"subtitle: " + subtitle_filename + " loaded", 
+					Toast.LENGTH_SHORT).show();
 		}
 		else {
 			mSubtitleTextView.setVisibility(View.INVISIBLE);
+			Toast.makeText(ClipListActivity.this, 
+					"failed to load subtitle: " + subtitle_filename + " , msg: " + msg, 
+					Toast.LENGTH_SHORT).show();
 		}
 	}
 	
@@ -2779,7 +2858,22 @@ public class ClipListActivity extends Activity implements
         boolean isDisplay = true;
         boolean isDropItem = false;
         
-        while (!mStoped) {
+        if (mPlayer != null) {
+        	// sync position
+        	mSubtitleSeeking = true;
+        	mSubtitleParser.seekTo(mPlayer.getCurrentPosition());
+        	
+        	while (mSubtitleSeeking && !mSubtitleStoped) {
+        		try {
+					Thread.sleep(SLEEP_MSEC);
+				} catch (InterruptedException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+        	}
+        }
+        
+        while (!mSubtitleStoped) {
         	if (isDisplay) {
         		seg = mSubtitleParser.next();
         		if (seg == null) {
@@ -2791,7 +2885,7 @@ public class ClipListActivity extends Activity implements
                 from_msec = seg.getFromTime();
                 to_msec = seg.getToTime();
                 hold_msec = to_msec - from_msec;
-                Log.i(TAG, String.format("Java: subtitle frome %d, to %d, hold %d, %s", 
+                Log.i(TAG, String.format("Java: subtitle from %d, to %d, hold %d, %s", 
                 	seg.getFromTime(), seg.getToTime(), hold_msec,
                 	seg.getData()));
                 target_msec = from_msec;
@@ -2823,12 +2917,12 @@ public class ClipListActivity extends Activity implements
 				}
             }
             
-            Log.i(TAG, "Java: subtitle mSubtitleSeeking: " + mSubtitleSeeking);
             if (isDropItem == true) {
         		// drop last subtitle item
         		isDisplay = true;
         		isDropItem = false;
         		mHandler.sendEmptyMessage(MSG_HIDE_SUBTITLE);
+        		Log.i(TAG, "Java: subtitle send hide");
         		continue;
         	}
 
@@ -2903,128 +2997,5 @@ public class ClipListActivity extends Activity implements
 	static {
 		//System.loadLibrary("lenthevcdec");
 	}
-
-	// dlna interface
-	@Override
-	public void OnDeviceAdded(String uuid, String firendname, String logourl,
-			int devicetype) {}
-
-	@Override
-	public void OnDeviceRemoved(String uuid, int devicetype) {}
-
-	@Override
-	public void OnLogPrintf(String msg) {}
-
-	@Override
-	public boolean OnConnect(String uuid, String requestName) {
-		// TODO Auto-generated method stub
-		return false;
-	}
-
-	@Override
-	public void OnConnectCallback(String uuid, int state) {}
-
-	@Override
-	public void OnDisConnect(String uuid) {}
-
-	@Override
-	public void OnDisConnectCallback(String uuid, boolean isTimeout) {}
-
-	@Override
-	public void OnRemoveTransportFile(String uuid, String transportuuid) {}
-
-	@Override
-	public void OnRemoveTransportFileCallback(String uuid,
-			String transportuuid, boolean isTimeout) {}
-
-	@Override
-	public void OnAddTransportFile(String uuid, String transportuuid,
-			String fileurl, String filename, String thumburl) {}
-
-	@Override
-	public void OnAddTransportFileCallback(String uuid, String transportuuid,
-			int state) {}
-
-	@Override
-	public int OnSetURI(String url, String urltitle, String remoteip,
-			int mediatype) {
-		// TODO Auto-generated method stub
-		if (mDLNA != null)
-			mDLNA.Play(mDlnaDeviceUUID);
-		
-		return 0;
-	}
-
-	@Override
-	public void OnPlay() {
-		// TODO Auto-generated method stub
-		
-	}
-
-	@Override
-	public void OnPause() {
-		// TODO Auto-generated method stub
-		
-	}
-
-	@Override
-	public void OnStop() {
-		// TODO Auto-generated method stub
-		
-	}
-
-	@Override
-	public void OnSeek(long position) {
-		// TODO Auto-generated method stub
-		
-	}
-
-	@Override
-	public void OnSetVolume(long volume) {
-		// TODO Auto-generated method stub
-		
-	}
-
-	@Override
-	public void OnSetMute(boolean mute) {
-		// TODO Auto-generated method stub
-		
-	}
-
-	@Override
-	public void OnVolumeChanged(String uuid, long lVolume) {}
-
-	@Override
-	public void OnMuteChanged(String uuid, boolean bMute) {}
-
-	@Override
-	public void OnPlayStateChanged(String uuid, String state) {
-		// TODO Auto-generated method stub
-		
-	}
-
-	@Override
-	public void OnPlayUrlChanged(String uuid, String url) {
-		// TODO Auto-generated method stub
-		
-	}
-
-	@Override
-	public void OnContainerChanged(String uuid, String item_id, String update_id) {}
-
-	@Override
-	public void OnGetCaps(String uuid, String caps) {}
-
-	@Override
-	public void OnSetUrl(String uuid, long error) {
-		// TODO Auto-generated method stub
-		
-	}
-
-	@Override
-	public void OnBrowse(boolean success, String uuid, String objectid,
-			long count, long total, DLNASdkDMSItemInfo[] filelists) {
-		// TODO Auto-generated method stub
-		
-	}
+	
 }

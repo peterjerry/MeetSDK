@@ -109,7 +109,8 @@
 	
 	<target name="-pre-clean" >
 		<delete dir="${obj.dir}" />
-		<delete dir="${libs.dir}" />
+		<delete dir="${libs.dir}/armeabi" />
+		<delete dir="${libs.dir}/x86" />
 		<delete dir="${output.dir}" />
 		<delete dir="${symbol.dir}" />
 	</target>
