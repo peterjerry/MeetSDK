@@ -88,7 +88,7 @@ const char* url_list[PROG_MAX_NUM] = {
 	_T("http://172.16.204.106/test/hls/600000/index.m3u8"),
 	_T("http://172.16.204.106/test/hls/600000/noend.m3u8"),
 	//_T("D:\\Archive\\media\\[圣斗士星矢Ω].[hysub]Saint.Seiya.Omega_11_[GB_mp4][480p].mp4"),
-	_T("D:\\Archive\\media\\test\\liuyan\\PPBOX-3170_快进后音频异常_断续_爱情雨08.rmvb"),
+	_T("D:\\Archive\\media\\test\\subtitle\\Manhattan.S01E08.HDTVrip.1024X576_sub.mkv"),
 	_T("D:\\Archive\\media\\mv\\G.NA_Secret.mp4"),
 
 	_T("http://zb.v.qq.com:1863/?progid=1975434150"),
@@ -344,10 +344,40 @@ void CtestSDLdlgDlg::OnPaint()
 
 		// 绘制图标
 		dc.DrawIcon(x, y, m_hIcon);
+
+		
 	}
 	else
 	{
 		CDialogEx::OnPaint();
+
+		if (!mSubtitleText.IsEmpty()) {
+			CDC *pDC = GetDC();
+			CFont newfont;
+			newfont.CreateFont(20,            // nHeight
+				0,           // nWidth
+				0,           // nEscapement
+				0,           // nOrientation
+				FW_BOLD,     // nWeight
+				FALSE,        // bItalic
+				FALSE,       // bUnderline
+				0,           // cStrikeOut
+				ANSI_CHARSET,              // nCharSet
+				OUT_DEFAULT_PRECIS,        // nOutPrecision
+				CLIP_DEFAULT_PRECIS,       // nClipPrecision
+				DEFAULT_QUALITY,           // nQuality
+				DEFAULT_PITCH | FF_SWISS, // nPitchAndFamily
+				_T("微软雅黑"));              // lpszFac
+			CFont* pOldFont = pDC->SelectObject(&newfont);
+			pDC->SetBkMode(TRANSPARENT);
+			pDC->SetTextColor(RGB(255,0,0));
+			CRect rect;
+			GetClientRect(&rect);
+			rect.top = rect.bottom - 20;
+			pDC->DrawText(mSubtitleText, rect, DT_SINGLELINE|DT_LEFT|DT_VCENTER);
+			pDC->SelectObject(&pOldFont);
+			ReleaseDC(pDC);
+		}
 	}
 }
 
@@ -442,34 +472,11 @@ void CtestSDLdlgDlg::OnTimer(UINT_PTR nIDEvent)
 					int(mSubtitleStartTime/1000%60), int(mSubtitleStartTime%1000)/10,
 					CW2A(CA2W(subtitleText, CP_UTF8)));
 
+				mSubtitleText = CW2A(CA2W(subtitleText, CP_UTF8));
 				RECT rect;
 				GetClientRect(&rect);
 				rect.top = rect.bottom - 20;
-
-				CDC *pDC = GetDC();
-
-				CFont newfont;
-				newfont.CreateFont(20,            // nHeight
-					0,           // nWidth
-					0,           // nEscapement
-					0,           // nOrientation
-					FW_BOLD,     // nWeight
-					FALSE,        // bItalic
-					FALSE,       // bUnderline
-					0,           // cStrikeOut
-					ANSI_CHARSET,              // nCharSet
-					OUT_DEFAULT_PRECIS,        // nOutPrecision
-					CLIP_DEFAULT_PRECIS,       // nClipPrecision
-					DEFAULT_QUALITY,           // nQuality
-					DEFAULT_PITCH | FF_SWISS, // nPitchAndFamily
-					_T("微软雅黑"));              // lpszFac
-				CFont* pOldFont = pDC->SelectObject(&newfont);
-
-				CString str_text = CW2A(CA2W(subtitleText, CP_UTF8));
-				pDC->DrawText(str_text, &rect, 0);
-
-				pDC->SelectObject(&pOldFont);
-				ReleaseDC(pDC);
+				InvalidateRect(&rect);
 			}
 		}
 	}

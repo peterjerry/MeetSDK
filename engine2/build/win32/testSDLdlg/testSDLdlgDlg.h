@@ -100,6 +100,7 @@ private:
 	ISubtitles*	mSubtitleParser;
 	int64_t mSubtitleStartTime;
 	int64_t mSubtitleStopTime;
+	CString mSubtitleText;
 private:
 	bool startP2P();
 	bool play_url(const char *url);

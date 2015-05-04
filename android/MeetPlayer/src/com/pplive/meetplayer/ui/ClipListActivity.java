@@ -121,8 +121,7 @@ public class ClipListActivity extends Activity implements
 		MediaPlayer.OnPreparedListener, MediaPlayer.OnCompletionListener,
 		MediaPlayer.OnErrorListener, MediaPlayer.OnInfoListener,
 		MediaPlayer.OnVideoSizeChangedListener, MediaPlayer.OnBufferingUpdateListener,
-		MediaPlayerControl, SurfaceHolder.Callback, SubTitleParser.Callback, OnFocusChangeListener, 
-		DLNASdkInterface {
+		MediaPlayerControl, SurfaceHolder.Callback, SubTitleParser.Callback, OnFocusChangeListener {
 
 	private final static String TAG = "ClipList";
 	
@@ -1768,7 +1767,6 @@ public class ClipListActivity extends Activity implements
 	          dev_list.add(name.toString());
 	    }
 		
-		final String[] str_uuid_list = (String[])uuid_list.toArray(new String[uuid_list.size()]);
 		final String[] str_dev_list = (String[])dev_list.toArray(new String[dev_list.size()]);
 		
 		Dialog choose_dms_dlg = new AlertDialog.Builder(ClipListActivity.this)
@@ -1787,6 +1785,16 @@ public class ClipListActivity extends Activity implements
 	private void push_cdn_clip() {
 		//mDLNA.EnableRendererControler(true);
 		mDLNA.SetURI(mDlnaDeviceUUID, mDLNAPushUrl);
+		
+		try {
+			Thread.sleep(200);
+		} catch (InterruptedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+		mDLNA.Play(mDlnaDeviceUUID);
+		
 		mHandler.sendEmptyMessage(MSG_PUSH_CDN_CLIP);
 	}
 	
@@ -2766,7 +2774,7 @@ public class ClipListActivity extends Activity implements
 			return false;
 		}
 		
-		mDLNAcallback = new IDlnaCallback(this);
+		mDLNAcallback = new IDlnaCallback(null);
 		//mDLNA.setLogPath(Environment.getExternalStorageDirectory().getAbsolutePath() + "/xxxx_dlna.log");
 		mDLNA.Init(mDLNAcallback);
 		mDLNA.EnableRendererControler(true);
@@ -2989,128 +2997,5 @@ public class ClipListActivity extends Activity implements
 	static {
 		//System.loadLibrary("lenthevcdec");
 	}
-
-	// dlna interface
-	@Override
-	public void OnDeviceAdded(String uuid, String firendname, String logourl,
-			int devicetype) {}
-
-	@Override
-	public void OnDeviceRemoved(String uuid, int devicetype) {}
-
-	@Override
-	public void OnLogPrintf(String msg) {}
-
-	@Override
-	public boolean OnConnect(String uuid, String requestName) {
-		// TODO Auto-generated method stub
-		return false;
-	}
-
-	@Override
-	public void OnConnectCallback(String uuid, int state) {}
-
-	@Override
-	public void OnDisConnect(String uuid) {}
-
-	@Override
-	public void OnDisConnectCallback(String uuid, boolean isTimeout) {}
-
-	@Override
-	public void OnRemoveTransportFile(String uuid, String transportuuid) {}
-
-	@Override
-	public void OnRemoveTransportFileCallback(String uuid,
-			String transportuuid, boolean isTimeout) {}
-
-	@Override
-	public void OnAddTransportFile(String uuid, String transportuuid,
-			String fileurl, String filename, String thumburl) {}
-
-	@Override
-	public void OnAddTransportFileCallback(String uuid, String transportuuid,
-			int state) {}
-
-	@Override
-	public int OnSetURI(String url, String urltitle, String remoteip,
-			int mediatype) {
-		// TODO Auto-generated method stub
-		if (mDLNA != null)
-			mDLNA.Play(mDlnaDeviceUUID);
-		
-		return 0;
-	}
-
-	@Override
-	public void OnPlay() {
-		// TODO Auto-generated method stub
-		
-	}
-
-	@Override
-	public void OnPause() {
-		// TODO Auto-generated method stub
-		
-	}
-
-	@Override
-	public void OnStop() {
-		// TODO Auto-generated method stub
-		
-	}
-
-	@Override
-	public void OnSeek(long position) {
-		// TODO Auto-generated method stub
-		
-	}
-
-	@Override
-	public void OnSetVolume(long volume) {
-		// TODO Auto-generated method stub
-		
-	}
-
-	@Override
-	public void OnSetMute(boolean mute) {
-		// TODO Auto-generated method stub
-		
-	}
-
-	@Override
-	public void OnVolumeChanged(String uuid, long lVolume) {}
-
-	@Override
-	public void OnMuteChanged(String uuid, boolean bMute) {}
-
-	@Override
-	public void OnPlayStateChanged(String uuid, String state) {
-		// TODO Auto-generated method stub
-		
-	}
-
-	@Override
-	public void OnPlayUrlChanged(String uuid, String url) {
-		// TODO Auto-generated method stub
-		
-	}
-
-	@Override
-	public void OnContainerChanged(String uuid, String item_id, String update_id) {}
-
-	@Override
-	public void OnGetCaps(String uuid, String caps) {}
-
-	@Override
-	public void OnSetUrl(String uuid, long error) {
-		// TODO Auto-generated method stub
-		
-	}
-
-	@Override
-	public void OnBrowse(boolean success, String uuid, String objectid,
-			long count, long total, DLNASdkDMSItemInfo[] filelists) {
-		// TODO Auto-generated method stub
-		
-	}
+	
 }

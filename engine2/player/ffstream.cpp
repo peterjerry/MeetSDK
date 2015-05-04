@@ -124,6 +124,11 @@ FFStream::~FFStream()
 			mSubtitleStream = NULL;
 		}
 
+		if (mAVSubtitle) {
+			delete mAVSubtitle;
+			mAVSubtitle = NULL;
+		}
+
 		if (mSource) {
 			mMovieFile->pb->opaque = NULL;
 			avio_close(mMovieFile->pb);
@@ -353,19 +358,22 @@ AVFormatContext* FFStream::open(char* uri)
     	}
     }
 
-	for (int32_t i = 0; i < (int32_t)mStreamsCount; i++) {
-		if (mMovieFile->streams[i]->codec->codec_type == AVMEDIA_TYPE_SUBTITLE) {
-            if (mSubtitleStreamIndex == -1) {
-    		    mSubtitleStreamIndex = i;
-                LOGI("mSubtitleStreamIndex: %d", mSubtitleStreamIndex);
-                mSubtitleStream = mMovieFile->streams[mSubtitleStreamIndex];
-				break;
-            }
-            else {
-                //Disable variant streams, like m3u8
-                mMovieFile->streams[i]->discard = AVDISCARD_ALL;
-                LOGI("Discard mSubtitleStreamIndex stream: %d", i);
-            }
+	if (mISubtitle) {
+		// only set mISubtitle will do this
+		for (int32_t i = 0; i < (int32_t)mStreamsCount; i++) {
+			if (mMovieFile->streams[i]->codec->codec_type == AVMEDIA_TYPE_SUBTITLE) {
+				if (mSubtitleStreamIndex == -1) {
+    				mSubtitleStreamIndex = i;
+					LOGI("mSubtitleStreamIndex: %d", mSubtitleStreamIndex);
+					mSubtitleStream = mMovieFile->streams[mSubtitleStreamIndex];
+					break;
+				}
+				else {
+					//Disable variant streams, like m3u8
+					mMovieFile->streams[i]->discard = AVDISCARD_ALL;
+					LOGI("Discard mSubtitleStreamIndex stream: %d", i);
+				}
+			}
 		}
 	}
 
@@ -416,41 +424,39 @@ AVFormatContext* FFStream::open(char* uri)
 	if (mSubtitleStream) {
 		LOGI("subtitle extradata size %d", mSubtitleStream->codec->extradata_size);
 		
-		if (mISubtitle) {
-			AVCodecContext *SubCodecCtx = mSubtitleStream->codec;
-			AVCodec* SubCodec = avcodec_find_decoder(SubCodecCtx->codec_id);
-			// Open codec
-    		if (avcodec_open2(SubCodecCtx, SubCodec, NULL) < 0) {
-    			LOGE("failed to open subtitle decoder: id %d, name %s", SubCodecCtx->codec_id, avcodec_get_name(SubCodecCtx->codec_id));
-				return NULL;
-			}
-
-			LOGI("subtitle codec id: %d(%s), codec_name: %s", 
-				SubCodecCtx->codec_id, avcodec_get_name(SubCodecCtx->codec_id), SubCodec->long_name);
-
-			SubtitleCodecId codec_id = SUBTITLE_CODEC_ID_NONE;
-			if (mSubtitleStream->codec->codec_id == AV_CODEC_ID_ASS
-				|| mSubtitleStream->codec->codec_id == AV_CODEC_ID_SSA)
-			{
-				codec_id = SUBTITLE_CODEC_ID_ASS;
-			}
-			else if(mSubtitleStream->codec->codec_id == AV_CODEC_ID_TEXT
-				|| mSubtitleStream->codec->codec_id == AV_CODEC_ID_SRT)
-			{
-				codec_id = SUBTITLE_CODEC_ID_TEXT;
-			}
-
-			const char* extraData = (const char*)mSubtitleStream->codec->extradata;
-			int dataLen = mSubtitleStream->codec->extradata_size;
-			mSubtitleTrackIndex = mISubtitle->addEmbeddingSubtitle(codec_id, "chs", "chs", extraData, dataLen);
-			if (mSubtitleTrackIndex < 0) {
-				LOGE("failed to add embedding subtitle");
-				return NULL;
-			}
-
-			LOGI("subtitle track %d added", mSubtitleTrackIndex);
-			mAVSubtitle = new AVSubtitle;
+		AVCodecContext *SubCodecCtx = mSubtitleStream->codec;
+		AVCodec* SubCodec = avcodec_find_decoder(SubCodecCtx->codec_id);
+		// Open codec
+    	if (avcodec_open2(SubCodecCtx, SubCodec, NULL) < 0) {
+    		LOGE("failed to open subtitle decoder: id %d, name %s", SubCodecCtx->codec_id, avcodec_get_name(SubCodecCtx->codec_id));
+			return NULL;
 		}
+
+		LOGI("subtitle codec id: %d(%s), codec_name: %s", 
+			SubCodecCtx->codec_id, avcodec_get_name(SubCodecCtx->codec_id), SubCodec->long_name);
+
+		SubtitleCodecId codec_id = SUBTITLE_CODEC_ID_NONE;
+		if (mSubtitleStream->codec->codec_id == AV_CODEC_ID_ASS
+			|| mSubtitleStream->codec->codec_id == AV_CODEC_ID_SSA)
+		{
+			codec_id = SUBTITLE_CODEC_ID_ASS;
+		}
+		else if(mSubtitleStream->codec->codec_id == AV_CODEC_ID_TEXT
+			|| mSubtitleStream->codec->codec_id == AV_CODEC_ID_SRT)
+		{
+			codec_id = SUBTITLE_CODEC_ID_TEXT;
+		}
+
+		const char* extraData = (const char*)mSubtitleStream->codec->extradata;
+		int dataLen = mSubtitleStream->codec->extradata_size;
+		mSubtitleTrackIndex = mISubtitle->addEmbeddingSubtitle(codec_id, "chs", "chs", extraData, dataLen);
+		if (mSubtitleTrackIndex < 0) {
+			LOGE("failed to add embedding subtitle");
+			return NULL;
+		}
+
+		LOGI("subtitle track %d added", mSubtitleTrackIndex);
+		mAVSubtitle = new AVSubtitle;
 	}
 	
     //check url type
@@ -1104,7 +1110,7 @@ void FFStream::thread_impl()
 #endif
                 if (mGopStart == 0 || mGopEnd == 0) {
 					// need calculate new gop duration
-					if(mGopStart == 0 &&
+					if (mGopStart == 0 &&
 						(pPacket->flags & AV_PKT_FLAG_KEY) &&
 						pPacket->pts > 0)
 					{
@@ -1112,7 +1118,7 @@ void FFStream::thread_impl()
 						mGopStart = pPacket->pts;
 					}
 
-                    if(mGopEnd == 0 &&
+                    if (mGopEnd == 0 &&
                         mGopStart != 0 &&
                         mGopStart != pPacket->pts && // not 0 duration
                         (pPacket->flags & AV_PKT_FLAG_KEY) &&
@@ -1183,39 +1189,49 @@ void FFStream::thread_impl()
             }
 			else if (pPacket->stream_index == mSubtitleStreamIndex)
 			{
-				int got_sub;
-				int ret;
-				ret = avcodec_decode_subtitle2(mSubtitleStream->codec, mAVSubtitle, &got_sub, pPacket);
-				if (ret < 0) {
-					LOGE("failed to decode subtitle");
-					continue;
-				}
+				AVPacket *orig_pkt = pPacket;
 
-				if (got_sub) {
-					LOGI("got subtitle %d %d %s", mAVSubtitle->format, (*(mAVSubtitle->rects))->type, (*(mAVSubtitle->rects))->ass);
-					int64_t start_time ,stop_time;
+				if (mSubtitleStream) {
+					int got_sub;
+					int ret;
+					
+					do {
+						ret = avcodec_decode_subtitle2(mSubtitleStream->codec, mAVSubtitle, &got_sub, pPacket);
+						if (ret < 0) {
+							LOGE("failed to decode subtitle");
+							continue;
+						}
 
+						if (got_sub) {
+							LOGI("got subtitle %d %d %s", mAVSubtitle->format, (*(mAVSubtitle->rects))->type, (*(mAVSubtitle->rects))->ass);
+							int64_t start_time ,stop_time;
 #ifdef _MSC_VER
-					AVRational ra;
-					ra.num = 1;
-					ra.den = AV_TIME_BASE;
-					start_time = av_rescale_q(mAVSubtitle->pts + mAVSubtitle->start_display_time * 1000,
-								ra, mSubtitleStream->time_base);
-					stop_time = av_rescale_q(mAVSubtitle->pts + mAVSubtitle->end_display_time * 1000,
-								ra, mSubtitleStream->time_base);
+							AVRational ra;
+							ra.num = 1;
+							ra.den = AV_TIME_BASE;
+							start_time = av_rescale_q(mAVSubtitle->pts + mAVSubtitle->start_display_time * 1000,
+										ra, mSubtitleStream->time_base);
+							stop_time = av_rescale_q(mAVSubtitle->pts + mAVSubtitle->end_display_time * 1000,
+										ra, mSubtitleStream->time_base);
 #else
-					start_time = av_rescale_q(mAVSubtitle->pts + mAVSubtitle->start_display_time * 1000,
-								AV_TIME_BASE_Q, mSubtitleStream->time_base);
-					stop_time = av_rescale_q(mAVSubtitle->pts + mAVSubtitle->end_display_time * 1000,
-								AV_TIME_BASE_Q, mSubtitleStream->time_base);
+							start_time = av_rescale_q(mAVSubtitle->pts + mAVSubtitle->start_display_time * 1000,
+										AV_TIME_BASE_Q, mSubtitleStream->time_base);
+							stop_time = av_rescale_q(mAVSubtitle->pts + mAVSubtitle->end_display_time * 1000,
+										AV_TIME_BASE_Q, mSubtitleStream->time_base);
 #endif
-					mISubtitle->addEmbeddingSubtitleEntity(mSubtitleTrackIndex, 
-						start_time, stop_time - start_time, 
-						(const char*)pPacket->data, pPacket->size);
+							mISubtitle->addEmbeddingSubtitleEntity(mSubtitleTrackIndex, 
+								start_time, stop_time - start_time, 
+								(const char*)pPacket->data, pPacket->size);
+							avsubtitle_free(mAVSubtitle);
+						}
+
+						pPacket->data += ret;
+						pPacket->size -= ret;
+					} while (pPacket->size > 0);
 				}
 
-				av_free_packet(pPacket);
-                av_free(pPacket);
+				av_free_packet(orig_pkt);
+                av_free(orig_pkt);
 			}
             else {
                 // Free the packet that was allocated by av_read_frame
