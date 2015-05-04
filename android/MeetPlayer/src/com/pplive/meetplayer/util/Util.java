@@ -29,9 +29,9 @@ public class Util {
 		String pid = "161";
 		String auth = "08ae1acd062ea3ab65924e07717d5994";
 
-		String libPath = context.getFilesDir().getPath() + "data/com.pplive.meetplayer/lib";
+		String libPath = "/data/data/com.pplive.meetplayer/lib";
 		MediaSDK.libPath = libPath;
-		MediaSDK.logPath = context.getFilesDir().getPath() + "data/com.pplive.meetplayer/cache";
+		MediaSDK.logPath = "/data/data/com.pplive.meetplayer/cache";
 		MediaSDK.logOn = false;
 		MediaSDK.setConfig("", "HttpManager", "addr", "127.0.0.1:9106+");
 		MediaSDK.setConfig("", "RtspManager", "addr", "127.0.0.1:5156+");
