@@ -42,7 +42,7 @@
         </activity>
 		<activity
 			android:name=".ui.MeetViewActivity" 
-			android:configChanges="orientation"
+			android:configChanges="keyboardHidden|orientation|screenSize"
 			android:screenOrientation="portrait"
             android:label="@string/app_name" >
 		</activity>
@@ -81,33 +81,6 @@
                 <action android:name="com.pplive.meetplayer.DLNAService" />
 			</intent-filter>
         </service>
-		
-		<service 
-            android:name="android.pplive.media.scan.MediaScannerService"
-            android:process=":scan"
-            android:exported="false">
-        </service>
-
-        <!-- Receivers -->
-        <receiver 
-            android:name="android.pplive.media.scan.MediaScannerReceiver"
-            android:exported="false">
-            <intent-filter >
-                <action android:name="com.pplive.action.MEDIA_MOUNTED" />
-                <action android:name="com.pplive.action.MEDIA_SCANNER_SCAN_FILE" />
-            </intent-filter>
-        </receiver>
-		
-		
-        
-        <!-- Providers -->
-        <!--
-        <provider
-            android:name="android.ppmedia.provider.MediaProvider"
-            android:authorities="android.pplive.android.media"
-            android:exported="false" >
-        </provider>
-        -->
         
     </application>
 </manifest>

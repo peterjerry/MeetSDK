@@ -130,6 +130,7 @@ public class ClipListActivity extends Activity implements
 		
 	private Button btnPlay;
 	private Button btnSelectTime;
+	private Button btnMenu;
 	private Button btnClipLocation;
 	private Button btnPlayerImpl;
 	private Button btnPPboxSel;
@@ -345,6 +346,7 @@ public class ClipListActivity extends Activity implements
 		
 		this.btnPlay = (Button) findViewById(R.id.btn_play);
 		this.btnSelectTime = (Button) findViewById(R.id.btn_select_time);
+		this.btnMenu = (Button) findViewById(R.id.btn_menu);
 		this.btnClipLocation = (Button) findViewById(R.id.btn_clip_location);
 		this.btnPlayerImpl = (Button) findViewById(R.id.btn_player_impl);
 		this.btnPPboxSel = (Button) findViewById(R.id.btn_ppbox);
@@ -765,10 +767,14 @@ public class ClipListActivity extends Activity implements
 		this.btnSelectTime.setOnClickListener(new Button.OnClickListener() {
 			@Override
 			public void onClick(View view) {
-				//Intent intent = new Intent(ClipListActivity.this, TimePickerActivity.class);
-				//startActivityForResult(intent, 1);
-				
 				setPlaybackTime();
+			}
+		});
+		
+		this.btnMenu.setOnClickListener(new Button.OnClickListener() {
+			@Override
+			public void onClick(View view) {
+				openOptionsMenu();
 			}
 		});
 		
@@ -2705,6 +2711,13 @@ public class ClipListActivity extends Activity implements
 		}
 	}
 	
+	@Override  
+    public void openOptionsMenu() {  
+        // TODO Auto-generated method stub
+		Log.i(TAG, "Java: openOptionsMenu()");
+        super.openOptionsMenu();  
+    } 
+	
 	private void initFeedback() {
 		LogcatHelper helper = LogcatHelper.getInstance();
 		helper.init(this);
@@ -2974,13 +2987,18 @@ public class ClipListActivity extends Activity implements
 		Log.d(TAG, "keyCode: " + keyCode);
 		int incr = -1;
 		
-		if (!mPreviewFocused)
+		if (!mPreviewFocused) {
+			if (keyCode == KeyEvent.KEYCODE_MENU) {
+				openOptionsMenu();
+				return true;
+			}
+			
 			return super.onKeyDown(keyCode, event);
+		}
 		
 		switch (keyCode) {
 			case KeyEvent.KEYCODE_ENTER:
 			case KeyEvent.KEYCODE_DPAD_CENTER:
-			case KeyEvent.KEYCODE_MENU:
 				if (mPlayer != null && !mMediaController.isShowing()) {
 					mMediaController.show(5000);
 					return true;

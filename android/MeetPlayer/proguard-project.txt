@@ -18,3 +18,11 @@
 #-keepclassmembers class fqcn.of.javascript.interface.for.webview {
 #   public *;
 #}
+
+-libraryjars libs/ivy-2.0.0-rc1.jar 
+-dontwarn org.apache.ivy.**
+-keep class org.apache.ivy.** {*;}
+
+-libraryjars libs/jdom-2.0.5.jar
+-dontwarn org.jdom2.**
+-keep class org.jdom2.** {*;}
