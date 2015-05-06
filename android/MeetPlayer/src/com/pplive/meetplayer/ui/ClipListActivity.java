@@ -2985,16 +2985,14 @@ public class ClipListActivity extends Activity implements
 	@Override
 	public boolean onKeyDown(int keyCode, KeyEvent event) {
 		Log.d(TAG, "keyCode: " + keyCode);
-		int incr = -1;
 		
-		if (!mPreviewFocused) {
-			if (keyCode == KeyEvent.KEYCODE_MENU) {
-				openOptionsMenu();
-				return true;
-			}
-			
-			return super.onKeyDown(keyCode, event);
+		if (keyCode == KeyEvent.KEYCODE_MENU) {
+			openOptionsMenu();
+			return true;
 		}
+		
+		if (!mPreviewFocused)
+			return super.onKeyDown(keyCode, event);
 		
 		switch (keyCode) {
 			case KeyEvent.KEYCODE_ENTER:

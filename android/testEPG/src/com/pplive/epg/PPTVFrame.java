@@ -19,7 +19,7 @@ import java.util.Locale;
 
 import javax.swing.event.*;
 
-public class MyFrame extends JFrame {
+public class PPTVFrame extends JFrame {
 	
 	private EPG_STATE mState = EPG_STATE.EPG_STATE_IDLE;
 	private EPGUtil mEPG;
@@ -71,7 +71,7 @@ public class MyFrame extends JFrame {
 	JButton btnSearch = new JButton("search");
 	
 
-	MyFrame() {
+	PPTVFrame() {
 		super();
 		
 		mEPG = new EPGUtil();
