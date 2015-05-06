@@ -201,9 +201,16 @@ public class MediaPlayer implements MediaPlayerInterface {
 		setSurface();
 	}
 	
+	@Override
+	public void setSurface(Surface surface) {
+		// TODO Auto-generated method stub
+		mSurface = surface;
+		setSurface();
+	}
+	
 	private void setSurface() {
-		if (null != mPlayer && null != mHolder)
-			mPlayer.setDisplay(mHolder);
+		if (null != mPlayer)
+			mPlayer.setSurface(mSurface);
 	}
 	
 	private void setupMediaPlayer() throws IllegalStateException {
@@ -1003,5 +1010,5 @@ public class MediaPlayer implements MediaPlayerInterface {
 	public static final int MEDIA_INFO_TEST_MEDIA_BITRATE		= 922;
 
 	public static final int MEDIA_INFO_TEST_PLAYER_TYPE		= 911;
-	
+
 }

@@ -266,7 +266,8 @@ public class XOMediaPlayer extends BaseMediaPlayer {
 		setSurface(surface);
 	}
 	
-	private void setSurface(Surface surface) {
+	@Override
+	public void setSurface(Surface surface) {
 		mSurface = surface;
 	}
 

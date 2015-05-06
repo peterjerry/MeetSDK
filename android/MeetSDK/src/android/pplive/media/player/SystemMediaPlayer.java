@@ -9,6 +9,7 @@ import android.util.Log;
 import android.view.Surface;
 import android.view.SurfaceHolder;
 import android.graphics.Bitmap;
+import android.os.Build;
 import android.pplive.media.subtitle.SimpleSubTitleParser;
 import android.pplive.media.util.LogUtils;
 import android.pplive.media.player.MediaPlayer.DecodeMode;
@@ -82,6 +83,12 @@ public class SystemMediaPlayer extends android.media.MediaPlayer implements
 	@Override
 	public void setDisplay(SurfaceHolder sh) {
 		super.setDisplay(sh);
+	}
+	
+	@Override
+	public void setSurface(Surface surface) {
+		if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.ICE_CREAM_SANDWICH)
+			super.setSurface(surface);
 	}
 	
 	@Override
