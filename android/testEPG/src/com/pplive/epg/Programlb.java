@@ -24,6 +24,10 @@ public class Programlb {
 		return m_name;
 	}
 	
+	public String getEPGId() {
+		return m_epg_id;
+	}
+	
 	public String getStreamId() {
 		return m_stream_id;
 	}

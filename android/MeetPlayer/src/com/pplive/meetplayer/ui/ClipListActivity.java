@@ -314,7 +314,9 @@ public class ClipListActivity extends Activity implements
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
-		    
+		   
+		Log.i(TAG, "Java: onCreate()");
+		
 		// compatible with tvbox
 		if (getResources().getConfiguration().orientation == 1) 
 			isLandscape = false;
@@ -330,19 +332,6 @@ public class ClipListActivity extends Activity implements
 		else {
 			setContentView(R.layout.list);
 		}
-		
-		Log.i(TAG, "Java: onCreate()");
-		
-		/*DisplayMetrics dm = new DisplayMetrics(); 
-		getWindowManager().getDefaultDisplay().getMetrics(dm); 
-		int screen_width	= dm.widthPixels; 
-		int screen_height	= dm.heightPixels;
-		if (isLandscape)
-			preview_height = screen_height;
-		else
-			preview_height = screen_height * 2 / 5;
-		Log.i(TAG, String.format("screen %dx%d, preview height %d", screen_width, screen_height, preview_height));*/
-		// end of tvbox
 		
 		this.btnPlay = (Button) findViewById(R.id.btn_play);
 		this.btnSelectTime = (Button) findViewById(R.id.btn_select_time);

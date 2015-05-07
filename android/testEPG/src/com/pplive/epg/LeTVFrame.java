@@ -125,7 +125,40 @@ public class LeTVFrame extends JFrame {
 	
 	void selectProgram() {
 		int n = comboItem.getSelectedIndex();
+		String epg_id = mProgramList.get(n).getEPGId();
 		String stream_id = mProgramList.get(n).getStreamId();
+		
+		if (mEPG.play_list(epg_id)) {
+			List<ProgramItemlb> list = mEPG.getProgramItemList();
+			
+			SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");//设置日期格式
+			SimpleDateFormat df_prefix = new SimpleDateFormat("yyyy-MM-dd");
+			System.out.println("current time " + df.format(new Date()));// new Date()为获取当前系统时间
+			Date now_date = new Date();
+			String now_prefix = df_prefix.format(now_date);
+			
+			for (int i=0;i<list.size();i++) {
+				ProgramItemlb item = list.get(i);
+				
+				Date item_date;
+				try {
+					item_date = df.parse(now_prefix + " " + item.getPlaytime());
+					if (item_date.getTime() >= now_date.getTime()) {
+						int index = i - 1;
+						if (index < 0)
+							index = 0;
+						ProgramItemlb nowplay_item = list.get(index);
+						System.out.println(String.format("Java: now playing %s, next %s",
+								nowplay_item.getTitle(), item.getTitle()));
+						break;
+					}
+				} catch (ParseException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+			}
+		}
+		
 		String must = mEPG.recommend(stream_id);
 		if (must == null) {
 			System.out.println("Java: failed to recommend()");
@@ -146,7 +179,7 @@ public class LeTVFrame extends JFrame {
 			
 			String exe_filepath  = "D:/Software/ffmpeg/ffplay.exe";
 			String[] cmd = new String[] {exe_filepath, url};
-			openExe(cmd);
+			//openExe(cmd);
 		}
 	}
 	

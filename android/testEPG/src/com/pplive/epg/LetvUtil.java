@@ -6,6 +6,8 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.io.Reader;
 import java.io.StringReader;
+import java.net.URLDecoder;
+import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.StringTokenizer;
@@ -28,6 +30,8 @@ import org.json.JSONTokener;
 public class LetvUtil {
 	String iploop_url = "http://int.dpool.sina.com.cn/iplookup/iplookup.php?format=json";
 	
+	String play_list_url_fmt = "http://st.live.letv.com/live/playlist/%s.json"; // lb_1080P
+	
 	String context_json_url = "http://121.201.14.53/apk_api/itv_json_v5.zip";
 	
 	String live_url_fmt = "http://live.gslb.letv.com/gslb?stream_id=%s&tag=live" +
@@ -37,17 +41,23 @@ public class LetvUtil {
 	
 	private String mJsonContext;
 	private List<Programlb> mProgramList;
+	private List<ProgramItemlb> mProgramItemList;
 	private List<PlayLinkLb> mPlaylinkList;
 
 	public LetvUtil() {
 		update_json();
 		
 		mProgramList = new ArrayList<Programlb>();
+		mProgramItemList = new ArrayList<ProgramItemlb>();
 		mPlaylinkList = new ArrayList<PlayLinkLb>();
 	}
 	
 	public List<PlayLinkLb> getPlaylinkList() {
 		return mPlaylinkList;
+	}
+	
+	public List<ProgramItemlb> getProgramItemList() {
+		return mProgramItemList;
 	}
 	
 	public List<Programlb> getProgramList() {
@@ -88,6 +98,59 @@ public class LetvUtil {
 		return false;
 	}
 	
+	public boolean play_list(String epg_id) {
+		String url;
+		url = String.format(play_list_url_fmt, epg_id);
+		System.out.println("Java: play_list " + url);
+		
+		HttpGet request = new HttpGet(url);
+		
+		HttpResponse response;
+		try {
+			response = HttpClients.createDefault().execute(request);
+			if (response.getStatusLine().getStatusCode() != 200){
+				return false;
+			};
+			
+			String result = new String(EntityUtils.toString(
+					response.getEntity()).getBytes("ISO-8859-1"), "utf-8");
+			System.out.println("Java: result: " + result.substring(0, 256));
+			
+			JSONTokener jsonParser = new JSONTokener(result);
+			JSONObject item = (JSONObject) jsonParser.nextValue();
+			String channel_name = item.getString("channelname");
+			System.out.println(String.format("Java: channel_name %s", channel_name));
+			
+			mProgramItemList.clear();
+			JSONArray contents = item.getJSONArray("content");
+			for (int i=0;i<contents.length();i++) {
+				JSONObject prog = contents.getJSONObject(i);
+				String id = prog.getString("id");
+				String playtime = prog.getString("seektime");
+				String title = prog.getString("title");
+				String viewpic = prog.getString("viewPic");
+				
+				ProgramItemlb progItem = new ProgramItemlb(Integer.valueOf(id), title, playtime, viewpic);
+				mProgramItemList.add(progItem);
+				System.out.println("Java: prog " + progItem.toString());
+			}
+			
+			return true;
+			
+		} catch (ClientProtocolException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (JSONException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+		return false;
+	}
+	
 	public boolean context() {
 		
 		try {
@@ -106,8 +169,12 @@ public class LetvUtil {
 				String area = program.getString("area");
 				String epgid = program.getString("epgid");
 				if (epgid.contains("letv-lb_")) {
-					int pos = epgid.indexOf("lb_");
-					String stream_id = epgid.substring(pos) + "_1300";
+					epgid = epgid.substring(5); // lb_xxxx
+					String stream_id;
+					if (epgid.contains("1080P"))
+						stream_id = epgid + "_1080p3m";
+					else
+						stream_id = epgid + "_1300";
 					
 					Programlb prog = new Programlb(Integer.valueOf(id), name, area, epgid, stream_id);
 					mProgramList.add(prog);

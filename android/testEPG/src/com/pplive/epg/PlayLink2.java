@@ -143,7 +143,7 @@ public class PlayLink2 {
 		sb.append(String.format("%dx%d", mWidth, mHeight));
 		sb.append(", 时长: ");
 		sb.append(mDurationSec);
-		sb.append("秒");
+		sb.append("秒.");
 		sb.append(", imgUrl: ");
 		sb.append(mImgUrl);
 		
