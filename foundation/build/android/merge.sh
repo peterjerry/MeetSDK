@@ -56,7 +56,7 @@ then
 	CROSS_PREFIX=$PREBUILT/bin/i686-linux-android-
 	EXTRA_CFLAGS="$EXTRA_CFLAGS -fstrict-aliasing"
 	OPTFLAGS="-O2 -fno-pic"
-	ASM_OBJ="$ASM_OBJ libswscale/$ARCH/*.o"
+	ASM_OBJ="$ASM_OBJ libswscale/x86/*.o libavfilter/x86/*.o"
 elif [ $ARCH == 'mips' ]
 then
 	PLATFORM=$NDK/platforms/android-9/arch-mips
