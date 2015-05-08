@@ -208,7 +208,8 @@ public class TestEPG {
 	
 	public static void main(String[] args) {
 		
-		MyFrame myFrame = new MyFrame();
+		//PPTVFrame myFrame = new PPTVFrame();
+		LeTVFrame myFrame = new LeTVFrame();
 		myFrame.setVisible(true); 
 		
 		/*EPGUtil epg = new EPGUtil();

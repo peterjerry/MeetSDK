@@ -225,10 +225,16 @@ public class FFMediaPlayer extends BaseMediaPlayer {
 	public void setDisplay(SurfaceHolder sh) {
 		super.setDisplay(sh);
 		
-		_setVideoSurface(sh.getSurface());
+		setSurface(sh.getSurface());
+	}
+	
+	@Override
+	public void setSurface(Surface surface) {
+		// TODO Auto-generated method stub
+		_setVideoSurface(surface);
 		updateSurfaceScreenOn();
 	}
-
+	
 	@Override
 	public void prepare() throws IOException, IllegalStateException {
 		// TODO Auto-generated method stub

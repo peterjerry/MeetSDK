@@ -13,6 +13,7 @@
 	<property name="output.dir" location="output" />
 	<property name="symbol.dir" location="syms" />
 	<property name="dist.dir" location="dist" />
+	<property name="bin.dir" location="bin" />
 	
 	<tstamp>
 		<format property="build.timestamp" pattern="yyyyMMddHHmm" />
@@ -76,6 +77,9 @@
 	
 	<target name="-post-build">
 		<mkdir dir="${output.dir}" />
+		<condition property="jar.filename" value="${bin.dir}/proguard/obfuscated.jar" else="${out.absolute.dir}/classes.jar" >
+			<isfalse value="${debug}" />
+		</condition>
 		<copy 
 			file="${out.absolute.dir}/classes.jar" 
 			tofile="${output.dir}/${ant.project.name}.jar" 

@@ -45,6 +45,8 @@ public interface MediaPlayerInterface {
 			
 	public abstract void setDisplay(SurfaceHolder sh);
 	
+	public abstract void setSurface (Surface surface);
+	
 	public abstract int flags() throws IllegalStateException;
 	
 	public abstract Bitmap getSnapShot(int width, int height, int fmt, int msec);
