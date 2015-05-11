@@ -13,6 +13,7 @@ import android.widget.BaseAdapter;
 import android.widget.ImageView;
 import android.widget.TextView;
 
+import android.os.AsyncTask;
 import android.pplive.media.MeetSDK;
 import android.provider.MediaStore.Video.Thumbnails;
 
@@ -102,11 +103,8 @@ public class LocalFileAdapter extends BaseAdapter {
 			holder.thumb.setImageResource(thumb_id);
 		}
 		else {
-			Bitmap bm = MeetSDK.createVideoThumbnail(fullpath, Thumbnails.MICRO_KIND);
-			if (bm == null)
-				holder.thumb.setImageResource(R.drawable.clip);
-			else
-				holder.thumb.setImageBitmap(bm);
+			holder.thumb.setImageResource(R.drawable.clip);
+			new ThumbnailTask().execute(holder.thumb, fullpath);
 		}
 		
 		holder.tv_filename.setText(file_name);
@@ -116,5 +114,26 @@ public class LocalFileAdapter extends BaseAdapter {
 		holder.tv_resolution.setText(resolution);
 
 		return convertView;
+	}
+	
+	private class ThumbnailTask extends AsyncTask<Object, Integer, Bitmap> {
+
+		private ImageView mThumb;
+		
+		@Override
+		protected void onPostExecute(Bitmap bmp) {
+			if (bmp == null)
+				mThumb.setImageResource(R.drawable.clip);
+			else
+				mThumb.setImageBitmap(bmp);
+		}
+		
+		@Override
+		protected Bitmap doInBackground(Object... params) {
+			mThumb = (ImageView)params[0];
+			String img_url = (String)params[1];
+			return MeetSDK.createVideoThumbnail(img_url, Thumbnails.MICRO_KIND);
+		}
+		
 	}
 }
