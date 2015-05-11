@@ -72,10 +72,10 @@ public class LetvUtil {
 		return mStreamIdList;
 	}
 	
-	boolean read_json() {
+	boolean load_json(String path) {
 		BufferedReader br;
 		try {
-			br = new BufferedReader(new FileReader("itv_json_v5.php"));
+			br = new BufferedReader(new FileReader(path));
 			String data = "";
 			StringBuffer sb = new StringBuffer();
 			while ((data = br.readLine()) != null) {
@@ -83,6 +83,7 @@ public class LetvUtil {
 			}
 			
 			mJsonContext = sb.toString();
+			br.close();
 			return true;
 		} catch (FileNotFoundException e) {
 			// TODO Auto-generated catch block
@@ -96,10 +97,13 @@ public class LetvUtil {
 	}
 	
 	public boolean update_json() {
-		File json_file = new File("itv_json_v5.php");
+		String zip_save_path = "itv_json_v5.zip";
+		String json_save_path = "itv_json_v5.php";
+		
+		File json_file = new File(json_save_path);
 		if (json_file.exists()) {
 			System.out.println("Java: json file already exists!");
-			return read_json();
+			return load_json(json_save_path);
 		}
 		
 		boolean ret = httpUtil.httpDownload(context_json_url, "itv_json_v5.zip");
@@ -108,14 +112,14 @@ public class LetvUtil {
 			return false;
 		}
 		
-		File file = new File("itv_json_v5.zip");
+		File file = new File(zip_save_path);
 		try {
-			if (ZipUtil.upZipFile(file, "itv_json_v5.php") != 0) {
+			if (ZipUtil.upZipFile(file, json_save_path) != 0) {
 				System.out.println("Java: failed to unzip json");
 				return false;
 			}
 			
-			return read_json();
+			return load_json(json_save_path);
 		} catch (ZipException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();

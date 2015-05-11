@@ -483,8 +483,8 @@ public class PPTVFrame extends JFrame {
 				String httpUrl = String.format(url_fmt, liveitem.getHost(), start_time, liveitem.getK());
 				System.out.println(httpUrl);
 				
-				String saveFile = String.format("d:\\%d.flv", start_time);
-				Util.httpDownload(httpUrl, saveFile);
+				//String saveFile = String.format("d:\\%d.flv", start_time);
+				//Util.httpDownload(httpUrl, saveFile);
 			}
 			
 			return;
