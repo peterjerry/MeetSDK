@@ -8,10 +8,13 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.UnsupportedEncodingException;
+import java.net.URLEncoder;
 import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.Date;
 import java.util.GregorianCalendar;
 import java.util.List;
@@ -30,7 +33,11 @@ public class PPTVFrame extends JFrame {
 	private List<Navigator> mNavList;
 	private String mContentType;
 	
+	private int start_page = 1;
+	private int last_live_type = 0;
 	private boolean mListLive = false;
+	
+	private final static int PAGE_NUM = 10;
 	
 	private enum EPG_STATE {
 		EPG_STATE_IDLE,
@@ -51,13 +58,13 @@ public class PPTVFrame extends JFrame {
 	
 	private final static String[] ft_desc = {"流畅","高清","超清","蓝光"};
 	
-	JButton btnOK		= new JButton("OK");
-	JButton btnReset 	= new JButton("Reset");
-	JButton btnGo 		= new JButton("Go");
+	JButton btnReset 	= new JButton("重置");
+	JButton btnGo 		= new JButton("选择");
+	JButton btnNext 	= new JButton("翻页");
 	
-	JLabel lblInfo = new JLabel("info");
+	JLabel lblInfo = new JLabel("信息");
 	
-	JLabel lbl_link = new JLabel("link");
+	JLabel lbl_link = new JLabel("链接");
 	JTextPane editorPlayLink = new JTextPane();
 	
 	JComboBox<String> comboItem 	= null;
@@ -70,42 +77,67 @@ public class PPTVFrame extends JFrame {
 	JTextPane editorSearch = new JTextPane();
 	JButton btnSearch = new JButton("search");
 	
+	JLabel lbl_day = new JLabel("日期");
+	JLabel lbl_start_time = new JLabel("开始");
+	JLabel lbl_duration = new JLabel("时长");
+	
+	JComboBox<String> comboDay 		= null;
+	JComboBox<String> comboHour 	= null;
+	JComboBox<String> comboDuration	= null;
+	
+	JTextPane editorPlayExe = new JTextPane();
 
 	PPTVFrame() {
 		super();
 		
 		mEPG = new EPGUtil();
 		
-		this.setTitle("Test EPG");
-		this.setBounds(400, 300, 400, 600);
+		this.setTitle("PPTV 电视节目");
+		this.setBounds(400, 300, 500, 600);
 		this.addWindowListener(new WindowAdapter() {
 			public void windowClosing(WindowEvent e) {
 				dispose();
 				System.exit(0);
 			}
 		});
+		
+		Font f = new Font("宋体", 0, 20);
 
 		this.getContentPane().setLayout(null);
 		// Action
-		lblInfo.setBounds(5, 40, 300, 30);
+		lblInfo.setBounds(20, 20, 300, 40);
+		lblInfo.setFont(f);
 		this.getContentPane().add(lblInfo);
 		
-		btnOK.setBounds(0, 0, 80, 30);
-		this.getContentPane().add(btnOK);
-		btnGo.setBounds(230, 120, 50, 20);
+		btnGo.setFont(f);
+		btnGo.setBounds(180, 110, 80, 40);
 		this.getContentPane().add(btnGo);
-		btnReset.setBounds(280, 120, 80, 20);
+		btnReset.setFont(f);
+		btnReset.setBounds(260, 110, 80, 40);
 		this.getContentPane().add(btnReset);
-
-		btnOK.addActionListener(new AbstractAction() {
-			public void actionPerformed(ActionEvent e) {
-				lblInfo.setText("You Click OK!");
-			}
-		});
+		btnNext.setFont(f);
+		btnNext.setBounds(330, 110, 80, 40);
+		this.getContentPane().add(btnNext);
+		
+		lbl_link.setFont(f);
+		lbl_link.setBounds(20, 110, 40, 40);
+		this.getContentPane().add(lbl_link);
+		
+		editorPlayLink.setFont(f);
+		editorPlayLink.setBounds(60, 110, 100, 40);
+		editorPlayLink.setText("20986187");
+	    this.getContentPane().add(editorPlayLink);
 
 		btnReset.addActionListener(new AbstractAction() {
 			public void actionPerformed(ActionEvent e) {
 				init_combobox();
+			}
+		});
+		
+		btnNext.addActionListener(new AbstractAction() {
+			public void actionPerformed(ActionEvent e) {
+				start_page++;
+				selectList();
 			}
 		});
 		
@@ -141,17 +173,10 @@ public class PPTVFrame extends JFrame {
 				
 			}
 		});
-
-		lbl_link.setBounds(20, 120, 40, 20);
-		this.getContentPane().add(lbl_link);
-		editorPlayLink.setBounds(60, 120, 100, 20);
-		editorPlayLink.setText("20986187");
-	    this.getContentPane().add(editorPlayLink);
 		
 		comboItem = new JComboBox<String>();
-		Font f = new Font("宋体", 0, 12);
 		comboItem.setFont(f);
-		comboItem.setBounds(20, 80, 300, 20);
+		comboItem.setBounds(20, 60, 300, 40);
 		comboItem.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent e) {
@@ -173,27 +198,33 @@ public class PPTVFrame extends JFrame {
 		this.getContentPane().add(comboItem);
 		
 		comboFt = new JComboBox<String>(ft_desc);
-		comboFt.setBounds(20, 150, 80, 20);
+		comboFt.setFont(f);
+		comboFt.setBounds(20, 170, 80, 40);
 		comboFt.setSelectedIndex(1);
 		this.getContentPane().add(comboFt);
 		
 		String[] bw_type = {"P2P", "CDNP2P", "CDN", "PPTV", "DLNA"};
 		comboBwType = new JComboBox<String>(bw_type);
-		comboBwType.setBounds(120, 150, 80, 20);
-		comboBwType.setSelectedIndex(4);
+		comboBwType.setFont(f);
+		comboBwType.setBounds(120, 170, 80, 40);
+		comboBwType.setSelectedIndex(3);
 		this.getContentPane().add(comboBwType);
 
-		cbNoVideo.setBounds(220, 150, 120, 20);
+		cbNoVideo.setBounds(220, 170, 120, 40);
+		cbNoVideo.setFont(f);
 		this.getContentPane().add(cbNoVideo);
 		
 		/*String exe_filepath  = "D:/Software/ppbox/ppbox_test-win32-msvc90-mt-gd-1.1.0.exe";
 		String[] cmd = new String[] {exe_filepath, ""};
 		openExe(cmd);*/
 		
-		editorSearch.setBounds(20, 180, 200, 20);
+		editorSearch.setFont(f);
+		editorSearch.setBounds(20, 350, 200, 40);
 		editorSearch.setText("大牌直播间2015");
 	    this.getContentPane().add(editorSearch);
-	    btnSearch.setBounds(250, 180, 80, 20);
+	    
+	    btnSearch.setBounds(230, 350, 80, 40);
+	    editorSearch.setFont(f);
 		this.getContentPane().add(btnSearch);
 		btnSearch.addActionListener(new AbstractAction() {
 			public void actionPerformed(ActionEvent e) {
@@ -201,9 +232,67 @@ public class PPTVFrame extends JFrame {
 				search(key);
 			}
 		});
+		
+		lbl_day.setBounds(10, 250, 50, 40);
+		lbl_day.setFont(f);
+		this.getContentPane().add(lbl_day);
+		
+		SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd");
+		List<String> DayList = new ArrayList<String>();
+		Date today = new Date();
+		for (int j=0;j<=7;j++) {
+			Calendar c = Calendar.getInstance();
+			c.setTime(today);
+			c.add(Calendar.DAY_OF_MONTH, -1 * j);//把日期往后增加一天.整数往后推,负数往前移动 
+			Date day = c.getTime();
+			String strDay = df.format(day);
+			DayList.add(strDay);
+		}
+		String[] day_desc = new String[8];
+		DayList.toArray(day_desc);
+		comboDay = new JComboBox<String>(day_desc);
+		comboDay.setFont(f);
+		comboDay.setBounds(60, 250, 140, 40);
+		comboDay.setSelectedIndex(0);
+		this.getContentPane().add(comboDay);
+		
+		lbl_start_time.setBounds(210, 250, 50, 40);
+		lbl_start_time.setFont(f);
+		this.getContentPane().add(lbl_start_time);
+		
+		List<String> HourList = new ArrayList<String>();
+		for(int i=0;i<24;i++) {
+			HourList.add(String.format("%02d:00", i));
+			HourList.add(String.format("%02d:30", i));
+		}
+		String[] hour_desc = new String[48];
+		HourList.toArray(hour_desc);
+		comboHour = new JComboBox<String>(hour_desc);
+		comboHour.setFont(f);
+		comboHour.setBounds(260, 250, 80, 40);
+		comboHour.setSelectedIndex(16);
+		this.getContentPane().add(comboHour);
+		
+		lbl_duration.setBounds(10, 300, 50, 40);
+		lbl_duration.setFont(f);
+		this.getContentPane().add(lbl_duration);
+		
+		String[] duration_desc = {"直播", "半小时", "1小时",
+				"1.5小时", "2小时", "2.5小时", "3小时"};
+		comboDuration = new JComboBox<String>(duration_desc);
+		comboDuration.setFont(f);
+		comboDuration.setBounds(80, 300, 80, 40);
+		comboDuration.setSelectedIndex(0);
+		this.getContentPane().add(comboDuration);
+		
+		editorPlayExe.setFont(f);
+		editorPlayExe.setBounds(10, 400, 450, 40);
+		editorPlayExe.setText("D:/Software/ffmpeg/ffplay.exe");
+	    this.getContentPane().add(editorPlayExe);
 	}
 	
 	private void playvideo() {
+		/*
 		String link = mPlayLinkList.get(0).getId();
 		int ft = comboFt.getSelectedIndex();
 		
@@ -226,7 +315,10 @@ public class PPTVFrame extends JFrame {
 			System.out.println("failed to find ft");
 			mState = EPG_STATE.EPG_STATE_ERROR;
 			return;
-		}
+		}*/
+		
+		String link = editorPlayLink.getText();
+		int ft = comboFt.getSelectedIndex();
 		
 		int bw_type = comboBwType.getSelectedIndex();
 		String link_surfix = "";
@@ -241,7 +333,53 @@ public class PPTVFrame extends JFrame {
 			url = mEPG.getCDNUrl(link, str_ft, is_m3u8, noVideo);
 		}
 		else {
-			url = PlayLinkUtil.getPlayUrl(Integer.valueOf(link), 9006, ft, bw_type, link_surfix);
+			long start_time, duration;
+			
+			int dayIndex = comboDay.getSelectedIndex();
+			int hourIndex = comboHour.getSelectedIndex();
+			int durationIndex = comboDuration.getSelectedIndex();
+			
+			duration = durationIndex * 30;
+			if (duration != 0) {
+				Date date = new Date();
+				Calendar c = Calendar.getInstance();
+				c.setTime(date);
+				c.add(Calendar.DAY_OF_MONTH, -dayIndex);//把日期往后增加一天.整数往后推,负数往前移动 
+				c.set(Calendar.HOUR_OF_DAY, hourIndex / 2);
+				if (hourIndex % 2 == 0)
+					c.set(Calendar.MINUTE, 0);
+				else
+					c.set(Calendar.MINUTE, 30);
+				c.set(Calendar.SECOND, 0);
+				c.set(Calendar.MILLISECOND, 0);
+				System.out.println("Java: set time to: " + c.getTime());
+				
+				start_time = c.getTime().getTime() / 1000;
+				System.out.println(
+						"start_time: " + start_time + 
+						" , duration：" + duration);
+				
+				link_surfix = String.format("&begin_time=%d&end_time=%d", 
+						start_time, start_time + duration * 60);
+
+                try {
+                	link_surfix = URLEncoder.encode(link_surfix, "utf-8");
+				} catch (UnsupportedEncodingException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+					return;
+				}
+
+                System.out.println("Java: mPlayerLinkSurfix final: " + link_surfix);
+			}
+			
+			int port;
+			if (mListLive)
+				port = 5054;
+			else
+				port = 9006;
+			url = PlayLinkUtil.getPlayUrl(
+					Integer.valueOf(link), port, ft, bw_type, link_surfix);
 		}
 		
 		if (url == null) {
@@ -250,7 +388,10 @@ public class PPTVFrame extends JFrame {
 		}
 		
 		System.out.println("ready to open url: " + url);
-		String exe_filepath  = "D:/Software/ffmpeg/ffplay.exe";
+		
+		String exe_filepath = editorPlayExe.getText();
+		if (exe_filepath == null || exe_filepath.equals(""))
+			exe_filepath  = "D:/Software/ffmpeg/ffplay.exe";
 		String[] cmd = new String[] {exe_filepath, url};
 		openExe(cmd);
 	}
@@ -513,10 +654,10 @@ public class PPTVFrame extends JFrame {
 				return;
 			}
 			
-			ret = mEPG.live(1, 15, type);
+			ret = mEPG.live(start_page, PAGE_NUM, type);
 		}
 		else
-			ret = mEPG.list(param, mContentType, 1, "order=t", 10);
+			ret = mEPG.list(param, mContentType, start_page, "order=t", 10);
 		
 		if (!ret)
 			return;

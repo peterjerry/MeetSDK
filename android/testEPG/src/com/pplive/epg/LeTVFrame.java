@@ -28,6 +28,7 @@ public class LeTVFrame extends JFrame {
 		LETV_EPG_STATE_ERROR,
 		
 		LETV_EPG_STATE_CONTENT,
+		LETV_EPG_STATE_STREAM,
 		
 		LETV_EPG_STATE_FOUND_PLAYLINK,
 		LETV_EPG_STATE_LIST,
@@ -36,14 +37,18 @@ public class LeTVFrame extends JFrame {
 	LetvUtil mEPG;
 	List<Programlb> mProgramList;
 	List<PlayLinkLb> mPlayLinkList;
+	List<StreamIdLb> mStrmList;
 	
 	JButton btnOK		= new JButton("OK");
-	JButton btnReset 	= new JButton("Reset");
-	JButton btnGo 		= new JButton("Go");
+	JButton btnReset 	= new JButton("重置");
+	JButton btnGo 		= new JButton("进入");
 	
 	JLabel lblInfo = new JLabel("info");
+	JLabel lblNowPlayInfo = new JLabel("当前:");
+	JLabel lblWillPlayInfo = new JLabel("即将:");
 	
 	JComboBox<String> comboItem 	= null;
+	JComboBox<String> comboStream 	= null;
 	
 	JTextPane editorPlayLink = new JTextPane();
 	
@@ -53,7 +58,7 @@ public class LeTVFrame extends JFrame {
 		mEPG = new LetvUtil();
 		
 		this.setTitle("Test EPG");
-		this.setBounds(400, 300, 400, 600);
+		this.setBounds(400, 300, 500, 600);
 		this.addWindowListener(new WindowAdapter() {
 			public void windowClosing(WindowEvent e) {
 				dispose();
@@ -67,9 +72,9 @@ public class LeTVFrame extends JFrame {
 		this.getContentPane().add(lblInfo);
 		
 		comboItem = new JComboBox<String>();
-		Font f = new Font("宋体", 0, 12);
+		Font f = new Font("宋体", 0, 18);
 		comboItem.setFont(f);
-		comboItem.setBounds(20, 80, 300, 20);
+		comboItem.setBounds(20, 80, 200, 40);
 		comboItem.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent e) {
@@ -82,17 +87,33 @@ public class LeTVFrame extends JFrame {
 			@Override
 			public void itemStateChanged(ItemEvent e) {
 				// TODO Auto-generated method stub
+				mState = LETV_EPG_STATE.LETV_EPG_STATE_CONTENT;
+				comboStream.removeAllItems();
 			}
 
 		});
 		
 		this.getContentPane().add(comboItem);
 		
+		comboStream = new JComboBox<String>();
+		comboStream.setFont(f);
+		comboStream.setBounds(20, 130, 200, 40);
+		this.getContentPane().add(comboStream);
+		
+		lblNowPlayInfo.setBounds(5, 180, 500, 40);
+		lblNowPlayInfo.setFont(f);
+		this.getContentPane().add(lblNowPlayInfo);
+		lblWillPlayInfo.setBounds(5, 230, 500, 40);
+		lblWillPlayInfo.setFont(f);
+		this.getContentPane().add(lblWillPlayInfo);
+		
 		btnOK.setBounds(0, 0, 80, 30);
 		this.getContentPane().add(btnOK);
-		btnGo.setBounds(230, 120, 50, 20);
+		btnGo.setBounds(230, 80, 70, 40);
+		btnGo.setFont(f);
 		this.getContentPane().add(btnGo);
-		btnReset.setBounds(280, 120, 80, 20);
+		btnReset.setBounds(300, 80, 70, 40);
+		btnReset.setFont(f);
 		this.getContentPane().add(btnReset);
 
 		btnOK.addActionListener(new AbstractAction() {
@@ -113,6 +134,9 @@ public class LeTVFrame extends JFrame {
 				case LETV_EPG_STATE_CONTENT:
 					selectProgram();
 					break;
+				case LETV_EPG_STATE_STREAM:
+					selectStream();
+					break;
 				default:
 					break;
 				}
@@ -123,49 +147,71 @@ public class LeTVFrame extends JFrame {
 		
 	}
 	
-	void selectProgram() {
+	private void selectProgram() {
 		int n = comboItem.getSelectedIndex();
 		String epg_id = mProgramList.get(n).getEPGId();
 		String stream_id = mProgramList.get(n).getStreamId();
-		
-		if (mEPG.play_list(epg_id)) {
-			List<ProgramItemlb> list = mEPG.getProgramItemList();
+		System.out.println("Java: epg_id " + epg_id + " ,stream_id " + stream_id);
+
+		if (!mEPG.play_list(epg_id)) {
+			System.out.println("Java: failed to play_list()");
+			return;
+		}
 			
-			SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");//设置日期格式
-			SimpleDateFormat df_prefix = new SimpleDateFormat("yyyy-MM-dd");
-			System.out.println("current time " + df.format(new Date()));// new Date()为获取当前系统时间
-			Date now_date = new Date();
-			String now_prefix = df_prefix.format(now_date);
-			
-			for (int i=0;i<list.size();i++) {
-				ProgramItemlb item = list.get(i);
-				
-				Date item_date;
-				try {
-					item_date = df.parse(now_prefix + " " + item.getPlaytime());
-					if (item_date.getTime() >= now_date.getTime()) {
-						int index = i - 1;
-						if (index < 0)
-							index = 0;
-						ProgramItemlb nowplay_item = list.get(index);
-						System.out.println(String.format("Java: now playing %s, next %s",
-								nowplay_item.getTitle(), item.getTitle()));
-						break;
-					}
-				} catch (ParseException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
-				}
-			}
+		mStrmList = mEPG.getStreamIdList();
+		comboStream.removeAllItems();
+		for (int i=0;i<mStrmList.size();i++) {
+			comboStream.addItem(mStrmList.get(i).getId());
 		}
 		
-		String must = mEPG.recommend(stream_id);
+		List<ProgramItemlb> list = mEPG.getProgramItemList();
+		
+		SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");//设置日期格式
+		SimpleDateFormat df_prefix = new SimpleDateFormat("yyyy-MM-dd");
+		System.out.println("current time " + df.format(new Date()));// new Date()为获取当前系统时间
+		Date now_date = new Date();
+		String now_prefix = df_prefix.format(now_date);
+		
+		for (int i=0;i<list.size();i++) {
+			ProgramItemlb item = list.get(i);
+			
+			Date item_date;
+			try {
+				item_date = df.parse(now_prefix + " " + item.getPlaytime());
+				if (item_date.getTime() >= now_date.getTime()) {
+					int index = i - 1;
+					if (index < 0)
+						index = 0;
+					ProgramItemlb nowplay_item = list.get(index);
+					ProgramItemlb willplay_item = item;
+					String now_play = nowplay_item.getTitle();
+					String will_play = willplay_item.getTitle();
+					lblNowPlayInfo.setText("当前: " + now_play);
+					lblWillPlayInfo.setText("即将: " + will_play);
+					System.out.println(String.format("Java: now playing %s, next %s",
+							now_play, will_play));
+					
+					mState = LETV_EPG_STATE.LETV_EPG_STATE_STREAM;
+					break;
+				}
+			} catch (ParseException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		}
+	}
+	
+	private void selectStream() {
+		int index = comboStream.getSelectedIndex();
+		String select_strm_id = mStrmList.get(index).getId();
+		
+		String must = mEPG.recommend(select_strm_id);
 		if (must == null) {
 			System.out.println("Java: failed to recommend()");
 			return;
 		}
 		
-		if (!mEPG.live(stream_id, must)) {
+		if (!mEPG.live(select_strm_id, must)) {
 			System.out.println("Java: failed to live()");
 			return;
 		}
@@ -177,9 +223,9 @@ public class LeTVFrame extends JFrame {
 			System.out.println(String.format("Java: select %s %s", 
 					lb.getName(), url));
 			
-			String exe_filepath  = "D:/Software/ffmpeg/ffplay.exe";
+			String exe_filepath  = "D:/software/ffmpeg/ffplay.exe";
 			String[] cmd = new String[] {exe_filepath, url};
-			//openExe(cmd);
+			openExe(cmd);
 		}
 	}
 	
