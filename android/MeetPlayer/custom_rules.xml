@@ -9,7 +9,7 @@
 	
 	<property name="output.dir" location="../meetsdk/output" />
 	
-	<target name="-set-quick">
+	<target name="quick" >
 		<exec executable="quick.bat" failonerror="true"> 
 			<arg value="quick" /> 
 		</exec> 
@@ -27,7 +27,7 @@
 		</copy>
 	</target>
 	
-	<target name="-set-normal">
+	<target name="normal">
 		<exec executable="quick.bat" failonerror="true"> 
 			<arg value="normal" /> 
 		</exec> 
@@ -37,10 +37,4 @@
 		<delete file="${libs.dir}/armeabi/libsubtitle-jni.so" />
 	</target>
 	
-	<target
-        name="quick"
-        depends="-set-quick, android_rules.debug" />
-	<target
-        name="debug"
-        depends="-set-normal, android_rules.debug" />
 </project>

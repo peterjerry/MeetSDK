@@ -136,7 +136,6 @@ public class ClipListActivity extends Activity implements
 	private Button btnPPboxSel;
 	private Button btnTakeSnapShot;
 	private Button btnSelectAudioTrack;
-	private EditText et_play_url;
 	private MyPreView2 mPreview;
 	private boolean mPreviewFocused = false;
 	private SurfaceHolder mHolder;
@@ -341,7 +340,6 @@ public class ClipListActivity extends Activity implements
 		this.btnPPboxSel = (Button) findViewById(R.id.btn_ppbox);
 		this.btnTakeSnapShot = (Button) findViewById(R.id.btn_take_snapshot);
 		this.btnSelectAudioTrack = (Button) findViewById(R.id.btn_select_audiotrack);
-		this.et_play_url = (EditText) findViewById(R.id.et_url);
 		this.et_playlink = (EditText) findViewById(R.id.et_playlink);
 		this.btn_ft = (Button) findViewById(R.id.btn_ft);
 		this.btn_bw_type = (Button) findViewById(R.id.btn_bw_type);
@@ -719,7 +717,6 @@ public class ClipListActivity extends Activity implements
 			@Override
 			public void onClick(View view) {
 				// TODO Auto-generated method stub
-				Log.i(TAG, "onClick play: " + et_play_url.getText().toString());
 				int ppbox_playid, ppbox_ft, ppbox_bw_type;
 				String tmp;
 				tmp = et_playlink.getText().toString();
