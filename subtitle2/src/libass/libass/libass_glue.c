@@ -1,6 +1,7 @@
 #include "config.h"
 #include "libass/ass.h"
 #include "ass_library.h"
+#include <ass_utils.h>
 #include <string.h>
 #include <stdlib.h>
 

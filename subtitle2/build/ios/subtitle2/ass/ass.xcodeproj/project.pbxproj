@@ -14,7 +14,7 @@
 		2225A00B1A5BD71200B9CF8C /* ass.c in Sources */ = {isa = PBXBuildFile; fileRef = 22259FFF1A5BD71200B9CF8C /* ass.c */; };
 		2225A0551A5D26DF00B9CF8C /* libfontconfig.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 2225A0461A5BD98E00B9CF8C /* libfontconfig.a */; };
 		2281F3F31B0081BD00E9B5D4 /* libass_glue.c in Sources */ = {isa = PBXBuildFile; fileRef = 2281F3F21B0081BD00E9B5D4 /* libass_glue.c */; };
-		2281F3F41B00821800E9B5D4 /* libenca.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 2281F3BB1B007FD100E9B5D4 /* libenca.a */; };
+		22E7ACBA1B019077001201A0 /* libenca.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 22E7ACB71B019041001201A0 /* libenca.a */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -32,23 +32,16 @@
 			remoteGlobalIDString = 22259DC81A5A2A4900B9CF8C;
 			remoteInfo = fontconfig;
 		};
-		2281F3BA1B007FD100E9B5D4 /* PBXContainerItemProxy */ = {
+		22E7ACB61B019041001201A0 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
-			containerPortal = 2281F3B51B007FCF00E9B5D4 /* enca.xcodeproj */;
+			containerPortal = 22E7ACB11B019041001201A0 /* enca.xcodeproj */;
 			proxyType = 2;
 			remoteGlobalIDString = 2281F39B1B007FCE00E9B5D4;
 			remoteInfo = enca;
 		};
-		2281F3BC1B007FD100E9B5D4 /* PBXContainerItemProxy */ = {
+		22E7ACBB1B01907D001201A0 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
-			containerPortal = 2281F3B51B007FCF00E9B5D4 /* enca.xcodeproj */;
-			proxyType = 2;
-			remoteGlobalIDString = 2281F3A61B007FCE00E9B5D4;
-			remoteInfo = encaTests;
-		};
-		2281F3F01B00815300E9B5D4 /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = 2281F3B51B007FCF00E9B5D4 /* enca.xcodeproj */;
+			containerPortal = 22E7ACB11B019041001201A0 /* enca.xcodeproj */;
 			proxyType = 1;
 			remoteGlobalIDString = 2281F39A1B007FCE00E9B5D4;
 			remoteInfo = enca;
@@ -82,8 +75,8 @@
 		2225A0521A5D269100B9CF8C /* libfreetype.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libfreetype.a; path = "../freetype/build/Debug-iphoneos/libfreetype.a"; sourceTree = "<group>"; };
 		2225A0561A5D26E000B9CF8C /* libexpat.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libexpat.a; path = "../../Build/Products/Debug-iphoneos/libexpat.a"; sourceTree = "<group>"; };
 		2225A0571A5D26E000B9CF8C /* libfreetype.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libfreetype.a; path = "../../Build/Products/Debug-iphoneos/libfreetype.a"; sourceTree = "<group>"; };
-		2281F3B51B007FCF00E9B5D4 /* enca.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = enca.xcodeproj; path = ../enca/enca/enca.xcodeproj; sourceTree = "<group>"; };
 		2281F3F21B0081BD00E9B5D4 /* libass_glue.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = libass_glue.c; path = ../../../../../src/libass/libass/libass_glue.c; sourceTree = "<group>"; };
+		22E7ACB11B019041001201A0 /* enca.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = enca.xcodeproj; path = ../enca/enca.xcodeproj; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -91,7 +84,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				2281F3F41B00821800E9B5D4 /* libenca.a in Frameworks */,
+				22E7ACBA1B019077001201A0 /* libenca.a in Frameworks */,
 				2225A0551A5D26DF00B9CF8C /* libfontconfig.a in Frameworks */,
 				22259FCF1A5BD6DC00B9CF8C /* Foundation.framework in Frameworks */,
 			);
@@ -103,7 +96,7 @@
 		22259FC21A5BD6DC00B9CF8C = {
 			isa = PBXGroup;
 			children = (
-				2281F3B51B007FCF00E9B5D4 /* enca.xcodeproj */,
+				22E7ACB11B019041001201A0 /* enca.xcodeproj */,
 				2225A03E1A5BD98E00B9CF8C /* fontconfig.xcodeproj */,
 				22259FD01A5BD6DC00B9CF8C /* ass */,
 				22259FCD1A5BD6DC00B9CF8C /* Frameworks */,
@@ -162,11 +155,10 @@
 			name = Products;
 			sourceTree = "<group>";
 		};
-		2281F3B61B007FCF00E9B5D4 /* Products */ = {
+		22E7ACB21B019041001201A0 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				2281F3BB1B007FD100E9B5D4 /* libenca.a */,
-				2281F3BD1B007FD100E9B5D4 /* encaTests.xctest */,
+				22E7ACB71B019041001201A0 /* libenca.a */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -185,7 +177,7 @@
 			buildRules = (
 			);
 			dependencies = (
-				2281F3F11B00815300E9B5D4 /* PBXTargetDependency */,
+				22E7ACBC1B01907D001201A0 /* PBXTargetDependency */,
 				2225A04A1A5BD99A00B9CF8C /* PBXTargetDependency */,
 			);
 			name = ass;
@@ -214,8 +206,8 @@
 			projectDirPath = "";
 			projectReferences = (
 				{
-					ProductGroup = 2281F3B61B007FCF00E9B5D4 /* Products */;
-					ProjectRef = 2281F3B51B007FCF00E9B5D4 /* enca.xcodeproj */;
+					ProductGroup = 22E7ACB21B019041001201A0 /* Products */;
+					ProjectRef = 22E7ACB11B019041001201A0 /* enca.xcodeproj */;
 				},
 				{
 					ProductGroup = 2225A03F1A5BD98E00B9CF8C /* Products */;
@@ -237,18 +229,11 @@
 			remoteRef = 2225A0451A5BD98E00B9CF8C /* PBXContainerItemProxy */;
 			sourceTree = BUILT_PRODUCTS_DIR;
 		};
-		2281F3BB1B007FD100E9B5D4 /* libenca.a */ = {
+		22E7ACB71B019041001201A0 /* libenca.a */ = {
 			isa = PBXReferenceProxy;
 			fileType = archive.ar;
 			path = libenca.a;
-			remoteRef = 2281F3BA1B007FD100E9B5D4 /* PBXContainerItemProxy */;
-			sourceTree = BUILT_PRODUCTS_DIR;
-		};
-		2281F3BD1B007FD100E9B5D4 /* encaTests.xctest */ = {
-			isa = PBXReferenceProxy;
-			fileType = wrapper.cfbundle;
-			path = encaTests.xctest;
-			remoteRef = 2281F3BC1B007FD100E9B5D4 /* PBXContainerItemProxy */;
+			remoteRef = 22E7ACB61B019041001201A0 /* PBXContainerItemProxy */;
 			sourceTree = BUILT_PRODUCTS_DIR;
 		};
 /* End PBXReferenceProxy section */
@@ -274,10 +259,10 @@
 			name = fontconfig;
 			targetProxy = 2225A0491A5BD99A00B9CF8C /* PBXContainerItemProxy */;
 		};
-		2281F3F11B00815300E9B5D4 /* PBXTargetDependency */ = {
+		22E7ACBC1B01907D001201A0 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
 			name = enca;
-			targetProxy = 2281F3F01B00815300E9B5D4 /* PBXContainerItemProxy */;
+			targetProxy = 22E7ACBB1B01907D001201A0 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
