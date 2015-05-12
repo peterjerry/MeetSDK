@@ -86,7 +86,7 @@ public class EPGUtil {
 			+ "&nowplay=1"
 			+ "&appid=com.pplive.androidphone&appver=4.1.3&appplt=aph";
 	
-	private final static String live_cdn_url_fmt = "http://play.api.pptv.com//boxplay.api?" +
+	private final static String live_cdn_url_fmt = "http://play.api.pptv.com/boxplay.api?" +
 			"ft=1" +
 			"&platform=android3" +
 			"&type=phone.android.vip" +

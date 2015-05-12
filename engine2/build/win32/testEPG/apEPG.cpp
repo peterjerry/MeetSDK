@@ -35,6 +35,10 @@
 	"&appver=4.1.3&canal=@SHIP.TO.31415926PI@&userLevel=0&hasVirtual=1&k=%s&conlen=0" \
 	"&shownav=1&type=0&mode=all&contentype=0&c=2&s=1&ver=2&platform=android3" // k=xxx
 
+#define CDN_URL_FMT "http://play.api.pptv.com/boxplay.api?" \
+	"ft=1&platform=android3&type=phone.android.vip" \
+	"&sdk=1&channel=162&vvid=41&auth=55b7c50dc1adfc3bcabe2d9b2015e35c&id=%d"
+
 apEPG::apEPG(void)
 	:mData(NULL), mCurl(NULL)
 {
@@ -175,10 +179,10 @@ bool apEPG::search(const char* key, EPG_NAVIGATOR_LIST **pNav, EPG_PLAYLINK_LIST
 
 EPG_PLAYLINK_LIST * apEPG::detail(int vid)
 {
-	LOGI("getPlaylink() index %d", vid);
+	LOGI("getPlaylink() vid %d", vid);
 
 	if (vid == 0) {
-		LOGE("invalid index %d", vid);
+		LOGE("invalid vid %d", vid);
 		return NULL;
 	}
 
@@ -205,4 +209,38 @@ EPG_PLAYLINK_LIST * apEPG::detail(int vid)
 	apLog::print(0, apLog::info, "post ok. %d", mDataSize);
 	mData[mDataSize] = '\0';
 	return mParserXml.parseDetail(mData, mDataSize);
+}
+
+bool apEPG::live_cdn(int vid)
+{
+	LOGI("live_cdn() vid %d", vid);
+
+	if (vid == 0) {
+		LOGE("invalid vid %d", vid);
+		return NULL;
+	}
+
+	reset();
+
+	TCHAR url[1024] = {0};
+	_stprintf_s(url, CDN_URL_FMT, vid);
+	LOGI("curl_perform(live_cdn): %s", url);
+
+	CURLcode res;
+
+	curl_easy_reset(mCurl);
+
+	curl_easy_setopt(mCurl, CURLOPT_URL, url);
+	curl_easy_setopt(mCurl, CURLOPT_WRITEFUNCTION, apEPG::write_data);
+	curl_easy_setopt(mCurl, CURLOPT_WRITEDATA, this);
+
+	res = curl_easy_perform(mCurl);
+	if (CURLE_OK != res) {
+		apLog::print(0, apLog::info, "curl error %s\n", curl_easy_strerror(res));
+		return false;
+	}
+	
+	apLog::print(0, apLog::info, "post ok. %d", mDataSize);
+	mData[mDataSize] = '\0';
+	return mParserXml.parseCDN(mData, mDataSize);
 }

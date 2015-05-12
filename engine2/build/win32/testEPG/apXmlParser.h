@@ -14,6 +14,8 @@ public:
 
 	bool parseSearch(char *context, unsigned int size);
 
+	bool parseCDN(char *context, unsigned int size);
+
 	EPG_NAVIGATOR_LIST * get_nav(){return &mNavigatorList;}
 private:
 	boolean add_v(CMarkup v);

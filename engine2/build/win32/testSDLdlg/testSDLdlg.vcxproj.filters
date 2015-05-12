@@ -167,6 +167,9 @@
     <ClCompile Include="..\..\..\..\subtitle2\src\tinyxml2\tinyxml2.cpp">
       <Filter>源文件\subtitle</Filter>
     </ClCompile>
+    <ClCompile Include="strptime.c">
+      <Filter>源文件\util</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="testSDLdlg.rc">

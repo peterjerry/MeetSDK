@@ -59,6 +59,7 @@ import android.os.Build;
 import android.media.AudioManager;
 import android.graphics.Bitmap;
 import android.net.Uri;
+import android.net.wifi.WifiInfo;
 import android.net.wifi.WifiManager;
 import android.net.wifi.WifiManager.WifiLock;
 import android.os.AsyncTask;
@@ -2036,12 +2037,17 @@ public class ClipListActivity extends Activity implements
 		startActivity(intent);
 	}
 
-	private void upload_crash_report(int type) {	
-		MeetSDK.makePlayerlog();
-		
-		FeedBackFactory fbf = new FeedBackFactory(
-				 Integer.toString(type), "123456", true, false);
-		fbf.asyncFeedBack();
+	private void upload_crash_report(int type) { 
+        WifiManager wifiManager = (WifiManager) getSystemService(Context.WIFI_SERVICE);
+        WifiInfo wifiInfo = wifiManager.getConnectionInfo();       
+        int ipAddress = wifiInfo.getIpAddress();   
+        String ip = intToIp(ipAddress);   
+        if (ip.startsWith("192.168.")) {
+			MeetSDK.makePlayerlog();
+			FeedBackFactory fbf = new FeedBackFactory(
+					 Integer.toString(type), "123456", true, false);
+			fbf.asyncFeedBack();
+        }
 	}
 	
 	private void push_to_dmr() {

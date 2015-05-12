@@ -20,6 +20,8 @@ public:
 
 	EPG_PLAYLINK_LIST * get_playlink(){return mParserXml.get_playlink();}
 
+	bool live_cdn(int vid);
+
 	bool search(const char* key, EPG_NAVIGATOR_LIST **pNav, EPG_PLAYLINK_LIST **pPlaylink);
 
 private:

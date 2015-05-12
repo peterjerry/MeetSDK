@@ -2,6 +2,7 @@
 #include "apXmlParser.h"
 #define LOG_TAG "apXmlParser"
 #include "log.h"
+#include "strptime.h"
 
 //static std::string Utf82Ansi(const char* srcCode);
 
@@ -43,6 +44,57 @@ bool apXmlParser::parseSearch(char *context, unsigned int size)
 		std::string vid = dom.GetAttrib(_T("vid"));
 		apPlayLink2 l("", vid.c_str(), "");
 		mPlaylinkList.push_back(l);
+	}
+
+	return true;
+}
+
+bool apXmlParser::parseCDN(char *context, unsigned int size)
+{
+	FILE *pFile = NULL;
+	fopen_s(&pFile, "tmp2.xml", "wb");
+	fwrite(context, 1, size, pFile);
+	fclose(pFile);
+
+	CMarkup dom;
+	bool ret;
+
+	//ret = dom.SetDoc(context);
+	ret = dom.Load(_T("tmp2.xml"));
+	if (ret == false) {
+		LOGE("failed to parse xml");
+		
+		return false;
+	}
+
+	dom.FindElem("");
+	dom.IntoElem();
+
+	dom.FindElem("channel");
+	std::string rid = dom.GetAttrib("rid");
+
+	while(dom.FindElem("dt")) {
+		std::string d_ft = dom.GetAttrib("ft");
+
+		dom.IntoElem();
+		dom.FindElem("sh");
+		std::string d_sh = dom.GetData(); // main server
+		dom.FindElem("bh");
+		std::string d_bh = dom.GetData(); // backup server
+		dom.FindElem("st");
+		std::string d_st = dom.GetData(); // server time
+		dom.FindElem("key");
+		std::string d_key = dom.GetData();
+
+		char * str_time = "Sat Jul 30 08:43:03 2005";//"Mon May 11 08:59:18 2015 UTC";
+		tm now_tm;
+		strptime(d_st.c_str(), "%a %b %d %H:%M:%S %Y %z", &now_tm);
+		time_t now_time = mktime(&now_tm);
+		time_t t = time(&now_time); 
+		LOGI("sh %s, bh %s, st %s, key %s, time %I64d", 
+			d_sh.c_str(), d_bh.c_str(), d_st.c_str(), d_key.c_str(), t);
+
+		dom.OutOfElem();
 	}
 
 	return true;

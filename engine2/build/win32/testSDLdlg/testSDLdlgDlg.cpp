@@ -196,7 +196,6 @@ BEGIN_MESSAGE_MAP(CtestSDLdlgDlg, CDialogEx)
 	ON_BN_CLICKED(IDC_BUTTON_PLAY_EPG, &CtestSDLdlgDlg::OnBnClickedButtonPlayEpg)
 END_MESSAGE_MAP()
 
-
 // CtestSDLdlgDlg 消息处理程序
 
 BOOL CtestSDLdlgDlg::OnInitDialog()
@@ -1092,8 +1091,10 @@ void CtestSDLdlgDlg::thread_proc()
 		
 		mComboEPGItem.SetCurSel(0);
 		
-		if (playlinklist->size() == 1)
+		if (playlinklist->size() == 1) {
 			SetDlgItemInt(IDC_EDIT_PLAYLINK, playlinklist->at(0).get_id());
+			mEPG.live_cdn(mEPGValue);
+		}
 
 		break;
 	case EPG_QUERY_CDN_URL:
