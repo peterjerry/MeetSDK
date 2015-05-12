@@ -4,9 +4,13 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.ObjectOutputStream;
+import java.io.OutputStream;
 import java.io.UnsupportedEncodingException;
 import java.net.HttpURLConnection;
+import java.net.MalformedURLException;
 import java.net.URL;
+import java.net.URLConnection;
 import java.net.URLEncoder;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -81,6 +85,7 @@ import com.pplive.meetplayer.util.DownloadAsyncTask;
 import com.pplive.meetplayer.util.EPGUtil;
 import com.pplive.meetplayer.util.FeedBackFactory;
 import com.pplive.meetplayer.util.FileFilterTest;
+import com.pplive.meetplayer.util.HttpPostUtil;
 import com.pplive.meetplayer.util.IDlnaCallback;
 import com.pplive.meetplayer.util.ListMediaUtil;
 import com.pplive.meetplayer.util.LoadPlayLinkUtil;
@@ -93,12 +98,6 @@ import com.pplive.meetplayer.ui.widget.MiniMediaController;
 import com.pplive.dlna.DLNASdk;
 import com.pplive.dlna.DLNASdk.DLNASdkInterface;
 import com.pplive.dlna.DLNASdkDMSItemInfo;
-
-
-
-
-
-
 
 
 
@@ -2041,13 +2040,58 @@ public class ClipListActivity extends Activity implements
         WifiManager wifiManager = (WifiManager) getSystemService(Context.WIFI_SERVICE);
         WifiInfo wifiInfo = wifiManager.getConnectionInfo();       
         int ipAddress = wifiInfo.getIpAddress();   
-        String ip = intToIp(ipAddress);   
+        String ip = intToIp(ipAddress);
+        
+        MeetSDK.makePlayerlog();
+        
         if (ip.startsWith("192.168.")) {
-			MeetSDK.makePlayerlog();
-			FeedBackFactory fbf = new FeedBackFactory(
-					 Integer.toString(type), "123456", true, false);
-			fbf.asyncFeedBack();
+        	String URL = "http://172.16.10.137/crashapi/api/crashreport/launcher";
+        	FeedBackFactory fbf = new FeedBackFactory(
+   				 Integer.toString(type), "123456", true, false);
+        	fbf.asyncFeedBack(URL);
         }
+        else {
+        	new PostLogTask().execute("");
+        }
+	}
+	
+	private class PostLogTask extends AsyncTask<String, Integer, Boolean> {
+
+		@Override
+		protected void onPostExecute(Boolean result) {
+			// TODO Auto-generated method stub
+			if (result) {
+				Toast.makeText(ClipListActivity.this, "log uploaded to iloveaya", Toast.LENGTH_SHORT).show();
+			}
+		}
+		
+		@Override
+		protected Boolean doInBackground(String... params) {
+			// TODO Auto-generated method stub
+			try {
+				SimpleDateFormat df = new SimpleDateFormat("yyyy_MM_dd_HH_mm_ss");
+				String filename = df.format(new Date()) + ".zip";
+				Log.i(TAG, "Java: log zipfile name: " + filename);
+				
+				LogcatHelper.getInstance().zipLogFiles(filename);
+				
+    			HttpPostUtil u = new HttpPostUtil("http://www.iloveyaya.zz.vc/upload.php");
+    			u.addFileParameter(
+    					"file", 
+    					new File(getCacheDir() + File.separator + filename));
+    			u.addTextParameter("tag", "chinese");
+    			byte[] b = u.send();
+    			String result = new String(b);
+    			Log.i(TAG, "Java: HttpPostUtil result: " + result);
+    			return true;
+    		} catch (Exception e) {
+    			// TODO Auto-generated catch block
+    			e.printStackTrace();
+    		}
+			
+			return false;
+		}
+		
 	}
 	
 	private void push_to_dmr() {
