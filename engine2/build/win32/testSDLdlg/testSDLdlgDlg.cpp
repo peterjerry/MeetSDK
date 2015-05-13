@@ -176,6 +176,8 @@ void CtestSDLdlgDlg::DoDataExchange(CDataExchange* pDX)
 	DDX_Control(pDX, IDC_PROGRESS_CLIP, mProgClip);
 	DDX_Control(pDX, IDC_COMBO_URL, mComboURL);
 	DDX_Control(pDX, IDC_COMBO_CATALOG, mComboEPGItem);
+	DDX_Control(pDX, IDC_COMBO_BWTYPE, mCBbwType);
+	DDX_Control(pDX, IDC_COMBO_FT, mCBft);
 }
 
 BEGIN_MESSAGE_MAP(CtestSDLdlgDlg, CDialogEx)
@@ -297,6 +299,19 @@ BOOL CtestSDLdlgDlg::OnInitDialog()
 	SetDlgItemText(IDC_EDIT_TIMECODE, timeFmt);
 	SetDlgItemText(IDC_EDIT_VOD_DURATION, "90");
 	//SetDlgItemText(IDC_EDIT_VLC_PATH, "C:\\Program Files (x86)\\VideoLAN\\VLC\\vlc.exe");
+
+	mCBft.AddString("流畅");
+	mCBft.AddString("高清");
+	mCBft.AddString("超清");
+	mCBft.AddString("蓝光");
+	mCBft.SetCurSel(1);
+
+	mCBbwType.AddString("P2P");
+	mCBbwType.AddString("CDNP2P");
+	mCBbwType.AddString("CDN");
+	mCBbwType.AddString("PPTV");
+	mCBbwType.AddString("DLNA");
+	mCBbwType.SetCurSel(4);
 
 	SetDlgItemText(IDC_EDIT_PLAYLINK, "17493573");
 	SetDlgItemText(IDC_EDIT_FT, "1");
@@ -1093,7 +1108,6 @@ void CtestSDLdlgDlg::thread_proc()
 		
 		if (playlinklist->size() == 1) {
 			SetDlgItemInt(IDC_EDIT_PLAYLINK, playlinklist->at(0).get_id());
-			mEPG.live_cdn(mEPGValue);
 		}
 
 		break;
@@ -1260,19 +1274,35 @@ void CtestSDLdlgDlg::OnBnClickedButtonPlayEpg()
 	char str_playlink[512] = {0};
 
 	int link, ft, bw_type;
-	link = GetDlgItemInt(IDC_EDIT_PLAYLINK);
-	ft = GetDlgItemInt(IDC_EDIT_FT);
-	bw_type = GetDlgItemInt(IDC_EDIT_BWTYPE);
+	link	= GetDlgItemInt(IDC_EDIT_PLAYLINK);
+	ft		= mCBft.GetCurSel();
+	bw_type = mCBbwType.GetCurSel();
 
-	_snprintf(str_playlink, 512, "%d?ft=%d&bwtype=%d&platform=android3&type=phone.android.vip&sv=4.1.3", // &param=userType%3D1
-		link, ft, bw_type);
-	LOGI("playlink before urlencode: %s", str_playlink);
-	int out_len = 0;
-	char *encoded_playlink = urlencode(str_playlink, strlen(str_playlink), &out_len);
-	LOGI("playlink after urlencode: %s", encoded_playlink);
+	if (bw_type == 4) {
+		char *url = mEPG.get_cdn_url(link, ft, false, false);
+		if (url == NULL) {
+			LOGE("failed to get cdn url");
+			MessageBox("failed to get cdn url");
+			return;
+		}
 
-	_snprintf(str_url, 1024, pptv_playlink_ppvod2_fmt, HOST, mhttpPort, encoded_playlink);
-	strcat(str_url, "%26param%3DuserType%253D1&mux.M3U8.segment_duration=5");
+		strcpy(str_url, url);
+		free(url);
+		url = NULL;
+	}
+	else {
+		_snprintf(str_playlink, 512, "%d?ft=%d&bwtype=%d&platform=android3&type=phone.android.vip&sv=4.1.3", // &param=userType%3D1
+			link, ft, bw_type);
+		LOGI("playlink before urlencode: %s", str_playlink);
+		int out_len = 0;
+		char *encoded_playlink = urlencode(str_playlink, strlen(str_playlink), &out_len);
+		LOGI("playlink after urlencode: %s", encoded_playlink);
+
+		_snprintf(str_url, 1024, pptv_playlink_ppvod2_fmt, HOST, mhttpPort, encoded_playlink);
+		strcat(str_url, "%26param%3DuserType%253D1&mux.M3U8.segment_duration=5");
+	}
+
 	LOGI("final vod url: %s", str_url);
+	
 	start_player(str_url);
 }

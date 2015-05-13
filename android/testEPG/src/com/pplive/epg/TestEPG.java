@@ -6,9 +6,9 @@ import java.util.List;
 public class TestEPG { 
 	
 	public static void main(String[] args) {
-
-		//PPTVFrame myFrame = new PPTVFrame();
-		LeTVFrame myFrame = new LeTVFrame();
+		
+		PPTVFrame myFrame = new PPTVFrame();
+		//LeTVFrame myFrame = new LeTVFrame();
 		myFrame.setVisible(true); 
 		
 		/*EPGUtil epg = new EPGUtil();

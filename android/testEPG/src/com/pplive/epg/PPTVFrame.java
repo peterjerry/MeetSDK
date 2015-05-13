@@ -480,6 +480,7 @@ public class PPTVFrame extends JFrame {
 	            start_time -= 45;
 	            start_time -= (start_time % 5);
 	            
+	            System.out.println("server time: " + new Date(st).getTime());
 				String httpUrl = String.format(url_fmt, liveitem.getHost(), start_time, liveitem.getK());
 				System.out.println(httpUrl);
 				

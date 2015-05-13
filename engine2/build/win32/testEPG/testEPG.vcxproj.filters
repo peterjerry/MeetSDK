@@ -98,5 +98,11 @@
     <ClCompile Include="md5c.c">
       <Filter>源文件\util</Filter>
     </ClCompile>
+    <ClCompile Include="apKey.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="strptime.c">
+      <Filter>源文件</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>

@@ -211,9 +211,9 @@ EPG_PLAYLINK_LIST * apEPG::detail(int vid)
 	return mParserXml.parseDetail(mData, mDataSize);
 }
 
-bool apEPG::live_cdn(int vid)
+char * apEPG::get_cdn_url(int vid, int ft, bool is_m3u8, bool novideo)
 {
-	LOGI("live_cdn() vid %d", vid);
+	LOGI("get_cdn_url() vid %d", vid);
 
 	if (vid == 0) {
 		LOGE("invalid vid %d", vid);
@@ -242,5 +242,5 @@ bool apEPG::live_cdn(int vid)
 	
 	apLog::print(0, apLog::info, "post ok. %d", mDataSize);
 	mData[mDataSize] = '\0';
-	return mParserXml.parseCDN(mData, mDataSize);
+	return mParserXml.parseCDN(mData, mDataSize, ft, is_m3u8, novideo);
 }

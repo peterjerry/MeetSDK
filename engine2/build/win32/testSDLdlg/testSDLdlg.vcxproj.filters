@@ -60,6 +60,9 @@
     <ClInclude Include="apAudioEncoder.h">
       <Filter>头文件</Filter>
     </ClInclude>
+    <ClInclude Include="apKey.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="testSDLdlg.cpp">
@@ -167,7 +170,10 @@
     <ClCompile Include="..\..\..\..\subtitle2\src\tinyxml2\tinyxml2.cpp">
       <Filter>源文件\subtitle</Filter>
     </ClCompile>
-    <ClCompile Include="strptime.c">
+    <ClCompile Include="..\testEPG\apKey.cpp">
+      <Filter>源文件\util</Filter>
+    </ClCompile>
+    <ClCompile Include="..\testEPG\strptime.c">
       <Filter>源文件\util</Filter>
     </ClCompile>
   </ItemGroup>

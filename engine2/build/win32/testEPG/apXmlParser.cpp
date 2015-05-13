@@ -2,9 +2,19 @@
 #include "apXmlParser.h"
 #define LOG_TAG "apXmlParser"
 #include "log.h"
+#include <time.h>
 #include "strptime.h"
+#include "apKey.h"
+#include <vector>
+
+#define HOST_PORT_STR ":80"
 
 //static std::string Utf82Ansi(const char* srcCode);
+
+struct rid_t {
+	int			ft;
+	std::string	rid;
+};
 
 apXmlParser::apXmlParser(void)
 {
@@ -49,7 +59,7 @@ bool apXmlParser::parseSearch(char *context, unsigned int size)
 	return true;
 }
 
-bool apXmlParser::parseCDN(char *context, unsigned int size)
+char * apXmlParser::parseCDN(char *context, unsigned int size, int ft, bool is_m3u8, bool novideo)
 {
 	FILE *pFile = NULL;
 	fopen_s(&pFile, "tmp2.xml", "wb");
@@ -71,33 +81,109 @@ bool apXmlParser::parseCDN(char *context, unsigned int size)
 	dom.IntoElem();
 
 	dom.FindElem("channel");
-	std::string rid = dom.GetAttrib("rid");
+	std::string main_rid = dom.GetAttrib("rid");
+	dom.IntoElem();
+	dom.FindElem("file");
+	dom.IntoElem();
+	std::vector<rid_t> ridList;
 
-	while(dom.FindElem("dt")) {
+	while(dom.FindElem("item")) {
+		std::string rid = dom.GetAttrib("rid");
+		int ft = atoi(dom.GetAttrib("ft").c_str());
+		struct rid_t new_item;
+		new_item.ft = ft;
+		new_item.rid = rid;
+		ridList.push_back(new_item);
+	}
+
+	dom.OutOfElem();
+	dom.OutOfElem();
+
+	while (dom.FindElem("dt")) {
 		std::string d_ft = dom.GetAttrib("ft");
 
 		dom.IntoElem();
 		dom.FindElem("sh");
 		std::string d_sh = dom.GetData(); // main server
+		ret = dom.FindElem("st");
+		std::string d_st = dom.GetData(); // server time
 		dom.FindElem("bh");
 		std::string d_bh = dom.GetData(); // backup server
-		dom.FindElem("st");
-		std::string d_st = dom.GetData(); // server time
 		dom.FindElem("key");
-		std::string d_key = dom.GetData();
+		std::string d_key = dom.GetData(); // key
 
-		char * str_time = "Sat Jul 30 08:43:03 2005";//"Mon May 11 08:59:18 2015 UTC";
-		tm now_tm;
-		strptime(d_st.c_str(), "%a %b %d %H:%M:%S %Y %z", &now_tm);
-		time_t now_time = mktime(&now_tm);
-		time_t t = time(&now_time); 
-		LOGI("sh %s, bh %s, st %s, key %s, time %I64d", 
-			d_sh.c_str(), d_bh.c_str(), d_st.c_str(), d_key.c_str(), t);
+		if (atoi(d_ft.c_str()) == ft) {
+			//char * str_time = "Tue May 12 07:58:14 2015 UTC";
+			tm utc_tm;
+			strptime(d_st.c_str(), "%a %b %d %H:%M:%S %Y %Z", &utc_tm);
+			//char * asctime(const struct tm * timeptr);
+			//char* ctime(time_t* t);
+			//time_t utc_time = mktime(&utc_tm);
+			//tm *gmt_time = localtime(&utc_time);
+			time_t t = _mkgmtime(&utc_tm);
+			LOGI("ft %s sh %s, bh %s, st %s, key %s, time %I64d sec", 
+				d_ft.c_str(), d_sh.c_str(), d_bh.c_str(), d_st.c_str(), d_key.c_str(), t);
+
+			apKey k1;
+			uint8_t *gen_key = k1.getKey(t);
+			LOGI("key %s", gen_key);
+
+			std::string final_url;
+
+			if (d_sh.find("http://") == std::string::npos)
+				final_url = "http://" + d_sh;
+			else
+				final_url = d_sh;
+			if (d_sh.find(":") == std::string::npos)
+				final_url += std::string(HOST_PORT_STR);
+					
+			final_url += "/";
+					
+			std::string url_rid;
+			for (unsigned int j=0;j<ridList.size();j++) {
+				if (ridList[j].ft == ft) {
+					url_rid = ridList[j].rid;
+					break;
+				}
+			}
+
+			if (novideo/*force use m3u8*/ || is_m3u8) {
+				std::string strsrc = ".mp4";
+				std::string strdst = ".m3u8";
+				std::string::size_type pos = 0;
+				std::string::size_type srclen = strsrc.size();
+				std::string::size_type dstlen = strdst.size();
+
+				if( (pos = url_rid.find(strsrc, pos)) != std::string::npos ) {
+					url_rid.replace( pos, srclen, strdst );
+					pos += dstlen;
+				}
+
+				final_url += url_rid;
+			}
+			else
+				final_url += url_rid;
+					
+			final_url += "?w=1&key=" + std::string((char *)gen_key);
+			final_url += "&k=" + d_key;
+			if (novideo)
+				final_url += "&video=false";
+			final_url += "&type=phone.android.vip&vvid=877a4382-f0e4-49ed-afea-8d59dbd11df1" \
+				"&sv=4.1.3&platform=android3";
+			final_url += "&ft=" + d_ft;
+			final_url += "&accessType=wifi";
+	
+			char *str_url = new char[final_url.length() + 1];
+			strcpy(str_url, final_url.c_str());
+
+			LOGI("epg final cdn url: %s", str_url);
+			return str_url;
+		}
 
 		dom.OutOfElem();
 	}
 
-	return true;
+	return NULL;
 }
 
 EPG_PLAYLINK_LIST * apXmlParser::parseDetail(char *context, unsigned int size)
