@@ -4,7 +4,6 @@
 #define LOG_TAG "apEPG"
 #include "log.h"
 
-#include "wininet.h"
 #include "urlcodec.h"
 #include "md5c.h"
 #include "apFileLog.h"

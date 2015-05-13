@@ -18,7 +18,7 @@ public:
 
 	EPG_NAVIGATOR_LIST * get_nav(){return &mNavigatorList;}
 private:
-	boolean add_v(CMarkup v);
+	bool add_v(CMarkup v);
 
 private:
 	EPG_NAVIGATOR_LIST	mNavigatorList;

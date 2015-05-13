@@ -424,7 +424,7 @@ public class ClipListActivity extends Activity implements
 
 		this.lv_filelist = (ListView) findViewById(R.id.lv_filelist);
 		
-		new ListItemTask().execute(mCurrentFolder);
+		//new ListItemTask().execute(mCurrentFolder);
 		
 		this.lv_filelist
 				.setOnItemClickListener(new ListView.OnItemClickListener() {
@@ -2051,11 +2051,11 @@ public class ClipListActivity extends Activity implements
         	fbf.asyncFeedBack(URL);
         }
         else {
-        	new PostLogTask().execute("");
+        	new UploadLogTask().execute("");
         }
 	}
 	
-	private class PostLogTask extends AsyncTask<String, Integer, Boolean> {
+	private class UploadLogTask extends AsyncTask<String, Integer, Boolean> {
 
 		@Override
 		protected void onPostExecute(Boolean result) {

@@ -218,9 +218,9 @@ EPG_PLAYLINK_LIST * apXmlParser::parseDetail(char *context, unsigned int size)
 	return &mPlaylinkList;
 }
 
-boolean apXmlParser::add_v(CMarkup v)
+bool apXmlParser::add_v(CMarkup v)
 {
-	boolean found = false;
+	bool found = false;
 
 	v.FindElem("title");
 	std::string link_title		= v.GetData();

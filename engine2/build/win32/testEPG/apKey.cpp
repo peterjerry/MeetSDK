@@ -1,6 +1,7 @@
 #include "stdafx.h"
 #include "apKey.h"
-#include <time.h>
+#include <time.h> // for time
+#include <stdlib.h> // for rand
 
 int ENCRYPT_ROUNDS = 32;
 int DELTA = 0x9E3779B9;
@@ -81,19 +82,6 @@ static int Str2Hex(uint8_t *buffer, int buf_size, uint8_t *hexstr, int hs_size)
 	}
 
 	hexstr[2 * buf_size] = '\0';
-	return 1;
-}
-
-static int Hex2Str(uint8_t *result, int hs_size, uint8_t *buffer, int buf_size)
-{
-	if (2 * buf_size < hs_size)
-		return 0;
-
-	for (int i = 0; i < hs_size / 2; i++) {
-		buffer[i] = (byte) ((result[2 * i] - (result[2 * i] > '9' ? 'a' - (char) 10 : '0')) | ((result[2 * i + 1] - (result[2 * i + 1] > '9' ? 'a' - (char) 10
-			: '0')) << 4));
-	}
-
 	return 1;
 }
 

@@ -422,7 +422,7 @@ public final class MeetSDK {
 				sDiskCache = DiskLruCache.open(sCacheDir, 1 /* appVersion */, 1 /* valueCount */, 4 * 1024 * 1024 /* maxSize */);
 			} 
 		} catch (IOException e) {
-            LogUtils.error("IOException", e);
+            LogUtils.error("failed to open DiskLruCache: IOException", e);
 		} finally {
 			
 		}
