@@ -6,6 +6,7 @@
 #include "apModule.h"
 #include "apNavigator.h"
 #include "apPlayLink2.h"
+#include "apCDNItem.h"
 
 #include <vector>
 #include <map>

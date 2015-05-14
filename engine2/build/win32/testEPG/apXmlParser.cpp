@@ -124,8 +124,7 @@ char * apXmlParser::parseCDN(char *context, unsigned int size, int ft, bool is_m
 			LOGI("ft %s sh %s, bh %s, st %s, key %s, time %I64d sec", 
 				d_ft.c_str(), d_sh.c_str(), d_bh.c_str(), d_st.c_str(), d_key.c_str(), t);
 
-			apKey k1;
-			uint8_t *gen_key = k1.getKey(t);
+			uint8_t *gen_key = apKey::getKey(t);
 			LOGI("key %s", gen_key);
 
 			std::string final_url;
@@ -177,6 +176,9 @@ char * apXmlParser::parseCDN(char *context, unsigned int size, int ft, bool is_m
 			strcpy(str_url, final_url.c_str());
 
 			LOGI("epg final cdn url: %s", str_url);
+			
+			delete gen_key;
+			gen_key = NULL;
 			return str_url;
 		}
 
@@ -184,6 +186,42 @@ char * apXmlParser::parseCDN(char *context, unsigned int size, int ft, bool is_m
 	}
 
 	return NULL;
+}
+
+apCDNItem * apXmlParser::parseLiveCDN(char *context, unsigned int size)
+{
+	FILE *pFile = NULL;
+	fopen_s(&pFile, "tmp3.xml", "wb");
+	fwrite(context, 1, size, pFile);
+	fclose(pFile);
+
+	CMarkup dom;
+	bool ret;
+	ret = dom.SetDoc(context);
+	if (ret == false) {
+		LOGE("failed to parse xml");
+		return false;
+	}
+
+	dom.FindElem("");
+	dom.IntoElem();
+
+	dom.FindElem("channel");
+	std::string main_rid = dom.GetAttrib("rid");
+
+	dom.FindElem("dt");
+	dom.IntoElem();
+
+	dom.FindElem("sh");
+	std::string d_sh = dom.GetData(); // main server
+	ret = dom.FindElem("st");
+	std::string d_st = dom.GetData(); // server time
+	dom.FindElem("bh");
+	std::string d_bh = dom.GetData(); // backup server
+	dom.FindElem("key");
+	std::string d_key = dom.GetData(); // key
+
+	return new apCDNItem(d_sh.c_str(), d_st.c_str(), d_bh.c_str(), 1);
 }
 
 EPG_PLAYLINK_LIST * apXmlParser::parseDetail(char *context, unsigned int size)

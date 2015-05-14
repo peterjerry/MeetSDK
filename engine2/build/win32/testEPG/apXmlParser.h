@@ -2,6 +2,8 @@
 #include "common.h"
 #include "markup.h"
 
+class apCDNItem;
+
 class apXmlParser
 {
 public:
@@ -15,6 +17,8 @@ public:
 	bool parseSearch(char *context, unsigned int size);
 
 	char * parseCDN(char *context, unsigned int size, int ft, bool is_m3u8, bool novideo);
+
+	apCDNItem * parseLiveCDN(char *context, unsigned int size);
 
 	EPG_NAVIGATOR_LIST * get_nav(){return &mNavigatorList;}
 private:

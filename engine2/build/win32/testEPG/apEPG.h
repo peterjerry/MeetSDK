@@ -2,6 +2,8 @@
 #include "apJsonParser.h"
 #include "apXmlParser.h"
 
+class apCDNItem;
+
 class apEPG
 {
 public:
@@ -21,6 +23,8 @@ public:
 	EPG_PLAYLINK_LIST * get_playlink(){return mParserXml.get_playlink();}
 
 	char * get_cdn_url(int vid, int ft, bool is_m3u8, bool novideo);
+
+	apCDNItem * get_live_cdn_url(int vid);
 
 	bool search(const char* key, EPG_NAVIGATOR_LIST **pNav, EPG_PLAYLINK_LIST **pPlaylink);
 

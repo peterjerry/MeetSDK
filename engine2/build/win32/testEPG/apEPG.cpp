@@ -243,3 +243,37 @@ char * apEPG::get_cdn_url(int vid, int ft, bool is_m3u8, bool novideo)
 	mData[mDataSize] = '\0';
 	return mParserXml.parseCDN(mData, mDataSize, ft, is_m3u8, novideo);
 }
+
+apCDNItem * apEPG::get_live_cdn_url(int vid)
+{
+	LOGI("get_cdn_url() vid %d", vid);
+
+	if (vid == 0) {
+		LOGE("invalid vid %d", vid);
+		return NULL;
+	}
+
+	reset();
+
+	TCHAR url[1024] = {0};
+	_stprintf_s(url, CDN_URL_FMT, vid);
+	LOGI("curl_perform(live_cdn): %s", url);
+
+	CURLcode res;
+
+	curl_easy_reset(mCurl);
+
+	curl_easy_setopt(mCurl, CURLOPT_URL, url);
+	curl_easy_setopt(mCurl, CURLOPT_WRITEFUNCTION, apEPG::write_data);
+	curl_easy_setopt(mCurl, CURLOPT_WRITEDATA, this);
+
+	res = curl_easy_perform(mCurl);
+	if (CURLE_OK != res) {
+		apLog::print(0, apLog::info, "curl error %s\n", curl_easy_strerror(res));
+		return false;
+	}
+	
+	apLog::print(0, apLog::info, "post ok. %d", mDataSize);
+	mData[mDataSize] = '\0';
+	return mParserXml.parseLiveCDN(mData, mDataSize);
+}

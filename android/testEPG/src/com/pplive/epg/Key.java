@@ -15,7 +15,7 @@ public class Key
 
     public static String getKey(long serverTime)
     {
-    	System.out.println("Java: serverTime " + serverTime);
+    	//System.out.println("Java: serverTime " + serverTime);
     	
         byte[] bytes = new byte[16];
         byte[] key = new byte[16];

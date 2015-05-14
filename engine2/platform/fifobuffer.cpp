@@ -5,6 +5,7 @@
 
 and_fifobuffer::and_fifobuffer()
 :buf_(NULL), header_(NULL), tail_(NULL) {
+	pthread_mutex_init(&mutex_, NULL);
 }
 
 and_fifobuffer::~and_fifobuffer()
@@ -23,14 +24,7 @@ char* and_fifobuffer::header()
 int and_fifobuffer::create(unsigned int size)
 {
 	buf_ = (char *)malloc(size);
-	if(!buf_) 
-		return -1;
-	
-	int ret;
-	ret = pthread_mutex_init(&mutex_, 0);
-	if (ret < 0) {
-		free(buf_);
-		buf_ = NULL;
+	if (!buf_) {
 		return -1;
 	}
 		

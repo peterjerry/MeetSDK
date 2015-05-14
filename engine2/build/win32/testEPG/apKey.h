@@ -7,6 +7,6 @@ public:
 	apKey(void);
 	~apKey(void);
 
-	uint8_t * getKey(int64_t server_time);
+	static uint8_t * getKey(int64_t server_time);
 };
 

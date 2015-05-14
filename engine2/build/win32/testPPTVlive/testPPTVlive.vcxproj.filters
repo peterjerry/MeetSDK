@@ -33,6 +33,12 @@
     <ClInclude Include="targetver.h">
       <Filter>头文件</Filter>
     </ClInclude>
+    <ClInclude Include="apCDNItem.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="apBlockDownloader.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="stdafx.cpp">
@@ -85,6 +91,12 @@
     </ClCompile>
     <ClCompile Include="..\..\..\platform\utils.cpp">
       <Filter>源文件\utils</Filter>
+    </ClCompile>
+    <ClCompile Include="..\testEPG\apCDNItem.cpp">
+      <Filter>源文件\struct</Filter>
+    </ClCompile>
+    <ClCompile Include="apBlockDownloader.cpp">
+      <Filter>源文件</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>
