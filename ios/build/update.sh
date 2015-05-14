@@ -1,8 +1,8 @@
 #!/bin/bash
 
-FFMPEG_URL="http://jenkins/job/ffmpeg_ios_git/2/artifact/foundation/output/ios/v8/libffmpeg_univernal_1.0.2.5.zip"
+FFMPEG_URL="http://jenkins/job/ffmpeg_ios_git/5/artifact/foundation/output/ios/v8/libffmpeg_univernal_1.0.2.5.zip"
 FFMPEG_ZIP="ffmpeg.zip"
-SUBTITLE_URL="http://jenkins/view/Meet/job/subtitle2_ios/12/artifact/subtitle2/build/ios/output/subtitle2_univernal_1.0.2.8.zip"
+SUBTITLE_URL="http://jenkins/view/Meet/job/subtitle2_ios/8/artifact/subtitle2/build/ios/output/subtitle2_univernal_1.0.2.8.zip"
 SUBTITLE_ZIP="subtitle.zip"
 
 function update_founction
