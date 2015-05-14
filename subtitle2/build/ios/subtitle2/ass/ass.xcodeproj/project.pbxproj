@@ -10,7 +10,6 @@
 		22259FCF1A5BD6DC00B9CF8C /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 22259FCE1A5BD6DC00B9CF8C /* Foundation.framework */; };
 		2225A0051A5BD71200B9CF8C /* ass_library.c in Sources */ = {isa = PBXBuildFile; fileRef = 22259FF91A5BD71200B9CF8C /* ass_library.c */; };
 		2225A0091A5BD71200B9CF8C /* ass_strtod.c in Sources */ = {isa = PBXBuildFile; fileRef = 22259FFD1A5BD71200B9CF8C /* ass_strtod.c */; };
-		2225A00A1A5BD71200B9CF8C /* ass_utils.c in Sources */ = {isa = PBXBuildFile; fileRef = 22259FFE1A5BD71200B9CF8C /* ass_utils.c */; };
 		2225A00B1A5BD71200B9CF8C /* ass.c in Sources */ = {isa = PBXBuildFile; fileRef = 22259FFF1A5BD71200B9CF8C /* ass.c */; };
 		2225A0551A5D26DF00B9CF8C /* libfontconfig.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 2225A0461A5BD98E00B9CF8C /* libfontconfig.a */; };
 		2281F3F31B0081BD00E9B5D4 /* libass_glue.c in Sources */ = {isa = PBXBuildFile; fileRef = 2281F3F21B0081BD00E9B5D4 /* libass_glue.c */; };
@@ -68,7 +67,6 @@
 		22259FDF1A5BD6DC00B9CF8C /* UIKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = UIKit.framework; path = Library/Frameworks/UIKit.framework; sourceTree = DEVELOPER_DIR; };
 		22259FF91A5BD71200B9CF8C /* ass_library.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = ass_library.c; path = ../../../../../src/libass/libass/ass_library.c; sourceTree = "<group>"; };
 		22259FFD1A5BD71200B9CF8C /* ass_strtod.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = ass_strtod.c; path = ../../../../../src/libass/libass/ass_strtod.c; sourceTree = "<group>"; };
-		22259FFE1A5BD71200B9CF8C /* ass_utils.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = ass_utils.c; path = ../../../../../src/libass/libass/ass_utils.c; sourceTree = "<group>"; };
 		22259FFF1A5BD71200B9CF8C /* ass.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = ass.c; path = ../../../../../src/libass/libass/ass.c; sourceTree = "<group>"; };
 		2225A03E1A5BD98E00B9CF8C /* fontconfig.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = fontconfig.xcodeproj; path = ../fontconfig/fontconfig.xcodeproj; sourceTree = "<group>"; };
 		2225A0511A5D269100B9CF8C /* libexpat.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libexpat.a; path = "../expat/build/Debug-iphoneos/libexpat.a"; sourceTree = "<group>"; };
@@ -132,7 +130,6 @@
 				2281F3F21B0081BD00E9B5D4 /* libass_glue.c */,
 				22259FF91A5BD71200B9CF8C /* ass_library.c */,
 				22259FFD1A5BD71200B9CF8C /* ass_strtod.c */,
-				22259FFE1A5BD71200B9CF8C /* ass_utils.c */,
 				22259FFF1A5BD71200B9CF8C /* ass.c */,
 				22259FD11A5BD6DC00B9CF8C /* Supporting Files */,
 			);
@@ -243,7 +240,6 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				2225A00A1A5BD71200B9CF8C /* ass_utils.c in Sources */,
 				2225A00B1A5BD71200B9CF8C /* ass.c in Sources */,
 				2281F3F31B0081BD00E9B5D4 /* libass_glue.c in Sources */,
 				2225A0051A5BD71200B9CF8C /* ass_library.c in Sources */,
