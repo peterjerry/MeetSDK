@@ -72,7 +72,11 @@ public class VideoPlayerActivity extends Activity implements Callback {
 		
 		Intent intent = getIntent();
 		mUri = intent.getData();
-		int impl = intent.getIntExtra("impl", 0);
+		int impl = 0;
+		if (intent.hasExtra("impl"))
+			impl = intent.getIntExtra("impl", 0);
+		else
+			impl = Util.readSettingsInt(this, "PlayerImpl");
 		Log.i(TAG, String.format("Java player impl: %d", impl));
 		
 		switch(impl) {

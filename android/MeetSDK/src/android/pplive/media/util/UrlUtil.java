@@ -6,6 +6,8 @@ package android.pplive.media.util;
 
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.regex.Pattern;
 
 /**
@@ -51,18 +53,27 @@ public class UrlUtil {
 		return null == url ? false : sRegLivePlayUrl.matcher(url.trim()).matches();
 	}
 	
-	@SuppressWarnings("deprecation")
-	public static String encode(String s) {
-		String out = null;
-		
+	public static String hashKeyForDisk(String key) {
+		String cacheKey;
 		try {
-			out = URLEncoder.encode(s, "UTF-8");
-		} catch (UnsupportedEncodingException e) {
-			out = URLEncoder.encode(s);
-		} finally {
-			
+			final MessageDigest mDigest = MessageDigest.getInstance("MD5");
+			mDigest.update(key.getBytes());
+			cacheKey = bytesToHexString(mDigest.digest());
+		} catch (NoSuchAlgorithmException e) {
+			cacheKey = String.valueOf(key.hashCode());
 		}
-		
-		return out;
+		return cacheKey;
+	}
+
+	private static String bytesToHexString(byte[] bytes) {
+		StringBuilder sb = new StringBuilder();
+		for (int i = 0; i < bytes.length; i++) {
+			String hex = Integer.toHexString(0xFF & bytes[i]);
+			if (hex.length() == 1) {
+				sb.append('0');
+			}
+			sb.append(hex);
+		}
+		return sb.toString();
 	}
 }

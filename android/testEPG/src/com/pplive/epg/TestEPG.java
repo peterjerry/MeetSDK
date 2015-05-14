@@ -1,8 +1,37 @@
 package com.pplive.epg;
 
+import java.io.File;
 import java.util.List;
 
 public class TestEPG { 
+	
+	public static void main(String[] args) {
+		
+		PPTVFrame myFrame = new PPTVFrame();
+		//LeTVFrame myFrame = new LeTVFrame();
+		myFrame.setVisible(true); 
+		
+		/*EPGUtil epg = new EPGUtil();
+		
+		int type = 2;
+		switch(type) {
+		case 0:
+			frontpage(epg);
+			break;
+		case 1:
+			search(epg);
+			break;
+		case 2:
+			contents(epg);
+			break;
+		case 3:
+			live(epg);
+			break;
+		default:
+			System.out.println("unknown type: " + type);
+			break;
+		}*/
+	}
 	
 	private static void search(EPGUtil epg) {
 		String key = "泰坦尼克";
@@ -206,31 +235,4 @@ public class TestEPG {
 		}*/
 	}
 	
-	public static void main(String[] args) {
-		
-		//PPTVFrame myFrame = new PPTVFrame();
-		LeTVFrame myFrame = new LeTVFrame();
-		myFrame.setVisible(true); 
-		
-		/*EPGUtil epg = new EPGUtil();
-		
-		int type = 2;
-		switch(type) {
-		case 0:
-			frontpage(epg);
-			break;
-		case 1:
-			search(epg);
-			break;
-		case 2:
-			contents(epg);
-			break;
-		case 3:
-			live(epg);
-			break;
-		default:
-			System.out.println("unknown type: " + type);
-			break;
-		}*/
-	}
 }

@@ -4,9 +4,13 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.ObjectOutputStream;
+import java.io.OutputStream;
 import java.io.UnsupportedEncodingException;
 import java.net.HttpURLConnection;
+import java.net.MalformedURLException;
 import java.net.URL;
+import java.net.URLConnection;
 import java.net.URLEncoder;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -59,6 +63,7 @@ import android.os.Build;
 import android.media.AudioManager;
 import android.graphics.Bitmap;
 import android.net.Uri;
+import android.net.wifi.WifiInfo;
 import android.net.wifi.WifiManager;
 import android.net.wifi.WifiManager.WifiLock;
 import android.os.AsyncTask;
@@ -80,6 +85,7 @@ import com.pplive.meetplayer.util.DownloadAsyncTask;
 import com.pplive.meetplayer.util.EPGUtil;
 import com.pplive.meetplayer.util.FeedBackFactory;
 import com.pplive.meetplayer.util.FileFilterTest;
+import com.pplive.meetplayer.util.HttpPostUtil;
 import com.pplive.meetplayer.util.IDlnaCallback;
 import com.pplive.meetplayer.util.ListMediaUtil;
 import com.pplive.meetplayer.util.LoadPlayLinkUtil;
@@ -92,12 +98,6 @@ import com.pplive.meetplayer.ui.widget.MiniMediaController;
 import com.pplive.dlna.DLNASdk;
 import com.pplive.dlna.DLNASdk.DLNASdkInterface;
 import com.pplive.dlna.DLNASdkDMSItemInfo;
-
-
-
-
-
-
 
 
 
@@ -136,7 +136,6 @@ public class ClipListActivity extends Activity implements
 	private Button btnPPboxSel;
 	private Button btnTakeSnapShot;
 	private Button btnSelectAudioTrack;
-	private EditText et_play_url;
 	private MyPreView2 mPreview;
 	private boolean mPreviewFocused = false;
 	private SurfaceHolder mHolder;
@@ -341,7 +340,6 @@ public class ClipListActivity extends Activity implements
 		this.btnPPboxSel = (Button) findViewById(R.id.btn_ppbox);
 		this.btnTakeSnapShot = (Button) findViewById(R.id.btn_take_snapshot);
 		this.btnSelectAudioTrack = (Button) findViewById(R.id.btn_select_audiotrack);
-		this.et_play_url = (EditText) findViewById(R.id.et_url);
 		this.et_playlink = (EditText) findViewById(R.id.et_playlink);
 		this.btn_ft = (Button) findViewById(R.id.btn_ft);
 		this.btn_bw_type = (Button) findViewById(R.id.btn_bw_type);
@@ -426,7 +424,7 @@ public class ClipListActivity extends Activity implements
 
 		this.lv_filelist = (ListView) findViewById(R.id.lv_filelist);
 		
-		new ListItemTask().execute(mCurrentFolder);
+		//new ListItemTask().execute(mCurrentFolder);
 		
 		this.lv_filelist
 				.setOnItemClickListener(new ListView.OnItemClickListener() {
@@ -719,7 +717,6 @@ public class ClipListActivity extends Activity implements
 			@Override
 			public void onClick(View view) {
 				// TODO Auto-generated method stub
-				Log.i(TAG, "onClick play: " + et_play_url.getText().toString());
 				int ppbox_playid, ppbox_ft, ppbox_bw_type;
 				String tmp;
 				tmp = et_playlink.getText().toString();
@@ -2039,12 +2036,62 @@ public class ClipListActivity extends Activity implements
 		startActivity(intent);
 	}
 
-	private void upload_crash_report(int type) {	
-		MeetSDK.makePlayerlog();
+	private void upload_crash_report(int type) { 
+        WifiManager wifiManager = (WifiManager) getSystemService(Context.WIFI_SERVICE);
+        WifiInfo wifiInfo = wifiManager.getConnectionInfo();       
+        int ipAddress = wifiInfo.getIpAddress();   
+        String ip = intToIp(ipAddress);
+        
+        MeetSDK.makePlayerlog();
+        
+        if (ip.startsWith("192.168.")) {
+        	String URL = "http://172.16.10.137/crashapi/api/crashreport/launcher";
+        	FeedBackFactory fbf = new FeedBackFactory(
+   				 Integer.toString(type), "123456", true, false);
+        	fbf.asyncFeedBack(URL);
+        }
+        else {
+        	new UploadLogTask().execute("");
+        }
+	}
+	
+	private class UploadLogTask extends AsyncTask<String, Integer, Boolean> {
+
+		@Override
+		protected void onPostExecute(Boolean result) {
+			// TODO Auto-generated method stub
+			if (result) {
+				Toast.makeText(ClipListActivity.this, "log uploaded to iloveaya", Toast.LENGTH_SHORT).show();
+			}
+		}
 		
-		FeedBackFactory fbf = new FeedBackFactory(
-				 Integer.toString(type), "123456", true, false);
-		fbf.asyncFeedBack();
+		@Override
+		protected Boolean doInBackground(String... params) {
+			// TODO Auto-generated method stub
+			try {
+				SimpleDateFormat df = new SimpleDateFormat("yyyy_MM_dd_HH_mm_ss");
+				String filename = df.format(new Date()) + ".zip";
+				Log.i(TAG, "Java: log zipfile name: " + filename);
+				
+				LogcatHelper.getInstance().zipLogFiles(filename);
+				
+    			HttpPostUtil u = new HttpPostUtil("http://www.iloveyaya.zz.vc/upload.php");
+    			u.addFileParameter(
+    					"file", 
+    					new File(getCacheDir() + File.separator + filename));
+    			u.addTextParameter("tag", "chinese");
+    			byte[] b = u.send();
+    			String result = new String(b);
+    			Log.i(TAG, "Java: HttpPostUtil result: " + result);
+    			return true;
+    		} catch (Exception e) {
+    			// TODO Auto-generated catch block
+    			e.printStackTrace();
+    		}
+			
+			return false;
+		}
+		
 	}
 	
 	private void push_to_dmr() {

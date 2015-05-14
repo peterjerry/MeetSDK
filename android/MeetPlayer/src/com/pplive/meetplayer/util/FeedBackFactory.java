@@ -105,23 +105,25 @@ public class FeedBackFactory {
         zipFile = null;
     }
 
-    public void asyncFeedBack() {
-        new FeebBackTask().execute();
+    public void asyncFeedBack(String url) {
+        new FeebBackTask().execute(url);
     }
 
-    private class FeebBackTask extends AsyncTask<Void, Float, String> {
+    private class FeebBackTask extends AsyncTask<String, Float, String> {
 
         private int progress = 0;
-
+        
         @Override
-        protected String doInBackground(Void... params) {
+        protected String doInBackground(String... params) {
             prepareFeedBackData();
-            return feedBack();
+            
+            return feedBack(params[0]);
         }
 
         @Override
         protected void onPostExecute(String result) {
-			Toast.makeText(sContext, "crash reported, id: " + result, Toast.LENGTH_LONG).show();
+			if (result != null && !result.equals(""))
+				Toast.makeText(sContext, "crash reported, id: " + result, Toast.LENGTH_LONG).show();
         }
 
         private void prepareFeedBackData() {
@@ -130,7 +132,7 @@ public class FeedBackFactory {
             if (TextUtils.isEmpty(crashId)) {
                 crashId = "";
             }
-            Log.i(TAG, "michael crash id-->" + crashId);
+            Log.i(TAG, "Java: crash id" + crashId);
             if (TextUtils.isEmpty(time)) {
                 time = System.currentTimeMillis() + "";
             }
@@ -145,10 +147,11 @@ public class FeedBackFactory {
             if (zipFile == null) {
                 zipFile = LogcatHelper.getInstance().zipLogFiles("");
             }
+            
             setProgress(40);
         }
 
-        private String feedBack() {
+        private String feedBack(String url) {
             String ret = "";
 
             Bundle param = new Bundle();
@@ -176,15 +179,17 @@ public class FeedBackFactory {
             }
             
             //����ǲ��԰汾����������־
-            if(isLocal){
+            if (isLocal){
             	setProgress(99);
             	return ret;
             }
             
-            Log.i(TAG, "michael post param: " + param.toString());
-            String response = LogReportHandler.post(URL, param, zipFile);
+            Log.i(TAG, "Java: post param: " + param.toString());
+            
+            String response = LogReportHandler.post(url, param, zipFile);
+            Log.i(TAG, "Java: crash upload reponse-->" + response);
             setProgress(80);
-            Log.i(TAG, "michael crash upload reponse-->" + response);
+            
             if (!TextUtils.isEmpty(response)) {
                 try {
                     ByteArrayInputStream stream = new ByteArrayInputStream(

@@ -183,7 +183,7 @@ static int decode_packet(int *got_frame, int cached)
         }
 
         if (*got_frame) {
-            printf("audio_frame%s n:%d nb_samples:%d pts:%.3f sec\n",
+            printf("audio_frame%s n:%d nb_samples:%d pts:%.3f sec\r",
                    cached ? "(cached)" : "",
                    audio_frame_count++, frame->nb_samples,
 				   pkt.pts * av_q2d(audio_stream->time_base));
@@ -207,7 +207,7 @@ static int decode_packet(int *got_frame, int cached)
 				
 				audio_buffer_size = sampleCountOutput * 2 * 2;
 				int written = audio_fifo.write((char *)audio_dst_data, audio_buffer_size); 
-				printf("swr output: sample:%d, size:%d, written %d\n", sampleCountOutput, audio_buffer_size, written);
+				//printf("swr output: sample:%d, size:%d, written %d\n", sampleCountOutput, audio_buffer_size, written);
 			}
         }
     }

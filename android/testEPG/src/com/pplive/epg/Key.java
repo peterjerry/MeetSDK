@@ -15,34 +15,51 @@ public class Key
 
     public static String getKey(long serverTime)
     {
+    	//System.out.println("Java: serverTime " + serverTime);
+    	
         byte[] bytes = new byte[16];
         byte[] key = new byte[16];
         byte[] result = new byte[33];
         String keystr = "qqqqqww";
 
-        for (int i = 0; i < 16; i++)
-        {
+        for (int i = 0; i < 16; i++) {
             key[i] = i < keystr.length() ? (byte) keystr.charAt(i) : (byte) 0;
         }
         long timet = serverTime / 1000;
         timet -= 100;
-        // System.out.println("timet=" + timet);
+        
+        //System.out.println("Java: timet " + timet);
+        
         Time2Str((int) timet, bytes, 16);
+        //printByte("Time2Str", bytes);
+        
         Random rand = new Random();
-        for (int i = 0; i < 16; i++)
-        {
+        for (int i = 0; i < 16; i++) {
             if (bytes[i] == 0)
             {
                 bytes[i] = (byte) rand.nextInt(256);
             }
         }
+        //printByte("Random", bytes);
 
         TEncrypt(bytes, 16, key, 16);
+        //printByte("TEncrypt", bytes);
+        
         Str2Hex(bytes, 16, result, 33);
+        //printByte("Str2Hex", result);
         String result_str = new String(result, 0, 32);
+        //printByte("result_str", result_str.getBytes());
         return result_str;
     }
     
+    private static void printByte(String title, byte[] data) {
+    	StringBuffer sbHex = new StringBuffer();
+		for (int j=0;j<data.length;j++) {
+			sbHex.append(String.format("0x%02x ", data[j]));
+		}
+		
+        System.out.println("Java: " + title + " bytes= " + sbHex.toString());
+    }
     
     public static String getKey()
     {

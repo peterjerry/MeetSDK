@@ -2,6 +2,7 @@ package com.pplive.epg;
 
 import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
 import java.io.Reader;
@@ -9,6 +10,7 @@ import java.io.StringReader;
 import java.net.URLDecoder;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 import java.util.StringTokenizer;
 import java.util.zip.ZipException;
@@ -43,6 +45,7 @@ public class LetvUtil {
 	private List<Programlb> mProgramList;
 	private List<ProgramItemlb> mProgramItemList;
 	private List<PlayLinkLb> mPlaylinkList;
+	private List<StreamIdLb> mStreamIdList;
 
 	public LetvUtil() {
 		update_json();
@@ -50,6 +53,7 @@ public class LetvUtil {
 		mProgramList = new ArrayList<Programlb>();
 		mProgramItemList = new ArrayList<ProgramItemlb>();
 		mPlaylinkList = new ArrayList<PlayLinkLb>();
+		mStreamIdList = new ArrayList<StreamIdLb>();
 	}
 	
 	public List<PlayLinkLb> getPlaylinkList() {
@@ -64,21 +68,14 @@ public class LetvUtil {
 		return mProgramList;
 	}
 	
-	public boolean update_json() {
-		boolean ret = httpUtil.httpDownload(context_json_url, "itv_json_v5.zip");
-		if (ret == false) {
-			System.out.println("Java: failed to download json");
-			return false;
-		}
-		
-		File file = new File("itv_json_v5.zip");
+	public List<StreamIdLb> getStreamIdList() {
+		return mStreamIdList;
+	}
+	
+	boolean load_json(String path) {
+		BufferedReader br;
 		try {
-			if (ZipUtil.upZipFile(file, "itv_json_v5.php") != 0) {
-				System.out.println("Java: failed to unzip json");
-				return false;
-			}
-			
-			BufferedReader br = new BufferedReader(new FileReader("itv_json_v5.php"));
+			br = new BufferedReader(new FileReader(path));
 			String data = "";
 			StringBuffer sb = new StringBuffer();
 			while ((data = br.readLine()) != null) {
@@ -86,7 +83,43 @@ public class LetvUtil {
 			}
 			
 			mJsonContext = sb.toString();
+			br.close();
 			return true;
+		} catch (FileNotFoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+		return false;
+	}
+	
+	public boolean update_json() {
+		String zip_save_path = "itv_json_v5.zip";
+		String json_save_path = "itv_json_v5.php";
+		
+		File json_file = new File(json_save_path);
+		if (json_file.exists()) {
+			System.out.println("Java: json file already exists!");
+			return load_json(json_save_path);
+		}
+		
+		boolean ret = httpUtil.httpDownload(context_json_url, "itv_json_v5.zip");
+		if (ret == false) {
+			System.out.println("Java: failed to download json");
+			return false;
+		}
+		
+		File file = new File(zip_save_path);
+		try {
+			if (ZipUtil.upZipFile(file, json_save_path) != 0) {
+				System.out.println("Java: failed to unzip json");
+				return false;
+			}
+			
+			return load_json(json_save_path);
 		} catch (ZipException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -117,12 +150,32 @@ public class LetvUtil {
 			System.out.println("Java: result: " + result.substring(0, 256));
 			
 			JSONTokener jsonParser = new JSONTokener(result);
-			JSONObject item = (JSONObject) jsonParser.nextValue();
-			String channel_name = item.getString("channelname");
-			System.out.println(String.format("Java: channel_name %s", channel_name));
+			JSONObject root = (JSONObject) jsonParser.nextValue();
+			String channel_name = root.getString("channelname");
+			String date = root.getString("date");
+			
+			Iterator<String> keyIter = root.keys();
+			String key;
+			mStreamIdList.clear();
+			while (keyIter.hasNext()) {
+				key = (String)keyIter.next();
+				if (key.contains("live_url")) {
+					String strm_url = root.getString(key);
+					int begin = strm_url.indexOf("?stream_id=");
+					int end = strm_url.lastIndexOf("&");
+					String stream_id = strm_url.substring(begin + "?stream_id=".length(), end);
+					StreamIdLb strm = new StreamIdLb(stream_id, strm_url);
+					mStreamIdList.add(strm);
+					System.out.println(String.format("Java: stream_id %s, strm_url %s", 
+							stream_id, strm_url));
+				}
+			}
+			
+			System.out.println(String.format("Java: channel_name %s, date %s", 
+					channel_name, date));
 			
 			mProgramItemList.clear();
-			JSONArray contents = item.getJSONArray("content");
+			JSONArray contents = root.getJSONArray("content");
 			for (int i=0;i<contents.length();i++) {
 				JSONObject prog = contents.getJSONObject(i);
 				String id = prog.getString("id");
@@ -155,10 +208,18 @@ public class LetvUtil {
 		
 		try {
 			JSONTokener jsonParser = new JSONTokener(mJsonContext);
-			JSONObject item = (JSONObject) jsonParser.nextValue();
-			String tvnum = item.getString("tvnum");
+			JSONObject root = (JSONObject) jsonParser.nextValue();
+			int tvnum = root.getInt("tvnum");
 			System.out.println("Java: tvnum: " + tvnum);
-			JSONArray live = item.getJSONArray("live");
+			JSONArray typelist = root.getJSONArray("type");
+			for (int k=0;k<typelist.length();k++) {
+				JSONObject type = typelist.getJSONObject(k);
+				int type_id = type.getInt("id");
+				String type_name = type.getString("name");
+				System.out.println(String.format("#%d %s", type_id, type_name));
+			}
+			
+			JSONArray live = root.getJSONArray("live");
 			
 			mProgramList.clear();
 			

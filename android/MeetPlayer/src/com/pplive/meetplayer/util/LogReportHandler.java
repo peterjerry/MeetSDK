@@ -69,7 +69,7 @@ public class LogReportHandler {
         sb1.append(BOUNDARY);
         sb1.append(LINEND);
         sb1.append("Content-Disposition: form-data; name=\"annex\"; filename=\""
-                + zipFile.getName() + "\"" + LINEND);
+        		+ zipFile.getName() + "\"" + LINEND);
         sb1.append("Content-Type: application/x-gzip" + LINEND);
         sb1.append(LINEND);
         outStream.write(sb1.toString().getBytes());

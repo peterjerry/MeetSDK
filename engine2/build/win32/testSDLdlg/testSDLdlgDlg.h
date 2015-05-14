@@ -60,6 +60,8 @@ public:
 	CProgressCtrl mProgClip;
 	CComboBox mComboURL;
 	CComboBox mComboEPGItem;
+	CComboBox mCBbwType;
+	CComboBox mCBft;
 private:
 	CString mUrl;
 

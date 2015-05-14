@@ -36,9 +36,9 @@ public class PlayLinkUtil {
 
     private static final String HTTP_M3U8_RECORD_PPVOD2_CHUNKED = HTTP_M3U8_RECORD_PPVOD2 + "&chunked=true";
 
-    private static final String HTTP_M3U8_PLAY_PPLIVE3 = "http://" + HOST+":%s/play.m3u8?type=pplive3&playlink=%s";
+    private static final String HTTP_M3U8_PLAY_PPLIVE3 = "http://" + HOST + ":%s/play.m3u8?type=pplive3&playlink=%s";
 
-    private static final String RTSP_ES_URL = "rtsp://" + HOST + ":%s/play.es?type=%s&playlink=%s";
+    private static final String RTSP_ES_URL = "rtsp://" + HOST + ":%s/play.es?type=pplive3&playlink=%s";
 
     private static final String PPVOD2_URL = "ppvod2:///%s";
 
@@ -82,13 +82,18 @@ public class PlayLinkUtil {
 		
 		if (playlink >= 300000 && playlink <= 300999) {
 			// live
+			String url_fmt;
+			if (http_port == 9006)
+				url_fmt = HTTP_M3U8_PLAY_PPLIVE3;
+			else
+				url_fmt = RTSP_ES_URL;
 			if (link_surfix == null || link_surfix.equals("")) {
 				// real live
-				ppbox_url = String.format(HTTP_M3U8_PLAY_PPLIVE3, http_port, str_playlink) + "&m3u8seekback=true"; // &chunked=true
+				ppbox_url = String.format(url_fmt, http_port, str_playlink) + "&m3u8seekback=true"; // &chunked=true
 			}
 			else {
 				// fake vod
-				ppbox_url = String.format(HTTP_M3U8_PLAY_PPLIVE3, http_port, str_playlink) + link_surfix;
+				ppbox_url = String.format(url_fmt, http_port, str_playlink) + link_surfix;
 			}
 		}
 		else {

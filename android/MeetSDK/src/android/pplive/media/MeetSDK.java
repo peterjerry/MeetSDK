@@ -360,7 +360,8 @@ public final class MeetSDK {
 		Bitmap bitmap = null;
 
 		try {
-			bitmap = getThumbnailFromDiskCache(UrlUtil.encode(filePath));
+			String key = UrlUtil.hashKeyForDisk(filePath);
+			bitmap = getThumbnailFromDiskCache(key);
 			if (bitmap != null) {
 				LogUtils.info("createVideoThumbnail from diskcache: " + filePath);
 				return bitmap;
@@ -378,7 +379,7 @@ public final class MeetSDK {
 			}
 			
 			if (bitmap != null)
-				addThumbnailToDiskCache(UrlUtil.encode(filePath), bitmap);
+				addThumbnailToDiskCache(key, bitmap);
 		} catch (LinkageError e) {
 			e.printStackTrace();
 			LogUtils.error("LinkageError", e);
@@ -390,15 +391,16 @@ public final class MeetSDK {
 	public synchronized static Bitmap createImageThumbnail(ContentResolver cr, int origId, String filePath, int kind) {
 
         Bitmap bitmap = null;
-
-        bitmap = getThumbnailFromDiskCache(UrlUtil.encode(filePath));
+        
+        String key = UrlUtil.hashKeyForDisk(filePath);
+        bitmap = getThumbnailFromDiskCache(key);
         if (null != bitmap) {
             return bitmap;
         } 
         
         bitmap = MediaStore.Images.Thumbnails.getThumbnail(cr, origId, MediaStore.Images.Thumbnails.MICRO_KIND, null);
         if (null != bitmap) {
-            addThumbnailToDiskCache(UrlUtil.encode(filePath), bitmap);
+            addThumbnailToDiskCache(key, bitmap);
         }
 
         return bitmap;
@@ -420,7 +422,7 @@ public final class MeetSDK {
 				sDiskCache = DiskLruCache.open(sCacheDir, 1 /* appVersion */, 1 /* valueCount */, 4 * 1024 * 1024 /* maxSize */);
 			} 
 		} catch (IOException e) {
-            LogUtils.error("IOException", e);
+            LogUtils.error("failed to open DiskLruCache: IOException", e);
 		} finally {
 			
 		}
@@ -433,7 +435,7 @@ public final class MeetSDK {
 
 		try {
 			if (cache != null) {
-			    LogUtils.debug("addThumbnailToDiskCache");
+			    LogUtils.debug("Java: addThumbnailToDiskCache() " + key);
 				
 				DiskLruCache.Editor editor = cache.edit(key);
 				
@@ -441,8 +443,9 @@ public final class MeetSDK {
 					OutputStream os = editor.newOutputStream(0);
 					editor.commit();
 					
-					boolean ret = bitmap.compress(Bitmap.CompressFormat.PNG, 100, os);
-					LogUtils.debug("bitmap compress: " + ret);
+					LogUtils.info("bitmap before compress");
+					boolean ret = bitmap.compress(Bitmap.CompressFormat.JPEG, 100, os);
+					LogUtils.info("bitmap after compress: " + ret);
 				}
 				
 			}
@@ -459,7 +462,7 @@ public final class MeetSDK {
 		DiskLruCache cache = getThumbnailDiskLruCache();
 
 		try {
-		    LogUtils.debug("getThumbnailFromDiskCache");
+		    LogUtils.debug("Java: getThumbnailFromDiskCache() " + key);
 			if (cache != null && cache.get(key) != null) {
 				DiskLruCache.Snapshot snapshot = cache.get(key);
 				InputStream is = snapshot.getInputStream(0);

@@ -13,14 +13,14 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
-    <Filter Include="源文件\libjsoncpp">
-      <UniqueIdentifier>{255f2e04-3a45-4c3d-8baf-aa8fbd8ef08d}</UniqueIdentifier>
+    <Filter Include="源文件\epg">
+      <UniqueIdentifier>{9807b554-cb75-41d9-8af8-e1eb6f258fc9}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="源文件\utils">
+      <UniqueIdentifier>{951b4343-fc0c-45ce-8a91-5605a6e874d0}</UniqueIdentifier>
     </Filter>
     <Filter Include="源文件\struct">
-      <UniqueIdentifier>{138418bd-9efc-405f-9a30-5864dd771fc1}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="源文件\util">
-      <UniqueIdentifier>{bd41afbb-c983-46ac-a858-4893de454bfb}</UniqueIdentifier>
+      <UniqueIdentifier>{dc96e937-7db8-4939-b13c-270e6beba21c}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -33,10 +33,10 @@
     <ClInclude Include="targetver.h">
       <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="apXmlParser.h">
+    <ClInclude Include="apCDNItem.h">
       <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="common.h">
+    <ClInclude Include="apBlockDownloader.h">
       <Filter>头文件</Filter>
     </ClInclude>
   </ItemGroup>
@@ -44,64 +44,58 @@
     <ClCompile Include="stdafx.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="testEPG.cpp">
+    <ClCompile Include="testPPTVlive.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="apEPG.cpp">
-      <Filter>源文件</Filter>
+    <ClCompile Include="..\testEPG\apEPG.cpp">
+      <Filter>源文件\epg</Filter>
     </ClCompile>
-    <ClCompile Include="apJsonParser.cpp">
-      <Filter>源文件</Filter>
+    <ClCompile Include="..\testEPG\apJsonParser.cpp">
+      <Filter>源文件\epg</Filter>
     </ClCompile>
-    <ClCompile Include="apFileLog.cpp">
-      <Filter>源文件</Filter>
+    <ClCompile Include="..\testEPG\apKey.cpp">
+      <Filter>源文件\epg</Filter>
     </ClCompile>
-    <ClCompile Include="libjsoncpp\src\json_reader.cpp">
-      <Filter>源文件\libjsoncpp</Filter>
+    <ClCompile Include="..\testEPG\apXmlParser.cpp">
+      <Filter>源文件\epg</Filter>
     </ClCompile>
-    <ClCompile Include="libjsoncpp\src\json_value.cpp">
-      <Filter>源文件\libjsoncpp</Filter>
-    </ClCompile>
-    <ClCompile Include="libjsoncpp\src\json_writer.cpp">
-      <Filter>源文件\libjsoncpp</Filter>
-    </ClCompile>
-    <ClCompile Include="apXmlParser.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
-    <ClCompile Include="Markup.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
-    <ClCompile Include="apCatalog.cpp">
-      <Filter>源文件\struct</Filter>
-    </ClCompile>
-    <ClCompile Include="apContent.cpp">
-      <Filter>源文件\struct</Filter>
-    </ClCompile>
-    <ClCompile Include="apModule.cpp">
-      <Filter>源文件\struct</Filter>
-    </ClCompile>
-    <ClCompile Include="apPlayLink2.cpp">
-      <Filter>源文件\struct</Filter>
-    </ClCompile>
-    <ClCompile Include="apNavigator.cpp">
-      <Filter>源文件\struct</Filter>
+    <ClCompile Include="..\testEPG\Markup.cpp">
+      <Filter>源文件\epg</Filter>
     </ClCompile>
     <ClCompile Include="..\testSDLdlg\urlcodec.cpp">
-      <Filter>源文件\util</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\platform\utils.cpp">
-      <Filter>源文件\util</Filter>
+      <Filter>源文件\utils</Filter>
     </ClCompile>
     <ClCompile Include="..\..\..\platform\log_win32.cpp">
-      <Filter>源文件\util</Filter>
+      <Filter>源文件\utils</Filter>
     </ClCompile>
-    <ClCompile Include="md5c.c">
-      <Filter>源文件\util</Filter>
+    <ClCompile Include="..\testEPG\apModule.cpp">
+      <Filter>源文件\struct</Filter>
     </ClCompile>
-    <ClCompile Include="apKey.cpp">
-      <Filter>源文件</Filter>
+    <ClCompile Include="..\testEPG\apNavigator.cpp">
+      <Filter>源文件\struct</Filter>
     </ClCompile>
-    <ClCompile Include="strptime.c">
+    <ClCompile Include="..\testEPG\apPlayLink2.cpp">
+      <Filter>源文件\struct</Filter>
+    </ClCompile>
+    <ClCompile Include="..\testEPG\apCatalog.cpp">
+      <Filter>源文件\struct</Filter>
+    </ClCompile>
+    <ClCompile Include="..\testEPG\apContent.cpp">
+      <Filter>源文件\struct</Filter>
+    </ClCompile>
+    <ClCompile Include="..\testEPG\apFileLog.cpp">
+      <Filter>源文件\utils</Filter>
+    </ClCompile>
+    <ClCompile Include="..\testEPG\strptime.c">
+      <Filter>源文件\utils</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\platform\utils.cpp">
+      <Filter>源文件\utils</Filter>
+    </ClCompile>
+    <ClCompile Include="..\testEPG\apCDNItem.cpp">
+      <Filter>源文件\struct</Filter>
+    </ClCompile>
+    <ClCompile Include="apBlockDownloader.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
   </ItemGroup>
