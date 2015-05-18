@@ -193,9 +193,13 @@ public class MediaPlayer implements MediaPlayerInterface {
 	
 	@Override
 	public void setDisplay(SurfaceHolder sh) {
-		if (null != sh) {
+		if (sh != null) {
 			mHolder		= sh;
 			mSurface	= sh.getSurface();
+		}
+		else {
+			mHolder		= null;
+			mSurface	= null;
 		}
 		
 		setSurface();
@@ -209,8 +213,12 @@ public class MediaPlayer implements MediaPlayerInterface {
 	}
 	
 	private void setSurface() {
-		if (null != mPlayer)
-			mPlayer.setSurface(mSurface);
+		if (null != mPlayer) {
+			if (mHolder != null)
+				mPlayer.setDisplay(mHolder);
+			else
+				mPlayer.setSurface(mSurface);
+		}
 	}
 	
 	private void setupMediaPlayer() throws IllegalStateException {
@@ -898,6 +906,7 @@ public class MediaPlayer implements MediaPlayerInterface {
      * to turn off.
      */
     public void setScreenOnWhilePlaying(boolean screenOn) {
+    	LogUtils.info("setScreenOnWhilePlaying: " + screenOn);
     	mScreenOn = screenOn;
     	setScreenOnWhilePlaying();
     }

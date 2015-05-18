@@ -79,6 +79,8 @@ abstract class BaseMediaPlayer implements MediaPlayerInterface {
 
     protected void updateSurfaceScreenOn() {
         if (mHolder != null) {
+        	LogUtils.info("Java: updateSurfaceScreenOn: mScreenOnWhilePlaying "
+        		+ mScreenOnWhilePlaying + " , mStayAwake " + mStayAwake);
             mHolder.setKeepScreenOn(mScreenOnWhilePlaying && mStayAwake);
         }
     }
