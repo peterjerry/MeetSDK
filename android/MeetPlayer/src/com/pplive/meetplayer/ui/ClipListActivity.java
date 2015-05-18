@@ -95,6 +95,8 @@ import com.pplive.meetplayer.util.PlayLink2;
 import com.pplive.meetplayer.util.PlayLinkUtil;
 import com.pplive.meetplayer.util.Util;
 import com.pplive.meetplayer.ui.widget.MiniMediaController;
+import com.pplive.db.DBmanager;
+import com.pplive.db.MediaInfoEntry;
 import com.pplive.dlna.DLNASdk;
 import com.pplive.dlna.DLNASdk.DLNASdkInterface;
 import com.pplive.dlna.DLNASdkDMSItemInfo;
@@ -128,6 +130,8 @@ public class ClipListActivity extends Activity implements
     private final static String PORT_HTTP = "http";
     private final static String PORT_RTSP = "rtsp";
 		
+    private DBmanager dbManager;
+    
 	private Button btnPlay;
 	private Button btnSelectTime;
 	private Button btnMenu;
@@ -315,6 +319,8 @@ public class ClipListActivity extends Activity implements
 		super.onCreate(savedInstanceState);
 		   
 		Log.i(TAG, "Java: onCreate()");
+		
+		dbManager = new DBmanager(this);
 		
 		// compatible with tvbox
 		if (getResources().getConfiguration().orientation == 1) 
@@ -666,35 +672,37 @@ public class ClipListActivity extends Activity implements
 				// load tvlist.txt
 				LoadPlayLinkUtil ext_link = new LoadPlayLinkUtil();
 				if (ext_link.LoadTvList()) {
+					Log.i(TAG, "Java: add tvlist.txt prog into list");
 					list_title.addAll(ext_link.getTitles());
 					list_url.addAll(ext_link.getUrls());
 				}
 				
-				final String[] ppbox_clipname = (String[])list_title.toArray(new String[list_title.size()]);  
+				final String[] dlg_clipname = (String[])list_title.toArray(new String[list_title.size()]);  
+				Log.i(TAG, "Java: final dlg_clipname size " + dlg_clipname.length);
 				
 				final int ppbox_playlink[] = {18139131, 10110649, 17054339, 17461610, 17631361, 17611359};
 				final int ppbox_ft[] = {2, 2, 2, 2, 3, 2};//2-超清, 3-bd
 				
 				Dialog choose_ppbox_res_dlg = new AlertDialog.Builder(ClipListActivity.this)
 					.setTitle("Select ppbox program")
-					.setSingleChoiceItems(ppbox_clipname, -1, /*default selection item number*/
+					.setItems(dlg_clipname,
 						new DialogInterface.OnClickListener(){
 						public void onClick(DialogInterface dialog, int whichButton) {
 							if (whichButton < fixed_size) {
 								et_playlink.setText(String.valueOf(ppbox_playlink[whichButton]));
 								btn_ft.setText(String.valueOf(ppbox_ft[whichButton]));
-								Log.i(TAG, String.format("Java: choose %d %s %d", 
-										whichButton, ppbox_clipname[whichButton], ppbox_playlink[whichButton]));
+								Log.i(TAG, String.format("Java: choose pre-set ppbox prog %d %s %d", 
+										whichButton, dlg_clipname[whichButton], ppbox_playlink[whichButton]));
 							}
 							else if (whichButton < fixed_size + history_size) {
 								et_playlink.setText(list_vid.get(whichButton - fixed_size));
 								btn_ft.setText("1");
 								Log.i(TAG, String.format("Java: choose playhistory %d %s %s", 
-										whichButton, ppbox_clipname[whichButton], list_vid.get(whichButton - fixed_size)));
+										whichButton, dlg_clipname[whichButton], list_vid.get(whichButton - fixed_size)));
 							}
 							else {
 								String url = list_url.get(whichButton - fixed_size - history_size);
-								Log.i(TAG, String.format("Java: choose #%d title: %s, url: %s", 
+								Log.i(TAG, String.format("Java: choose tvplay.txt #%d title: %s, url: %s", 
 										whichButton, list_title.get(whichButton), url));
 								
 								start_player(url);
@@ -1363,6 +1371,19 @@ public class ClipListActivity extends Activity implements
 					mAdapter.updateData(mListUtil.getList());
 					mAdapter.notifyDataSetChanged();
 				}
+				
+				/* add entry to db
+				 * List<MediaInfoEntry> videoList = new ArrayList<MediaInfoEntry>();
+				for (int i=0;i<mAdapter.getCount();i++) {
+					MediaInfoEntry entry = new MediaInfoEntry();
+					Map<String, Object> item = mAdapter.getItem(i);
+					entry._id	= i;
+					entry.path	= (String)item.get("filename");
+					
+					videoList.add(entry);
+				}
+				dbManager.add(videoList);*/
+				
 				break;
 			case MSG_UPDATE_PLAY_INFO:
 			case MSG_UPDATE_RENDER_INFO:

@@ -246,7 +246,8 @@ Java_android_pplive_media_subtitle_SimpleSubTitleParser_native_1close(JNIEnv *en
 		return;
 	}
 
-	parser->close();
+	delete parser;
+	parser = NULL;
 	setSubTitleParser(env, thiz, NULL);
 }
 

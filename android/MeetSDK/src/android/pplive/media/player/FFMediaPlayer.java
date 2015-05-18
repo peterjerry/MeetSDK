@@ -273,11 +273,6 @@ public class FFMediaPlayer extends BaseMediaPlayer {
 		// TODO Auto-generated method stub
 		_seekTo(msec);
 	}
-
-	@Override
-	public void setScreenOnWhilePlaying(boolean screenOn) {
-        super.setScreenOnWhilePlaying(screenOn);
-    }
 	
 	@Override
 	public void setWakeMode(Context context, int mode) {
