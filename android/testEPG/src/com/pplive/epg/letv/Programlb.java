@@ -1,4 +1,4 @@
-package com.pplive.epg;
+package com.pplive.epg.letv;
 
 public class Programlb {
 	private int 	m_id;

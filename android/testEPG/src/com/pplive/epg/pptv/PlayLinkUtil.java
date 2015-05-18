@@ -1,4 +1,4 @@
-package com.pplive.epg;
+package com.pplive.epg.pptv;
 
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;

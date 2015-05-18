@@ -1,4 +1,4 @@
-package com.pplive.epg;
+package com.pplive.epg.pptv;
 
 public class Navigator { 
 	private String mName;

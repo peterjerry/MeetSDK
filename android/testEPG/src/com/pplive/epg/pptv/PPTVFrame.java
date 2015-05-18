@@ -1,4 +1,4 @@
-package com.pplive.epg;
+package com.pplive.epg.pptv;
 
 import javax.swing.*; 
 
@@ -88,7 +88,7 @@ public class PPTVFrame extends JFrame {
 	
 	JTextPane editorPlayExe = new JTextPane();
 
-	PPTVFrame() {
+	public PPTVFrame() {
 		super();
 		
 		mEPG = new EPGUtil();

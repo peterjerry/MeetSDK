@@ -1,4 +1,4 @@
-package com.pplive.epg;
+package com.pplive.epg.pptv;
 
 public class Catalog { 
 	private String mTitle;

@@ -1,4 +1,4 @@
-package com.pplive.epg;
+package com.pplive.epg.letv;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -28,6 +28,9 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.json.JSONTokener;
+
+import com.pplive.epg.ZipUtil;
+import com.pplive.epg.httpUtil;
 
 public class LetvUtil {
 	String iploop_url = "http://int.dpool.sina.com.cn/iplookup/iplookup.php?format=json";

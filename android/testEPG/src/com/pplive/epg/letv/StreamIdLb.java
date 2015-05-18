@@ -1,4 +1,4 @@
-package com.pplive.epg;
+package com.pplive.epg.letv;
 
 public class StreamIdLb { 
 	private String mId;

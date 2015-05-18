@@ -1,4 +1,4 @@
-package com.pplive.epg;
+package com.pplive.epg.vst;
 
 import java.io.IOException;
 import java.util.ArrayList;
