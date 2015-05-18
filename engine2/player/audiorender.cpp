@@ -36,7 +36,7 @@ AudioRender::AudioRender()
 #if defined(__CYGWIN__) || defined(_MSC_VER)
 	mAudioLogCnt = 0;
 #endif
-	mStopping	= false;
+
 	mClosed		= false;
 
 #ifdef PCM_DUMP
@@ -410,13 +410,6 @@ status_t AudioRender::render(AVFrame* audioFrame)//int16_t* buffer, uint32_t buf
 	if (written != (int)audio_buffer_size)
 		LOGW("fifo overflow(sdl audio) %d -> %d", audio_buffer_size, written);
 #elif defined(OSLES_IMPL)
-	while (!mStopping) {
-		if (a_render->free_size() >= (int)audio_buffer_size)
-			break;
-		
-		usleep(1000 * 5);// 5 msec
-	}
-
 	int written;
 	written = a_render->write_data((const char *)audio_buffer, audio_buffer_size);
 	if (written != (int)audio_buffer_size) // may occur when stopping
@@ -458,9 +451,6 @@ status_t AudioRender::close()
 {
 	if (mClosed)
 		return OK;
-
-	// interrupt blocked write
-	mStopping = true;
 
 #if defined(__CYGWIN__) || defined(_MSC_VER)
 	SDL_CloseAudio();
