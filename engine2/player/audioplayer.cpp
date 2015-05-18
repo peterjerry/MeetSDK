@@ -226,10 +226,6 @@ status_t AudioPlayer::stop()
 			LOGE("failed to join audioplayer thread");
 
 		LOGI("after join");
-
-#if !defined(OSLES_IMPL) && !defined(__CYGWIN__) && !defined(_MSC_VER)
-		AudioTrack_stop();
-#endif
 	}
 
     if (mRender) {
