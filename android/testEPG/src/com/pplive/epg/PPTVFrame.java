@@ -35,6 +35,7 @@ public class PPTVFrame extends JFrame {
 	
 	private int start_page = 1;
 	private int last_live_type = 0;
+	
 	private boolean mListLive = false;
 	
 	private final static int PAGE_NUM = 10;
@@ -176,7 +177,7 @@ public class PPTVFrame extends JFrame {
 		
 		comboItem = new JComboBox<String>();
 		comboItem.setFont(f);
-		comboItem.setBounds(20, 60, 300, 40);
+		comboItem.setBounds(20, 60, 450, 40);
 		comboItem.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent e) {
@@ -470,18 +471,32 @@ public class PPTVFrame extends JFrame {
 			CDNItem liveitem = mEPG.live_cdn(Integer.valueOf(vid));
 			
 			if (liveitem != null) {
-				String url_fmt = "http://%s/live/074094e6c24c4ebbb4bf6a82f4ceabda/" +
+				String block_url_fmt = "http://%s/live/074094e6c24c4ebbb4bf6a82f4ceabda/" +
 						"%d.block?ft=1&platform=android3" +
 						"&type=phone.android.vip&sdk=1" +
 						"&channel=162&vvid=41&k=%s";
+				String m3u8_url_fmt = "http://%s/live/interval/delay/" +
+						"074094e6c24c4ebbb4bf6a82f4ceabda.m3u8" +
+						"?type=phone.android.vip&sdk=1" +
+						"&k=%s";
+				String ts_url_fmt = "http://%s/live/074094e6c24c4ebbb4bf6a82f4ceabda/" +
+						"%d.ts" +
+						"?type=phone.android.vip" +
+						"&k=%s";
 	            
 	            String st = liveitem.getST();
 	            long start_time = new Date(st).getTime() / 1000;
 	            start_time -= 45;
 	            start_time -= (start_time % 5);
 	            
-				String httpUrl = String.format(url_fmt, liveitem.getHost(), start_time, liveitem.getK());
-				System.out.println(httpUrl);
+				String httpUrl = String.format(block_url_fmt, liveitem.getHost(), start_time, liveitem.getK());
+				System.out.println("Java: live flv block: " + httpUrl);
+				
+				String m3u8Url = String.format(m3u8_url_fmt, liveitem.getHost(), liveitem.getK());
+				System.out.println("Java: live m3u8: " + m3u8Url);
+				
+				String tsUrl = String.format(ts_url_fmt, liveitem.getHost(), start_time, liveitem.getK());
+				System.out.println("Java: live ts: " + tsUrl);
 				
 				String saveFile = String.format("d:\\%d.flv", start_time);
 				//Util.httpDownload(httpUrl, saveFile);
@@ -517,8 +532,11 @@ public class PPTVFrame extends JFrame {
 	}
 	
 	private void init_combobox() {
-		int type = 1;
+		mListLive = false;
+		start_page = 1;
+		last_live_type = 0;
 		
+		int type = 1;
 		switch (type) {
 		case 0:
 			frontpage();
@@ -645,13 +663,19 @@ public class PPTVFrame extends JFrame {
 		
 		if (mListLive) {
 			int type;
-			if (n == 3)
-				type = 156;
-			else if (n == 2)
-				type = 164;
+			if (last_live_type == 0) {
+				if (n == 3)
+					type = 156;
+				else if (n == 2)
+					type = 164;
+				else {
+					JOptionPane.showMessageDialog(null, "invalid live type!");
+					return;
+				}
+				last_live_type = type;
+			}
 			else {
-				JOptionPane.showMessageDialog(null, "invalid live type!");
-				return;
+				type = last_live_type;
 			}
 			
 			ret = mEPG.live(start_page, PAGE_NUM, type);

@@ -1,14 +1,25 @@
 package com.pplive.epg;
 
 import java.io.File;
+import java.util.Date;
+import java.util.GregorianCalendar;
 import java.util.List;
 
 public class TestEPG { 
 	
 	public static void main(String[] args) {
 		
+		long expiration_time = 1431950924557L;
+		Date dat=new Date(expiration_time);  
+        GregorianCalendar gc = new GregorianCalendar();   
+        gc.setTime(dat);  
+        java.text.SimpleDateFormat format = new java.text.SimpleDateFormat("yyyy-MM-dd hh:mm:ss");  
+        String sb=format.format(gc.getTime());  
+        System.out.println("time is " + sb);  
+		
 		PPTVFrame myFrame = new PPTVFrame();
 		//LeTVFrame myFrame = new LeTVFrame();
+		//VstFrame myFrame = new VstFrame();
 		myFrame.setVisible(true); 
 		
 		/*EPGUtil epg = new EPGUtil();

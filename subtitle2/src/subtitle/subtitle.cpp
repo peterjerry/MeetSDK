@@ -97,14 +97,7 @@ CSubtitleManager::CSubtitleManager()
 
 CSubtitleManager::~CSubtitleManager()
 {
-    if (mAssLibrary) {
-        ass_library_done(mAssLibrary);
-    }
-    std::vector<CSimpleTextSubtitle*>::iterator itr = mSubtitles.begin();
-    for (; itr != mSubtitles.end(); ++itr) {
-        delete *itr;
-    }
-    mSubtitles.clear();
+    close();
 }
 
 void CSubtitleManager::ass_log(int level, const char *fmt, va_list va, void *data)
@@ -129,7 +122,16 @@ void CSubtitleManager::ass_log(int level, const char *fmt, va_list va, void *dat
 
 void CSubtitleManager::close() 
 {
-    delete this;
+	if (mAssLibrary) {
+		ass_library_done(mAssLibrary);
+		mAssLibrary = NULL;
+	}
+
+    std::vector<CSimpleTextSubtitle*>::iterator itr = mSubtitles.begin();
+    for (; itr != mSubtitles.end(); ++itr) {
+        delete *itr;
+    }
+    mSubtitles.clear();
 }
 
 int  CSubtitleManager::getLanguageCount()

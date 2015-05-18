@@ -283,7 +283,7 @@ public class LetvUtil {
 	        StringTokenizer st;
 	        
 	        st = new StringTokenizer(perfect, ",", false);
-			if (st.hasMoreElements()) {
+			if (st.hasMoreElements()) { // just get the first one
 				String best_id = st.nextToken();
 				System.out.println("Java: best_id: " + best_id);
 				return best_id;

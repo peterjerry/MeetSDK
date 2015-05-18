@@ -105,9 +105,7 @@ public class ListMediaUtil {
 		return String.format("%02d:%02d:%02d:%03d", hour, minute, sec, msec_);
 	}
 	
-	private String QueryMediaInfo(String path) {
-		MediaInfo info = MeetSDK.getMediaDetailInfo(path);
-		
+	private String QueryMediaInfo(String path, MediaInfo info) {
 		StringBuffer sbMediaInfo = new StringBuffer();
 
 		sbMediaInfo.append("ext:");
@@ -117,6 +115,7 @@ public class ListMediaUtil {
 			Log.w(TAG, "video: " + path + " cannot get media info");
 			return sbMediaInfo.toString();
 		}
+		
 		sbMediaInfo.append(", f:");
 		String strFormat = info.getFormatName();
 		if (strFormat.length() > 6)
@@ -224,7 +223,7 @@ public class ListMediaUtil {
 			
 			HashMap<String, Object> map = new HashMap<String, Object>();
 			map.put("filename", filename);
-			map.put("mediainfo", "N/A"/*QueryMediaInfo(clip_fullpath)*/);
+			map.put("mediainfo", "N/A");
 			map.put("folder", mUrl);
 			map.put("filesize", "N/A");
 			map.put("modify", "N/A");
@@ -286,7 +285,7 @@ public class ListMediaUtil {
 				if (info != null) {
 					HashMap<String, Object> map = new HashMap<String, Object>();
 					map.put("filename", file.getName());
-					map.put("mediainfo", QueryMediaInfo(file.getAbsolutePath()));
+					map.put("mediainfo", QueryMediaInfo(file.getAbsolutePath(), info));
 					map.put("folder", GetFileFolder(file.getAbsolutePath()));
 					map.put("filesize", filesize);
 					map.put("modify", dateFormat.format(new Date(modTime)));
@@ -424,7 +423,7 @@ public class ListMediaUtil {
 			
 			HashMap<String, Object> map = new HashMap<String, Object>();
 			map.put("filename", title);
-			map.put("mediainfo", QueryMediaInfo(path));
+			map.put("mediainfo", QueryMediaInfo(path, info));
 			map.put("folder", GetFileFolder(path));
 			map.put("filesize", filesize);
 			map.put("modify", dateFormat.format(new Date(modTime)));
