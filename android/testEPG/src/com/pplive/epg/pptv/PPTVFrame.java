@@ -221,7 +221,7 @@ public class PPTVFrame extends JFrame {
 		
 		editorSearch.setFont(f);
 		editorSearch.setBounds(20, 350, 200, 40);
-		editorSearch.setText("大牌直播间2015");
+		editorSearch.setText("海贼王");
 	    this.getContentPane().add(editorSearch);
 	    
 	    btnSearch.setBounds(230, 350, 80, 40);

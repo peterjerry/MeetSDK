@@ -2501,38 +2501,7 @@ public class ClipListActivity extends Activity implements
 		
 		render_frame_num = 0;
 		decode_drop_frame = 0;
-		
-		mVideoWidth = mp.getVideoWidth();
-		mVideoHeight = mp.getVideoHeight();
-		
-		// view
-		int width	= mLayout.getMeasuredWidth();
-		int height 	= mLayout.getMeasuredHeight();
-		
-		Log.i(TAG, String.format("adjust_ui preview %d x %d, video %d x %d", width, height, mVideoWidth, mVideoHeight)); 
-		
-		mPreview.getHolder().setFixedSize(mVideoWidth, mVideoHeight);
-		
-		RelativeLayout.LayoutParams sufaceviewParams = (RelativeLayout.LayoutParams) mPreview.getLayoutParams();
-		if ( mVideoWidth * height  > width * mVideoHeight ) { 
-			Log.i(TAG, "adjust_ui surfaceview is too tall, correcting");
-			sufaceviewParams.width	= width;
-			sufaceviewParams.height = width * mVideoHeight / mVideoWidth;
-		}
-		else if ( mVideoWidth * height  < width * mVideoHeight ) { 
-			Log.i(TAG, "adjust_ui surfaceview is too wide, correcting"); 
-			sufaceviewParams.width = height * mVideoWidth / mVideoHeight;
-			sufaceviewParams.height= height;
-		}
-		else {
-           sufaceviewParams.height	= height;
-           sufaceviewParams.width 	= width;
-		}
-		
-		Log.i(TAG, String.format("adjust_ui surfaceview setLayoutParams %d %d", 
-				sufaceviewParams.width, sufaceviewParams.height)); 
-		mPreview.setLayoutParams(sufaceviewParams);
-		
+
 		mPreview.BindInstance(mMediaController, mPlayer);
 		
 		Log.i(TAG, String.format("Java: width %d, height %d", mPlayer.getVideoWidth(), mPlayer.getVideoHeight()));
@@ -2584,17 +2553,46 @@ public class ClipListActivity extends Activity implements
 		Log.i(TAG, String.format("onVideoSizeChanged(%d %d)", w, h));
 		
 		if (w == 0 || h == 0) {
-			mHolder.setFixedSize(640, 480);
-			mPreview.SetVideoRes(640, 480);
+			mVideoWidth		= 640;
+			mVideoHeight	= 480;
 			Log.i(TAG, "Java: onVideoSizeChanged, no video stream, use default resolution: 640x480");
 		}
 		else {
-			mHolder.setFixedSize(w, h);
-			mPreview.SetVideoRes(w, h);
+			mVideoWidth		= w;
+			mVideoHeight	= h;
 		}
 		
+		// view
+		int width	= mLayout.getMeasuredWidth();
+		int height 	= mLayout.getMeasuredHeight();
+		
+		Log.i(TAG, String.format("adjust_ui preview %d x %d, video %d x %d", width, height, mVideoWidth, mVideoHeight)); 
+		
+		SurfaceHolder holder = mPreview.getHolder();
+		holder.setFixedSize(mVideoWidth, mVideoHeight);
+		
+		RelativeLayout.LayoutParams sufaceviewParams = (RelativeLayout.LayoutParams) mPreview.getLayoutParams();
+		if ( mVideoWidth * height  > width * mVideoHeight ) { 
+			Log.i(TAG, "adjust_ui surfaceview is too tall, correcting");
+			sufaceviewParams.width	= width;
+			sufaceviewParams.height = width * mVideoHeight / mVideoWidth;
+		}
+		else if ( mVideoWidth * height  < width * mVideoHeight ) { 
+			Log.i(TAG, "adjust_ui surfaceview is too wide, correcting"); 
+			sufaceviewParams.width = height * mVideoWidth / mVideoHeight;
+			sufaceviewParams.height= height;
+		}
+		else {
+           sufaceviewParams.height	= height;
+           sufaceviewParams.width 	= width;
+		}
+		
+		Log.i(TAG, String.format("adjust_ui surfaceview setLayoutParams %d %d", 
+				sufaceviewParams.width, sufaceviewParams.height)); 
+		mPreview.setLayoutParams(sufaceviewParams);
+		
 		// will trigger onMeasure() 
-		mPreview.measure(MeasureSpec.AT_MOST, MeasureSpec.AT_MOST);
+		//mPreview.measure(MeasureSpec.AT_MOST, MeasureSpec.AT_MOST);
 	}
 	
 	private void setupUpdater() {

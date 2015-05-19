@@ -24,6 +24,8 @@ import org.json.JSONException;
 import org.json.JSONObject;
 import org.json.JSONTokener;
 
+import com.pplive.epg.sohu.SohuUtil;
+
 public class EPGUtil {
 	private final int HOST_PORT = 80;
 	
@@ -612,14 +614,45 @@ public class EPGUtil {
     		link_description = content.getText();
     	
     	List<Element> linklist = null;
+    	
+    	//virtual channel
+    	List<Element> virtuals = v.getChildren("virtual");
+    	if (virtuals.size() > 1) {
+	    	Element virtual = virtuals.get(1);
+	    	
+    		List<Element> sites = virtual.getChildren("site");
+    		if (sites.size() > 0) {
+	        	Element site = sites.get(0);
+	        	String title = site.getAttributeValue("title");
+	        	List<Element> link_vlist = site.getChildren("episode");
+	        	
+	        	for (int k=0;k<link_vlist.size();k++) {
+	        		String ext_id = link_vlist.get(k).getAttributeValue("extid");
+	        		int pos = ext_id.indexOf('|');
+	        		String sid = ext_id.substring(0, pos);
+	        		String vid = ext_id.substring(pos + 1, ext_id.length());
+	        		SohuUtil sohu = new SohuUtil();
+	        		
+	        		String url = sohu.getPlayLink(Integer.valueOf(vid), Integer.valueOf(sid));
+	        		System.out.println("Java: sohu playlink " + url);
+	        	}
+	        	
+	        	return true;
+    		}
+    	}
+    	else {
+    		System.out.println("Java: virtual channel not found!");
+    	}
+    	
         Element video_list2 = v.getChild("video_list2");
         if (video_list2 != null)
         	linklist = video_list2.getChildren("playlink2");
         else
         	linklist = v.getChildren("playlink2");
         
-        if (linklist.size() < 1)
+        if (linklist.size() < 1) {
         	return false;
+        }
         
         for (int i=0;i<linklist.size();i++) {
         	Element playlink2 = linklist.get(i);
