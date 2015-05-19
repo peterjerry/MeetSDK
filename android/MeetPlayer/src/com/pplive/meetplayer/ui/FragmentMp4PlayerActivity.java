@@ -9,6 +9,7 @@ import com.pplive.meetplayer.R;
 
 import android.app.Activity;
 import android.content.Intent;
+import android.media.AudioManager;
 import android.os.Bundle;
 import android.pplive.media.player.MediaPlayer;
 import android.pplive.media.player.MediaPlayer.DecodeMode;
@@ -87,7 +88,7 @@ public class FragmentMp4PlayerActivity extends Activity implements Callback {
 			"&vid=1913402&ch=tv&cateCode=115;115102;115103;115105&plat=6" +
 			"&mkey=kK4jgq0w6aS7b7z_Mm7h9GnS4QbxUfnx&prod=app";
 	
-	private final static String duration_list = "300.12,300.04,300.04,300.04,219.011";
+	private final static String duration_list = "300120,300040,300040,300040,219011";
 	
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
@@ -133,7 +134,7 @@ public class FragmentMp4PlayerActivity extends Activity implements Callback {
 		while (st.hasMoreElements()) {
 			String seg_duration = st.nextToken();
 			Log.i(TAG, String.format("Java: segment #%d duration: %s", i++, seg_duration));
-			int duration_msec = (int)(Double.valueOf(seg_duration) * 1000);
+			int duration_msec = Integer.valueOf(seg_duration);
 			m_duration_list.add(duration_msec);
 		}
 		
@@ -197,10 +198,9 @@ public class FragmentMp4PlayerActivity extends Activity implements Callback {
 					m_pre_seek_pos = 0;
 					mSeeking = false;
 				}
-				else {
-					mIsBuffering = false;
-					mBufferingProgressBar.setVisibility(View.GONE);
-				}
+				
+				mIsBuffering = false;
+				mBufferingProgressBar.setVisibility(View.GONE);
 				
 				mp.start();
 				
@@ -297,6 +297,9 @@ public class FragmentMp4PlayerActivity extends Activity implements Callback {
 		mPlayer.reset();
 		
 		mPlayer.setDisplay(mHolder);
+		mPlayer.setAudioStreamType(AudioManager.STREAM_MUSIC);
+		mPlayer.setScreenOnWhilePlaying(true);
+		
 		mPlayer.setOnBufferingUpdateListener(mOnBufferingUpdate);
 		mPlayer.setOnInfoListener(mOnInfoListener);
 		mPlayer.setOnVideoSizeChangedListener(mOnVideoSizeChangedListener);
