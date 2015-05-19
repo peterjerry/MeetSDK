@@ -76,7 +76,7 @@ public class PPTVFrame extends JFrame {
 	JCheckBox cbNoVideo = new JCheckBox("NoVideo");
 	
 	JTextPane editorSearch = new JTextPane();
-	JButton btnSearch = new JButton("search");
+	JButton btnSearch = new JButton("搜索");
 	
 	JLabel lbl_day = new JLabel("日期");
 	JLabel lbl_start_time = new JLabel("开始");
@@ -224,6 +224,7 @@ public class PPTVFrame extends JFrame {
 		editorSearch.setText("海贼王");
 	    this.getContentPane().add(editorSearch);
 	    
+	    btnSearch.setFont(f);
 	    btnSearch.setBounds(230, 350, 80, 40);
 	    editorSearch.setFont(f);
 		this.getContentPane().add(btnSearch);

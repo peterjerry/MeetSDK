@@ -29,8 +29,8 @@ import org.json.JSONException;
 import org.json.JSONObject;
 import org.json.JSONTokener;
 
-import com.pplive.epg.ZipUtil;
-import com.pplive.epg.httpUtil;
+import com.pplive.epg.util.ZipUtil;
+import com.pplive.epg.util.httpUtil;
 
 public class LetvUtil {
 	String iploop_url = "http://int.dpool.sina.com.cn/iplookup/iplookup.php?format=json";

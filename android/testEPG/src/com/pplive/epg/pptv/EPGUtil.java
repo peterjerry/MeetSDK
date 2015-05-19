@@ -105,6 +105,9 @@ public class EPGUtil {
 			"&auth=55b7c50dc1adfc3bcabe2d9b2015e35c&vvid=41" +
 			"&id=%s&ft=1&k_ver=1.1.0";
 	
+	private final static String getvchannel_fmt = "http://epg.api.pptv.com/getvchannel?" +
+			"platform=android3&pagesize=%d&infoid=%d&siteid=%d&nowpage=%d";
+	
 	private List<Content> mContentList;
 	private List<Module> mModuleList;
 	private List<Catalog> mCatalogList;
@@ -615,6 +618,8 @@ public class EPGUtil {
     	
     	List<Element> linklist = null;
     	
+    	String infoId = v.getChild("infoId").getText();
+    	
     	//virtual channel
     	List<Element> virtuals = v.getChildren("virtual");
     	if (virtuals.size() > 1) {
@@ -624,6 +629,7 @@ public class EPGUtil {
     		if (sites.size() > 0) {
 	        	Element site = sites.get(0);
 	        	String title = site.getAttributeValue("title");
+	        	String total = site.getAttributeValue("total");
 	        	List<Element> link_vlist = site.getChildren("episode");
 	        	
 	        	for (int k=0;k<link_vlist.size();k++) {
@@ -640,9 +646,6 @@ public class EPGUtil {
 	        	return true;
     		}
     	}
-    	else {
-    		System.out.println("Java: virtual channel not found!");
-    	}
     	
         Element video_list2 = v.getChild("video_list2");
         if (video_list2 != null)
@@ -651,6 +654,7 @@ public class EPGUtil {
         	linklist = v.getChildren("playlink2");
         
         if (linklist.size() < 1) {
+        	System.out.println("Java: both real playlink and virtual channel NOT found!");
         	return false;
         }
         
