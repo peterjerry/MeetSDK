@@ -953,12 +953,25 @@ public class MediaPlayer implements MediaPlayerInterface {
     protected static final int MEDIA_ERROR = 100;
     protected static final int MEDIA_INFO = 200;
     
-	/**
-	 * Unspecified media player info.
-	 * 
-	 * @see android.media.MediaPlayer.OnInfoListener
-	 */
-	public static final int MEDIA_INFO_UNKNOWN = 1;
+    /* Do not change these values without updating their counterparts
+     * in include/media/mediaplayer.h!
+     */
+    /** Unspecified media player info.
+     * @see android.media.MediaPlayer.OnInfoListener
+     */
+    public static final int MEDIA_INFO_UNKNOWN = 1;
+
+    /** The player was started because it was used as the next player for another
+     * player, which just completed playback.
+     * @see android.media.MediaPlayer.OnInfoListener
+     * @hide
+     */
+    public static final int MEDIA_INFO_STARTED_AS_NEXT = 2;
+
+    /** The player just pushed the very first video frame for rendering.
+     * @see android.media.MediaPlayer.OnInfoListener
+     */
+    public static final int MEDIA_INFO_VIDEO_RENDERING_START = 3;
 
 	/**
 	 * The video is too complex for the decoder: it can't decode frames fast
@@ -1006,18 +1019,35 @@ public class MediaPlayer implements MediaPlayerInterface {
 	 */
 	public static final int MEDIA_INFO_METADATA_UPDATE = 802;
 	
-	// for test performace
-	public static final int MEDIA_INFO_TEST_DECODE_AVG_MSEC	= 901;
-	public static final int MEDIA_INFO_TEST_RENDER_AVG_MSEC	= 902;
-	public static final int MEDIA_INFO_TEST_DECODE_FPS		= 903;
-	public static final int MEDIA_INFO_TEST_RENDER_FPS		= 904;
-	
-	public static final int MEDIA_INFO_TEST_RENDER_FRAME		= 905;
-	public static final int MEDIA_INFO_TEST_LATENCY_MSEC		= 906;
-	public static final int MEDIA_INFO_TEST_DROP_FRAME		= 907;
-	public static final int MEDIA_INFO_TEST_IO_BITRATE		= 921;
-	public static final int MEDIA_INFO_TEST_MEDIA_BITRATE		= 922;
+	/** Failed to handle timed text track properly.
+     * @see android.media.MediaPlayer.OnInfoListener
+     *
+     * {@hide}
+     */
+    public static final int MEDIA_INFO_TIMED_TEXT_ERROR = 900;
 
-	public static final int MEDIA_INFO_TEST_PLAYER_TYPE		= 911;
+    /** Subtitle track was not supported by the media framework.
+     * @see android.media.MediaPlayer.OnInfoListener
+     */
+    public static final int MEDIA_INFO_UNSUPPORTED_SUBTITLE = 901;
+
+    /** Reading the subtitle track takes too long.
+     * @see android.media.MediaPlayer.OnInfoListener
+     */
+    public static final int MEDIA_INFO_SUBTITLE_TIMED_OUT = 902;
+	
+	// for test performace
+	public static final int MEDIA_INFO_TEST_DECODE_AVG_MSEC	= 2001;
+	public static final int MEDIA_INFO_TEST_RENDER_AVG_MSEC	= 2002;
+	public static final int MEDIA_INFO_TEST_DECODE_FPS		= 2003;
+	public static final int MEDIA_INFO_TEST_RENDER_FPS		= 2004;
+	
+	public static final int MEDIA_INFO_TEST_RENDER_FRAME		= 2005;
+	public static final int MEDIA_INFO_TEST_LATENCY_MSEC		= 2006;
+	public static final int MEDIA_INFO_TEST_DROP_FRAME		= 2007;
+	public static final int MEDIA_INFO_TEST_IO_BITRATE		= 2021;
+	public static final int MEDIA_INFO_TEST_MEDIA_BITRATE		= 2022;
+
+	public static final int MEDIA_INFO_TEST_PLAYER_TYPE		= 2100;
 
 }

@@ -114,12 +114,16 @@ public class EPGUtil {
 	private List<PlayLink2> mPlayLinkList;
 	private List<Navigator> mNavList;
 	
+	private List<Episode> mVirtualPlayLinkList;
+	private String mStrInfoId;
+	
 	public EPGUtil() {
-		mContentList = new ArrayList<Content>();
-		mModuleList = new ArrayList<Module>();
-		mCatalogList = new ArrayList<Catalog>();
-		mPlayLinkList = new ArrayList<PlayLink2>();
-		mNavList = new ArrayList<Navigator>();
+		mContentList 			= new ArrayList<Content>();
+		mModuleList 			= new ArrayList<Module>();
+		mCatalogList 			= new ArrayList<Catalog>();
+		mPlayLinkList			= new ArrayList<PlayLink2>();
+		mVirtualPlayLinkList 	= new ArrayList<Episode>();
+		mNavList 				= new ArrayList<Navigator>();
 	}
 	
 	public List<Content> getContent() {
@@ -138,8 +142,16 @@ public class EPGUtil {
 		return mPlayLinkList;
 	}
 	
+	public List<Episode> getVirtualLink() {
+		return mVirtualPlayLinkList;
+	}
+	
 	public List<Navigator> getNav() {
 		return mNavList;
+	}
+	
+	public String getInfoId() {
+		return mStrInfoId;
 	}
 	
 	public CDNItem live_cdn(int vid) {
@@ -548,6 +560,47 @@ public class EPGUtil {
 		return ret;
 	}
 	
+	public boolean virtual_channel(int info_id, int page_size, int site_id, int now_page) {
+		//http://epg.api.pptv.com/getvchannel?platform=android3&pagesize=200&infoid=1056&siteid=3&nowpage=4
+			
+		String url = String.format(getvchannel_fmt, page_size, info_id, site_id, now_page);
+		System.out.println("Java: virtual_channel" + url);
+		
+		boolean ret = false;
+		
+		HttpGet request = new HttpGet(url);
+		HttpResponse response;
+		
+		try {
+			response = HttpClients.createDefault().execute(request);
+			if (response.getStatusLine().getStatusCode() != 200){
+				return false;
+			}
+			
+			String result = EntityUtils.toString(response.getEntity());
+			System.out.println(result);
+			
+			SAXBuilder builder = new SAXBuilder();
+			Reader returnQuote = new StringReader(result);  
+	        Document doc = builder.build(returnQuote);
+	        Element root = doc.getRootElement();
+	        
+	        mVirtualPlayLinkList.clear();
+	        ret = add_episode(root);
+		} catch (ClientProtocolException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (JDOMException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+			
+		return ret;
+	}
+	
 	public boolean detail(String vid) {
 		String url = String.format(detail_url_fmt, vid, vid);
 		System.out.println(url);
@@ -588,6 +641,25 @@ public class EPGUtil {
 		return ret;
 	}
 	
+	private boolean add_episode(Element v) {
+		List<Element> sites = v.getChildren("site");
+		Element site= sites.get(0);
+		String siteid = site.getAttributeValue("siteid");
+		
+		List<Element> episodes = site.getChildren("episode");
+		for (int i=0;i<episodes.size();i++) {
+			Element episode = episodes.get(i);
+			String vid = episode.getAttributeValue("vid");
+			String title = episode.getAttributeValue("title");
+			String extid = episode.getAttributeValue("extid");
+			
+			Episode e = new Episode(Integer.valueOf(siteid), title, vid, extid);
+			mVirtualPlayLinkList.add(e);
+		}
+		
+		return true;
+	}
+	
 	private boolean add_v(Element v) {
 		String link_title  = v.getChild("title").getText();
     	String link_id = v.getChild("vid").getText();
@@ -618,11 +690,11 @@ public class EPGUtil {
     	
     	List<Element> linklist = null;
     	
-    	String infoId = v.getChild("infoId").getText();
-    	
     	//virtual channel
     	List<Element> virtuals = v.getChildren("virtual");
     	if (virtuals.size() > 1) {
+        	String strInfoId = v.getChild("infoId").getText();
+
 	    	Element virtual = virtuals.get(1);
 	    	
     		List<Element> sites = virtual.getChildren("site");
@@ -631,18 +703,11 @@ public class EPGUtil {
 	        	String title = site.getAttributeValue("title");
 	        	String total = site.getAttributeValue("total");
 	        	List<Element> link_vlist = site.getChildren("episode");
+	        	mStrInfoId = strInfoId;
 	        	
-	        	for (int k=0;k<link_vlist.size();k++) {
-	        		String ext_id = link_vlist.get(k).getAttributeValue("extid");
-	        		int pos = ext_id.indexOf('|');
-	        		String sid = ext_id.substring(0, pos);
-	        		String vid = ext_id.substring(pos + 1, ext_id.length());
-	        		SohuUtil sohu = new SohuUtil();
-	        		
-	        		String url = sohu.getPlayLink(Integer.valueOf(vid), Integer.valueOf(sid));
-	        		System.out.println("Java: sohu playlink " + url);
-	        	}
-	        	
+	        	System.out.println(String.format("Java: virtual channel infoid %s, title: %s, total %s",
+	        			strInfoId, title, total));
+
 	        	return true;
     		}
     	}

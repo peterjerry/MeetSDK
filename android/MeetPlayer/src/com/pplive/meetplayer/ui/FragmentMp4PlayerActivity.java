@@ -8,10 +8,12 @@ import java.util.StringTokenizer;
 import com.pplive.meetplayer.R;
 
 import android.app.Activity;
+import android.content.Intent;
 import android.os.Bundle;
 import android.pplive.media.player.MediaPlayer;
 import android.pplive.media.player.MediaPlayer.DecodeMode;
 import android.util.Log;
+import android.view.KeyEvent;
 import android.view.MotionEvent;
 import android.view.SurfaceHolder;
 import android.view.View;
@@ -43,6 +45,9 @@ public class FragmentMp4PlayerActivity extends Activity implements Callback {
 	private MediaPlayer.OnCompletionListener mOnCompletionListener;
 	private MediaPlayer.OnBufferingUpdateListener mOnBufferingUpdate;
 	private MediaPlayer.OnInfoListener mOnInfoListener;
+	
+	private String mUrlListStr;
+	private String mDurationListStr;
 	
 	private int mVideoWidth, mVideoHeight;
 	private List<String> m_playlink_list;
@@ -89,7 +94,8 @@ public class FragmentMp4PlayerActivity extends Activity implements Callback {
 		super.onCreate(savedInstanceState);
 		
 		requestWindowFeature(Window.FEATURE_NO_TITLE);
-        super.getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+		getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN,
+				WindowManager.LayoutParams.FLAG_FULLSCREEN);
 		
 		setContentView(R.layout.activity_frag_mp4_player);
 		mLayout = (RelativeLayout) findViewById(R.id.main_layout);
@@ -102,16 +108,27 @@ public class FragmentMp4PlayerActivity extends Activity implements Callback {
 		m_playlink_list = new ArrayList<String>();
 		m_duration_list = new ArrayList<Integer>();
 		
+		Intent intent = getIntent();
+		if (intent.hasExtra("url_list") && intent.hasExtra("duration_list")) {
+			mUrlListStr			= intent.getStringExtra("url_list");
+			mDurationListStr	= intent.getStringExtra("duration_list");
+		}
+		else {
+			mUrlListStr 		= url_list;
+			mDurationListStr	= duration_list;
+		}
+
 		StringTokenizer st;
-		st = new StringTokenizer(url_list, ",", false);
 		int i=0;
+		
+		st = new StringTokenizer(mUrlListStr, ",", false);
 		while (st.hasMoreElements()) {
 			String url = st.nextToken();
 			Log.i(TAG, String.format("Java: segment #%d url: %s", i++, url));
 			m_playlink_list.add(url);
 		}
 		
-		st = new StringTokenizer(duration_list, ",", false);
+		st = new StringTokenizer(mDurationListStr, ",", false);
 		i=0;
 		while (st.hasMoreElements()) {
 			String seg_duration = st.nextToken();
@@ -125,15 +142,22 @@ public class FragmentMp4PlayerActivity extends Activity implements Callback {
 			@Override
 			public boolean onInfo(MediaPlayer mp, int what, int extra) {
 				// TODO Auto-generated method stub
+				Log.i(TAG, "Java: onInfo what " + what + " , extra " + extra);
+				
 				if ((MediaPlayer.MEDIA_INFO_BUFFERING_START == what) && !mIsBuffering) {
+					Log.i(TAG, "Java: onInfo MEDIA_INFO_BUFFERING_START");
 					mIsBuffering = true;
 					mBufferingProgressBar.setVisibility(View.VISIBLE);
 					Log.i(TAG, "Java: MEDIA_INFO_BUFFERING_START");
 				}
 				else if ((what == MediaPlayer.MEDIA_INFO_BUFFERING_END) && mIsBuffering) {
+					Log.i(TAG, "Java: onInfo MEDIA_INFO_BUFFERING_END");
 					mIsBuffering = false;
 					mBufferingProgressBar.setVisibility(View.GONE);
 					Log.i(TAG, "Java: MEDIA_INFO_BUFFERING_END");
+				}
+				else if (what == MediaPlayer.MEDIA_INFO_VIDEO_RENDERING_START) {
+					Log.i(TAG, "Java: onInfo MEDIA_INFO_VIDEO_RENDERING_START");
 				}
 				
 				return true;
@@ -145,7 +169,7 @@ public class FragmentMp4PlayerActivity extends Activity implements Callback {
 			@Override
 			public void onBufferingUpdate(MediaPlayer mp, int pct) {
 				// TODO Auto-generated method stub
-				
+				Log.i(TAG, "Java: onBufferingUpdate " + pct);
 			}
 		};
 		
@@ -173,11 +197,12 @@ public class FragmentMp4PlayerActivity extends Activity implements Callback {
 					m_pre_seek_pos = 0;
 					mSeeking = false;
 				}
+				else {
+					mIsBuffering = false;
+					mBufferingProgressBar.setVisibility(View.GONE);
+				}
 				
 				mp.start();
-				
-				mIsBuffering = false;
-				mBufferingProgressBar.setVisibility(View.GONE);
 				
 				mController.setMediaPlayer(mMediaPlayerControl);
 				mController.show(3000);
@@ -215,23 +240,7 @@ public class FragmentMp4PlayerActivity extends Activity implements Callback {
 				m_play_pos_offset += m_duration_list.get(m_playlink_now_index);
 				m_playlink_now_index++;
 				
-				try {
-					mp.setDataSource(m_playlink_list.get(m_playlink_now_index));
-				} catch (IllegalStateException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
-				} catch (IllegalArgumentException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
-				} catch (SecurityException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
-				} catch (IOException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
-				}
-				
-				mp.prepareAsync();
+				setupMediaPlayer();
 			}
 		};
 		
@@ -243,13 +252,28 @@ public class FragmentMp4PlayerActivity extends Activity implements Callback {
 	}
 	
 	@Override
-	protected void onStop() {
+	public boolean onKeyDown(int keyCode, KeyEvent event) {
+		// TODO Auto-generated method stub
+		if (keyCode == KeyEvent.KEYCODE_DPAD_CENTER || 
+				keyCode == KeyEvent.KEYCODE_ENTER) {
+			if (mPlayer != null) {
+				mController.show(3000);
+				return true;
+			}
+		}
+		
+		return super.onKeyDown(keyCode, event);
+	}
+	
+	@Override
+	protected void onPause() {
 		// TODO Auto-generated method stub
 		super.onStop();
 		
 		if (mPlayer != null) {
 			mPlayer.stop();
 			mPlayer.release();
+			mPlayer = null;
 		}
 	}
 	
@@ -266,6 +290,7 @@ public class FragmentMp4PlayerActivity extends Activity implements Callback {
 		if (mPlayer != null) {
 			mPlayer.stop();
 			mPlayer.release();
+			mPlayer = null;
 		}
 		
 		mPlayer = new MediaPlayer(DecodeMode.HW_SYSTEM);

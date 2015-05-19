@@ -22,6 +22,9 @@ import java.util.Locale;
 
 import javax.swing.event.*;
 
+import com.pplive.epg.sohu.PlaylinkSohu;
+import com.pplive.epg.sohu.SohuUtil;
+
 public class PPTVFrame extends JFrame {
 	
 	private EPG_STATE mState = EPG_STATE.EPG_STATE_IDLE;
@@ -31,7 +34,9 @@ public class PPTVFrame extends JFrame {
 	private List<Catalog> mCatalogList;
 	private List<PlayLink2> mPlayLinkList;
 	private List<Navigator> mNavList;
+	private List<Episode> mVirtualLinkList;
 	private String mContentType;
+	private boolean mVirtualChannel = false;
 	
 	private int start_page = 1;
 	private int last_live_type = 0;
@@ -448,7 +453,7 @@ public class PPTVFrame extends JFrame {
 			System.out.println(mPlayLinkList.get(i).toString());
 			comboItem.addItem(mPlayLinkList.get(i).getTitle());
 		}
-		
+			
 		mState = EPG_STATE.EPG_STATE_DETAIL;
 	}
 	
@@ -456,6 +461,25 @@ public class PPTVFrame extends JFrame {
 		boolean ret;
 		
 		int n = comboItem.getSelectedIndex();
+		if (mVirtualChannel) {
+			String ext_id = mVirtualLinkList.get(n).getExtId();
+			
+    		int pos = ext_id.indexOf('|');
+    		String sid = ext_id.substring(0, pos);
+    		String vid = ext_id.substring(pos + 1, ext_id.length());
+    		SohuUtil sohu = new SohuUtil();
+    		
+    		PlaylinkSohu l = sohu.getPlayLink(Integer.valueOf(vid), Integer.valueOf(sid));
+    		
+    		if (l == null) {
+    			mState = EPG_STATE.EPG_STATE_ERROR;
+    			return;
+    		}
+    		
+    		System.out.println("Java: sohu playlink " + l.getUrlListbyFT(1));
+			return;
+		}
+
 		String vid = mPlayLinkList.get(n).getId();
 		if (vid == null) {
 			System.out.println("vid is null");
@@ -513,13 +537,44 @@ public class PPTVFrame extends JFrame {
 		}
 		
 		mPlayLinkList = mEPG.getLink();
-		int size = mPlayLinkList.size();
 		
-		comboItem.removeAllItems();
+		int size = 0;
 		
-		for (int i=0;i<size;i++) {
-			System.out.println(mPlayLinkList.get(i).toString());
-			comboItem.addItem(mPlayLinkList.get(i).getTitle());
+		if (mPlayLinkList.size() == 0) {
+			// virtual channel
+			mVirtualChannel= true;
+			
+			System.out.println("virtual channel");
+			
+			String info_id = mEPG.getInfoId();
+			ret = mEPG.virtual_channel(Integer.valueOf(info_id), 20, 3/*sohu*/, 1);
+			if (!ret) {
+				System.out.println("failed to get virtual_channel");
+				return;
+			}
+		
+			comboItem.removeAllItems();
+			
+			mVirtualLinkList = mEPG.getVirtualLink();
+			size = mVirtualLinkList.size();
+			
+			for (int j=0;j<size;j++) {
+				Episode e = mVirtualLinkList.get(j);
+				comboItem.addItem(e.getTitle());
+				System.out.println(e.toString());
+			}
+		}
+		else {
+			mVirtualChannel= false;
+			
+			size = mPlayLinkList.size();
+			
+			comboItem.removeAllItems();
+			
+			for (int i=0;i<size;i++) {
+				System.out.println(mPlayLinkList.get(i).toString());
+				comboItem.addItem(mPlayLinkList.get(i).getTitle());
+			}
 		}
 		
 		if (size == 1) {
