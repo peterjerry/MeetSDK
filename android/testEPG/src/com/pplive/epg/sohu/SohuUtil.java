@@ -54,7 +54,7 @@ public class SohuUtil {
 			JSONArray clipsDuration_nor = data.getJSONArray("clipsDuration_nor");
 			StringBuffer sbNormal = new StringBuffer();
 			for (int k=0;k<clipsDuration_nor.length();k++) {
-				double du = (double)clipsDuration_nor.get(k);
+				double du = clipsDuration_nor.getDouble(k);
 				sbNormal.append((int)(du * 1000));
 				sbNormal.append(",");
 				System.out.println(String.format("Java: segment #%d %.3f sec", k, du));
@@ -63,7 +63,7 @@ public class SohuUtil {
 			JSONArray clipsDuration_high = data.getJSONArray("clipsDuration_high");
 			StringBuffer sbHigh = new StringBuffer();
 			for (int k=0;k<clipsDuration_high.length();k++) {
-				double du = (double)clipsDuration_high.get(k);
+				double du = clipsDuration_high.getDouble(k);
 				sbHigh.append((int)(du * 1000));
 				sbHigh.append(",");
 				System.out.println(String.format("Java: segment #%d %.3f sec", k, du));

@@ -15,13 +15,17 @@ import org.json.JSONException;
 import org.json.JSONObject;
 import org.json.JSONTokener;
 
+import android.util.Log;
+
 public class SohuUtil {
+	private final static String TAG = "SohuUtil";
+	
 	private static final String API_URL = "http://api.tv.sohu.com/video/playinfo/" +
 			"%d.json?api_key=9854b2afa779e1a6bff1962447a09dbd&plat=6&sver=3.1&partner=47&c=2&sid=%d";
 	
 	public PlaylinkSohu getPlayLink(int vid, int sid) {
 		String url = String.format(API_URL, vid, sid);
-		System.out.println("Java: SohuUtil getPlayLink " + url);
+		Log.i(TAG, "Java: SohuUtil getPlayLink() url: " + url);
 		
 		HttpGet request = new HttpGet(url);
 		
@@ -52,7 +56,7 @@ public class SohuUtil {
 			JSONArray clipsDuration_nor = data.getJSONArray("clipsDuration_nor");
 			StringBuffer sbNormal = new StringBuffer();
 			for (int k=0;k<clipsDuration_nor.length();k++) {
-				double du = (Double)clipsDuration_nor.get(k);
+				double du = clipsDuration_nor.getDouble(k);
 				sbNormal.append((int)(du * 1000));
 				sbNormal.append(",");
 				System.out.println(String.format("Java: segment #%d %.3f sec", k, du));
@@ -61,7 +65,7 @@ public class SohuUtil {
 			JSONArray clipsDuration_high = data.getJSONArray("clipsDuration_high");
 			StringBuffer sbHigh = new StringBuffer();
 			for (int k=0;k<clipsDuration_high.length();k++) {
-				double du = (Double)clipsDuration_high.get(k);
+				double du = clipsDuration_high.getDouble(k);
 				sbHigh.append((int)(du * 1000.0f));
 				sbHigh.append(",");
 				System.out.println(String.format("Java: segment #%d %.3f sec", k, du));

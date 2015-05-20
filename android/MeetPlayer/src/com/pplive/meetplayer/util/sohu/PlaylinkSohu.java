@@ -41,6 +41,7 @@ public class PlaylinkSohu {
 			return mHighDuration;
 	}
 	
+	@Deprecated
 	public List<String> getUrlListbyFT(int ft) {
 		if (ft == 1)
 			return mNormalUrlList;

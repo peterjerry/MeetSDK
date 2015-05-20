@@ -507,7 +507,7 @@ public class EPGUtil {
 		url += encoded_param;
 		url += "&appid=com.pplive.androidphone&appplt=aph";
 		url += ppi;
-		System.out.println(url);
+		System.out.println("Java epg list() url: " + url);
 		
 		boolean ret = false;
 		
@@ -564,7 +564,7 @@ public class EPGUtil {
 		//http://epg.api.pptv.com/getvchannel?platform=android3&pagesize=200&infoid=1056&siteid=3&nowpage=4
 			
 		String url = String.format(getvchannel_fmt, page_size, info_id, site_id, now_page);
-		System.out.println("Java: virtual_channel" + url);
+		System.out.println("Java: virtual_channel() url: " + url);
 		
 		boolean ret = false;
 		

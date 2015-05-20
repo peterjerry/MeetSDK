@@ -6,11 +6,18 @@ import java.util.List;
 import java.util.StringTokenizer;
 
 import com.pplive.meetplayer.R;
+import com.pplive.meetplayer.util.EPGUtil;
+import com.pplive.meetplayer.util.Episode;
+import com.pplive.meetplayer.util.sohu.PlaylinkSohu;
+import com.pplive.meetplayer.util.sohu.SohuUtil;
 
 import android.app.Activity;
 import android.content.Intent;
 import android.media.AudioManager;
+import android.os.AsyncTask;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Message;
 import android.pplive.media.player.MediaPlayer;
 import android.pplive.media.player.MediaPlayer.DecodeMode;
 import android.util.Log;
@@ -47,8 +54,13 @@ public class FragmentMp4PlayerActivity extends Activity implements Callback {
 	private MediaPlayer.OnBufferingUpdateListener mOnBufferingUpdate;
 	private MediaPlayer.OnInfoListener mOnInfoListener;
 	
+	private EPGUtil mEPG;
+	private List<Episode> mVirtualLinkList;
+	
 	private String mUrlListStr;
 	private String mDurationListStr;
+	private String mTitle;
+	private int mInfoId, mIndex;
 	
 	private int mVideoWidth, mVideoHeight;
 	private List<String> m_playlink_list;
@@ -71,6 +83,9 @@ public class FragmentMp4PlayerActivity extends Activity implements Callback {
     private final static String []mode_desc = {"自适应", "铺满屏幕", "放大裁切", "原始大小"};
 	
 	private int mDisplayMode = SCREEN_FIT;
+	
+	private final static int MSG_PLAY_NEXT_EPISODE 		= 1;
+	private final static int MSG_INVALID_EPISODE_INDEX	= 2;
 	
 	private final static String url_list = "http://data.vod.itc.cn/?" +
 			"new=/49/197/T9vx2eIRoGJa8v2svlzxkN.mp4&vid=1913402&ch=tv" +
@@ -113,29 +128,15 @@ public class FragmentMp4PlayerActivity extends Activity implements Callback {
 		if (intent.hasExtra("url_list") && intent.hasExtra("duration_list")) {
 			mUrlListStr			= intent.getStringExtra("url_list");
 			mDurationListStr	= intent.getStringExtra("duration_list");
+			mTitle				= intent.getStringExtra("title");
+			mInfoId				= intent.getIntExtra("info_id", 0);
+    		mIndex				= intent.getIntExtra("index", 0);
 		}
 		else {
 			mUrlListStr 		= url_list;
 			mDurationListStr	= duration_list;
-		}
-
-		StringTokenizer st;
-		int i=0;
-		
-		st = new StringTokenizer(mUrlListStr, ",", false);
-		while (st.hasMoreElements()) {
-			String url = st.nextToken();
-			Log.i(TAG, String.format("Java: segment #%d url: %s", i++, url));
-			m_playlink_list.add(url);
-		}
-		
-		st = new StringTokenizer(mDurationListStr, ",", false);
-		i=0;
-		while (st.hasMoreElements()) {
-			String seg_duration = st.nextToken();
-			Log.i(TAG, String.format("Java: segment #%d duration: %s", i++, seg_duration));
-			int duration_msec = Integer.valueOf(seg_duration);
-			m_duration_list.add(duration_msec);
+			mInfoId				= -1;
+    		mIndex				= -1;
 		}
 		
 		mOnInfoListener = new MediaPlayer.OnInfoListener() {
@@ -231,6 +232,12 @@ public class FragmentMp4PlayerActivity extends Activity implements Callback {
 			public void onCompletion(MediaPlayer mp) {
 				// TODO Auto-generated method stub
 				if (m_playlink_now_index == m_playlink_list.size() - 1) {
+					
+					if (mInfoId != -1) {
+						new NextEpisodeTask().execute(1);
+		        		return;
+					}
+					
 					Toast.makeText(FragmentMp4PlayerActivity.this, "Play complete", Toast.LENGTH_SHORT).show();
 					mIsBuffering = false;
 					mBufferingProgressBar.setVisibility(View.GONE);
@@ -251,6 +258,44 @@ public class FragmentMp4PlayerActivity extends Activity implements Callback {
 		Log.i(TAG, "Java: onCreate()");
 	}
 	
+	private void buildPlaylinkList() {
+		m_playlink_list.clear();
+		m_duration_list.clear();
+		
+		StringTokenizer st;
+		int i=0;
+		
+		st = new StringTokenizer(mUrlListStr, ",", false);
+		while (st.hasMoreElements()) {
+			String url = st.nextToken();
+			Log.i(TAG, String.format("Java: segment #%d url: %s", i++, url));
+			m_playlink_list.add(url);
+		}
+		
+		st = new StringTokenizer(mDurationListStr, ",", false);
+		i=0;
+		while (st.hasMoreElements()) {
+			String seg_duration = st.nextToken();
+			Log.i(TAG, String.format("Java: segment #%d duration: %s", i++, seg_duration));
+			int duration_msec = Integer.valueOf(seg_duration);
+			m_duration_list.add(duration_msec);
+		}
+	}
+	
+	private Handler mHandler = new Handler(){ 
+		@Override  
+        public void handleMessage(Message msg) {  
+            switch(msg.what) {
+			case MSG_PLAY_NEXT_EPISODE:
+				setupMediaPlayer();
+				break;
+			case MSG_INVALID_EPISODE_INDEX:
+				Toast.makeText(FragmentMp4PlayerActivity.this, "invalid episode", Toast.LENGTH_SHORT).show();
+				break;
+            }
+		}
+	};
+	
 	@Override
 	public boolean onKeyDown(int keyCode, KeyEvent event) {
 		// TODO Auto-generated method stub
@@ -260,6 +305,24 @@ public class FragmentMp4PlayerActivity extends Activity implements Callback {
 				mController.show(3000);
 				return true;
 			}
+		}
+		else if (keyCode == KeyEvent.KEYCODE_DPAD_LEFT ||
+				keyCode == KeyEvent.KEYCODE_DPAD_RIGHT) {
+			if (mPlayer != null) {
+				int incr = 1;
+				if (keyCode == KeyEvent.KEYCODE_DPAD_LEFT)
+					incr = -1;
+				
+				new NextEpisodeTask().execute(incr);
+			}
+		}
+		else if (keyCode == KeyEvent.KEYCODE_DPAD_UP ||
+				keyCode == KeyEvent.KEYCODE_DPAD_DOWN) {
+			if (mDisplayMode == SCREEN_FIT)
+				mDisplayMode = SCREEN_STRETCH;
+			else
+				mDisplayMode = SCREEN_FIT;
+			toggleDisplayMode(mDisplayMode, true);
 		}
 		
 		return super.onKeyDown(keyCode, event);
@@ -292,6 +355,10 @@ public class FragmentMp4PlayerActivity extends Activity implements Callback {
 			mPlayer.release();
 			mPlayer = null;
 		}
+		
+		buildPlaylinkList();
+		
+		Toast.makeText(this, "ready to play video: " + mTitle, Toast.LENGTH_SHORT).show();
 		
 		mPlayer = new MediaPlayer(DecodeMode.HW_SYSTEM);
 		mPlayer.reset();
@@ -331,6 +398,64 @@ public class FragmentMp4PlayerActivity extends Activity implements Callback {
 		mIsBuffering = true;
 		mBufferingProgressBar.setVisibility(View.VISIBLE);
 		return true;
+	}
+	
+	private class NextEpisodeTask extends AsyncTask<Integer, Integer, Boolean> {
+
+		@Override
+		protected Boolean doInBackground(Integer... params) {
+			// TODO Auto-generated method stub
+			
+			int incr = params[0];
+			
+			if (mVirtualLinkList == null) {
+				mEPG = new EPGUtil();
+				boolean ret;
+				ret = mEPG.virtual_channel(mTitle, mInfoId, 500, 3/*sohu*/, 1);
+				if (!ret) {
+					Log.e(TAG, "failed to get virtual_channel");
+					return false;
+				}
+		
+				mVirtualLinkList = mEPG.getVirtualLink();
+			}
+			
+			mIndex += incr;
+			if (mIndex < 0 || mIndex > mVirtualLinkList.size() - 1) {
+				Log.i(TAG, String.format("Java: meet end %d %d", mIndex, mVirtualLinkList.size()));
+				mHandler.sendEmptyMessage(MSG_INVALID_EPISODE_INDEX);
+				return false;
+			}
+			
+			Episode e = mVirtualLinkList.get(mIndex);
+			String ext_id = e.getExtId();
+			int pos = ext_id.indexOf('|');
+    		String sid = ext_id.substring(0, pos);
+    		String vid = ext_id.substring(pos + 1, ext_id.length());
+			
+			SohuUtil sohu = new SohuUtil();
+    		PlaylinkSohu l = sohu.getPlayLink(Integer.valueOf(vid), Integer.valueOf(sid));
+    		
+    		if (l == null) {
+    			Toast.makeText(FragmentMp4PlayerActivity.this, "Failed to get next video", 
+    					Toast.LENGTH_SHORT).show();
+        		return false;
+    		}
+    		
+    		Log.i(TAG, "Java: EPG_ITEM_VIRTUAL_SOHU " + l.getUrlListbyFT(1));
+    		
+    		mUrlListStr 		= l.getUrl(1);
+			mDurationListStr	= l.getDuration(1);
+			mTitle				= l.getTitle();
+			
+			m_play_pos_offset	= 0;
+			m_playlink_now_index= 0;
+			
+			mHandler.sendEmptyMessage(MSG_PLAY_NEXT_EPISODE);
+			
+			return true;
+		}
+		
 	}
 	
 	private void toggleDisplayMode(int mode, boolean popToast) {

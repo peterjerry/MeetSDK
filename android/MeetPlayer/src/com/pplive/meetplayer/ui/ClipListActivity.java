@@ -95,6 +95,7 @@ import com.pplive.meetplayer.util.Module;
 import com.pplive.meetplayer.util.PlayLink2;
 import com.pplive.meetplayer.util.PlayLinkUtil;
 import com.pplive.meetplayer.util.Util;
+import com.pplive.meetplayer.util.VirtualChannelInfo;
 import com.pplive.meetplayer.util.sohu.PlaylinkSohu;
 import com.pplive.meetplayer.util.sohu.SohuUtil;
 import com.pplive.meetplayer.ui.widget.MiniMediaController;
@@ -224,7 +225,7 @@ public class ClipListActivity extends Activity implements
 	private int mEPGlistCount = 15;
 	private boolean mListLive			= false;
 	private boolean mListSearch		= false;
-	private boolean mVirtualChannel	= false;
+	private boolean mIsVirtualChannel	= false;
 	private String mExtid;
 	
 	private final int EPG_ITEM_FRONTPAGE		= 1;
@@ -1678,7 +1679,7 @@ public class ClipListActivity extends Activity implements
 	
 	private void popupEPGCollectionDlg() {
 		int size;
-		if (mVirtualChannel) {
+		if (mIsVirtualChannel) {
 			size = mVirtualLinkList.size();
 		}
 		else {
@@ -1689,7 +1690,7 @@ public class ClipListActivity extends Activity implements
 			ArrayList<String> title_list = new ArrayList<String>();
 			final ArrayList<String> link_list = new ArrayList<String>();
 			
-			if (mVirtualChannel) {
+			if (mIsVirtualChannel) {
 				for (int i=0;i<size;i++) {
 					Episode e = mVirtualLinkList.get(i);
 					String title = e.getTitle();
@@ -1715,9 +1716,10 @@ public class ClipListActivity extends Activity implements
 			.setItems(str_title_list, 
 				new DialogInterface.OnClickListener(){
 				public void onClick(DialogInterface dialog, int whichButton) {
-					if (mVirtualChannel) {
+					if (mIsVirtualChannel) {
 						mExtid = link_list.get(whichButton);
-						new EPGTask().execute(EPG_ITEM_VIRTUAL_SOHU);
+						int index = (mEPGlistStartPage - 1) * mEPGlistCount + whichButton;
+						new EPGTask().execute(EPG_ITEM_VIRTUAL_SOHU, index);
 					}
 					else {
 						int vid = Integer.valueOf(link_list.get(whichButton));
@@ -1745,7 +1747,7 @@ public class ClipListActivity extends Activity implements
 						if (mListSearch)
 							new EPGTask().execute(EPG_ITEM_SEARCH, ++mEPGlistStartPage, mEPGlistCount);
 						else {
-							if (mVirtualChannel) {
+							if (mIsVirtualChannel) {
 								new EPGTask().execute(EPG_ITEM_VIRTUAL_LIST, ++mEPGlistStartPage, mEPGlistCount);
 							}
 							else {
@@ -1856,20 +1858,30 @@ public class ClipListActivity extends Activity implements
 		mEPGLinkList = mEPG.getLink();
 		if (mEPGLinkList.size() == 0) {
 			Log.i(TAG, "virtual channel");
-			mVirtualChannel= true;
+			mIsVirtualChannel= true;
+			mEPGlistStartPage = 1;
 			
-			String info_id = mEPG.getInfoId();
-			ret = mEPG.virtual_channel(mEPG.getVirtualTitle(), Integer.valueOf(info_id), 20, 3/*sohu*/, 1);
-			if (!ret) {
-				Log.e(TAG, "failed to get virtual_channel");
-				mHandler.sendEmptyMessage(MSG_FAIL_TO_PARSE_EPG_RESULT);
-				return;
+			List<VirtualChannelInfo> infoList = mEPG.getVchannelInfo();
+			for (int i=0;i<infoList.size();i++) {
+				VirtualChannelInfo info = infoList.get(i);
+				
+				if (info.getSiteId() == 3 /* site */) {
+					ret = mEPG.virtual_channel(info.getTitle(), 
+							info.getInfoId(), mEPGlistCount, info.getSiteId(), 1);
+					if (!ret) {
+						Log.e(TAG, "failed to get virtual_channel");
+						mHandler.sendEmptyMessage(MSG_FAIL_TO_PARSE_EPG_RESULT);
+						return;
+					}
+					
+					break;
+				}
 			}
 	
 			mVirtualLinkList = mEPG.getVirtualLink();
 		}
 		else {
-			mVirtualChannel= false;
+			mIsVirtualChannel = false;
 		}
 		
 		mHandler.sendEmptyMessage(MSG_EPG_DETAIL_DONE);
@@ -2034,6 +2046,8 @@ public class ClipListActivity extends Activity implements
     	        msg.sendToTarget();
         	}
         	else if (EPG_ITEM_VIRTUAL_SOHU == type) {
+        		int index = params[1]; // start episode index
+        		
         		int pos = mExtid.indexOf('|');
         		String sid = mExtid.substring(0, pos);
         		String vid = mExtid.substring(pos + 1, mExtid.length());
@@ -2048,27 +2062,48 @@ public class ClipListActivity extends Activity implements
         		
         		Log.i(TAG, "Java: EPG_ITEM_VIRTUAL_SOHU " + l.getUrlListbyFT(1));
         		
+        		int info_id = 0;
+        		List<VirtualChannelInfo> infoList = mEPG.getVchannelInfo();
+        		for (int i=0;i<infoList.size();i++) {
+    				VirtualChannelInfo info = infoList.get(i);
+    				if (info.getSiteId() == 3) {
+    					info_id = info.getInfoId();
+    				}
+    				break;
+        		}
+        		
         		Intent intent = new Intent(ClipListActivity.this,
         				FragmentMp4PlayerActivity.class);
         		intent.putExtra("url_list", l.getUrl(1));
         		intent.putExtra("duration_list", l.getDuration(1));
+        		intent.putExtra("title", l.getTitle());
+        		intent.putExtra("info_id", info_id);
+        		intent.putExtra("index", index);
         		startActivity(intent);
-        		finish();
+        		return true;
         	}
         	else if (EPG_ITEM_VIRTUAL_LIST == type) {
-        		String info_id = mEPG.getInfoId();
-        		int start_page = params[1];
-        		int count = params[2];
-    			ret = mEPG.virtual_channel(mEPG.getVirtualTitle(), Integer.valueOf(info_id), 
-    					count, 3/*sohu*/, start_page);
-    			if (!ret) {
-    				Log.e(TAG, "failed to get virtual_channel");
-    				mHandler.sendEmptyMessage(MSG_FAIL_TO_PARSE_EPG_RESULT);
-    				return false;
-    			}
-    	
-    			mVirtualLinkList = mEPG.getVirtualLink();
-    			mHandler.sendEmptyMessage(MSG_EPG_DETAIL_DONE);
+        		Log.i(TAG, "Java: EPG_ITEM_VIRTUAL_LIST");
+        		List<VirtualChannelInfo> infoList = mEPG.getVchannelInfo();
+        		for (int i=0;i<infoList.size();i++) {
+    				VirtualChannelInfo info = infoList.get(i);
+    				
+    				if (info.getSiteId() == 3 /*sohu*/) {
+		        		int start_page = params[1];
+		        		int count = params[2];
+		    			ret = mEPG.virtual_channel(info.getTitle(), info.getInfoId(), 
+		    					count, info.getSiteId(), start_page);
+		    			if (!ret) {
+		    				Log.e(TAG, "failed to get virtual_channel");
+		    				mHandler.sendEmptyMessage(MSG_FAIL_TO_PARSE_EPG_RESULT);
+		    				return false;
+		    			}
+		    	
+		    			mVirtualLinkList = mEPG.getVirtualLink();
+		    			mHandler.sendEmptyMessage(MSG_EPG_DETAIL_DONE);
+		    			break;
+    				}
+        		}
         	}
         	else {
         		Log.w(TAG, "Java: EPGTask invalid type: " + type);

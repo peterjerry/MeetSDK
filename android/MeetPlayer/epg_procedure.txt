@@ -1,0 +1,22 @@
+1 frontpage
+	new EPGTask().execute(EPG_ITEM_FRONTPAGE) -> mEPG.frontpage() -> MSG_EPG_FRONTPAGE_DONE -> popupEPGModuleDlg() -> 
+		new EPGTask().execute(EPG_ITEM_CATALOG, item) -> mEPG.catalog(id) ->
+		MSG_EPG_CATALOG_DONE -> popupEPGCatalogDlg() -> new EPGTask().execute(EPG_ITEM_DETAIL, vid) -> mEPG.detail(String.valueOf(id)) -> decide_virtual() ->
+		 -> real                           
+											->MSG_EPG_DETAIL_DONE -> new EPGTask().execute(EPG_ITEM_FT, Integer.valueOf(mEPGLinkList.get(0).getId()) ->
+		 -> virtual mEPG.getVirtualLink()
+		 
+		 int []ft_list = mEPG.getAvailableFT(String.valueOf(id)) -> MSG_PLAY_CDN_FT -> btn_ft.setText(String.valueOf(msg.arg1));
+		 
+		 
+2 content
+	new EPGTask().execute(EPG_ITEM_CONTENT_LIST) -> mEPG.contents_list() -> MSG_EPG_CONTENT_LIST_DONE -> popupEPGModuleDlg(false) ->
+		-> live -> mListLive = true -> new EPGTask().execute(EPG_ITEM_CONTENT_SURFIX) -> mEPG.contents(mLink) -> MSG_EPG_CONTENT_SURFIX_DONE ->
+		popupEPGContentDlg() -> new EPGTask().execute(EPG_ITEM_LIST, mEPGlistStartPage, mEPGlistCount) ->
+		-> mEPG.list(mEPGparam, mEPGtype, start_page, "order=n", count) -> decide_virtual() -> mVirtualChannel= false
+																														mHandler.sendEmptyMessage(MSG_EPG_DETAIL_DONE)
+																							-> mVirtualChannel= true -> mEPG.virtual_channel()
+		new EPGTask().execute(EPG_ITEM_FT, Integer.valueOf(mEPGLinkList.get(0).getId())
+		
+		
+3 search
