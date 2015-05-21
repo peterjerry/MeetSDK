@@ -4,7 +4,6 @@
     android:id="@+id/main_layout"
     android:layout_width="fill_parent"
     android:layout_height="fill_parent" 
-    android:gravity="center"
     android:background="@android:color/black">
 
     <SurfaceView
@@ -21,12 +20,12 @@
         android:layout_centerInParent="true"
         android:visibility="gone" />
 
-    <TextView
-        android:id="@+id/textview_progress"
+    <TextView 
+        android:id="@+id/tv_filename"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_below="@+id/progressbar_download"
-        android:layout_centerHorizontal="true"
+        android:layout_alignParentTop="true"
+		android:layout_alignParentRight="true"
         android:visibility="gone" />
 	
 	<TextView

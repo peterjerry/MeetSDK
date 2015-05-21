@@ -227,6 +227,7 @@ public class ClipListActivity extends Activity implements
 	private boolean mListSearch		= false;
 	private boolean mIsVirtualChannel	= false;
 	private String mExtid;
+	private int mSavedPlayLink; // for MeetViewActivity
 	
 	private final int EPG_ITEM_FRONTPAGE		= 1;
 	private final int EPG_ITEM_CATALOG			= 2;
@@ -1445,8 +1446,14 @@ public class ClipListActivity extends Activity implements
 			case MSG_EPG_CATALOG_DONE:
 				popupEPGCatalogDlg();
 				break;
-			case MSG_EPG_SEARCH_DONE:
 			case MSG_EPG_DETAIL_DONE:
+				if (mEPGLinkList.size() > 1) {
+					Intent intent = new Intent(ClipListActivity.this, MeetViewActivity.class);
+					intent.putExtra("playlink", String.valueOf(mSavedPlayLink));
+					startActivity(intent);
+					break;
+				}
+			case MSG_EPG_SEARCH_DONE:
 			case MSG_EPG_LIST_DONE:
 				if (mEPGLinkList.size() == 1) {
 					boolean ret = add_list_history(mEPGLinkList.get(0).getTitle(), 
@@ -1852,7 +1859,7 @@ public class ClipListActivity extends Activity implements
 		mHandler.sendEmptyMessage(MSG_PUSH_CDN_CLIP);
 	}
 	
-	void decide_virtual() {
+	boolean decide_virtual() {
 		boolean ret;
 		
 		mEPGLinkList = mEPG.getLink();
@@ -1871,7 +1878,7 @@ public class ClipListActivity extends Activity implements
 					if (!ret) {
 						Log.e(TAG, "failed to get virtual_channel");
 						mHandler.sendEmptyMessage(MSG_FAIL_TO_PARSE_EPG_RESULT);
-						return;
+						return false;
 					}
 					
 					break;
@@ -1884,7 +1891,7 @@ public class ClipListActivity extends Activity implements
 			mIsVirtualChannel = false;
 		}
 		
-		mHandler.sendEmptyMessage(MSG_EPG_DETAIL_DONE);
+		return true;
 	}
 	
 	private class EPGTask extends AsyncTask<Integer, Integer, Boolean> {
@@ -1931,7 +1938,11 @@ public class ClipListActivity extends Activity implements
         			return false;
         		}
 
-    			decide_virtual();
+    			if (decide_virtual()) {
+    				mSavedPlayLink = id;
+    				Log.i(TAG, "Java: EPG_ITEM_DETAIL mSavedPlayLink " + mSavedPlayLink);
+    				mHandler.sendEmptyMessage(MSG_EPG_DETAIL_DONE);
+    			}
         	}
         	else if (EPG_ITEM_SEARCH == type) {
         		if (params.length < 2) {
@@ -1939,6 +1950,7 @@ public class ClipListActivity extends Activity implements
 					return false;
 				}
         		
+        		mListLive = false;
         		int start_page = params[1];
         		int count = params[2];
         		
@@ -2005,7 +2017,8 @@ public class ClipListActivity extends Activity implements
         			return false;
         		}
         		
-    			decide_virtual();
+        		if (decide_virtual())
+        			mHandler.sendEmptyMessage(MSG_EPG_LIST_DONE);
         	}
         	else if (EPG_ITEM_CDN == type) {
         		Log.i(TAG, "Java: EPGTask start to getCDNUrl");
@@ -2442,6 +2455,7 @@ public class ClipListActivity extends Activity implements
 			break;
 		case OPTION_COMMON_MEETVIEW:
 			Intent intent = new Intent(ClipListActivity.this, MeetViewActivity.class);
+			intent.putExtra("playlink", "9037770");
 			startActivity(intent);
 			break;
 		case OPTION_COMMON_SUBTITLE:

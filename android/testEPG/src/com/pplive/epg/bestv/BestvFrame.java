@@ -232,6 +232,11 @@ public class BestvFrame extends JFrame {
 		String url = mChannelList.get(index).getPlayUrl();
 		
 		BestvKey b_key = mEPG.getLiveKey();
+		if (b_key == null) {
+			System.out.println("Java: failed to get bestv key");
+			return;
+		}
+		
 		System.out.println("Java: key " + b_key.toString());
 		String key = b_key.getKey();
 		

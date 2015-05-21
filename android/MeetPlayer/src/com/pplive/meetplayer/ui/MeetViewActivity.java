@@ -19,6 +19,7 @@ import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.Dialog;
 import android.content.DialogInterface;
+import android.content.Intent;
 import android.content.pm.ActivityInfo;
 import android.content.res.Configuration;
 import android.graphics.drawable.Drawable;
@@ -68,7 +69,7 @@ public class MeetViewActivity extends Activity implements OnFocusChangeListener 
 	private final int[] to = { R.id.tv_title, R.id.tv_description, 
 			R.id.tv_ft, R.id.tv_duration, R.id.tv_resolution};
 	
-	private int mListType = LIST_FRONTPAGE;
+	private int mListType = LIST_TV_SERIES;
 	private int mPageNum = 1;
 	private Uri mUri = null;
 	private RelativeLayout mPreviewLayout;
@@ -95,11 +96,20 @@ public class MeetViewActivity extends Activity implements OnFocusChangeListener 
 	private ListView lv_pptvlist;
 	private List<Map<String, Object>> mPPTVClipList = null;
 	private int mLastPlayItemPos = -1;
+	private String mPlaylink;
 	
 	@Override
 	public void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 		Log.i(TAG, "Java: onCreate()");
+		
+		Intent intent = getIntent();
+		if (intent.hasExtra("playlink")) {
+			mPlaylink = intent.getStringExtra("playlink");
+		}
+		else {
+			mPlaylink = TV_SERIES_LINK;
+		}
 		
 		// Full Screen
 		getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN, 
@@ -385,7 +395,7 @@ public class MeetViewActivity extends Activity implements OnFocusChangeListener 
 	
 	private boolean fill_list_series() {
 		EPGUtil util = new EPGUtil();
-		boolean ret = util.detail(TV_SERIES_LINK);
+		boolean ret = util.detail(mPlaylink);
 		if (!ret)
 			return false;
 		

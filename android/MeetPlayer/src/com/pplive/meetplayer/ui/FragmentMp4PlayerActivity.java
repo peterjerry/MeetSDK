@@ -13,6 +13,7 @@ import com.pplive.meetplayer.util.sohu.SohuUtil;
 
 import android.app.Activity;
 import android.content.Intent;
+import android.graphics.Color;
 import android.media.AudioManager;
 import android.os.AsyncTask;
 import android.os.Bundle;
@@ -32,6 +33,7 @@ import android.view.SurfaceView;
 import android.widget.MediaController;
 import android.widget.ProgressBar;
 import android.widget.RelativeLayout;
+import android.widget.TextView;
 import android.widget.MediaController.MediaPlayerControl;
 import android.widget.Toast;
 
@@ -46,6 +48,7 @@ public class FragmentMp4PlayerActivity extends Activity implements Callback {
 	private MediaController mController;
 	private MediaPlayerControl mMediaPlayerControl;
 	private ProgressBar mBufferingProgressBar;
+	private TextView mTextViewFileName;
 	
 	private MediaPlayer.OnVideoSizeChangedListener mOnVideoSizeChangedListener;
 	private MediaPlayer.OnPreparedListener mOnPreparedListener;
@@ -86,6 +89,7 @@ public class FragmentMp4PlayerActivity extends Activity implements Callback {
 	
 	private final static int MSG_PLAY_NEXT_EPISODE 		= 1;
 	private final static int MSG_INVALID_EPISODE_INDEX	= 2;
+	private static final int MSG_FADE_OUT_TV_FILENAME			= 3;
 	
 	private final static String url_list = "http://data.vod.itc.cn/?" +
 			"new=/49/197/T9vx2eIRoGJa8v2svlzxkN.mp4&vid=1913402&ch=tv" +
@@ -117,6 +121,10 @@ public class FragmentMp4PlayerActivity extends Activity implements Callback {
 		mLayout = (RelativeLayout) findViewById(R.id.main_layout);
 		mView = (SurfaceView) findViewById(R.id.player_view);
 		mBufferingProgressBar = (ProgressBar) findViewById(R.id.progressbar_buffering);
+		
+		mTextViewFileName = (TextView) findViewById(R.id.tv_filename);
+		mTextViewFileName.setTextColor(Color.RED);
+		mTextViewFileName.setTextSize(24);
 		
 		SurfaceHolder holder = mView.getHolder();
 		holder.addCallback(this);
@@ -293,6 +301,9 @@ public class FragmentMp4PlayerActivity extends Activity implements Callback {
 			case MSG_PLAY_NEXT_EPISODE:
 				setupMediaPlayer();
 				break;
+			case MSG_FADE_OUT_TV_FILENAME:
+				mTextViewFileName.setVisibility(View.GONE);
+				break;
 			case MSG_INVALID_EPISODE_INDEX:
 				Toast.makeText(FragmentMp4PlayerActivity.this, "invalid episode", Toast.LENGTH_SHORT).show();
 				break;
@@ -307,6 +318,11 @@ public class FragmentMp4PlayerActivity extends Activity implements Callback {
 				keyCode == KeyEvent.KEYCODE_ENTER) {
 			if (mPlayer != null) {
 				mController.show(3000);
+				
+				mTextViewFileName.setVisibility(View.VISIBLE);
+				Message msg = mHandler.obtainMessage(MSG_FADE_OUT_TV_FILENAME);
+				mHandler.removeMessages(MSG_FADE_OUT_TV_FILENAME);
+	            mHandler.sendMessageDelayed(msg, 3000);
 				return true;
 			}
 		}
@@ -360,8 +376,10 @@ public class FragmentMp4PlayerActivity extends Activity implements Callback {
 			mPlayer = null;
 		}
 		
-		if (m_playlink_now_index == 0)
+		if (m_playlink_now_index == 0) {
+			mTextViewFileName.setText(mTitle);
 			Toast.makeText(this, "ready to play video: " + mTitle, Toast.LENGTH_SHORT).show();
+		}
 		
 		mPlayer = new MediaPlayer(DecodeMode.HW_SYSTEM);
 		mPlayer.reset();

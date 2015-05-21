@@ -1,24 +1,35 @@
 package com.pplive.epg.bestv;
 
+import java.io.BufferedReader;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.apache.http.Header;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpHost;
 import org.apache.http.HttpResponse;
 import org.apache.http.NameValuePair;
 import org.apache.http.client.ClientProtocolException;
+import org.apache.http.client.HttpClient;
 import org.apache.http.client.config.RequestConfig;
 import org.apache.http.client.entity.UrlEncodedFormEntity;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
+import org.apache.http.cookie.Cookie;
+import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.client.DefaultHttpClient;
 import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.impl.client.HttpClients;
+import org.apache.http.message.BasicHeader;
 import org.apache.http.message.BasicNameValuePair;
+import org.apache.http.protocol.HTTP;
 import org.apache.http.util.EntityUtils;
+import org.jdom2.JDOMException;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -26,6 +37,14 @@ import org.json.JSONTokener;
 
 public class BestvUtil {
 
+	private final static String login_url = "http://wechat.bestv.com.cn/User/Me?view=json";
+	
+	//"http://117.144.242.43:8080/";
+	
+	private final static String session_url = "http://wechat.bestv.com.cn/" +
+			"backwatching/backwatching_list.jsp?" +
+			"type=menu&code=0116614824c445fef40a0c0f1780b75y&state=123";
+	
 	private final static String getkey_url = "http://wechat.bestv.com.cn/LiveDoorChain/getkey?view=json";
 	
 	// 2 卫视, 3 上海
@@ -42,6 +61,7 @@ public class BestvUtil {
 			"view=json&channelCode=Umai:CHAN/%d@BESTV.SMG.SMG&tableName=src_schedule";
 	
 	private List<BestvChannel> mChannelList;
+	private String mJSessionid;
 	
 	public BestvUtil() {
 		mChannelList = new ArrayList<BestvChannel>();
@@ -103,6 +123,19 @@ public class BestvUtil {
 	}
 	
 	public boolean channel(int type) {
+		if (mJSessionid == null) {
+			mJSessionid = getJSessionId();
+			if (mJSessionid == null) {
+				System.out.println("failed to get jsessionId");
+				return false;
+			}
+			
+			/*if (!login()) {
+				System.out.println("failed to login");
+				return false;
+			}*/
+		}
+		
 		String url = String.format(find_channel_url_fmt, type);
 		System.out.println("Java: getChannel() url: " + url);
 		
@@ -145,7 +178,8 @@ public class BestvUtil {
 				String PlayUrl = resultSet.getString("PlayUrl"); // http://wx.live.bestvcdn.com.cn/live/program/live991/weixindycj/index.m3u8?se=weixin&ct=2
 			
 				String img_url_prefix = "http://wechat.bestv.com.cn/backwatching/";
-				String img_url = img_url_prefix + ImgUrl;
+				String img_url_surfix= "_logo.gif";
+				String img_url = img_url_prefix + ImgUrl + img_url_surfix;
 				BestvChannel channel = new BestvChannel(title, abbr, code, id, number, img_url, PlayUrl);
 				
 				mChannelList.add(channel);
@@ -169,6 +203,111 @@ public class BestvUtil {
 		
 	}
 	
+	private String getJSessionId() {
+		HttpGet request = new HttpGet(session_url);
+
+		HttpResponse response;
+		try {
+			DefaultHttpClient httpclient = new DefaultHttpClient();
+			
+			response = httpclient.execute(request);
+			
+			String result = EntityUtils.toString(response.getEntity());
+			System.out.println("Java: result: " + result.substring(0, 64));
+			
+			if (response.getStatusLine().getStatusCode() != 200){
+				return null;
+			}
+			
+			List<Cookie> cookies = httpclient.getCookieStore().getCookies();
+			for (int i = 0; i < cookies.size(); i++) {
+				Cookie co = cookies.get(i);
+		        System.out.println(String.format("Java cookie: %s %s", co.getName(), co.getValue())); 
+		        if (co.getName().equals("JSESSIONID")) {
+		        	return co.getValue();
+		        }
+		    }
+		}
+		catch (ClientProtocolException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+
+		return null;
+	}
+	
+	private boolean login() {
+		HttpClientBuilder httpClientBuilder = HttpClientBuilder.create();
+		
+		HttpPost httpPost = new HttpPost(login_url); 
+		
+		String strJsession = "JSESSIONID=" + mJSessionid + "; ";
+        System.out.println("JSESSIONID: " + strJsession);
+        
+        httpPost.setHeader("Accept-Language", "zh-CN");
+        httpPost.setHeader("X-Requested-With", "XMLHttpRequest");
+        httpPost.setHeader("Accept-Charset", "utf-8, iso-8859-1, utf-16, *;q=0.7");
+        httpPost.setHeader("Referer", "http://wechat.bestv.com.cn/backwatching/backwatchingdetail.jsp?" +
+				"type=0&ChannelAbbr=typd");
+        httpPost.setHeader("User-Agent", "Mozilla/5.0 (Linux; U; " +
+				"Android 4.4.4; zh-cn; MI 3W Build/KTU84P) " +
+				"AppleWebKit/533.1 (KHTML, like Gecko)Version/4.0 " +
+				"MQQBrowser/5.4 TBS/025411 Mobile Safari/533.1 " +
+				"MicroMessenger/6.1.0.66_r1062275.542 NetType/WIFI");
+        httpPost.setHeader("origin", "http://wechat.bestv.com.cn");
+        httpPost.setHeader("Accept", "application/json, text/javascript, */*; q=0.01");
+        httpPost.setHeader("Accept-Encoding", "gzip");
+        httpPost.setHeader("Cookie", 
+        		"Hm_lvt_1e35bd6ba34fe8a6a160ab272fc892db=1427119654,1429530935; " +
+        		strJsession + 
+        		"lzstat_ss=3807293619_1_1432143406_3593490; " +
+        		"lzstat_uv=1282489934416223788|3593490");
+        
+        try { 
+            CloseableHttpResponse response = HttpClients.createDefault().execute(httpPost);
+            // getEntity()  
+            HttpEntity httpEntity = response.getEntity();  
+            if (httpEntity != null) {  
+            	// 打印响应内容
+                String result = EntityUtils.toString(httpEntity, "UTF-8");
+                System.out.println("Java: response: " + result);
+                
+                if (response.getStatusLine().getStatusCode() != 200) {
+                	System.out.println("Java: failed to get live key, response is not 200");
+                	return false;
+                }
+                JSONTokener jsonParser = new JSONTokener(result);
+    			JSONObject root = (JSONObject) jsonParser.nextValue();
+    			String businessCode = root.getString("businessCode");
+    			if (!businessCode.equals("success")) {
+    				System.out.println("Java: failed to login, businessCode: " + businessCode);
+    			}
+    			
+    			
+    			String count = root.getString("count");
+    			int c = Integer.valueOf(count);
+    			System.out.println("Java: count: " + c);
+    			JSONArray resultSetArray = root.getJSONArray("resultSet");
+    			
+    			for (int i=0;i<resultSetArray.length();i++) {
+    				JSONObject resultSet = resultSetArray.getJSONObject(i);
+    				
+    			}
+            }
+            
+            // 释放资源  
+            //closeableHttpClient.close();  
+            return true;
+        } catch (Exception e) {  
+            e.printStackTrace();  
+        }
+        
+		return false;
+	}
+	
 	public BestvKey getLiveKey() {
 		
 		BestvKey key = null;
@@ -187,6 +326,9 @@ public class BestvUtil {
         HttpPost httpPost = new HttpPost(getkey_url);  
         //httpPost.setConfig(config);  
         
+        String strJsession = "JSESSIONID=" + mJSessionid + "; ";
+        System.out.println("JSESSIONID: " + strJsession);
+        
         httpPost.setHeader("Accept-Language", "zh-CN");
         httpPost.setHeader("X-Requested-With", "XMLHttpRequest");
         httpPost.setHeader("Accept-Charset", "utf-8, iso-8859-1, utf-16, *;q=0.7");
@@ -200,10 +342,18 @@ public class BestvUtil {
         httpPost.setHeader("origin", "http://wechat.bestv.com.cn");
         httpPost.setHeader("Accept", "application/json, text/javascript, */*; q=0.01");
         httpPost.setHeader("Accept-Encoding", "gzip");
-        httpPost.setHeader("Cookie", "Hm_lvt_1e35bd6ba34fe8a6a160ab272fc892db=1427119654,1429530935; " +
-        		"JSESSIONID=449CAEB76C12FBD93553531EDEBF3A89; " +
+        httpPost.setHeader("Cookie", 
+        		"Hm_lvt_1e35bd6ba34fe8a6a160ab272fc892db=1427119654,1429530935; " +
+        		//strJsession + 
+        		"JSESSIONID=1F9595304B9315090C48F7B4C2864AC2; " +
         		"lzstat_ss=3807293619_1_1432143406_3593490; " +
+        		//"JSESSIONID=449CAEB76C12FBD93553531EDEBF3A89; " +
+        		//"lzstat_ss=3807293619_1_1432143406_3593490; " +
         		"lzstat_uv=1282489934416223788|3593490");
+        
+        // good
+        //"JSESSIONID=767F9591A7FA221EC4AD357218466EA3; " +
+		//"lzstat_ss=657371091_1_1432217237_3593490; " +
         
         //httpPost.setHeader("Cookie", "Hm_lvt_1e35bd6ba34fe8a6a160ab272fc892db=1427119654,1429530935; " +
         //		"JSESSIONID=3020FA3B781E4576013715A98C27DACC; " +
@@ -227,11 +377,11 @@ public class BestvUtil {
             // getEntity()  
             HttpEntity httpEntity = response.getEntity();  
             if (httpEntity != null) {  
+            	// 打印响应内容
+                String result = EntityUtils.toString(httpEntity, "UTF-8");
+                System.out.println("Java: response: " + result);
+                
                 if (response.getStatusLine().getStatusCode() == 200){
-	    			// 打印响应内容
-	                String result = EntityUtils.toString(httpEntity, "UTF-8");
-	                System.out.println("Java: response: " + result);
-	                
 	                JSONTokener jsonParser = new JSONTokener(result);
 	    			JSONObject root = (JSONObject) jsonParser.nextValue();
 	    			String businessCode = root.getString("businessCode");

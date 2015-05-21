@@ -65,11 +65,34 @@ public class VstUtil {
 				String prog_name = program.getString("name");
 				String prog_area = program.getString("area");
 				String prog_quality = program.getString("quality");
+				String itemid = program.getString("itemid");
+				int pos = itemid.indexOf(",");
+				String id = null;
+				if (pos == -1)
+					id = itemid;
+				else
+					id = itemid.substring(0, pos);
 				
 				String url_list = program.getString("urllist");
 		        StringTokenizer st;
 		        
-		        if (prog_area.equals("上海")) {
+		        /*
+		         * Java: id 1, name 中央频道
+		        Java: id 2, name 卫视频道
+		        Java: id 9, name 乐视轮播
+		        Java: id 3, name 体育竞技
+		        Java: id 4, name 影视娱乐
+		        Java: id 5, name 新闻资讯
+		        Java: id 6, name 少儿教育
+		        Java: id 11, name 财经频道
+		        Java: id 7, name 省级频道
+		        Java: id 10, name 高清频道
+		        Java: id 12, name 剧场专区
+		        Java: id 8, name 用户分享
+		        */
+		        
+		        if (prog_area.equals("上海") || id.equals("1") || id.equals("2") || id.equals("4") || 
+		        		id.equals("5") || id.equals("10")) {
 			        List<String> urlList = new ArrayList<String>(); 
 			        st = new StringTokenizer(url_list, "#", false);
 					while (st.hasMoreElements()) {

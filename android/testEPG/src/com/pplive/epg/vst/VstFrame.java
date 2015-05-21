@@ -55,7 +55,7 @@ public class VstFrame extends JFrame {
 	
 	JTextPane editorPlayLink = new JTextPane();
 	
-	VstFrame() {
+	public VstFrame() {
 		super();
 		
 		mEPG = new VstUtil();
