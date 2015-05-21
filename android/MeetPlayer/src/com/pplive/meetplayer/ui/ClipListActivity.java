@@ -2441,7 +2441,7 @@ public class ClipListActivity extends Activity implements
 			Util.writeSettingsInt(this, "IsNoVideo", mIsNoVideo ? 1 : 0);
 			break;
 		case OPTION_COMMON_MEETVIEW:
-			Intent intent = new Intent(ClipListActivity.this, /*MeetViewActivity*/FragmentMp4PlayerActivity.class);
+			Intent intent = new Intent(ClipListActivity.this, MeetViewActivity.class);
 			startActivity(intent);
 			break;
 		case OPTION_COMMON_SUBTITLE:

@@ -699,14 +699,16 @@ public class EPGUtil {
 	    	
     		List<Element> sites = virtual.getChildren("site");
     		if (sites.size() > 0) {
-	        	Element site = sites.get(0);
-	        	String title = site.getAttributeValue("title");
-	        	String total = site.getAttributeValue("total");
-	        	List<Element> link_vlist = site.getChildren("episode");
-	        	mStrInfoId = strInfoId;
-	        	
-	        	System.out.println(String.format("Java: virtual channel infoid %s, title: %s, total %s",
-	        			strInfoId, title, total));
+	        	for(int k=0;k<sites.size();k++) {
+	    			Element site = sites.get(k);
+		        	String title = site.getAttributeValue("title");
+		        	String total = site.getAttributeValue("total");
+		        	List<Element> link_vlist = site.getChildren("episode");
+		        	mStrInfoId = strInfoId;
+		        	
+		        	System.out.println(String.format("Java: virtual channel infoid %s, title: %s, total %s",
+		        			strInfoId, title, total));
+	        	}
 
 	        	return true;
     		}

@@ -574,7 +574,8 @@ public class PPTVFrame extends JFrame {
 		}
 		
 		if (size == 1) {
-			System.out.println("playlink found! " + mPlayLinkList.get(0).getId());
+			if (!mVirtualChannel)
+				System.out.println("playlink found! " + mPlayLinkList.get(0).getId());
 			editorPlayLink.setText(String.valueOf(vid));
 			lblInfo.setText("vid " + vid + " selected");
 			mState = EPG_STATE.EPG_STATE_FOUND_PLAYLINK;
@@ -585,6 +586,7 @@ public class PPTVFrame extends JFrame {
 	
 	private void init_combobox() {
 		mListLive = false;
+		mVirtualChannel = false;
 		start_page = 1;
 		last_live_type = 0;
 		

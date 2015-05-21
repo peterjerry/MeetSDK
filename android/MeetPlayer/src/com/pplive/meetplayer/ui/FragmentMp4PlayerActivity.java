@@ -280,6 +280,10 @@ public class FragmentMp4PlayerActivity extends Activity implements Callback {
 			int duration_msec = Integer.valueOf(seg_duration);
 			m_duration_list.add(duration_msec);
 		}
+		
+		m_playlink_now_index	= 0;
+		m_play_pos_offset		= 0;
+		m_pre_seek_pos			= 0;
 	}
 	
 	private Handler mHandler = new Handler(){ 
@@ -356,9 +360,8 @@ public class FragmentMp4PlayerActivity extends Activity implements Callback {
 			mPlayer = null;
 		}
 		
-		buildPlaylinkList();
-		
-		Toast.makeText(this, "ready to play video: " + mTitle, Toast.LENGTH_SHORT).show();
+		if (m_playlink_now_index == 0)
+			Toast.makeText(this, "ready to play video: " + mTitle, Toast.LENGTH_SHORT).show();
 		
 		mPlayer = new MediaPlayer(DecodeMode.HW_SYSTEM);
 		mPlayer.reset();
@@ -448,8 +451,7 @@ public class FragmentMp4PlayerActivity extends Activity implements Callback {
 			mDurationListStr	= l.getDuration(1);
 			mTitle				= l.getTitle();
 			
-			m_play_pos_offset	= 0;
-			m_playlink_now_index= 0;
+			buildPlaylinkList();
 			
 			mHandler.sendEmptyMessage(MSG_PLAY_NEXT_EPISODE);
 			
@@ -519,10 +521,7 @@ public class FragmentMp4PlayerActivity extends Activity implements Callback {
 		
 		mHolder = holder;
 		
-		m_playlink_now_index	= 0;
-		m_play_pos_offset		= 0;
-		m_pre_seek_pos			= 0;
-		
+		buildPlaylinkList();
 		setupMediaPlayer();
 	}
 
