@@ -42,6 +42,7 @@ import android.view.Window;
 import android.view.WindowManager;
 import android.widget.AdapterView;
 import android.widget.Button;
+import android.widget.LinearLayout;
 import android.widget.ListView;
 import android.widget.ProgressBar;
 import android.widget.RelativeLayout;
@@ -73,7 +74,8 @@ public class MeetViewActivity extends Activity implements OnFocusChangeListener 
 	private int mPageNum = 1;
 	private Uri mUri = null;
 	private RelativeLayout mPreviewLayout;
-	private RelativeLayout mCtrlLayout;
+	private LinearLayout mCtrlLayout;
+	private RelativeLayout.LayoutParams mCtrlLayoutParams;
 	private MeetVideoView mVideoView;
 	private MiniMediaController mController;
 
@@ -92,6 +94,8 @@ public class MeetViewActivity extends Activity implements OnFocusChangeListener 
 	
 	private boolean mPreviewFocused = false;
 	private boolean mStartFromPortrait = false;
+	
+	private boolean mSideBarShowed = true;
 	
 	private PPTVAdapter mAdapter;
 	private ListView lv_pptvlist;
@@ -122,10 +126,11 @@ public class MeetViewActivity extends Activity implements OnFocusChangeListener 
 		setContentView(R.layout.activity_meet_videoview);
 		
 		this.mPreviewLayout = (RelativeLayout) findViewById(R.id.view_preview);
-		this.mCtrlLayout = (RelativeLayout) findViewById(R.id.layout_ctrl);
+		this.mCtrlLayout = (LinearLayout) findViewById(R.id.layout_ctrl);
+		mCtrlLayoutParams = (RelativeLayout.LayoutParams) mCtrlLayout.getLayoutParams();
 		
-		mPreviewLayout.setFocusable(true);
-		mPreviewLayout.setOnFocusChangeListener(this);
+		//mPreviewLayout.setFocusable(true);
+		//mPreviewLayout.setOnFocusChangeListener(this);
 		
 		Util.initMeetSDK(this);
 		Util.startP2PEngine(this);
@@ -248,7 +253,7 @@ public class MeetViewActivity extends Activity implements OnFocusChangeListener 
 	}
 
 	private void start_player(int index) {
-		HashMap<String, Object> item = (HashMap<String, Object>) lv_pptvlist.getItemAtPosition(index);
+		HashMap<String, Object> item = (HashMap<String, Object>)mAdapter.getItem(index);
 		String title = (String)item.get("title");
 		String vid = (String)item.get("vid");
 		int ft = (Integer)item.get("ft");
@@ -654,18 +659,9 @@ public class MeetViewActivity extends Activity implements OnFocusChangeListener 
 		
 		mVideoView.setDecodeMode(dec_mode);
 		mVideoView.setVideoURI(mUri);
+		mVideoView.start();
 		
 		mController.setMediaPlayer(mVideoView);
-		
-		String schema = mUri.getScheme();
-		String path = null;
-		
-		if ("file".equalsIgnoreCase(schema))
-			path = mUri.getPath();
-		else
-			path = mUri.toString();
-		
-		mVideoView.start();
 		
 		mBufferingProgressBar.setVisibility(View.VISIBLE);
 		mIsBuffering = true;
@@ -792,26 +788,42 @@ public class MeetViewActivity extends Activity implements OnFocusChangeListener 
 		return mDoubleTapListener.onTouchEvent(event);
 	}
 	
+	
+	@Override
+	public void onBackPressed() {
+		// TODO Auto-generated method stub
+		if (mSideBarShowed && mVideoView != null) {
+			showMenu(false);
+			return;
+		}
+		
+		super.onBackPressed();
+	}
+	
 	@Override
 	public boolean onKeyDown(int keyCode, KeyEvent event) {
 		
 		Log.d(TAG, "keyCode: " + keyCode);
-		int incr = -1;
 		
-		if (!mPreviewFocused)
-			return super.onKeyDown(keyCode, event);
+		//if (!mPreviewFocused)
+		//	return super.onKeyDown(keyCode, event);
 		
 		switch (keyCode) {
-			case KeyEvent.KEYCODE_ENTER:
-			case KeyEvent.KEYCODE_DPAD_CENTER:
-			case KeyEvent.KEYCODE_MENU:
-				if (mVideoView != null && !mController.isShowing()) {
-					mController.show(5000);
-					return true;
-				}
-				break;
-			case KeyEvent.KEYCODE_DPAD_DOWN:
-			case KeyEvent.KEYCODE_DPAD_UP:
+		case KeyEvent.KEYCODE_MENU:
+			if (!mSideBarShowed)
+				showMenu(true);
+			break;
+		case KeyEvent.KEYCODE_ENTER:
+		case KeyEvent.KEYCODE_DPAD_CENTER:
+			if (!mSideBarShowed && mVideoView != null && !mController.isShowing()) {
+				mController.show(5000);
+				return true;
+			}
+			break;
+		case KeyEvent.KEYCODE_DPAD_DOWN:
+		case KeyEvent.KEYCODE_DPAD_UP:
+			if (!mSideBarShowed && mVideoView != null) {
+				int incr;
 				if (KeyEvent.KEYCODE_DPAD_DOWN == keyCode)
 					incr = 1;
 				else
@@ -819,10 +831,11 @@ public class MeetViewActivity extends Activity implements OnFocusChangeListener 
 				
 				switchDisplayMode(incr);
 				return true;
-			default:
-				Log.d(TAG, "no spec action: " + keyCode);
-				break;
 			}
+		default:
+			Log.d(TAG, "no spec action: " + keyCode);
+			break;
+		}
 		
 		return super.onKeyDown(keyCode, event);
 	}
@@ -837,6 +850,18 @@ public class MeetViewActivity extends Activity implements OnFocusChangeListener 
 		boolean isLandscape = (orientation == ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
 		setup_layout(isLandscape);
 	}  
+	
+	private void showMenu(boolean isShow) {
+		if (isShow) {
+			mSideBarShowed = true;
+			mCtrlLayoutParams.leftMargin = 0;
+		} else {
+			mSideBarShowed = false;
+			mCtrlLayoutParams.leftMargin = 0 - mCtrlLayoutParams.width;
+			mPreviewLayout.requestFocus();
+		}
+		mCtrlLayout.setLayoutParams(mCtrlLayoutParams);
+	}
 	
 	private void toggleMediaControlsVisiblity() {
     	if (mVideoView != null && mVideoView.isPlaying() && mController != null) {

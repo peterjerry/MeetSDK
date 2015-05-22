@@ -35,10 +35,11 @@
 			android:visibility="gone" />
 	</RelativeLayout>
 	
-	<RelativeLayout
+	<LinearLayout
 		android:id="@+id/layout_ctrl"	
 		android:layout_width="wrap_content"
-		android:layout_height="fill_parent" >
+		android:layout_height="fill_parent" 
+		android:orientation="vertical" >
 		<LinearLayout
 			android:id="@+id/layout_buttons"
 			android:layout_width="fill_parent"
@@ -88,6 +89,6 @@
 			android:layout_height="fill_parent"
 			android:layout_below="@id/layout_buttons" >
 		</ListView>
-	</RelativeLayout>
+	</LinearLayout>
 	
 </RelativeLayout>
