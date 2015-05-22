@@ -88,6 +88,7 @@ public class MeetViewActivity extends Activity implements OnFocusChangeListener 
 	private Button btnTVSeries;
 	private Button btnLive;
 	private Button btnNextPage;
+	private Button btnFt;
 	
 	private boolean mPreviewFocused = false;
 	private boolean mStartFromPortrait = false;
@@ -205,6 +206,27 @@ public class MeetViewActivity extends Activity implements OnFocusChangeListener 
 			}
 		});
 		
+		this.btnFt = (Button)  findViewById(R.id.btn_ft);
+		this.btnFt.setOnClickListener(new Button.OnClickListener() {
+			@Override
+			public void onClick(View view) {
+				// TODO Auto-generated method stub
+				final String[] ft = {"流畅", "高清", "超清", "蓝光"};
+				
+				Dialog choose_ft_dlg = new AlertDialog.Builder(MeetViewActivity.this)
+				.setTitle("select ft")
+				.setSingleChoiceItems(ft, Integer.parseInt(btnFt.getText().toString()), /*default selection item number*/
+					new DialogInterface.OnClickListener(){
+						public void onClick(DialogInterface dialog, int whichButton){
+							btnFt.setText(Integer.toString(whichButton));
+							dialog.dismiss();
+						}
+					})
+				.create();
+				choose_ft_dlg.show();	
+			}
+		});
+		
 		mPPTVClipList = new ArrayList<Map<String, Object>>();
 		
 		new ListPPTVTask().execute(mListType, mPageNum);
@@ -229,7 +251,9 @@ public class MeetViewActivity extends Activity implements OnFocusChangeListener 
 		HashMap<String, Object> item = (HashMap<String, Object>) lv_pptvlist.getItemAtPosition(index);
 		String title = (String)item.get("title");
 		String vid = (String)item.get("vid");
-		Integer ft = (Integer)item.get("ft");
+		int ft = (Integer)item.get("ft");
+		if (ft  == -1)
+			ft = Integer.valueOf(btnFt.getText().toString());
 		String info = String.format("title %s, vid %s ft %d", title, vid, ft);
 		Log.i(TAG, "Java: " + info);
 		Toast.makeText(this, "play " + info, Toast.LENGTH_SHORT).show();
@@ -413,7 +437,7 @@ public class MeetViewActivity extends Activity implements OnFocusChangeListener 
 			
 			new_item.put("title", link.getTitle());
 			new_item.put("desc", desc);
-			new_item.put("ft", 1);
+			new_item.put("ft", -1);
 			new_item.put("duration", String.valueOf(link.getDuration() / 60));
 			new_item.put("resolution", link.getResolution().replace('|', 'x'));
 			
@@ -462,7 +486,7 @@ public class MeetViewActivity extends Activity implements OnFocusChangeListener 
 			
 			new_item.put("title", link2.getTitle());
 			new_item.put("desc", desc);
-			new_item.put("ft", 1);
+			new_item.put("ft", -1);
 			new_item.put("duration", String.valueOf(link2.getDuration() / 60));
 			new_item.put("resolution", link2.getResolution().replace('|', 'x'));
 			
@@ -567,7 +591,16 @@ public class MeetViewActivity extends Activity implements OnFocusChangeListener 
 		int orient = getRequestedOrientation();
 		Log.i(TAG, "Java: orient " + orient);
 		
-		boolean isLandscape = (ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE == orient);
+		//boolean isLandscape = (ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE == orient);
+		boolean isLandscape = false;
+		
+		DisplayMetrics dm = new DisplayMetrics(); 
+		getWindowManager().getDefaultDisplay().getMetrics(dm); 
+		int screen_width	= dm.widthPixels; 
+		int screen_height	= dm.heightPixels;
+		if (screen_width > screen_height)
+			isLandscape = true;
+		
 		mStartFromPortrait = !isLandscape;
 		setup_layout(isLandscape);
 		
