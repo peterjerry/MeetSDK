@@ -11,6 +11,7 @@ import com.pplive.epg.pptv.EPGUtil;
 import com.pplive.epg.pptv.Module;
 import com.pplive.epg.pptv.PPTVFrame;
 import com.pplive.epg.pptv.PlayLink2;
+import com.pplive.epg.sohu.SohuFrame;
 import com.pplive.epg.vst.VstFrame;
 
 public class TestEPG { 
@@ -20,7 +21,8 @@ public class TestEPG {
 		//PPTVFrame myFrame = new PPTVFrame();
 		//LeTVFrame myFrame = new LeTVFrame();
 		//VstFrame myFrame = new VstFrame();
-        BestvFrame myFrame = new BestvFrame();
+        //BestvFrame myFrame = new BestvFrame();
+		SohuFrame myFrame = new SohuFrame();
 		myFrame.setVisible(true); 
 		
 		/*EPGUtil epg = new EPGUtil();
