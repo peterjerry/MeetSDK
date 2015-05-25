@@ -312,7 +312,7 @@ public class ClipListActivity extends Activity implements
 	
 	private String mCurrentFolder;
 	
-	private final static String home_folder		= "/test2";
+	private final static String home_folder		= "";//"/test2";
 	
 	private final static String HTTP_UPDATE_APK_URL = "http://172.16.204.106/test/test/";
 	
@@ -2086,7 +2086,7 @@ public class ClipListActivity extends Activity implements
         		}
         		
         		Intent intent = new Intent(ClipListActivity.this,
-        				FragmentMp4PlayerActivity.class);
+        				/*FragmentMp4PlayerActivity*/PlaySohuActivity.class);
         		intent.putExtra("url_list", l.getUrl(1));
         		intent.putExtra("duration_list", l.getDuration(1));
         		intent.putExtra("title", l.getTitle());

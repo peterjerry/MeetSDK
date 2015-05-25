@@ -118,6 +118,7 @@ public class FragmentMp4PlayerActivity extends Activity implements Callback {
 				WindowManager.LayoutParams.FLAG_FULLSCREEN);
 		
 		setContentView(R.layout.activity_frag_mp4_player);
+		
 		mLayout = (RelativeLayout) findViewById(R.id.main_layout);
 		mView = (SurfaceView) findViewById(R.id.player_view);
 		mBufferingProgressBar = (ProgressBar) findViewById(R.id.progressbar_buffering);
@@ -280,13 +281,16 @@ public class FragmentMp4PlayerActivity extends Activity implements Callback {
 			m_playlink_list.add(url);
 		}
 		
-		st = new StringTokenizer(mDurationListStr, ",", false);
 		i=0;
+		m_total_duration_msec	= 0;
+		
+		st = new StringTokenizer(mDurationListStr, ",", false);
 		while (st.hasMoreElements()) {
 			String seg_duration = st.nextToken();
 			Log.i(TAG, String.format("Java: segment #%d duration: %s", i++, seg_duration));
 			int duration_msec = Integer.valueOf(seg_duration);
 			m_duration_list.add(duration_msec);
+			m_total_duration_msec += duration_msec;
 		}
 		
 		m_playlink_now_index	= 0;
@@ -646,8 +650,8 @@ public class FragmentMp4PlayerActivity extends Activity implements Callback {
 				}
 				else if (msec >= m_play_pos_offset + m_duration_list.get(m_playlink_now_index)) {
 					for (int i=m_playlink_now_index;i<m_playlink_list.size();i++) {
-						m_playlink_now_index++;
 						m_play_pos_offset += m_duration_list.get(m_playlink_now_index);
+						m_playlink_now_index++;
 						if (m_playlink_now_index == m_playlink_list.size() - 1)
 							break;
 						else if (msec < m_play_pos_offset + m_duration_list.get(m_playlink_now_index + 1))

@@ -35,15 +35,14 @@ import org.json.JSONException;
 import org.json.JSONObject;
 import org.json.JSONTokener;
 
+
 public class BestvUtil {
 
-	private final static String login_url = "http://wechat.bestv.com.cn/User/Me?view=json";
-	
-	//"http://117.144.242.43:8080/";
+	private final static String login_url = "http://bestcast.bbtv.cn:9080/login";
 	
 	private final static String session_url = "http://wechat.bestv.com.cn/" +
 			"backwatching/backwatching_list.jsp?" +
-			"type=menu&code=0116614824c445fef40a0c0f1780b75y&state=123";
+			"type=menu&code=001562803068c97a74af0882cd1ed57D&state=123";
 	
 	private final static String getkey_url = "http://wechat.bestv.com.cn/LiveDoorChain/getkey?view=json";
 	
@@ -123,18 +122,13 @@ public class BestvUtil {
 	}
 	
 	public boolean channel(int type) {
-		if (mJSessionid == null) {
+		/*if (mJSessionid == null) {
 			mJSessionid = getJSessionId();
 			if (mJSessionid == null) {
 				System.out.println("failed to get jsessionId");
 				return false;
 			}
-			
-			/*if (!login()) {
-				System.out.println("failed to login");
-				return false;
-			}*/
-		}
+		}*/
 		
 		String url = String.format(find_channel_url_fmt, type);
 		System.out.println("Java: getChannel() url: " + url);
@@ -309,117 +303,211 @@ public class BestvUtil {
 	}
 	
 	public BestvKey getLiveKey() {
-		
 		BestvKey key = null;
 		
-		// 创建HttpClientBuilder  
-        HttpClientBuilder httpClientBuilder = HttpClientBuilder.create();  
-        // HttpClient  
-        //CloseableHttpClient closeableHttpClient = httpClientBuilder.build();  
-        // 依次是目标请求地址，端口号,协议类型  
-        //HttpHost target = new HttpHost(getkey_url, 80, "http");
-        // 依次是代理地址，代理端口号，协议类型  
-        //HttpHost proxy = new HttpHost("127.0.0.1", 8888, "http");  
-        //RequestConfig config = RequestConfig.custom().setProxy(proxy).build();  
+        UrlEncodedFormEntity entity;
+        HttpResponse response;
+        HttpEntity httpEntity;
+        String sessionId = null;
+        String openId = null;
+        String token = null;
         
-        // 请求地址  
-        HttpPost httpPost = new HttpPost(getkey_url);  
-        //httpPost.setConfig(config);  
-        
-        String strJsession = "JSESSIONID=" + mJSessionid + "; ";
-        System.out.println("JSESSIONID: " + strJsession);
-        
-        httpPost.setHeader("Accept-Language", "zh-CN");
-        httpPost.setHeader("X-Requested-With", "XMLHttpRequest");
-        httpPost.setHeader("Accept-Charset", "utf-8, iso-8859-1, utf-16, *;q=0.7");
-        httpPost.setHeader("Referer", "http://wechat.bestv.com.cn/backwatching/backwatchingdetail.jsp?" +
-				"type=0&ChannelAbbr=typd");
-        httpPost.setHeader("User-Agent", "Mozilla/5.0 (Linux; U; " +
-				"Android 4.4.4; zh-cn; MI 3W Build/KTU84P) " +
-				"AppleWebKit/533.1 (KHTML, like Gecko)Version/4.0 " +
-				"MQQBrowser/5.4 TBS/025411 Mobile Safari/533.1 " +
-				"MicroMessenger/6.1.0.66_r1062275.542 NetType/WIFI");
-        httpPost.setHeader("origin", "http://wechat.bestv.com.cn");
-        httpPost.setHeader("Accept", "application/json, text/javascript, */*; q=0.01");
-        httpPost.setHeader("Accept-Encoding", "gzip");
-        httpPost.setHeader("Cookie", 
-        		"Hm_lvt_1e35bd6ba34fe8a6a160ab272fc892db=1427119654,1429530935; " +
-        		//strJsession + 
-        		"JSESSIONID=1F9595304B9315090C48F7B4C2864AC2; " +
-        		"lzstat_ss=3807293619_1_1432143406_3593490; " +
-        		//"JSESSIONID=449CAEB76C12FBD93553531EDEBF3A89; " +
-        		//"lzstat_ss=3807293619_1_1432143406_3593490; " +
-        		"lzstat_uv=1282489934416223788|3593490");
-        
-        // good
-        //"JSESSIONID=767F9591A7FA221EC4AD357218466EA3; " +
-		//"lzstat_ss=657371091_1_1432217237_3593490; " +
-        
-        //httpPost.setHeader("Cookie", "Hm_lvt_1e35bd6ba34fe8a6a160ab272fc892db=1427119654,1429530935; " +
-        //		"JSESSIONID=3020FA3B781E4576013715A98C27DACC; " +
-        //		"lzstat_ss=219980764_2_1432208319_3593490; " +
-        //		"lzstat_uv=1282489934416223788|3593490; ");
-		
-        // 创建参数队列  
-        List<NameValuePair> formparams = new ArrayList<NameValuePair>();  
-        // 参数名为platform_account，值是o47fhtx0JJ7Hocxaz0XRHTDdutCI  
-        formparams.add(new BasicNameValuePair("platform_account", "o47fhtx0JJ7Hocxaz0XRHTDdutCI"));
-        formparams.add(new BasicNameValuePair("userid", "379704"));
-        formparams.add(new BasicNameValuePair("type", "0"));
-        
-        UrlEncodedFormEntity entity;  
         try {  
-            entity = new UrlEncodedFormEntity(formparams, "UTF-8");  
-            httpPost.setEntity(entity);  
-            //CloseableHttpResponse response = closeableHttpClient.execute(  
-            //        target, httpPost);  
-            CloseableHttpResponse response = HttpClients.createDefault().execute(httpPost);
+            DefaultHttpClient client = new DefaultHttpClient();
+            
+            // step1
+            // 创建HttpClientBuilder  
+            HttpClientBuilder httpClientBuilder = HttpClientBuilder.create();  
+            // HttpClient  
+            CloseableHttpClient closeableHttpClient = httpClientBuilder.build(); 
+            HttpHost target = new HttpHost(session_url, 80, "http");
+            // 依次是代理地址，代理端口号，协议类型  
+            HttpHost proxy = new HttpHost("127.0.0.1", 8888, "http");  
+            RequestConfig config = RequestConfig.custom().setProxy(proxy).build();    
+            
+            // step1 get sessionId
+            HttpGet httpGetSession = new HttpGet(session_url);
+            httpGetSession.setConfig(config); 
+            
+            httpGetSession.setHeader("User-Agent", "Mozilla/5.0 (Linux; U; " +
+    				"Android 4.4.4; zh-cn; MI 3W Build/KTU84P) " +
+    				"AppleWebKit/533.1 (KHTML, like Gecko)Version/4.0 " +
+    				"MQQBrowser/5.4 TBS/025411 Mobile Safari/533.1 " +
+    				"MicroMessenger/6.1.0.66_r1062275.542 NetType/WIFI");
+            httpGetSession.setHeader("Accept",
+            		"application/vnd.wap.xhtml+xml, " +
+            		"text/vnd.wap.wml, application/xhtml+xml, " +
+            		"text/html, image/png, image/jpeg, image/gif, */*;q=0.1");
+            httpGetSession.setHeader("Accept-Charset", "utf-8, iso-8859-1, utf-16, *;q=0.7");
+            httpGetSession.setHeader("Accept-Encoding", "gzip");
+            httpGetSession.setHeader("Accept-Language", "zh-CN");
+
+            httpGetSession.setHeader("Cookie", 
+            		"Hm_lvt_1e35bd6ba34fe8a6a160ab272fc892db=1427119654,1429530935; " +
+            		"lzstat_uv=1282489934416223788|3593490");
+            
+            response = closeableHttpClient.execute(target, httpGetSession);
+            httpEntity = response.getEntity();  
+            if (httpEntity != null) {
+                if (response.getStatusLine().getStatusCode() != 200){
+                	System.out.println("Java: failed to get sessionId, response is not 200");
+                	return null;
+                }
+                
+                List<Cookie> cookies = client.getCookieStore().getCookies();
+    			for (int i = 0; i < cookies.size(); i++) {
+    				Cookie co = cookies.get(i);
+    				System.out.println(String.format("Java cookie: name %s, value %s", co.getName(), co.getValue())); 
+    		        
+    		        if (co.getName().equals("JSESSIONID")) {
+    		        	sessionId = co.getValue();
+    		        	System.out.println("Java: get sessionid " + sessionId);
+    		        }
+    		        else if (co.getName().equals("openid")) {
+    		        	openId = co.getValue();
+    		        	System.out.println("Java: get openId " + openId);
+    		        }
+    		    }
+    			
+    			if (sessionId == null || openId == null) {
+    				System.out.println("Java: failed to find sessionid and openId");
+    				return null;
+    			}
+            }
+            
+            String strJsession = "JSESSIONID=" + sessionId + "; ";
+            System.out.println("Java: JSESSIONID: " + strJsession);
+            
+            // step2 login
+            HttpPost httpPostLogin = new HttpPost(login_url);    
+            
+            httpPostLogin.setHeader("Accept-Language", "zh-CN");
+            httpPostLogin.setHeader("X-Requested-With", "XMLHttpRequest");
+            httpPostLogin.setHeader("Accept-Charset", "utf-8, iso-8859-1, utf-16, *;q=0.7");
+            httpPostLogin.setHeader("Referer", "http://wechat.bestv.com.cn/backwatching/" +
+            		"backwatchingdetail.jsp?type=0&ChannelAbbr=xwzh");
+            httpPostLogin.setHeader("User-Agent", "Mozilla/5.0 (Linux; U; " +
+    				"Android 4.4.4; zh-cn; MI 3W Build/KTU84P) " +
+    				"AppleWebKit/533.1 (KHTML, like Gecko)Version/4.0 " +
+    				"MQQBrowser/5.4 TBS/025411 Mobile Safari/533.1 " +
+    				"MicroMessenger/6.1.0.66_r1062275.542 NetType/WIFI");
+            httpPostLogin.setHeader("origin", "http://wechat.bestv.com.cn");
+            httpPostLogin.setHeader("Accept", "*/*");
+            httpPostLogin.setHeader("Accept-Encoding", "gzip");
+            
+            // 创建参数队列  
+            List<NameValuePair> LoginParams = new ArrayList<NameValuePair>();   
+            LoginParams.add(new BasicNameValuePair("client_id", openId));
+            LoginParams.add(new BasicNameValuePair("platform", "ZHG_WEIXIN_BESTV_0001"));
+            LoginParams.add(new BasicNameValuePair("client_name", "2"));
+            LoginParams.add(new BasicNameValuePair("password", "1"));
+            
+            entity = new UrlEncodedFormEntity(LoginParams, "UTF-8");  
+            httpPostLogin.setEntity(entity);  
+            
+            response = client.execute(httpPostLogin);
+            
             // getEntity()  
-            HttpEntity httpEntity = response.getEntity();  
+            httpEntity = response.getEntity();  
             if (httpEntity != null) {  
             	// 打印响应内容
                 String result = EntityUtils.toString(httpEntity, "UTF-8");
-                System.out.println("Java: response: " + result);
+                System.out.println("Java: step2 response: " + result);
                 
-                if (response.getStatusLine().getStatusCode() == 200){
-	                JSONTokener jsonParser = new JSONTokener(result);
-	    			JSONObject root = (JSONObject) jsonParser.nextValue();
-	    			String businessCode = root.getString("businessCode");
-	    			if (businessCode.equals("success")) {
-		    			String count = root.getString("count");
-		    			int c = Integer.valueOf(count);
-		    			System.out.println("Java: key count: " + c);
-		    			JSONArray resultSetArray = root.getJSONArray("resultSet");
-		    			
-		    			for (int i=0;i<resultSetArray.length();i++) {
-		    				JSONObject resultSet = resultSetArray.getJSONObject(i);
-		    				// "expiration_time": 1432150607702,
-		    	            // "live_key": "3910F85C71F674CECF7742D8C3054FAE330FC5A3A62C519E127559318202683D",
-		    	            // "update_time": "2015-05-20 17:36:47",
-		    	            // "x_user_id": 379704
-		    				int expiration_time = 0;
-		    				if (resultSet.has("expiration_time"))
-		    					expiration_time = resultSet.getInt("expiration_time");
-		    				String live_key = resultSet.getString("live_key");
-		    				String update_time = "N/A";
-		    				if (resultSet.has("update_time"))
-		    					update_time = resultSet.getString("update_time");
-		    				int x_user_id = 0;
-		    				if (resultSet.has("x_user_id"))
-		    					x_user_id = resultSet.getInt("x_user_id");
-		    				
-		    				if (i==0) {
-		    					key = new BestvKey(expiration_time, live_key, update_time, x_user_id);
-		    				}
-		    			}
-	    			}
-	    			else {
-		    			System.out.println("Java: failed to get live key, businessCode: " + businessCode);
-	    			}
+                if (response.getStatusLine().getStatusCode() != 200){
+                	System.out.println("Java: failed to login, response is not 200");
+                	return null;
                 }
-	            else {
-	            	System.out.println("Java: failed to get live key, response is not 200");
-	            }  
+                
+                JSONTokener jsonParser = new JSONTokener(result);
+    			JSONObject root = (JSONObject) jsonParser.nextValue();
+    			token = root.getString("token");
+    			System.out.println("Java: token " + token);
+    			
+            }
+            
+            // step3 get key
+            // 请求地址  
+            HttpPost httpPost = new HttpPost(getkey_url);    
+            
+            httpPost.setHeader("Accept-Language", "zh-CN");
+            httpPost.setHeader("X-Requested-With", "XMLHttpRequest");
+            httpPost.setHeader("Accept-Charset", "utf-8, iso-8859-1, utf-16, *;q=0.7");
+            httpPost.setHeader("Referer", "http://wechat.bestv.com.cn/backwatching/backwatchingdetail.jsp?" +
+    				"type=0&ChannelAbbr=typd");
+            httpPost.setHeader("User-Agent", "Mozilla/5.0 (Linux; U; " +
+    				"Android 4.4.4; zh-cn; MI 3W Build/KTU84P) " +
+    				"AppleWebKit/533.1 (KHTML, like Gecko)Version/4.0 " +
+    				"MQQBrowser/5.4 TBS/025411 Mobile Safari/533.1 " +
+    				"MicroMessenger/6.1.0.66_r1062275.542 NetType/WIFI");
+            httpPost.setHeader("origin", "http://wechat.bestv.com.cn");
+            httpPost.setHeader("Accept", "application/json, text/javascript, */*; q=0.01");
+            httpPost.setHeader("Accept-Encoding", "gzip");
+            httpPost.setHeader("Cookie", 
+            		"Hm_lvt_1e35bd6ba34fe8a6a160ab272fc892db=1427119654,1429530935; " +
+            		strJsession +
+            		///"JSESSIONID=1F9595304B9315090C48F7B4C2864AC2; " +
+            		"lzstat_ss=3807293619_1_1432143406_3593490; " +
+            		"lzstat_uv=1282489934416223788|3593490");
+    		
+            // 创建参数队列  
+            List<NameValuePair> formparams = new ArrayList<NameValuePair>();  
+            // 参数名为platform_account，值是o47fhtx0JJ7Hocxaz0XRHTDdutCI  
+            formparams.add(new BasicNameValuePair("platform_account", "o47fhtx0JJ7Hocxaz0XRHTDdutCI"));
+            formparams.add(new BasicNameValuePair("userid", "379704"));
+            formparams.add(new BasicNameValuePair("type", "0"));
+            
+            entity = new UrlEncodedFormEntity(formparams, "UTF-8");  
+            httpPost.setEntity(entity);  
+            
+    		response = client.execute(httpPost);
+            
+            // getEntity()  
+            httpEntity = response.getEntity();  
+            if (httpEntity != null) {  
+            	// 打印响应内容
+                String result = EntityUtils.toString(httpEntity, "UTF-8");
+                System.out.println("Java: step3 response: " + result);
+                
+                if (response.getStatusLine().getStatusCode() != 200){
+                	System.out.println("Java: failed to get live key, response is not 200");
+                	return null;
+                }
+    			
+                JSONTokener jsonParser = new JSONTokener(result);
+    			JSONObject root = (JSONObject) jsonParser.nextValue();
+    			String businessCode = root.getString("businessCode");
+    			if (!businessCode.equals("success")) {
+    				System.out.println("Java: failed to get live key, businessCode: " + businessCode);
+    				return null;
+    			}
+    			
+    			String count = root.getString("count");
+    			int c = Integer.valueOf(count);
+    			System.out.println("Java: key count: " + c);
+    			JSONArray resultSetArray = root.getJSONArray("resultSet");
+    			
+    			for (int i=0;i<resultSetArray.length();i++) {
+    				JSONObject resultSet = resultSetArray.getJSONObject(i);
+    				// "expiration_time": 1432150607702,
+    	            // "live_key": "3910F85C71F674CECF7742D8C3054FAE330FC5A3A62C519E127559318202683D",
+    	            // "update_time": "2015-05-20 17:36:47",
+    	            // "x_user_id": 379704
+    				int expiration_time = 0;
+    				if (resultSet.has("expiration_time"))
+    					expiration_time = resultSet.getInt("expiration_time");
+    				String live_key = resultSet.getString("live_key");
+    				String update_time = "N/A";
+    				if (resultSet.has("update_time"))
+    					update_time = resultSet.getString("update_time");
+    				int x_user_id = 0;
+    				if (resultSet.has("x_user_id"))
+    					x_user_id = resultSet.getInt("x_user_id");
+    				
+    				if (i==0) {
+    					key = new BestvKey(expiration_time, live_key, update_time, x_user_id);
+    				}
+    			}
             }
             
             // 释放资源  

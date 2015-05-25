@@ -19,8 +19,8 @@ public class TestEPG {
 
 		//PPTVFrame myFrame = new PPTVFrame();
 		//LeTVFrame myFrame = new LeTVFrame();
-		VstFrame myFrame = new VstFrame();
-        //BestvFrame myFrame = new BestvFrame();
+		//VstFrame myFrame = new VstFrame();
+        BestvFrame myFrame = new BestvFrame();
 		myFrame.setVisible(true); 
 		
 		/*EPGUtil epg = new EPGUtil();

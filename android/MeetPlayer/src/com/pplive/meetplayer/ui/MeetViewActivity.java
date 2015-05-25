@@ -772,12 +772,6 @@ public class MeetViewActivity extends Activity implements OnFocusChangeListener 
 		@Override
 		public void onLongPress(MotionEvent e) {
 			Log.i(TAG, "onLongPress!!!");
-			/*if (mVideoView != null) {
-				mVideoView.stopPlayback();
-				
-				mVideoView.setVideoURI(mUri);
-				mVideoView.start();
-			}*/
 		}
 	});
 	
