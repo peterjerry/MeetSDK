@@ -15,5 +15,11 @@ copy to output/android
 cd engine2/build/android
 ndk build
 
-cd android
+cd android/meetsdk
 ant release
+
+cd android/meetplayer
+ant debug install
+
+# "ant quick" to set no-dependency apk build
+# "ant normal" to set lib-denpendent apk build

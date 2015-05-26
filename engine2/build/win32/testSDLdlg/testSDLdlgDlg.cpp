@@ -641,6 +641,7 @@ bool CtestSDLdlgDlg::start_player(const char *url)
 	mPlayer = new FFPlayer;
 	mPlayer->setListener(this);
 
+#ifdef ENABLE_SUBTITLE
 	if (!ISubtitles::create(&mSubtitleParser)) {
 		LOGE("failed to create subtitle instance.");
         return false;
@@ -653,6 +654,7 @@ bool CtestSDLdlgDlg::start_player(const char *url)
 	}
 #else
 	mPlayer->setISubtitle(mSubtitleParser);
+#endif
 #endif
 
 	mPlayer->setDataSource(url);

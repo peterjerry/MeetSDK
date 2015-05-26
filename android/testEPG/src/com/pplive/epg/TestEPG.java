@@ -1,25 +1,28 @@
 package com.pplive.epg;
 
-import java.io.File;
-import java.util.Date;
-import java.util.GregorianCalendar;
 import java.util.List;
+
+import com.pplive.epg.bestv.BestvFrame;
+import com.pplive.epg.bestv.BestvKey;
+import com.pplive.epg.bestv.BestvUtil;
+import com.pplive.epg.pptv.Catalog;
+import com.pplive.epg.pptv.Content;
+import com.pplive.epg.pptv.EPGUtil;
+import com.pplive.epg.pptv.Module;
+import com.pplive.epg.pptv.PPTVFrame;
+import com.pplive.epg.pptv.PlayLink2;
+import com.pplive.epg.sohu.SohuFrame;
+import com.pplive.epg.vst.VstFrame;
 
 public class TestEPG { 
 	
 	public static void main(String[] args) {
-		
-		long expiration_time = 1431950924557L;
-		Date dat=new Date(expiration_time);  
-        GregorianCalendar gc = new GregorianCalendar();   
-        gc.setTime(dat);  
-        java.text.SimpleDateFormat format = new java.text.SimpleDateFormat("yyyy-MM-dd hh:mm:ss");  
-        String sb=format.format(gc.getTime());  
-        System.out.println("time is " + sb);  
-		
-		PPTVFrame myFrame = new PPTVFrame();
+
+		//PPTVFrame myFrame = new PPTVFrame();
 		//LeTVFrame myFrame = new LeTVFrame();
 		//VstFrame myFrame = new VstFrame();
+        //BestvFrame myFrame = new BestvFrame();
+		SohuFrame myFrame = new SohuFrame();
 		myFrame.setVisible(true); 
 		
 		/*EPGUtil epg = new EPGUtil();

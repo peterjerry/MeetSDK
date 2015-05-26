@@ -104,7 +104,7 @@ status_t FFRender::render_neon(AVFrame* frame)
 	case AV_PIX_FMT_YUV420P:
 		{
 			if (mDoOnce) {
-				LOGI("frame->data: %p,%p,%p", frame->data[0], frame->data[1], frame->data[2]); //((((int32_t)frame->data[0])+0x20)&0xffffffe0)
+				LOGI("frame->data: %p, %p, %p", frame->data[0], frame->data[1], frame->data[2]); //((((int32_t)frame->data[0])+0x20)&0xffffffe0)
 				LOGI("frame->linesize: %d,%d,%d", frame->linesize[0], frame->linesize[1], frame->linesize[2]);
 				LOGI("frame->width: %d, frame->height: %d", frame->width, frame->height);
 				LOGI("mSurface width %d, height %d, stride %d", mSurfaceWidth, mSurfaceHeight, mSurfaceStride);
@@ -113,7 +113,7 @@ status_t FFRender::render_neon(AVFrame* frame)
 
 			// 2015.4.24 guoliangma modify mSurfaceStride to mSurfaceWidth
 			// fix crash when play some small res clip then play big res clip 
-			if ((int)mSurfaceWidth >= frame->width) {
+			if ((int)mSurfaceWidth >= frame->width && (int)mSurfaceHeight >= frame->height) {
 #ifdef RENDER_RGB565
 				/*yuv420_2_rgb565((uint8_t *)surfacePixels, 
 					frame->data[0], frame->data[1], frame->data[2],
@@ -138,8 +138,8 @@ status_t FFRender::render_neon(AVFrame* frame)
 #endif
 			}
 			else {
-				LOGW("surface memory is too small: surf_w %d, surf_h %d, surf_stride %d, frame_w %d", 
-					mSurfaceWidth, mSurfaceHeight, mSurfaceStride, frame->width);
+				LOGW("surface memory is too small: surf_w %d, surf_h %d, surf_stride %d, frame_w %d, frame_h %d", 
+					mSurfaceWidth, mSurfaceHeight, mSurfaceStride, frame->width, frame->height);
 			}
 
 

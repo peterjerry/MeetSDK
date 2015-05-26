@@ -35,10 +35,11 @@
 			android:visibility="gone" />
 	</RelativeLayout>
 	
-	<RelativeLayout
+	<LinearLayout
 		android:id="@+id/layout_ctrl"	
 		android:layout_width="wrap_content"
-		android:layout_height="fill_parent" >
+		android:layout_height="fill_parent" 
+		android:orientation="vertical" >
 		<LinearLayout
 			android:id="@+id/layout_buttons"
 			android:layout_width="fill_parent"
@@ -58,12 +59,23 @@
 				android:id="@+id/btn_tv_series"
 				android:layout_width="wrap_content"
 				android:layout_height="wrap_content"
-				android:text="tv"/>
+				android:text="tv" 
+				android:visibility="gone" />
 			<Button
 				android:id="@+id/btn_live"
 				android:layout_width="wrap_content"
+				android:layout_height="wrap_content"
+				android:text="live"
+				android:visibility="gone" />
+			<TextView 
+			    android:layout_width="wrap_content"
+				android:layout_height="wrap_content"
+			    android:text="ft" />
+			<Button
+				android:id="@+id/btn_ft"
+				android:layout_width="wrap_content"
 				android:layout_height="fill_parent"
-				android:text="live"/>
+				android:text="1"/>
 			<Button
 				android:id="@+id/btn_next_page"
 				android:layout_width="wrap_content"
@@ -77,6 +89,6 @@
 			android:layout_height="fill_parent"
 			android:layout_below="@id/layout_buttons" >
 		</ListView>
-	</RelativeLayout>
+	</LinearLayout>
 	
 </RelativeLayout>

@@ -83,6 +83,7 @@ import com.pplive.meetplayer.util.Catalog;
 import com.pplive.meetplayer.util.Content;
 import com.pplive.meetplayer.util.DownloadAsyncTask;
 import com.pplive.meetplayer.util.EPGUtil;
+import com.pplive.meetplayer.util.Episode;
 import com.pplive.meetplayer.util.FeedBackFactory;
 import com.pplive.meetplayer.util.FileFilterTest;
 import com.pplive.meetplayer.util.HttpPostUtil;
@@ -94,6 +95,9 @@ import com.pplive.meetplayer.util.Module;
 import com.pplive.meetplayer.util.PlayLink2;
 import com.pplive.meetplayer.util.PlayLinkUtil;
 import com.pplive.meetplayer.util.Util;
+import com.pplive.meetplayer.util.VirtualChannelInfo;
+import com.pplive.meetplayer.util.sohu.PlaylinkSohu;
+import com.pplive.meetplayer.util.sohu.SohuUtil;
 import com.pplive.meetplayer.ui.widget.MiniMediaController;
 import com.pplive.db.DBmanager;
 import com.pplive.db.MediaInfoEntry;
@@ -209,8 +213,9 @@ public class ClipListActivity extends Activity implements
 	
 	private List<Content> mEPGContentList 	= null;
 	private List<Module> mEPGModuleList 	= null;
-	private List<Catalog> mEPGCatalogList = null;
+	private List<Catalog> mEPGCatalogList	= null;
 	private List<PlayLink2> mEPGLinkList 	= null;
+	private List<Episode> mVirtualLinkList	= null;
 	private String mEPGsearchKey; // for search
 	private String mDLNAPushUrl;
 	private String mLink;
@@ -218,8 +223,12 @@ public class ClipListActivity extends Activity implements
 	private String mEPGtype;
 	private int mEPGlistStartPage = 1;
 	private int mEPGlistCount = 15;
-	private boolean mListLive = false;
-	private boolean mListSearch = false;
+	private boolean mListLive			= false;
+	private boolean mListSearch		= false;
+	private boolean mIsVirtualChannel	= false;
+	private String mExtid;
+	private int mSavedPlayLink; // for MeetViewActivity
+	
 	private final int EPG_ITEM_FRONTPAGE		= 1;
 	private final int EPG_ITEM_CATALOG			= 2;
 	private final int EPG_ITEM_DETAIL			= 3;
@@ -227,6 +236,8 @@ public class ClipListActivity extends Activity implements
 	private final int EPG_ITEM_CONTENT_LIST	= 5;
 	private final int EPG_ITEM_CONTENT_SURFIX	= 6;
 	private final int EPG_ITEM_LIST			= 7;
+	private final int EPG_ITEM_VIRTUAL_SOHU	= 8;
+	private final int EPG_ITEM_VIRTUAL_LIST	= 9;
 	private final int EPG_ITEM_CDN				= 11;
 	private final int EPG_ITEM_FT				= 12;
 
@@ -301,7 +312,7 @@ public class ClipListActivity extends Activity implements
 	
 	private String mCurrentFolder;
 	
-	private final static String home_folder		= "/test2";
+	private final static String home_folder		= "";//"/test2";
 	
 	private final static String HTTP_UPDATE_APK_URL = "http://172.16.204.106/test/test/";
 	
@@ -1435,8 +1446,14 @@ public class ClipListActivity extends Activity implements
 			case MSG_EPG_CATALOG_DONE:
 				popupEPGCatalogDlg();
 				break;
-			case MSG_EPG_SEARCH_DONE:
 			case MSG_EPG_DETAIL_DONE:
+				if (mEPGLinkList.size() > 1) {
+					Intent intent = new Intent(ClipListActivity.this, MeetViewActivity.class);
+					intent.putExtra("playlink", String.valueOf(mSavedPlayLink));
+					startActivity(intent);
+					break;
+				}
+			case MSG_EPG_SEARCH_DONE:
 			case MSG_EPG_LIST_DONE:
 				if (mEPGLinkList.size() == 1) {
 					boolean ret = add_list_history(mEPGLinkList.get(0).getTitle(), 
@@ -1668,17 +1685,35 @@ public class ClipListActivity extends Activity implements
 	}
 	
 	private void popupEPGCollectionDlg() {
-		int size = mEPGLinkList.size();
+		int size;
+		if (mIsVirtualChannel) {
+			size = mVirtualLinkList.size();
+		}
+		else {
+			size = mEPGLinkList.size();
+		}
+		
 		if (size > 0) {
 			ArrayList<String> title_list = new ArrayList<String>();
 			final ArrayList<String> link_list = new ArrayList<String>();
 			
-			for (int i=0;i<size;i++) {
-				PlayLink2 l = mEPGLinkList.get(i);
-				String title = l.getTitle();
-				String link = l.getId();
-				title_list.add(title);
-				link_list.add(link);
+			if (mIsVirtualChannel) {
+				for (int i=0;i<size;i++) {
+					Episode e = mVirtualLinkList.get(i);
+					String title = e.getTitle();
+					String extid = e.getExtId();
+					title_list.add(title);
+					link_list.add(extid);
+				}
+			}
+			else {
+				for (int i=0;i<size;i++) {
+					PlayLink2 l = mEPGLinkList.get(i);
+					String title = l.getTitle();
+					String link = l.getId();
+					title_list.add(title);
+					link_list.add(link);
+				}
 			}
 			
 			final String[] str_title_list = (String[])title_list.toArray(new String[title_list.size()]);
@@ -1688,20 +1723,27 @@ public class ClipListActivity extends Activity implements
 			.setItems(str_title_list, 
 				new DialogInterface.OnClickListener(){
 				public void onClick(DialogInterface dialog, int whichButton) {
-					int vid = Integer.valueOf(link_list.get(whichButton));
-					if (mListLive) {
-						et_playlink.setText(String.valueOf(vid));
-						Log.i(TAG, "Java: live id " + vid);
-						
-						boolean ret = add_list_history(mEPGLinkList.get(whichButton).getTitle(), vid);
-						if (!ret)
-							Toast.makeText(ClipListActivity.this, "failed to save play history", Toast.LENGTH_SHORT).show();
-						
-						Toast.makeText(ClipListActivity.this, String.format("live channel %s(%d) was set",
-								mEPGLinkList.get(whichButton).getTitle(), vid), Toast.LENGTH_SHORT).show();
+					if (mIsVirtualChannel) {
+						mExtid = link_list.get(whichButton);
+						int index = (mEPGlistStartPage - 1) * mEPGlistCount + whichButton;
+						new EPGTask().execute(EPG_ITEM_VIRTUAL_SOHU, index);
 					}
 					else {
-						new EPGTask().execute(EPG_ITEM_DETAIL, vid);
+						int vid = Integer.valueOf(link_list.get(whichButton));
+						if (mListLive) {
+							et_playlink.setText(String.valueOf(vid));
+							Log.i(TAG, "Java: live id " + vid);
+							
+							boolean ret = add_list_history(mEPGLinkList.get(whichButton).getTitle(), vid);
+							if (!ret)
+								Toast.makeText(ClipListActivity.this, "failed to save play history", Toast.LENGTH_SHORT).show();
+							
+							Toast.makeText(ClipListActivity.this, String.format("live channel %s(%d) was set",
+									mEPGLinkList.get(whichButton).getTitle(), vid), Toast.LENGTH_SHORT).show();
+						}
+						else {
+							new EPGTask().execute(EPG_ITEM_DETAIL, vid);
+						}
 					}
 					dialog.cancel();
 				}
@@ -1711,8 +1753,14 @@ public class ClipListActivity extends Activity implements
 					public void onClick(DialogInterface dialog, int whichButton){
 						if (mListSearch)
 							new EPGTask().execute(EPG_ITEM_SEARCH, ++mEPGlistStartPage, mEPGlistCount);
-						else
-							new EPGTask().execute(EPG_ITEM_LIST, ++mEPGlistStartPage, mEPGlistCount);
+						else {
+							if (mIsVirtualChannel) {
+								new EPGTask().execute(EPG_ITEM_VIRTUAL_LIST, ++mEPGlistStartPage, mEPGlistCount);
+							}
+							else {
+								new EPGTask().execute(EPG_ITEM_LIST, ++mEPGlistStartPage, mEPGlistCount);
+							}
+						}
 					}
 				})
 			.setNegativeButton("Cancel",
@@ -1811,6 +1859,41 @@ public class ClipListActivity extends Activity implements
 		mHandler.sendEmptyMessage(MSG_PUSH_CDN_CLIP);
 	}
 	
+	boolean decide_virtual() {
+		boolean ret;
+		
+		mEPGLinkList = mEPG.getLink();
+		if (mEPGLinkList.size() == 0) {
+			Log.i(TAG, "virtual channel");
+			mIsVirtualChannel= true;
+			mEPGlistStartPage = 1;
+			
+			List<VirtualChannelInfo> infoList = mEPG.getVchannelInfo();
+			for (int i=0;i<infoList.size();i++) {
+				VirtualChannelInfo info = infoList.get(i);
+				
+				if (info.getSiteId() == 3 /* site */) {
+					ret = mEPG.virtual_channel(info.getTitle(), 
+							info.getInfoId(), mEPGlistCount, info.getSiteId(), 1);
+					if (!ret) {
+						Log.e(TAG, "failed to get virtual_channel");
+						mHandler.sendEmptyMessage(MSG_FAIL_TO_PARSE_EPG_RESULT);
+						return false;
+					}
+					
+					break;
+				}
+			}
+	
+			mVirtualLinkList = mEPG.getVirtualLink();
+		}
+		else {
+			mIsVirtualChannel = false;
+		}
+		
+		return true;
+	}
+	
 	private class EPGTask extends AsyncTask<Integer, Integer, Boolean> {
         @Override
         protected Boolean doInBackground(Integer... params) {
@@ -1855,11 +1938,11 @@ public class ClipListActivity extends Activity implements
         			return false;
         		}
 
-    			mEPGLinkList = mEPG.getLink();
-    			if (mEPGLinkList.size() == 0)
-    				return false;
-
-    			mHandler.sendEmptyMessage(MSG_EPG_DETAIL_DONE);
+    			if (decide_virtual()) {
+    				mSavedPlayLink = id;
+    				Log.i(TAG, "Java: EPG_ITEM_DETAIL mSavedPlayLink " + mSavedPlayLink);
+    				mHandler.sendEmptyMessage(MSG_EPG_DETAIL_DONE);
+    			}
         	}
         	else if (EPG_ITEM_SEARCH == type) {
         		if (params.length < 2) {
@@ -1867,6 +1950,7 @@ public class ClipListActivity extends Activity implements
 					return false;
 				}
         		
+        		mListLive = false;
         		int start_page = params[1];
         		int count = params[2];
         		
@@ -1933,11 +2017,8 @@ public class ClipListActivity extends Activity implements
         			return false;
         		}
         		
-    			mEPGLinkList = mEPG.getLink();
-    			if (mEPGLinkList.size() == 0)
-    				return false;
-
-    			mHandler.sendEmptyMessage(MSG_EPG_LIST_DONE);
+        		if (decide_virtual())
+        			mHandler.sendEmptyMessage(MSG_EPG_LIST_DONE);
         	}
         	else if (EPG_ITEM_CDN == type) {
         		Log.i(TAG, "Java: EPGTask start to getCDNUrl");
@@ -1976,6 +2057,66 @@ public class ClipListActivity extends Activity implements
         		
         		Message msg = mHandler.obtainMessage(MSG_PLAY_CDN_FT, ft, 0);
     	        msg.sendToTarget();
+        	}
+        	else if (EPG_ITEM_VIRTUAL_SOHU == type) {
+        		int index = params[1]; // start episode index
+        		
+        		int pos = mExtid.indexOf('|');
+        		String sid = mExtid.substring(0, pos);
+        		String vid = mExtid.substring(pos + 1, mExtid.length());
+        		SohuUtil sohu = new SohuUtil();
+        		
+        		PlaylinkSohu l = sohu.getPlayLink(Integer.valueOf(vid), Integer.valueOf(sid));
+        		
+        		if (l == null) {
+        			mHandler.sendEmptyMessage(MSG_FAIL_TO_CONNECT_EPG_SERVER);
+            		return false;
+        		}
+        		
+        		Log.i(TAG, "Java: EPG_ITEM_VIRTUAL_SOHU " + l.getUrlListbyFT(1));
+        		
+        		int info_id = 0;
+        		List<VirtualChannelInfo> infoList = mEPG.getVchannelInfo();
+        		for (int i=0;i<infoList.size();i++) {
+    				VirtualChannelInfo info = infoList.get(i);
+    				if (info.getSiteId() == 3) {
+    					info_id = info.getInfoId();
+    				}
+    				break;
+        		}
+        		
+        		Intent intent = new Intent(ClipListActivity.this,
+        				/*FragmentMp4PlayerActivity*/PlaySohuActivity.class);
+        		intent.putExtra("url_list", l.getUrl(1));
+        		intent.putExtra("duration_list", l.getDuration(1));
+        		intent.putExtra("title", l.getTitle());
+        		intent.putExtra("info_id", info_id);
+        		intent.putExtra("index", index);
+        		startActivity(intent);
+        		return true;
+        	}
+        	else if (EPG_ITEM_VIRTUAL_LIST == type) {
+        		Log.i(TAG, "Java: EPG_ITEM_VIRTUAL_LIST");
+        		List<VirtualChannelInfo> infoList = mEPG.getVchannelInfo();
+        		for (int i=0;i<infoList.size();i++) {
+    				VirtualChannelInfo info = infoList.get(i);
+    				
+    				if (info.getSiteId() == 3 /*sohu*/) {
+		        		int start_page = params[1];
+		        		int count = params[2];
+		    			ret = mEPG.virtual_channel(info.getTitle(), info.getInfoId(), 
+		    					count, info.getSiteId(), start_page);
+		    			if (!ret) {
+		    				Log.e(TAG, "failed to get virtual_channel");
+		    				mHandler.sendEmptyMessage(MSG_FAIL_TO_PARSE_EPG_RESULT);
+		    				return false;
+		    			}
+		    	
+		    			mVirtualLinkList = mEPG.getVirtualLink();
+		    			mHandler.sendEmptyMessage(MSG_EPG_DETAIL_DONE);
+		    			break;
+    				}
+        		}
         	}
         	else {
         		Log.w(TAG, "Java: EPGTask invalid type: " + type);
@@ -2314,6 +2455,7 @@ public class ClipListActivity extends Activity implements
 			break;
 		case OPTION_COMMON_MEETVIEW:
 			Intent intent = new Intent(ClipListActivity.this, MeetViewActivity.class);
+			intent.putExtra("playlink", "9037770");
 			startActivity(intent);
 			break;
 		case OPTION_COMMON_SUBTITLE:
@@ -2501,38 +2643,7 @@ public class ClipListActivity extends Activity implements
 		
 		render_frame_num = 0;
 		decode_drop_frame = 0;
-		
-		mVideoWidth = mp.getVideoWidth();
-		mVideoHeight = mp.getVideoHeight();
-		
-		// view
-		int width	= mLayout.getMeasuredWidth();
-		int height 	= mLayout.getMeasuredHeight();
-		
-		Log.i(TAG, String.format("adjust_ui preview %d x %d, video %d x %d", width, height, mVideoWidth, mVideoHeight)); 
-		
-		mPreview.getHolder().setFixedSize(mVideoWidth, mVideoHeight);
-		
-		RelativeLayout.LayoutParams sufaceviewParams = (RelativeLayout.LayoutParams) mPreview.getLayoutParams();
-		if ( mVideoWidth * height  > width * mVideoHeight ) { 
-			Log.i(TAG, "adjust_ui surfaceview is too tall, correcting");
-			sufaceviewParams.width	= width;
-			sufaceviewParams.height = width * mVideoHeight / mVideoWidth;
-		}
-		else if ( mVideoWidth * height  < width * mVideoHeight ) { 
-			Log.i(TAG, "adjust_ui surfaceview is too wide, correcting"); 
-			sufaceviewParams.width = height * mVideoWidth / mVideoHeight;
-			sufaceviewParams.height= height;
-		}
-		else {
-           sufaceviewParams.height	= height;
-           sufaceviewParams.width 	= width;
-		}
-		
-		Log.i(TAG, String.format("adjust_ui surfaceview setLayoutParams %d %d", 
-				sufaceviewParams.width, sufaceviewParams.height)); 
-		mPreview.setLayoutParams(sufaceviewParams);
-		
+
 		mPreview.BindInstance(mMediaController, mPlayer);
 		
 		Log.i(TAG, String.format("Java: width %d, height %d", mPlayer.getVideoWidth(), mPlayer.getVideoHeight()));
@@ -2584,17 +2695,46 @@ public class ClipListActivity extends Activity implements
 		Log.i(TAG, String.format("onVideoSizeChanged(%d %d)", w, h));
 		
 		if (w == 0 || h == 0) {
-			mHolder.setFixedSize(640, 480);
-			mPreview.SetVideoRes(640, 480);
+			mVideoWidth		= 640;
+			mVideoHeight	= 480;
 			Log.i(TAG, "Java: onVideoSizeChanged, no video stream, use default resolution: 640x480");
 		}
 		else {
-			mHolder.setFixedSize(w, h);
-			mPreview.SetVideoRes(w, h);
+			mVideoWidth		= w;
+			mVideoHeight	= h;
 		}
 		
+		// view
+		int width	= mLayout.getMeasuredWidth();
+		int height 	= mLayout.getMeasuredHeight();
+		
+		Log.i(TAG, String.format("adjust_ui preview %d x %d, video %d x %d", width, height, mVideoWidth, mVideoHeight)); 
+		
+		SurfaceHolder holder = mPreview.getHolder();
+		holder.setFixedSize(mVideoWidth, mVideoHeight);
+		
+		RelativeLayout.LayoutParams sufaceviewParams = (RelativeLayout.LayoutParams) mPreview.getLayoutParams();
+		if ( mVideoWidth * height  > width * mVideoHeight ) { 
+			Log.i(TAG, "adjust_ui surfaceview is too tall, correcting");
+			sufaceviewParams.width	= width;
+			sufaceviewParams.height = width * mVideoHeight / mVideoWidth;
+		}
+		else if ( mVideoWidth * height  < width * mVideoHeight ) { 
+			Log.i(TAG, "adjust_ui surfaceview is too wide, correcting"); 
+			sufaceviewParams.width = height * mVideoWidth / mVideoHeight;
+			sufaceviewParams.height= height;
+		}
+		else {
+           sufaceviewParams.height	= height;
+           sufaceviewParams.width 	= width;
+		}
+		
+		Log.i(TAG, String.format("adjust_ui surfaceview setLayoutParams %d %d", 
+				sufaceviewParams.width, sufaceviewParams.height)); 
+		mPreview.setLayoutParams(sufaceviewParams);
+		
 		// will trigger onMeasure() 
-		mPreview.measure(MeasureSpec.AT_MOST, MeasureSpec.AT_MOST);
+		//mPreview.measure(MeasureSpec.AT_MOST, MeasureSpec.AT_MOST);
 	}
 	
 	private void setupUpdater() {

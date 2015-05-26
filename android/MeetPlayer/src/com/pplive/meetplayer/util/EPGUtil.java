@@ -95,18 +95,27 @@ public class EPGUtil {
 			"&auth=55b7c50dc1adfc3bcabe2d9b2015e35c&vvid=41" +
 			"&id=%s&ft=1&k_ver=1.1.0";
 	
+	private final static String getvchannel_fmt = "http://epg.api.pptv.com/getvchannel?" +
+			"platform=android3&pagesize=%d&infoid=%d&siteid=%d&nowpage=%d";
+	
 	private List<Content> mContentList;
 	private List<Module> mModuleList;
 	private List<Catalog> mCatalogList;
 	private List<PlayLink2> mPlayLinkList;
 	private List<Navigator> mNavList;
 	
+	private List<Episode> mVirtualPlayLinkList;
+	private List<VirtualChannelInfo> mVchannelInfoList;
+	
 	public EPGUtil() {
-		mContentList = new ArrayList<Content>();
-		mModuleList = new ArrayList<Module>();
-		mCatalogList = new ArrayList<Catalog>();
-		mPlayLinkList = new ArrayList<PlayLink2>();
-		mNavList = new ArrayList<Navigator>();
+		mContentList 		= new ArrayList<Content>();
+		mModuleList 		= new ArrayList<Module>();
+		mCatalogList 		= new ArrayList<Catalog>();
+		mPlayLinkList 		= new ArrayList<PlayLink2>();
+		mNavList			= new ArrayList<Navigator>();
+		
+		mVirtualPlayLinkList= new ArrayList<Episode>();
+		mVchannelInfoList	= new ArrayList<VirtualChannelInfo>();
 	}
 	
 	public List<Content> getContent() {
@@ -125,8 +134,16 @@ public class EPGUtil {
 		return mPlayLinkList;
 	}
 	
+	public List<VirtualChannelInfo> getVchannelInfo() {
+		return mVchannelInfoList;
+	}
+	
 	public List<Navigator> getNav() {
 		return mNavList;
+	}
+	
+	public List<Episode> getVirtualLink() {
+		return mVirtualPlayLinkList;
 	}
 	
 	public boolean live(int start_page, int count, int type) {
@@ -418,11 +435,14 @@ public class EPGUtil {
 		url += "&";
 		url += encoded_param;
 		url += "&appid=com.pplive.androidphone&appplt=aph";
-		Log.i(TAG, "Java epg list " + url);
+		url += ppi;
+		Log.i(TAG, "Java epg list() url: " + url);
 		
 		boolean ret = false;
 		
 		HttpGet request = new HttpGet(url);
+		//request.setHeader("User-Agent", 
+		//		"Mozilla/5.0 (Windows NT 6.1; WOW64; rv:29.0) Gecko/20100101 Firefox/29.0");  
 		HttpResponse response;
 		
 		try {
@@ -457,6 +477,47 @@ public class EPGUtil {
 	        	if (!ret)
 	        		break;
 	        }
+		} catch (ClientProtocolException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (JDOMException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+			
+		return ret;
+	}
+	
+	public boolean virtual_channel(String title, int info_id, int page_size, int site_id, int now_page) {
+		//http://epg.api.pptv.com/getvchannel?platform=android3&pagesize=200&infoid=1056&siteid=3&nowpage=4
+			
+		String url = String.format(getvchannel_fmt, page_size, info_id, site_id, now_page);
+		Log.i(TAG, "Java: virtual_channel() " + url);
+		
+		boolean ret = false;
+		
+		HttpGet request = new HttpGet(url);
+		HttpResponse response;
+		
+		try {
+			response = new DefaultHttpClient().execute(request);
+			if (response.getStatusLine().getStatusCode() != 200) {
+				return false;
+			}
+			
+			String result = EntityUtils.toString(response.getEntity());
+			System.out.println(result);
+			
+			SAXBuilder builder = new SAXBuilder();
+			Reader returnQuote = new StringReader(result);  
+	        Document doc = builder.build(returnQuote);
+	        Element root = doc.getRootElement();
+	        
+	        mVirtualPlayLinkList.clear();
+	        ret = add_episode(root, title);
 		} catch (ClientProtocolException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -512,6 +573,27 @@ public class EPGUtil {
 		return ret;
 	}
 	
+	private boolean add_episode(Element v, String main_title) {
+		List<Element> sites = v.getChildren("site");
+		Element site= sites.get(0);
+		String siteid = site.getAttributeValue("siteid");
+		
+		List<Element> episodes = site.getChildren("episode");
+		for (int i=0;i<episodes.size();i++) {
+			Element episode = episodes.get(i);
+			String vid = episode.getAttributeValue("vid");
+			String title = episode.getAttributeValue("title");
+			String extid = episode.getAttributeValue("extid");
+			
+			String final_title = main_title + "(" + title + ")";
+			
+			Episode e = new Episode(Integer.valueOf(siteid), final_title, vid, extid);
+			mVirtualPlayLinkList.add(e);
+		}
+		
+		return true;
+	}
+	
 	private boolean add_v(Element v) {
 		String link_title  = v.getChild("title").getText();
     	String link_id = v.getChild("vid").getText();
@@ -539,6 +621,48 @@ public class EPGUtil {
     	Element content = v.getChild("content");
     	if (content != null)
     		link_description = content.getText();
+    	
+    	//virtual channel
+    	List<Element> virtuals = v.getChildren("virtual");
+    	if (virtuals.size() > 1) {
+        	String infoId = v.getChild("infoId").getText();
+
+	    	Element virtual = virtuals.get(1);
+	    	
+    		List<Element> sites = virtual.getChildren("site");
+    		if (sites.size() > 0) {
+    			mVchannelInfoList.clear();
+    			
+    			boolean found_sohu = false;
+    			for (int c=0;c<sites.size();c++) {
+		        	Element site = sites.get(c);
+		        	String logo_url = site.getAttributeValue("logo");
+		        	String title = site.getAttributeValue("title");
+		        	String siteid = site.getAttributeValue("siteid");
+		        	String total = site.getAttributeValue("total");
+		        	String mode = site.getAttributeValue("mode");
+		        	List<Element> link_vlist = site.getChildren("episode");
+		        	
+		        	if (siteid.equals("3") /*sohu*/)
+		        		found_sohu = true;
+		        	
+		        	VirtualChannelInfo vInfo = new VirtualChannelInfo(link_title, logo_url, 
+		        			Integer.valueOf(siteid), Integer.valueOf(infoId), 
+		        			Integer.valueOf(total), Integer.valueOf(mode));
+		        	mVchannelInfoList.add(vInfo);
+		        	
+		        	Log.i(TAG, String.format("Java: virtual channel info_id %s, title: %s, siteid %s, total %s",
+		        			infoId, title, siteid, total));
+    			}
+
+    			if (!found_sohu) {
+    				Log.w(TAG, "Java: sohu virtual channel was NOT found");
+    				return false;
+    			}
+    			
+	        	return true;
+    		}
+    	}
     	
     	List<Element> linklist = null;
         Element video_list2 = v.getChild("video_list2");
@@ -595,7 +719,7 @@ public class EPGUtil {
 		sbBoxPlayUrl.append(boxplay_prefix);
 		sbBoxPlayUrl.append(user_type);
 		sbBoxPlayUrl.append(boxplay_part2);
-		Log.i(TAG, "Java: epg url " + sbBoxPlayUrl.toString());
+		Log.i(TAG, "Java: getAvailableFT() url " + sbBoxPlayUrl.toString());
 
 		HttpGet request = new HttpGet(sbBoxPlayUrl.toString());
 		
@@ -628,7 +752,11 @@ public class EPGUtil {
 			ArrayList<CDNrid> ridList = new ArrayList<CDNrid>();
 			ArrayList<CDNItem> itemList = new ArrayList<CDNItem>();
 			
-			Element file = root.getChild("channel").getChild("file");
+			Element channel = root.getChild("channel");
+			Element file = channel.getChild("file");
+			if (file == null)
+				return null;
+			
 			List<Element> item_list = file.getChildren("item");
 			
 			int[] ft = new int[item_list.size()];

@@ -1,4 +1,41 @@
-ffmpeg -i D:\Archive\media\ironman3-clp_h720p.mov -vcodec libx265 -acodec copy -t 10 E:\sample.mp4
+ffmpeg -i E:\QQDownload\Manhattan.S01E08.720p.HDTV.x264-KILLERS\Manhattan.S01E08.HDTVrip.1024X576.mkv -i 1.ass -vcodec copy -acodec copy d:\xxxx.mkv
+@pause
+
+ffmpeg -i D:\Archive\media\dragon_trainer_4audio.mkv -t 30 -vcodec copy -acodec libvo_aacenc -ar 44100 -ac 2 e:\44k_stereo.mkv
+@pause
+
+ffmpeg -i D:\ee.gif d:\out.jpg
+@pause
+
+ffmpeg -i my_funny_video.mp4 -vcodec copy -vbsf h264_mp4toannexb -an my_funny_video.h264
+#pause
+
+ffmpeg -i E:\QQDownload\ghost4.mkv -map 0:s -scodec copy d:\out.srt
+rem ffmpeg -i xxx -vn -an -scodec copy sub.ass
+@pause
+
+rem ffmpeg -i video.avi -i sub.ass -map 0:0 -map 0:1 -map 1 -c:a copy -c:v copy -c:s copy video.mkv
+@pause
+
+ffmpeg -f concat -i files.txt -c copy d:\allinone.mp4
+@pause
+
+ffmpeg -ss 00:00:20 -i D:\Archive\media\sitv.ts -vn -ac 1 -ar 16000 -t 10 E:\out_16k_mono.wav
+@pause
+
+transfer --TransferModule.input_file=ppfile-mp4://E://Work//HEVC//Transformers3-720p.mp4 --TransferModule.output_format=ts --TransferModule.output_file=ppfile://e://Transformers3-720p.ts
+@pause
+
+ffmpeg -i E:\Work\HEVC\Transformers3-720p.mp4 -vcodec libx265 -b:v 512k -acodec copy -t 30 e:\Transformers3-720p.ts
+@pause
+
+ffmpeg -i E:\Work\HEVC\Transformers3-720p.mp4 -vcodec copy -acodec copy -bsf h264_mp4toannexb -t 30 e:\out.ts
+@pause
+
+ffmpeg -i D:\Archive\Media\[APTX4869][CONAN][655][480P][AVC_AAC][CHS](FD79F094).mp4 -vcodec copy -acodec copy -vbsf h264_mp4toannexb -t 30 e:\out.ts
+@pause rem convert mp4(h264) to mpegts
+
+ffmpeg -f dshow  -i video="screen-capture-recorder"  -r 20 -t 10 d:\screen-capture.mp4 -t 10
 @pause
 
 ffmpeg -ss 00:00:05 -i D:\Archive\media\ironman3-clp_h720p.mov -f rawvideo -pix_fmt yuyv422 -s 640x480 -t 1 E:\in640.yuy2
@@ -42,10 +79,16 @@ ffmpeg -ss 00:10:30 -i E:\Archive\Media\720p\A.Bite.Of.China.ep07.2012.BluRay.72
 ffmpeg -i E:\Archive\Media\sd\5min\jiangsu_1.ts -t 30 -vn -ar 24000 -ac 1 -f s16le -acodec pcm_s16le e:\in.pcm 
 @pause
 
+rem cat video
+ffmpeg -i d:\1.mp4 -vcodec copy -acodec copy -vbsf h264_mp4toannexb d:\1.ts
+ffmpeg -i d:\2.mp4 -vcodec copy -acodec copy -vbsf h264_mp4toannexb d:\2.ts
+ffmpeg -i d:\3.mp4 -vcodec copy -acodec copy -vbsf h264_mp4toannexb d:\3.ts
+ffmpeg -i d:\4.mp4 -vcodec copy -acodec copy -vbsf h264_mp4toannexb d:\4.ts
+ffmpeg -i d:\5.mp4 -vcodec copy -acodec copy -vbsf h264_mp4toannexb d:\5.ts
+ffmpeg -i "concat:d:\1.ts|d:\2.ts|d:\3.ts|d:\4.ts|d:\5.ts" -acodec copy -vcodec copy -absf aac_adtstoasc "d:\allinone.mp4"
 @pause
 
 ffmpeg -i E:\out.mp4 -f rawvideo -pixel_format nv12 -video_size 640x480 E:\out.nv12
-
 @pause
 
 -vbsf h264_mp4toannexb
@@ -62,13 +105,6 @@ s16p     16
 s32p     32
 fltp     32
 dblp     64
-
-ffmpeg -ss 00:03:30 -i E:\Work\SDK\SentiSight\Resource\Rec_clip\gehua\anhui.ts -t 30 e:\2.mp4
-@pause
-
-ffmpeg -ss 00:05:00 -i E:\resource\Rec_clip\gehua\anhui.ts -vcodec copy -acodec copy -t 180 e:\anhui_1.ts
-@pause
-ffmpeg -i E:\share\sample\111.mp3 -vn -ar 48000 -ac 2 d:\8.wav
 
 @-s 320x240 -r 15 -ab 56 -ar 22050 -b 500 an -s 320*240 -ss 3 -t 10 -vb 1000000 -aspect 1.3333
 @ffmpeg -i E:\Rec_clip\cctv3\Part38.ts e:\dd\image%%d.bmp
