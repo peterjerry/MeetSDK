@@ -18,8 +18,23 @@ import org.json.JSONTokener;
 import com.pplive.epg.vst.ProgramVst;
 
 public class SohuUtil {
-	private static final String API_URL = "http://api.tv.sohu.com/video/playinfo/" +
+	private static final String PLAYINFO_URL = "http://api.tv.sohu.com/video/playinfo/" +
 			"%d.json?api_key=9854b2afa779e1a6bff1962447a09dbd&plat=6&sver=3.1&partner=47&c=2&sid=%d";
+	
+	private static final String LIST_URL = "http://api.tv.sohu.com/v5/mobile/channel/list.json?" +
+			"plat=6&poid=1&api_key=9854b2afa779e1a6bff1962447a09dbd&sver=4.7.1&sysver=4.2.2&partner=340";
+	
+	private static final String CHANNEL_URL_FMT = "http://api.tv.sohu.com/v5/mobile/channelPageData/list.json" +
+			"?plat=6&poid=1&api_key=9854b2afa779e1a6bff1962447a09dbd&sver=4.7.1" +
+			"&page_size=%d&offset=%d&sysver=4.2.2&sub_channel_id=%d&partner=340&cursor=0";
+	
+	private static final String COLUMN_URL = "http://api.tv.sohu.com/v4/mobile/column/list.json?" +
+			"cate_code=9006&plat=6&poid=1&api_key=9854b2afa779e1a6bff1962447a09dbd" +
+			"&sver=4.7.1&sysver=4.2.2&partner=340";
+	
+	private static final String CLIP_DETAIL_URL_FMT = "http://api.tv.sohu.com/v4/video/info/%d.json?" +
+			"site=1&plat=6&poid=1&api_key=9854b2afa779e1a6bff1962447a09dbd" +
+			"&sver=4.7.1&sysver=4.2.2&partner=340&aid=%d";
 	
 	private static final String TOPIC_LIST_URL_FMT = "http://api.tv.sohu.com/v4/personal/tv/individuation.json?" +
 			"plat=6&poid=1" +
@@ -41,16 +56,40 @@ public class SohuUtil {
 			"&pay=1&sver=4.7.1" +
 			"&key=%s&page=%d&page_size=%d&ds=&sysver=4.2.2&type=1&partner=340&all=1";
 	
+	private List<ChannelSohu> mChannelList;
+	private List<SubChannelSohu> mSubChannelList;
+	private List<ClipSohu> mClipList;
+	private List<CategorySohu> mCategoryList;
 	private List<TopicSohu> mTopicList;
 	private List<AlbumSohu> mAlbumList;
 	private List<EpisodeSohu> mEpisodeList;
 	private List<AlbumSohu> mSearchItemList;
 	
 	public SohuUtil() {
-		mTopicList = new ArrayList<TopicSohu>();
-		mAlbumList = new ArrayList<AlbumSohu>();
-		mEpisodeList = new ArrayList<EpisodeSohu>();
+		mChannelList	= new ArrayList<ChannelSohu>();
+		mSubChannelList	= new ArrayList<SubChannelSohu>();
+		mClipList		= new ArrayList<ClipSohu>();
+		mCategoryList	= new ArrayList<CategorySohu>();
+		mTopicList 		= new ArrayList<TopicSohu>();
+		mAlbumList 		= new ArrayList<AlbumSohu>();
+		mEpisodeList 	= new ArrayList<EpisodeSohu>();
 		mSearchItemList = new ArrayList<AlbumSohu>();
+	}
+	
+	public List<ClipSohu> getClipList() {
+		return mClipList;
+	}
+	
+	public List<CategorySohu> getCateList() {
+		return mCategoryList;
+	}
+	
+	public List<ChannelSohu> getChannelList() {
+		return mChannelList;
+	}
+	
+	public List<SubChannelSohu> getSubChannelList() {
+		return mSubChannelList;
 	}
 	
 	public List<TopicSohu> getTopicList() {
@@ -70,6 +109,552 @@ public class SohuUtil {
 	}
 	
 	public boolean getTvList() {
+		return false;
+	}
+	
+	public boolean cate(String channelId) {
+		System.out.println("Java: SohuUtil cate() " + LIST_URL);
+		
+		HttpGet request = new HttpGet(LIST_URL);
+		
+		HttpResponse response;
+		try {
+			response = HttpClients.createDefault().execute(request);
+			if (response.getStatusLine().getStatusCode() != 200){
+				return false;
+			}
+			
+			String result = EntityUtils.toString(response.getEntity());
+			String output = result;
+			if (output.length() > 256)
+				output = output.substring(0, 256);
+			System.out.println("Java: result: " + output);
+			
+			JSONTokener jsonParser = new JSONTokener(result);
+			JSONObject root = (JSONObject) jsonParser.nextValue();
+			int status = root.getInt("status");
+			String statusText = root.getString("statusText");
+			if (status != 200) {
+				System.out.println(String.format("Java: failed to get url %d %s", status, statusText));
+				return false;
+			}
+			
+			JSONObject data = root.getJSONObject("data");
+			JSONArray cateCodes = data.getJSONArray("cateCodes");
+			int count = data.getInt("count");
+			
+			mSubChannelList.clear();
+			for (int i=0;i<count;i++) {
+				JSONObject cate = cateCodes.getJSONObject(i);
+				
+				if (cate.getString("channeled").equals(channelId)) {
+					JSONArray sub_channels = cate.getJSONArray("sub_channel");
+					int count_sub = sub_channels.length();
+					for (int j=0;j<count_sub;j++) {
+						JSONObject sub_c = sub_channels.getJSONObject(j);
+						
+						/*
+						"name":"推荐",
+						"load_more":1,
+						"sub_channel_type":0,
+						"sub_channel_id":1000000
+						 */
+						String title = sub_c.getString("name");
+						int sub_channel_type = sub_c.getInt("sub_channel_type");
+						int sub_channel_id = sub_c.getInt("sub_channel_id");
+						
+						SubChannelSohu sub = new SubChannelSohu(title, sub_channel_type, sub_channel_id);
+						mSubChannelList.add(sub);
+					}
+					
+					return true;
+				}
+				
+			}
+			
+			return true;
+		} catch (ClientProtocolException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (JSONException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+		return false;
+	}
+	
+	public boolean cate_search(String cate_url) {
+		System.out.println("Java: SohuUtil cate() " + cate_url);
+		
+		HttpGet request = new HttpGet(cate_url);
+		
+		HttpResponse response;
+		try {
+			response = HttpClients.createDefault().execute(request);
+			if (response.getStatusLine().getStatusCode() != 200){
+				return false;
+			}
+			
+			String result = EntityUtils.toString(response.getEntity());
+			String output = result;
+			if (output.length() > 256)
+				output = output.substring(0, 256);
+			System.out.println("Java: result: " + output);
+			
+			JSONTokener jsonParser = new JSONTokener(result);
+			JSONObject root = (JSONObject) jsonParser.nextValue();
+			int status = root.getInt("status");
+			String statusText = root.getString("statusText");
+			if (status != 200) {
+				System.out.println(String.format("Java: failed to get url %d %s", status, statusText));
+				return false;
+			}
+			
+			JSONObject data = root.getJSONObject("data");
+			JSONArray categorys = data.getJSONArray("categorys");
+			
+			mCategoryList.clear();
+			int count = categorys.length();
+			for (int i=0;i<count;i++) {
+				JSONObject item = categorys.getJSONObject(i);
+				
+				/*
+				 "cate_name":"排序",
+	            "cate_alias":"o",
+	            "default_keys":"-1"
+				 */
+				String cate_name = item.getString("cate_name");
+				String alias = item.getString("cate_alias");
+				String default_keys = item.getString("default_keys");
+				
+				JSONArray cates = item.getJSONArray("cates");
+				int c2 = cates.length();
+				for (int j=0;j<c2;j++) {
+					JSONObject cate = cates.getJSONObject(j);
+					/*
+					"name":"新上架",
+                    "search_key":"1"
+                    */
+					String title = cate.getString("name");
+					String search_key = cate.getString("search_key");
+					
+					CategorySohu ca = new CategorySohu(title, cate_name, alias, search_key, default_keys);
+					mCategoryList.add(ca);
+				}
+			}
+			
+			return true;
+		} catch (ClientProtocolException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (JSONException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+		return false;
+	}
+	
+	
+	public boolean list() {
+		System.out.println("Java: SohuUtil list() " + LIST_URL);
+		
+		HttpGet request = new HttpGet(LIST_URL);
+		
+		HttpResponse response;
+		try {
+			response = HttpClients.createDefault().execute(request);
+			if (response.getStatusLine().getStatusCode() != 200){
+				return false;
+			}
+			
+			String result = EntityUtils.toString(response.getEntity());
+			String output = result;
+			if (output.length() > 256)
+				output = output.substring(0, 256);
+			System.out.println("Java: result: " + output);
+			
+			JSONTokener jsonParser = new JSONTokener(result);
+			JSONObject root = (JSONObject) jsonParser.nextValue();
+			int status = root.getInt("status");
+			String statusText = root.getString("statusText");
+			if (status != 200) {
+				System.out.println(String.format("Java: failed to get url %d %s", status, statusText));
+				return false;
+			}
+			
+			JSONObject data = root.getJSONObject("data");
+			JSONArray cateCodes = data.getJSONArray("cateCodes");
+			int count = data.getInt("count");
+			
+			mChannelList.clear();
+			for (int i=0;i<count;i++) {
+				JSONObject cate = cateCodes.getJSONObject(i);
+				
+				/*
+				"channeled":"1000021000",
+				"icon":"http://tv.sohu.com/upload/clientapp/channelicon/gphone/channel_icon_episode_4.7.1.png",
+				"name":"电视剧",
+				"cate_api":"http://api.tv.sohu.com/v4/category/teleplay.json?",
+				"cid":2,
+				"cate_code":101,
+				"icon_selected":"http://tv.sohu.com/upload/clientapp/channelicon/gphone/channel_icon_episode_4.7.1_selected.png",
+				*/
+				
+				if (cate.has("cate_api")) {
+					String channelId = cate.getString("channeled");
+					String iconUrl = cate.getString("icon");
+					String title = cate.getString("name");
+					String cate_api = cate.getString("cate_api");
+					int cid = cate.getInt("cid");
+					int cate_code = cate.getInt("cate_code");
+	
+					final String cate_surfix = "?&plat=6&poid=1" +
+							"&api_key=9854b2afa779e1a6bff1962447a09dbd&sver=4.7.1" +
+							"&sysver=4.2.2&sub_channel_id=1000000&partner=340";
+					ChannelSohu c = new ChannelSohu(title, channelId, iconUrl, cate_api + cate_surfix, 
+							cid, cate_code);
+					mChannelList.add(c);
+				}
+				
+			}
+			
+			return true;
+		} catch (ClientProtocolException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (JSONException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+		return false;
+	}
+	
+	public PlaylinkSohu detail(int vid, int aid) {
+		String url = String.format(CLIP_DETAIL_URL_FMT, vid, aid);
+		System.out.println("Java: SohuUtil detail() " + url);
+		
+		HttpGet request = new HttpGet(url);
+		
+		HttpResponse response;
+		try {
+			response = HttpClients.createDefault().execute(request);
+			if (response.getStatusLine().getStatusCode() != 200){
+				return null;
+			}
+			
+			String result = EntityUtils.toString(response.getEntity());
+			System.out.println("Java: result: " + result.substring(0, 64));
+			
+			JSONTokener jsonParser = new JSONTokener(result);
+			JSONObject root = (JSONObject) jsonParser.nextValue();
+			int status = root.getInt("status");
+			String statusText = root.getString("statusText");
+			if (status != 200) {
+				System.out.println(String.format("Java: failed to get url %d %s", status, statusText));
+				return null;
+			}
+			
+			JSONObject data = root.getJSONObject("data");
+			String normal_url = data.getString("url_nor_mp4");
+			String tv_name = data.getString("video_name");
+			String high_url = data.getString("url_high_mp4");
+			
+			String clipsDuration_nor = data.getString("clips_duration_nor");
+			String clipsDuration_high = data.getString("clips_duration_high");
+
+			return new PlaylinkSohu(tv_name, normal_url, high_url, 
+					clipsDuration_nor, clipsDuration_high);
+		} catch (ClientProtocolException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (JSONException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+		return null;
+	}
+	
+	public boolean subchannel(int sub_channel_id, int page_size, int page_offset) {
+		String url = String.format(CHANNEL_URL_FMT, page_size, page_offset, sub_channel_id);
+		System.out.println("Java: SohuUtil subchannel() " + url);
+		
+		HttpGet request = new HttpGet(url);
+		
+		HttpResponse response;
+		try {
+			response = HttpClients.createDefault().execute(request);
+			if (response.getStatusLine().getStatusCode() != 200){
+				return false;
+			}
+			
+			String result = EntityUtils.toString(response.getEntity());
+			String output = result;
+			if (output.length() > 256)
+				output = output.substring(0, 256);
+			System.out.println("Java: result: " + output);
+			
+			JSONTokener jsonParser = new JSONTokener(result);
+			JSONObject root = (JSONObject) jsonParser.nextValue();
+			int status = root.getInt("status");
+			String statusText = root.getString("statusText");
+			if (status != 200) {
+				System.out.println(String.format("Java: failed to get url %d %s", status, statusText));
+				return false;
+			}
+			
+			JSONObject data = root.getJSONObject("data");
+			JSONArray columns = data.getJSONArray("columns");
+			
+			mClipList.clear();
+			int c = columns.length();
+			
+			if (columns.length() == 0)
+				return false;
+			
+			JSONObject item = columns.getJSONObject(0);
+			
+			JSONArray video_list = item.getJSONArray("video_list");
+			c = video_list.length();
+			for (int j=0;j<c;j++) {
+				JSONObject video = video_list.getJSONObject(j);
+				
+				String title = video.getString("video_name");
+				String second_cate_name = video.getString("second_cate_name");
+				int v_count = video.getInt("total_video_count");
+				
+				double score = video.getDouble("score");
+				double douban_score = 0.0f;
+				if (video.has("douban_score"))
+					douban_score = video.getDouble("douban_score");
+				
+				String desc = video.getString("album_desc");
+				int aid = video.getInt("aid");
+				int vid = video.getInt("vid");
+				String hori_pic_url = video.getString("hor_high_pic");
+				String vert_pic_url = video.getString("ver_high_pic");
+				String big_pic_url = video.getString("video_big_pic");
+				String area = video.getString("area");
+				String year = video.getString("year");
+				String main_actor = video.getString("main_actor");
+				String director = video.getString("director");
+				String score_tip = video.getString("score_tip");
+				int duration_sec = video.getInt("time_length");
+				
+				ClipSohu clip = new ClipSohu(title, second_cate_name, v_count, 
+						aid, vid, desc, 
+						score, douban_score, score_tip, 
+						director, main_actor, 
+						year, area,
+						hori_pic_url, vert_pic_url, big_pic_url,
+						duration_sec);
+				
+				mClipList.add(clip);
+				/*
+				"hor_w16_pic":"http://photocdn.sohu.com/tvmobile/20140727/1503/mvrs_album_5064833_640_360.jpg",
+				"second_cate_name":"战争片;剧情片;动作片",
+				"score":8.9,
+				"douban_score":6.6,
+				"aid":5064833,
+				"hor_w8_pic":"http://photocdn.sohu.com/tvmobile/20140727/1503/mvrs_album_5064833_320_180.jpg",
+				"tip":"8.9分",
+				"time_length":6526,
+				"ver_high_pic":"http://photocdn.sohu.com/20120821/vrsa_ver5064833_pic26.jpg",
+				"main_actor":"黛安·克鲁格,杰曼·翰苏,伯努瓦·马吉梅,拉斐尔·佩尔索纳",
+				"area":"法国",
+				"score_tip":"8.9分",
+				"total_video_count":1,
+				"hor_w6_pic":"http://photocdn.sohu.com/tvmobile/20140727/1503/mvrs_album_5064833_240_135.jpg",
+				"year":"2011",
+				"album_name":"特种部队",
+				"c":"http://photocdn.sohu.com/tvmobile/20140121/2210/13873596308631209.jpg",
+				"vid":780014,
+				"video_big_pic":"http://img.m.tv.sohu.com/mvrs/13877882956201673.jpg",
+				"hor_big_pic":"http://photocdn.sohu.com/tvmobile/20140121/2210/13873596309811082.jpg",
+				"play_count":70799555,
+				"recommend_tip":"特种兵救女主玩命逃亡",
+				"director":"斯蒂芬·莱波贾",
+				"cate_code":"100;100101;100108;100106",
+				"cid":1,
+				"latest_video_count":1,
+				"album_desc":"一名法国战地记者女记者Elsa（黛安·克鲁格 饰）和她的同事在巴基斯坦采访期间遭到塔利班绑架。塔利班将被捕获的Elsa相关视频放倒了网络上，并声称在规定时间内，她将在摄像机面前被处死，全世界的人民都可以通过网络看到全过程。在Elsa被行刑之前，一支由特种部队成员组成的救援小组被法国军方派来营救她。面对着极其残暴的塔利班亡命之徒，救援小组不畏艰险在第一时间就救出了Elsa，却与总部失去联系，不得不开始一场更为险恶的保卫战。一场在塔利班追捕者和救援小组之间的拉锯逃亡战不可避免的展开了。塔利班设下各种陷阱，要将救援小组一网打尽，而救援小组只有一个目标：成功营救Elsa逃离此地。",
+				"ver_big_pic":"http://photocdn.sohu.com/20120821/vrsab_ver5064833.jpg",
+				"video_name":"特种部队",
+				*/
+				
+			}
+			
+			return true;
+		} catch (ClientProtocolException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (JSONException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+		return false;
+	}
+	
+	public boolean channel_xxx(int sub_channel_id, int page_size, int page_offset) {
+		String url = String.format(CHANNEL_URL_FMT, page_size, page_offset, sub_channel_id);
+		System.out.println("Java: SohuUtil channel() " + url);
+		
+		HttpGet request = new HttpGet(LIST_URL);
+		
+		HttpResponse response;
+		try {
+			response = HttpClients.createDefault().execute(request);
+			if (response.getStatusLine().getStatusCode() != 200){
+				return false;
+			}
+			
+			String result = EntityUtils.toString(response.getEntity());
+			String output = result;
+			if (output.length() > 256)
+				output = output.substring(0, 256);
+			System.out.println("Java: result: " + output);
+			
+			JSONTokener jsonParser = new JSONTokener(result);
+			JSONObject root = (JSONObject) jsonParser.nextValue();
+			int status = root.getInt("status");
+			String statusText = root.getString("statusText");
+			if (status != 200) {
+				System.out.println(String.format("Java: failed to get url %d %s", status, statusText));
+				return false;
+			}
+			
+			JSONObject data = root.getJSONObject("data");
+			JSONArray categorys = data.getJSONArray("categorys");
+			
+			mCategoryList.clear();
+			int count = categorys.length();
+			for (int i=0;i<count;i++) {
+				JSONObject item = categorys.getJSONObject(i);
+				
+				/*
+				 "cate_name":"排序",
+	            "cate_alias":"o",
+	            "default_keys":"-1"
+				 */
+				String cate_name = item.getString("cate_name");
+				String alias = item.getString("cate_alias");
+				String default_keys = item.getString("default_keys");
+				
+				JSONArray cates = item.getJSONArray("cates");
+				int c2 = cates.length();
+				for (int j=0;j<c2;j++) {
+					JSONObject cate = cates.getJSONObject(j);
+					/*
+					"name":"新上架",
+                    "search_key":"1"
+                    */
+					String title = cate.getString("name");
+					String search_key = cate.getString("search_key");
+					
+					CategorySohu ca = new CategorySohu(title, cate_name, alias, search_key, default_keys);
+					mCategoryList.add(ca);
+				}
+			}
+			
+			return true;
+		} catch (ClientProtocolException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (JSONException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+		return false;
+	}
+	
+	public boolean column() {
+		System.out.println("Java: SohuUtil column() " + COLUMN_URL);
+		
+		HttpGet request = new HttpGet(COLUMN_URL);
+		
+		HttpResponse response;
+		try {
+			response = HttpClients.createDefault().execute(request);
+			if (response.getStatusLine().getStatusCode() != 200){
+				return false;
+			}
+			
+			String result = EntityUtils.toString(response.getEntity());
+			String output = result;
+			if (output.length() > 256)
+				output = output.substring(0, 256);
+			System.out.println("Java: result: " + output);
+			
+			JSONTokener jsonParser = new JSONTokener(result);
+			JSONObject root = (JSONObject) jsonParser.nextValue();
+			int status = root.getInt("status");
+			String statusText = root.getString("statusText");
+			if (status != 200) {
+				System.out.println(String.format("Java: failed to get url %d %s", status, statusText));
+				return false;
+			}
+			
+			JSONObject data = root.getJSONObject("data");
+			JSONArray columns = data.getJSONArray("columns");
+			int count = data.getInt("count");
+			
+			mChannelList.clear();
+			for (int i=0;i<count;i++) {
+				JSONObject column = columns.getJSONObject(i);
+				
+				/*
+				"channeled":"1000130001",
+				"column_type":4,
+				"column_id":128,
+				"jump_cate_code":0,
+				"layout_type":101,
+				"more_list":"http://api.tv.sohu.com/v4/search/stream/6.json?channeled=1000130001&page_size=20&",
+				"content_size":0,
+				"more_list_layout_type":1,
+				"name":"精选"
+				*/
+				
+				String channelId = column.getString("channeled");
+				int column_type = column.getInt("column_type");
+				int column_id = column.getInt("column_id");
+				String title = column.getString("name");
+			}
+			
+			return true;
+		} catch (ClientProtocolException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (JSONException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
 		return false;
 	}
 	
@@ -333,7 +918,7 @@ public class SohuUtil {
 	}
 	
 	public PlaylinkSohu getPlayLink(int vid, int sid) {
-		String url = String.format(API_URL, vid, sid);
+		String url = String.format(PLAYINFO_URL, vid, sid);
 		System.out.println("Java: SohuUtil getPlayLink " + url);
 		
 		HttpGet request = new HttpGet(url);
@@ -366,7 +951,7 @@ public class SohuUtil {
 			StringBuffer sbNormal = new StringBuffer();
 			for (int k=0;k<clipsDuration_nor.length();k++) {
 				double du = clipsDuration_nor.getDouble(k);
-				sbNormal.append((int)(du * 1000));
+				sbNormal.append(du);
 				sbNormal.append(",");
 				System.out.println(String.format("Java: segment #%d %.3f sec", k, du));
 			}

@@ -43,11 +43,8 @@ import android.view.SubMenu;
 import android.view.MenuItem;
 import android.view.SurfaceHolder;
 import android.view.View;
-import android.view.View.MeasureSpec;
 import android.view.View.OnFocusChangeListener;
 import android.view.WindowManager;
-import android.widget.AbsListView;
-import android.widget.AbsListView.OnScrollListener;
 import android.widget.AdapterView;
 import android.widget.Button;
 import android.widget.DatePicker;
@@ -55,7 +52,6 @@ import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.ListView;
 import android.widget.ProgressBar;
-import android.widget.LinearLayout;
 import android.widget.RelativeLayout;
 import android.widget.TimePicker;
 import android.widget.Toast;
@@ -541,7 +537,11 @@ public class ClipListActivity extends Activity implements
 										Log.i(TAG, "file: " + file_path + " deleted");
 										Toast.makeText(ClipListActivity.this, "file " + file_name + " deleted!", Toast.LENGTH_SHORT).show();
 										
-										new ListItemTask().execute(mCurrentFolder);
+										List<Map<String, Object>> filelist = mListUtil.getList();
+										filelist.remove(whichButton);
+										mAdapter.updateData(filelist);
+										mAdapter.notifyDataSetChanged();
+										//new ListItemTask().execute(mCurrentFolder);
 									}
 									else {
 										Log.e(TAG, "failed to delete file: " + file_path);

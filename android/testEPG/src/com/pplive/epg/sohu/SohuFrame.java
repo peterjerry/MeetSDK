@@ -30,6 +30,10 @@ public class SohuFrame extends JFrame {
 		SOHUVIDEO_EPG_STATE_IDLE,
 		SOHUVIDEO_EPG_STATE_ERROR,
 		
+		SOHUVIDEO_EPG_STATE_CHANNEL,
+		SOHUVIDEO_EPG_STATE_SUBCHANNEL,
+		SOHUVIDEO_EPG_STATE_CLIP,
+		SOHUVIDEO_EPG_STATE_CATE,
 		SOHUVIDEO_EPG_STATE_TOPIC,
 		SOHUVIDEO_EPG_STATE_ALBUM,
 		SOHUVIDEO_EPG_STATE_EPISODE,
@@ -38,10 +42,14 @@ public class SohuFrame extends JFrame {
 		SOHUVIDEO_EPG_STATE_FOUND_PLAYLINK,
 	}
 	
-	SohuUtil mEPG;
-	List<TopicSohu> mTopicList;
-	List<AlbumSohu> mAlbumList;
-	List<EpisodeSohu> mEpisodeList;
+	SohuUtil			mEPG;
+	List<ChannelSohu>	mChannelList;
+	List<SubChannelSohu>mSubChannelList;
+	List<ClipSohu>		mClipList;
+	List<CategorySohu>	mCateList;
+	List<TopicSohu>		mTopicList;
+	List<AlbumSohu>		mAlbumList;
+	List<EpisodeSohu>	mEpisodeList;
 	
 	int last_aid = -1;
 	
@@ -179,6 +187,17 @@ public class SohuFrame extends JFrame {
 	
 	private void action() {
 		switch (mState) {
+		case SOHUVIDEO_EPG_STATE_CHANNEL:
+			selectSubChannel();
+			break;
+		case SOHUVIDEO_EPG_STATE_SUBCHANNEL:
+			selectMovie();
+			break;
+		case SOHUVIDEO_EPG_STATE_CLIP:
+			selectClip();
+			break;
+		case SOHUVIDEO_EPG_STATE_CATE:
+			selectMovie();
 		case SOHUVIDEO_EPG_STATE_TOPIC:
 			selectTopic();
 			break;
@@ -191,6 +210,84 @@ public class SohuFrame extends JFrame {
 		default:
 			break;
 		}
+	}
+	
+	private void selectClip() {
+		int n = comboItem.getSelectedIndex();
+		System.out.println("Java: clip info: " + mClipList.get(n).toString());
+		
+		int vid = mClipList.get(n).getVid();
+		int aid = mClipList.get(n).getAid();
+		PlaylinkSohu link = mEPG.detail(vid, aid);
+		if (link != null) {
+			System.out.println("Java: link info: " + link.getTitle());
+		}
+		
+		List<String> url_list = link.getUrlListbyFT(2);
+		String url = url_list.get(0);
+
+		System.out.println("final play link " + url);
+		
+		String exe_filepath  = "D:/software/ffmpeg/ffplay.exe";
+		String[] cmd = new String[] {exe_filepath, url};
+		openExe(cmd);
+	}
+	
+	private void selectSubChannel() {
+		int n = comboItem.getSelectedIndex();
+		String id = mChannelList.get(n).mChannelId;
+		
+		if (!mEPG.cate(id)) {
+			mState = SOHUVIDEO_EPG_STATE.SOHUVIDEO_EPG_STATE_ERROR;
+			return;
+		}
+		
+		comboItem.removeAllItems();
+		
+		mSubChannelList = mEPG.getSubChannelList();
+		for (int i=0;i<mSubChannelList.size();i++) {
+			comboItem.addItem(mSubChannelList.get(i).mTitle);
+		}
+		
+		mState = SOHUVIDEO_EPG_STATE.SOHUVIDEO_EPG_STATE_SUBCHANNEL;
+	}
+	
+	private void selectMovie() {
+		int n = comboItem.getSelectedIndex();
+		int id = mSubChannelList.get(n).mSubChannelId;
+		if (!mEPG.subchannel(id, page_size, 0)) {
+			mState = SOHUVIDEO_EPG_STATE.SOHUVIDEO_EPG_STATE_ERROR;
+			return;
+		}
+		
+		comboItem.removeAllItems();
+		
+		mClipList = mEPG.getClipList();
+		int c = mClipList.size();
+		for (int i=0;i<c;i++) {
+			comboItem.addItem(mClipList.get(i).getTitle());
+		}
+		
+		mState = SOHUVIDEO_EPG_STATE.SOHUVIDEO_EPG_STATE_CLIP;
+	}
+	
+	private void selectCate() {
+		int n = comboItem.getSelectedIndex();
+		String cateUrl = mChannelList.get(n).mCateUrl;
+		
+		if (!mEPG.cate(cateUrl)) {
+			mState = SOHUVIDEO_EPG_STATE.SOHUVIDEO_EPG_STATE_ERROR;
+			return;
+		}
+		
+		comboItem.removeAllItems();
+		
+		mCateList = mEPG.getCateList();
+		for (int i=0;i<mCateList.size();i++) {
+			comboItem.addItem(mCateList.get(i).mTitle);
+		}
+		
+		mState = SOHUVIDEO_EPG_STATE.SOHUVIDEO_EPG_STATE_CATE;
 	}
 	
 	private void selectTopic() {
@@ -253,19 +350,25 @@ public class SohuFrame extends JFrame {
 	}
 	
 	private void init_combobox() {
-		if (!mEPG.topic(page_index, page_size)) {
+		/*if (!mEPG.topic(page_index, page_size)) {
 			System.out.println("failed to channel()");
+			return;
+		}*/
+		
+		if (!mEPG.list()) {
+			System.out.println("failed to column()");
 			return;
 		}
 		
 		comboItem.removeAllItems();
 		
-		mTopicList = mEPG.getTopicList();
-		for (int i=0;i<mTopicList.size();i++) {
-			comboItem.addItem(mTopicList.get(i).mTopicName);
+		mChannelList = mEPG.getChannelList();
+		int size = mChannelList.size();
+		for (int i=0;i<size;i++) {
+			comboItem.addItem(mChannelList.get(i).mTitle);
 		}
 		
-		mState = SOHUVIDEO_EPG_STATE.SOHUVIDEO_EPG_STATE_TOPIC;
+		mState = SOHUVIDEO_EPG_STATE.SOHUVIDEO_EPG_STATE_CHANNEL;
 	}
 	
 	private void openExe(String... params) {

@@ -34,6 +34,9 @@ public class PlaylinkSohu {
 			return mHighUrlList;
 	}
 	
+	/*
+	 * param normal_duration unit: sec, e.g. 150.3,150.3,160
+	 */
 	public PlaylinkSohu(String title, String normal_url, String high_url, 
 			String normal_duration, String high_duration) {
 		mTitle				= title;
