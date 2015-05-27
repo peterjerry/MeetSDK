@@ -356,7 +356,7 @@ public class SohuFrame extends JFrame {
 
 		int vid = mEpisodeList.get(index).mVid;
 		PlaylinkSohu pl = mEPG.playlink_pptv(vid, 0);
-		List<String> url_list = pl.getUrlListbyFT(1);
+		List<String> url_list = pl.getUrlListbyFT(2);
 		String url = url_list.get(0);
 
 		System.out.println("final play link " + url);

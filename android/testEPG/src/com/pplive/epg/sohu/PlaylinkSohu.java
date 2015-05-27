@@ -42,8 +42,8 @@ public class PlaylinkSohu {
 		mTitle				= title;
 		mUrlNormal			= normal_url;
 		mUrlHigh			= high_url;
-		mHighDuration		= normal_duration;
-		mNormalDuration		= high_duration;
+		mNormalDuration		= normal_duration;
+		mHighDuration		= high_duration;
 		
 		mNormalUrlList	= getList(mUrlNormal);
 		mHighUrlList	= getList(mUrlHigh);

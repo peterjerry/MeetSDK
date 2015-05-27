@@ -1064,29 +1064,42 @@ public class SohuUtil {
 			}
 			
 			JSONObject data = root.getJSONObject("data");
-			String normal_url = data.getString("url_nor_mp4");
 			String tv_name = data.getString("tv_name");
-			String high_url = data.getString("url_high_mp4");
 			
-			JSONArray clipsDuration_nor = data.getJSONArray("clipsDuration_nor");
-			StringBuffer sbNormal = new StringBuffer();
-			for (int k=0;k<clipsDuration_nor.length();k++) {
-				double du = clipsDuration_nor.getDouble(k);
-				sbNormal.append(du);
-				sbNormal.append(",");
-				System.out.println(String.format("Java: segment #%d %.3f sec", k, du));
+			String normal_url = "";
+			if (data.has("url_nor_mp4"))
+				normal_url = data.getString("url_nor_mp4");
+			String high_url = "";
+			if (data.has("url_high_mp4"))
+				high_url = data.getString("url_high_mp4");
+			
+			String StrNorDuration = "";
+			if (data.has("clipsDuration_nor")) {
+				JSONArray clipsDuration_nor = data.getJSONArray("clipsDuration_nor");
+				StringBuffer sbNormal = new StringBuffer();
+				for (int k=0;k<clipsDuration_nor.length();k++) {
+					double du = clipsDuration_nor.getDouble(k);
+					sbNormal.append(du);
+					sbNormal.append(",");
+					System.out.println(String.format("Java: segment #%d %.3f sec", k, du));
+				}
+				StrNorDuration = sbNormal.toString();
 			}
 			
-			JSONArray clipsDuration_high = data.getJSONArray("clipsDuration_high");
-			StringBuffer sbHigh = new StringBuffer();
-			for (int k=0;k<clipsDuration_high.length();k++) {
-				double du = clipsDuration_high.getDouble(k);
-				sbHigh.append((int)(du * 1000));
-				sbHigh.append(",");
-				System.out.println(String.format("Java: segment #%d %.3f sec", k, du));
+			String StrHighDuration = "";
+			if (data.has("clipsDuration_high")) {
+				JSONArray clipsDuration_high = data.getJSONArray("clipsDuration_high");
+				StringBuffer sbHigh = new StringBuffer();
+				for (int k=0;k<clipsDuration_high.length();k++) {
+					double du = clipsDuration_high.getDouble(k);
+					sbHigh.append((int)(du * 1000));
+					sbHigh.append(",");
+					System.out.println(String.format("Java: segment #%d %.3f sec", k, du));
+				}
+				StrHighDuration = sbHigh.toString();
 			}
 			
-			return new PlaylinkSohu(tv_name, normal_url, high_url, sbNormal.toString(), sbHigh.toString());
+			return new PlaylinkSohu(tv_name, normal_url, high_url, StrNorDuration, StrHighDuration);
 		} catch (ClientProtocolException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
