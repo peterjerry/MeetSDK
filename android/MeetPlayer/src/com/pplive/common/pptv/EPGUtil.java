@@ -1,4 +1,4 @@
-package com.pplive.meetplayer.util;
+package com.pplive.common.pptv;
 
 import java.io.IOException;
 import java.io.Reader;
@@ -22,6 +22,7 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.json.JSONTokener;
+
 
 import android.util.Log;
 

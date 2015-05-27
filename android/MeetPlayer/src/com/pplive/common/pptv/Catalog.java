@@ -1,4 +1,4 @@
-package com.pplive.meetplayer.util;
+package com.pplive.common.pptv;
 
 public class Catalog { 
 	private String mTitle;

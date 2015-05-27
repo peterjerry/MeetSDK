@@ -5,13 +5,13 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import com.pplive.common.pptv.Catalog;
+import com.pplive.common.pptv.Content;
+import com.pplive.common.pptv.EPGUtil;
+import com.pplive.common.pptv.PlayLink2;
+import com.pplive.common.pptv.PlayLinkUtil;
 import com.pplive.meetplayer.R;
 import com.pplive.meetplayer.ui.widget.MiniMediaController;
-import com.pplive.meetplayer.util.Catalog;
-import com.pplive.meetplayer.util.Content;
-import com.pplive.meetplayer.util.EPGUtil;
-import com.pplive.meetplayer.util.PlayLink2;
-import com.pplive.meetplayer.util.PlayLinkUtil;
 import com.pplive.meetplayer.util.Util;
 import com.pplive.sdk.MediaSDK;
 

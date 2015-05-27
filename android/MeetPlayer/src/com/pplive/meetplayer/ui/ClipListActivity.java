@@ -4,20 +4,15 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.ObjectOutputStream;
-import java.io.OutputStream;
 import java.io.UnsupportedEncodingException;
 import java.net.HttpURLConnection;
-import java.net.MalformedURLException;
 import java.net.URL;
-import java.net.URLConnection;
 import java.net.URLEncoder;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.GregorianCalendar;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
@@ -29,13 +24,11 @@ import android.content.ComponentName;
 import android.content.Intent;
 import android.content.Context;
 import android.content.ServiceConnection;
-import android.view.ContextThemeWrapper;
 import android.graphics.PixelFormat;
 import android.graphics.Typeface;
 import android.os.Bundle;
 import android.os.Environment;
 import android.os.IBinder;
-import android.util.AttributeSet;
 import android.util.Log;
 import android.view.KeyEvent;
 import android.view.Menu;
@@ -75,11 +68,7 @@ import com.pplive.meetplayer.R;
 
 import com.pplive.meetplayer.service.DLNAService;
 import com.pplive.meetplayer.util.AtvUtils;
-import com.pplive.meetplayer.util.Catalog;
-import com.pplive.meetplayer.util.Content;
 import com.pplive.meetplayer.util.DownloadAsyncTask;
-import com.pplive.meetplayer.util.EPGUtil;
-import com.pplive.meetplayer.util.Episode;
 import com.pplive.meetplayer.util.FeedBackFactory;
 import com.pplive.meetplayer.util.FileFilterTest;
 import com.pplive.meetplayer.util.HttpPostUtil;
@@ -87,14 +76,19 @@ import com.pplive.meetplayer.util.IDlnaCallback;
 import com.pplive.meetplayer.util.ListMediaUtil;
 import com.pplive.meetplayer.util.LoadPlayLinkUtil;
 import com.pplive.meetplayer.util.LogcatHelper;
-import com.pplive.meetplayer.util.Module;
-import com.pplive.meetplayer.util.PlayLink2;
-import com.pplive.meetplayer.util.PlayLinkUtil;
 import com.pplive.meetplayer.util.Util;
-import com.pplive.meetplayer.util.VirtualChannelInfo;
-import com.pplive.meetplayer.util.sohu.PlaylinkSohu;
-import com.pplive.meetplayer.util.sohu.SohuUtil;
 import com.pplive.meetplayer.ui.widget.MiniMediaController;
+import com.pplive.common.pptv.Catalog;
+import com.pplive.common.pptv.Content;
+import com.pplive.common.pptv.EPGUtil;
+import com.pplive.common.pptv.Episode;
+import com.pplive.common.pptv.Module;
+import com.pplive.common.pptv.PlayLink2;
+import com.pplive.common.pptv.PlayLinkUtil;
+import com.pplive.common.pptv.VirtualChannelInfo;
+import com.pplive.common.sohu.PlaylinkSohu;
+import com.pplive.common.sohu.PlaylinkSohu.SOHU_FT;
+import com.pplive.common.sohu.SohuUtil;
 import com.pplive.db.DBmanager;
 import com.pplive.db.MediaInfoEntry;
 import com.pplive.dlna.DLNASdk;
@@ -272,6 +266,7 @@ public class ClipListActivity extends Activity implements
 	final static int OPTION_EPG_FRONTPAGE		= Menu.FIRST + 14;
 	final static int OPTION_EPG_CONTENT		= Menu.FIRST + 15;
 	final static int OPTION_EPG_SEARCH			= Menu.FIRST + 16;
+	final static int OPTION_EPG_SOHUVIDEO		= Menu.FIRST + 17;
 	final static int OPTION_COMMON_PREVIEW		= Menu.FIRST + 21;
 	final static int OPTION_COMMON_LOOP		= Menu.FIRST + 22;
 	final static int OPTION_COMMON_NO_VIDEO	= Menu.FIRST + 23;
@@ -2066,14 +2061,12 @@ public class ClipListActivity extends Activity implements
         		String vid = mExtid.substring(pos + 1, mExtid.length());
         		SohuUtil sohu = new SohuUtil();
         		
-        		PlaylinkSohu l = sohu.getPlayLink(Integer.valueOf(vid), Integer.valueOf(sid));
+        		PlaylinkSohu l = sohu.playlink_pptv(Integer.valueOf(vid), Integer.valueOf(sid));
         		
         		if (l == null) {
         			mHandler.sendEmptyMessage(MSG_FAIL_TO_CONNECT_EPG_SERVER);
             		return false;
         		}
-        		
-        		Log.i(TAG, "Java: EPG_ITEM_VIRTUAL_SOHU " + l.getUrlListbyFT(1));
         		
         		int info_id = 0;
         		List<VirtualChannelInfo> infoList = mEPG.getVchannelInfo();
@@ -2087,8 +2080,8 @@ public class ClipListActivity extends Activity implements
         		
         		Intent intent = new Intent(ClipListActivity.this,
         				/*FragmentMp4PlayerActivity*/PlaySohuActivity.class);
-        		intent.putExtra("url_list", l.getUrl(1));
-        		intent.putExtra("duration_list", l.getDuration(1));
+        		intent.putExtra("url_list", l.getUrl(SOHU_FT.SOHU_FT_HIGH));
+        		intent.putExtra("duration_list", l.getDuration(SOHU_FT.SOHU_FT_HIGH));
         		intent.putExtra("title", l.getTitle());
         		intent.putExtra("info_id", info_id);
         		intent.putExtra("index", index);
@@ -2367,7 +2360,8 @@ public class ClipListActivity extends Activity implements
 		OptSubMenu.add(Menu.NONE, OPTION_EPG_FRONTPAGE, Menu.FIRST + 3, "epg frontpage");
 		OptSubMenu.add(Menu.NONE, OPTION_EPG_CONTENT, Menu.FIRST + 4, "epg content");
 		OptSubMenu.add(Menu.NONE, OPTION_EPG_SEARCH, Menu.FIRST + 5, "epg search");
-				
+		OptSubMenu.add(Menu.NONE, OPTION_EPG_SOHUVIDEO, Menu.FIRST + 6, "sohu video");
+			
 		MenuItem previewMenuItem = commonMenu.add(Menu.NONE, OPTION_COMMON_PREVIEW, Menu.FIRST, "Preview");
 		previewMenuItem.setCheckable(true);
 		if (mIsPreview)
@@ -2407,6 +2401,7 @@ public class ClipListActivity extends Activity implements
 		AlertDialog.Builder builder;
 		
 		int id = item.getItemId();
+		Intent intent = null;
 		
 		switch (id) {
 		case UPDATE_CLIP_LIST:
@@ -2454,7 +2449,7 @@ public class ClipListActivity extends Activity implements
 			Util.writeSettingsInt(this, "IsNoVideo", mIsNoVideo ? 1 : 0);
 			break;
 		case OPTION_COMMON_MEETVIEW:
-			Intent intent = new Intent(ClipListActivity.this, MeetViewActivity.class);
+			intent = new Intent(ClipListActivity.this, MeetViewActivity.class);
 			intent.putExtra("playlink", "9037770");
 			startActivity(intent);
 			break;
@@ -2490,14 +2485,20 @@ public class ClipListActivity extends Activity implements
 			popupDMSDlg();
 			break;
 		case OPTION_EPG_FRONTPAGE:
-			/*if (mEPGModuleList != null)
-				mHandler.sendEmptyMessage(MSG_EPG_FRONTPAGE_DONE);
-			else {*/
-				Toast.makeText(this, "loading epg catalog...", Toast.LENGTH_SHORT).show();
-				new EPGTask().execute(EPG_ITEM_FRONTPAGE);
-			//}
+			if (!Util.IsHaveInternet(this)) {
+				Toast.makeText(this, "network is not connected", Toast.LENGTH_SHORT).show();
+				return true;
+			}
+			
+			Toast.makeText(this, "loading epg catalog...", Toast.LENGTH_SHORT).show();
+			new EPGTask().execute(EPG_ITEM_FRONTPAGE);
 			break;
 		case OPTION_EPG_SEARCH:
+			if (!Util.IsHaveInternet(this)) {
+				Toast.makeText(this, "network is not connected", Toast.LENGTH_SHORT).show();
+				return true;
+			}
+			
 			final EditText inputKey = new EditText(this);
         	String last_key = Util.readSettings(this, "last_searchkey");
         	Log.i(TAG, "Java last_key: " + last_key);
@@ -2522,8 +2523,17 @@ public class ClipListActivity extends Activity implements
 	        builder.show();
 			break;
 		case OPTION_EPG_CONTENT:
+			if (!Util.IsHaveInternet(this)) {
+				Toast.makeText(this, "network is not connected", Toast.LENGTH_SHORT).show();
+				return true;
+			}
+			
 			Toast.makeText(this, "loading epg contents...", Toast.LENGTH_SHORT).show();
 			new EPGTask().execute(EPG_ITEM_CONTENT_LIST);
+			break;
+		case OPTION_EPG_SOHUVIDEO:
+			intent = new Intent(ClipListActivity.this, SohuVideoActivity.class);
+    		startActivity(intent);
 			break;
 		default:
 			Log.w(TAG, "bad menu item selected: " + id);

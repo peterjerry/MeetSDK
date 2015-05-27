@@ -1,4 +1,4 @@
-package com.pplive.meetplayer.util;
+package com.pplive.common.pptv;
 
 public class Episode { 
 	private String mTitle;

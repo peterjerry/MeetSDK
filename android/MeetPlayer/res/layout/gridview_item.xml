@@ -1,0 +1,21 @@
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent" >
+	<ImageView
+            android:id="@+id/gridview_img"
+            android:layout_width="256dip"
+            android:layout_height="256dip"
+            android:layout_margin="5dip"
+            android:src="@drawable/clip" />
+    <TextView
+        android:id="@+id/gridview_text"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_below="@+id/gridview_img"
+        android:gravity="center_vertical|center_horizontal"
+        android:textColor="#000"
+        android:textSize="14dip"
+        tools:context=".SohuEpisoActivity" />
+
+</RelativeLayout>

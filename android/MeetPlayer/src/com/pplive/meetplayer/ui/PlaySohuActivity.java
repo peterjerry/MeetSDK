@@ -11,55 +11,44 @@ import com.pplive.common.sohu.PlaylinkSohu;
 import com.pplive.common.sohu.PlaylinkSohu.SOHU_FT;
 import com.pplive.common.sohu.SohuUtil;
 import com.pplive.meetplayer.R;
+import com.pplive.meetplayer.media.FragmentMp4MediaPlayer;
 
 import android.app.Activity;
 import android.content.Intent;
 import android.graphics.Color;
 import android.media.AudioManager;
+import android.media.MediaPlayer;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
-import android.pplive.media.player.MediaPlayer;
-import android.pplive.media.player.MediaPlayer.DecodeMode;
 import android.util.Log;
+import android.view.SurfaceHolder;
+import android.view.SurfaceHolder.Callback;
 import android.view.KeyEvent;
 import android.view.MotionEvent;
-import android.view.SurfaceHolder;
+import android.view.SurfaceView;
 import android.view.View;
 import android.view.Window;
 import android.view.WindowManager;
-import android.view.SurfaceHolder.Callback;
-import android.view.SurfaceView;
 import android.widget.MediaController;
 import android.widget.ProgressBar;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
-import android.widget.MediaController.MediaPlayerControl;
 import android.widget.Toast;
+import android.widget.MediaController.MediaPlayerControl;
 
-public class FragmentMp4PlayerActivity extends Activity implements Callback {
-
-	private final static String TAG = "FragmentMp4PlayerActivity";
+public class PlaySohuActivity extends Activity implements Callback {
+	private final static String TAG = "PlaySohuActivity";
 	
 	private RelativeLayout mLayout;
 	private SurfaceView mView;
 	private SurfaceHolder mHolder;
-	private MediaPlayer mPlayer;
+	private FragmentMp4MediaPlayer mPlayer;
 	private MediaController mController;
 	private MediaPlayerControl mMediaPlayerControl;
 	private ProgressBar mBufferingProgressBar;
 	private TextView mTextViewFileName;
-	
-	private MediaPlayer.OnVideoSizeChangedListener mOnVideoSizeChangedListener;
-	private MediaPlayer.OnPreparedListener mOnPreparedListener;
-	private MediaPlayer.OnErrorListener	 mOnErrorListener;
-	private MediaPlayer.OnCompletionListener mOnCompletionListener;
-	private MediaPlayer.OnBufferingUpdateListener mOnBufferingUpdate;
-	private MediaPlayer.OnInfoListener mOnInfoListener;
-	
-	private EPGUtil mEPG;
-	private List<Episode> mVirtualLinkList;
 	
 	private String mUrlListStr;
 	private String mDurationListStr;
@@ -69,15 +58,18 @@ public class FragmentMp4PlayerActivity extends Activity implements Callback {
 	private int mVideoWidth, mVideoHeight;
 	private List<String> m_playlink_list;
 	private List<Integer> m_duration_list;
-	private int m_playlink_now_index;
-	private int m_play_pos_offset;
-	private int m_pre_seek_pos;
-	private int m_seek_pos;
 	
-	private boolean mSeeking = false;
 	private boolean mIsBuffering = false;
 	
-	private int m_total_duration_msec = 1419251;
+	private EPGUtil mEPG;
+	private List<Episode> mVirtualLinkList;
+	
+	private MediaPlayer.OnVideoSizeChangedListener mOnVideoSizeChangedListener;
+	private MediaPlayer.OnPreparedListener mOnPreparedListener;
+	private MediaPlayer.OnErrorListener	 mOnErrorListener;
+	private MediaPlayer.OnCompletionListener mOnCompletionListener;
+	private MediaPlayer.OnBufferingUpdateListener mOnBufferingUpdate;
+	private MediaPlayer.OnInfoListener mOnInfoListener;
 	
 	public static final int SCREEN_FIT = 0; // 自适应
     public static final int SCREEN_STRETCH = 1; // 铺满屏幕 
@@ -114,6 +106,8 @@ public class FragmentMp4PlayerActivity extends Activity implements Callback {
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 		
+		Log.i(TAG, "Java: onCreate()");
+		
 		requestWindowFeature(Window.FEATURE_NO_TITLE);
 		getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN,
 				WindowManager.LayoutParams.FLAG_FULLSCREEN);
@@ -139,10 +133,12 @@ public class FragmentMp4PlayerActivity extends Activity implements Callback {
 			mUrlListStr			= intent.getStringExtra("url_list");
 			mDurationListStr	= intent.getStringExtra("duration_list");
 			mTitle				= intent.getStringExtra("title");
-			mInfoId				= intent.getIntExtra("info_id", 0);
-    		mIndex				= intent.getIntExtra("index", 0);
+			mInfoId				= intent.getIntExtra("info_id", -1);
+    		mIndex				= intent.getIntExtra("index", -1);
 		}
 		else {
+			Log.w(TAG, "Java: use test url and duration list");
+			
 			mUrlListStr 		= url_list;
 			mDurationListStr	= duration_list;
 			mInfoId				= -1;
@@ -203,12 +199,7 @@ public class FragmentMp4PlayerActivity extends Activity implements Callback {
 			@Override
 			public void onPrepared(MediaPlayer mp) {
 				// TODO Auto-generated method stub
-				
-				if (m_pre_seek_pos > 0) {
-					mp.seekTo(m_pre_seek_pos);
-					m_pre_seek_pos = 0;
-					mSeeking = false;
-				}
+				Log.i(TAG, "Java: onPrepared()");
 				
 				mIsBuffering = false;
 				mBufferingProgressBar.setVisibility(View.GONE);
@@ -225,10 +216,12 @@ public class FragmentMp4PlayerActivity extends Activity implements Callback {
 			@Override
 			public boolean onError(MediaPlayer mp, int error, int extra) {
 				// TODO Auto-generated method stub
+				Log.e(TAG, "Java: onError what " + error + " , extra " + extra);
+				
 				mIsBuffering = false;
 				mBufferingProgressBar.setVisibility(View.GONE);
 				
-				Toast.makeText(FragmentMp4PlayerActivity.this, "Error " + error + " , extra " + extra,
+				Toast.makeText(PlaySohuActivity.this, "Error " + error + " , extra " + extra,
 						Toast.LENGTH_SHORT).show();
 				finish();
 				
@@ -241,80 +234,20 @@ public class FragmentMp4PlayerActivity extends Activity implements Callback {
 			@Override
 			public void onCompletion(MediaPlayer mp) {
 				// TODO Auto-generated method stub
-				if (m_playlink_now_index == m_playlink_list.size() - 1) {
-					
-					if (mInfoId != -1) {
-						new NextEpisodeTask().execute(1);
-		        		return;
-					}
-					
-					Toast.makeText(FragmentMp4PlayerActivity.this, "Play complete", Toast.LENGTH_SHORT).show();
-					mIsBuffering = false;
-					mBufferingProgressBar.setVisibility(View.GONE);
-					return;
+				if (mInfoId != -1) {
+					new NextEpisodeTask().execute(1);
+	        		return;
 				}
 				
-				m_play_pos_offset += m_duration_list.get(m_playlink_now_index);
-				m_playlink_now_index++;
-				
-				setupMediaPlayer();
+				Toast.makeText(PlaySohuActivity.this, "Play complete", Toast.LENGTH_SHORT).show();
+				mIsBuffering = false;
+				mBufferingProgressBar.setVisibility(View.GONE);
 			}
 		};
 		
-		
 		mMediaPlayerControl = new MyMediaPlayerControl();
 		mController = new MediaController(this);
-		
-		Log.i(TAG, "Java: onCreate()");
 	}
-	
-	private void buildPlaylinkList() {
-		m_playlink_list.clear();
-		m_duration_list.clear();
-		
-		StringTokenizer st;
-		int i=0;
-		
-		st = new StringTokenizer(mUrlListStr, ",", false);
-		while (st.hasMoreElements()) {
-			String url = st.nextToken();
-			Log.i(TAG, String.format("Java: segment #%d url: %s", i++, url));
-			m_playlink_list.add(url);
-		}
-		
-		i=0;
-		m_total_duration_msec	= 0;
-		
-		st = new StringTokenizer(mDurationListStr, ",", false);
-		while (st.hasMoreElements()) {
-			String seg_duration = st.nextToken();
-			Log.i(TAG, String.format("Java: segment #%d duration: %s", i++, seg_duration));
-			int duration_msec = (int)(Double.valueOf(seg_duration) * 1000.0f);
-			m_duration_list.add(duration_msec);
-			m_total_duration_msec += duration_msec;
-		}
-		
-		m_playlink_now_index	= 0;
-		m_play_pos_offset		= 0;
-		m_pre_seek_pos			= 0;
-	}
-	
-	private Handler mHandler = new Handler(){ 
-		@Override  
-        public void handleMessage(Message msg) {  
-            switch(msg.what) {
-			case MSG_PLAY_NEXT_EPISODE:
-				setupMediaPlayer();
-				break;
-			case MSG_FADE_OUT_TV_FILENAME:
-				mTextViewFileName.setVisibility(View.GONE);
-				break;
-			case MSG_INVALID_EPISODE_INDEX:
-				Toast.makeText(FragmentMp4PlayerActivity.this, "invalid episode", Toast.LENGTH_SHORT).show();
-				break;
-            }
-		}
-	};
 	
 	@Override
 	public boolean onKeyDown(int keyCode, KeyEvent event) {
@@ -374,6 +307,44 @@ public class FragmentMp4PlayerActivity extends Activity implements Callback {
 		return super.onTouchEvent(event);
 	}
 
+	@Override
+	public void surfaceChanged(SurfaceHolder arg0, int arg1, int arg2, int arg3) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public void surfaceCreated(SurfaceHolder sh) {
+		// TODO Auto-generated method stub
+		mHolder = sh;
+		
+		buildPlaylinkList();
+		setupMediaPlayer();
+	}
+
+	@Override
+	public void surfaceDestroyed(SurfaceHolder sh) {
+		// TODO Auto-generated method stub
+		
+	}
+	
+	private Handler mHandler = new Handler(){ 
+		@Override  
+        public void handleMessage(Message msg) {  
+            switch(msg.what) {
+			case MSG_PLAY_NEXT_EPISODE:
+				setupMediaPlayer();
+				break;
+			case MSG_FADE_OUT_TV_FILENAME:
+				mTextViewFileName.setVisibility(View.GONE);
+				break;
+			case MSG_INVALID_EPISODE_INDEX:
+				Toast.makeText(PlaySohuActivity.this, "invalid episode", Toast.LENGTH_SHORT).show();
+				break;
+            }
+		}
+	};
+	
 	boolean setupMediaPlayer() {
 		if (mPlayer != null) {
 			mPlayer.stop();
@@ -381,12 +352,10 @@ public class FragmentMp4PlayerActivity extends Activity implements Callback {
 			mPlayer = null;
 		}
 		
-		if (m_playlink_now_index == 0) {
-			mTextViewFileName.setText(mTitle);
-			Toast.makeText(this, "ready to play video: " + mTitle, Toast.LENGTH_SHORT).show();
-		}
+		mTextViewFileName.setText(mTitle);
+		Toast.makeText(this, "ready to play video: " + mTitle, Toast.LENGTH_SHORT).show();
 		
-		mPlayer = new MediaPlayer(DecodeMode.HW_SYSTEM);
+		mPlayer = new FragmentMp4MediaPlayer();
 		mPlayer.reset();
 		
 		mPlayer.setDisplay(mHolder);
@@ -400,8 +369,10 @@ public class FragmentMp4PlayerActivity extends Activity implements Callback {
 		mPlayer.setOnErrorListener(mOnErrorListener);
 		mPlayer.setOnCompletionListener(mOnCompletionListener);
 		
+		boolean success = false;
 		try {
-			mPlayer.setDataSource(m_playlink_list.get(m_playlink_now_index));
+			mPlayer.setDataSource(m_playlink_list, m_duration_list);
+			success = true;
 		} catch (IllegalStateException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -416,69 +387,17 @@ public class FragmentMp4PlayerActivity extends Activity implements Callback {
 			e.printStackTrace();
 		}
 		
-		mPlayer.prepareAsync();
+		if (!success)
+			return false;
 		
+		mPlayer.prepareAsync();
 		mController.setMediaPlayer(mMediaPlayerControl);
 		mController.setAnchorView(mView);
+		
 		
 		mIsBuffering = true;
 		mBufferingProgressBar.setVisibility(View.VISIBLE);
 		return true;
-	}
-	
-	private class NextEpisodeTask extends AsyncTask<Integer, Integer, Boolean> {
-
-		@Override
-		protected Boolean doInBackground(Integer... params) {
-			// TODO Auto-generated method stub
-			
-			int incr = params[0];
-			
-			if (mVirtualLinkList == null) {
-				mEPG = new EPGUtil();
-				boolean ret;
-				ret = mEPG.virtual_channel(mTitle, mInfoId, 500, 3/*sohu*/, 1);
-				if (!ret) {
-					Log.e(TAG, "failed to get virtual_channel");
-					return false;
-				}
-		
-				mVirtualLinkList = mEPG.getVirtualLink();
-			}
-			
-			mIndex += incr;
-			if (mIndex < 0 || mIndex > mVirtualLinkList.size() - 1) {
-				Log.i(TAG, String.format("Java: meet end %d %d", mIndex, mVirtualLinkList.size()));
-				mHandler.sendEmptyMessage(MSG_INVALID_EPISODE_INDEX);
-				return false;
-			}
-			
-			Episode e = mVirtualLinkList.get(mIndex);
-			String ext_id = e.getExtId();
-			int pos = ext_id.indexOf('|');
-    		String sid = ext_id.substring(0, pos);
-    		String vid = ext_id.substring(pos + 1, ext_id.length());
-			
-			SohuUtil sohu = new SohuUtil();
-    		PlaylinkSohu l = sohu.playlink_pptv(Integer.valueOf(vid), Integer.valueOf(sid));
-    		
-    		if (l == null) {
-    			Toast.makeText(FragmentMp4PlayerActivity.this, "Failed to get next video", 
-    					Toast.LENGTH_SHORT).show();
-        		return false;
-    		}
-    		
-    		mUrlListStr 		= l.getUrl(SOHU_FT.SOHU_FT_HIGH);
-			mDurationListStr	= l.getDuration(SOHU_FT.SOHU_FT_HIGH);
-			mTitle				= l.getTitle();
-			
-			buildPlaylinkList();
-			
-			mHandler.sendEmptyMessage(MSG_PLAY_NEXT_EPISODE);
-			
-			return true;
-		}
-		
 	}
 	
 	private void toggleDisplayMode(int mode, boolean popToast) {
@@ -530,26 +449,83 @@ public class FragmentMp4PlayerActivity extends Activity implements Callback {
 		}
 	}
 	
-	@Override
-	public void surfaceChanged(SurfaceHolder holder, int arg1, int arg2, int arg3) {
-		// TODO Auto-generated method stub
+	private class NextEpisodeTask extends AsyncTask<Integer, Integer, Boolean> {
+
+		@Override
+		protected Boolean doInBackground(Integer... params) {
+			// TODO Auto-generated method stub
+			
+			int incr = params[0];
+			
+			if (mVirtualLinkList == null) {
+				mEPG = new EPGUtil();
+				boolean ret;
+				ret = mEPG.virtual_channel(mTitle, mInfoId, 500, 3/*sohu*/, 1);
+				if (!ret) {
+					Log.e(TAG, "failed to get virtual_channel");
+					return false;
+				}
+		
+				mVirtualLinkList = mEPG.getVirtualLink();
+			}
+			
+			mIndex += incr;
+			if (mIndex < 0 || mIndex > mVirtualLinkList.size() - 1) {
+				Log.i(TAG, String.format("Java: meet end %d %d", mIndex, mVirtualLinkList.size()));
+				mHandler.sendEmptyMessage(MSG_INVALID_EPISODE_INDEX);
+				return false;
+			}
+			
+			Episode e = mVirtualLinkList.get(mIndex);
+			String ext_id = e.getExtId();
+			int pos = ext_id.indexOf('|');
+    		String sid = ext_id.substring(0, pos);
+    		String vid = ext_id.substring(pos + 1, ext_id.length());
+			
+			SohuUtil sohu = new SohuUtil();
+    		PlaylinkSohu l = sohu.playlink_pptv(Integer.valueOf(vid), Integer.valueOf(sid));
+    		
+    		if (l == null) {
+    			Toast.makeText(PlaySohuActivity.this, "Failed to get next video", 
+    					Toast.LENGTH_SHORT).show();
+        		return false;
+    		}
+    		
+    		mUrlListStr 		= l.getUrl(SOHU_FT.SOHU_FT_HIGH);
+			mDurationListStr	= l.getDuration(SOHU_FT.SOHU_FT_HIGH);
+			mTitle				= l.getTitle();
+			
+			buildPlaylinkList();
+			
+			mHandler.sendEmptyMessage(MSG_PLAY_NEXT_EPISODE);
+			
+			return true;
+		}
 		
 	}
-
-	@Override
-	public void surfaceCreated(SurfaceHolder holder) {
-		// TODO Auto-generated method stub
+	
+	private void buildPlaylinkList() {
+		m_playlink_list.clear();
+		m_duration_list.clear();
 		
-		mHolder = holder;
+		StringTokenizer st;
+		int i=0;
 		
-		buildPlaylinkList();
-		setupMediaPlayer();
-	}
-
-	@Override
-	public void surfaceDestroyed(SurfaceHolder arg0) {
-		// TODO Auto-generated method stub
+		st = new StringTokenizer(mUrlListStr, ",", false);
+		while (st.hasMoreElements()) {
+			String url = st.nextToken();
+			Log.i(TAG, String.format("Java: segment #%d url: %s", i++, url));
+			m_playlink_list.add(url);
+		}
 		
+		st = new StringTokenizer(mDurationListStr, ",", false);
+		i=0;
+		while (st.hasMoreElements()) {
+			String seg_duration = st.nextToken();
+			Log.i(TAG, String.format("Java: segment #%d duration: %s", i++, seg_duration));
+			int duration_msec = (int)(Double.valueOf(seg_duration) * 1000.0f);
+			m_duration_list.add(duration_msec);
+		}
 	}
 	
 	private class MyMediaPlayerControl implements MediaPlayerControl {
@@ -587,14 +563,10 @@ public class FragmentMp4PlayerActivity extends Activity implements Callback {
 		@Override
 		public int getCurrentPosition() {
 			// TODO Auto-generated method stub
-			if (mSeeking) {
-				return m_seek_pos;
-			}
-			
 			if (mPlayer == null)
 				return 0;
 			
-			return m_play_pos_offset + mPlayer.getCurrentPosition();
+			return mPlayer.getCurrentPosition();
 		}
 
 		@Override
@@ -602,16 +574,13 @@ public class FragmentMp4PlayerActivity extends Activity implements Callback {
 			// TODO Auto-generated method stub
 			if (mPlayer == null)
 				return 0;
-			else
-				return m_total_duration_msec;
+			
+			return mPlayer.getDuration();
 		}
 
 		@Override
 		public boolean isPlaying() {
 			// TODO Auto-generated method stub
-			if (mSeeking)
-				return true;
-			
 			if (mPlayer == null)
 				return false;
 			
@@ -630,45 +599,8 @@ public class FragmentMp4PlayerActivity extends Activity implements Callback {
 			// TODO Auto-generated method stub
 			Log.i(TAG, "Java: seekTo " + msec);
 
-			if (mPlayer != null) {
-				m_seek_pos = msec;
-				mSeeking = true;
-				
-				if (msec < m_play_pos_offset) {
-					for (int i=m_playlink_now_index;i>=0;i--) {
-						m_playlink_now_index--;
-						m_play_pos_offset -= m_duration_list.get(m_playlink_now_index);
-						if (msec >= m_play_pos_offset)
-							break;
-					}
-					
-					Log.i(TAG, String.format("Java: seekto(back) pos %d, #%d, offset %d", 
-							msec, m_playlink_now_index, m_play_pos_offset));
-					m_pre_seek_pos = msec - m_play_pos_offset;
-					setupMediaPlayer();
-				}
-				else if (msec >= m_play_pos_offset + m_duration_list.get(m_playlink_now_index)) {
-					for (int i=m_playlink_now_index;i<m_playlink_list.size();i++) {
-						m_play_pos_offset += m_duration_list.get(m_playlink_now_index);
-						m_playlink_now_index++;
-						if (m_playlink_now_index == m_playlink_list.size() - 1)
-							break;
-						else if (msec < m_play_pos_offset + m_duration_list.get(m_playlink_now_index + 1))
-							break;
-					}
-					
-					Log.i(TAG, String.format("Java: seekto(forward) pos %d, #%d, offset %d", 
-							msec, m_playlink_now_index, m_play_pos_offset));
-					m_pre_seek_pos = msec - m_play_pos_offset;
-					setupMediaPlayer();
-				}
-				else {
-					Log.i(TAG, String.format("Java: seekto(inner) pos %d, #%d, offset %d", 
-							msec, m_playlink_now_index, m_play_pos_offset));
-					mPlayer.seekTo(msec - m_play_pos_offset);
-					mSeeking = false;
-				}
-			}
+			if (mPlayer != null)
+				mPlayer.seekTo(msec);
 		}
 
 		@Override

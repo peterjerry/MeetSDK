@@ -254,7 +254,7 @@ public class SohuFrame extends JFrame {
 		int n = comboItem.getSelectedIndex();
 		String id = mChannelList.get(n).mChannelId;
 		
-		if (!mEPG.cate(id)) {
+		if (!mEPG.channel_select(id)) {
 			mState = SOHUVIDEO_EPG_STATE.SOHUVIDEO_EPG_STATE_ERROR;
 			return;
 		}
@@ -288,11 +288,11 @@ public class SohuFrame extends JFrame {
 		mState = SOHUVIDEO_EPG_STATE.SOHUVIDEO_EPG_STATE_ALBUM;
 	}
 	
-	private void selectCatePath() {
+	/*private void selectCatePath() {
 		int n = comboItem.getSelectedIndex();
 		String cateUrl = mChannelList.get(n).mCateUrl;
 		
-		if (!mEPG.cate(cateUrl)) {
+		if (!mEPG.channel_sel(cateUrl)) {
 			mState = SOHUVIDEO_EPG_STATE.SOHUVIDEO_EPG_STATE_ERROR;
 			return;
 		}
@@ -307,7 +307,7 @@ public class SohuFrame extends JFrame {
 		mState = SOHUVIDEO_EPG_STATE.SOHUVIDEO_EPG_STATE_CATE;
 	}
 	
-	/*private void selectTopic() {
+	private void selectTopic() {
 		int n = comboItem.getSelectedIndex();
 		int tid = mTopicList.get(n).mTid;
 		
@@ -355,7 +355,7 @@ public class SohuFrame extends JFrame {
 		int index = comboItem.getSelectedIndex();
 
 		int vid = mEpisodeList.get(index).mVid;
-		PlaylinkSohu pl = mEPG.getPlayLink(vid, 0);
+		PlaylinkSohu pl = mEPG.playlink_pptv(vid, 0);
 		List<String> url_list = pl.getUrlListbyFT(1);
 		String url = url_list.get(0);
 
@@ -372,7 +372,7 @@ public class SohuFrame extends JFrame {
 			return;
 		}*/
 		
-		if (!mEPG.list()) {
+		if (!mEPG.channel_list()) {
 			System.out.println("failed to column()");
 			return;
 		}
