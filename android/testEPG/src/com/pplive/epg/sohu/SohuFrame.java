@@ -45,7 +45,6 @@ public class SohuFrame extends JFrame {
 	SohuUtil			mEPG;
 	List<ChannelSohu>	mChannelList;
 	List<SubChannelSohu>mSubChannelList;
-	List<ClipSohu>		mClipList;
 	List<CategorySohu>	mCateList;
 	List<TopicSohu>		mTopicList;
 	List<AlbumSohu>		mAlbumList;
@@ -179,7 +178,7 @@ public class SohuFrame extends JFrame {
 		
 		mAlbumList = mEPG.getSearchItemList();
 		for (int i=0;i<mAlbumList.size();i++) {
-			comboItem.addItem(mAlbumList.get(i).mAlbumName);
+			comboItem.addItem(mAlbumList.get(i).getTitle());
 		}
 		
 		mState = SOHUVIDEO_EPG_STATE.SOHUVIDEO_EPG_STATE_ALBUM;
@@ -188,21 +187,20 @@ public class SohuFrame extends JFrame {
 	private void action() {
 		switch (mState) {
 		case SOHUVIDEO_EPG_STATE_CHANNEL:
-			selectSubChannel();
+			selectCate();
 			break;
 		case SOHUVIDEO_EPG_STATE_SUBCHANNEL:
-			selectMovie();
+		case SOHUVIDEO_EPG_STATE_CATE:
+			selectAlbumNew();
 			break;
 		case SOHUVIDEO_EPG_STATE_CLIP:
 			selectClip();
 			break;
-		case SOHUVIDEO_EPG_STATE_CATE:
-			selectMovie();
 		case SOHUVIDEO_EPG_STATE_TOPIC:
-			selectTopic();
+			//selectTopic();
 			break;
 		case SOHUVIDEO_EPG_STATE_ALBUM:
-			selectAlbum();
+			selectEpisode();
 			break;
 		case SOHUVIDEO_EPG_STATE_EPISODE:
 			playProgram();
@@ -214,10 +212,10 @@ public class SohuFrame extends JFrame {
 	
 	private void selectClip() {
 		int n = comboItem.getSelectedIndex();
-		System.out.println("Java: clip info: " + mClipList.get(n).toString());
+		System.out.println("Java: clip info: " + mAlbumList.get(n).toString());
 		
-		int vid = mClipList.get(n).getVid();
-		int aid = mClipList.get(n).getAid();
+		int vid = mAlbumList.get(n).getVid();
+		int aid = mAlbumList.get(n).getAid();
 		PlaylinkSohu link = mEPG.detail(vid, aid);
 		if (link != null) {
 			System.out.println("Java: link info: " + link.getTitle());
@@ -233,7 +231,26 @@ public class SohuFrame extends JFrame {
 		openExe(cmd);
 	}
 	
-	private void selectSubChannel() {
+	private void selectEpisode() {
+		int n = comboItem.getSelectedIndex();
+		int aid = mAlbumList.get(n).getAid();
+		
+		if (!mEPG.episode(aid, page_index, page_size)) {
+			mState = SOHUVIDEO_EPG_STATE.SOHUVIDEO_EPG_STATE_ERROR;
+			return;
+		}
+		
+		comboItem.removeAllItems();
+		
+		mEpisodeList = mEPG.getEpisodeList();
+		for (int i=0;i<mEpisodeList.size();i++) {
+			comboItem.addItem(mEpisodeList.get(i).mTitle);
+		}
+		
+		mState = SOHUVIDEO_EPG_STATE.SOHUVIDEO_EPG_STATE_EPISODE;
+	}
+	
+	private void selectCate() {
 		int n = comboItem.getSelectedIndex();
 		String id = mChannelList.get(n).mChannelId;
 		
@@ -252,7 +269,7 @@ public class SohuFrame extends JFrame {
 		mState = SOHUVIDEO_EPG_STATE.SOHUVIDEO_EPG_STATE_SUBCHANNEL;
 	}
 	
-	private void selectMovie() {
+	private void selectAlbumNew() {
 		int n = comboItem.getSelectedIndex();
 		int id = mSubChannelList.get(n).mSubChannelId;
 		if (!mEPG.subchannel(id, page_size, 0)) {
@@ -262,16 +279,16 @@ public class SohuFrame extends JFrame {
 		
 		comboItem.removeAllItems();
 		
-		mClipList = mEPG.getClipList();
-		int c = mClipList.size();
+		mAlbumList = mEPG.getAlbumList();
+		int c = mAlbumList.size();
 		for (int i=0;i<c;i++) {
-			comboItem.addItem(mClipList.get(i).getTitle());
+			comboItem.addItem(mAlbumList.get(i).getTitle());
 		}
 		
-		mState = SOHUVIDEO_EPG_STATE.SOHUVIDEO_EPG_STATE_CLIP;
+		mState = SOHUVIDEO_EPG_STATE.SOHUVIDEO_EPG_STATE_ALBUM;
 	}
 	
-	private void selectCate() {
+	private void selectCatePath() {
 		int n = comboItem.getSelectedIndex();
 		String cateUrl = mChannelList.get(n).mCateUrl;
 		
@@ -290,7 +307,7 @@ public class SohuFrame extends JFrame {
 		mState = SOHUVIDEO_EPG_STATE.SOHUVIDEO_EPG_STATE_CATE;
 	}
 	
-	private void selectTopic() {
+	/*private void selectTopic() {
 		int n = comboItem.getSelectedIndex();
 		int tid = mTopicList.get(n).mTid;
 		
@@ -313,7 +330,7 @@ public class SohuFrame extends JFrame {
 		int aid;
 		if (last_aid == -1) {
 			int n = comboItem.getSelectedIndex();
-			last_aid = aid = mAlbumList.get(n).mAid;	
+			last_aid = aid = mAlbumList.get(n).getAid();	
 		}
 		else {
 			aid = last_aid;
@@ -332,7 +349,7 @@ public class SohuFrame extends JFrame {
 		}
 		
 		mState = SOHUVIDEO_EPG_STATE.SOHUVIDEO_EPG_STATE_EPISODE;
-	}
+	}*/
 	
 	private void playProgram() {
 		int index = comboItem.getSelectedIndex();
@@ -413,4 +430,5 @@ public class SohuFrame extends JFrame {
 			}
 		}
 	}
+	
 }

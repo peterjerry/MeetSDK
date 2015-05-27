@@ -1,6 +1,10 @@
 package com.pplive.epg;
 
+import java.awt.event.KeyEvent;
+import java.awt.event.KeyListener;
 import java.util.List;
+
+import javax.swing.JFrame;
 
 import com.pplive.epg.bestv.BestvFrame;
 import com.pplive.epg.bestv.BestvKey;
@@ -23,7 +27,31 @@ public class TestEPG {
 		//VstFrame myFrame = new VstFrame();
         //BestvFrame myFrame = new BestvFrame();
 		SohuFrame myFrame = new SohuFrame();
-		myFrame.setVisible(true); 
+		myFrame.setVisible(true);
+		myFrame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+		myFrame.addKeyListener(new KeyListener(){
+
+			@Override
+			public void keyPressed(KeyEvent e) {
+				// TODO Auto-generated method stub
+				System.out.println("aaaaaa");
+				if (e.getKeyCode() == KeyEvent.VK_ESCAPE)
+					System.exit(0);
+			}
+
+			@Override
+			public void keyReleased(KeyEvent e) {
+				// TODO Auto-generated method stub
+				
+			}
+
+			@Override
+			public void keyTyped(KeyEvent e) {
+				// TODO Auto-generated method stub
+				
+			}
+			
+		});
 		
 		/*EPGUtil epg = new EPGUtil();
 		

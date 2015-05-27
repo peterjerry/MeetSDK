@@ -94,7 +94,7 @@ public class ClipSohu {
 		StringBuffer sb = new StringBuffer();
 		sb.append("标题: ");
 		sb.append(mTitle);
-		sb.append("分类: ");
+		sb.append(", 分类: ");
 		sb.append(mSecCateName);
 		sb.append(", aid: ");
 		sb.append(mAid);
