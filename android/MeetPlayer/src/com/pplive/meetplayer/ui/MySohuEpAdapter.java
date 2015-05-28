@@ -55,15 +55,24 @@ public class MySohuEpAdapter extends BaseAdapter {
 
 	private class ViewHolder {
 
-		TextView tv = null;
-		ImageView img = null;
+		TextView title	= null;
+		ImageView img	= null;
+		TextView tip	= null;
 
-		public TextView getTv() {
-			return tv;
+		public TextView getTitle() {
+			return title;
 		}
 
-		public void setTv(TextView tv) {
-			this.tv = tv;
+		public void setTitle(TextView title) {
+			this.title = title;
+		}
+		
+		public TextView getTip() {
+			return tip;
+		}
+
+		public void setTip(TextView tip) {
+			this.tip = tip;
 		}
 
 		public ImageView getImg() {
@@ -85,20 +94,22 @@ public class MySohuEpAdapter extends BaseAdapter {
 
 			convertView = inflater.inflate(R.layout.gridview_item, null);
 			holder = new ViewHolder();
-			holder.tv = (TextView) convertView.findViewById(R.id.gridview_text);
-			holder.img = (ImageView) convertView
-					.findViewById(R.id.gridview_img);
+			holder.title = (TextView) convertView.findViewById(R.id.gridview_title);
+			holder.tip = (TextView) convertView.findViewById(R.id.gridview_tip);
+			holder.img = (ImageView) convertView.findViewById(R.id.gridview_img);
 
 			convertView.setTag(holder);
 
 		} else {
 			holder = (ViewHolder) convertView.getTag();
 		}
-		// 为holder中的tv和img设置内容
+		// 为holder中的title tip和img设置内容
 		Map<String, Object> item = data.get(position);
 		String title = (String) item.get("title");
+		String tip = (String) item.get("tip");
 		String img_url = (String) item.get("img_url");
-		holder.tv.setText(title);
+		holder.getTitle().setText(title);
+		holder.getTip().setText(tip);
 		//holder.img.setImageResource(R.drawable.clip);
 		
 		new LoadPicTask().execute(holder, img_url);
@@ -138,5 +149,9 @@ public class MySohuEpAdapter extends BaseAdapter {
 			
 			return bmp;
 		}
+	}
+
+	public void updateData(List<Map<String, Object>> data) {
+		this.data = data;
 	}
 }

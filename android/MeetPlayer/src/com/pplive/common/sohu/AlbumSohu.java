@@ -5,6 +5,7 @@ public class AlbumSohu {
 	private String mSecCateName;
 	private int mVideoCount;
 	private int mLastCount;
+	private String mTip;
 	
 	private int mAid;
 	private int mVid;
@@ -65,12 +66,14 @@ public class AlbumSohu {
 		mAid			= aid;
 		mVid			= vid;
 		mCid			= cid;
+		mDesc			= desc;
+		mTip			= tip;
 		
 		mScore			= score;
 		mDoubanScore	= douban_score;
-		mScoreTip		= tip;
+		mScoreTip		= score_tip;
 		
-		mDesc			= desc;
+		
 		mDirector		= director;
 		mAct			= act;
 		
@@ -94,6 +97,18 @@ public class AlbumSohu {
 	
 	public int getAid() {
 		return mAid;
+	}
+	
+	public int getVideoCount() {
+		return mVideoCount;
+	}
+	
+	public int getLastCount() {
+		return mLastCount;
+	}
+	
+	public String getTip() {
+		return mTip;
 	}
 	
 	public String getImgUrl(boolean vertical) {

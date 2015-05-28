@@ -24,6 +24,7 @@ import android.os.Message;
 import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.View;
+import android.widget.AbsListView;
 import android.widget.AdapterView;
 import android.widget.GridView;
 import android.widget.SimpleAdapter;
@@ -33,29 +34,32 @@ import android.widget.Toast;
 public class SohuEpisodeActivity extends Activity {
 	private final static String TAG = "SohuEpisodeActivity";
 	
-	private GridView 						gridView = null;  
-    private MySohuEpAdapter 				adapter = null;  
-    private SimpleAdapter					adapter1 = null;  
-    private List<HashMap<String,Object>>	list = null;  
-    private HashMap<String,Object> 			map = null;  
+	private GridView gridView = null;  
+    private MySohuEpAdapter adapter = null;
     
     private final static int MSG_EPISODE_DONE		= 1;
     private final static int MSG_PLAYLINK_DONE	= 2;
+    private final static int MSG_MORELIST_DONE	= 3;
     
     private final static int TASK_EPISODE			= 1;
     private final static int TASK_PLAYLINK		= 2;
+    private final static int TASK_MORELIST		= 3;
     
     private final static int page_size = 10;
     private int page_index = 1;
     
     private List<Map<String, Object>> data2;
     
-    SohuUtil mEPG;
-    List<AlbumSohu> mAlbumList;
-    List<EpisodeSohu> mEpisodeList;
-    PlaylinkSohu mPlaylink;
+    private SohuUtil mEPG;
+    private List<AlbumSohu> mAlbumList;
+    private List<EpisodeSohu> mEpisodeList;
+    private String mMoreList;
+    private PlaylinkSohu mPlaylink;
     int sub_channel_id = -1;
     int selected_aid = -1;
+    int selected_index = -1;
+    
+    boolean loadingMore = false;
 	
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
@@ -98,8 +102,31 @@ public class SohuEpisodeActivity extends Activity {
 			
 		});
 		
-	    list = new ArrayList<HashMap<String,Object>>();  
-	    
+		/*gridView.setOnScrollListener(new AbsListView.OnScrollListener() {
+			
+			@Override
+			public void onScrollStateChanged(AbsListView view, int scrollState) {
+				// TODO Auto-generated method stub
+				
+			}
+			
+			@Override
+			public void onScroll(AbsListView view, int firstVisibleItem,
+		            int visibleItemCount, int totalItemCount) {
+				// TODO Auto-generated method stub
+				int lastInScreen = firstVisibleItem + visibleItemCount;
+		        if ((lastInScreen == totalItemCount) && !loadingMore) {
+
+		            //if (stopLoadingData == false) {
+		                // FETCH THE NEXT BATCH OF FEEDS
+		        		loadingMore = true;
+		                new EpisodeTask().execute(TASK_MORELIST);
+		            //}
+
+		        }
+			}
+		});*/
+		
 	    mEPG = new SohuUtil();
 	    
         new SetDataTask().execute();
@@ -111,16 +138,61 @@ public class SohuEpisodeActivity extends Activity {
         public void handleMessage(Message msg) {  
             switch (msg.what) {
             case MSG_EPISODE_DONE:
+            	/*if (mEpisodeList.size() == 1) {
+	            	int aid = mEpisodeList.get(0).mAid;
+					int vid = mEpisodeList.get(0).mVid;
+					selected_index = 0;
+					
+					new EpisodeTask().execute(TASK_PLAYLINK, aid, vid);
+					return;
+            	}*/
+            	
             	popupSelectEpisodeDlg();
             	break;
             case MSG_PLAYLINK_DONE:
-            	Intent intent = new Intent(SohuEpisodeActivity.this, PlaySohuActivity.class);
-        		intent.putExtra("url_list", mPlaylink.getUrl(SOHU_FT.SOHU_FT_HIGH));
-        		intent.putExtra("duration_list", mPlaylink.getDuration(SOHU_FT.SOHU_FT_HIGH));
+            	
+            	SOHU_FT ft = SOHU_FT.SOHU_FT_ORIGIN;
+            	String strUrl = mPlaylink.getUrl(ft);
+        		if (strUrl == null || strUrl.isEmpty()) {
+        			ft = SOHU_FT.SOHU_FT_SUPER;
+        			strUrl = mPlaylink.getUrl(ft);
+        		}
+        		if (strUrl == null || strUrl.isEmpty()) {
+        			ft = SOHU_FT.SOHU_FT_HIGH;
+        			strUrl = mPlaylink.getUrl(ft);
+        		}
+        		if (strUrl == null || strUrl.isEmpty()) {
+        			ft = SOHU_FT.SOHU_FT_NORMAL;
+        			strUrl = mPlaylink.getUrl(ft);
+        		}
+        		if (strUrl == null || strUrl.isEmpty()) {
+        			Toast.makeText(SohuEpisodeActivity.this, "no stream available", Toast.LENGTH_SHORT).show();
+        			return;
+        		}
+        		
+        		Intent intent = new Intent(SohuEpisodeActivity.this, PlaySohuActivity.class);
+        		intent.putExtra("url_list", strUrl);
+        		intent.putExtra("duration_list", mPlaylink.getDuration(ft));
         		intent.putExtra("title", mPlaylink.getTitle());
-        		intent.putExtra("info_id", -1);
-        		intent.putExtra("index", -1);
+        		intent.putExtra("index", (page_index - 1) * page_size + selected_index);
+        		intent.putExtra("aid", selected_aid);
         		startActivity(intent);
+            	break;
+            case MSG_MORELIST_DONE:
+            	data2.clear();
+            	
+    			int c = mAlbumList.size();
+    			for (int i=0;i<c;i++) {
+    				HashMap<String, Object> episode = new HashMap<String, Object>();
+    				AlbumSohu al = mAlbumList.get(i);
+    				
+    				episode.put("title", al.getTitle());
+    				episode.put("img_url", al.getImgUrl(true));
+    				episode.put("tip", al.getTip());
+    				data2.add(episode);
+    			}
+            	adapter.updateData(data2);
+            	adapter.notifyDataSetChanged();
             	break;
             default:
             	break;
@@ -150,6 +222,8 @@ public class SohuEpisodeActivity extends Activity {
 			public void onClick(DialogInterface dialog, int whichButton) {
 				int aid = mEpisodeList.get(whichButton).mAid;
 				int vid = mEpisodeList.get(whichButton).mVid;
+				selected_index = whichButton;
+				
 				new EpisodeTask().execute(TASK_PLAYLINK, aid, vid);
 				dialog.dismiss();
 			}
@@ -201,6 +275,17 @@ public class SohuEpisodeActivity extends Activity {
 				
 				mhandler.sendEmptyMessage(MSG_PLAYLINK_DONE);	
 			}
+			else if (action == TASK_MORELIST) {
+				String morelist_prefix = mEPG.getMoreList();
+				if (morelist_prefix == null || morelist_prefix.isEmpty())
+					return false;
+				
+				if (!mEPG.morelist(morelist_prefix, /*page_size*/30, page_index))
+					return false;
+				
+				mEpisodeList = mEPG.getEpisodeList();
+				mhandler.sendEmptyMessage(MSG_MORELIST_DONE);
+			}
 
 			return true;
 		}
@@ -228,6 +313,7 @@ public class SohuEpisodeActivity extends Activity {
 			if (!mEPG.subchannel(sub_channel_id, /*page_size*/100, page_index))
 				return false;
 			
+			mMoreList = mEPG.getMoreList();
 			mAlbumList = mEPG.getAlbumList();
 			  
 			data2 = new ArrayList<Map<String, Object>>();
@@ -238,6 +324,7 @@ public class SohuEpisodeActivity extends Activity {
 				
 				episode.put("title", al.getTitle());
 				episode.put("img_url", al.getImgUrl(true));
+				episode.put("tip", al.getTip());
 				data2.add(episode);
 			}
 			

@@ -8,7 +8,8 @@ public class PlaylinkSohu {
 	public enum SOHU_FT {
 		SOHU_FT_NORMAL,
 		SOHU_FT_HIGH,
-		SOHU_FT_VERY_HIGH
+		SOHU_FT_SUPER,
+		SOHU_FT_ORIGIN
 	};
 	
 	private String mTitle;
@@ -36,8 +37,12 @@ public class PlaylinkSohu {
 			return mUrlNormal;
 		else if (ft == SOHU_FT.SOHU_FT_HIGH)
 			return mUrlHigh;
+		else if (ft == SOHU_FT.SOHU_FT_SUPER)
+			return mUrlSuper;
+		else if (ft == SOHU_FT.SOHU_FT_ORIGIN)
+			return mUrlOrigin;
 		else
-			return mUrlHigh;
+			return null;
 	}
 	
 	/*
@@ -48,8 +53,12 @@ public class PlaylinkSohu {
 			return mNormalDuration;
 		else if (ft == SOHU_FT.SOHU_FT_HIGH)
 			return mHighDuration;
+		else if (ft == SOHU_FT.SOHU_FT_SUPER)
+			return mSuperDuration;
+		else if (ft == SOHU_FT.SOHU_FT_ORIGIN)
+			return mOriginDuration;
 		else
-			return mNormalDuration;
+			return null;
 	}
 	
 	/*

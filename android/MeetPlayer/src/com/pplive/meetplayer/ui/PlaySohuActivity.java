@@ -7,6 +7,7 @@ import java.util.StringTokenizer;
 
 import com.pplive.common.pptv.EPGUtil;
 import com.pplive.common.pptv.Episode;
+import com.pplive.common.sohu.EpisodeSohu;
 import com.pplive.common.sohu.PlaylinkSohu;
 import com.pplive.common.sohu.PlaylinkSohu.SOHU_FT;
 import com.pplive.common.sohu.SohuUtil;
@@ -53,7 +54,7 @@ public class PlaySohuActivity extends Activity implements Callback {
 	private String mUrlListStr;
 	private String mDurationListStr;
 	private String mTitle;
-	private int mInfoId, mIndex;
+	private int mInfoId, mIndex, mAid;
 	
 	private int mVideoWidth, mVideoHeight;
 	private List<String> m_playlink_list;
@@ -63,6 +64,14 @@ public class PlaySohuActivity extends Activity implements Callback {
 	
 	private EPGUtil mEPG;
 	private List<Episode> mVirtualLinkList;
+	
+	private SohuUtil mSohu;
+	private List<EpisodeSohu> mEpisodeList;
+	private int page_index = 1;
+	private int page_size = 100;
+	
+	private final static int LIST_PPTV = 1;
+	private final static int LIST_SOHU = 2;
 	
 	private MediaPlayer.OnVideoSizeChangedListener mOnVideoSizeChangedListener;
 	private MediaPlayer.OnPreparedListener mOnPreparedListener;
@@ -81,8 +90,11 @@ public class PlaySohuActivity extends Activity implements Callback {
 	private int mDisplayMode = SCREEN_FIT;
 	
 	private final static int MSG_PLAY_NEXT_EPISODE 		= 1;
-	private final static int MSG_INVALID_EPISODE_INDEX	= 2;
-	private static final int MSG_FADE_OUT_TV_FILENAME			= 3;
+	private static final int MSG_FADE_OUT_TV_FILENAME		= 2;
+	
+	private final static int MSG_INVALID_EPISODE_INDEX	= 101;
+	private final static int MSG_FAIL_TO_GET_PLAYLINK		= 102;
+	private final static int MSG_FAIL_TO_GET_STREAM		= 103;
 	
 	private final static String url_list = "http://data.vod.itc.cn/?" +
 			"new=/49/197/T9vx2eIRoGJa8v2svlzxkN.mp4&vid=1913402&ch=tv" +
@@ -135,6 +147,7 @@ public class PlaySohuActivity extends Activity implements Callback {
 			mTitle				= intent.getStringExtra("title");
 			mInfoId				= intent.getIntExtra("info_id", -1);
     		mIndex				= intent.getIntExtra("index", -1);
+    		mAid				= intent.getIntExtra("aid", -1);
 		}
 		else {
 			Log.w(TAG, "Java: use test url and duration list");
@@ -235,7 +248,11 @@ public class PlaySohuActivity extends Activity implements Callback {
 			public void onCompletion(MediaPlayer mp) {
 				// TODO Auto-generated method stub
 				if (mInfoId != -1) {
-					new NextEpisodeTask().execute(1);
+					new NextEpisodeTask().execute(LIST_PPTV, 1);
+	        		return;
+				}
+				else if (mAid != -1) {
+					new NextEpisodeTask().execute(LIST_SOHU, 1);
 	        		return;
 				}
 				
@@ -271,7 +288,12 @@ public class PlaySohuActivity extends Activity implements Callback {
 				if (keyCode == KeyEvent.KEYCODE_DPAD_LEFT)
 					incr = -1;
 				
-				new NextEpisodeTask().execute(incr);
+				if (mInfoId != -1) {
+					new NextEpisodeTask().execute(LIST_PPTV, incr);
+				}
+				else if (mAid != -1) {
+					new NextEpisodeTask().execute(LIST_SOHU, incr);
+				}
 			}
 		}
 		else if (keyCode == KeyEvent.KEYCODE_DPAD_UP ||
@@ -340,6 +362,12 @@ public class PlaySohuActivity extends Activity implements Callback {
 				break;
 			case MSG_INVALID_EPISODE_INDEX:
 				Toast.makeText(PlaySohuActivity.this, "invalid episode", Toast.LENGTH_SHORT).show();
+				break;
+			case MSG_FAIL_TO_GET_PLAYLINK:
+				Toast.makeText(PlaySohuActivity.this, "failed to get playlink", Toast.LENGTH_SHORT).show();
+				break;
+			case MSG_FAIL_TO_GET_STREAM:
+				Toast.makeText(PlaySohuActivity.this, "failed to get stream", Toast.LENGTH_SHORT).show();
 				break;
             }
 		}
@@ -455,45 +483,98 @@ public class PlaySohuActivity extends Activity implements Callback {
 		protected Boolean doInBackground(Integer... params) {
 			// TODO Auto-generated method stub
 			
-			int incr = params[0];
+			int action = params[0];
+			int incr = params[1];
 			
-			if (mVirtualLinkList == null) {
-				mEPG = new EPGUtil();
-				boolean ret;
-				ret = mEPG.virtual_channel(mTitle, mInfoId, 500, 3/*sohu*/, 1);
-				if (!ret) {
-					Log.e(TAG, "failed to get virtual_channel");
+			PlaylinkSohu l = null;
+			
+			if (action == LIST_PPTV) {
+				if (mVirtualLinkList == null) {
+					mEPG = new EPGUtil();
+					boolean ret;
+					ret = mEPG.virtual_channel(mTitle, mInfoId, 500, 3/*sohu*/, 1);
+					if (!ret) {
+						Log.e(TAG, "failed to get virtual_channel");
+						return false;
+					}
+			
+					mVirtualLinkList = mEPG.getVirtualLink();
+				}
+				
+				mIndex += incr;
+				if (mIndex < 0 || mIndex > mVirtualLinkList.size() - 1) {
+					Log.i(TAG, String.format("Java: meet end %d %d", mIndex, mVirtualLinkList.size()));
+					mHandler.sendEmptyMessage(MSG_INVALID_EPISODE_INDEX);
 					return false;
 				}
-		
-				mVirtualLinkList = mEPG.getVirtualLink();
+				
+				Episode e = mVirtualLinkList.get(mIndex);
+				String ext_id = e.getExtId();
+				int pos = ext_id.indexOf('|');
+	    		String sid = ext_id.substring(0, pos);
+	    		String vid = ext_id.substring(pos + 1, ext_id.length());
+				
+				SohuUtil sohu = new SohuUtil();
+	    		l = sohu.playlink_pptv(Integer.valueOf(vid), Integer.valueOf(sid));
 			}
+			else if (action == LIST_SOHU) {
+				if (mEpisodeList == null) {
+					mSohu = new SohuUtil();
+					boolean ret;
+					ret = mSohu.episode(mAid, page_index, page_size);
+					if (!ret) {
+						Log.e(TAG, "failed to get virtual_channel");
+						return false;
+					}
 			
-			mIndex += incr;
-			if (mIndex < 0 || mIndex > mVirtualLinkList.size() - 1) {
-				Log.i(TAG, String.format("Java: meet end %d %d", mIndex, mVirtualLinkList.size()));
-				mHandler.sendEmptyMessage(MSG_INVALID_EPISODE_INDEX);
-				return false;
+					mEpisodeList = mSohu.getEpisodeList();
+				}
+				
+				mIndex += incr;
+				if (mIndex < 0 || mIndex > mEpisodeList.size() - 1) {
+					Log.e(TAG, String.format("Java: meet end %d %d", mIndex, mEpisodeList.size()));
+					mHandler.sendEmptyMessage(MSG_INVALID_EPISODE_INDEX);
+					return false;
+				}
+				
+				EpisodeSohu ep = mEpisodeList.get(mIndex);
+				l = mSohu.detail(ep.mVid, ep.mAid);
 			}
-			
-			Episode e = mVirtualLinkList.get(mIndex);
-			String ext_id = e.getExtId();
-			int pos = ext_id.indexOf('|');
-    		String sid = ext_id.substring(0, pos);
-    		String vid = ext_id.substring(pos + 1, ext_id.length());
-			
-			SohuUtil sohu = new SohuUtil();
-    		PlaylinkSohu l = sohu.playlink_pptv(Integer.valueOf(vid), Integer.valueOf(sid));
-    		
+	    		
     		if (l == null) {
-    			Toast.makeText(PlaySohuActivity.this, "Failed to get next video", 
-    					Toast.LENGTH_SHORT).show();
+    			Log.e(TAG, "Failed to get next video");
+    			mHandler.sendEmptyMessage(MSG_FAIL_TO_GET_PLAYLINK);
         		return false;
     		}
     		
-    		mUrlListStr 		= l.getUrl(SOHU_FT.SOHU_FT_HIGH);
-			mDurationListStr	= l.getDuration(SOHU_FT.SOHU_FT_HIGH);
-			mTitle				= l.getTitle();
+    		mTitle = l.getTitle();
+    		
+    		if (action == LIST_PPTV) {
+	    		mUrlListStr 		= l.getUrl(SOHU_FT.SOHU_FT_HIGH);
+				mDurationListStr	= l.getDuration(SOHU_FT.SOHU_FT_HIGH);
+    		}
+    		else {
+    			SOHU_FT ft = SOHU_FT.SOHU_FT_ORIGIN;
+    			mUrlListStr = l.getUrl(ft);
+        		if (mUrlListStr == null || mUrlListStr.isEmpty()) {
+        			ft = SOHU_FT.SOHU_FT_SUPER;
+        			mUrlListStr = l.getUrl(ft);
+        		}
+        		if (mUrlListStr == null || mUrlListStr.isEmpty()) {
+        			ft = SOHU_FT.SOHU_FT_HIGH;
+        			mUrlListStr = l.getUrl(ft);
+        		}
+        		if (mUrlListStr == null || mUrlListStr.isEmpty()) {
+        			ft = SOHU_FT.SOHU_FT_NORMAL;
+        			mUrlListStr = l.getUrl(ft);
+        		}
+        		if (mUrlListStr == null || mUrlListStr.isEmpty()) {
+        			mHandler.sendEmptyMessage(MSG_FAIL_TO_GET_STREAM);
+        			return false;
+        		}
+        		
+        		mDurationListStr	= l.getDuration(ft);
+    		}
 			
 			buildPlaylinkList();
 			

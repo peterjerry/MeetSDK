@@ -30,6 +30,10 @@ public class SohuUtil {
 			"?plat=6&poid=1&api_key=9854b2afa779e1a6bff1962447a09dbd&sver=4.7.1" +
 			"&page_size=%d&offset=%d&sysver=4.2.2&sub_channel_id=%d&partner=340&cursor=0";
 	
+	private static final String SEARCH_CHANNEL_SURFIX_FMT = "&plat=6&poid=1" +
+			"&api_key=9854b2afa779e1a6bff1962447a09dbd" +
+			"&sver=4.7.1&page_size=%d&offset=%d&sysver=4.2.2&partner=340";
+	
 	private static final String COLUMN_URL = "http://api.tv.sohu.com/v4/mobile/column/list.json?" +
 			"cate_code=9006&plat=6&poid=1&api_key=9854b2afa779e1a6bff1962447a09dbd" +
 			"&sver=4.7.1&sysver=4.2.2&partner=340";
@@ -65,6 +69,7 @@ public class SohuUtil {
 	private List<AlbumSohu> mAlbumList;
 	private List<EpisodeSohu> mEpisodeList;
 	private List<AlbumSohu> mSearchItemList;
+	private String mMoreListPrefix;
 	
 	public SohuUtil() {
 		mChannelList	= new ArrayList<ChannelSohu>();
@@ -86,6 +91,10 @@ public class SohuUtil {
 	
 	public List<SubChannelSohu> getSubChannelList() {
 		return mSubChannelList;
+	}
+	
+	public String getMoreList() { 
+		return mMoreListPrefix;
 	}
 	
 	public List<TopicSohu> getTopicList() {
@@ -296,6 +305,20 @@ public class SohuUtil {
 		return false;
 	}
 	
+	private String getNodeString(JSONObject node, String key) {
+		String strRet = "";
+		
+		try {
+			if (node.has(key))
+				strRet = node.getString(key);
+		} catch (JSONException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+		return strRet;
+	}
+	
 	public PlaylinkSohu detail(int vid, int aid) {
 		String url = String.format(CLIP_DETAIL_URL_FMT, vid, aid);
 		Log.i(TAG, "Java: SohuUtil detail() " + url);
@@ -317,23 +340,15 @@ public class SohuUtil {
 			JSONObject data = root.getJSONObject("data");
 			String tv_name = data.getString("video_name");
 			
-			String normal_url = data.getString("url_nor_mp4");
-			String high_url = data.getString("url_high_mp4");
-			String super_url = "";
-			if (data.has("url_super_mp4"))
-				super_url = data.getString("url_super_mp4");
-			String origin_url = "";
-			if (data.has("url_original_mp4"))
-				origin_url = data.getString("url_original_mp4");
+			String normal_url			= getNodeString(data, "url_nor_mp4");
+			String high_url				= getNodeString(data, "url_high_mp4");
+			String super_url			= getNodeString(data, "url_super_mp4");
+			String origin_url			= getNodeString(data, "url_original_mp4");
 			
-			String clipsDuration_nor = data.getString("clips_duration_nor");
-			String clipsDuration_high = data.getString("clips_duration_high");
-			String clipsDuration_super = "";
-			if (data.has("clips_duration_super"))
-				clipsDuration_super = data.getString("clips_duration_super");
-			String clipsDuration_origin = "";
-			if (data.has("clips_duration_origin"))
-				clipsDuration_origin = data.getString("clips_duration_origin");
+			String clipsDuration_nor 	= getNodeString(data, "clips_duration_nor");
+			String clipsDuration_high	= getNodeString(data, "clips_duration_high");
+			String clipsDuration_super	= getNodeString(data, "clips_duration_super");
+			String clipsDuration_origin	= getNodeString(data, "clips_duration_origin");
 
 			return new PlaylinkSohu(tv_name, 
 					normal_url, high_url, super_url, origin_url, 
@@ -344,6 +359,102 @@ public class SohuUtil {
 		}
 		
 		return null;
+	}
+	
+	public boolean morelist(String morelist_prefix, int page_size, int page_offset) {
+		String url = morelist_prefix + String.format(SEARCH_CHANNEL_SURFIX_FMT, page_size, page_offset);
+		Log.i(TAG, "Java: SohuUtil morelist() " + url);
+		
+		try {
+			String result = http_get(url);
+			if (result == null)
+				return false;
+			
+			JSONTokener jsonParser = new JSONTokener(result);
+			JSONObject root = (JSONObject) jsonParser.nextValue();
+			int status = root.getInt("status");
+			String statusText = root.getString("statusText");
+			if (status != 200) {
+				Log.i(TAG, String.format("Java: failed to subchannel() %d %s", status, statusText));
+				return false;
+			}
+			
+			JSONObject data = root.getJSONObject("data");
+			JSONArray videos = data.getJSONArray("videos");
+			int count = data.getInt("count");
+			
+			mAlbumList.clear();
+			int c = videos.length();
+			
+			if (c == 0)
+				return false;
+			
+			for (int j=0;j<c;j++) {
+				JSONObject video = videos.getJSONObject(j);
+				
+				String album_name = video.getString("album_name");
+				String video_name = video.getString("video_name");
+				String second_cate_name = video.getString("second_cate_name");
+				int v_count = video.getInt("total_video_count");
+				int last_count = video.getInt("latest_video_count");
+				
+				double score = video.getDouble("score");
+				double douban_score = 0.0f;
+				if (video.has("douban_score"))
+					douban_score = video.getDouble("douban_score");
+				
+				String desc = "N/A";
+				if (video.has("album_desc"))
+					video.getString("album_desc");
+				else if (video.has("tv_desc"))
+					video.getString("tv_desc");
+				
+				int aid = video.getInt("aid");
+				int vid = video.getInt("vid");
+				int cid = video.getInt("cid");
+				String hori_pic_url = video.getString("hor_high_pic");
+				String vert_pic_url = video.getString("ver_high_pic");
+				String area = "N/A";
+				if (video.has("area"))
+					area = video.getString("area");
+				String year = "N/A";
+				if (video.has("year"))
+					year = video.getString("year");
+				
+				String main_actor = "N/A";
+				if (video.has("main_actor"))
+					main_actor = video.getString("main_actor");
+					
+				String director = "N/A";
+				if (video.has("director"))
+					video.getString("director");
+				
+				String tip = video.getString("tip");
+				String score_tip = "";
+				if (video.has("score_tip"))
+					video.getString("score_tip");
+				int duration_sec = 0;
+				if (video.has("time_length"))
+					duration_sec = video.getInt("time_length");
+				
+				AlbumSohu album = new AlbumSohu(album_name, second_cate_name, v_count, last_count, 
+						aid, vid, cid, desc, tip, 
+						score, douban_score, score_tip, 
+						director, main_actor, 
+						year, area,
+						hori_pic_url, vert_pic_url, "",
+						duration_sec);
+				
+				mAlbumList.add(album);
+			}
+			
+			return true;
+		} catch (JSONException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+		return false;
 	}
 	
 	public boolean subchannel(int sub_channel_id, int page_size, int page_offset) {
@@ -375,6 +486,8 @@ public class SohuUtil {
 			
 			JSONObject item = columns.getJSONObject(0);
 			
+			// more_list=http://api.tv.sohu.com/v4/search/channel/sub.json?subId=200&
+			mMoreListPrefix = item.getString("more_list");
 			JSONArray video_list = item.getJSONArray("video_list");
 			c = video_list.length();
 			for (int j=0;j<c;j++) {
@@ -743,10 +856,10 @@ public class SohuUtil {
 				return null;
 			}
 			
-			JSONObject data = root.getJSONObject("data");
-			String normal_url = data.getString("url_nor_mp4");
-			String tv_name = data.getString("tv_name");
-			String high_url = data.getString("url_high_mp4");
+			JSONObject data 	= root.getJSONObject("data");
+			String tv_name 		= data.getString("tv_name");
+			String normal_url 	= getNodeString(data, "url_nor_mp4");
+			String high_url 	= getNodeString(data, "url_high_mp4");
 			
 			JSONArray clipsDuration_nor = data.getJSONArray("clipsDuration_nor");
 			StringBuffer sbNormal = new StringBuffer();
