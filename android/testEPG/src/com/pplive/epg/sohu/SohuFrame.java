@@ -408,6 +408,9 @@ public class SohuFrame extends JFrame {
 			return;
 		}*/
 		
+		album_page_index = 1;
+		ep_page_index = 1;
+		
 		if (!mEPG.channel_list()) {
 			System.out.println("failed to column()");
 			return;

@@ -39,6 +39,9 @@
     <ClInclude Include="apBlockDownloader.h">
       <Filter>头文件</Filter>
     </ClInclude>
+    <ClInclude Include="apTsWriter.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="stdafx.cpp">
@@ -96,6 +99,12 @@
       <Filter>源文件\struct</Filter>
     </ClCompile>
     <ClCompile Include="apBlockDownloader.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="apFlvDemuxer.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="apTsWriter.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
   </ItemGroup>
