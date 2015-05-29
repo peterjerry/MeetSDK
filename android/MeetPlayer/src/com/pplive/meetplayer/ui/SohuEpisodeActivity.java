@@ -138,14 +138,14 @@ public class SohuEpisodeActivity extends Activity {
         public void handleMessage(Message msg) {  
             switch (msg.what) {
             case MSG_EPISODE_DONE:
-            	/*if (mEpisodeList.size() == 1) {
+            	if (mEpisodeList.size() == 1) {
 	            	int aid = mEpisodeList.get(0).mAid;
 					int vid = mEpisodeList.get(0).mVid;
 					selected_index = 0;
 					
 					new EpisodeTask().execute(TASK_PLAYLINK, aid, vid);
 					return;
-            	}*/
+            	}
             	
             	popupSelectEpisodeDlg();
             	break;
@@ -269,7 +269,8 @@ public class SohuEpisodeActivity extends Activity {
 			else if (action == TASK_PLAYLINK){
 				int aid = params[1];
 				int vid = params[2];
-				mPlaylink = mEPG.detail(vid, aid);
+				//mPlaylink = mEPG.detail(vid, aid);
+				mPlaylink = mEPG.playlink_pptv(vid, 0);
 				if (mPlaylink == null)
 					return false;
 				

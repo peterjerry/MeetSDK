@@ -867,16 +867,16 @@ public class SohuUtil {
 				double du = clipsDuration_nor.getDouble(k);
 				sbNormal.append(du);
 				sbNormal.append(",");
-				Log.i(TAG, String.format("Java: segment #%d %.3f sec", k, du));
+				Log.i(TAG, String.format("Java: normal segment #%d %.3f sec", k, du));
 			}
 			
 			JSONArray clipsDuration_high = data.getJSONArray("clipsDuration_high");
 			StringBuffer sbHigh = new StringBuffer();
 			for (int k=0;k<clipsDuration_high.length();k++) {
 				double du = clipsDuration_high.getDouble(k);
-				sbHigh.append((int)(du * 1000));
+				sbHigh.append(du);
 				sbHigh.append(",");
-				Log.i(TAG, String.format("Java: segment #%d %.3f sec", k, du));
+				Log.i(TAG, String.format("Java: high segment #%d %.3f sec", k, du));
 			}
 			
 			return new PlaylinkSohu(tv_name, normal_url, high_url, sbNormal.toString(), sbHigh.toString());

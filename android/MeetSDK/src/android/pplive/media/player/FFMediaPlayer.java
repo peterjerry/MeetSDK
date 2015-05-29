@@ -35,39 +35,69 @@ public class FFMediaPlayer extends BaseMediaPlayer {
 					libPath += "/";
 			}
 			
-			try {
-				String loader = "meet";
+			String so_name = "meet";
+			
+			if (libPath != null && !libPath.equals("")) {
+				String full_name;
+				full_name = libPath + "lib" + so_name + ".so";
+				libLoaded = load_lib_local(full_name);
 				
-				if (libPath != null && !libPath.equals("")) {
-					String full_name;
-					full_name = libPath + "lib" + loader + ".so";
-					LogUtils.info("System.load() try load: " + full_name);
-					System.load(full_name);
-					LogUtils.info("System.load() " + full_name + " done!");
+				// 2015.5.29 guoliangma added to fix launcher failed to load so
+				if (!libLoaded) {
+					LogUtils.warn("failed to load set load-path so, try load so in system path");
+					libLoaded = load_lib_system(so_name);
 				}
-				else {
-					LogUtils.info("System.loadLibrary() try load meet");
-					System.loadLibrary(loader);
-					LogUtils.info("System.loadLibrary() meet loaded");
-				}
-				
-				if (!native_init()) {
-					LogUtils.error("failed to init native player");
-					return false;
-				}
-				
-				libLoaded = true;
-				
 			}
-			catch (Exception e) 
-			{
-				e.printStackTrace();
-				LogUtils.error("failed to load library meet: " + e.toString());
+			else {
+				libLoaded = load_lib_system(so_name);
+			}
+			
+			if (!libLoaded) {
+				LogUtils.error("failed to load meet so");
 				return false;
 			}
+			
+			if (!native_init()) {
+				LogUtils.error("failed to init native player");
+				return false;
+			}
+			
+			libLoaded = true;
 		}
 		
 		return libLoaded;
+	}
+	
+	private static boolean load_lib_system(String lib_name) {
+		try {
+			LogUtils.info("System.loadLibrary() try load " + lib_name);
+			System.loadLibrary(lib_name);
+			LogUtils.info("System.loadLibrary() " + lib_name + " loaded!");
+			return true;
+		}
+		catch (Exception e) 
+		{
+			e.printStackTrace();
+			LogUtils.error("failed to load system library meet: " + e.toString());
+		}
+		
+		return false;
+	}
+	
+	private static boolean load_lib_local(String path_name) {
+		try {
+			LogUtils.info("System.load() try load: " + path_name);
+			System.load(path_name);
+			LogUtils.info("System.load() " + path_name + " loaded!");
+			return true;
+		}
+		catch (Exception e) 
+		{
+			e.printStackTrace();
+			LogUtils.error("failed to load local library meet: " + e.toString());
+		}
+		
+		return false;
 	}
 	
 	public FFMediaPlayer(MediaPlayer mp) {

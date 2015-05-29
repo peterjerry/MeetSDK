@@ -276,7 +276,7 @@ public class FragmentMp4MediaPlayer {
 		mPlayer.setOnPreparedListener(mPreparedListener);
 		mPlayer.setOnErrorListener(mOnErrorListener);
 		mPlayer.setOnCompletionListener(mCompletionListener);
-		mPlayer.setOnSeekCompleteListener(mOnSeekCompleteListener);
+		mPlayer.setOnSeekCompleteListener(mSeekCompleteListener);
 		
 		boolean done = false;
 		try {
@@ -331,8 +331,10 @@ public class FragmentMp4MediaPlayer {
 			if (m_pre_seek_pos > 0) {
 				mp.seekTo(m_pre_seek_pos);
 				m_pre_seek_pos = 0;
-				//mSeeking = false;
 			}
+			
+			if (mSeeking)
+				mSeeking = false;
 			
 			mp.start();
 			
@@ -369,5 +371,19 @@ public class FragmentMp4MediaPlayer {
 			
 			return true;
 		}
+	};
+	
+	private MediaPlayer.OnSeekCompleteListener mSeekCompleteListener = new MediaPlayer.OnSeekCompleteListener() {
+
+		@Override
+		public void onSeekComplete(MediaPlayer mp) {
+			// TODO Auto-generated method stub
+			if (mSeeking)
+				mSeeking = false;
+			
+			if (mOnSeekCompleteListener != null)
+				mOnSeekCompleteListener.onSeekComplete(mp);
+		}
+		
 	};
 }

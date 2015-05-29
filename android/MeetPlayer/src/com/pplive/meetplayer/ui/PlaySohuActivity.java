@@ -112,7 +112,7 @@ public class PlaySohuActivity extends Activity implements Callback {
 			"&vid=1913402&ch=tv&cateCode=115;115102;115103;115105&plat=6" +
 			"&mkey=kK4jgq0w6aS7b7z_Mm7h9GnS4QbxUfnx&prod=app";
 	
-	private final static String duration_list = "300120,300040,300040,300040,219011";
+	private final static String duration_list = "300.12,300.04,300.04,300.04,219.011";
 	
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
@@ -148,6 +148,8 @@ public class PlaySohuActivity extends Activity implements Callback {
 			mInfoId				= intent.getIntExtra("info_id", -1);
     		mIndex				= intent.getIntExtra("index", -1);
     		mAid				= intent.getIntExtra("aid", -1);
+    		
+    		Log.i(TAG, "Java: mDurationListStr " + mDurationListStr);
 		}
 		else {
 			Log.w(TAG, "Java: use test url and duration list");
