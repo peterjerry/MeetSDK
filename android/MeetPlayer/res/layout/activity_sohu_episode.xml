@@ -1,0 +1,28 @@
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent" >
+
+    <TextView
+        android:id="@+id/title_bar_text"
+        android:layout_width="match_parent"
+        android:layout_height="25dip"
+        android:layout_alignParentTop="true"
+        android:gravity="center_vertical|center_horizontal"
+        android:text="test"
+        android:textSize="20dip"
+        tools:context=".SohuEpisodeActivity" />
+    <GridView
+        android:id="@+id/grid_view"
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:layout_below="@+id/title_bar_text"
+        android:layout_marginLeft="1dip"
+        android:layout_marginRight="1dip"
+        android:numColumns="2"
+		android:columnWidth="5dip"
+        android:cacheColorHint="#00000000">
+	</GridView>
+        
+
+</RelativeLayout>

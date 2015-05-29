@@ -1,14 +1,11 @@
-package com.pplive.epg.sohu;
+package com.pplive.common.sohu;
 
-public class AlbumSohu {
+public class ClipSohu {
 	private String mTitle;
 	private String mSecCateName;
-	private int mVideoCount;
-	private int mLastCount;
-	
+	private int mCount;
 	private int mAid;
 	private int mVid;
-	private int mCid;
 	
 	private String mHoriImgUrl;
 	private String mVertImgUrl;
@@ -25,24 +22,12 @@ public class AlbumSohu {
 	private int mDurationSec;
 
 	@SuppressWarnings("unused")
-	private AlbumSohu() {
+	private ClipSohu() {
 		
 	}
 	
-	public AlbumSohu(String title, String sec_cate, String main_actor,
-			int video_aid, int v_count, int last_count) {
-		this(title, sec_cate, v_count, last_count, 
-				video_aid, 0, 0, "N/A", "",
-				0.0f, 0.0f, "N/A", 
-				"N/A", main_actor,
-				"N/A", "N/A",
-				"", "", "",
-				0);
-	}
-	
-	public AlbumSohu(String title, int count, int aid, int vid, String desc) {
-		this(title, "", count, 0, 
-				aid, vid, 0, desc, "",
+	public ClipSohu(String title, int aid, int vid, String desc) {
+		this(title, "", 1, aid, vid, desc, 
 				0.0f, 0.0f, "N/A", 
 				"N/A", "N/A",
 				"N/A", "N/A",
@@ -50,21 +35,18 @@ public class AlbumSohu {
 				0);
 	}
 
-	public AlbumSohu(String title, String sec_cate, int count, int last_count,
-			int aid, int vid, int cid, String desc, String tip,
-			double score, double douban_score, String score_tip, 
+	public ClipSohu(String title, String sec_cate, int count, 
+			int aid, int vid, String desc, 
+			double score, double douban_score, String tip, 
 			String director, String act, 
 			String year, String area,
 			String imgHoriUrl, String imgVertUrl, String imgBigUrl,
 			int duration_sec) {
 		mTitle 			= title;
 		mSecCateName	= sec_cate;
-		mVideoCount		= count;
-		mLastCount		= last_count;
-		
+		mCount			= count;
 		mAid			= aid;
 		mVid			= vid;
-		mCid			= cid;
 		
 		mScore			= score;
 		mDoubanScore	= douban_score;

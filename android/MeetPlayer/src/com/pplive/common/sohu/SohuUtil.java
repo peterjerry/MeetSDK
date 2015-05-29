@@ -1,20 +1,25 @@
-package com.pplive.epg.sohu;
+package com.pplive.common.sohu;
 
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.StringTokenizer;
 
 import org.apache.http.HttpResponse;
 import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.methods.HttpGet;
-import org.apache.http.impl.client.HttpClients;
+import org.apache.http.impl.client.DefaultHttpClient;
 import org.apache.http.util.EntityUtils;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.json.JSONTokener;
 
+import android.util.Log;
+
 public class SohuUtil {
+	private static final String TAG = "SohuUtil";
+	
 	private static final String PLAYINFO_URL = "http://api.tv.sohu.com/video/playinfo/" +
 			"%d.json?api_key=9854b2afa779e1a6bff1962447a09dbd&plat=6&sver=3.1&partner=47&c=2&sid=%d";
 	
@@ -88,7 +93,7 @@ public class SohuUtil {
 		return mSubChannelList;
 	}
 	
-	public String getMoreList() {
+	public String getMoreList() { 
 		return mMoreListPrefix;
 	}
 	
@@ -113,26 +118,20 @@ public class SohuUtil {
 	}
 	
 	public boolean channel_select(String channelId) {
-		System.out.println("Java: SohuUtil cate() channelId " + channelId);
-		System.out.println("Java: SohuUtil cate() " + CHANNEL_LIST_URL);
+		Log.i(TAG, String.format("Java: SohuUtil channel_select() channelId %s, url %s", 
+				channelId, CHANNEL_LIST_URL));
 		
-		HttpGet request = new HttpGet(CHANNEL_LIST_URL);
-		
-		HttpResponse response;
 		try {
-			response = HttpClients.createDefault().execute(request);
-			if (response.getStatusLine().getStatusCode() != 200){
+			String result = http_get(CHANNEL_LIST_URL);
+			if (result == null)
 				return false;
-			}
-			
-			String result = EntityUtils.toString(response.getEntity());
 			
 			JSONTokener jsonParser = new JSONTokener(result);
 			JSONObject root = (JSONObject) jsonParser.nextValue();
 			int status = root.getInt("status");
 			String statusText = root.getString("statusText");
 			if (status != 200) {
-				System.out.println(String.format("Java: failed to cate() %d %s", status, statusText));
+				Log.i(TAG, String.format("Java: failed to cate() %d %s", status, statusText));
 				return false;
 			}
 			
@@ -176,12 +175,6 @@ public class SohuUtil {
 					return true;
 				}	
 			}
-		} catch (ClientProtocolException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
 		} catch (JSONException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -191,29 +184,19 @@ public class SohuUtil {
 	}
 	
 	public boolean cate_search(String cate_url) {
-		System.out.println("Java: SohuUtil cate() " + cate_url);
+		Log.i(TAG, "Java: SohuUtil cate() " + cate_url);
 		
-		HttpGet request = new HttpGet(cate_url);
-		
-		HttpResponse response;
 		try {
-			response = HttpClients.createDefault().execute(request);
-			if (response.getStatusLine().getStatusCode() != 200){
+			String result = http_get(cate_url);
+			if (result == null)
 				return false;
-			}
-			
-			String result = EntityUtils.toString(response.getEntity());
-			String output = result;
-			if (output.length() > 256)
-				output = output.substring(0, 256);
-			System.out.println("Java: result: " + output);
 			
 			JSONTokener jsonParser = new JSONTokener(result);
 			JSONObject root = (JSONObject) jsonParser.nextValue();
 			int status = root.getInt("status");
 			String statusText = root.getString("statusText");
 			if (status != 200) {
-				System.out.println(String.format("Java: failed to get url %d %s", status, statusText));
+				Log.i(TAG, String.format("Java: failed to get url %d %s", status, statusText));
 				return false;
 			}
 			
@@ -251,12 +234,6 @@ public class SohuUtil {
 			}
 			
 			return true;
-		} catch (ClientProtocolException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
 		} catch (JSONException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -267,29 +244,19 @@ public class SohuUtil {
 	
 	
 	public boolean channel_list() {
-		System.out.println("Java: SohuUtil list() " + CHANNEL_LIST_URL);
+		Log.i(TAG, "Java: SohuUtil channel_list() " + CHANNEL_LIST_URL);
 		
-		HttpGet request = new HttpGet(CHANNEL_LIST_URL);
-		
-		HttpResponse response;
 		try {
-			response = HttpClients.createDefault().execute(request);
-			if (response.getStatusLine().getStatusCode() != 200){
+			String result = http_get(CHANNEL_LIST_URL);
+			if (result == null)
 				return false;
-			}
-			
-			String result = EntityUtils.toString(response.getEntity());
-			String output = result;
-			if (output.length() > 256)
-				output = output.substring(0, 256);
-			System.out.println("Java: result: " + output);
 			
 			JSONTokener jsonParser = new JSONTokener(result);
 			JSONObject root = (JSONObject) jsonParser.nextValue();
 			int status = root.getInt("status");
 			String statusText = root.getString("statusText");
 			if (status != 200) {
-				System.out.println(String.format("Java: failed to get url %d %s", status, statusText));
+				Log.i(TAG, String.format("Java: failed to get url %d %s", status, statusText));
 				return false;
 			}
 			
@@ -330,12 +297,6 @@ public class SohuUtil {
 			}
 			
 			return true;
-		} catch (ClientProtocolException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
 		} catch (JSONException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -344,47 +305,54 @@ public class SohuUtil {
 		return false;
 	}
 	
+	private String getNodeString(JSONObject node, String key) {
+		String strRet = "";
+		
+		try {
+			if (node.has(key))
+				strRet = node.getString(key);
+		} catch (JSONException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+		return strRet;
+	}
+	
 	public PlaylinkSohu detail(int vid, int aid) {
 		String url = String.format(CLIP_DETAIL_URL_FMT, vid, aid);
-		System.out.println("Java: SohuUtil detail() " + url);
+		Log.i(TAG, "Java: SohuUtil detail() " + url);
 		
-		HttpGet request = new HttpGet(url);
-		
-		HttpResponse response;
 		try {
-			response = HttpClients.createDefault().execute(request);
-			if (response.getStatusLine().getStatusCode() != 200){
+			String result = http_get(url);
+			if (result == null)
 				return null;
-			}
-			
-			String result = EntityUtils.toString(response.getEntity());
-			System.out.println("Java: result: " + result.substring(0, 64));
 			
 			JSONTokener jsonParser = new JSONTokener(result);
 			JSONObject root = (JSONObject) jsonParser.nextValue();
 			int status = root.getInt("status");
 			String statusText = root.getString("statusText");
 			if (status != 200) {
-				System.out.println(String.format("Java: failed to get url %d %s", status, statusText));
+				Log.i(TAG, String.format("Java: failed to get url %d %s", status, statusText));
 				return null;
 			}
 			
 			JSONObject data = root.getJSONObject("data");
-			String normal_url = data.getString("url_nor_mp4");
 			String tv_name = data.getString("video_name");
-			String high_url = data.getString("url_high_mp4");
 			
-			String clipsDuration_nor = data.getString("clips_duration_nor");
-			String clipsDuration_high = data.getString("clips_duration_high");
+			String normal_url			= getNodeString(data, "url_nor_mp4");
+			String high_url				= getNodeString(data, "url_high_mp4");
+			String super_url			= getNodeString(data, "url_super_mp4");
+			String origin_url			= getNodeString(data, "url_original_mp4");
+			
+			String clipsDuration_nor 	= getNodeString(data, "clips_duration_nor");
+			String clipsDuration_high	= getNodeString(data, "clips_duration_high");
+			String clipsDuration_super	= getNodeString(data, "clips_duration_super");
+			String clipsDuration_origin	= getNodeString(data, "clips_duration_origin");
 
-			return new PlaylinkSohu(tv_name, normal_url, high_url, 
-					clipsDuration_nor, clipsDuration_high);
-		} catch (ClientProtocolException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			return new PlaylinkSohu(tv_name, 
+					normal_url, high_url, super_url, origin_url, 
+					clipsDuration_nor, clipsDuration_high, clipsDuration_super, clipsDuration_origin);
 		} catch (JSONException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -395,24 +363,19 @@ public class SohuUtil {
 	
 	public boolean morelist(String morelist_prefix, int page_size, int page_offset) {
 		String url = morelist_prefix + String.format(SEARCH_CHANNEL_SURFIX_FMT, page_size, page_offset);
-		System.out.println("Java: SohuUtil morelist() " + url);
+		Log.i(TAG, "Java: SohuUtil morelist() " + url);
 		
-		HttpGet request = new HttpGet(url);
-		HttpResponse response;
 		try {
-			response = HttpClients.createDefault().execute(request);
-			if (response.getStatusLine().getStatusCode() != 200){
+			String result = http_get(url);
+			if (result == null)
 				return false;
-			}
-			
-			String result = EntityUtils.toString(response.getEntity());
 			
 			JSONTokener jsonParser = new JSONTokener(result);
 			JSONObject root = (JSONObject) jsonParser.nextValue();
 			int status = root.getInt("status");
 			String statusText = root.getString("statusText");
 			if (status != 200) {
-				System.out.println(String.format("Java: failed to subchannel() %d %s", status, statusText));
+				Log.i(TAG, String.format("Java: failed to subchannel() %d %s", status, statusText));
 				return false;
 			}
 			
@@ -489,12 +452,6 @@ public class SohuUtil {
 		} catch (JSONException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
-		} catch (ClientProtocolException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
 		}
 		
 		return false;
@@ -502,25 +459,19 @@ public class SohuUtil {
 	
 	public boolean subchannel(int sub_channel_id, int page_size, int page_offset) {
 		String url = String.format(SUBCHANNEL_URL_FMT, page_size, page_offset, sub_channel_id);
-		System.out.println("Java: SohuUtil subchannel() " + url);
+		Log.i(TAG, "Java: SohuUtil subchannel() " + url);
 		
-		HttpGet request = new HttpGet(url);
-		
-		HttpResponse response;
 		try {
-			response = HttpClients.createDefault().execute(request);
-			if (response.getStatusLine().getStatusCode() != 200){
+			String result = http_get(url);
+			if (result == null)
 				return false;
-			}
-			
-			String result = EntityUtils.toString(response.getEntity());
 			
 			JSONTokener jsonParser = new JSONTokener(result);
 			JSONObject root = (JSONObject) jsonParser.nextValue();
 			int status = root.getInt("status");
 			String statusText = root.getString("statusText");
 			if (status != 200) {
-				System.out.println(String.format("Java: failed to subchannel() %d %s", status, statusText));
+				Log.i(TAG, String.format("Java: failed to subchannel() %d %s", status, statusText));
 				return false;
 			}
 			
@@ -673,88 +624,6 @@ public class SohuUtil {
 			}
 			
 			return true;
-		} catch (ClientProtocolException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (JSONException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-		
-		return false;
-	}
-	
-	public boolean channel_xxx(int sub_channel_id, int page_size, int page_offset) {
-		String url = String.format(SUBCHANNEL_URL_FMT, page_size, page_offset, sub_channel_id);
-		System.out.println("Java: SohuUtil channel() " + url);
-		
-		HttpGet request = new HttpGet(CHANNEL_LIST_URL);
-		
-		HttpResponse response;
-		try {
-			response = HttpClients.createDefault().execute(request);
-			if (response.getStatusLine().getStatusCode() != 200){
-				return false;
-			}
-			
-			String result = EntityUtils.toString(response.getEntity());
-			String output = result;
-			if (output.length() > 256)
-				output = output.substring(0, 256);
-			System.out.println("Java: result: " + output);
-			
-			JSONTokener jsonParser = new JSONTokener(result);
-			JSONObject root = (JSONObject) jsonParser.nextValue();
-			int status = root.getInt("status");
-			String statusText = root.getString("statusText");
-			if (status != 200) {
-				System.out.println(String.format("Java: failed to get url %d %s", status, statusText));
-				return false;
-			}
-			
-			JSONObject data = root.getJSONObject("data");
-			JSONArray categorys = data.getJSONArray("categorys");
-			
-			mCategoryList.clear();
-			int count = categorys.length();
-			for (int i=0;i<count;i++) {
-				JSONObject item = categorys.getJSONObject(i);
-				
-				/*
-				 "cate_name":"排序",
-	            "cate_alias":"o",
-	            "default_keys":"-1"
-				 */
-				String cate_name = item.getString("cate_name");
-				String alias = item.getString("cate_alias");
-				String default_keys = item.getString("default_keys");
-				
-				JSONArray cates = item.getJSONArray("cates");
-				int c2 = cates.length();
-				for (int j=0;j<c2;j++) {
-					JSONObject cate = cates.getJSONObject(j);
-					/*
-					"name":"新上架",
-                    "search_key":"1"
-                    */
-					String title = cate.getString("name");
-					String search_key = cate.getString("search_key");
-					
-					CategorySohu ca = new CategorySohu(title, cate_name, alias, search_key, default_keys);
-					mCategoryList.add(ca);
-				}
-			}
-			
-			return true;
-		} catch (ClientProtocolException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
 		} catch (JSONException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -764,29 +633,19 @@ public class SohuUtil {
 	}
 	
 	public boolean column() {
-		System.out.println("Java: SohuUtil column() " + COLUMN_URL);
+		Log.i(TAG, "Java: SohuUtil column() " + COLUMN_URL);
 		
-		HttpGet request = new HttpGet(COLUMN_URL);
-		
-		HttpResponse response;
 		try {
-			response = HttpClients.createDefault().execute(request);
-			if (response.getStatusLine().getStatusCode() != 200){
+			String result = http_get(COLUMN_URL);
+			if (result == null)
 				return false;
-			}
-			
-			String result = EntityUtils.toString(response.getEntity());
-			String output = result;
-			if (output.length() > 256)
-				output = output.substring(0, 256);
-			System.out.println("Java: result: " + output);
 			
 			JSONTokener jsonParser = new JSONTokener(result);
 			JSONObject root = (JSONObject) jsonParser.nextValue();
 			int status = root.getInt("status");
 			String statusText = root.getString("statusText");
 			if (status != 200) {
-				System.out.println(String.format("Java: failed to get url %d %s", status, statusText));
+				Log.i(TAG, String.format("Java: failed to get url %d %s", status, statusText));
 				return false;
 			}
 			
@@ -817,12 +676,6 @@ public class SohuUtil {
 			}
 			
 			return true;
-		} catch (ClientProtocolException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
 		} catch (JSONException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -833,25 +686,19 @@ public class SohuUtil {
 	
 	public boolean search(String key, int page_index, int page_size) {
 		String url = String.format(SEARCH_URL_FMT, key, page_index, page_size);
-		System.out.println("Java: SohuUtil search() " + url);
+		Log.i(TAG, "Java: SohuUtil search() " + url);
 		
-		HttpGet request = new HttpGet(url);
-		
-		HttpResponse response;
 		try {
-			response = HttpClients.createDefault().execute(request);
-			if (response.getStatusLine().getStatusCode() != 200){
+			String result = http_get(url);
+			if (result == null)
 				return false;
-			}
-			
-			String result = EntityUtils.toString(response.getEntity());
 			
 			JSONTokener jsonParser = new JSONTokener(result);
 			JSONObject root = (JSONObject) jsonParser.nextValue();
 			int status = root.getInt("status");
 			String statusText = root.getString("statusText");
 			if (status != 200) {
-				System.out.println(String.format("Java: failed to get url %d %s", status, statusText));
+				Log.i(TAG, String.format("Java: failed to get url %d %s", status, statusText));
 				return false;
 			}
 			
@@ -889,12 +736,6 @@ public class SohuUtil {
 			}
 			
 			return true;
-		} catch (ClientProtocolException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
 		} catch (JSONException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -905,29 +746,19 @@ public class SohuUtil {
 	
 	public boolean episode(int aid, int page_index, int page_size) {
 		String url = String.format(EPISODE_URL_FMT, aid, page_index, page_size);
-		System.out.println("Java: SohuUtil episode() " + url);
+		Log.i(TAG, "Java: SohuUtil episode() " + url);
 		
-		HttpGet request = new HttpGet(url);
-		
-		HttpResponse response;
 		try {
-			response = HttpClients.createDefault().execute(request);
-			if (response.getStatusLine().getStatusCode() != 200){
+			String result = http_get(url);
+			if (result == null)
 				return false;
-			}
-			
-			String result = EntityUtils.toString(response.getEntity());
-			String output = result;
-			if (output.length() > 64)
-				output = output.substring(0, 64);
-			System.out.println("Java: result: " + output);
 			
 			JSONTokener jsonParser = new JSONTokener(result);
 			JSONObject root = (JSONObject) jsonParser.nextValue();
 			int status = root.getInt("status");
 			String statusText = root.getString("statusText");
 			if (status != 200) {
-				System.out.println(String.format("Java: failed to get url %d %s", status, statusText));
+				Log.i(TAG, String.format("Java: failed to get url %d %s", status, statusText));
 				return false;
 			}
 			
@@ -957,12 +788,6 @@ public class SohuUtil {
 			}
 			
 			return true;
-		} catch (ClientProtocolException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
 		} catch (JSONException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -971,158 +796,21 @@ public class SohuUtil {
 		return false;
 	}
 	
-	/*public boolean album_detail(int aid, int vid, int page_index, int page_size) {
-		String url = String.format(ALBUM_DETAIL_URL_FMT, aid, vid, page_index, page_size);
-		System.out.println("Java: SohuUtil album_detail() " + url);
-		
-		HttpGet request = new HttpGet(url);
-		
-		HttpResponse response;
-		try {
-			response = HttpClients.createDefault().execute(request);
-			if (response.getStatusLine().getStatusCode() != 200){
-				return false;
-			}
-			
-			String result = EntityUtils.toString(response.getEntity());
-			
-			JSONTokener jsonParser = new JSONTokener(result);
-			JSONObject root = (JSONObject) jsonParser.nextValue();
-			int status = root.getInt("status");
-			String statusText = root.getString("statusText");
-			if (status != 200) {
-				System.out.println(String.format("Java: failed to album_detail %d %s", status, statusText));
-				return false;
-			}
-			
-			JSONObject data = root.getJSONObject("data");
-			int count = data.getInt("count");
-			int page = data.getInt("page");
-			if (!data.has("videos"))
-				return false;
-			
-			JSONArray videoList = data.getJSONArray("videos");
-			
-			mEpisodeList.clear();
-			for (int i=0;i<videoList.length();i++) {
-				JSONObject episode = videoList.getJSONObject(i);
-				
-				String title = episode.getString("video_name");
-				String picUrl = episode.getString("hor_high_pic");
-				int video_aid = episode.getInt("aid");
-				int	video_id = episode.getInt("vid");
-				String playurl = episode.getString("download_url");
-				
-				EpisodeSohu e = new EpisodeSohu(title, picUrl, video_aid, video_id, playurl);
-				mEpisodeList.add(e);
-			}
-			
-			return true;
-		} catch (ClientProtocolException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (JSONException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-		
-		return false;
-	}*/
-
-	/*public boolean album(int topic_id, int page_index, int page_size) {
-		String url = String.format(TOPIC_LIST_URL_FMT, page_index, page_size);
-		System.out.println("Java: SohuUtil album() " + url);
-		
-		HttpGet request = new HttpGet(url);
-		
-		HttpResponse response;
-		try {
-			response = HttpClients.createDefault().execute(request);
-			if (response.getStatusLine().getStatusCode() != 200){
-				return false;
-			}
-			
-			String result = EntityUtils.toString(response.getEntity());
-			System.out.println("Java: result: " + result.substring(0, 64));
-			
-			JSONTokener jsonParser = new JSONTokener(result);
-			JSONObject root = (JSONObject) jsonParser.nextValue();
-			int status = root.getInt("status");
-			String statusText = root.getString("statusText");
-			if (status != 200) {
-				System.out.println(String.format("Java: failed to get url %d %s", status, statusText));
-				return false;
-			}
-			
-			JSONObject data = root.getJSONObject("data");
-			int count = data.getInt("count");
-			JSONArray topicList = data.getJSONArray("topic");
-			
-			for (int i=0;i<topicList.length();i++) {
-				JSONObject topic = topicList.getJSONObject(i);
-				int tid = topic.getInt("tid");
-				if (tid == topic_id) {
-					JSONArray albums = topic.getJSONArray("albums");
-					
-					mAlbumList.clear();
-					
-					for (int k=0;k<albums.length();k++) {
-						JSONObject album = albums.getJSONObject(k);
-						
-						String name = album.getString("album_name");
-						String tip = album.getString("tip");
-						int aid = album.getInt("aid");
-						int vid = album.getInt("vid");
-						int cid = album.getInt("cid");
-						String picUrl = album.getString("hor_high_pic");
-						AlbumSohu a = new AlbumSohu(name + "(" + tip + ")", picUrl, aid, cid);
-						mAlbumList.add(a);
-					}
-
-					break;
-				}
-			}
-			
-			return true;
-		} catch (ClientProtocolException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (JSONException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-		
-		return false;
-	}*/
-	
 	public boolean topic(int page_index, int page_size) {
 		String url = String.format(TOPIC_LIST_URL_FMT, page_index, page_size);
-		System.out.println("Java: SohuUtil topic() " + url);
+		Log.i(TAG, "Java: SohuUtil topic() " + url);
 		
-		HttpGet request = new HttpGet(url);
-		
-		HttpResponse response;
 		try {
-			response = HttpClients.createDefault().execute(request);
-			if (response.getStatusLine().getStatusCode() != 200){
+			String result = http_get(url);
+			if (result == null)
 				return false;
-			}
-			
-			String result = EntityUtils.toString(response.getEntity());
-			System.out.println("Java: result: " + result.substring(0, 64));
 			
 			JSONTokener jsonParser = new JSONTokener(result);
 			JSONObject root = (JSONObject) jsonParser.nextValue();
 			int status = root.getInt("status");
 			String statusText = root.getString("statusText");
 			if (status != 200) {
-				System.out.println(String.format("Java: failed to get url %d %s", status, statusText));
+				Log.i(TAG, String.format("Java: failed to get url %d %s", status, statusText));
 				return false;
 			}
 			
@@ -1142,12 +830,6 @@ public class SohuUtil {
 			}
 			
 			return true;
-		} catch (ClientProtocolException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
 		} catch (JSONException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -1158,76 +840,74 @@ public class SohuUtil {
 	
 	public PlaylinkSohu playlink_pptv(int vid, int sid) {
 		String url = String.format(PLAYINFO_URL, vid, sid);
-		System.out.println("Java: SohuUtil getPlayLink " + url);
+		Log.i(TAG, "Java: SohuUtil getPlayLink " + url);
 		
-		HttpGet request = new HttpGet(url);
-		
-		HttpResponse response;
 		try {
-			response = HttpClients.createDefault().execute(request);
-			if (response.getStatusLine().getStatusCode() != 200){
+			String result = http_get(url);
+			if (result == null)
 				return null;
-			}
-			
-			String result = EntityUtils.toString(response.getEntity());
-			System.out.println("Java: result: " + result.substring(0, 64));
 			
 			JSONTokener jsonParser = new JSONTokener(result);
 			JSONObject root = (JSONObject) jsonParser.nextValue();
 			int status = root.getInt("status");
 			String statusText = root.getString("statusText");
 			if (status != 200) {
-				System.out.println(String.format("Java: failed to get url %d %s", status, statusText));
+				Log.i(TAG, String.format("Java: failed to get url %d %s", status, statusText));
 				return null;
 			}
 			
-			JSONObject data = root.getJSONObject("data");
-			String tv_name = data.getString("tv_name");
+			JSONObject data 	= root.getJSONObject("data");
+			String tv_name 		= data.getString("tv_name");
+			String normal_url 	= getNodeString(data, "url_nor_mp4");
+			String high_url 	= getNodeString(data, "url_high_mp4");
 			
-			String normal_url = "";
-			if (data.has("url_nor_mp4"))
-				normal_url = data.getString("url_nor_mp4");
-			String high_url = "";
-			if (data.has("url_high_mp4"))
-				high_url = data.getString("url_high_mp4");
-			
-			String StrNorDuration = "";
-			if (data.has("clipsDuration_nor")) {
-				JSONArray clipsDuration_nor = data.getJSONArray("clipsDuration_nor");
-				StringBuffer sbNormal = new StringBuffer();
-				for (int k=0;k<clipsDuration_nor.length();k++) {
-					double du = clipsDuration_nor.getDouble(k);
-					sbNormal.append(du);
-					sbNormal.append(",");
-					System.out.println(String.format("Java: segment #%d %.3f sec", k, du));
-				}
-				StrNorDuration = sbNormal.toString();
+			JSONArray clipsDuration_nor = data.getJSONArray("clipsDuration_nor");
+			StringBuffer sbNormal = new StringBuffer();
+			for (int k=0;k<clipsDuration_nor.length();k++) {
+				double du = clipsDuration_nor.getDouble(k);
+				sbNormal.append(du);
+				sbNormal.append(",");
+				Log.i(TAG, String.format("Java: normal segment #%d %.3f sec", k, du));
 			}
 			
-			String StrHighDuration = "";
-			if (data.has("clipsDuration_high")) {
-				JSONArray clipsDuration_high = data.getJSONArray("clipsDuration_high");
-				StringBuffer sbHigh = new StringBuffer();
-				for (int k=0;k<clipsDuration_high.length();k++) {
-					double du = clipsDuration_high.getDouble(k);
-					sbHigh.append((int)(du * 1000));
-					sbHigh.append(",");
-					System.out.println(String.format("Java: segment #%d %.3f sec", k, du));
-				}
-				StrHighDuration = sbHigh.toString();
+			JSONArray clipsDuration_high = data.getJSONArray("clipsDuration_high");
+			StringBuffer sbHigh = new StringBuffer();
+			for (int k=0;k<clipsDuration_high.length();k++) {
+				double du = clipsDuration_high.getDouble(k);
+				sbHigh.append(du);
+				sbHigh.append(",");
+				Log.i(TAG, String.format("Java: high segment #%d %.3f sec", k, du));
 			}
 			
-			return new PlaylinkSohu(tv_name, normal_url, high_url, StrNorDuration, StrHighDuration);
-		} catch (ClientProtocolException e) {
+			return new PlaylinkSohu(tv_name, normal_url, high_url, sbNormal.toString(), sbHigh.toString());
+		} catch (JSONException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+		return null;
+	}
+	
+	private String http_get(String url) {
+		HttpGet request = new HttpGet(url);
+		
+		HttpResponse response;
+		try {
+			response = new DefaultHttpClient().execute(request);
+			if (response.getStatusLine().getStatusCode() != 200){
+				return null;
+			}
+			
+			return EntityUtils.toString(response.getEntity());
+		}
+		catch (ClientProtocolException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
-		} catch (JSONException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
 		}
+		
 		return null;
 	}
 }

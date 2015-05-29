@@ -7,6 +7,8 @@
 #include "apKey.h"
 #include "strptime.h"
 #include "apBlockDownloader.h"
+#include "apFlvDemuxer.h"
+#include "apTsWriter.h"
 #define LOG_TAG "testPPTVLive"
 #include "log.h"
 #include "apFileLog.h"
@@ -36,6 +38,16 @@ extern "C"
 							"&type=phone.android.vip&sdk=1" \
 							"&channel=162&vvid=41&k=%s"
 
+apTsWriter dumper;
+
+int onFrame(AVPacket *pkt)
+{
+	if (!dumper.write_frame(pkt))
+		return -1;
+
+	return 0;
+}
+
 int _tmain(int argc, _TCHAR* argv[])
 {
 	apLog::init("c:\\log\\testPPTVlive.log");
@@ -54,13 +66,15 @@ int _tmain(int argc, _TCHAR* argv[])
 		item->get_sh(), item->get_bh(), item->get_st(), t);
 	uint8_t * key = apKey::getKey(t);
 
-	int64_t segment_time = t - 45;
+	int64_t segment_time = t - 45; // unit second
 	segment_time -= (segment_time % 5);
 
 	char url[1024]= {0};
 	char save_filename[64] = {0};
 
-	for (int i=0;i<10;i++) {  
+	bool dumper_opened = false;
+
+	for (int i=0;i<100;i++) {  
 		sprintf(url, LIVE_URL_FMT, item->get_sh(), segment_time, (char *)key);
 
 		LOGI("ready to download segment: %s", url);
@@ -68,6 +82,7 @@ int _tmain(int argc, _TCHAR* argv[])
 		apBlockDownloader downloader(url);
 		char save_filename[64] = {0};
 		sprintf(save_filename, "d:\\dump\\%I64d.flv", segment_time);
+		/*
 		if (!downloader.saveAs(save_filename)) {
 			LOGE("failed to download segment %s", url);
 			break;
@@ -75,9 +90,42 @@ int _tmain(int argc, _TCHAR* argv[])
 
 		LOGI("segment %I64d.block downloaded as %s", segment_time, save_filename);
 		printf("segment %I64d.block downloaded as %s\n", segment_time, save_filename);
+		*/
+
+		if (!downloader.saveInMemory()) {
+			LOGE("failed to download segment %s", url);
+			break;
+		}
+
+		int size;
+		char * data = downloader.getData(&size);
+		LOGI("segment %I64d.block downloaded %p, size %d", segment_time, data, size);
+		printf("segment %I64d.block downloaded %p, size %d\n", segment_time, data, size);
+
+		apFlvDemuxer demux;
+
+		demux.setOnFrame(onFrame);
+		if (!demux.setSource(data, size)) {
+			LOGE("failed to open flv");
+			printf("failed to open flv\n");
+			break;
+		}
+
+		if (!dumper_opened) {
+			if (!dumper.open(demux.getFmtCtx(), "udp://127.0.0.1:9981/1.ts")) {
+				LOGE("failed to open output ts file");
+				break;
+			}
+
+			dumper_opened = true;
+		}
+
+		demux.demux();
 
 		segment_time += 5;
 	}
+
+	dumper.close();
 
 	return 0;
 }

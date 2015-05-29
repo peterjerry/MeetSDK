@@ -1,4 +1,4 @@
-package com.pplive.epg.sohu;
+package com.pplive.common.sohu;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -22,9 +22,6 @@ public class PlaylinkSohu {
 	private String 	mHighDuration;
 	private String 	mSuperDuration;
 	private String 	mOriginDuration;
-	
-	private List<String> mHighUrlList;
-	private List<String> mNormalUrlList;
 	
 	@SuppressWarnings("unused")
 	private PlaylinkSohu() {
@@ -64,14 +61,6 @@ public class PlaylinkSohu {
 			return null;
 	}
 	
-	@Deprecated
-	public List<String> getUrlListbyFT(int ft) {
-		if (ft == 1)
-			return mNormalUrlList;
-		else
-			return mHighUrlList;
-	}
-	
 	/*
 	 * param normal_duration unit: sec, e.g. 150.3,150.3,160
 	 */
@@ -98,18 +87,17 @@ public class PlaylinkSohu {
 		mOriginDuration		= origin_duration;
 	}
 	
-	private List<String> getList(String url_list) {
+	/*private List<String> getList(String url_list) {
 		List<String> cliplist = new ArrayList<String>();
 		StringTokenizer st;
         st = new StringTokenizer(url_list, ",", false);
         int i = 0;
 		while (st.hasMoreElements()) {
 			String url = st.nextToken();
-			//System.out.println(String.format("Java: segment #%d url: %s", i, url));
 			cliplist.add(url);
 			i++;
 		}
 		
 		return cliplist;
-	}
+	}*/
 }

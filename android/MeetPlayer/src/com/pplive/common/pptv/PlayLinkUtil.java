@@ -1,4 +1,4 @@
-package com.pplive.meetplayer.util;
+package com.pplive.common.pptv;
 
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;

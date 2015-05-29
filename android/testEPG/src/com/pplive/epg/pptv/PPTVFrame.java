@@ -465,7 +465,7 @@ public class PPTVFrame extends JFrame {
     		String vid = ext_id.substring(pos + 1, ext_id.length());
     		SohuUtil sohu = new SohuUtil();
     		
-    		PlaylinkSohu l = sohu.getPlayLink(Integer.valueOf(vid), Integer.valueOf(sid));
+    		PlaylinkSohu l = sohu.playlink_pptv(Integer.valueOf(vid), Integer.valueOf(sid));
     		
     		if (l == null) {
     			mState = EPG_STATE.EPG_STATE_ERROR;
