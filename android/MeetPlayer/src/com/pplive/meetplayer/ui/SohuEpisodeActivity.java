@@ -60,6 +60,7 @@ public class SohuEpisodeActivity extends Activity {
     int selected_aid = -1;
     int selected_index = -1;
     
+    boolean noMoreData = false;
     boolean loadingMore = false;
 	
 	@Override
@@ -95,8 +96,8 @@ public class SohuEpisodeActivity extends Activity {
 				//reset page_index
 				ep_page_index = 1;
 				
-				AlbumSohu al = mAlbumList.get(position);
-				selected_aid = al.getAid();
+				Map<String, Object> item = adapter.getItem(position);
+				selected_aid = (Integer)item.get("aid");
 				new SohuEpgTask().execute(TASK_EPISODE, selected_aid);
 			}
 			
@@ -118,9 +119,11 @@ public class SohuEpisodeActivity extends Activity {
 						firstVisibleItem, visibleItemCount, totalItemCount));
 				
 				int lastInScreen = firstVisibleItem + visibleItemCount;
-		        if (totalItemCount > 0 && lastInScreen == totalItemCount && !loadingMore) {
-	        		loadingMore = true;
-	                new SohuEpgTask().execute(TASK_MORELIST);
+		        if (totalItemCount > 0 && lastInScreen == totalItemCount && !noMoreData) {
+		        	if (!loadingMore) {
+		        		loadingMore = true;
+		                new SohuEpgTask().execute(TASK_MORELIST);
+		        	}
 		        }
 			}
 		});
@@ -177,6 +180,8 @@ public class SohuEpisodeActivity extends Activity {
         		startActivity(intent);
             	break;
             case MSG_MORELIST_DONE:
+            	List<Map<String, Object>> listData = adapter.getData();
+            	
     			int c = mAlbumList.size();
     			for (int i=0;i<c;i++) {
     				HashMap<String, Object> episode = new HashMap<String, Object>();
@@ -185,9 +190,10 @@ public class SohuEpisodeActivity extends Activity {
     				episode.put("title", al.getTitle());
     				episode.put("img_url", al.getImgUrl(true));
     				episode.put("tip", al.getTip());
-    				data2.add(episode);
+    				episode.put("aid", al.getAid());
+    				listData.add(episode);
     			}
-            	adapter.updateData(data2);
+            	
             	adapter.notifyDataSetChanged();
             	break;
             default:
@@ -289,7 +295,7 @@ public class SohuEpisodeActivity extends Activity {
 				album_page_index++;
 				if (!mEPG.morelist(mMoreList, page_size, (album_page_index - 1) * page_size)) {
 					Log.e(TAG, "Java: failed to call morelist() morelist " + mMoreList);
-					loadingMore = false;
+					noMoreData = true;
 					return false;
 				}
 				
@@ -309,8 +315,7 @@ public class SohuEpisodeActivity extends Activity {
 		protected void onPostExecute(Boolean result) {
 			// TODO Auto-generated method stub
 			if (!result) {
-				Toast.makeText(SohuEpisodeActivity.this, "failed to get sub channel", 
-						Toast.LENGTH_SHORT).show();
+				Log.e(TAG, "Java: failed to get sub channel");
 				return;
 			}
 			
@@ -348,6 +353,7 @@ public class SohuEpisodeActivity extends Activity {
 				episode.put("title", al.getTitle());
 				episode.put("img_url", al.getImgUrl(true));
 				episode.put("tip", al.getTip());
+				episode.put("aid", al.getAid());
 				data2.add(episode);
 			}
 			

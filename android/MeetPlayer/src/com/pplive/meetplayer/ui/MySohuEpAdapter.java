@@ -10,8 +10,6 @@ import com.pplive.meetplayer.util.ImgUtil;
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.os.AsyncTask;
-import android.pplive.media.MeetSDK;
-import android.provider.MediaStore.Video.Thumbnails;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -34,6 +32,10 @@ public class MySohuEpAdapter extends BaseAdapter {
 
 		inflater = LayoutInflater.from(context);
 	}
+	
+	public List<Map<String, Object>> getData() {
+		return data;
+	}
 
 	@Override
 	public int getCount() {
@@ -42,9 +44,12 @@ public class MySohuEpAdapter extends BaseAdapter {
 	}
 
 	@Override
-	public Object getItem(int position) {
+	public Map<String, Object> getItem(int position) {
 		// TODO Auto-generated method stub
-		return position;
+		if (position >= data.size())
+			return null;
+		
+		return data.get(position);
 	}
 
 	@Override
@@ -55,9 +60,10 @@ public class MySohuEpAdapter extends BaseAdapter {
 
 	private class ViewHolder {
 
-		TextView title	= null;
-		ImageView img	= null;
-		TextView tip	= null;
+		TextView title			= null;
+		ImageView img			= null;
+		TextView tip			= null;
+		boolean imgShowed		= false;
 
 		public TextView getTitle() {
 			return title;
@@ -83,6 +89,13 @@ public class MySohuEpAdapter extends BaseAdapter {
 			this.img = img;
 		}
 
+		public void setShowed(boolean isShowed) {
+			this.imgShowed = isShowed;
+		}
+		
+		public boolean isShowed() {
+			return imgShowed;
+		}
 	}
 
 	@Override
@@ -110,9 +123,13 @@ public class MySohuEpAdapter extends BaseAdapter {
 		String img_url = (String) item.get("img_url");
 		holder.getTitle().setText(title);
 		holder.getTip().setText(tip);
-		//holder.img.setImageResource(R.drawable.clip);
 		
-		new LoadPicTask().execute(holder, img_url);
+		ImageView iv = holder.getImg();
+		
+		//if (!holder.isShowed()) {
+			iv.setImageResource(R.drawable.clip); // set default picture
+			new LoadPicTask().execute(holder, img_url);
+		//}
 		
 		// 注意 默认为返回null,必须得返回convertView视图
 		return convertView;
@@ -120,21 +137,25 @@ public class MySohuEpAdapter extends BaseAdapter {
 
 	private class LoadPicTask extends AsyncTask<Object, Integer, Bitmap> {
 
-		ViewHolder mHolder;
+		private ViewHolder mHolder;
+		private String img_url;
 		
 		@Override
 		protected void onPostExecute(Bitmap bmp) {
-			if (mHolder == null || bmp == null)
+			if (mHolder == null || bmp == null) {
+				Log.e(TAG, "Java: failed to get http image " + img_url);
 				return;
+			}
 			
 			ImageView thumb	= mHolder.getImg();
 			thumb.setImageBitmap(bmp);
+			mHolder.setShowed(true);
 		}
 		
 		@Override
 		protected Bitmap doInBackground(Object... params) {
 			mHolder = (ViewHolder)params[0];
-			String img_url = (String)params[1];
+			img_url = (String)params[1];
 			String key = PicCacheUtil.hashKeyForDisk(img_url);
 			Bitmap bmp = PicCacheUtil.getThumbnailFromDiskCache(key);
 			if (bmp == null) {
@@ -149,9 +170,5 @@ public class MySohuEpAdapter extends BaseAdapter {
 			
 			return bmp;
 		}
-	}
-
-	public void updateData(List<Map<String, Object>> data) {
-		this.data = data;
 	}
 }

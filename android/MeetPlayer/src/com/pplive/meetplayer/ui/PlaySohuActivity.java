@@ -542,7 +542,7 @@ public class PlaySohuActivity extends Activity implements Callback {
 				}
 				
 				EpisodeSohu ep = mEpisodeList.get(mIndex);
-				l = mSohu.detail(ep.mVid, ep.mAid);
+				l = mSohu.playlink_pptv(ep.mVid, 0);
 			}
 	    		
     		if (l == null) {

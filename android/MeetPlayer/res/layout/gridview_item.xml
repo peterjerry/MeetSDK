@@ -6,7 +6,9 @@
             android:id="@+id/gridview_img"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-			android:layout_alignParentTop="true"
+            android:minWidth="256dip"
+            android:minHeight="256dip"
+            android:layout_alignParentTop="true"
             android:layout_margin="5dip"
             android:src="@drawable/clip" />
 	<TextView
@@ -15,6 +17,7 @@
         android:layout_height="wrap_content"
         android:layout_alignBottom="@id/gridview_img"
         android:layout_alignRight="@id/gridview_img"
+        android:layout_marginRight="5dip"
         android:gravity="right"
         android:textColor="#FFF"
         android:textSize="14dip"
