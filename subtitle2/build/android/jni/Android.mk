@@ -166,7 +166,8 @@ LOCAL_C_INCLUDES := \
 	../../src/freetype/include \
 	../../src/iconv/include \
 	../../src/enca/lib \
-	../../src/libass
+	../../src/libass \
+	../../src/libass/libass
 SRC_PATH = ../../../src/libass
 common_SRC_FILES := \
 	libass/ass.c \
