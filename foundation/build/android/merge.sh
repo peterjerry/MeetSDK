@@ -4,7 +4,7 @@ OS=`uname`
 case $OS in
 	MINGW32_NT-6.1)
 		HOST=windows
-		NDK=D:/Software/android-ndk-r9d
+		NDK=D:/Software/android-ndk-r10d
 		export TMPDIR=D:/Tmp
 		;;
 	Linux)
@@ -31,6 +31,11 @@ case $1 in
 		CONFIG_SRC=../build/android/config_neon
 		TARGET1=../output/android/neon
 		;;
+	arm64)
+		CONFIG_SRC=../build/android/config_arm64
+		TARGET1=../output/android/arm64
+		ARCH=aarch64
+		;;
 	tegra2)
 		CONFIG_SRC=../build/android/config_tegra2
 		TARGET1=../output/android/v7_vfpv3d16
@@ -40,27 +45,35 @@ case $1 in
 		exit
 esac
 
-ASM_OBJ="libavutil/$ARCH/*.o libavcodec/$ARCH/*.o libswresample/$ARCH/*.o"
+ASM_OBJ="libavutil/$ARCH/*.o libavcodec/$ARCH/*.o"
 
 if [ $ARCH == 'arm' ]
 then
 	PLATFORM=$NDK/platforms/android-9/arch-arm
-	PREBUILT=$NDK/toolchains/arm-linux-androideabi-4.6/prebuilt/$HOST
+	PREBUILT=$NDK/toolchains/arm-linux-androideabi-4.8/prebuilt/$HOST
 	CROSS_PREFIX=$PREBUILT/bin/arm-linux-androideabi-
 	EXTRA_CFLAGS="$EXTRA_CFLAGS -fstack-protector -fstrict-aliasing"
 	OPTFLAGS="-O2"
+	ASM_OBJ="$ASM_OBJ libswresample/$ARCH/*.o"
+elif [ $ARCH == 'aarch64' ]
+then
+	PLATFORM=$NDK/platforms/android-21/arch-arm64
+	PREBUILT=$NDK/toolchains/aarch64-linux-android-4.9/prebuilt/$HOST
+	CROSS_PREFIX=$PREBUILT/bin/aarch64-linux-android-
+	EXTRA_CFLAGS="$EXTRA_CFLAGS -fstrict-aliasing"
+	OPTFLAGS="-O2 -fno-pic"
 elif [ $ARCH == 'x86' ]
 then
 	PLATFORM=$NDK/platforms/android-9/arch-x86
-	PREBUILT=$NDK/toolchains/x86-4.6/prebuilt/$HOST
+	PREBUILT=$NDK/toolchains/x86-4.8/prebuilt/$HOST
 	CROSS_PREFIX=$PREBUILT/bin/i686-linux-android-
 	EXTRA_CFLAGS="$EXTRA_CFLAGS -fstrict-aliasing"
 	OPTFLAGS="-O2 -fno-pic"
-	ASM_OBJ="$ASM_OBJ libswscale/x86/*.o libavfilter/x86/*.o"
+	ASM_OBJ="$ASM_OBJ libswresample/$ARCH/*.o libswscale/x86/*.o libavfilter/x86/*.o"
 elif [ $ARCH == 'mips' ]
 then
 	PLATFORM=$NDK/platforms/android-9/arch-mips
-	PREBUILT=$NDK/toolchains/mipsel-linux-android-4.6/prebuilt/$HOST
+	PREBUILT=$NDK/toolchains/mipsel-linux-android-4.8/prebuilt/$HOST
 	CROSS_PREFIX=$PREBUILT/bin/mipsel-linux-android-
 	EXTRA_CFLAGS="$EXTRA_CFLAGS -fno-strict-aliasing -fmessage-length=0 -fno-inline-functions-called-once -frerun-cse-after-loop -frename-registers"
 	OPTFLAGS="-O2"

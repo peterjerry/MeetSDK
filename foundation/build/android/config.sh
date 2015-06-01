@@ -4,7 +4,7 @@ OS=`uname`
 case $OS in
 	MINGW32_NT-6.1)
 		HOST=windows
-		NDK=D:/Software/android-ndk-r9d
+		NDK=D:/Software/android-ndk-r10d
 		export TMPDIR=D:/Tmp
 		;;
 	Linux)
@@ -26,7 +26,7 @@ case $1 in
 		EXTRA_CFLAGS="-march=i686 -msse4"
 		#  -DANDROID -DPIC -fpic  -std=c99
 		#EXTRA_LDFLAGS="-Lthirdparty/lenthevcdec/lib/x86"
-		EXTRA_PARAMETERS="--disable-debug --disable-fast-unaligned"
+		EXTRA_PARAMETERS="--cpu=$CPU --disable-debug --disable-fast-unaligned"
 		;;
 	neon)
 		ARCH=arm
@@ -34,6 +34,10 @@ case $1 in
 		EXTRA_CFLAGS="-mfloat-abi=softfp -mfpu=neon -mtune=cortex-a8 -mvectorize-with-neon-quad"
 		# -mthumb to fix hevc image problem
 		EXTRA_LDFLAGS="-Wl,--fix-cortex-a8 -Lthirdparty/lenthevcdec/lib/armeabi-v7a"
+		EXTRA_PARAMETERS="--cpu=$CPU --disable-debug --disable-fast-unaligned --disable-armv6 --disable-armv6t2"
+		;;
+	arm64)
+		ARCH=arm64
 		EXTRA_PARAMETERS="--disable-debug --disable-fast-unaligned --disable-armv6 --disable-armv6t2"
 		;;
 	neon_lgpl)
@@ -41,48 +45,60 @@ case $1 in
 		CPU=armv7-a
 		EXTRA_CFLAGS="-mfloat-abi=softfp -mfpu=neon -mtune=cortex-a8 -mvectorize-with-neon-quad"
 		EXTRA_LDFLAGS="-Wl,--fix-cortex-a8"
-		EXTRA_PARAMETERS="--disable-debug --disable-fast-unaligned --disable-protocols --enable-protocol=http --enable-protocol=hls --enable-protocol=file --disable-parser=dca --disable-demuxer=dts --disable-decoder=dca --disable-parser=ac3 --disable-demuxer=ac3 --disable-decoder=ac3 --disable-demuxer=eac3 --disable-decoder=eac3 --enable-muxer=hls"
+		EXTRA_PARAMETERS="--cpu=$CPU --disable-debug --disable-fast-unaligned --disable-protocols --enable-protocol=http --enable-protocol=hls --enable-protocol=file --disable-parser=dca --disable-demuxer=dts --disable-decoder=dca --disable-parser=ac3 --disable-demuxer=ac3 --disable-decoder=ac3 --disable-demuxer=eac3 --disable-decoder=eac3 --enable-muxer=hls"
 		;;
 	neon_debug)
 		ARCH=arm
 		CPU=armv7-a
 		EXTRA_CFLAGS="-mfloat-abi=softfp -mfpu=neon -mtune=cortex-a8 -mvectorize-with-neon-quad"
 		EXTRA_LDFLAGS="-Wl,--fix-cortex-a8"
-		EXTRA_PARAMETERS="--enable-debug=1 --disable-fast-unaligned --disable-protocols --enable-protocol=http --enable-protocol=hls --enable-protocol=file"
+		EXTRA_PARAMETERS="--cpu=$CPU --enable-debug=1 --disable-fast-unaligned --disable-protocols --enable-protocol=http --enable-protocol=hls --enable-protocol=file"
 		;;
 	neon_cut)
 		ARCH=arm
 		CPU=armv7-a
 		EXTRA_CFLAGS="-mfloat-abi=softfp -mfpu=neon -mtune=cortex-a8 -mvectorize-with-neon-quad"
 		EXTRA_LDFLAGS="-Wl,--fix-cortex-a8"
-		EXTRA_PARAMETERS="--disable-debug --disable-fast-unaligned --disable-protocols --enable-protocol=http --disable-demuxers --enable-demuxer=mov --enable-demuxer=hls --enable-demuxer=mpegts --disable-bsfs --enable-bsf=aac_adtstoasc --enable-bsf=h264_mp4toannexb --disable-parsers  --enable-parser=h264 --enable-parser=aac --disable-decoders --enable-decoder=h264 --enable-decoder=aac"
+		EXTRA_PARAMETERS="--cpu=$CPU --disable-debug --disable-fast-unaligned --disable-protocols --enable-protocol=http --disable-demuxers --enable-demuxer=mov --enable-demuxer=hls --enable-demuxer=mpegts --disable-bsfs --enable-bsf=aac_adtstoasc --enable-bsf=h264_mp4toannexb --disable-parsers  --enable-parser=h264 --enable-parser=aac --disable-decoders --enable-decoder=h264 --enable-decoder=aac"
 		;;
 	tegra2)
 		ARCH=arm
 		CPU=armv7-a
 		EXTRA_CFLAGS="-mfloat-abi=softfp -mfpu=vfpv3-d16"
-		EXTRA_PARAMETERS="--disable-debug --disable-fast-unaligned --disable-protocols --enable-protocol=http --enable-protocol=hls --enable-protocol=file"
+		EXTRA_PARAMETERS="--cpu=$CPU --disable-debug --disable-fast-unaligned --disable-protocols --enable-protocol=http --enable-protocol=hls --enable-protocol=file"
 		;;
 	v6_vfp)
 		ARCH=arm
 		CPU=armv6
 		EXTRA_CFLAGS="-mfloat-abi=softfp -mfpu=vfp"
-		EXTRA_PARAMETERS="--disable-debug --disable-fast-unaligned --disable-protocols --enable-protocol=http --enable-protocol=hls --enable-protocol=file"
+		EXTRA_PARAMETERS="--cpu=$CPU --disable-debug --disable-fast-unaligned --disable-protocols --enable-protocol=http --enable-protocol=hls --enable-protocol=file"
 		;;
 	v6_vfp_cut)
 		ARCH=arm
 		CPU=armv6
 		EXTRA_CFLAGS="-mfloat-abi=softfp -mfpu=vfp"
-		EXTRA_PARAMETERS="--disable-debug --disable-fast-unaligned --disable-protocols --enable-protocol=http --enable-protocol=file --disable-demuxers --enable-demuxer=mov --enable-demuxer=hls --enable-demuxer=mpegts --disable-bsfs --enable-bsf=aac_adtstoasc --enable-bsf=h264_mp4toannexb --disable-parsers  --enable-parser=h264 --enable-parser=aac --disable-decoders --enable-decoder=h264 --enable-decoder=aac"
+		EXTRA_PARAMETERS="--cpu=$CPU --disable-debug --disable-fast-unaligned --disable-protocols --enable-protocol=http --enable-protocol=file --disable-demuxers --enable-demuxer=mov --enable-demuxer=hls --enable-demuxer=mpegts --disable-bsfs --enable-bsf=aac_adtstoasc --enable-bsf=h264_mp4toannexb --disable-parsers  --enable-parser=h264 --enable-parser=aac --disable-decoders --enable-decoder=h264 --enable-decoder=aac"
 		;;
 	*)
 		echo Unknown target: $1
 		exit
 esac
 
+if [ $ARCH == 'arm64' ] 
+then
+	SYSROOT=$NDK/platforms/android-21/arch-$ARCH
+else
+	SYSROOT=$NDK/platforms/android-9/arch-$ARCH
+fi
+
 if [ $ARCH == 'arm' ] 
 then
 	CROSS_PREFIX=$NDK/toolchains/arm-linux-androideabi-4.8/prebuilt/$HOST/bin/arm-linux-androideabi-
+	EXTRA_CFLAGS="$EXTRA_CFLAGS -fstack-protector -fstrict-aliasing"
+	OPTFLAGS="-O2"
+elif [ $ARCH == 'arm64' ] 
+then
+	CROSS_PREFIX=$NDK/toolchains/aarch64-linux-android-4.9/prebuilt/$HOST/bin/aarch64-linux-android-
 	EXTRA_CFLAGS="$EXTRA_CFLAGS -fstack-protector -fstrict-aliasing"
 	OPTFLAGS="-O2"
 elif [ $ARCH == 'x86' ] 
@@ -127,12 +143,11 @@ fi
 ./configure \
 --prefix=$PREFIX \
 --arch=$ARCH \
---cpu=$CPU \
 --target-os=linux \
 --enable-optimizations \
 --enable-cross-compile \
 --cross-prefix=$CROSS_PREFIX \
---sysroot=$NDK/platforms/android-9/arch-$ARCH \
+--sysroot=$SYSROOT \
 --extra-cflags="-DNDEBUG -mandroid -ftree-vectorize -ffunction-sections -funwind-tables -fomit-frame-pointer -funswitch-loops -finline-limit=300 -finline-functions -fpredictive-commoning -fgcse-after-reload -fipa-cp-clone $EXTRA_CFLAGS" \
 --extra-ldflags="$EXTRA_LDFLAGS" \
 --optflags="$OPTFLAGS" \
@@ -154,6 +169,8 @@ fi
 --enable-filter=rotate,transpose,hflip,vflip,yadif \
 --disable-vfp \
 $EXTRA_PARAMETERS
+
+#--cpu=$CPU \
 
 
 
