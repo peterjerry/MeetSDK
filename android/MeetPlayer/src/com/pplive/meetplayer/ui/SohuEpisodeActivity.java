@@ -48,9 +48,13 @@ public class SohuEpisodeActivity extends Activity {
     private final static int TASK_PLAYLINK		= 2;
     private final static int TASK_MORELIST		= 3;
     
+    private final static int SET_DATA_LIST		= 1;
+    private final static int SET_DATA_SEARCH		= 2;
+    
     private final static int page_size = 10;
     private int album_page_index = 1;
     private int ep_page_index = 1;
+    private int search_page_index = 1;
     
     private List<Map<String, Object>> data2;
     
@@ -59,9 +63,10 @@ public class SohuEpisodeActivity extends Activity {
     private List<EpisodeSohu> mEpisodeList;
     private String mMoreList;
     private PlaylinkSohu mPlaylink;
-    int sub_channel_id = -1;
-    int selected_aid = -1;
-    int selected_index = -1;
+    private int sub_channel_id = -1;
+    private int selected_aid = -1;
+    private int selected_index = -1;
+    private String search_key;
     
     boolean noMoreData = false;
     boolean loadingMore = false;
@@ -76,8 +81,10 @@ public class SohuEpisodeActivity extends Activity {
 		
 		Intent intent = getIntent();
 		sub_channel_id = intent.getIntExtra("sub_channel_id", -1);
-		if (sub_channel_id == -1) {
-			Toast.makeText(this, "failed to get sub_channel_id", Toast.LENGTH_SHORT).show();
+		if (intent.hasExtra("search_key"))
+			search_key = intent.getStringExtra("search_key");
+		if (sub_channel_id == -1 && search_key == null) {
+			Toast.makeText(this, "intent param is wrong", Toast.LENGTH_SHORT).show();
 			finish();
 			return;
 		}
@@ -133,7 +140,10 @@ public class SohuEpisodeActivity extends Activity {
 		
 	    mEPG = new SohuUtil();
 	    
-        new SetDataTask().execute();
+	    if (search_key != null)
+	    	new SetDataTask().execute(SET_DATA_SEARCH);
+	    else
+	    	new SetDataTask().execute(SET_DATA_LIST);
 	}
 	
 	private Handler mhandler = new Handler(){  
@@ -329,26 +339,37 @@ public class SohuEpisodeActivity extends Activity {
 		@Override
 		protected Boolean doInBackground(Integer... params) {
 			// TODO Auto-generated method stub
-			if (!mEPG.subchannel(sub_channel_id, page_size, 1)) {
-				Log.e(TAG, "Java: failed to call subchannel()");
-				return false;
-			}
+			int action = params[0];
 			
-			mMoreList = mEPG.getMoreList();
-			if (mMoreList != null && !mMoreList.isEmpty()) {
-				if (!mEPG.morelist(mMoreList, page_size, (album_page_index - 1) * page_size)) {
-					Log.e(TAG, "Java: failed to call morelist()");
+			if (action == SET_DATA_SEARCH) {
+				if (!mEPG.search(search_key, search_page_index, page_size))
 					return false;
-				}
+				
+				mAlbumList = mEPG.getSearchItemList();
 			}
 			else {
-				Log.w(TAG, "Java: morelist param is empty");
+				if (!mEPG.subchannel(sub_channel_id, page_size, 1)) {
+					Log.e(TAG, "Java: failed to call subchannel()");
+					return false;
+				}
+				
+				mMoreList = mEPG.getMoreList();
+				if (mMoreList != null && !mMoreList.isEmpty()) {
+					if (!mEPG.morelist(mMoreList, page_size, (album_page_index - 1) * page_size)) {
+						Log.e(TAG, "Java: failed to call morelist()");
+						return false;
+					}
+				}
+				else {
+					Log.w(TAG, "Java: morelist param is empty");
+				}
+				
+				mAlbumList = mEPG.getAlbumList();
 			}
-			
-			mAlbumList = mEPG.getAlbumList();
-			  
+						  
 			data2 = new ArrayList<Map<String, Object>>();
 			int c = mAlbumList.size();
+			Log.i(TAG, "Java album size: " + c);
 			for (int i=0;i<c;i++) {
 				HashMap<String, Object> episode = new HashMap<String, Object>();
 				AlbumSohu al = mAlbumList.get(i);

@@ -7,15 +7,24 @@ import com.pplive.common.sohu.ChannelSohu;
 import com.pplive.common.sohu.SohuUtil;
 import com.pplive.common.sohu.SubChannelSohu;
 import com.pplive.common.sohu.PlaylinkSohu.SOHU_FT;
+import com.pplive.meetplayer.R;
+import com.pplive.meetplayer.util.Util;
 
+import android.app.AlertDialog;
 import android.app.ListActivity;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
 import android.view.View;
 import android.widget.ArrayAdapter;
+import android.widget.EditText;
 import android.widget.ListView;
+import android.widget.Toast;
 
 
 public class SohuVideoActivity extends ListActivity {
@@ -24,14 +33,16 @@ public class SohuVideoActivity extends ListActivity {
 	private final static int EPG_TASK_LIST_CHANNEL		= 1;
 	private final static int EPG_TASK_SELECT_CHANNEL		= 2;
 	
-	List<String> mItems; 
+	private List<String> mItems; 
 	
-	SohuUtil mEPG;
-	List<ChannelSohu> mChannelList;
-	List<SubChannelSohu> mSubChannelList;
-	String mChannelId;
-	ArrayAdapter<String> mAdapter;
+	private SohuUtil mEPG;
+	private List<ChannelSohu> mChannelList;
+	private List<SubChannelSohu> mSubChannelList;
+	private String mChannelId;
+	private ArrayAdapter<String> mAdapter;
 	boolean mSubChannelSelected = false;
+	
+	private String mEPGsearchKey;
 	
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
@@ -46,6 +57,30 @@ public class SohuVideoActivity extends ListActivity {
 		
 		new FillChannelTask().execute(EPG_TASK_LIST_CHANNEL);
 	}
+	
+	@Override
+    public boolean onCreateOptionsMenu(Menu menu) {  
+        MenuInflater menuInflater = new MenuInflater(getApplication());  
+        menuInflater.inflate(R.menu.sohu_menu, menu);  
+        return super.onCreateOptionsMenu(menu);  
+    }
+	
+	@Override
+	public boolean onOptionsItemSelected(MenuItem item) {
+		int id = item.getItemId();
+		Log.i(TAG, "Java: onOptionsItemSelected " + id);
+		
+		switch (id) {
+		case R.id.search:
+			popupSearch();
+			break;
+		default:
+			Log.w(TAG, "unknown menu id " + id);
+			break;
+		}
+		
+		return true;
+    }
 	
 	@Override
 	public void onBackPressed() {
@@ -73,6 +108,33 @@ public class SohuVideoActivity extends ListActivity {
 		mChannelId = mChannelList.get(position).mChannelId;
 		
 		new FillChannelTask().execute(EPG_TASK_SELECT_CHANNEL);
+	}
+	
+	private void popupSearch() {
+		AlertDialog.Builder builder;
+		
+		final EditText inputKey = new EditText(this);
+    	String last_key = Util.readSettings(this, "last_searchkey");
+    	Log.i(TAG, "Java last_key: " + last_key);
+    	inputKey.setText(last_key);
+		inputKey.setHint("input search key");
+		
+        builder = new AlertDialog.Builder(this);
+        builder.setTitle("input key").setIcon(android.R.drawable.ic_dialog_info).setView(inputKey)
+                .setNegativeButton("Cancel", null);
+        builder.setPositiveButton("Ok", new DialogInterface.OnClickListener() {
+
+            public void onClick(DialogInterface dialog, int which) {
+            	mEPGsearchKey = inputKey.getText().toString();
+            	Log.i(TAG, "Java save last_key: " + mEPGsearchKey);
+            	Util.writeSettings(SohuVideoActivity.this, "last_searchkey", mEPGsearchKey);
+
+            	Intent intent = new Intent(SohuVideoActivity.this, SohuEpisodeActivity.class);
+        		intent.putExtra("search_key", mEPGsearchKey);
+        		startActivity(intent);
+             }
+        });
+        builder.show();
 	}
 	
 	private class FillChannelTask extends AsyncTask<Integer, Integer, List<String>> {
