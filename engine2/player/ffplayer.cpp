@@ -3199,6 +3199,84 @@ bool getStreamLangTitle(char** langcode, char** langtitle, int index, AVStream* 
     return gotlanguage;
 }
 
+bool FFPlayer::getCurrentMediaInfo(MediaInfo *info)
+{
+	if (info == NULL || mMediaFile == NULL)
+		return false;
+
+	info->size_byte = 0;
+	info->duration_ms = (int32_t)(mMediaFile->duration * 1000 / AV_TIME_BASE);
+	info->format_name = mMediaFile->iformat->name;
+	info->channels = (int32_t)mMediaFile->nb_streams;
+
+	info->audio_channels	= 0;
+	info->video_channels	= 0;
+	info->subtitle_channels = 0;
+
+	if (mVideoStream == NULL) {
+		LOGE("video stream is NULL");
+		return false;
+	}
+
+	AVCodecContext* codec_ctx = mVideoStream->codec;
+	if(codec_ctx == NULL) {
+		LOGE("codec_ctx is NULL");
+		return false;
+	}
+
+	info->width = codec_ctx->width;
+	info->height = codec_ctx->height;
+
+	AVCodec* codec = avcodec_find_decoder(codec_ctx->codec_id);
+	if (codec == NULL) {
+		LOGE("avcodec_find_decoder() video failed");
+		return false;
+	}
+	
+	info->videocodec_name = codec->name;
+		
+	for (unsigned int i=0;i<mMediaFile->nb_streams;i++) {
+		if (mMediaFile->streams[i]->codec->codec_type == AVMEDIA_TYPE_AUDIO) {
+			AVStream *stream = mMediaFile->streams[i];
+			AVCodec* codec = avcodec_find_decoder(mAudioStream->codec->codec_id);
+			if (codec == NULL) {
+				LOGW("avcodec_find_decoder audio failed");
+				continue;
+			}
+
+			int audio_index = info->audio_channels;
+			info->audio_streamIndexs[audio_index] = i;
+
+			int len = strlen(codec->name) + 1;
+			info->audiocodec_names[audio_index] = new char[len];
+			strcpy(info->audiocodec_names[audio_index], codec->name);
+			getStreamLangTitle(&(info->audio_languages[audio_index]), &(info->audio_titles[audio_index]), i, stream);
+
+			info->audio_channels++;
+		}
+		else if(mMediaFile->streams[i]->codec->codec_type == AVMEDIA_TYPE_SUBTITLE) {
+			AVStream* stream = mMediaFile->streams[i];
+			AVCodec* codec = avcodec_find_decoder(stream->codec->codec_id);
+			if (codec == NULL) {
+				LOGW("avcodec_find_decoder subtitle failed");
+				continue;
+			}
+
+			int subtitle_index = info->subtitle_channels;
+			info->subtitle_streamIndexs[subtitle_index] = i;
+
+			int len = strlen(codec->name) + 1;
+			info->subtitlecodec_names[subtitle_index] = new char[len];
+			strcpy(info->subtitlecodec_names[subtitle_index], codec->name);
+			getStreamLangTitle(&(info->subtitle_languages[subtitle_index]), &(info->subtitle_titles[subtitle_index]), i, stream);
+
+			info->subtitle_channels++;
+		}
+	} // end of for() get stream info
+
+	return true;
+}
+
 bool FFPlayer::getMediaDetailInfo(const char* url, MediaInfo* info)
 {
     if (url == NULL || info == NULL)

@@ -81,7 +81,7 @@ public class AlbumSohu {
 		mArea			= area;
 		
 		mHoriImgUrl		= imgHoriUrl;
-		mVertImgUrl		= imgHoriUrl;
+		mVertImgUrl		= imgVertUrl;
 		mBigImgUrl		= imgBigUrl;
 		
 		mDurationSec	= duration_sec;

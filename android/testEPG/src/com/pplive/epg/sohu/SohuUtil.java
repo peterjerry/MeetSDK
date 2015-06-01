@@ -431,7 +431,7 @@ public class SohuUtil {
 				
 				String album_name = video.getString("album_name");
 				String video_name = video.getString("video_name");
-				String second_cate_name = video.getString("second_cate_name");
+				String second_cate_name = getNodeString(video, "second_cate_name");
 				int v_count = video.getInt("total_video_count");
 				int last_count = video.getInt("latest_video_count");
 				
@@ -442,15 +442,15 @@ public class SohuUtil {
 				
 				String desc = "N/A";
 				if (video.has("album_desc"))
-					video.getString("album_desc");
+					desc = video.getString("album_desc");
 				else if (video.has("tv_desc"))
-					video.getString("tv_desc");
+					desc = video.getString("tv_desc");
 				
 				int aid = video.getInt("aid");
 				int vid = video.getInt("vid");
 				int cid = video.getInt("cid");
-				String hori_pic_url = video.getString("hor_high_pic");
-				String vert_pic_url = video.getString("ver_high_pic");
+				String hori_pic_url = getNodeString(video, "hor_high_pic");
+				String vert_pic_url = getNodeString(video, "ver_high_pic");
 				String area = "N/A";
 				if (video.has("area"))
 					area = video.getString("area");
@@ -467,9 +467,7 @@ public class SohuUtil {
 					video.getString("director");
 				
 				String tip = video.getString("tip");
-				String score_tip = "";
-				if (video.has("score_tip"))
-					video.getString("score_tip");
+				String score_tip = getNodeString(video, "score_tip");
 				int duration_sec = 0;
 				if (video.has("time_length"))
 					duration_sec = video.getInt("time_length");
@@ -533,11 +531,11 @@ public class SohuUtil {
 			if (columns.length() == 0)
 				return false;
 			
-			JSONObject item = columns.getJSONObject(0);
+			JSONObject column = columns.getJSONObject(0); // fix me
 			
 			// more_list=http://api.tv.sohu.com/v4/search/channel/sub.json?subId=200&
-			mMoreListPrefix = item.getString("more_list");
-			JSONArray video_list = item.getJSONArray("video_list");
+			mMoreListPrefix = getNodeString(column, "more_list");
+			JSONArray video_list = column.getJSONArray("video_list");
 			c = video_list.length();
 			for (int j=0;j<c;j++) {
 				JSONObject video = video_list.getJSONObject(j);
@@ -616,9 +614,9 @@ public class SohuUtil {
 				"is_album":1
 				*/
 				
-				String album_name = video.getString("album_name");
-				String video_name = video.getString("video_name");
-				String second_cate_name = video.getString("second_cate_name");
+				String album_name = getNodeString(video, "album_name");
+				String video_name = getNodeString(video, "video_name");
+				String second_cate_name = getNodeString(video, "second_cate_name");
 				int v_count = video.getInt("total_video_count");
 				int last_count = video.getInt("latest_video_count");
 				
@@ -629,15 +627,15 @@ public class SohuUtil {
 				
 				String desc = "N/A";
 				if (video.has("album_desc"))
-					video.getString("album_desc");
+					desc = video.getString("album_desc");
 				else if (video.has("tv_desc"))
-					video.getString("tv_desc");
+					desc = video.getString("tv_desc");
 				
 				int aid = video.getInt("aid");
 				int vid = video.getInt("vid");
 				int cid = video.getInt("cid");
-				String hori_pic_url = video.getString("hor_high_pic");
-				String vert_pic_url = video.getString("ver_high_pic");
+				String hori_pic_url = getNodeString(video, "hor_high_pic");
+				String vert_pic_url = getNodeString(video, "ver_high_pic");
 				String area = "N/A";
 				if (video.has("area"))
 					area = video.getString("area");
@@ -654,9 +652,7 @@ public class SohuUtil {
 					video.getString("director");
 				
 				String tip = video.getString("tip");
-				String score_tip = "";
-				if (video.has("score_tip"))
-					video.getString("score_tip");
+				String score_tip = getNodeString(video, "score_tip");
 				int duration_sec = 0;
 				if (video.has("time_length"))
 					duration_sec = video.getInt("time_length");
@@ -1184,12 +1180,8 @@ public class SohuUtil {
 			JSONObject data = root.getJSONObject("data");
 			String tv_name = data.getString("tv_name");
 			
-			String normal_url = "";
-			if (data.has("url_nor_mp4"))
-				normal_url = data.getString("url_nor_mp4");
-			String high_url = "";
-			if (data.has("url_high_mp4"))
-				high_url = data.getString("url_high_mp4");
+			String normal_url	= getNodeString(data, "url_nor_mp4");
+			String high_url		= getNodeString(data, "url_high_mp4");
 			
 			String StrNorDuration = "";
 			if (data.has("clipsDuration_nor")) {
@@ -1229,5 +1221,19 @@ public class SohuUtil {
 			e.printStackTrace();
 		}
 		return null;
+	}
+	
+	private String getNodeString(JSONObject node, String key) {
+		String strRet = "";
+		if (node.has(key)) {
+			try {
+				strRet = node.getString(key);
+			} catch (JSONException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		}
+		
+		return strRet;
 	}
 }

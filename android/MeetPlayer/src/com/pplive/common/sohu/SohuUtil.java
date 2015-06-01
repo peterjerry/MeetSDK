@@ -319,6 +319,31 @@ public class SohuUtil {
 		return strRet;
 	}
 	
+	private String getNodeDurationString(JSONObject node, String key) {
+		String strRet = "";
+		
+		try {
+			if (node.has(key)) {
+				JSONArray clipsDuration = node.getJSONArray(key);
+				StringBuffer sbDuration = new StringBuffer();
+				for (int k=0;k<clipsDuration.length();k++) {
+					double du = clipsDuration.getDouble(k);
+					sbDuration.append(du);
+					sbDuration.append(",");
+					Log.i(TAG, String.format("Java: %s segment #%d %.3f sec", key, k, du));
+				}
+				
+				strRet = sbDuration.toString();
+			}
+		} catch (JSONException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+			strRet = "";
+		}
+		
+		return strRet;
+	}
+	
 	public PlaylinkSohu detail(int vid, int aid) {
 		String url = String.format(CLIP_DETAIL_URL_FMT, vid, aid);
 		Log.i(TAG, "Java: SohuUtil detail() " + url);
@@ -858,28 +883,19 @@ public class SohuUtil {
 			
 			JSONObject data 	= root.getJSONObject("data");
 			String tv_name 		= data.getString("tv_name");
-			String normal_url 	= getNodeString(data, "url_nor_mp4");
-			String high_url 	= getNodeString(data, "url_high_mp4");
 			
-			JSONArray clipsDuration_nor = data.getJSONArray("clipsDuration_nor");
-			StringBuffer sbNormal = new StringBuffer();
-			for (int k=0;k<clipsDuration_nor.length();k++) {
-				double du = clipsDuration_nor.getDouble(k);
-				sbNormal.append(du);
-				sbNormal.append(",");
-				Log.i(TAG, String.format("Java: normal segment #%d %.3f sec", k, du));
-			}
+			String normal_url			= getNodeString(data, "url_nor_mp4");
+			String high_url				= getNodeString(data, "url_high_mp4");
+			String super_url			= getNodeString(data, "url_super_mp4");
+			String origin_url			= getNodeString(data, "url_original_mp4");
 			
-			JSONArray clipsDuration_high = data.getJSONArray("clipsDuration_high");
-			StringBuffer sbHigh = new StringBuffer();
-			for (int k=0;k<clipsDuration_high.length();k++) {
-				double du = clipsDuration_high.getDouble(k);
-				sbHigh.append(du);
-				sbHigh.append(",");
-				Log.i(TAG, String.format("Java: high segment #%d %.3f sec", k, du));
-			}
+			String clipsDuration_nor 	= getNodeDurationString(data, "clipsDuration_nor");
+			String clipsDuration_high	= getNodeDurationString(data, "clipsDuration_high");
+			String clipsDuration_super	= getNodeDurationString(data, "clipsDuration_super");
+			String clipsDuration_origin	= getNodeDurationString(data, "clipsDuration_origin");
 			
-			return new PlaylinkSohu(tv_name, normal_url, high_url, sbNormal.toString(), sbHigh.toString());
+			return new PlaylinkSohu(tv_name, normal_url, high_url, super_url, origin_url,
+					clipsDuration_nor, clipsDuration_high, clipsDuration_super, clipsDuration_origin);
 		} catch (JSONException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();

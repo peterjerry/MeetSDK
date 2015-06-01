@@ -2,6 +2,7 @@ package com.pplive.epg.sohu;
 
 public class AlbumSohu {
 	private String mTitle;
+	private String mTip;
 	private String mSecCateName;
 	private int mVideoCount;
 	private int mLastCount;
@@ -65,12 +66,13 @@ public class AlbumSohu {
 		mAid			= aid;
 		mVid			= vid;
 		mCid			= cid;
+		mDesc			= desc;
+		mTip			= tip;
 		
 		mScore			= score;
 		mDoubanScore	= douban_score;
-		mScoreTip		= tip;
+		mScoreTip		= tip;	
 		
-		mDesc			= desc;
 		mDirector		= director;
 		mAct			= act;
 		
@@ -78,7 +80,7 @@ public class AlbumSohu {
 		mArea			= area;
 		
 		mHoriImgUrl		= imgHoriUrl;
-		mVertImgUrl		= imgHoriUrl;
+		mVertImgUrl		= imgVertUrl;
 		mBigImgUrl		= imgBigUrl;
 		
 		mDurationSec	= duration_sec;
@@ -86,6 +88,10 @@ public class AlbumSohu {
 	
 	public String getTitle() {
 		return mTitle;
+	}
+	
+	public String getTip() {
+		return mTip;
 	}
 	
 	public int getVid() {

@@ -939,6 +939,14 @@ public class MediaPlayer implements MediaPlayerInterface {
 		}
 	}
 	
+	public MediaInfo getMediaInfo() {
+		if (mPlayer instanceof FFMediaPlayer) {
+			return ((FFMediaPlayer) mPlayer).getCurrentMediaInfo();
+		}
+		
+		return null;
+	}
+	
 	// event
     /* Do not change these values without updating their counterparts
      * in include/media/mediaplayer.h!

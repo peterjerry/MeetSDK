@@ -367,9 +367,11 @@ public class PlaySohuActivity extends Activity implements Callback {
 				break;
 			case MSG_FAIL_TO_GET_PLAYLINK:
 				Toast.makeText(PlaySohuActivity.this, "failed to get playlink", Toast.LENGTH_SHORT).show();
+				finish();
 				break;
 			case MSG_FAIL_TO_GET_STREAM:
 				Toast.makeText(PlaySohuActivity.this, "failed to get stream", Toast.LENGTH_SHORT).show();
+				finish();
 				break;
             }
 		}
@@ -551,11 +553,11 @@ public class PlaySohuActivity extends Activity implements Callback {
     		
     		mTitle = l.getTitle();
     		
-    		if (action == LIST_PPTV) {
+    		/*if (action == LIST_PPTV) {
 	    		mUrlListStr 		= l.getUrl(SOHU_FT.SOHU_FT_HIGH);
 				mDurationListStr	= l.getDuration(SOHU_FT.SOHU_FT_HIGH);
     		}
-    		else {
+    		else {*/
     			SOHU_FT ft = SOHU_FT.SOHU_FT_ORIGIN;
     			mUrlListStr = l.getUrl(ft);
         		if (mUrlListStr == null || mUrlListStr.isEmpty()) {
@@ -576,7 +578,7 @@ public class PlaySohuActivity extends Activity implements Callback {
         		}
         		
         		mDurationListStr	= l.getDuration(ft);
-    		}
+    		//}
 			
 			buildPlaylinkList();
 			

@@ -90,6 +90,8 @@ public:
 	
     void notify(int32_t msg, int32_t ext1 = 0, int32_t ext2 = 0);
 
+	bool getCurrentMediaInfo(MediaInfo* info);
+
 	bool getMediaInfo(const char* url, MediaInfo* info);
 
 	bool getMediaDetailInfo(const char* url, MediaInfo* info);

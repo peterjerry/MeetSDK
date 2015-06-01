@@ -810,6 +810,8 @@ public class ClipListActivity extends Activity implements
 				
 				// TODO Auto-generated method stub
 				if (mPlayer != null) {
+					Log.i(TAG, "Java: trackinfo " + mPlayer.getMediaInfo());
+					
 					mAudioChannel++;
 					if (mAudioChannel > mAudioTrackNum)
 						mAudioChannel = 1;

@@ -46,7 +46,8 @@ public class SohuEpisodeActivity extends Activity {
     private final static int TASK_MORELIST		= 3;
     
     private final static int page_size = 10;
-    private int page_index = 1;
+    private int album_page_index = 1;
+    private int ep_page_index = 1;
     
     private List<Map<String, Object>> data2;
     
@@ -92,17 +93,16 @@ public class SohuEpisodeActivity extends Activity {
 					long id) {
 				// TODO Auto-generated method stub
 				//reset page_index
-				page_index = 1;
+				ep_page_index = 1;
 				
 				AlbumSohu al = mAlbumList.get(position);
-				int aid = al.getAid();
-				selected_aid = aid;
-				new EpisodeTask().execute(TASK_EPISODE, aid);
+				selected_aid = al.getAid();
+				new SohuEpgTask().execute(TASK_EPISODE, selected_aid);
 			}
 			
 		});
 		
-		/*gridView.setOnScrollListener(new AbsListView.OnScrollListener() {
+		gridView.setOnScrollListener(new AbsListView.OnScrollListener() {
 			
 			@Override
 			public void onScrollStateChanged(AbsListView view, int scrollState) {
@@ -114,18 +114,16 @@ public class SohuEpisodeActivity extends Activity {
 			public void onScroll(AbsListView view, int firstVisibleItem,
 		            int visibleItemCount, int totalItemCount) {
 				// TODO Auto-generated method stub
+				Log.i(TAG, String.format("Java: onScroll first %d, visible %d, total %d", 
+						firstVisibleItem, visibleItemCount, totalItemCount));
+				
 				int lastInScreen = firstVisibleItem + visibleItemCount;
-		        if ((lastInScreen == totalItemCount) && !loadingMore) {
-
-		            //if (stopLoadingData == false) {
-		                // FETCH THE NEXT BATCH OF FEEDS
-		        		loadingMore = true;
-		                new EpisodeTask().execute(TASK_MORELIST);
-		            //}
-
+		        if (totalItemCount > 0 && lastInScreen == totalItemCount && !loadingMore) {
+	        		loadingMore = true;
+	                new SohuEpgTask().execute(TASK_MORELIST);
 		        }
 			}
-		});*/
+		});
 		
 	    mEPG = new SohuUtil();
 	    
@@ -143,7 +141,7 @@ public class SohuEpisodeActivity extends Activity {
 					int vid = mEpisodeList.get(0).mVid;
 					selected_index = 0;
 					
-					new EpisodeTask().execute(TASK_PLAYLINK, aid, vid);
+					new SohuEpgTask().execute(TASK_PLAYLINK, aid, vid);
 					return;
             	}
             	
@@ -174,13 +172,11 @@ public class SohuEpisodeActivity extends Activity {
         		intent.putExtra("url_list", strUrl);
         		intent.putExtra("duration_list", mPlaylink.getDuration(ft));
         		intent.putExtra("title", mPlaylink.getTitle());
-        		intent.putExtra("index", (page_index - 1) * page_size + selected_index);
+        		intent.putExtra("index", (ep_page_index - 1) * page_size + selected_index);
         		intent.putExtra("aid", selected_aid);
         		startActivity(intent);
             	break;
             case MSG_MORELIST_DONE:
-            	data2.clear();
-            	
     			int c = mAlbumList.size();
     			for (int i=0;i<c;i++) {
     				HashMap<String, Object> episode = new HashMap<String, Object>();
@@ -224,15 +220,15 @@ public class SohuEpisodeActivity extends Activity {
 				int vid = mEpisodeList.get(whichButton).mVid;
 				selected_index = whichButton;
 				
-				new EpisodeTask().execute(TASK_PLAYLINK, aid, vid);
+				new SohuEpgTask().execute(TASK_PLAYLINK, aid, vid);
 				dialog.dismiss();
 			}
 		})
 		.setPositiveButton("More...", 
 				new DialogInterface.OnClickListener(){
 					public void onClick(DialogInterface dialog, int whichButton){
-						page_index++;
-						new EpisodeTask().execute(TASK_EPISODE, selected_aid);
+						ep_page_index++;
+						new SohuEpgTask().execute(TASK_EPISODE, selected_aid);
 						dialog.dismiss();
 					}
 				})
@@ -244,12 +240,13 @@ public class SohuEpisodeActivity extends Activity {
 		choose_episode_dlg.show();
 	}
 	
-	private class EpisodeTask extends AsyncTask<Integer, Integer, Boolean> {
+	private class SohuEpgTask extends AsyncTask<Integer, Integer, Boolean> {
 
 		@Override
 		protected void onPostExecute(Boolean result) {
 			// TODO Auto-generated method stub
 			if (!result) {
+				Log.e(TAG, "failed to get episode");
 				Toast.makeText(SohuEpisodeActivity.this, "failed to get episode", Toast.LENGTH_SHORT).show();
 			}
 		}
@@ -258,10 +255,14 @@ public class SohuEpisodeActivity extends Activity {
 		protected Boolean doInBackground(Integer... params) {
 			// TODO Auto-generated method stub
 			int action = params[0];
+			Log.i(TAG, "Java: SohuEpgTask action " + action);
+			
 			if (action == TASK_EPISODE) {
 				int aid = params[1];
-				if (!mEPG.episode(aid, page_index, page_size))
+				if (!mEPG.episode(aid, ep_page_index, page_size)) {
+					Log.e(TAG, "Java: failed to call episode()");
 					return false;
+				}
 				
 				mEpisodeList = mEPG.getEpisodeList();
 				mhandler.sendEmptyMessage(MSG_EPISODE_DONE);
@@ -271,20 +272,29 @@ public class SohuEpisodeActivity extends Activity {
 				int vid = params[2];
 				//mPlaylink = mEPG.detail(vid, aid);
 				mPlaylink = mEPG.playlink_pptv(vid, 0);
-				if (mPlaylink == null)
+				if (mPlaylink == null) {
+					Log.e(TAG, "Java: failed to call playlink_pptv() vid" + vid);
 					return false;
+				}
 				
 				mhandler.sendEmptyMessage(MSG_PLAYLINK_DONE);	
 			}
 			else if (action == TASK_MORELIST) {
-				String morelist_prefix = mEPG.getMoreList();
-				if (morelist_prefix == null || morelist_prefix.isEmpty())
+				if (mMoreList == null || mMoreList.isEmpty()) {
+					Log.e(TAG, "Java morelist is null");
+					loadingMore = false;
 					return false;
+				}
 				
-				if (!mEPG.morelist(morelist_prefix, /*page_size*/30, page_index))
+				album_page_index++;
+				if (!mEPG.morelist(mMoreList, page_size, (album_page_index - 1) * page_size)) {
+					Log.e(TAG, "Java: failed to call morelist() morelist " + mMoreList);
+					loadingMore = false;
 					return false;
+				}
 				
 				mEpisodeList = mEPG.getEpisodeList();
+				loadingMore = false;
 				mhandler.sendEmptyMessage(MSG_MORELIST_DONE);
 			}
 
@@ -311,10 +321,22 @@ public class SohuEpisodeActivity extends Activity {
 		@Override
 		protected Boolean doInBackground(Integer... params) {
 			// TODO Auto-generated method stub
-			if (!mEPG.subchannel(sub_channel_id, /*page_size*/100, page_index))
+			if (!mEPG.subchannel(sub_channel_id, page_size, 1)) {
+				Log.e(TAG, "Java: failed to call subchannel()");
 				return false;
+			}
 			
 			mMoreList = mEPG.getMoreList();
+			if (mMoreList != null && !mMoreList.isEmpty()) {
+				if (!mEPG.morelist(mMoreList, page_size, (album_page_index - 1) * page_size)) {
+					Log.e(TAG, "Java: failed to call morelist()");
+					return false;
+				}
+			}
+			else {
+				Log.w(TAG, "Java: morelist param is empty");
+			}
+			
 			mAlbumList = mEPG.getAlbumList();
 			  
 			data2 = new ArrayList<Map<String, Object>>();

@@ -1,26 +1,19 @@
 package com.pplive.epg.sohu;
 
+import javax.imageio.ImageIO;
 import javax.swing.*; 
 
+import java.awt.Container;
+import java.awt.FlowLayout;
 import java.awt.Font;
 import java.awt.event.*; 
+import java.awt.image.BufferedImage;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.io.UnsupportedEncodingException;
-import java.net.URLEncoder;
-import java.text.DateFormat;
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Calendar;
-import java.util.Date;
-import java.util.GregorianCalendar;
+import java.net.URL;
 import java.util.List;
-import java.util.Locale;
-
-import javax.swing.event.*;
 
 import com.pplive.epg.sohu.PlaylinkSohu.SOHU_FT;
 
@@ -55,7 +48,7 @@ public class SohuFrame extends JFrame {
 	
 	int last_aid = -1;
 	
-	private final static int page_size = 20;
+	private final static int page_size = 10;
 	private int album_page_index = 1;
 	private int ep_page_index = 1;
 	
@@ -66,12 +59,14 @@ public class SohuFrame extends JFrame {
 	
 	JLabel lblInfo = new JLabel("info");
 	
-	JComboBox<String> comboItem 	= null;
-	
-	JTextPane editorPlayLink = new JTextPane();
+	JList<String> listItem 				= null;
+	DefaultListModel<String> listModel 	= null;
 	
 	JTextPane editorSearch = new JTextPane();
 	JButton btnSearch = new JButton("搜索");
+	
+	JLabel lblImage = new JLabel();
+	JLabel lblTip = new JLabel();
 	
 	Font f = new Font("宋体", 0, 18);
 	
@@ -81,7 +76,7 @@ public class SohuFrame extends JFrame {
 		mEPG = new SohuUtil();
 		
 		this.setTitle("Test EPG");
-		this.setBounds(400, 300, 500, 600);
+		this.setBounds(400, 300, 550, 600);
 		this.addWindowListener(new WindowAdapter() {
 			public void windowClosing(WindowEvent e) {
 				dispose();
@@ -94,27 +89,55 @@ public class SohuFrame extends JFrame {
 		lblInfo.setBounds(5, 40, 300, 30);
 		this.getContentPane().add(lblInfo);
 		
-		comboItem = new JComboBox<String>();
-		comboItem.setFont(f);
-		comboItem.setBounds(20, 80, 200, 40);
-		comboItem.addActionListener(new ActionListener() {
+		listItem = new JList<String>();
+		listItem.setFont(f);
+		listItem.setBounds(20, 80, 200, 250);
+		listModel = new DefaultListModel<String>();
+		listItem.setModel(listModel);
+		listItem.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+		listItem.addMouseListener(new MouseAdapter(){
 			@Override
-			public void actionPerformed(ActionEvent e) {
-				// TODO Auto-generated method stub	
-			}
-		});
-		
-		comboItem.addItemListener(new ItemListener(){
-
-			@Override
-			public void itemStateChanged(ItemEvent e) {
+			public void mouseClicked(MouseEvent event) {
 				// TODO Auto-generated method stub
-			}
+				if (listItem.getSelectedIndex() != -1) {
+					if (event.getClickCount() == 1) {
+						if (mState == SOHUVIDEO_EPG_STATE.SOHUVIDEO_EPG_STATE_ALBUM) {
+							int n = listItem.getSelectedIndex();
+							AlbumSohu al = mAlbumList.get(n);
 
+							lblTip.setText(al.getTip());
+							
+							BufferedImage image = null;
+							try {
+								String img_url = al.getImgUrl(false);
+								System.out.println("Java image url: " + img_url);
+								URL imageURL = new URL(img_url);
+								InputStream is = imageURL.openConnection()
+										.getInputStream();
+								image = ImageIO.read(is);
+								System.out.println("Java image is: " + image);
+							} catch (Exception e) {
+								e.printStackTrace();
+								return;
+							}
+
+							lblImage.setIcon(new ImageIcon(image));
+						}
+					} else if (event.getClickCount() == 2) {
+						action();
+					}
+
+				}
+			}
 		});
+		this.getContentPane().add(listItem);
 		
-		this.getContentPane().add(comboItem);
+		lblImage.setBounds(230, 100, 256, 256);
+		this.getContentPane().add(lblImage);
 		
+		lblTip.setFont(f);
+		lblTip.setBounds(230, 320, 100, 40);
+		this.getContentPane().add(lblTip);
 		
 		btnOK.setBounds(0, 0, 80, 30);
 		this.getContentPane().add(btnOK);
@@ -186,11 +209,11 @@ public class SohuFrame extends JFrame {
 			return;
 		}
 		
-		comboItem.removeAllItems();
+		listModel.clear();
 		
 		mAlbumList = mEPG.getSearchItemList();
 		for (int i=0;i<mAlbumList.size();i++) {
-			comboItem.addItem(mAlbumList.get(i).getTitle());
+			listModel.addElement(mAlbumList.get(i).getTitle());
 		}
 		
 		mState = SOHUVIDEO_EPG_STATE.SOHUVIDEO_EPG_STATE_ALBUM;
@@ -223,7 +246,7 @@ public class SohuFrame extends JFrame {
 	}
 	
 	private void selectClip() {
-		int n = comboItem.getSelectedIndex();
+		int n = listItem.getSelectedIndex();
 		System.out.println("Java: clip info: " + mAlbumList.get(n).toString());
 		
 		int vid = mAlbumList.get(n).getVid();
@@ -233,8 +256,7 @@ public class SohuFrame extends JFrame {
 			System.out.println("Java: link info: " + link.getTitle());
 		}
 		
-		List<String> url_list = link.getUrlListbyFT(2);
-		String url = url_list.get(0);
+		String url = link.getUrl(SOHU_FT.SOHU_FT_HIGH);
 
 		System.out.println("final play link " + url);
 		
@@ -245,7 +267,7 @@ public class SohuFrame extends JFrame {
 	
 	private void selectEpisode() {
 		if (last_aid == -1) {
-			int n = comboItem.getSelectedIndex();
+			int n = listItem.getSelectedIndex();
 			last_aid = mAlbumList.get(n).getAid();
 		}
 		
@@ -254,18 +276,18 @@ public class SohuFrame extends JFrame {
 			return;
 		}
 		
-		comboItem.removeAllItems();
+		listModel.clear();
 		
 		mEpisodeList = mEPG.getEpisodeList();
 		for (int i=0;i<mEpisodeList.size();i++) {
-			comboItem.addItem(mEpisodeList.get(i).mTitle);
+			listModel.addElement(mEpisodeList.get(i).mTitle);
 		}
 		
 		mState = SOHUVIDEO_EPG_STATE.SOHUVIDEO_EPG_STATE_EPISODE;
 	}
 	
 	private void selectCate() {
-		int n = comboItem.getSelectedIndex();
+		int n = listItem.getSelectedIndex();
 		String id = mChannelList.get(n).mChannelId;
 		
 		if (!mEPG.channel_select(id)) {
@@ -273,18 +295,18 @@ public class SohuFrame extends JFrame {
 			return;
 		}
 		
-		comboItem.removeAllItems();
+		listModel.clear();
 		
 		mSubChannelList = mEPG.getSubChannelList();
 		for (int i=0;i<mSubChannelList.size();i++) {
-			comboItem.addItem(mSubChannelList.get(i).mTitle);
+			listModel.addElement(mSubChannelList.get(i).mTitle);
 		}
 		
 		mState = SOHUVIDEO_EPG_STATE.SOHUVIDEO_EPG_STATE_SUBCHANNEL;
 	}
 	
 	private void selectAlbumNew() {
-		int n = comboItem.getSelectedIndex();
+		int n = listItem.getSelectedIndex();
 		int id = mSubChannelList.get(n).mSubChannelId;
 		if (!mEPG.subchannel(id, page_size, 0)) {
 			mState = SOHUVIDEO_EPG_STATE.SOHUVIDEO_EPG_STATE_ERROR;
@@ -297,17 +319,19 @@ public class SohuFrame extends JFrame {
 	
 	private void morelist() {
 		mMoreList = mEPG.getMoreList();
-		if (!mEPG.morelist(mMoreList, page_size, (album_page_index - 1) * page_size)) {
-			mState = SOHUVIDEO_EPG_STATE.SOHUVIDEO_EPG_STATE_ERROR;
-			return;
+		if (mMoreList != null && !mMoreList.isEmpty()) {
+			if (!mEPG.morelist(mMoreList, page_size, (album_page_index - 1) * page_size)) {
+				mState = SOHUVIDEO_EPG_STATE.SOHUVIDEO_EPG_STATE_ERROR;
+				return;
+			}
 		}
 		
-		comboItem.removeAllItems();
+		listModel.clear();
 		
 		mAlbumList = mEPG.getAlbumList();
 		int c = mAlbumList.size();
 		for (int i=0;i<c;i++) {
-			comboItem.addItem(mAlbumList.get(i).getTitle());
+			listModel.addElement(mAlbumList.get(i).getTitle());
 		}
 	}
 	
@@ -375,11 +399,12 @@ public class SohuFrame extends JFrame {
 	}*/
 	
 	private void playProgram() {
-		int index = comboItem.getSelectedIndex();
+		int index = listItem.getSelectedIndex();
 
 		int vid = mEpisodeList.get(index).mVid;
 		int aid = mEpisodeList.get(index).mAid;
-		PlaylinkSohu pl = mEPG.detail(vid, aid);
+		//PlaylinkSohu pl = mEPG.detail(vid, aid);
+		PlaylinkSohu pl = mEPG.playlink_pptv(vid, 0);
 		String strUrl = pl.getUrl(SOHU_FT.SOHU_FT_ORIGIN);
 		if (strUrl == null || strUrl.isEmpty())
 			strUrl = pl.getUrl(SOHU_FT.SOHU_FT_SUPER);
@@ -393,7 +418,11 @@ public class SohuFrame extends JFrame {
 		}
 		
 		int pos = strUrl.indexOf(',');
-		String url = strUrl.substring(0, pos);
+		String url = null;
+		if (pos != -1)
+			url = strUrl.substring(0, pos);
+		else
+			url = strUrl;
 
 		System.out.println("final play link " + url);
 		
@@ -408,20 +437,21 @@ public class SohuFrame extends JFrame {
 			return;
 		}*/
 		
-		album_page_index = 1;
-		ep_page_index = 1;
+		album_page_index	= 1;
+		ep_page_index 		= 1;
+		last_aid			= -1;
 		
 		if (!mEPG.channel_list()) {
 			System.out.println("failed to column()");
 			return;
 		}
 		
-		comboItem.removeAllItems();
+		listModel.clear();
 		
 		mChannelList = mEPG.getChannelList();
 		int size = mChannelList.size();
 		for (int i=0;i<size;i++) {
-			comboItem.addItem(mChannelList.get(i).mTitle);
+			listModel.addElement(mChannelList.get(i).mTitle);
 		}
 		
 		mState = SOHUVIDEO_EPG_STATE.SOHUVIDEO_EPG_STATE_CHANNEL;
