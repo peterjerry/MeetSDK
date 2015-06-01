@@ -5,6 +5,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import com.nostra13.universalimageloader.core.ImageLoader;
+import com.nostra13.universalimageloader.core.ImageLoaderConfiguration;
+import com.nostra13.universalimageloader.core.assist.QueueProcessingType;
 import com.pplive.common.sohu.AlbumSohu;
 import com.pplive.common.sohu.EpisodeSohu;
 import com.pplive.common.sohu.PlaylinkSohu;

@@ -5,6 +5,7 @@ import java.util.Map;
 
 import com.pplive.common.util.PicCacheUtil;
 import com.pplive.meetplayer.R;
+import com.pplive.meetplayer.ui.widget.AsyncImageView;
 import com.pplive.meetplayer.util.ImgUtil;
 
 import android.content.Context;
@@ -63,7 +64,7 @@ public class MySohuEpAdapter extends BaseAdapter {
 		TextView title			= null;
 		ImageView img			= null;
 		TextView tip			= null;
-		boolean imgShowed		= false;
+		boolean imgDownloaded	= false;
 
 		public TextView getTitle() {
 			return title;
@@ -85,16 +86,12 @@ public class MySohuEpAdapter extends BaseAdapter {
 			return img;
 		}
 
-		public void setImg(ImageView img) {
-			this.img = img;
-		}
-
-		public void setShowed(boolean isShowed) {
-			this.imgShowed = isShowed;
+		public void setDownloaded(boolean isDownloaded) {
+			this.imgDownloaded = isDownloaded;
 		}
 		
-		public boolean isShowed() {
-			return imgShowed;
+		public boolean isDownloaded() {
+			return imgDownloaded;
 		}
 	}
 
@@ -102,20 +99,25 @@ public class MySohuEpAdapter extends BaseAdapter {
 	public View getView(int position, View convertView, ViewGroup parent) {
 		// TODO Auto-generated method stub
 		// 获得holder以及holder对象中tv和img对象的实例
+		Log.i(TAG, "Java: getView() #" + position);
+		
 		ViewHolder holder;
 		if (convertView == null) {
-
-			convertView = inflater.inflate(R.layout.gridview_item, null);
+			Log.i(TAG, "Java: getView() convertView is null: #" + position);
+			
 			holder = new ViewHolder();
+			convertView = inflater.inflate(R.layout.gridview_item, null);
+			
 			holder.title = (TextView) convertView.findViewById(R.id.gridview_title);
 			holder.tip = (TextView) convertView.findViewById(R.id.gridview_tip);
 			holder.img = (ImageView) convertView.findViewById(R.id.gridview_img);
 
 			convertView.setTag(holder);
-
 		} else {
+			Log.i(TAG, "Java: getView() convertView getTag: #" + position);
 			holder = (ViewHolder) convertView.getTag();
 		}
+		
 		// 为holder中的title tip和img设置内容
 		Map<String, Object> item = data.get(position);
 		String title = (String) item.get("title");
@@ -123,13 +125,21 @@ public class MySohuEpAdapter extends BaseAdapter {
 		String img_url = (String) item.get("img_url");
 		holder.getTitle().setText(title);
 		holder.getTip().setText(tip);
+		//holder.getImg().setImageAsync(img_url);
 		
 		ImageView iv = holder.getImg();
 		
-		//if (!holder.isShowed()) {
+		if (holder.isDownloaded()) {
+			Log.i(TAG, "Java: getView() holder.isDownloaded()");
+			String key = PicCacheUtil.hashKeyForDisk(img_url);
+			Bitmap bmp = PicCacheUtil.getThumbnailFromDiskCache(key);
+			iv.setImageBitmap(bmp);
+		}
+		else {
+			Log.i(TAG, "Java: getView() img task");
 			iv.setImageResource(R.drawable.clip); // set default picture
 			new LoadPicTask().execute(holder, img_url);
-		//}
+		}
 		
 		// 注意 默认为返回null,必须得返回convertView视图
 		return convertView;
@@ -149,7 +159,6 @@ public class MySohuEpAdapter extends BaseAdapter {
 			
 			ImageView thumb	= mHolder.getImg();
 			thumb.setImageBitmap(bmp);
-			mHolder.setShowed(true);
 		}
 		
 		@Override
@@ -166,6 +175,7 @@ public class MySohuEpAdapter extends BaseAdapter {
 				}
 				
 				PicCacheUtil.addThumbnailToDiskCache(key, bmp);
+				mHolder.setDownloaded(true);
 			}
 			
 			return bmp;

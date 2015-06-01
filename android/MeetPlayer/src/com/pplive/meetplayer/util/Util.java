@@ -14,6 +14,9 @@ import android.os.Environment;
 import android.pplive.media.MeetSDK;
 import android.util.Log;
 
+import com.nostra13.universalimageloader.core.ImageLoader;
+import com.nostra13.universalimageloader.core.ImageLoaderConfiguration;
+import com.nostra13.universalimageloader.core.assist.QueueProcessingType;
 import com.pplive.sdk.MediaSDK;
 
 public class Util {
@@ -153,7 +156,7 @@ public class Util {
 		}
 
 	}
-
+	
 	public void copyFolder(String oldPath, String newPath) {
 
 		try {
