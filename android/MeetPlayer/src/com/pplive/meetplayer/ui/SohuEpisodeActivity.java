@@ -5,9 +5,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import com.nostra13.universalimageloader.core.ImageLoader;
-import com.nostra13.universalimageloader.core.ImageLoaderConfiguration;
-import com.nostra13.universalimageloader.core.assist.QueueProcessingType;
 import com.pplive.common.sohu.AlbumSohu;
 import com.pplive.common.sohu.EpisodeSohu;
 import com.pplive.common.sohu.PlaylinkSohu;
@@ -30,7 +27,6 @@ import android.view.View;
 import android.widget.AbsListView;
 import android.widget.AdapterView;
 import android.widget.GridView;
-import android.widget.SimpleAdapter;
 import android.widget.Toast;
 
 
@@ -44,9 +40,9 @@ public class SohuEpisodeActivity extends Activity {
     private final static int MSG_PLAYLINK_DONE	= 2;
     private final static int MSG_MORELIST_DONE	= 3;
     
-    private final static int TASK_EPISODE			= 1;
-    private final static int TASK_PLAYLINK		= 2;
-    private final static int TASK_MORELIST		= 3;
+    private final static long TASK_EPISODE		= 1;
+    private final static long TASK_PLAYLINK		= 2;
+    private final static long TASK_MORELIST		= 3;
     
     private final static int SET_DATA_LIST		= 1;
     private final static int SET_DATA_SEARCH		= 2;
@@ -64,7 +60,7 @@ public class SohuEpisodeActivity extends Activity {
     private String mMoreList;
     private PlaylinkSohu mPlaylink;
     private int sub_channel_id = -1;
-    private int selected_aid = -1;
+    private long selected_aid = -1;
     private int selected_index = -1;
     private String search_key;
     
@@ -90,13 +86,6 @@ public class SohuEpisodeActivity extends Activity {
 		}
 		
 		gridView = (GridView) findViewById(R.id.grid_view);
-		
-		DisplayMetrics dm = new DisplayMetrics(); 
-		getWindowManager().getDefaultDisplay().getMetrics(dm); 
-		int screen_width	= dm.widthPixels; 
-		int numColumns = screen_width / 256;
-		gridView.setNumColumns(numColumns);
-		
 		gridView.setOnItemClickListener(new AdapterView.OnItemClickListener(){
 
 			@Override
@@ -107,7 +96,7 @@ public class SohuEpisodeActivity extends Activity {
 				ep_page_index = 1;
 				
 				Map<String, Object> item = adapter.getItem(position);
-				selected_aid = (Integer)item.get("aid");
+				selected_aid = (Long)item.get("aid");
 				new SohuEpgTask().execute(TASK_EPISODE, selected_aid);
 			}
 			
@@ -153,11 +142,11 @@ public class SohuEpisodeActivity extends Activity {
             switch (msg.what) {
             case MSG_EPISODE_DONE:
             	if (mEpisodeList.size() == 1) {
-	            	int aid = mEpisodeList.get(0).mAid;
+	            	long aid = mEpisodeList.get(0).mAid;
 					int vid = mEpisodeList.get(0).mVid;
 					selected_index = 0;
 					
-					new SohuEpgTask().execute(TASK_PLAYLINK, aid, vid);
+					new SohuEpgTask().execute(TASK_PLAYLINK, aid, (long)vid);
 					return;
             	}
             	
@@ -235,11 +224,11 @@ public class SohuEpisodeActivity extends Activity {
 		.setItems(str_title_list, 
 			new DialogInterface.OnClickListener(){
 			public void onClick(DialogInterface dialog, int whichButton) {
-				int aid = mEpisodeList.get(whichButton).mAid;
+				long aid = mEpisodeList.get(whichButton).mAid;
 				int vid = mEpisodeList.get(whichButton).mVid;
 				selected_index = whichButton;
 				
-				new SohuEpgTask().execute(TASK_PLAYLINK, aid, vid);
+				new SohuEpgTask().execute(TASK_PLAYLINK, aid, (long)vid);
 				dialog.dismiss();
 			}
 		})
@@ -259,7 +248,7 @@ public class SohuEpisodeActivity extends Activity {
 		choose_episode_dlg.show();
 	}
 	
-	private class SohuEpgTask extends AsyncTask<Integer, Integer, Boolean> {
+	private class SohuEpgTask extends AsyncTask<Long, Integer, Boolean> {
 
 		@Override
 		protected void onPostExecute(Boolean result) {
@@ -271,13 +260,13 @@ public class SohuEpisodeActivity extends Activity {
 		}
 		
 		@Override
-		protected Boolean doInBackground(Integer... params) {
+		protected Boolean doInBackground(Long... params) {
 			// TODO Auto-generated method stub
-			int action = params[0];
+			long action = params[0];
 			Log.i(TAG, "Java: SohuEpgTask action " + action);
 			
 			if (action == TASK_EPISODE) {
-				int aid = params[1];
+				long aid = params[1];
 				if (!mEPG.episode(aid, ep_page_index, page_size)) {
 					Log.e(TAG, "Java: failed to call episode()");
 					return false;
@@ -287,10 +276,10 @@ public class SohuEpisodeActivity extends Activity {
 				mhandler.sendEmptyMessage(MSG_EPISODE_DONE);
 			}
 			else if (action == TASK_PLAYLINK){
-				int aid = params[1];
-				int vid = params[2];
+				long aid = params[1];
+				long vid = params[2];
 				//mPlaylink = mEPG.detail(vid, aid);
-				mPlaylink = mEPG.playlink_pptv(vid, 0);
+				mPlaylink = mEPG.playlink_pptv((int)vid, 0);
 				if (mPlaylink == null) {
 					Log.e(TAG, "Java: failed to call playlink_pptv() vid" + vid);
 					return false;

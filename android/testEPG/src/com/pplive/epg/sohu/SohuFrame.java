@@ -46,7 +46,7 @@ public class SohuFrame extends JFrame {
 	private List<EpisodeSohu>	mEpisodeList;
 	private String 				mMoreList;
 	
-	int last_aid = -1;
+	long last_aid = -1;
 	
 	private final static int page_size = 10;
 	private int album_page_index = 1;
@@ -250,7 +250,7 @@ public class SohuFrame extends JFrame {
 		System.out.println("Java: clip info: " + mAlbumList.get(n).toString());
 		
 		int vid = mAlbumList.get(n).getVid();
-		int aid = mAlbumList.get(n).getAid();
+		long aid = mAlbumList.get(n).getAid();
 		PlaylinkSohu link = mEPG.detail(vid, aid);
 		if (link != null) {
 			System.out.println("Java: link info: " + link.getTitle());
@@ -402,7 +402,7 @@ public class SohuFrame extends JFrame {
 		int index = listItem.getSelectedIndex();
 
 		int vid = mEpisodeList.get(index).mVid;
-		int aid = mEpisodeList.get(index).mAid;
+		long aid = mEpisodeList.get(index).mAid;
 		//PlaylinkSohu pl = mEPG.detail(vid, aid);
 		PlaylinkSohu pl = mEPG.playlink_pptv(vid, 0);
 		String strUrl = pl.getUrl(SOHU_FT.SOHU_FT_ORIGIN);

@@ -233,7 +233,8 @@ public class PlayerPolicy {
 		// video
 		if (url.toLowerCase().endsWith("mp4") || url.toLowerCase().endsWith("3gp")  ||
 				url.toLowerCase().endsWith("flv") || url.toLowerCase().endsWith("ts") ||
-				url.toLowerCase().endsWith("mkv") || formatName.equals("mpegts")) {
+				url.toLowerCase().endsWith("mkv") || formatName.equals("mpegts") ||
+				formatName.equals("matroska")) {
 			if ((null == videoCodecName || 
 				 videoCodecName.equals("h263") ||  videoCodecName.equals("h264") || 
 				 videoCodecName.equals("hevc") ||  videoCodecName.equals("mpeg4") ||

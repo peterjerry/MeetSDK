@@ -10,7 +10,7 @@ public class AlbumSohu {
 	private int mVideoCount;
 	private int mLastCount;
 	
-	private int mAid;
+	private long mAid;
 	private int mVid;
 	private int mCid;
 	
@@ -34,7 +34,7 @@ public class AlbumSohu {
 	}
 	
 	public AlbumSohu(String title, String sec_cate, String main_actor,
-			int video_aid, int v_count, int last_count) {
+			long video_aid, int v_count, int last_count) {
 		this(0, "", title, sec_cate, v_count, last_count, 
 				video_aid, 0, 0, "N/A", "",
 				0.0f, 0.0f, "N/A", 
@@ -44,7 +44,7 @@ public class AlbumSohu {
 				0);
 	}
 	
-	public AlbumSohu(String title, int count, int aid, int vid, String desc) {
+	public AlbumSohu(String title, int count, long aid, int vid, String desc) {
 		this(0, "", title, "", count, 0, 
 				aid, vid, 0, desc, "",
 				0.0f, 0.0f, "N/A", 
@@ -56,7 +56,7 @@ public class AlbumSohu {
 
 	public AlbumSohu(int column_id, String column_name, 
 			String title, String sec_cate, int count, int last_count,
-			int aid, int vid, int cid, String desc, String tip,
+			long aid, int vid, int cid, String desc, String tip,
 			double score, double douban_score, String score_tip, 
 			String director, String act, 
 			String year, String area,
@@ -105,7 +105,7 @@ public class AlbumSohu {
 		return mVid;
 	}
 	
-	public int getAid() {
+	public long getAid() {
 		return mAid;
 	}
 	

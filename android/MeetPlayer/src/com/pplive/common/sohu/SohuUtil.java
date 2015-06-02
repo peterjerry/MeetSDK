@@ -30,7 +30,7 @@ public class SohuUtil {
 			"?plat=6&poid=1&api_key=9854b2afa779e1a6bff1962447a09dbd&sver=4.7.1" +
 			"&page_size=%d&offset=%d&sysver=4.2.2&sub_channel_id=%d&partner=340&cursor=0";
 	
-	private static final String SEARCH_CHANNEL_SURFIX_FMT = "&plat=6&poid=1" +
+	private static final String SEARCH_CHANNEL_SURFIX_FMT = "plat=6&poid=1" +
 			"&api_key=9854b2afa779e1a6bff1962447a09dbd" +
 			"&sver=4.7.1&page_size=%d&offset=%d&sysver=4.2.2&partner=340";
 	
@@ -390,6 +390,14 @@ public class SohuUtil {
 		String url = morelist_prefix + String.format(SEARCH_CHANNEL_SURFIX_FMT, page_size, page_offset);
 		Log.i(TAG, "Java: SohuUtil morelist() " + url);
 		
+		int subId = -1;
+		int pos = url.indexOf("subId=");
+		if (pos != -1) {
+			int pos2 = url.indexOf("&", pos);
+			String strSub = url.substring(pos + 6, pos2);
+			subId = Integer.valueOf(strSub);
+		}
+		
 		try {
 			String result = http_get(url);
 			if (result == null)
@@ -419,6 +427,11 @@ public class SohuUtil {
 				
 				String album_name = video.getString("album_name");
 				String video_name = video.getString("video_name");
+				
+				String title = album_name;
+				if (subId >= 50 && subId < 60 && !video_name.isEmpty())
+					title = video_name;
+				
 				String second_cate_name = video.getString("second_cate_name");
 				int v_count = video.getInt("total_video_count");
 				int last_count = video.getInt("latest_video_count");
@@ -434,7 +447,7 @@ public class SohuUtil {
 				else if (video.has("tv_desc"))
 					video.getString("tv_desc");
 				
-				int aid = video.getInt("aid");
+				long aid = video.getLong("aid");
 				int vid = video.getInt("vid");
 				int cid = video.getInt("cid");
 				String hori_pic_url = video.getString("hor_high_pic");
@@ -454,16 +467,14 @@ public class SohuUtil {
 				if (video.has("director"))
 					video.getString("director");
 				
-				String tip = video.getString("tip");
-				String score_tip = "";
-				if (video.has("score_tip"))
-					video.getString("score_tip");
+				String tip = getNodeString(video, "tip");
+				String score_tip = getNodeString(video, "score_tip");
 				int duration_sec = 0;
 				if (video.has("time_length"))
 					duration_sec = video.getInt("time_length");
 				
 				AlbumSohu album = new AlbumSohu(0, "", 
-						album_name, second_cate_name, v_count, last_count, 
+						title, second_cate_name, v_count, last_count, 
 						aid, vid, cid, desc, tip, 
 						score, douban_score, score_tip, 
 						director, main_actor, 
@@ -516,7 +527,13 @@ public class SohuUtil {
 				String column_name = getNodeString(column, "name");
 				
 				// more_list=http://api.tv.sohu.com/v4/search/channel/sub.json?subId=200&
-				mMoreListPrefix = column.getString("more_list");
+				mMoreListPrefix = getNodeString(column, "more_list");
+				
+				if (!column.has("video_list")) {
+					Log.w(TAG, "Java: no video_list");
+					continue;
+				}
+				
 				JSONArray video_list = column.getJSONArray("video_list");
 				int c = video_list.length();
 				for (int j=0;j<c;j++) {
@@ -596,13 +613,24 @@ public class SohuUtil {
 					"is_album":1
 					*/
 					
-					String album_name = video.getString("album_name");
-					String video_name = video.getString("video_name");
-					String second_cate_name = video.getString("second_cate_name");
-					int v_count = video.getInt("total_video_count");
-					int last_count = video.getInt("latest_video_count");
+					String album_name = getNodeString(video, "album_name");
+					String video_name = getNodeString(video, "video_name");
+					if (album_name.isEmpty() && video_name.isEmpty()) {
+						Log.w(TAG, "Java: album and video name are all empty");
+						continue;
+					}
 					
-					double score = video.getDouble("score");
+					String second_cate_name = getNodeString(video, "second_cate_name");
+					int v_count = 0;
+					if (video.has("total_video_count"))
+						v_count = video.getInt("total_video_count");
+					int last_count = 0;
+					if (video.has("latest_video_count"))
+						last_count = video.getInt("latest_video_count");
+					
+					double score = 0.0f;
+					if (video.has("score"))
+						score = video.getDouble("score");
 					double douban_score = 0.0f;
 					if (video.has("douban_score"))
 						douban_score = video.getDouble("douban_score");
@@ -613,7 +641,12 @@ public class SohuUtil {
 					else if (video.has("tv_desc"))
 						video.getString("tv_desc");
 					
-					int aid = video.getInt("aid");
+					if (!video.has("aid")) {
+						Log.w(TAG, "Java: video has no aid");
+						continue;
+					}
+					
+					long aid = video.getLong("aid");
 					int vid = video.getInt("vid");
 					int cid = video.getInt("cid");
 					String hori_pic_url = video.getString("hor_high_pic");
@@ -633,10 +666,8 @@ public class SohuUtil {
 					if (video.has("director"))
 						video.getString("director");
 					
-					String tip = video.getString("tip");
-					String score_tip = "";
-					if (video.has("score_tip"))
-						video.getString("score_tip");
+					String tip = getNodeString(video, "tip");
+					String score_tip = getNodeString(video, "score_tip");
 					int duration_sec = 0;
 					if (video.has("time_length"))
 						duration_sec = video.getInt("time_length");
@@ -742,7 +773,7 @@ public class SohuUtil {
 				
 				if (item.has("album_name")) {
 					String picUrl = item.getString("ver_high_pic");
-					int aid = item.getInt("aid");
+					long aid = item.getLong("aid");
 					int	cid = item.getInt("cid");
 					
 					String album_name = item.getString("album_name");
@@ -777,7 +808,7 @@ public class SohuUtil {
 		return false;
 	}
 	
-	public boolean episode(int aid, int page_index, int page_size) {
+	public boolean episode(long aid, int page_index, int page_size) {
 		String url = String.format(EPISODE_URL_FMT, aid, page_index, page_size);
 		Log.i(TAG, "Java: SohuUtil episode() " + url);
 		
@@ -809,7 +840,7 @@ public class SohuUtil {
 				
 				String title = episode.getString("video_name");
 				String picUrl = episode.getString("hor_high_pic");
-				int video_aid = episode.getInt("aid");
+				long video_aid = episode.getLong("aid");
 				int	video_vid = episode.getInt("vid");
 				
 				String playurl = "";

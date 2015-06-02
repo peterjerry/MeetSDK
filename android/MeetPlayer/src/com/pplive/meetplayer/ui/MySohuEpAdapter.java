@@ -17,19 +17,22 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.BaseAdapter;
 import android.widget.ImageView;
+import android.widget.RelativeLayout;
+import android.widget.RelativeLayout.LayoutParams;
 import android.widget.TextView;
 
 public class MySohuEpAdapter extends BaseAdapter {
 	private final static String TAG = "MySohuEpAdapter";
 	
 	private List<Map<String, Object>> data = null;
-	private Context context = null;
-	private LayoutInflater inflater = null;
+	private Context context					= null;
+	private LayoutInflater inflater 		= null;
 
 	public MySohuEpAdapter(Context context, List<Map<String, Object>> data) {
 		super();
-		this.data = data;
+		
 		this.context = context;
+		this.data = data;
 
 		inflater = LayoutInflater.from(context);
 	}
@@ -61,10 +64,10 @@ public class MySohuEpAdapter extends BaseAdapter {
 
 	private class ViewHolder {
 
-		TextView title			= null;
-		ImageView img			= null;
-		TextView tip			= null;
-		boolean imgDownloaded	= false;
+		private TextView title			= null;
+		private ImageView img			= null;
+		private TextView tip			= null;
+		private boolean imgDownloaded	= false;
 
 		public TextView getTitle() {
 			return title;
@@ -82,6 +85,10 @@ public class MySohuEpAdapter extends BaseAdapter {
 			this.tip = tip;
 		}
 
+		public void setImg(ImageView img) {
+			this.img = img;
+		}
+		
 		public ImageView getImg() {
 			return img;
 		}
@@ -108,10 +115,14 @@ public class MySohuEpAdapter extends BaseAdapter {
 			holder = new ViewHolder();
 			convertView = inflater.inflate(R.layout.gridview_item, null);
 			
-			holder.title = (TextView) convertView.findViewById(R.id.gridview_title);
-			holder.tip = (TextView) convertView.findViewById(R.id.gridview_tip);
-			holder.img = (ImageView) convertView.findViewById(R.id.gridview_img);
-
+			holder.setTitle((TextView) convertView.findViewById(R.id.gridview_title));
+			holder.setTip((TextView) convertView.findViewById(R.id.gridview_tip));
+			holder.setImg((ImageView) convertView.findViewById(R.id.gridview_img));
+			
+			 RelativeLayout.LayoutParams params = (LayoutParams) holder.getImg().getLayoutParams();
+			 params.height	= dip2px(context, 270/*dip*/);
+			 holder.getImg().setLayoutParams(params);  
+			
 			convertView.setTag(holder);
 		} else {
 			Log.i(TAG, "Java: getView() convertView getTag: #" + position);
@@ -125,26 +136,24 @@ public class MySohuEpAdapter extends BaseAdapter {
 		String img_url = (String) item.get("img_url");
 		holder.getTitle().setText(title);
 		holder.getTip().setText(tip);
-		//holder.getImg().setImageAsync(img_url);
-		
-		ImageView iv = holder.getImg();
-		
-		if (holder.isDownloaded()) {
-			Log.i(TAG, "Java: getView() holder.isDownloaded()");
-			String key = PicCacheUtil.hashKeyForDisk(img_url);
-			Bitmap bmp = PicCacheUtil.getThumbnailFromDiskCache(key);
-			iv.setImageBitmap(bmp);
-		}
-		else {
-			Log.i(TAG, "Java: getView() img task");
-			iv.setImageResource(R.drawable.clip); // set default picture
-			new LoadPicTask().execute(holder, img_url);
-		}
+
+		Log.i(TAG, "Java: getView() img task");
+		new LoadPicTask().execute(holder, img_url);
 		
 		// 注意 默认为返回null,必须得返回convertView视图
 		return convertView;
 	}
 
+	public int dip2px(Context context, float dipValue) {
+		float m = context.getResources().getDisplayMetrics().density;
+		return (int) (dipValue * m + 0.5f);
+	}
+
+	public int px2dip(Context context, float pxValue) {
+		float m = context.getResources().getDisplayMetrics().density;
+		return (int) (pxValue / m + 0.5f);
+	}
+	
 	private class LoadPicTask extends AsyncTask<Object, Integer, Bitmap> {
 
 		private ViewHolder mHolder;
