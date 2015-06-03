@@ -40,9 +40,10 @@ public class SohuEpisodeActivity extends Activity {
     private final static int MSG_PLAYLINK_DONE	= 2;
     private final static int MSG_MORELIST_DONE	= 3;
     
-    private final static long TASK_EPISODE		= 1;
-    private final static long TASK_PLAYLINK		= 2;
-    private final static long TASK_MORELIST		= 3;
+    private final static long TASK_EPISODE		= 1L;
+    private final static long TASK_PLAYLINK		= 2L;
+    private final static long TASK_MORELIST		= 3L;
+    private final static long TASK_VIDEO_INFO		= 4L;
     
     private final static int SET_DATA_LIST		= 1;
     private final static int SET_DATA_SEARCH		= 2;
@@ -96,8 +97,21 @@ public class SohuEpisodeActivity extends Activity {
 				ep_page_index = 1;
 				
 				Map<String, Object> item = adapter.getItem(position);
-				selected_aid = (Long)item.get("aid");
-				new SohuEpgTask().execute(TASK_EPISODE, selected_aid);
+				
+				if ((Boolean)item.get("is_album")) {
+					selected_aid = (Long)item.get("aid");
+					new SohuEpgTask().execute(TASK_EPISODE, selected_aid);
+				}
+				else {
+					long aid	= (Long)item.get("aid");
+					int vid		= (Integer)item.get("vid");
+					int site	= (Integer)item.get("site");
+					
+					if (aid > 1000000000000L)
+						new SohuEpgTask().execute(TASK_VIDEO_INFO, aid, (long)vid, (long)site);
+					else
+						new SohuEpgTask().execute(TASK_PLAYLINK, aid, (long)vid);
+				}
 			}
 			
 		});
@@ -142,11 +156,10 @@ public class SohuEpisodeActivity extends Activity {
             switch (msg.what) {
             case MSG_EPISODE_DONE:
             	if (mEpisodeList.size() == 1) {
-	            	long aid = mEpisodeList.get(0).mAid;
-					int vid = mEpisodeList.get(0).mVid;
+            		EpisodeSohu ep = mEpisodeList.get(0);
 					selected_index = 0;
+					new SohuEpgTask().execute(TASK_PLAYLINK, ep.mAid, (long)ep.mVid);
 					
-					new SohuEpgTask().execute(TASK_PLAYLINK, aid, (long)vid);
 					return;
             	}
             	
@@ -193,6 +206,9 @@ public class SohuEpisodeActivity extends Activity {
     				episode.put("img_url", al.getImgUrl(true));
     				episode.put("tip", al.getTip());
     				episode.put("aid", al.getAid());
+    				episode.put("vid", al.getVid());
+    				episode.put("site", al.getSite());
+    				episode.put("is_album", al.isAlbum());
     				listData.add(episode);
     			}
             	
@@ -276,12 +292,16 @@ public class SohuEpisodeActivity extends Activity {
 				mhandler.sendEmptyMessage(MSG_EPISODE_DONE);
 			}
 			else if (action == TASK_PLAYLINK){
-				long aid = params[1];
-				long vid = params[2];
-				//mPlaylink = mEPG.detail(vid, aid);
+				if (params.length < 3) {
+					Log.e(TAG, "Java: TASK_PLAYLINK params.lenght is invalid: " + params.length);
+					return false;
+				}
+				
+				long aid 	= params[1];
+				long vid 	= params[2];
 				mPlaylink = mEPG.playlink_pptv((int)vid, 0);
 				if (mPlaylink == null) {
-					Log.e(TAG, "Java: failed to call playlink_pptv() vid" + vid);
+					Log.e(TAG, "Java: failed to call playlink_pptv() vid: " + vid);
 					return false;
 				}
 				
@@ -299,8 +319,29 @@ public class SohuEpisodeActivity extends Activity {
 				loadingMore = false;
 				mhandler.sendEmptyMessage(MSG_MORELIST_DONE);
 			}
+			else if (action == TASK_VIDEO_INFO) {
+				if (params.length < 4) {
+					Log.e(TAG, "Java: TASK_VIDEO_INFO params.lenght is invalid: " + params.length);
+					return false;
+				}
+				
+				long aid 	= params[1];
+				long vid 	= params[2];
+				long site	= params[3];
+				mPlaylink = mEPG.video_info((int)site, (int)vid, aid);
+				if (mPlaylink == null) {
+					Log.e(TAG, "Java: failed to call video_info() vid: " + vid);
+					return false;
+				}
+				
+				mhandler.sendEmptyMessage(MSG_PLAYLINK_DONE);	
+			}
+			else {
+				Log.e(TAG, "Java: invalid action type: " + action);
+				return false;
+			}
 
-			return true;
+			return true;// all done!
 		}
 		
 	}
@@ -361,6 +402,9 @@ public class SohuEpisodeActivity extends Activity {
 				episode.put("img_url", al.getImgUrl(true));
 				episode.put("tip", al.getTip());
 				episode.put("aid", al.getAid());
+				episode.put("vid", al.getVid());
+				episode.put("site", al.getSite());
+				episode.put("is_album", al.isAlbum());
 				data2.add(episode);
 			}
 			

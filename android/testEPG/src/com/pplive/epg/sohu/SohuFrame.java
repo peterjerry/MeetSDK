@@ -337,7 +337,7 @@ public class SohuFrame extends JFrame {
 			return;
 		}
 
-		if (id != 70020004)
+		//if (id != 70020004)
 			morelist();
 		
 		listModel.clear();
