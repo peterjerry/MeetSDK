@@ -33,8 +33,10 @@ public class SohuUtil {
 			"cate_code=9006&plat=6&poid=1&api_key=9854b2afa779e1a6bff1962447a09dbd" +
 			"&sver=4.7.1&sysver=4.2.2&partner=340";
 	
-	private static final String CLIP_DETAIL_URL_FMT = "http://api.tv.sohu.com/v4/video/info/%d.json?" +
-			"site=1&plat=6&poid=1&api_key=9854b2afa779e1a6bff1962447a09dbd" +
+	private static final String VIDEO_INFO_URL_FMT = "http://api.tv.sohu.com/v4/video/info/" +
+			"%d.json?" +
+			"site=%d" +
+			"&plat=6&poid=1&api_key=9854b2afa779e1a6bff1962447a09dbd" +
 			"&sver=4.7.1&sysver=4.2.2&partner=340&aid=%d";
 	
 	private static final String TOPIC_LIST_URL_FMT = "http://api.tv.sohu.com/v4/personal/tv/individuation.json?" +
@@ -42,7 +44,8 @@ public class SohuUtil {
 			"&api_key=9854b2afa779e1a6bff1962447a09dbd&uid=9354d3e14fdc4aa4999aff3790dab635" +
 			"&sver=4.7.1&cat=9008&page=%d&page_size=%d&sysver=4.2.2&partner=340";
 	
-	private static final String EPISODE_DISC_URL_FMT = "http://api.tv.sohu.com/v4/album/info/%d.json?" +
+	private static final String ALBUM_INFO_URL_FMT = "http://api.tv.sohu.com/v4/album/info/" +
+			"%d.json?" +
 			"area_code=42&plat=6&poid=1" +
 			"&api_key=9854b2afa779e1a6bff1962447a09dbd&sver=4.7.1&sysver=4.2.2&partner=340";
 	
@@ -265,6 +268,45 @@ public class SohuUtil {
 		return false;
 	}
 	
+	public boolean album_info(long aid) {
+		String url = String.format(ALBUM_INFO_URL_FMT, aid);
+		System.out.println("Java: SohuUtil album_info() " + url);
+		
+		HttpGet request = new HttpGet(url);
+		
+		HttpResponse response;
+		try {
+			response = HttpClients.createDefault().execute(request);
+			if (response.getStatusLine().getStatusCode() != 200){
+				return false;
+			}
+			
+			String result = EntityUtils.toString(response.getEntity());
+			
+			JSONTokener jsonParser = new JSONTokener(result);
+			JSONObject root = (JSONObject) jsonParser.nextValue();
+			int status = root.getInt("status");
+			String statusText = root.getString("statusText");
+			if (status != 200) {
+				System.out.println(String.format("Java: failed to get url %d %s", status, statusText));
+				return false;
+			}
+			
+			JSONObject data = root.getJSONObject("data");
+			// todo
+		} catch (ClientProtocolException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (JSONException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+		return false;
+	}
 	
 	public boolean channel_list() {
 		System.out.println("Java: SohuUtil channel_list() " + CHANNEL_LIST_URL);
@@ -346,9 +388,9 @@ public class SohuUtil {
 		return false;
 	}
 	
-	public PlaylinkSohu detail(int vid, long aid) {
-		String url = String.format(CLIP_DETAIL_URL_FMT, vid, aid);
-		System.out.println("Java: SohuUtil detail() " + url);
+	public PlaylinkSohu video_info(int site, int vid, long aid) {
+		String url = String.format(VIDEO_INFO_URL_FMT, vid, site, aid);
+		System.out.println("Java: SohuUtil video_info() " + url);
 		
 		HttpGet request = new HttpGet(url);
 		
@@ -372,12 +414,12 @@ public class SohuUtil {
 			}
 			
 			JSONObject data = root.getJSONObject("data");
-			String normal_url = data.getString("url_nor_mp4");
+			String normal_url = getNodeString(data, "url_nor_mp4");
 			String tv_name = data.getString("video_name");
-			String high_url = data.getString("url_high_mp4");
+			String high_url = getNodeString(data, "url_high_mp4");
 			
-			String clipsDuration_nor = data.getString("clips_duration_nor");
-			String clipsDuration_high = data.getString("clips_duration_high");
+			String clipsDuration_nor = getNodeString(data, "clips_duration_nor");
+			String clipsDuration_high = getNodeString(data, "clips_duration_high");
 
 			return new PlaylinkSohu(tv_name, normal_url, high_url, 
 					clipsDuration_nor, clipsDuration_high);
@@ -442,13 +484,14 @@ public class SohuUtil {
 				String album_name = video.getString("album_name");
 				String video_name = video.getString("video_name");
 				
-				String title = album_name;
-				if ((subId >= 50 && subId < 60) || subId == 224) {
-					if (!video_name.isEmpty())
-						title = video_name;
-				}
+				int is_album = video.getInt("is_album");
+				String album_title = album_name;
+				if (is_album == 0)
+					album_title = video_name;
+				//if ((subId >= 50 && subId < 60) || subId > 200) {
 				
 				String second_cate_name = getNodeString(video, "second_cate_name");
+				int site = video.getInt("site");
 				int v_count = video.getInt("total_video_count");
 				int last_count = video.getInt("latest_video_count");
 				
@@ -490,8 +533,8 @@ public class SohuUtil {
 					duration_sec = video.getInt("time_length");
 				
 				AlbumSohu album = new AlbumSohu(0, "", 
-						title, second_cate_name, v_count, last_count, 
-						aid, vid, cid, desc, tip, 
+						album_title, second_cate_name, v_count, last_count, is_album == 1? true: false,
+						aid, vid, cid, desc, tip, site, 
 						score, douban_score, score_tip, 
 						director, main_actor, 
 						year, area,
@@ -648,7 +691,13 @@ public class SohuUtil {
 						continue;
 					}
 					
+					int is_album = video.getInt("is_album");
+					String album_title = album_name;
+					if (is_album == 0)
+						album_title = video_name;
+					
 					String second_cate_name = getNodeString(video, "second_cate_name");
+					int site = video.getInt("site");
 					int v_count = 0;
 					if (video.has("total_video_count"))
 						v_count = video.getInt("total_video_count");
@@ -701,8 +750,8 @@ public class SohuUtil {
 						duration_sec = video.getInt("time_length");
 					
 					AlbumSohu album = new AlbumSohu(column_id, column_name, 
-							album_name, second_cate_name, v_count, last_count, 
-							aid, vid, cid, desc, tip, 
+							album_title, second_cate_name, v_count, last_count, is_album == 1 ? true : false,
+							aid, vid, cid, desc, tip, site, 
 							score, douban_score, score_tip, 
 							director, main_actor, 
 							year, area,
@@ -910,7 +959,9 @@ public class SohuUtil {
 					int	cid = item.getInt("cid");
 					
 					String album_name = item.getString("album_name");
+					int is_album = item.getInt("is_album");
 					String cate = item.getString("second_cate_name");
+					int site = item.getInt("site");
 					String main_actor = item.getString("main_actor");
 					int v_count = item.getInt("total_video_count");
 					int last_count = item.getInt("latest_video_count");
@@ -924,7 +975,8 @@ public class SohuUtil {
 					}
 					
 					AlbumSohu a = new AlbumSohu(album_name, cate, main_actor,
-							aid, v_count, last_count);
+							aid, v_count, last_count, 
+							is_album == 1 ? true : false, site);
 					mSearchItemList.add(a);
 				}
 			}

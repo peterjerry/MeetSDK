@@ -76,7 +76,7 @@ public class SohuFrame extends JFrame {
 		mEPG = new SohuUtil();
 		
 		this.setTitle("Test EPG");
-		this.setBounds(400, 300, 550, 600);
+		this.setBounds(400, 300, 700, 600);
 		this.addWindowListener(new WindowAdapter() {
 			public void windowClosing(WindowEvent e) {
 				dispose();
@@ -91,7 +91,7 @@ public class SohuFrame extends JFrame {
 		
 		listItem = new JList<String>();
 		listItem.setFont(f);
-		listItem.setBounds(20, 80, 200, 250);
+		listItem.setBounds(20, 80, 300, 250);
 		listModel = new DefaultListModel<String>();
 		listItem.setModel(listModel);
 		listItem.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
@@ -132,23 +132,24 @@ public class SohuFrame extends JFrame {
 		});
 		this.getContentPane().add(listItem);
 		
-		lblImage.setBounds(230, 100, 256, 256);
+		lblImage.setBounds(350, 100, 256, 256);
 		this.getContentPane().add(lblImage);
 		
 		lblTip.setFont(f);
-		lblTip.setBounds(230, 320, 100, 40);
+		lblTip.setBounds(500, 320, 100, 40);
 		this.getContentPane().add(lblTip);
 		
 		btnOK.setBounds(0, 0, 80, 30);
 		this.getContentPane().add(btnOK);
-		btnGo.setBounds(230, 80, 70, 40);
+		
+		btnGo.setBounds(350, 80, 70, 40);
 		btnGo.setFont(f);
 		this.getContentPane().add(btnGo);
-		btnReset.setBounds(300, 80, 70, 40);
+		btnReset.setBounds(430, 80, 70, 40);
 		btnReset.setFont(f);
 		this.getContentPane().add(btnReset);
 		btnNext.setFont(f);
-		btnNext.setBounds(370, 80, 80, 40);
+		btnNext.setBounds(510, 80, 80, 40);
 		this.getContentPane().add(btnNext);
 
 		btnOK.addActionListener(new AbstractAction() {
@@ -175,6 +176,14 @@ public class SohuFrame extends JFrame {
 				if (mState == SOHUVIDEO_EPG_STATE.SOHUVIDEO_EPG_STATE_ALBUM) {
 					album_page_index++;
 					morelist();
+
+					listModel.clear();
+					
+					mAlbumList = mEPG.getAlbumList();
+					int c = mAlbumList.size();
+					for (int i=0;i<c;i++) {
+						listModel.addElement(mAlbumList.get(i).getTitle());
+					}
 				}
 				else if (mState == SOHUVIDEO_EPG_STATE.SOHUVIDEO_EPG_STATE_EPISODE) {
 					ep_page_index++;
@@ -249,9 +258,8 @@ public class SohuFrame extends JFrame {
 		int n = listItem.getSelectedIndex();
 		System.out.println("Java: clip info: " + mAlbumList.get(n).toString());
 		
-		int vid = mAlbumList.get(n).getVid();
-		long aid = mAlbumList.get(n).getAid();
-		PlaylinkSohu link = mEPG.detail(vid, aid);
+		AlbumSohu al = mAlbumList.get(n);
+		PlaylinkSohu link = mEPG.video_info(al.getSite(), al.getVid(), al.getAid());
 		if (link != null) {
 			System.out.println("Java: link info: " + link.getTitle());
 		}
@@ -268,7 +276,23 @@ public class SohuFrame extends JFrame {
 	private void selectEpisode() {
 		if (last_aid == -1) {
 			int n = listItem.getSelectedIndex();
-			last_aid = mAlbumList.get(n).getAid();
+			AlbumSohu al = mAlbumList.get(n);
+			if (!al.isAlbum()) {
+				PlaylinkSohu pl = mEPG.video_info(al.getSite(), al.getVid(), al.getAid());
+				if (pl != null) {
+					String url = pl.getUrl(SOHU_FT.SOHU_FT_HIGH);
+
+					System.out.println("quick play link " + url);
+					
+					String exe_filepath  = "D:/software/ffmpeg/ffplay.exe";
+					String[] cmd = new String[] {exe_filepath, url};
+					openExe(cmd);
+				}
+				
+				return;
+			}
+			
+			last_aid = al.getAid();
 		}
 		
 		if (!mEPG.episode(last_aid, ep_page_index, page_size)) {
@@ -312,9 +336,19 @@ public class SohuFrame extends JFrame {
 			mState = SOHUVIDEO_EPG_STATE.SOHUVIDEO_EPG_STATE_ERROR;
 			return;
 		}
+
+		if (id != 70020004)
+			morelist();
 		
-		 morelist();
-		 mState = SOHUVIDEO_EPG_STATE.SOHUVIDEO_EPG_STATE_ALBUM;
+		listModel.clear();
+		
+		mAlbumList = mEPG.getAlbumList();
+		int c = mAlbumList.size();
+		for (int i=0;i<c;i++) {
+			listModel.addElement(mAlbumList.get(i).getTitle());
+		}
+		
+		mState = SOHUVIDEO_EPG_STATE.SOHUVIDEO_EPG_STATE_ALBUM;
 	}
 	
 	private void morelist() {
@@ -324,14 +358,6 @@ public class SohuFrame extends JFrame {
 				mState = SOHUVIDEO_EPG_STATE.SOHUVIDEO_EPG_STATE_ERROR;
 				return;
 			}
-		}
-		
-		listModel.clear();
-		
-		mAlbumList = mEPG.getAlbumList();
-		int c = mAlbumList.size();
-		for (int i=0;i<c;i++) {
-			listModel.addElement(mAlbumList.get(i).getTitle());
 		}
 	}
 	
@@ -400,11 +426,9 @@ public class SohuFrame extends JFrame {
 	
 	private void playProgram() {
 		int index = listItem.getSelectedIndex();
-
-		int vid = mEpisodeList.get(index).mVid;
-		long aid = mEpisodeList.get(index).mAid;
-		//PlaylinkSohu pl = mEPG.detail(vid, aid);
-		PlaylinkSohu pl = mEPG.playlink_pptv(vid, 0);
+		EpisodeSohu ep = mEpisodeList.get(index);
+		//PlaylinkSohu pl = mEPG.video_info(2, ep.mVid, ep.mAid);
+		PlaylinkSohu pl = mEPG.playlink_pptv(ep.mVid, 0);
 		
 		SOHU_FT ft = SOHU_FT.SOHU_FT_ORIGIN;
 		String strUrl = pl.getUrl(ft);
