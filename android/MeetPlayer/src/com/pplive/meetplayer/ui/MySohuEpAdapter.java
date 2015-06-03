@@ -120,7 +120,7 @@ public class MySohuEpAdapter extends BaseAdapter {
 			holder.setImg((ImageView) convertView.findViewById(R.id.gridview_img));
 			
 			 RelativeLayout.LayoutParams params = (LayoutParams) holder.getImg().getLayoutParams();
-			 params.height	= dip2px(context, 270/*dip*/);
+			 params.height	= dip2px(context, 200/*dip*/);
 			 holder.getImg().setLayoutParams(params);  
 			
 			convertView.setTag(holder);

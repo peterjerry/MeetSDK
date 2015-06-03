@@ -119,7 +119,7 @@ public class SohuEpisodeActivity extends Activity {
 				
 				int lastInScreen = firstVisibleItem + visibleItemCount;
 		        if (totalItemCount > 0 && lastInScreen == totalItemCount && !noMoreData) {
-		        	if (!loadingMore) {
+		        	if (!loadingMore && mMoreList != null && !mMoreList.isEmpty()) {
 		        		loadingMore = true;
 		                new SohuEpgTask().execute(TASK_MORELIST);
 		        	}
@@ -288,12 +288,6 @@ public class SohuEpisodeActivity extends Activity {
 				mhandler.sendEmptyMessage(MSG_PLAYLINK_DONE);	
 			}
 			else if (action == TASK_MORELIST) {
-				if (mMoreList == null || mMoreList.isEmpty()) {
-					Log.e(TAG, "Java morelist is null");
-					loadingMore = false;
-					return false;
-				}
-				
 				album_page_index++;
 				if (!mEPG.morelist(mMoreList, page_size, (album_page_index - 1) * page_size)) {
 					Log.e(TAG, "Java: failed to call morelist() morelist " + mMoreList);

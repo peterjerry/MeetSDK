@@ -20,7 +20,7 @@
         android:layout_marginLeft="1dip"
         android:layout_marginRight="1dip"
         android:numColumns="auto_fit"
-        android:columnWidth="200dp"
+        android:columnWidth="150dp"
         android:verticalSpacing="25dp"
         android:stretchMode="columnWidth"
         android:cacheColorHint="#00000000">

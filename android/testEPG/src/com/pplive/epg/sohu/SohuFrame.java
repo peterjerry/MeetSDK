@@ -405,17 +405,27 @@ public class SohuFrame extends JFrame {
 		long aid = mEpisodeList.get(index).mAid;
 		//PlaylinkSohu pl = mEPG.detail(vid, aid);
 		PlaylinkSohu pl = mEPG.playlink_pptv(vid, 0);
-		String strUrl = pl.getUrl(SOHU_FT.SOHU_FT_ORIGIN);
-		if (strUrl == null || strUrl.isEmpty())
-			strUrl = pl.getUrl(SOHU_FT.SOHU_FT_SUPER);
-		if (strUrl == null || strUrl.isEmpty())
-			strUrl = pl.getUrl(SOHU_FT.SOHU_FT_HIGH);
-		if (strUrl == null || strUrl.isEmpty())
-			strUrl = pl.getUrl(SOHU_FT.SOHU_FT_NORMAL);
+		
+		SOHU_FT ft = SOHU_FT.SOHU_FT_ORIGIN;
+		String strUrl = pl.getUrl(ft);
+		if (strUrl == null || strUrl.isEmpty()) {
+			ft = SOHU_FT.SOHU_FT_SUPER;
+			strUrl = pl.getUrl(ft);
+		}
+		if (strUrl == null || strUrl.isEmpty()) {
+			ft = SOHU_FT.SOHU_FT_HIGH;
+			strUrl = pl.getUrl(ft);
+		}
+		if (strUrl == null || strUrl.isEmpty()) {
+			ft = SOHU_FT.SOHU_FT_NORMAL;
+			strUrl = pl.getUrl(ft);
+		}
 		if (strUrl == null || strUrl.isEmpty()) {
 			System.out.println("no stream available");
 			return;
 		}
+		
+		System.out.println(String.format("Java strUrl(ft %s): ", ft.toString(), strUrl));
 		
 		int pos = strUrl.indexOf(',');
 		String url = null;

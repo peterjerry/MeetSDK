@@ -54,7 +54,8 @@ public class PlaySohuActivity extends Activity implements Callback {
 	private String mUrlListStr;
 	private String mDurationListStr;
 	private String mTitle;
-	private int mInfoId, mIndex, mAid;
+	private int mInfoId, mIndex;
+	private long mAid;
 	
 	private int mVideoWidth, mVideoHeight;
 	private List<String> m_playlink_list;
@@ -147,7 +148,7 @@ public class PlaySohuActivity extends Activity implements Callback {
 			mTitle				= intent.getStringExtra("title");
 			mInfoId				= intent.getIntExtra("info_id", -1);
     		mIndex				= intent.getIntExtra("index", -1);
-    		mAid				= intent.getIntExtra("aid", -1);
+    		mAid				= intent.getLongExtra("aid", -1);
     		
     		Log.i(TAG, "Java: mDurationListStr " + mDurationListStr);
 		}

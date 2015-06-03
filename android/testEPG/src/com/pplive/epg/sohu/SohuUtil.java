@@ -267,7 +267,7 @@ public class SohuUtil {
 	
 	
 	public boolean channel_list() {
-		System.out.println("Java: SohuUtil list() " + CHANNEL_LIST_URL);
+		System.out.println("Java: SohuUtil channel_list() " + CHANNEL_LIST_URL);
 		
 		HttpGet request = new HttpGet(CHANNEL_LIST_URL);
 		
@@ -311,22 +311,24 @@ public class SohuUtil {
 				"icon_selected":"http://tv.sohu.com/upload/clientapp/channelicon/gphone/channel_icon_episode_4.7.1_selected.png",
 				*/
 				
-				if (cate.has("cate_api")) {
-					String channelId = cate.getString("channeled");
-					String iconUrl = cate.getString("icon");
-					String title = cate.getString("name");
-					String cate_api = cate.getString("cate_api");
-					int cid = cate.getInt("cid");
-					int cate_code = cate.getInt("cate_code");
-	
-					final String cate_surfix = "?&plat=6&poid=1" +
-							"&api_key=9854b2afa779e1a6bff1962447a09dbd&sver=4.7.1" +
-							"&sysver=4.2.2&sub_channel_id=1000000&partner=340";
-					ChannelSohu c = new ChannelSohu(title, channelId, iconUrl, cate_api + cate_surfix, 
-							cid, cate_code);
-					mChannelList.add(c);
+				String channelId = getNodeString(cate, "channeled");
+				String iconUrl = cate.getString("icon");
+				String title = cate.getString("name");
+				if (!cate.has("cate_api")) {
+					System.out.println("Java: no cate_api");
+					continue;
 				}
 				
+				String cate_api = getNodeString(cate, "cate_api");
+				int cid = cate.getInt("cid");
+				int cate_code = cate.getInt("cate_code");
+
+				final String cate_surfix = "?&plat=6&poid=1" +
+						"&api_key=9854b2afa779e1a6bff1962447a09dbd&sver=4.7.1" +
+						"&sysver=4.2.2&sub_channel_id=1000000&partner=340";
+				ChannelSohu c = new ChannelSohu(title, channelId, iconUrl, cate_api + cate_surfix, 
+						cid, cate_code);
+				mChannelList.add(c);
 			}
 			
 			return true;
@@ -441,8 +443,10 @@ public class SohuUtil {
 				String video_name = video.getString("video_name");
 				
 				String title = album_name;
-				if (subId >= 50 && subId < 60 && !video_name.isEmpty())
-					title = video_name;
+				if ((subId >= 50 && subId < 60) || subId == 224) {
+					if (!video_name.isEmpty())
+						title = video_name;
+				}
 				
 				String second_cate_name = getNodeString(video, "second_cate_name");
 				int v_count = video.getInt("total_video_count");
@@ -1207,7 +1211,10 @@ public class SohuUtil {
 			}
 			
 			String result = EntityUtils.toString(response.getEntity());
-			System.out.println("Java: result: " + result.substring(0, 64));
+			String strRes = result;
+			if (strRes.length() > 64)
+				strRes = strRes.substring(0, 64);
+			System.out.println("Java: result: " + strRes);
 			
 			JSONTokener jsonParser = new JSONTokener(result);
 			JSONObject root = (JSONObject) jsonParser.nextValue();
