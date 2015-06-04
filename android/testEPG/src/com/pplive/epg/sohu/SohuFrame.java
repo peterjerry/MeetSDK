@@ -48,9 +48,12 @@ public class SohuFrame extends JFrame {
 	
 	long last_aid = -1;
 	
-	private final static int page_size = 10;
+	private final static int PAGE_SIZE 		= 10;
+	private final int EPISODE_INCR_PAGE_NUM 	= 30;
+	
 	private int album_page_index = 1;
 	private int ep_page_index = 1;
+	private int ep_page_incr;
 	
 	JButton btnOK		= new JButton("OK");
 	JButton btnReset 	= new JButton("重置");
@@ -186,7 +189,7 @@ public class SohuFrame extends JFrame {
 					}
 				}
 				else if (mState == SOHUVIDEO_EPG_STATE.SOHUVIDEO_EPG_STATE_EPISODE) {
-					ep_page_index++;
+					ep_page_index += ep_page_incr;
 					selectEpisode();
 				}
 					
@@ -213,7 +216,7 @@ public class SohuFrame extends JFrame {
 	}
 	
 	private void search(String key) {
-		if (!mEPG.search(key, album_page_index, page_size)) {
+		if (!mEPG.search(key, album_page_index, PAGE_SIZE)) {
 			mState = SOHUVIDEO_EPG_STATE.SOHUVIDEO_EPG_STATE_ERROR;
 			return;
 		}
@@ -292,10 +295,25 @@ public class SohuFrame extends JFrame {
 				return;
 			}
 			
+			int last_count = al.getLastCount();
+			if (last_count > EPISODE_INCR_PAGE_NUM) {
+				ep_page_index = last_count / PAGE_SIZE + 1;
+				ep_page_incr = -1;
+			}
+			else {
+				ep_page_index = 1;
+				ep_page_incr = 1;
+			}
+			
 			last_aid = al.getAid();
 		}
 		
-		if (!mEPG.episode(last_aid, ep_page_index, page_size)) {
+		AlbumSohu al = mEPG.album_info(last_aid);
+		if (al != null) {
+			System.out.println("album info: " + al.toString());
+		}
+		
+		if (!mEPG.episode(last_aid, ep_page_index, PAGE_SIZE)) {
 			mState = SOHUVIDEO_EPG_STATE.SOHUVIDEO_EPG_STATE_ERROR;
 			return;
 		}
@@ -332,7 +350,7 @@ public class SohuFrame extends JFrame {
 	private void selectAlbumNew() {
 		int n = listItem.getSelectedIndex();
 		int id = mSubChannelList.get(n).mSubChannelId;
-		if (!mEPG.subchannel(id, page_size, 0)) {
+		if (!mEPG.subchannel(id, PAGE_SIZE, 0)) {
 			mState = SOHUVIDEO_EPG_STATE.SOHUVIDEO_EPG_STATE_ERROR;
 			return;
 		}
@@ -354,7 +372,7 @@ public class SohuFrame extends JFrame {
 	private void morelist() {
 		mMoreList = mEPG.getMoreList();
 		if (mMoreList != null && !mMoreList.isEmpty()) {
-			if (!mEPG.morelist(mMoreList, page_size, (album_page_index - 1) * page_size)) {
+			if (!mEPG.morelist(mMoreList, PAGE_SIZE, (album_page_index - 1) * PAGE_SIZE)) {
 				mState = SOHUVIDEO_EPG_STATE.SOHUVIDEO_EPG_STATE_ERROR;
 				return;
 			}
@@ -384,7 +402,7 @@ public class SohuFrame extends JFrame {
 		int n = comboItem.getSelectedIndex();
 		int tid = mTopicList.get(n).mTid;
 		
-		if (!mEPG.album(tid, album_page_index, page_size)) {
+		if (!mEPG.album(tid, album_page_index, PAGE_SIZE)) {
 			mState = SOHUVIDEO_EPG_STATE.SOHUVIDEO_EPG_STATE_ERROR;
 			return;
 		}
@@ -409,7 +427,7 @@ public class SohuFrame extends JFrame {
 			aid = last_aid;
 		}
 		
-		if (!mEPG.episode(aid, album_page_index, page_size)) {
+		if (!mEPG.episode(aid, album_page_index, PAGE_SIZE)) {
 			mState = SOHUVIDEO_EPG_STATE.SOHUVIDEO_EPG_STATE_ERROR;
 			return;
 		}
@@ -466,7 +484,7 @@ public class SohuFrame extends JFrame {
 	}
 	
 	private void init_combobox() {
-		/*if (!mEPG.topic(album_page_index, page_size)) {
+		/*if (!mEPG.topic(album_page_index, PAGE_SIZE)) {
 			System.out.println("failed to channel()");
 			return;
 		}*/

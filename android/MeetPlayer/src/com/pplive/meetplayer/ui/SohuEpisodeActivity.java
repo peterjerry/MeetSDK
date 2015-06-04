@@ -39,6 +39,7 @@ public class SohuEpisodeActivity extends Activity {
     private final static int MSG_EPISODE_DONE		= 1;
     private final static int MSG_PLAYLINK_DONE	= 2;
     private final static int MSG_MORELIST_DONE	= 3;
+    private final static int MSG_NO_MORE_EPISODE	= 11;
     
     private final static long TASK_EPISODE		= 1L;
     private final static long TASK_PLAYLINK		= 2L;
@@ -51,6 +52,7 @@ public class SohuEpisodeActivity extends Activity {
     private final static int page_size = 10;
     private int album_page_index = 1;
     private int ep_page_index = 1;
+    private int ep_page_incr;
     private int search_page_index = 1;
     
     private List<Map<String, Object>> data2;
@@ -93,13 +95,21 @@ public class SohuEpisodeActivity extends Activity {
 			public void onItemClick(AdapterView<?> arg0, View v, int position,
 					long id) {
 				// TODO Auto-generated method stub
-				//reset page_index
-				ep_page_index = 1;
 				
 				Map<String, Object> item = adapter.getItem(position);
 				
 				if ((Boolean)item.get("is_album")) {
 					selected_aid = (Long)item.get("aid");
+					int last_count = (Integer)item.get("last_count");
+					if (last_count > 30) {
+						ep_page_index = last_count / page_size + 1;
+						ep_page_incr = -1;
+					}
+					else {
+						ep_page_index = 1;
+						ep_page_incr = 1;
+					}
+					
 					new SohuEpgTask().execute(TASK_EPISODE, selected_aid);
 				}
 				else {
@@ -209,10 +219,14 @@ public class SohuEpisodeActivity extends Activity {
     				episode.put("vid", al.getVid());
     				episode.put("site", al.getSite());
     				episode.put("is_album", al.isAlbum());
+    				episode.put("last_count", al.getLastCount());
     				listData.add(episode);
     			}
             	
             	adapter.notifyDataSetChanged();
+            	break;
+            case MSG_NO_MORE_EPISODE:
+            	Toast.makeText(SohuEpisodeActivity.this, "No more episode", Toast.LENGTH_SHORT).show();
             	break;
             default:
             	break;
@@ -251,8 +265,9 @@ public class SohuEpisodeActivity extends Activity {
 		.setPositiveButton("More...", 
 				new DialogInterface.OnClickListener(){
 					public void onClick(DialogInterface dialog, int whichButton){
-						ep_page_index++;
+						ep_page_index += ep_page_incr;
 						new SohuEpgTask().execute(TASK_EPISODE, selected_aid);
+						
 						dialog.dismiss();
 					}
 				})
@@ -285,6 +300,7 @@ public class SohuEpisodeActivity extends Activity {
 				long aid = params[1];
 				if (!mEPG.episode(aid, ep_page_index, page_size)) {
 					Log.e(TAG, "Java: failed to call episode()");
+					mhandler.sendEmptyMessage(MSG_NO_MORE_EPISODE);
 					return false;
 				}
 				
@@ -405,6 +421,7 @@ public class SohuEpisodeActivity extends Activity {
 				episode.put("vid", al.getVid());
 				episode.put("site", al.getSite());
 				episode.put("is_album", al.isAlbum());
+				episode.put("last_count", al.getLastCount());
 				data2.add(episode);
 			}
 			

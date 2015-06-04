@@ -115,6 +115,14 @@ public class AlbumSohu {
 		return mAid;
 	}
 	
+	public int getLastCount() {
+		return mLastCount;
+	}
+	
+	public int getVideoCount() {
+		return mVideoCount;
+	}
+	
 	public Boolean isAlbum() {
 		return mIsAlbum;
 	}

@@ -2393,7 +2393,8 @@ public class ClipListActivity extends Activity implements
 			.setIcon(R.drawable.update);
 		menu.add(Menu.NONE, UPLOAD_CRASH_REPORT, Menu.FIRST + 3, "Upload crash report")
 			.setIcon(R.drawable.log);
-		menu.add(Menu.NONE, QUIT, Menu.FIRST + 4, "Quit");
+		menu.add(Menu.NONE, QUIT, Menu.FIRST + 4, "Quit")
+			.setIcon(R.drawable.quit);
 		
 		return true;//super.onCreateOptionsMenu(menu);
 	}
