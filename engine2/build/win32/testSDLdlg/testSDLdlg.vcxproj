@@ -61,7 +61,7 @@
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>..\..\..\..\subtitle2\build\win32\TestSubtitle\libass\lib;.\ppbox;..\testEPG\libcurl\lib\vc11\x86\static;..\testEPG\libjsoncpp\lib\vc11;..\..\..\..\foundation\output\win32\full\bin;D:\Archive\SDK\pthread\pthreads-w32-2-9-1-release\Pre-built.2\lib\x86;D:\Archive\SDK\SDL\SDL-1.2.15\lib\x86;D:\Software\Visual Leak Detector\lib\Win32</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>..\..\..\..\subtitle2\build\win32\TestSubtitle\libass\lib;.\ppbox;..\testEPG\libcurl\lib\vc11\x86\static;..\testEPG\libjsoncpp\lib\vc11;..\..\..\..\foundation\output\win32\full\bin;D:\Archive\SDK\pthread\pthreads-w32-2-9-1-release\Pre-built.2\lib\x86;D:\Software\Visual Leak Detector\lib\Win32</AdditionalLibraryDirectories>
     </Link>
     <Midl>
       <MkTypLibCompatible>false</MkTypLibCompatible>
@@ -83,7 +83,7 @@
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>SDL_EMBEDDED_WINDOW;_TEST_SUBTITLE;MARKUP_STL;CURL_STATICLIB;_CRT_SECURE_NO_WARNINGS;SAVE_LOG_FILE;USE_AV_FILTER;TEST_PERFORMANCE;WIN32;_WINDOWS;NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <SDLCheck>true</SDLCheck>
-      <AdditionalIncludeDirectories>.\;..\..\..\platform\clsocket;..\..\..\..\subtitle2\build\win32\TestSubtitle\libass\include;..\..\..\..\subtitle2\src\tinyxml2;.\ppbox\include;..\testEPG;..\..\..\player;..\..\..\platform;..\testEPG\libjsoncpp\include;..\testEPG\libcurl\include;D:\Archive\SDK\FFMPEG\ffmpeg-20140613-git-1c5aa64-win32\include;..\..\..\..\subtitle2\output\android\include;D:\Archive\SDK\pthread\pthreads-w32-2-9-1-release\Pre-built.2\include;D:\Archive\SDK\SDL\SDL-1.2.15\include;D:\Archive\SDK\pthread\pthreads-w32-2-9-1-release\Pre-built.2\include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>.\;..\..\..\platform\clsocket;..\..\..\..\subtitle2\build\win32\TestSubtitle\libass\include;..\..\..\..\subtitle2\src\tinyxml2;.\ppbox\include;..\testEPG;..\..\..\player;..\..\..\platform;..\testEPG\libjsoncpp\include;..\testEPG\libcurl\include;D:\Archive\SDK\FFMPEG\ffmpeg-20140613-git-1c5aa64-win32\include;..\..\..\..\subtitle2\output\android\include;D:\Archive\SDK\pthread\pthreads-w32-2-9-1-release\Pre-built.2\include;D:\Archive\SDK\SDL\SDL-1.2.15\include</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>

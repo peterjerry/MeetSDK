@@ -20,9 +20,9 @@
 #endif
 
 #ifdef _MSC_VER
-#define CLIP_NAME "e:\\Work\\HEVC\\Transformers3-720p.mp4"
+#define CLIP_NAME "e:\\Work\\HEVC\\Transformers3-1080p.mp4"
 #else
-#define CLIP_NAME "e:/Work/HEVC/Transformers3-720p.mp4"
+#define CLIP_NAME "e:/Work/HEVC/Transformers3-1080p.mp4"
 #endif
 
 FFPlayer *player	= NULL;
@@ -30,6 +30,8 @@ int g_finished		= 0;
 int g_quit			= 0;
 int32_t g_width, g_height;
 int32_t g_duration;
+
+int32_t scr_width, scr_height;
 
 class my_listener:public MediaPlayerListener
 {
@@ -102,8 +104,10 @@ void start_player()
 	SDL_SetTimer((1000/10)*10, timer_cb);
 	
 	SDL_Surface* screen;
-	screen = SDL_SetVideoMode(g_width, g_height, 32, 
-		SDL_HWSURFACE | SDL_DOUBLEBUF/* | SDL_RESIZABLE*/);
+	scr_width	= 1920;
+	scr_height	= 1080;
+	screen = SDL_SetVideoMode(scr_width, scr_height, 32, 
+		SDL_HWSURFACE | SDL_DOUBLEBUF | SDL_FULLSCREEN);
 
 	Surface_open2((void *)screen);
 
@@ -117,44 +121,6 @@ struct PicData {
 
 int main(int argc, char **argv)
 {
-	/*pthread_cond_t cond;
-	pthread_mutex_t mLock;
-	pthread_mutex_init(&mLock, NULL);
-	pthread_cond_init(&cond, NULL);
-
-	for (int i=0;i<5;i++) {
-		LOGI("befre");
-		pthread_mutex_lock(&mLock);
-		timespec ts;
-		ts.tv_sec	= time(NULL) + 3;
-		ts.tv_nsec	= 0;
-		int32_t err = pthread_cond_timedwait(&cond, &mLock, &ts);
-		pthread_mutex_unlock(&mLock);
-		LOGI("end %d", err);
-	}
-
-	LOGI("%d", ETIMEDOUT);*/
-
-	/*PicQueue q1(8);
-	PicData d1[2] = {0};
-	d1[0].index = 1;
-	d1[0].num = 2.0f;
-	d1[1].index = 2;
-	d1[1].num = 3.0f;
-	q1.QueuePic((void *)&d1[0], 0);
-	q1.QueuePic((void *)&d1[1], 0);
-
-	PicData *res;
-	while(1) {
-		res = (PicData *)q1.DequeuePic(0);
-		if (res == NULL)
-			break;
-
-		LOGI("data index %d, num %.2f", res->index, res->num);
-	}
-
-	return 0;*/
-
 	apMiniDump dump;
 	dump.setdump("c:\\log\\libplayer.dmp");
 
@@ -216,6 +182,11 @@ int main(int argc, char **argv)
 						player->seekTo(pos + 10000); // +10 sec
 					}
 					break;
+				case SDLK_ESCAPE:
+					LOGI("escape quit");
+					SDL_SetTimer(0, NULL);
+					g_quit = 1;
+					break;
 				default:
 					break;
 				}
@@ -226,9 +197,9 @@ int main(int argc, char **argv)
 				status = player->getDuration(&duration);
 				if (status == OK) {
 					int32_t new_pos;
-					new_pos = (int32_t)((int64_t)duration * (int64_t)x / (int64_t)g_width);
+					new_pos = (int32_t)((int64_t)duration * (int64_t)x / (int64_t)scr_width);
 					player->seekTo(new_pos);
-					LOGI("seek %d/%d %d", x, g_width, duration);
+					LOGI("seek %d/%d %d", x, scr_width, duration);
 				}
 			}
 		}
