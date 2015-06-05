@@ -3,7 +3,6 @@ package com.pplive.common.sohu;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.StringTokenizer;
 
 import org.apache.http.HttpResponse;
 import org.apache.http.client.ClientProtocolException;
@@ -65,7 +64,16 @@ public class SohuUtil {
 			"&pay=1&sver=4.7.1" +
 			"&key=%s&page=%d&page_size=%d&ds=&sysver=4.2.2&type=1&partner=340&all=1";
 	
+	private static final String LIVE_URL_FMT = "http://api.tv.sohu.com/tv_live/live/liveBroadcast.json?" +
+			"n=%d&plat=6&poid=1&api_key=9854b2afa779e1a6bff1962447a09dbd" +
+			"&sver=4.7.1&sysver=4.2.2&p=1&partner=340";
+	
+	private static final String LIVE_DETAIL_URL_FMT = "http://api.tv.sohu.com/tv_live/live/LiveDetail.json?" +
+			"n=%d&plat=6&poid=1&api_key=9854b2afa779e1a6bff1962447a09dbd" +
+			"&sver=4.7.1&sysver=4.2.2&p=1&partner=340&tvId=%d";
+	
 	private List<ChannelSohu> mChannelList;
+	private List<LiveChannelSohu> mLiveChannelList;
 	private List<SubChannelSohu> mSubChannelList;
 	private List<CategorySohu> mCategoryList;
 	private List<TopicSohu> mTopicList;
@@ -75,13 +83,14 @@ public class SohuUtil {
 	private String mMoreListPrefix;
 	
 	public SohuUtil() {
-		mChannelList	= new ArrayList<ChannelSohu>();
-		mSubChannelList	= new ArrayList<SubChannelSohu>();
-		mCategoryList	= new ArrayList<CategorySohu>();
-		mTopicList 		= new ArrayList<TopicSohu>();
-		mAlbumList 		= new ArrayList<AlbumSohu>();
-		mEpisodeList 	= new ArrayList<EpisodeSohu>();
-		mSearchItemList = new ArrayList<AlbumSohu>();
+		mLiveChannelList	= new ArrayList<LiveChannelSohu>();
+		mChannelList		= new ArrayList<ChannelSohu>();
+		mSubChannelList		= new ArrayList<SubChannelSohu>();
+		mCategoryList		= new ArrayList<CategorySohu>();
+		mTopicList 			= new ArrayList<TopicSohu>();
+		mAlbumList 			= new ArrayList<AlbumSohu>();
+		mEpisodeList 		= new ArrayList<EpisodeSohu>();
+		mSearchItemList 	= new ArrayList<AlbumSohu>();
 	}
 	
 	public List<CategorySohu> getCateList() {
@@ -90,6 +99,10 @@ public class SohuUtil {
 	
 	public List<ChannelSohu> getChannelList() {
 		return mChannelList;
+	}
+	
+	public List<LiveChannelSohu> getLiveChannelList() {
+		return mLiveChannelList;
 	}
 	
 	public List<SubChannelSohu> getSubChannelList() {
@@ -117,6 +130,74 @@ public class SohuUtil {
 	}
 	
 	public boolean getTvList() {
+		return false;
+	}
+	
+	public boolean live(int num) {
+		String url = String.format(LIVE_URL_FMT, num);
+		Log.i(TAG, "Java: SohuUtil live() " + url);
+		
+		try {
+			String result = http_get(url);
+			if (result == null)
+				return false;
+			
+			JSONTokener jsonParser = new JSONTokener(result);
+			JSONObject root = (JSONObject) jsonParser.nextValue();
+			int status = root.getInt("status");
+			String statusText = root.getString("statusText");
+			if (status != 200) {
+				System.out.println(String.format("Java: failed to cate() %d %s", status, statusText));
+				return false;
+			}
+			
+			JSONObject data = root.getJSONObject("data");
+			JSONArray list = data.getJSONArray("list");
+			int count = data.getInt("count");
+			int c = list.length();
+			
+			mLiveChannelList.clear();
+			for (int i=0;i<c;i++) {
+				JSONObject live_channel = list.getJSONObject(i);
+				
+				/*
+				"soonTime":"2015-06-05 13:59:00.0",
+				"tvId":74,
+				"ipLimit":0,
+				"icoBigPic":"http://i2.itc.cn/20130105/2dd1_c980a5c3_6efb_743a_cdef_796a798442b1_1.png",
+				"flashLiveUrl":"http://gslb.tv.sohu.com/live?cid=3&ver=seg&ckey=fMIg7Eo-XzM8&prot=3&sig=gAy5gRhyl6FvB7HpXlfLxQ..",
+				"icoSmallPic":"http://i2.itc.cn/20120119/2cea_6d1489c8_3604_3af9_1887_d58c9eba318c_4.png",
+				"soon":"下午剧场：中国刑警803 23",
+				"nowTime":"2015-06-05 13:17:00.0",
+				"enName":"dragontv",
+				"now":"下午剧场：中国刑警803 22",
+				"name":"东方卫视",
+				"action":0,
+				"liveUrl":"http://gslb.tv.sohu.com/live?cid=3&ver=seg&ckey=fMIg7Eo-XzM8&type=hls&prot=1&sig=gAy5gRhyl6FvB7HpXlfLxQ..&type=hls",
+				live_channel.getString("");
+				*/
+				
+				int tvId = live_channel.getInt("tvId");
+				String title = live_channel.getString("name");
+				String icon_big = live_channel.getString("icoBigPic");
+				String icon_small = live_channel.getString("icoSmallPic");
+				String now_play = live_channel.getString("now");
+				String will_play = live_channel.getString("soon");
+				String now_time = live_channel.getString("nowTime");
+				String will_time = live_channel.getString("soonTime");
+				String live_url = live_channel.getString("liveUrl");
+				
+				LiveChannelSohu lc = new LiveChannelSohu(tvId, title, now_play, will_play, 
+						icon_small, icon_big, live_url);
+				mLiveChannelList.add(lc);
+			}
+			
+			return true;
+		} catch (JSONException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
 		return false;
 	}
 	
@@ -678,11 +759,13 @@ public class SohuUtil {
 					if (is_album == 0)
 						album_title = video_name;
 					
-					String cate = item.getString("second_cate_name");
+					String cate = getNodeString(item, "second_cate_name");
 					int site = 1;
 					if (item.has("site"))
 						site = item.getInt("site");
-					String main_actor = item.getString("main_actor");
+					String main_actor = "N/A";
+					if (item.has("main_actor"))
+						main_actor = item.getString("main_actor");
 					int v_count = item.getInt("total_video_count");
 					int last_count = item.getInt("latest_video_count");
 					String hori_pic_url = getNodeString(item, "hor_high_pic");

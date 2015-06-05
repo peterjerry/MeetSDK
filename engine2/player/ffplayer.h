@@ -407,6 +407,11 @@ private:
 	int64_t				mFrameTimerMs;
 	int64_t				mAVDiffMs;
 
+#ifdef PCM_DUMP
+	char*				mIpAddr;
+	int					mPort;
+#endif
+
 #if USE_AV_FILTER
 	//avfilter
 	AVFilterGraph*		mFilterGraph; // video filter graph

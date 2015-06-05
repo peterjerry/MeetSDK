@@ -3,17 +3,24 @@ package com.pplive.epg.sohu;
 import javax.imageio.ImageIO;
 import javax.swing.*; 
 
+import org.jdom2.Document;
+import org.jdom2.Element;
+import org.jdom2.output.XMLOutputter;
+
 import java.awt.Container;
 import java.awt.FlowLayout;
 import java.awt.Font;
 import java.awt.event.*; 
 import java.awt.image.BufferedImage;
 import java.io.BufferedReader;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.URL;
 import java.util.List;
+import java.util.StringTokenizer;
 
 import com.pplive.epg.sohu.PlaylinkSohu.SOHU_FT;
 
@@ -198,7 +205,7 @@ public class SohuFrame extends JFrame {
 		
 		editorSearch.setFont(f);
 		editorSearch.setBounds(20, 350, 200, 40);
-		editorSearch.setText("越狱");
+		editorSearch.setText("阿仁");
 	    this.getContentPane().add(editorSearch);
 	    
 	    btnSearch.setFont(f);
@@ -271,6 +278,8 @@ public class SohuFrame extends JFrame {
 
 		System.out.println("final play link " + url);
 		
+		gen_xml(link, SOHU_FT.SOHU_FT_HIGH);
+		
 		String exe_filepath  = "D:/software/ffmpeg/ffplay.exe";
 		String[] cmd = new String[] {exe_filepath, url};
 		openExe(cmd);
@@ -286,6 +295,8 @@ public class SohuFrame extends JFrame {
 					String url = pl.getUrl(SOHU_FT.SOHU_FT_HIGH);
 
 					System.out.println("quick play link " + url);
+					
+					gen_xml(pl, SOHU_FT.SOHU_FT_HIGH);
 					
 					String exe_filepath  = "D:/software/ffmpeg/ffplay.exe";
 					String[] cmd = new String[] {exe_filepath, url};
@@ -445,8 +456,12 @@ public class SohuFrame extends JFrame {
 	private void playProgram() {
 		int index = listItem.getSelectedIndex();
 		EpisodeSohu ep = mEpisodeList.get(index);
-		//PlaylinkSohu pl = mEPG.video_info(2, ep.mVid, ep.mAid);
-		PlaylinkSohu pl = mEPG.playlink_pptv(ep.mVid, 0);
+		
+		PlaylinkSohu pl = null;
+		if (ep.mAid > 1000000000000L)
+			pl = mEPG.video_info(2, ep.mVid, ep.mAid);
+		else
+			pl = mEPG.playlink_pptv(ep.mVid, 0);
 		
 		SOHU_FT ft = SOHU_FT.SOHU_FT_ORIGIN;
 		String strUrl = pl.getUrl(ft);
@@ -467,7 +482,9 @@ public class SohuFrame extends JFrame {
 			return;
 		}
 		
-		System.out.println(String.format("Java strUrl(ft %s): ", ft.toString(), strUrl));
+		System.out.println(String.format("Java strUrl(ft %s): %s", ft.toString(), strUrl));
+		
+		gen_xml(pl, ft);
 		
 		int pos = strUrl.indexOf(',');
 		String url = null;
@@ -481,6 +498,53 @@ public class SohuFrame extends JFrame {
 		String exe_filepath  = "D:/software/ffmpeg/ffplay.exe";
 		String[] cmd = new String[] {exe_filepath, url};
 		openExe(cmd);
+	}
+	
+	private void gen_xml(PlaylinkSohu pl, SOHU_FT ft) {
+		String strUrl = pl.getUrl(ft);
+		String strDuration = pl.getDuration(ft);
+		String strSize = pl.getSize(ft);
+		
+		// 创建根节点 list;
+        Element root = new Element("ckplayer");
+        // 将根节点添加到文档中；
+        Document Doc = new Document(root);
+        // 创建新节点 flashvars;
+        Element flashvars = new Element("flashvars").setText("{h->2}");
+        root.addContent(flashvars);
+        
+        StringTokenizer stUrl, stSize, stDuration;
+		int i=0;
+		
+		stUrl = new StringTokenizer(strUrl, ",", false);
+		stDuration = new StringTokenizer(strDuration, ",", false);
+		stSize = new StringTokenizer(strSize, ",", false);
+		
+		while (stUrl.hasMoreElements() && stDuration.hasMoreElements() && stSize.hasMoreElements()) {
+			String url = stUrl.nextToken();
+			String duration = stDuration.nextToken();
+			String size = stSize.nextToken();
+			
+			System.out.println(String.format("Java: segment #%d url: %s", i++, url));
+			Element video = new Element("video");
+            video.addContent(new Element("file").setText(url));
+            video.addContent(new Element("size").setText(size));
+            video.addContent(new Element("seconds").setText(duration));
+            // 给父节点list添加company子节点;
+            root.addContent(video);
+		}
+        
+        // 输出company_list.xml文件
+        try {
+        	XMLOutputter XMLOut = new XMLOutputter();
+			XMLOut.output(Doc, new FileOutputStream("\\\\172.16.204.106\\web\\list.xml"));
+		} catch (FileNotFoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 	}
 	
 	private void init_combobox() {

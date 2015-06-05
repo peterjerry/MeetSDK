@@ -23,6 +23,11 @@ public class PlaylinkSohu {
 	private String 	mSuperDuration;
 	private String 	mOriginDuration;
 	
+	private String	mNormalSize;
+	private String 	mHighSize;
+	private String 	mSuperSize;
+	private String 	mOriginSize;
+	
 	private List<String> mHighUrlList;
 	private List<String> mNormalUrlList;
 	
@@ -64,6 +69,19 @@ public class PlaylinkSohu {
 			return null;
 	}
 	
+	public String getSize(SOHU_FT ft) {
+		if (ft == SOHU_FT.SOHU_FT_NORMAL)
+			return mNormalSize;
+		else if (ft == SOHU_FT.SOHU_FT_HIGH)
+			return mHighSize;
+		else if (ft == SOHU_FT.SOHU_FT_SUPER)
+			return mSuperSize;
+		else if (ft == SOHU_FT.SOHU_FT_ORIGIN)
+			return mOriginSize;
+		else
+			return null;
+	}
+	
 	@Deprecated
 	public List<String> getUrlListbyFT(int ft) {
 		if (ft == 1)
@@ -77,8 +95,12 @@ public class PlaylinkSohu {
 	 */
 	public PlaylinkSohu(String title, 
 			String normal_url, String high_url, 
-			String normal_duration, String high_duration) {
-		this(title, normal_url, high_url, "", "", normal_duration, high_duration, "", "");	
+			String normal_duration, String high_duration,
+			String normal_size, String high_size) {
+		this(title, 
+				normal_url, high_url, "", "", 
+				normal_duration, high_duration, "", "",
+				normal_size, high_size, "", "");	
 	}
 	
 	/*
@@ -86,16 +108,23 @@ public class PlaylinkSohu {
 	 */
 	public PlaylinkSohu(String title, 
 			String normal_url, String high_url, String super_url, String origin_url, 
-			String normal_duration, String high_duration, String super_duration, String origin_duration) {
+			String normal_duration, String high_duration, String super_duration, String origin_duration,
+			String normal_size, String high_size, String super_size, String origin_size) {
 		mTitle				= title;
 		mUrlNormal			= normal_url;
 		mUrlHigh			= high_url;
 		mUrlSuper			= super_url;
 		mUrlOrigin			= origin_url;
+		
 		mNormalDuration		= normal_duration;
 		mHighDuration		= high_duration;
 		mSuperDuration		= super_duration;
 		mOriginDuration		= origin_duration;
+		
+		mNormalSize			= normal_size;
+		mHighSize			= high_size;
+		mSuperSize			= super_size;
+		mOriginSize			= origin_size;
 	}
 	
 	private List<String> getList(String url_list) {

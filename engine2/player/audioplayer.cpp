@@ -40,7 +40,12 @@ AudioPlayer::AudioPlayer(FFStream* dataStream, AVStream* context, int32_t stream
     mListener = NULL;
     mRender = NULL;
     mReachEndStream = false;
-    
+
+#ifdef PCM_DUMP
+	mIpAddr		= NULL;
+	mPort		= 0;
+#endif
+
     pthread_mutex_init(&mLock, NULL);
     pthread_cond_init(&mCondition, NULL);
 	pthread_mutex_init(&mClockLock, NULL);
@@ -109,6 +114,9 @@ status_t AudioPlayer::setup_render()
 		CodecCtx->sample_rate, CodecCtx->sample_fmt, CodecCtx->channels);
 
 	mRender = new AudioRender();
+#ifdef PCM_DUMP
+	mRender->set_dump(mIpAddr, mPort);
+#endif
 	uint64_t channelLayout = get_channel_layout(CodecCtx->channel_layout, CodecCtx->channels);
 
 	return mRender->open(mAudioContext->codec->sample_rate,

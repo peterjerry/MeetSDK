@@ -19,7 +19,7 @@
         android:layout_marginRight="5dip"
         android:gravity="right"
         android:textColor="#FFF"
-        android:textSize="14dip"
+        android:textSize="14sp"
         android:singleLine="true"
         tools:context=".SohuEpisoActivity" />
     <TextView
@@ -29,7 +29,7 @@
         android:layout_below="@id/gridview_img"
         android:gravity="center_horizontal"
         android:textColor="#000"
-        android:textSize="14dip"
+        android:textSize="14sp"
         android:singleLine="true"
         tools:context=".SohuEpisoActivity" />
 

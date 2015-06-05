@@ -25,6 +25,9 @@
     <Filter Include="源文件\subtitle">
       <UniqueIdentifier>{26050087-65e7-42e1-abca-4de6ce531647}</UniqueIdentifier>
     </Filter>
+    <Filter Include="源文件\pcmdump">
+      <UniqueIdentifier>{b79c0ff7-e94c-4540-a959-f6fa0fd44958}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <Text Include="ReadMe.txt" />
@@ -175,6 +178,21 @@
     </ClCompile>
     <ClCompile Include="..\testEPG\strptime.c">
       <Filter>源文件\util</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\player\apAudioEncoder.cpp">
+      <Filter>源文件\pcmdump</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\platform\apProxyUDP.cpp">
+      <Filter>源文件\pcmdump</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\platform\clsocket\ActiveSocket.cpp">
+      <Filter>源文件\pcmdump</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\platform\clsocket\PassiveSocket.cpp">
+      <Filter>源文件\pcmdump</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\platform\clsocket\SimpleSocket.cpp">
+      <Filter>源文件\pcmdump</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

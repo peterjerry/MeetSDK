@@ -259,6 +259,11 @@ FFPlayer::FFPlayer()
 	mSnapShotFrame	= NULL;
 	mSwsCtx			= NULL;
 
+#ifdef PCM_DUMP
+	mIpAddr			= NULL;
+	mPort			= 0;
+#endif
+
 #ifdef USE_AV_FILTER
 	mFilterGraph	= NULL;
 	mFilterOutputs	= 0;
@@ -1400,7 +1405,22 @@ void FFPlayer::onVideoImpl()
 
 void FFPlayer::set_opt(const char *opt)
 {
+	LOGI("set_opt %s", opt);
 
+#ifdef PCM_DUMP
+	const char *p = strchr(opt, '/');
+
+	if (mIpAddr)
+		delete mIpAddr;
+
+	int len = p - opt + 1;
+	mIpAddr = new char[len];
+	strncpy(mIpAddr, opt, len - 1);
+	mIpAddr[len-1] = '\0';
+
+	mPort = atoi(p + 1);
+	LOGI("set_opt udp://%s:%d", mIpAddr, mPort);
+#endif
 }
 
 bool FFPlayer::broadcast_refresh()
@@ -1938,6 +1958,9 @@ status_t FFPlayer::prepareAudio_l()
         //init audioplayer
         if(codec_ctx->sample_rate > 0 && codec_ctx->channels > 0) {
             mAudioPlayer = new AudioPlayer(mDataStream, mAudioStream, mAudioStreamIndex);
+#ifdef PCM_DUMP
+			mAudioPlayer->set_dump(mIpAddr, mPort);
+#endif
             LOGD("audio codec name:%s", codec->long_name);
         }
         else {
@@ -2074,6 +2097,7 @@ status_t FFPlayer::prepareVideo_l()
 	render_w = mVideoWidth;
 	render_h = mVideoHeight;
 #ifdef _MSC_VER
+#ifdef SDL_EMBEDDED_WINDOW
 	if (render_w > MAX_DISPLAY_WIDTH) {
 		double ratio	= (double)render_w / MAX_DISPLAY_WIDTH;
 		render_w		= MAX_DISPLAY_WIDTH;
@@ -2089,6 +2113,10 @@ status_t FFPlayer::prepareVideo_l()
 		LOGI("video resolution %d x %d, display resolution switch to %d x %d",
 			mVideoWidth, mVideoHeight, render_w, render_h);
 	}
+#else
+	render_w = 1920;
+	render_h = 1080;
+#endif
 #endif
 
     mVideoRenderer = new FFRender(mSurface, render_w, render_h, mVideoFormat);
