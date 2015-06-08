@@ -48,7 +48,7 @@ public class LeTVFrame extends JFrame {
 	
 	JTextPane editorPlayLink = new JTextPane();
 	
-	LeTVFrame() {
+	public LeTVFrame() {
 		super();
 		
 		mEPG = new LetvUtil();
@@ -219,7 +219,8 @@ public class LeTVFrame extends JFrame {
 			System.out.println(String.format("Java: select %s %s", 
 					lb.getName(), url));
 			
-			String exe_filepath  = "D:/software/ffmpeg/ffplay.exe";
+			String exe_filepath  = "E:/git/PPTV/MeetSDK/engine2/build/win32/bin/Release/player_vc.exe";
+			// "D:/software/ffmpeg/ffplay.exe";
 			String[] cmd = new String[] {exe_filepath, url};
 			openExe(cmd);
 		}

@@ -9,6 +9,7 @@ import javax.swing.JFrame;
 import com.pplive.epg.bestv.BestvFrame;
 import com.pplive.epg.bestv.BestvKey;
 import com.pplive.epg.bestv.BestvUtil;
+import com.pplive.epg.letv.LeTVFrame;
 import com.pplive.epg.pptv.Catalog;
 import com.pplive.epg.pptv.Content;
 import com.pplive.epg.pptv.EPGUtil;
@@ -23,10 +24,10 @@ public class TestEPG {
 	public static void main(String[] args) {
 
 		//PPTVFrame myFrame = new PPTVFrame();
-		//LeTVFrame myFrame = new LeTVFrame();
+		LeTVFrame myFrame = new LeTVFrame();
 		//VstFrame myFrame = new VstFrame();
         //BestvFrame myFrame = new BestvFrame();
-		SohuFrame myFrame = new SohuFrame();
+		//SohuFrame myFrame = new SohuFrame();
 		myFrame.setVisible(true);
 		myFrame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		myFrame.addKeyListener(new KeyListener(){

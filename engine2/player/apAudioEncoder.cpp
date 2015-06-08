@@ -15,7 +15,7 @@ apAudioEncoder::apAudioEncoder(void)
 	av_register_all();
 	avformat_network_init();
 
-	av_log_set_callback(ff_log);
+	//av_log_set_callback(ff_log);
 }
 
 
@@ -239,12 +239,13 @@ AVStream * apAudioEncoder::add_audiostream(int channels, int sample_rate, int sa
 		return NULL;
 	}
 
-	st->id			= 0;
-	c				= st->codec;
-	c->sample_rate	= sample_rate;
-	c->sample_fmt	= (AVSampleFormat)sample_fmt;
-	c->channels		= channels;
-	c->bit_rate		= bitrate;
+	st->id				= 0;
+	c					= st->codec;
+	c->sample_rate		= sample_rate;
+	c->sample_fmt		= (AVSampleFormat)sample_fmt;
+	c->channels			= channels;
+	c->bit_rate			= bitrate;
+	c->channel_layout	= AV_CH_LAYOUT_STEREO; // hard code
 
 	ret = avcodec_open2(c, codec, NULL);
 	if (ret < 0) {

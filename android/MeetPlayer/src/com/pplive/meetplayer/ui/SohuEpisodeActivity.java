@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.StringTokenizer;
 
 import com.pplive.common.sohu.AlbumSohu;
 import com.pplive.common.sohu.EpisodeSohu;
@@ -11,6 +12,7 @@ import com.pplive.common.sohu.PlaylinkSohu;
 import com.pplive.common.sohu.SohuUtil;
 import com.pplive.common.sohu.PlaylinkSohu.SOHU_FT;
 import com.pplive.meetplayer.R;
+import com.pplive.meetplayer.util.Util;
 
 import android.app.Activity;
 import android.app.AlertDialog;
@@ -278,6 +280,35 @@ public class SohuEpisodeActivity extends Activity {
 		choose_episode_dlg.show();
 	}
 	
+	private void add_video_history(String title, int vid, long aid, int site) {
+		String key = "SohuPlayHistory";
+		String regularEx = ",";
+		final int save_max_count = 10;
+		String value = Util.readSettings(SohuEpisodeActivity.this, key);
+		
+		List<String> playHistoryList = new ArrayList<String>();
+		StringTokenizer st = new StringTokenizer(value, regularEx, false);
+        while (st.hasMoreElements()) {
+        	String token = st.nextToken();
+        	playHistoryList.add(token);
+        }
+        
+        int count = playHistoryList.size();
+        StringBuffer sb = new StringBuffer();
+        int start = count - save_max_count + 1;
+        if (start < 0)
+        	start = 0;
+        for (int i = start; i<count ; i++) {
+        	sb.append(playHistoryList.get(i));
+        	sb.append(regularEx);
+        }
+        
+        String new_video = String.format("%s|%d|%d|%d", title, vid, aid, site);
+        sb.append(new_video);
+        
+		Util.writeSettings(SohuEpisodeActivity.this, key, sb.toString());
+	}
+	
 	private class SohuEpgTask extends AsyncTask<Long, Integer, Boolean> {
 
 		@Override
@@ -314,11 +345,14 @@ public class SohuEpisodeActivity extends Activity {
 				
 				long aid 	= params[1];
 				long vid 	= params[2];
+				
 				mPlaylink = mEPG.playlink_pptv((int)vid, 0);
 				if (mPlaylink == null) {
 					Log.e(TAG, "Java: failed to call playlink_pptv() vid: " + vid);
 					return false;
 				}
+				
+				add_video_history(mPlaylink.getTitle(), (int)vid, -1, -1);
 				
 				mhandler.sendEmptyMessage(MSG_PLAYLINK_DONE);	
 			}
@@ -348,6 +382,8 @@ public class SohuEpisodeActivity extends Activity {
 					Log.e(TAG, "Java: failed to call video_info() vid: " + vid);
 					return false;
 				}
+				
+				add_video_history(mPlaylink.getTitle(), (int)vid, aid, (int)site);
 				
 				mhandler.sendEmptyMessage(MSG_PLAYLINK_DONE);	
 			}

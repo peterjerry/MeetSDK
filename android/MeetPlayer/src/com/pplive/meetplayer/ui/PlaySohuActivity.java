@@ -75,6 +75,9 @@ public class PlaySohuActivity extends Activity implements Callback {
 	
 	private boolean mSwichingEpisode = false;
 	
+	/* 记录上一次按返回键的时间 */
+    private long backKeyTime = 0L;
+	
 	private final static int LIST_PPTV = 1;
 	private final static int LIST_SOHU = 2;
 	
@@ -318,6 +321,18 @@ public class PlaySohuActivity extends Activity implements Callback {
 				mDisplayMode = SCREEN_FIT;
 			toggleDisplayMode(mDisplayMode, true);
 		}
+		else if (keyCode == KeyEvent.KEYCODE_BACK) {
+            if ((System.currentTimeMillis() - backKeyTime) > 2000) {
+                Toast.makeText(PlaySohuActivity.this, "press another time to exit",
+                        Toast.LENGTH_SHORT).show();
+                backKeyTime = System.currentTimeMillis();
+                return true;
+            }
+            else {
+                onBackPressed();
+                return true;
+            }
+        }
 		
 		return super.onKeyDown(keyCode, event);
 	}

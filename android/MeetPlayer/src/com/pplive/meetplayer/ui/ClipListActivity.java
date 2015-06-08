@@ -16,6 +16,7 @@ import java.util.GregorianCalendar;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
+import java.util.StringTokenizer;
 
 import android.app.Activity;
 import android.app.ProgressDialog;
@@ -660,6 +661,7 @@ public class ClipListActivity extends Activity implements
 				String regularEx = ",";
 				String values = Util.readSettings(ClipListActivity.this, key);
 		        Log.d(TAG, "Java: PlayHistory(in PPboxSel) read: " + values);
+		        
 		        String []str = values.split(regularEx);
 		        for (int i=0;i<str.length;i++) {
 		        	// 后遗症|1233
