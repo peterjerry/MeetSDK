@@ -270,6 +270,8 @@ public class PlaySohuActivity extends Activity implements Callback {
 				Toast.makeText(PlaySohuActivity.this, "Play complete", Toast.LENGTH_SHORT).show();
 				mIsBuffering = false;
 				mBufferingProgressBar.setVisibility(View.GONE);
+				
+				finish();
 			}
 		};
 		
