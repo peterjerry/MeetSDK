@@ -205,7 +205,7 @@ public class SohuFrame extends JFrame {
 		
 		editorSearch.setFont(f);
 		editorSearch.setBounds(20, 350, 200, 40);
-		editorSearch.setText("阿仁");
+		editorSearch.setText("墨丹文");
 	    this.getContentPane().add(editorSearch);
 	    
 	    btnSearch.setFont(f);
@@ -459,7 +459,7 @@ public class SohuFrame extends JFrame {
 		
 		PlaylinkSohu pl = null;
 		if (ep.mAid > 1000000000000L)
-			pl = mEPG.video_info(2, ep.mVid, ep.mAid);
+			pl = mEPG.video_info(2/*hard code!!!*/, ep.mVid, ep.mAid);
 		else
 			pl = mEPG.playlink_pptv(ep.mVid, 0);
 		

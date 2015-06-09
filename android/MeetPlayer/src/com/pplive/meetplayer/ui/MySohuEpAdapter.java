@@ -106,12 +106,10 @@ public class MySohuEpAdapter extends BaseAdapter {
 	public View getView(int position, View convertView, ViewGroup parent) {
 		// TODO Auto-generated method stub
 		// 获得holder以及holder对象中tv和img对象的实例
-		Log.i(TAG, "Java: getView() #" + position);
+		Log.d(TAG, "Java: getView() #" + position);
 		
 		ViewHolder holder;
 		if (convertView == null) {
-			Log.i(TAG, "Java: getView() convertView is null: #" + position);
-			
 			holder = new ViewHolder();
 			convertView = inflater.inflate(R.layout.gridview_item, null);
 			
@@ -125,7 +123,6 @@ public class MySohuEpAdapter extends BaseAdapter {
 			
 			convertView.setTag(holder);
 		} else {
-			Log.i(TAG, "Java: getView() convertView getTag: #" + position);
 			holder = (ViewHolder) convertView.getTag();
 		}
 		
@@ -137,7 +134,6 @@ public class MySohuEpAdapter extends BaseAdapter {
 		holder.getTitle().setText(title);
 		holder.getTip().setText(tip);
 
-		Log.i(TAG, "Java: getView() img task");
 		new LoadPicTask().execute(holder, img_url);
 		
 		// 注意 默认为返回null,必须得返回convertView视图

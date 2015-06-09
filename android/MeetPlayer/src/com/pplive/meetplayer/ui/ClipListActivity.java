@@ -2537,6 +2537,11 @@ public class ClipListActivity extends Activity implements
 			new EPGTask().execute(EPG_ITEM_CONTENT_LIST);
 			break;
 		case OPTION_EPG_SOHUVIDEO:
+			if (!Util.IsHaveInternet(this)) {
+				Toast.makeText(this, "network is not connected", Toast.LENGTH_SHORT).show();
+				return true;
+			}
+			
 			intent = new Intent(ClipListActivity.this, SohuVideoActivity.class);
     		startActivity(intent);
 			break;

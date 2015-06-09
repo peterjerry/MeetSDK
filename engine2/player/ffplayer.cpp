@@ -6,7 +6,9 @@
 #include "ffplayer.h"
 #include <sys/types.h>
 #include <sys/stat.h>
-#ifndef _MSC_VER
+#ifdef _MSC_VER
+#include "sdl.h"
+#else
 #include <sys/resource.h>
 #include <sys/time.h>
 #include <dlfcn.h>
@@ -640,9 +642,33 @@ status_t FFPlayer::setVideoSurface(void* surface)
 #endif
 #endif
 
-    if(mPlayerStatus != MEDIA_PLAYER_IDLE &&
+#ifdef _MSC_VER
+	if (mVideoRenderer) {
+		delete mVideoRenderer;
+
+		// realloc render
+		mSurface = surface;
+		SDL_Surface* surf = (SDL_Surface *)surface;
+
+		mVideoRenderer = new FFRender(mSurface, surf->w, surf->h, mVideoFormat);
+		bool force_sw = false;
+#ifdef USE_AV_FILTER
+		if (mVideoFiltFrame) {
+			LOGI("set video render to use software sws");
+			force_sw = true;
+		}
+#endif
+        if (mVideoRenderer->init(force_sw) != OK) {
+         	LOGE("Initing video render failed");
+            return ERROR;
+        }
+
+		LOGI("realloc render");
+	}
+#endif
+    if (mPlayerStatus != MEDIA_PLAYER_IDLE &&
         mPlayerStatus != MEDIA_PLAYER_INITIALIZED)
-    {
+	{
         return INVALID_OPERATION;
     }
 

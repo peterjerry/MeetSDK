@@ -63,9 +63,10 @@ public class SohuEpisodeActivity extends Activity {
     private List<EpisodeSohu> mEpisodeList;
     private String mMoreList;
     private PlaylinkSohu mPlaylink;
-    private int sub_channel_id = -1;
-    private long selected_aid = -1;
-    private int selected_index = -1;
+    private int sub_channel_id		= -1;
+    private long selected_aid		= -1;
+    private long selected_site		= -1;
+    private int selected_index		= -1;
     private String search_key;
     
     boolean noMoreData = false;
@@ -98,6 +99,7 @@ public class SohuEpisodeActivity extends Activity {
 				// TODO Auto-generated method stub
 				
 				Map<String, Object> item = adapter.getItem(position);
+				selected_site = (Integer)item.get("site");
 				
 				if ((Boolean)item.get("is_album")) {
 					selected_aid = (Long)item.get("aid");
@@ -116,10 +118,9 @@ public class SohuEpisodeActivity extends Activity {
 				else {
 					long aid	= (Long)item.get("aid");
 					int vid		= (Integer)item.get("vid");
-					int site	= (Integer)item.get("site");
 					
 					if (aid > 1000000000000L)
-						new SohuEpgTask().execute(TASK_VIDEO_INFO, aid, (long)vid, (long)site);
+						new SohuEpgTask().execute(TASK_VIDEO_INFO, aid, (long)vid, (long)selected_site);
 					else
 						new SohuEpgTask().execute(TASK_PLAYLINK, aid, (long)vid);
 				}
@@ -255,11 +256,15 @@ public class SohuEpisodeActivity extends Activity {
 		.setItems(str_title_list, 
 			new DialogInterface.OnClickListener(){
 			public void onClick(DialogInterface dialog, int whichButton) {
-				long aid = mEpisodeList.get(whichButton).mAid;
-				int vid = mEpisodeList.get(whichButton).mVid;
+				long aid	= mEpisodeList.get(whichButton).mAid;
+				int vid		= mEpisodeList.get(whichButton).mVid;
 				selected_index = whichButton;
 				
-				new SohuEpgTask().execute(TASK_PLAYLINK, aid, (long)vid);
+				if (aid > 1000000000000L)
+					new SohuEpgTask().execute(TASK_VIDEO_INFO, aid, (long)vid, (long)selected_site);
+				else
+					new SohuEpgTask().execute(TASK_PLAYLINK, aid, (long)vid);
+				
 				dialog.dismiss();
 			}
 		})

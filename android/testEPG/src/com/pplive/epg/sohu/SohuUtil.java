@@ -559,8 +559,9 @@ public class SohuUtil {
 			}
 			
 			JSONObject data = root.getJSONObject("data");
-			String normal_url = getNodeString(data, "url_nor_mp4");
 			String tv_name = data.getString("video_name");
+			
+			String normal_url = getNodeString(data, "url_nor_mp4");
 			String high_url = getNodeString(data, "url_high_mp4");
 			
 			String clipsDuration_nor = getNodeString(data, "clips_duration_nor");

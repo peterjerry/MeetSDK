@@ -20,7 +20,7 @@
 #endif
 
 #ifdef _MSC_VER
-#define CLIP_NAME "e:\\Work\\HEVC\\Transformers3-1080p.mp4"
+#define CLIP_NAME "http://172.16.204.106/test/h265/Transformers3-720p.mp4"
 #else
 #define CLIP_NAME "e:/Work/HEVC/Transformers3-1080p.mp4"
 #endif
@@ -102,13 +102,14 @@ void start_player()
 
 	SDL_Init(SDL_INIT_EVERYTHING);
 	SDL_SetTimer((1000/10)*10, timer_cb);
-	
+
 	SDL_Surface* screen;
-	scr_width	= 1920;
-	scr_height	= 1080;
+	scr_width	= GetSystemMetrics ( SM_CXSCREEN );
+	scr_height	= GetSystemMetrics ( SM_CYSCREEN );
 	screen = SDL_SetVideoMode(scr_width, scr_height, 32, 
 		SDL_HWSURFACE | SDL_DOUBLEBUF | SDL_FULLSCREEN);
 
+	player->setVideoSurface((void *)screen);
 	Surface_open2((void *)screen);
 
 	player->start();

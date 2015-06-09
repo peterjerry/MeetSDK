@@ -35,12 +35,13 @@ public class AlbumSohu {
 		
 	}
 	
-	public AlbumSohu(String title, String sec_cate, String main_actor,
+	public AlbumSohu(String title, String sec_cate, 
+			String tip, String main_actor,
 			long video_aid, int v_count, int last_count, 
 			String imgHoriUrl, String imgVertUrl,
 			boolean is_album, int site) {
 		this(0, "", title, sec_cate, v_count, last_count, is_album,
-				video_aid, 0, 0, "N/A", "", site,
+				video_aid, 0, 0, "N/A", tip, site,
 				0.0f, 0.0f, "N/A", 
 				"N/A", main_actor,
 				"N/A", "N/A",

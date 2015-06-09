@@ -759,10 +759,9 @@ public class SohuUtil {
 					if (is_album == 0)
 						album_title = video_name;
 					
+					String tips = getNodeString(item, "tips");
 					String cate = getNodeString(item, "second_cate_name");
-					int site = 1;
-					if (item.has("site"))
-						site = item.getInt("site");
+					
 					String main_actor = "N/A";
 					if (item.has("main_actor"))
 						main_actor = item.getString("main_actor");
@@ -771,15 +770,19 @@ public class SohuUtil {
 					String hori_pic_url = getNodeString(item, "hor_high_pic");
 					String vert_pic_url = getNodeString(item, "ver_high_pic");
 					
+					int site = -1;
 					if (item.has("videos")) {
 						JSONArray videos = item.getJSONArray("videos");
 						for (int j=0;j<videos.length();j++) {
 							JSONObject v = videos.getJSONObject(j);
 							int video_vid = v.getInt("vid");
+							if (site == -1 && v.has("site"))
+								site = v.getInt("site");
 						}
 					}
 					
-					AlbumSohu a = new AlbumSohu(album_title, cate, main_actor,
+					AlbumSohu a = new AlbumSohu(album_title, cate, 
+							tips, main_actor,
 							aid, v_count, last_count,
 							hori_pic_url, vert_pic_url,
 							is_album == 1 ? true : false, site);
@@ -892,7 +895,7 @@ public class SohuUtil {
 	
 	public PlaylinkSohu playlink_pptv(int vid, int sid) {
 		String url = String.format(PLAYINFO_URL, vid, sid);
-		Log.i(TAG, "Java: SohuUtil getPlayLink " + url);
+		Log.i(TAG, "Java: SohuUtil playlink_pptv " + url);
 		
 		try {
 			String result = http_get(url);

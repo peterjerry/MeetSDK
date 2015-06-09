@@ -24,10 +24,10 @@ public class TestEPG {
 	public static void main(String[] args) {
 
 		//PPTVFrame myFrame = new PPTVFrame();
-		LeTVFrame myFrame = new LeTVFrame();
+		//LeTVFrame myFrame = new LeTVFrame();
 		//VstFrame myFrame = new VstFrame();
         //BestvFrame myFrame = new BestvFrame();
-		//SohuFrame myFrame = new SohuFrame();
+		SohuFrame myFrame = new SohuFrame();
 		myFrame.setVisible(true);
 		myFrame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		myFrame.addKeyListener(new KeyListener(){
