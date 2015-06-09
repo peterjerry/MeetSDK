@@ -9,6 +9,7 @@ import javax.swing.JFrame;
 import com.pplive.epg.bestv.BestvFrame;
 import com.pplive.epg.bestv.BestvKey;
 import com.pplive.epg.bestv.BestvUtil;
+import com.pplive.epg.letv.LeTVFrame;
 import com.pplive.epg.pptv.Catalog;
 import com.pplive.epg.pptv.Content;
 import com.pplive.epg.pptv.EPGUtil;

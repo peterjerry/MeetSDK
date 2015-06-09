@@ -300,6 +300,8 @@ abstract class BaseMediaPlayer implements MediaPlayerInterface {
 				if (mOnCompletionListener != null) {
 					mOnCompletionListener.onCompletion(mMediaPlayer);
 				}
+				// 2015.6.8 guoliangma move here
+				stayAwake(false);
 				return;
 				
 			case MediaPlayer.MEDIA_BUFFERING_UPDATE:
@@ -312,7 +314,8 @@ abstract class BaseMediaPlayer implements MediaPlayerInterface {
 				if (mOnSeekCompleteListener != null) {
 					mOnSeekCompleteListener.onSeekComplete(mMediaPlayer);
 				}
-				stayAwake(false);
+				// 2015.6.8 guoliangma comment out to fix "keep screen on" problem
+				//stayAwake(false);
 				return;
 
 			case MediaPlayer.MEDIA_SET_VIDEO_SIZE:

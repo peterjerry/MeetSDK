@@ -12,6 +12,7 @@
 #define AVCODEC_MAX_AUDIO_FRAME_SIZE 192000 // 1 second of 48khz 32bit audio
 
 class and_osles;
+class apAudioEncoder;
 
 class AudioRender
 {
@@ -37,6 +38,13 @@ public:
 	int get_latency(); // msec
 
 	int get_one_sec_size();
+
+#ifdef PCM_DUMP
+	void set_dump(const char *ip_addr, int port) {
+		mIpAddr = ip_addr;
+		mPort = port;
+	}
+#endif
 
 #if defined(__CYGWIN__) || defined(_MSC_VER)
 private:
@@ -77,6 +85,12 @@ private:
 	int mOneSecSize;
 
 	bool mClosed;
+
+#ifdef PCM_DUMP
+	apAudioEncoder* mEncoder;
+	const char*		mIpAddr;
+	int				mPort;
+#endif
 };
 
 #endif // _AUDIO_RENDER_H

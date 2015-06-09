@@ -4,28 +4,33 @@
     android:layout_height="match_parent" >
 	<ImageView
             android:id="@+id/gridview_img"
-            android:layout_width="256dip"
-            android:layout_height="192dip"
-			android:layout_alignParentTop="true"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_alignParentTop="true"
             android:layout_margin="5dip"
-            android:src="@drawable/clip" />
+            android:scaleType="fitXY"
+            android:src="@drawable/loading" />
 	<TextView
         android:id="@+id/gridview_tip"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_alignBottom="@+id/gridview_img"
-        android:gravity="center_horizontal"
-        android:textColor="#F00"
-        android:textSize="14dip"
+        android:layout_alignBottom="@id/gridview_img"
+        android:layout_alignRight="@id/gridview_img"
+        android:layout_marginRight="5dip"
+        android:gravity="right"
+        android:textColor="#FFF"
+        android:textSize="14sp"
+        android:singleLine="true"
         tools:context=".SohuEpisoActivity" />
     <TextView
         android:id="@+id/gridview_title"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_below="@+id/gridview_img"
+        android:layout_below="@id/gridview_img"
         android:gravity="center_horizontal"
         android:textColor="#000"
-        android:textSize="14dip"
+        android:textSize="14sp"
+        android:singleLine="true"
         tools:context=".SohuEpisoActivity" />
 
 </RelativeLayout>

@@ -410,6 +410,14 @@ public class FFMediaPlayer extends BaseMediaPlayer {
 	@Override
 	public native void setOption(String option);
 	
+	public MediaInfo getCurrentMediaInfo() {
+		MediaInfo info = new MediaInfo();
+		if (native_getCurrentMediaInfo(info))
+			return info;
+		
+		return null;
+	}
+	
 	private native void _setDataSource(String path) throws IOException,
 			IllegalArgumentException, IllegalStateException;
 			
@@ -474,6 +482,8 @@ public class FFMediaPlayer extends BaseMediaPlayer {
 	private native boolean native_getSnapShot(int width, int height, int fmt, int msec, SnapShot pic);
 	
 	private native TrackInfo[] native_getTrackInfo();
+	
+	private native boolean native_getCurrentMediaInfo(MediaInfo info);
 	
 	// init and uninit
 	private static native final boolean native_init();

@@ -6,7 +6,9 @@
 #include "ffplayer.h"
 #include <sys/types.h>
 #include <sys/stat.h>
-#ifndef _MSC_VER
+#ifdef _MSC_VER
+#include "sdl.h"
+#else
 #include <sys/resource.h>
 #include <sys/time.h>
 #include <dlfcn.h>
@@ -258,6 +260,11 @@ FFPlayer::FFPlayer()
 	mSnapshotPic	= NULL;
 	mSnapShotFrame	= NULL;
 	mSwsCtx			= NULL;
+
+#ifdef PCM_DUMP
+	mIpAddr			= NULL;
+	mPort			= 0;
+#endif
 
 #ifdef USE_AV_FILTER
 	mFilterGraph	= NULL;
@@ -635,9 +642,33 @@ status_t FFPlayer::setVideoSurface(void* surface)
 #endif
 #endif
 
-    if(mPlayerStatus != MEDIA_PLAYER_IDLE &&
+#ifdef _MSC_VER
+	if (mVideoRenderer) {
+		delete mVideoRenderer;
+
+		// realloc render
+		mSurface = surface;
+		SDL_Surface* surf = (SDL_Surface *)surface;
+
+		mVideoRenderer = new FFRender(mSurface, surf->w, surf->h, mVideoFormat);
+		bool force_sw = false;
+#ifdef USE_AV_FILTER
+		if (mVideoFiltFrame) {
+			LOGI("set video render to use software sws");
+			force_sw = true;
+		}
+#endif
+        if (mVideoRenderer->init(force_sw) != OK) {
+         	LOGE("Initing video render failed");
+            return ERROR;
+        }
+
+		LOGI("realloc render");
+	}
+#endif
+    if (mPlayerStatus != MEDIA_PLAYER_IDLE &&
         mPlayerStatus != MEDIA_PLAYER_INITIALIZED)
-    {
+	{
         return INVALID_OPERATION;
     }
 
@@ -1400,7 +1431,22 @@ void FFPlayer::onVideoImpl()
 
 void FFPlayer::set_opt(const char *opt)
 {
+	LOGI("set_opt %s", opt);
 
+#ifdef PCM_DUMP
+	const char *p = strchr(opt, '/');
+
+	if (mIpAddr)
+		delete mIpAddr;
+
+	int len = p - opt + 1;
+	mIpAddr = new char[len];
+	strncpy(mIpAddr, opt, len - 1);
+	mIpAddr[len-1] = '\0';
+
+	mPort = atoi(p + 1);
+	LOGI("set_opt udp://%s:%d", mIpAddr, mPort);
+#endif
 }
 
 bool FFPlayer::broadcast_refresh()
@@ -1938,6 +1984,9 @@ status_t FFPlayer::prepareAudio_l()
         //init audioplayer
         if(codec_ctx->sample_rate > 0 && codec_ctx->channels > 0) {
             mAudioPlayer = new AudioPlayer(mDataStream, mAudioStream, mAudioStreamIndex);
+#ifdef PCM_DUMP
+			mAudioPlayer->set_dump(mIpAddr, mPort);
+#endif
             LOGD("audio codec name:%s", codec->long_name);
         }
         else {
@@ -2074,6 +2123,7 @@ status_t FFPlayer::prepareVideo_l()
 	render_w = mVideoWidth;
 	render_h = mVideoHeight;
 #ifdef _MSC_VER
+#ifdef SDL_EMBEDDED_WINDOW
 	if (render_w > MAX_DISPLAY_WIDTH) {
 		double ratio	= (double)render_w / MAX_DISPLAY_WIDTH;
 		render_w		= MAX_DISPLAY_WIDTH;
@@ -2089,6 +2139,10 @@ status_t FFPlayer::prepareVideo_l()
 		LOGI("video resolution %d x %d, display resolution switch to %d x %d",
 			mVideoWidth, mVideoHeight, render_w, render_h);
 	}
+#else
+	render_w = 1920;
+	render_h = 1080;
+#endif
 #endif
 
     mVideoRenderer = new FFRender(mSurface, render_w, render_h, mVideoFormat);
@@ -3197,6 +3251,84 @@ bool getStreamLangTitle(char** langcode, char** langtitle, int index, AVStream* 
 	}
 
     return gotlanguage;
+}
+
+bool FFPlayer::getCurrentMediaInfo(MediaInfo *info)
+{
+	if (info == NULL || mMediaFile == NULL)
+		return false;
+
+	info->size_byte = 0;
+	info->duration_ms = (int32_t)(mMediaFile->duration * 1000 / AV_TIME_BASE);
+	info->format_name = mMediaFile->iformat->name;
+	info->channels = (int32_t)mMediaFile->nb_streams;
+
+	info->audio_channels	= 0;
+	info->video_channels	= 0;
+	info->subtitle_channels = 0;
+
+	if (mVideoStream == NULL) {
+		LOGE("video stream is NULL");
+		return false;
+	}
+
+	AVCodecContext* codec_ctx = mVideoStream->codec;
+	if(codec_ctx == NULL) {
+		LOGE("codec_ctx is NULL");
+		return false;
+	}
+
+	info->width = codec_ctx->width;
+	info->height = codec_ctx->height;
+
+	AVCodec* codec = avcodec_find_decoder(codec_ctx->codec_id);
+	if (codec == NULL) {
+		LOGE("avcodec_find_decoder() video failed");
+		return false;
+	}
+	
+	info->videocodec_name = codec->name;
+		
+	for (unsigned int i=0;i<mMediaFile->nb_streams;i++) {
+		if (mMediaFile->streams[i]->codec->codec_type == AVMEDIA_TYPE_AUDIO) {
+			AVStream *stream = mMediaFile->streams[i];
+			AVCodec* codec = avcodec_find_decoder(mAudioStream->codec->codec_id);
+			if (codec == NULL) {
+				LOGW("avcodec_find_decoder audio failed");
+				continue;
+			}
+
+			int audio_index = info->audio_channels;
+			info->audio_streamIndexs[audio_index] = i;
+
+			int len = strlen(codec->name) + 1;
+			info->audiocodec_names[audio_index] = new char[len];
+			strcpy(info->audiocodec_names[audio_index], codec->name);
+			getStreamLangTitle(&(info->audio_languages[audio_index]), &(info->audio_titles[audio_index]), i, stream);
+
+			info->audio_channels++;
+		}
+		else if(mMediaFile->streams[i]->codec->codec_type == AVMEDIA_TYPE_SUBTITLE) {
+			AVStream* stream = mMediaFile->streams[i];
+			AVCodec* codec = avcodec_find_decoder(stream->codec->codec_id);
+			if (codec == NULL) {
+				LOGW("avcodec_find_decoder subtitle failed");
+				continue;
+			}
+
+			int subtitle_index = info->subtitle_channels;
+			info->subtitle_streamIndexs[subtitle_index] = i;
+
+			int len = strlen(codec->name) + 1;
+			info->subtitlecodec_names[subtitle_index] = new char[len];
+			strcpy(info->subtitlecodec_names[subtitle_index], codec->name);
+			getStreamLangTitle(&(info->subtitle_languages[subtitle_index]), &(info->subtitle_titles[subtitle_index]), i, stream);
+
+			info->subtitle_channels++;
+		}
+	} // end of for() get stream info
+
+	return true;
 }
 
 bool FFPlayer::getMediaDetailInfo(const char* url, MediaInfo* info)

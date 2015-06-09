@@ -1112,6 +1112,86 @@ android_media_MediaPlayer_native_getMediaInfo(JNIEnv *env, jobject thiz, jstring
 	return ret;
 }
 
+static void fill_media_info(JNIEnv *env, jobject thiz, jobject info, jstring file_path, MediaInfo *native_info)
+{
+	jclass clazz = env->FindClass("android/pplive/media/player/MediaInfo");
+	jfieldID f_path = env->GetFieldID(clazz, "mPath", "Ljava/lang/String;");
+	jfieldID f_duration = env->GetFieldID(clazz, "mDurationMS", "J");
+	jfieldID f_size = env->GetFieldID(clazz, "mSizeByte", "J");
+	jfieldID f_format = env->GetFieldID(clazz, "mFormatName", "Ljava/lang/String;");
+
+	jfieldID f_videocodec_name = env->GetFieldID(clazz, "mVideoCodecName", "Ljava/lang/String;");
+	jfieldID f_width = env->GetFieldID(clazz, "mWidth", "I");
+	jfieldID f_height = env->GetFieldID(clazz, "mHeight", "I");
+		
+	jfieldID f_video_channels = env->GetFieldID(clazz, "mVideoChannels", "I");
+	jfieldID f_audio_channels = env->GetFieldID(clazz, "mAudioChannels", "I");
+	jfieldID f_subtitle_channels = env->GetFieldID(clazz, "mSubTitleChannels", "I");
+
+	// 2015.1.9 guoliangma added
+	jmethodID midSetAudioChannelInfo = env->GetMethodID(clazz, 
+		"setAudioChannelsInfo", "(IILjava/lang/String;Ljava/lang/String;Ljava/lang/String;)V");
+	jmethodID midSetSubtitleChannelInfo = env->GetMethodID(clazz, 
+		"setSubtitleChannelsInfo", "(IILjava/lang/String;Ljava/lang/String;Ljava/lang/String;)V");
+			
+	//jmethodID midSetChnnels = env->GetMethodID(clazz,"setChannels","(Ljava/lang/String;I)V");
+	jmethodID construction_id = env->GetMethodID(clazz, "<init>", "()V");
+	jobject obj = env->NewObject(clazz, construction_id);
+		
+	// 2015.1.9 guoliangma added
+	env->SetIntField(info, f_audio_channels, native_info->audio_channels);
+	for(int i=0;i<native_info->audio_channels;i++) {
+		env->CallVoidMethod(info, midSetAudioChannelInfo, i, 
+			native_info->audio_streamIndexs[i], 
+			env->NewStringUTF(native_info->audiocodec_names[i]), 
+			env->NewStringUTF(native_info->audio_languages[i]), 
+			env->NewStringUTF(native_info->audio_titles[i]));
+	}
+
+	env->SetIntField(info, f_subtitle_channels, native_info->subtitle_channels);
+	for(int i=0;i<native_info->subtitle_channels;i++) {
+		env->CallVoidMethod(info, midSetSubtitleChannelInfo, i, 
+			native_info->subtitle_streamIndexs[i], 
+			env->NewStringUTF(native_info->subtitlecodec_names[i]), 
+			env->NewStringUTF(native_info->subtitle_languages[i]), 
+			env->NewStringUTF(native_info->subtitle_titles[i]));
+	}
+
+	if (file_path != NULL)
+		env->SetObjectField(info, f_path, file_path);
+	else
+		env->SetObjectField(info, f_path, env->NewStringUTF("N/A"));
+	env->SetLongField(info, f_duration, native_info->duration_ms);
+	env->SetLongField(info, f_size, native_info->size_byte);
+		
+	env->SetObjectField(info, f_format, env->NewStringUTF(native_info->format_name));
+	env->SetIntField(info, f_video_channels, native_info->video_channels);
+	env->SetObjectField(info, f_videocodec_name, env->NewStringUTF(native_info->videocodec_name));
+	env->SetIntField(info, f_width, native_info->width);
+	env->SetIntField(info, f_height, native_info->height);
+}
+
+static jboolean
+android_media_MediaPlayer_native_getCurrentMediaInfo(JNIEnv *env, jobject thiz, jobject info)
+{
+	PPLOGI("native_getCurrentMediaInfo()");
+	bool ret = false;
+
+	IPlayer* mp = getMediaPlayer(env, thiz);
+	if (mp == NULL ) {
+		jniThrowException(env, "java/lang/IllegalStateException", NULL);
+		return false;
+	}
+
+	MediaInfo native_info;
+	if (mp->getCurrentMediaInfo(&native_info)) {
+		fill_media_info(env, thiz, info, NULL, &native_info);
+		ret = true;
+	}
+
+	return ret;
+}
+
 static jboolean
 android_media_MediaPlayer_native_getMediaDetailInfo(JNIEnv *env, jobject thiz, jstring js_media_file_path, jobject info)
 {
@@ -1128,61 +1208,9 @@ android_media_MediaPlayer_native_getMediaDetailInfo(JNIEnv *env, jobject thiz, j
 	
 	const char* url = jstr2cstr(env, js_media_file_path);
 	MediaInfo native_info;
-	if(mp->getMediaDetailInfo(url, &native_info))
+	if (mp->getMediaDetailInfo(url, &native_info))
 	{
-		jclass clazz = env->FindClass("android/pplive/media/player/MediaInfo");
-		jfieldID f_path = env->GetFieldID(clazz, "mPath", "Ljava/lang/String;");
-		jfieldID f_duration = env->GetFieldID(clazz, "mDurationMS", "J");
-		jfieldID f_size = env->GetFieldID(clazz, "mSizeByte", "J");
-		jfieldID f_format = env->GetFieldID(clazz, "mFormatName", "Ljava/lang/String;");
-
-		jfieldID f_videocodec_name = env->GetFieldID(clazz, "mVideoCodecName", "Ljava/lang/String;");
-		jfieldID f_width = env->GetFieldID(clazz, "mWidth", "I");
-		jfieldID f_height = env->GetFieldID(clazz, "mHeight", "I");
-		
-		jfieldID f_video_channels = env->GetFieldID(clazz, "mVideoChannels", "I");
-		jfieldID f_audio_channels = env->GetFieldID(clazz, "mAudioChannels", "I");
-		jfieldID f_subtitle_channels = env->GetFieldID(clazz, "mSubTitleChannels", "I");
-
-		// 2015.1.9 guoliangma added
-		jmethodID midSetAudioChannelInfo = env->GetMethodID(clazz, 
-			"setAudioChannelsInfo", "(IILjava/lang/String;Ljava/lang/String;Ljava/lang/String;)V");
-		jmethodID midSetSubtitleChannelInfo = env->GetMethodID(clazz, 
-			"setSubtitleChannelsInfo", "(IILjava/lang/String;Ljava/lang/String;Ljava/lang/String;)V");
-			
-		//jmethodID midSetChnnels = env->GetMethodID(clazz,"setChannels","(Ljava/lang/String;I)V");
-		jmethodID construction_id = env->GetMethodID(clazz, "<init>", "()V");
-		jobject obj = env->NewObject(clazz, construction_id);
-		
-		// 2015.1.9 guoliangma added
-		env->SetIntField(info, f_audio_channels, native_info.audio_channels);
-		for(int i=0;i<native_info.audio_channels;i++) {
-			env->CallVoidMethod(info, midSetAudioChannelInfo, i, 
-				native_info.audio_streamIndexs[i], 
-				env->NewStringUTF(native_info.audiocodec_names[i]), 
-				env->NewStringUTF(native_info.audio_languages[i]), 
-				env->NewStringUTF(native_info.audio_titles[i]));
-		}
-
-		env->SetIntField(info, f_subtitle_channels, native_info.subtitle_channels);
-		for(int i=0;i<native_info.subtitle_channels;i++) {
-			env->CallVoidMethod(info, midSetSubtitleChannelInfo, i, 
-				native_info.subtitle_streamIndexs[i], 
-				env->NewStringUTF(native_info.subtitlecodec_names[i]), 
-				env->NewStringUTF(native_info.subtitle_languages[i]), 
-				env->NewStringUTF(native_info.subtitle_titles[i]));
-		}
-		
-		env->SetObjectField(info, f_path, js_media_file_path);
-		env->SetLongField(info, f_duration, native_info.duration_ms);
-		env->SetLongField(info, f_size, native_info.size_byte);
-		
-		env->SetObjectField(info, f_format, env->NewStringUTF(native_info.format_name));
-		env->SetIntField(info, f_video_channels, native_info.video_channels);
-		env->SetObjectField(info, f_videocodec_name, env->NewStringUTF(native_info.videocodec_name));
-		env->SetIntField(info, f_width, native_info.width);
-		env->SetIntField(info, f_height, native_info.height);
-
+		fill_media_info(env, thiz, info, js_media_file_path, &native_info);
 		ret = true;
 		PPLOGD("Get MediaDetailInfo succeed.");
 	}
@@ -1430,6 +1458,7 @@ static JNINativeMethod gMethods[] = {
 	{"native_getVersion",	"()Ljava/lang/String;",(void *)android_media_MediaPlayer_native_getVersion},
 	{"native_supportSoftDecode",	"()Z",(void *)android_media_MediaPlayer_native_supportSoftDecode},
 	{"setOption",	"(Ljava/lang/String;)V",(void *)android_media_MediaPlayer_native_set_option},
+	{"native_getCurrentMediaInfo",	"(Landroid/pplive/media/player/MediaInfo;)Z",(void *)android_media_MediaPlayer_native_getCurrentMediaInfo},
 };
 
 

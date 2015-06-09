@@ -8,14 +8,10 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
 import java.util.Date;
-import java.util.GregorianCalendar;
 import java.util.List;
-import java.util.Locale;
 
 import javax.swing.event.*;
 
@@ -52,7 +48,7 @@ public class LeTVFrame extends JFrame {
 	
 	JTextPane editorPlayLink = new JTextPane();
 	
-	LeTVFrame() {
+	public LeTVFrame() {
 		super();
 		
 		mEPG = new LetvUtil();
@@ -223,7 +219,8 @@ public class LeTVFrame extends JFrame {
 			System.out.println(String.format("Java: select %s %s", 
 					lb.getName(), url));
 			
-			String exe_filepath  = "D:/software/ffmpeg/ffplay.exe";
+			String exe_filepath  = "E:/git/PPTV/MeetSDK/engine2/build/win32/bin/Release/player_vc.exe";
+			// "D:/software/ffmpeg/ffplay.exe";
 			String[] cmd = new String[] {exe_filepath, url};
 			openExe(cmd);
 		}

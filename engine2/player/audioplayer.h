@@ -44,6 +44,13 @@ public:
 
 	status_t selectAudioChannel(int32_t index);
 
+#ifdef PCM_DUMP
+	void set_dump(const char *ip_addr, int port) {
+		mIpAddr = ip_addr;
+		mPort	= port;
+	}
+#endif
+
 private:
 	status_t start_l();
 
@@ -94,6 +101,11 @@ private:
     pthread_mutex_t mLock;
     pthread_cond_t mCondition;
 	pthread_mutex_t mClockLock;
+
+#ifdef PCM_DUMP
+	const char*		mIpAddr;
+	int				mPort;
+#endif
 
 };
 

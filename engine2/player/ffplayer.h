@@ -90,6 +90,8 @@ public:
 	
     void notify(int32_t msg, int32_t ext1 = 0, int32_t ext2 = 0);
 
+	bool getCurrentMediaInfo(MediaInfo* info);
+
 	bool getMediaInfo(const char* url, MediaInfo* info);
 
 	bool getMediaDetailInfo(const char* url, MediaInfo* info);
@@ -404,6 +406,11 @@ private:
 	int64_t				mLastDelayMs;
 	int64_t				mFrameTimerMs;
 	int64_t				mAVDiffMs;
+
+#ifdef PCM_DUMP
+	char*				mIpAddr;
+	int					mPort;
+#endif
 
 #if USE_AV_FILTER
 	//avfilter

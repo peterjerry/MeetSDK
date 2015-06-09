@@ -54,7 +54,8 @@ static const char *get_log_level(int lvl)
 
 int __pp_log_print(int prio, const char *tag,  const char *fmt, ...)
 {
-	static char msg[1024] = {0};
+	// 2015.6.5 michael.ma remove static because this func is not thread-safe
+	char msg[1024] = {0};
 
 	va_list ap;
     va_start(ap, fmt);

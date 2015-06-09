@@ -3,11 +3,11 @@ package com.pplive.common.sohu;
 public class EpisodeSohu {
 	public String mTitle;
 	public String mPicUrl;
-	public int mAid;
+	public long mAid;
 	public int mVid;
 	public String mPlayUrl;
 	
-	public EpisodeSohu(String title, String picUrl, int aid, int vid, String url) {
+	public EpisodeSohu(String title, String picUrl, long aid, int vid, String url) {
 		mTitle		= title;
 		mPicUrl		= picUrl;
 		mAid		= aid;

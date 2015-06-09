@@ -640,6 +640,7 @@ bool CtestSDLdlgDlg::start_player(const char *url)
 
 	mPlayer = new FFPlayer;
 	mPlayer->setListener(this);
+	mPlayer->set_opt("192.168.27.134/9891");
 
 #ifdef ENABLE_SUBTITLE
 	if (!ISubtitles::create(&mSubtitleParser)) {
@@ -968,8 +969,10 @@ bool CtestSDLdlgDlg::OnPrepared()
 
 	char variable[256];
 	CWnd* pWnd = this->GetDlgItem(IDC_STATIC_RENDER);
-	sprintf_s(variable,"SDL_WINDOWID=0x%1x", pWnd->GetSafeHwnd());     
+	sprintf_s(variable,"SDL_WINDOWID=0x%1x", pWnd->GetSafeHwnd());
+#ifdef SDL_EMBEDDED_WINDOW
 	SDL_putenv(variable);
+#endif
 
 	if( SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_TIMER)) {
 		TCHAR msg[256] = {0};
@@ -995,8 +998,13 @@ bool CtestSDLdlgDlg::OnPrepared()
 	SDL_Rect rect;
 	rect.x = 0;
 	rect.y = 0;
+#ifdef SDL_EMBEDDED_WINDOW
 	rect.w = mWidth;
 	rect.h = mHeight;
+#else
+	rect.w = 1920;
+	rect.h = 1080;
+#endif
 
 	RECT rc;
 	GetWindowRect(&rc);
@@ -1018,7 +1026,7 @@ bool CtestSDLdlgDlg::OnPrepared()
 	MoveWindow(rc.left, rc.top, new_w, new_h);
 
 	mSurface2 = SDL_SetVideoMode(rect.w, rect.h, 32, 
-		SDL_HWSURFACE | SDL_DOUBLEBUF/* | SDL_RESIZABLE*/);
+		SDL_HWSURFACE | SDL_DOUBLEBUF /*| SDL_RESIZABLE*/);
 	if (!mSurface2) {
 		AfxMessageBox("failed to create surface");
 		return false;

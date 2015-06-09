@@ -16,6 +16,7 @@ import java.util.GregorianCalendar;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
+import java.util.StringTokenizer;
 
 import android.app.Activity;
 import android.app.ProgressDialog;
@@ -660,6 +661,7 @@ public class ClipListActivity extends Activity implements
 				String regularEx = ",";
 				String values = Util.readSettings(ClipListActivity.this, key);
 		        Log.d(TAG, "Java: PlayHistory(in PPboxSel) read: " + values);
+		        
 		        String []str = values.split(regularEx);
 		        for (int i=0;i<str.length;i++) {
 		        	// 后遗症|1233
@@ -810,6 +812,8 @@ public class ClipListActivity extends Activity implements
 				
 				// TODO Auto-generated method stub
 				if (mPlayer != null) {
+					Log.i(TAG, "Java: trackinfo " + mPlayer.getMediaInfo());
+					
 					mAudioChannel++;
 					if (mAudioChannel > mAudioTrackNum)
 						mAudioChannel = 1;
@@ -2391,7 +2395,8 @@ public class ClipListActivity extends Activity implements
 			.setIcon(R.drawable.update);
 		menu.add(Menu.NONE, UPLOAD_CRASH_REPORT, Menu.FIRST + 3, "Upload crash report")
 			.setIcon(R.drawable.log);
-		menu.add(Menu.NONE, QUIT, Menu.FIRST + 4, "Quit");
+		menu.add(Menu.NONE, QUIT, Menu.FIRST + 4, "Quit")
+			.setIcon(R.drawable.quit);
 		
 		return true;//super.onCreateOptionsMenu(menu);
 	}
@@ -2532,6 +2537,11 @@ public class ClipListActivity extends Activity implements
 			new EPGTask().execute(EPG_ITEM_CONTENT_LIST);
 			break;
 		case OPTION_EPG_SOHUVIDEO:
+			if (!Util.IsHaveInternet(this)) {
+				Toast.makeText(this, "network is not connected", Toast.LENGTH_SHORT).show();
+				return true;
+			}
+			
 			intent = new Intent(ClipListActivity.this, SohuVideoActivity.class);
     		startActivity(intent);
 			break;

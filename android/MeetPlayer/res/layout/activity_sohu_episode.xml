@@ -9,18 +9,20 @@
         android:layout_height="25dip"
         android:layout_alignParentTop="true"
         android:gravity="center_vertical|center_horizontal"
-        android:text="test"
+        android:text="info"
         android:textSize="20dip"
         tools:context=".SohuEpisodeActivity" />
     <GridView
         android:id="@+id/grid_view"
-        android:layout_width="fill_parent"
-        android:layout_height="wrap_content"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
         android:layout_below="@+id/title_bar_text"
         android:layout_marginLeft="1dip"
         android:layout_marginRight="1dip"
-        android:numColumns="2"
-		android:columnWidth="5dip"
+        android:numColumns="auto_fit"
+        android:columnWidth="150dp"
+        android:verticalSpacing="25dp"
+        android:stretchMode="columnWidth"
         android:cacheColorHint="#00000000">
 	</GridView>
         

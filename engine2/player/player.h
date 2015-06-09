@@ -255,6 +255,8 @@ public:
 
 	virtual bool		getMediaDetailInfo(const char* url, MediaInfo* info){return false;}
 
+	virtual bool		getCurrentMediaInfo(MediaInfo* info){return false;}
+
 	virtual bool		getThumbnail(const char* url, MediaInfo* info){return false;}
 
 	virtual SnapShot*	getSnapShot(int width, int height, int fmt, int msec = -1){return NULL;}

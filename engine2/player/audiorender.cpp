@@ -2,6 +2,9 @@
 #define LOG_TAG "AudioRender"
 #include "log.h"
 #include "audiotrack.h"
+#ifdef PCM_DUMP
+#include "apAudioEncoder.h"
+#endif
 #ifndef _MSC_VER
 #include <unistd.h> // for usleep
 #endif
@@ -35,6 +38,12 @@ AudioRender::AudioRender()
 #endif
 
 	mClosed		= false;
+
+#ifdef PCM_DUMP
+	mEncoder	= NULL;
+	mIpAddr		= NULL;
+	mPort		= 0;
+#endif
 }
 
 AudioRender::~AudioRender()
@@ -51,9 +60,16 @@ AudioRender::~AudioRender()
 		mConvertCtx = NULL;
 	}
 #ifdef OSLES_IMPL
-	if(a_render) {
+	if (a_render) {
 		delete a_render;
 		a_render = NULL;
+	}
+#endif
+
+#ifdef PCM_DUMP
+	if (mEncoder) {
+		delete mEncoder;
+		mEncoder = NULL;
 	}
 #endif
 }
@@ -254,6 +270,17 @@ status_t AudioRender::open(int sampleRate,
 
 	mFifo.create(FIFO_BUFFER_SIZE);
 
+#ifdef PCM_DUMP
+	if (mIpAddr != NULL && mPort != 0) {
+		mEncoder = new apAudioEncoder();
+		if (!mEncoder->init(mIpAddr, mPort, mChannelsOutput, mSampleRateOutput, mSampleFormatOutput, 64000)) {
+			LOGW("failed to init audio encoder");
+			delete mEncoder;
+			mEncoder = NULL;
+		}
+	}
+#endif
+
 	return OK;
 #elif defined(OSLES_IMPL)
 	LOGI("implement osles audio render");
@@ -265,6 +292,17 @@ status_t AudioRender::open(int sampleRate,
 	ret = a_render->open(mSampleRateOutput, mChannelsOutput, mBitPerSample);
 	if(ret != 0)
 		return ERROR;
+
+#ifdef PCM_DUMP
+	if (mIpAddr != NULL && mPort != 0) {
+		mEncoder = new apAudioEncoder();
+		if (!mEncoder->init(mIpAddr, mPort, mChannelsOutput, mSampleRateOutput, mSampleFormatOutput, 64000)) {
+			LOGW("failed to init audio encoder");
+			delete mEncoder;
+			mEncoder = NULL;
+		}
+	}
+#endif
 
 	return OK;
 #else
@@ -321,6 +359,13 @@ status_t AudioRender::render(AVFrame* audioFrame)//int16_t* buffer, uint32_t buf
 	}
 
 	LOGD("audio nb_samples %d, linesize %d, audio_buffer_size %d", audioFrame->nb_samples, audioFrame->linesize[0], audio_buffer_size);
+
+#ifdef PCM_DUMP
+	if (mEncoder) {
+		if (!mEncoder->write_audio_frame((uint8_t *)audio_buffer, audio_buffer_size))
+			LOGW("failed to write audio data to encoder %p %d", audio_buffer, audio_buffer_size);
+	}
+#endif
 
 #ifdef _DUMP_PCM_DATA_
 	static FILE *pFile = NULL;

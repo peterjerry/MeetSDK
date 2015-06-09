@@ -8,19 +8,9 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.text.DateFormat;
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.GregorianCalendar;
 import java.util.List;
-import java.util.Locale;
 
 import javax.swing.event.*;
-
-import com.pplive.epg.letv.PlayLinkLb;
-import com.pplive.epg.letv.StreamIdLb;
 
 public class VstFrame extends JFrame {
 	
@@ -39,8 +29,6 @@ public class VstFrame extends JFrame {
 	
 	VstUtil mEPG;
 	List<ProgramVst> mProgramList;
-	List<PlayLinkLb> mPlayLinkList;
-	List<StreamIdLb> mStrmList;
 	
 	JButton btnOK		= new JButton("OK");
 	JButton btnReset 	= new JButton("重置");
