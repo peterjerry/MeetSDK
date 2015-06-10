@@ -54,6 +54,7 @@ public class SohuFrame extends JFrame {
 	private String 				mMoreList;
 	
 	long last_aid = -1;
+	int last_site = -1;
 	
 	private final static int PAGE_SIZE 		= 10;
 	private final int EPISODE_INCR_PAGE_NUM 	= 30;
@@ -269,7 +270,11 @@ public class SohuFrame extends JFrame {
 		System.out.println("Java: clip info: " + mAlbumList.get(n).toString());
 		
 		AlbumSohu al = mAlbumList.get(n);
-		PlaylinkSohu link = mEPG.video_info(al.getSite(), al.getVid(), al.getAid());
+		PlaylinkSohu link = null;
+		if (al.getAid() > 1000000000000L)
+			link = mEPG.video_info(al.getSite(), al.getVid(), al.getAid());
+		else
+			link = mEPG.playlink_pptv(al.getVid(), 0);
 		if (link != null) {
 			System.out.println("Java: link info: " + link.getTitle());
 		}
@@ -289,8 +294,13 @@ public class SohuFrame extends JFrame {
 		if (last_aid == -1) {
 			int n = listItem.getSelectedIndex();
 			AlbumSohu al = mAlbumList.get(n);
+			last_site = al.getSite();
 			if (!al.isAlbum()) {
-				PlaylinkSohu pl = mEPG.video_info(al.getSite(), al.getVid(), al.getAid());
+				PlaylinkSohu pl = null;
+				if (al.getAid() > 1000000000000L)
+					pl = mEPG.video_info(al.getSite(), al.getVid(), al.getAid());
+				else
+					pl = mEPG.playlink_pptv(al.getVid(), 0);
 				if (pl != null) {
 					String url = pl.getUrl(SOHU_FT.SOHU_FT_HIGH);
 
@@ -459,7 +469,7 @@ public class SohuFrame extends JFrame {
 		
 		PlaylinkSohu pl = null;
 		if (ep.mAid > 1000000000000L)
-			pl = mEPG.video_info(2/*hard code!!!*/, ep.mVid, ep.mAid);
+			pl = mEPG.video_info(last_site, ep.mVid, ep.mAid);
 		else
 			pl = mEPG.playlink_pptv(ep.mVid, 0);
 		

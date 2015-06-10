@@ -75,10 +75,10 @@ public class FFMediaPlayer extends BaseMediaPlayer {
 			LogUtils.info("System.loadLibrary() " + lib_name + " loaded!");
 			return true;
 		}
-		catch (Exception e) 
+		catch (Throwable t) 
 		{
-			e.printStackTrace();
-			LogUtils.error("failed to load system library meet: " + e.toString());
+			t.printStackTrace();
+			LogUtils.error("failed to load system library meet: " + t.toString());
 		}
 		
 		return false;
@@ -91,10 +91,10 @@ public class FFMediaPlayer extends BaseMediaPlayer {
 			LogUtils.info("System.load() " + path_name + " loaded!");
 			return true;
 		}
-		catch (Exception e) 
+		catch (Throwable t) 
 		{
-			e.printStackTrace();
-			LogUtils.error("failed to load local library meet: " + e.toString());
+			t.printStackTrace();
+			LogUtils.error("failed to load local library meet: " + t.toString());
 		}
 		
 		return false;

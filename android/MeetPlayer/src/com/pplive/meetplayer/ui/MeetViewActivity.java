@@ -22,6 +22,8 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.ActivityInfo;
 import android.content.res.Configuration;
+import android.graphics.Color;
+import android.graphics.Typeface;
 import android.graphics.drawable.Drawable;
 import android.net.Uri;
 import android.os.AsyncTask;
@@ -46,6 +48,7 @@ import android.widget.LinearLayout;
 import android.widget.ListView;
 import android.widget.ProgressBar;
 import android.widget.RelativeLayout;
+import android.widget.TextView;
 import android.widget.Toast;
 
 public class MeetViewActivity extends Activity implements OnFocusChangeListener {
@@ -57,8 +60,10 @@ public class MeetViewActivity extends Activity implements OnFocusChangeListener 
 	
 	private final int MAX_DESC_LEN = 30;
 	
-	private final int MSG_PPTV_CLIP_LIST_DONE = 1001;
-	private final int MSG_FAIL_TO_GET_DETAIL	= 2002;
+	private static final int MSG_PPTV_CLIP_LIST_DONE	= 1001;
+	private static final int MSG_UPDATE_PLAY_INFO 	= 1002;
+	private static final int MSG_UPDATE_RENDER_INFO	= 1003;
+	private static final int MSG_FAIL_TO_GET_DETAIL	= 2002;
 	
 	private final int LIST_MOVIE 		= 1;
 	private final int LIST_TV_SERIES 	= 2;
@@ -78,6 +83,15 @@ public class MeetViewActivity extends Activity implements OnFocusChangeListener 
 	private RelativeLayout.LayoutParams mCtrlLayoutParams;
 	private MeetVideoView mVideoView;
 	private MiniMediaController mController;
+	
+	private int decode_fps						= 0;
+	private int render_fps 					= 0;
+	private int decode_avg_msec 				= 0;
+	private int render_avg_msec 				= 0;
+	private int render_frame_num				= 0;
+	private int decode_drop_frame				= 0;
+	private int av_latency_msec				= 0;
+	private int video_bitrate					= 0;
 
 	private int mBufferingPertent = 0;
 	
@@ -91,6 +105,7 @@ public class MeetViewActivity extends Activity implements OnFocusChangeListener 
 	private Button btnLive;
 	private Button btnNextPage;
 	private Button btnFt;
+	private TextView mTextViewInfo;
 	
 	private boolean mPreviewFocused = false;
 	private boolean mStartFromPortrait = false;
@@ -131,6 +146,11 @@ public class MeetViewActivity extends Activity implements OnFocusChangeListener 
 		
 		//mPreviewLayout.setFocusable(true);
 		//mPreviewLayout.setOnFocusChangeListener(this);
+		
+		mTextViewInfo = (TextView) findViewById(R.id.tv_info);
+		mTextViewInfo.setTextColor(Color.RED);
+		mTextViewInfo.setTextSize(18);
+		mTextViewInfo.setTypeface(Typeface.MONOSPACE);
 		
 		Util.initMeetSDK(this);
 		Util.startP2PEngine(this);
@@ -535,6 +555,23 @@ public class MeetViewActivity extends Activity implements OnFocusChangeListener 
 			case MSG_FAIL_TO_GET_DETAIL:
 				Toast.makeText(MeetViewActivity.this, "failed to connect to server", Toast.LENGTH_SHORT).show();
 				break;
+			case MSG_UPDATE_PLAY_INFO:
+			case MSG_UPDATE_RENDER_INFO:
+				/*if (isLandscape) {
+					mTextViewInfo.setText(String.format("%02d|%03d v-a: %+04d "
+							+ "dec/render %d(%d)/%d(%d) fps/msec bitrate %d kbps", 
+						render_frame_num % 25, decode_drop_frame % 1000, av_latency_msec, 
+						decode_fps, decode_avg_msec, render_fps, render_avg_msec,
+						video_bitrate));
+				}
+				else {*/
+					mTextViewInfo.setText(String.format("%02d|%03d v-a: %+04d\n"
+							+ "dec/render %d(%d)/%d(%d) fps/msec\nbitrate %d kbps", 
+						render_frame_num % 25, decode_drop_frame % 1000, av_latency_msec, 
+						decode_fps, decode_avg_msec, render_fps, render_avg_msec,
+						video_bitrate));
+				//}
+				break;
 			default:
 				Log.w(TAG, "unknown msg.what " + msg.what);
 				break;
@@ -722,6 +759,46 @@ public class MeetViewActivity extends Activity implements OnFocusChangeListener 
 				else
 					str_player_type = "Unknown Player";
 				Toast.makeText(MeetViewActivity.this, str_player_type, Toast.LENGTH_SHORT).show();
+			}
+			else if(MediaPlayer.MEDIA_INFO_TEST_DECODE_AVG_MSEC == what) {
+				decode_avg_msec = extra;
+			}
+			else if(MediaPlayer.MEDIA_INFO_TEST_RENDER_AVG_MSEC == what) {
+				render_avg_msec = extra;
+			}
+			else if(MediaPlayer.MEDIA_INFO_TEST_DECODE_FPS == what) {
+				decode_fps = extra;
+				mHandler.sendEmptyMessage(MSG_UPDATE_PLAY_INFO);
+			}
+			else if(MediaPlayer.MEDIA_INFO_TEST_RENDER_FPS == what) {
+				render_fps = extra;
+				mHandler.sendEmptyMessage(MSG_UPDATE_PLAY_INFO);
+			}
+			else if(MediaPlayer.MEDIA_INFO_TEST_RENDER_FRAME == what) {
+				render_frame_num = extra;
+				mHandler.sendEmptyMessage(MSG_UPDATE_RENDER_INFO);
+			}
+			else if(MediaPlayer.MEDIA_INFO_TEST_LATENCY_MSEC == what) {
+				av_latency_msec = extra;
+			}
+			else if(MediaPlayer.MEDIA_INFO_TEST_DROP_FRAME == what) {
+				decode_drop_frame++;
+				mHandler.sendEmptyMessage(MSG_UPDATE_RENDER_INFO);
+			}
+			else if(MediaPlayer.MEDIA_INFO_TEST_MEDIA_BITRATE == what) {
+				video_bitrate = extra;
+				mHandler.sendEmptyMessage(MSG_UPDATE_PLAY_INFO);
+			}
+			else if(android.media.MediaPlayer.MEDIA_INFO_VIDEO_RENDERING_START == what) {
+				
+			}
+			else if(MediaPlayer.MEDIA_INFO_VIDEO_TRACK_LAGGING == what) {
+				av_latency_msec = extra;
+				
+				decode_fps = render_fps = 0;
+				decode_drop_frame = 0;
+				video_bitrate = 0;
+				mHandler.sendEmptyMessage(MSG_UPDATE_PLAY_INFO);
 			}
 			
 			return true;

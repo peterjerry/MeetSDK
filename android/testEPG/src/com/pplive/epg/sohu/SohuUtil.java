@@ -973,18 +973,21 @@ public class SohuUtil {
 						album_title = video_name;
 					
 					String cate = getNodeString(item, "second_cate_name");
-					int site = 1;
-					if (item.has("site"))
-						site = item.getInt("site");
+					
 					String main_actor = getNodeString(item, "main_actor");
 					int v_count = item.getInt("total_video_count");
 					int last_count = item.getInt("latest_video_count");
+					
+					int site = -1;
 					
 					if (item.has("videos")) {
 						JSONArray videos = item.getJSONArray("videos");
 						for (int j=0;j<videos.length();j++) {
 							JSONObject v = videos.getJSONObject(j);
 							int video_vid = v.getInt("vid");
+							
+							if (site == -1 && v.has("site"))
+								site = v.getInt("site");
 						}
 					}
 					
@@ -1457,7 +1460,7 @@ public class SohuUtil {
 				album_title = video_name;
 			
 			String second_cate_name = getNodeString(video, "second_cate_name");
-			int site = 0;
+			int site = -1;
 			if (video.has("site"))
 				site = video.getInt("site");
 			int v_count = 0;
@@ -1512,6 +1515,18 @@ public class SohuUtil {
 			int duration_sec = 0;
 			if (video.has("time_length"))
 				duration_sec = video.getInt("time_length");
+			
+			// for search result
+			if (video.has("videos")) {
+				JSONArray videos = video.getJSONArray("videos");
+				for (int j=0;j<videos.length();j++) {
+					JSONObject v = videos.getJSONObject(j);
+					int video_vid = v.getInt("vid");
+					
+					if (site == -1 && v.has("site"))
+						site = v.getInt("site");
+				}
+			}
 			
 			return new AlbumSohu(column_id, column_name, 
 					album_title, second_cate_name, v_count, last_count, is_album == 1 ? true : false,
