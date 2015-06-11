@@ -288,9 +288,10 @@ public class FragmentMp4MediaPlayerV2 {
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
+			return false;
 		}
-		
-		if (m_playlink_list.size() > 1) {
+				
+		if (m_playlink_now_index < m_playlink_list.size() - 1) {
 			setupNextPlayer();
 		}
 		
