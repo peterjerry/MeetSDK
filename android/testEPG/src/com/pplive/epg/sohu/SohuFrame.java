@@ -198,7 +198,8 @@ public class SohuFrame extends JFrame {
 				}
 				else if (mState == SOHUVIDEO_EPG_STATE.SOHUVIDEO_EPG_STATE_EPISODE) {
 					ep_page_index += ep_page_incr;
-					selectEpisode();
+					if (ep_page_index > 0)
+						selectEpisode();
 				}
 					
 			}
@@ -318,7 +319,7 @@ public class SohuFrame extends JFrame {
 			
 			int last_count = al.getLastCount();
 			if (last_count > EPISODE_INCR_PAGE_NUM) {
-				ep_page_index = last_count / PAGE_SIZE + 1;
+				ep_page_index = (last_count - 1) / PAGE_SIZE + 1;
 				ep_page_incr = -1;
 			}
 			else {
@@ -336,6 +337,7 @@ public class SohuFrame extends JFrame {
 		
 		if (!mEPG.episode(last_aid, ep_page_index, PAGE_SIZE)) {
 			mState = SOHUVIDEO_EPG_STATE.SOHUVIDEO_EPG_STATE_ERROR;
+			lblInfo.setText("No more episode");
 			return;
 		}
 		

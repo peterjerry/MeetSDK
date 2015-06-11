@@ -105,7 +105,8 @@ public class SohuEpisodeActivity extends Activity {
 					selected_aid = (Long)item.get("aid");
 					int last_count = (Integer)item.get("last_count");
 					if (last_count > 30) {
-						ep_page_index = last_count / page_size + 1;
+						// " last_count - 1" fix 50 / 10 case
+						ep_page_index = (last_count - 1) / page_size + 1;
 						ep_page_incr = -1;
 					}
 					else {
@@ -272,7 +273,10 @@ public class SohuEpisodeActivity extends Activity {
 				new DialogInterface.OnClickListener(){
 					public void onClick(DialogInterface dialog, int whichButton){
 						ep_page_index += ep_page_incr;
-						new SohuEpgTask().execute(TASK_EPISODE, selected_aid);
+						if (ep_page_index > 0)
+							new SohuEpgTask().execute(TASK_EPISODE, selected_aid);
+						else
+							Toast.makeText(SohuEpisodeActivity.this, "No more episode", Toast.LENGTH_SHORT).show();
 						
 						dialog.dismiss();
 					}
@@ -298,18 +302,28 @@ public class SohuEpisodeActivity extends Activity {
         	playHistoryList.add(token);
         }
         
+        String new_video = String.format("%s|%d|%d|%d", title, vid, aid, site);
+        
         int count = playHistoryList.size();
         StringBuffer sb = new StringBuffer();
         int start = count - save_max_count + 1;
         if (start < 0)
         	start = 0;
+        
+        boolean isNewVideo = true;
         for (int i = start; i<count ; i++) {
-        	sb.append(playHistoryList.get(i));
+        	String item = playHistoryList.get(i);
+        	if (new_video.contains(item) && isNewVideo)
+        		isNewVideo = false;
+        	
+        	sb.append(item);
         	sb.append(regularEx);
         }
         
-        String new_video = String.format("%s|%d|%d|%d", title, vid, aid, site);
-        sb.append(new_video);
+        if (isNewVideo)
+        	sb.append(new_video);
+        else
+        	Log.i(TAG, String.format("Java %s already in history list", new_video));
         
 		Util.writeSettings(SohuEpisodeActivity.this, key, sb.toString());
 	}
@@ -336,7 +350,7 @@ public class SohuEpisodeActivity extends Activity {
 				if (!mEPG.episode(aid, ep_page_index, page_size)) {
 					Log.e(TAG, "Java: failed to call episode()");
 					mhandler.sendEmptyMessage(MSG_NO_MORE_EPISODE);
-					return false;
+					return true;
 				}
 				
 				mEpisodeList = mEPG.getEpisodeList();

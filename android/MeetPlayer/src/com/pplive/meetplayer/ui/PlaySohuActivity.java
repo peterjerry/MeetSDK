@@ -14,6 +14,7 @@ import com.pplive.common.sohu.PlaylinkSohu.SOHU_FT;
 import com.pplive.common.sohu.SohuUtil;
 import com.pplive.meetplayer.R;
 import com.pplive.meetplayer.media.FragmentMp4MediaPlayer;
+import com.pplive.meetplayer.media.FragmentMp4MediaPlayerV2;
 
 import android.app.Activity;
 import android.content.Intent;
@@ -46,7 +47,7 @@ public class PlaySohuActivity extends Activity implements Callback {
 	private RelativeLayout mLayout;
 	private SurfaceView mView;
 	private SurfaceHolder mHolder;
-	private FragmentMp4MediaPlayer mPlayer;
+	private FragmentMp4MediaPlayerV2 mPlayer;
 	private MediaController mController;
 	private MediaPlayerControl mMediaPlayerControl;
 	private ProgressBar mBufferingProgressBar;
@@ -81,6 +82,8 @@ public class PlaySohuActivity extends Activity implements Callback {
 	private final static int LIST_PPTV = 1;
 	private final static int LIST_SOHU = 2;
 	
+	private final static int MEDIA_CONTROLLER_TIMEOUT = 3000;
+	
 	private MediaPlayer.OnVideoSizeChangedListener mOnVideoSizeChangedListener;
 	private MediaPlayer.OnPreparedListener mOnPreparedListener;
 	private MediaPlayer.OnErrorListener	 mOnErrorListener;
@@ -98,7 +101,8 @@ public class PlaySohuActivity extends Activity implements Callback {
 	private int mDisplayMode = SCREEN_FIT;
 	
 	private final static int MSG_PLAY_NEXT_EPISODE 		= 1;
-	private static final int MSG_FADE_OUT_TV_FILENAME		= 2;
+	private final static int MSG_FADE_OUT_TV_FILENAME		= 2;
+	private final static int MSG_SHOW_MEDIA_CONTROLLER	= 3;
 	
 	private final static int MSG_INVALID_EPISODE_INDEX	= 101;
 	private final static int MSG_FAIL_TO_GET_PLAYLINK		= 102;
@@ -230,8 +234,8 @@ public class PlaySohuActivity extends Activity implements Callback {
 				
 				mp.start();
 				
-				mController.setMediaPlayer(mMediaPlayerControl);
-				mController.show(3000);
+				if (!mController.isShowing())
+					mController.show(MEDIA_CONTROLLER_TIMEOUT);
 			}
 		};
 		
@@ -277,6 +281,8 @@ public class PlaySohuActivity extends Activity implements Callback {
 		
 		mMediaPlayerControl = new MyMediaPlayerControl();
 		mController = new MediaController(this);
+		mController.setMediaPlayer(mMediaPlayerControl);
+		mController.setAnchorView(mView);
 		
 		mSohu = new SohuUtil();
 	}
@@ -287,12 +293,13 @@ public class PlaySohuActivity extends Activity implements Callback {
 		if (keyCode == KeyEvent.KEYCODE_DPAD_CENTER || 
 				keyCode == KeyEvent.KEYCODE_ENTER) {
 			if (mPlayer != null) {
-				mController.show(3000);
+				if (!mController.isShowing())
+					mController.show(MEDIA_CONTROLLER_TIMEOUT);
 				
 				mTextViewFileName.setVisibility(View.VISIBLE);
 				Message msg = mHandler.obtainMessage(MSG_FADE_OUT_TV_FILENAME);
 				mHandler.removeMessages(MSG_FADE_OUT_TV_FILENAME);
-	            mHandler.sendMessageDelayed(msg, 3000);
+	            mHandler.sendMessageDelayed(msg, MSG_FADE_OUT_TV_FILENAME);
 				return true;
 			}
 		}
@@ -354,8 +361,8 @@ public class PlaySohuActivity extends Activity implements Callback {
 	@Override
 	public boolean onTouchEvent(MotionEvent event) {
 		// TODO Auto-generated method stub
-		if (mPlayer != null)
-			mController.show(3000);
+		if (mPlayer != null && !mController.isShowing())
+			mController.show(MEDIA_CONTROLLER_TIMEOUT);
 		
 		return super.onTouchEvent(event);
 	}
@@ -391,6 +398,8 @@ public class PlaySohuActivity extends Activity implements Callback {
 			case MSG_FADE_OUT_TV_FILENAME:
 				mTextViewFileName.setVisibility(View.GONE);
 				break;
+			case MSG_SHOW_MEDIA_CONTROLLER:
+				break;
 			case MSG_INVALID_EPISODE_INDEX:
 				Toast.makeText(PlaySohuActivity.this, "invalid episode", Toast.LENGTH_SHORT).show();
 				break;
@@ -419,7 +428,7 @@ public class PlaySohuActivity extends Activity implements Callback {
 		mTextViewFileName.setText(mTitle);
 		Toast.makeText(this, "ready to play video: " + mTitle, Toast.LENGTH_SHORT).show();
 		
-		mPlayer = new FragmentMp4MediaPlayer();
+		mPlayer = new FragmentMp4MediaPlayerV2();
 		mPlayer.reset();
 		
 		mPlayer.setDisplay(mHolder);
@@ -455,9 +464,6 @@ public class PlaySohuActivity extends Activity implements Callback {
 			return false;
 		
 		mPlayer.prepareAsync();
-		mController.setMediaPlayer(mMediaPlayerControl);
-		mController.setAnchorView(mView);
-		
 		
 		mIsBuffering = true;
 		mBufferingProgressBar.setVisibility(View.VISIBLE);

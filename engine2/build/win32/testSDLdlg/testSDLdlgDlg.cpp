@@ -640,7 +640,18 @@ bool CtestSDLdlgDlg::start_player(const char *url)
 
 	mPlayer = new FFPlayer;
 	mPlayer->setListener(this);
-	mPlayer->set_opt("192.168.27.134/9891");
+
+	char   name[128]  ={0};  
+	hostent*   pHost;  
+	gethostname(name,   128);//获主机名  
+	pHost = gethostbyname(name);//获主机结构  
+	char *ip_addr = inet_ntoa(*((in_addr   *)pHost->h_addr));
+	LOGI("host_name %s, ip address %s", name, ip_addr);
+
+	char opt[128]  ={0};
+	sprintf(opt, "%s/9891", ip_addr);
+	LOGI("player option %s", opt);
+	mPlayer->set_opt(opt);
 
 #ifdef ENABLE_SUBTITLE
 	if (!ISubtitles::create(&mSubtitleParser)) {

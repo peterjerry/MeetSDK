@@ -161,12 +161,18 @@ end:
 
 static void audio_callback(void *userdata, Uint8 *stream, int len)
 {
+	static int fill_mute_count = 0;
+
 	if (audio_fifo.used() < len) {
 		memset(stream, len, 0);
-		printf("fill mute %d %d\n", audio_fifo.used(), len);
+
+		fill_mute_count++;
+		if (fill_mute_count < 5)
+			printf("fill mute %d %d\n", audio_fifo.used(), len);
 		return;
 	}
 
+	fill_mute_count = 0;
 	audio_fifo.read((char *)stream, len);
 }
 
