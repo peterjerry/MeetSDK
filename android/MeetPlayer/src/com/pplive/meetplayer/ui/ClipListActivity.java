@@ -2533,8 +2533,10 @@ public class ClipListActivity extends Activity implements
 				return true;
 			}
 			
-			Toast.makeText(this, "loading epg contents...", Toast.LENGTH_SHORT).show();
-			new EPGTask().execute(EPG_ITEM_CONTENT_LIST);
+			//Toast.makeText(this, "loading epg contents...", Toast.LENGTH_SHORT).show();
+			//new EPGTask().execute(EPG_ITEM_CONTENT_LIST);
+			intent = new Intent(ClipListActivity.this, PPTVVideoActivity.class);
+    		startActivity(intent);
 			break;
 		case OPTION_EPG_SOHUVIDEO:
 			if (!Util.IsHaveInternet(this)) {

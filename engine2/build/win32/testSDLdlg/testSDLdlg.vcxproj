@@ -61,7 +61,7 @@
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>..\..\..\..\subtitle2\build\win32\TestSubtitle\libass\lib;.\ppbox;..\testEPG\libcurl\lib\vc11\x86\static;..\testEPG\libjsoncpp\lib\vc11;..\..\..\..\foundation\output\win32\full\bin;D:\Archive\SDK\pthread\pthreads-w32-2-9-1-release\Pre-built.2\lib\x86;D:\Software\Visual Leak Detector\lib\Win32</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>..\..\..\..\subtitle2\build\win32\TestSubtitle\libass\lib;.\ppbox;..\testEPG\libcurl\lib\vc11\x86\static;..\testEPG\libjsoncpp\lib\vc11;..\..\..\..\foundation\output\win32\full\bin;D:\Archive\SDK\pthread\pthreads-w32-2-9-1-release\Pre-built.2\lib\x86;D:\Archive\SDK\SDL\SDL-1.2.15\lib\x86;D:\Software\Visual Leak Detector\lib\Win32</AdditionalLibraryDirectories>
     </Link>
     <Midl>
       <MkTypLibCompatible>false</MkTypLibCompatible>
