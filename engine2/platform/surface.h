@@ -22,7 +22,11 @@ status_t Surface_open(void* surface);
 #elif defined(OS_IOS)
 status_t Surface_open(void* surface, uint32_t frameWidth, uint32_t frameHeight, uint32_t frameFormat);
 #else //if defined(__CYGWIN__) || defined(_MSC_VER)
+#ifdef USE_SDL2
+status_t Surface_open3(void* window, void *renderer, void* texture);
+#else
 status_t Surface_open2(void* surf);
+#endif
 #endif
 
 status_t Surface_getPixels(uint32_t* width, uint32_t* height, uint32_t* stride, void** pixels);

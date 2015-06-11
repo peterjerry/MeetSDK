@@ -9,21 +9,20 @@
 #define LOG_TAG "testapp"
 #include "log.h"
 #include "apminidump.h"
-//#include "picqueue.h"
 
 #include "sdl.h"
 #undef main
 
 #ifdef _MSC_VER
+#ifdef USE_SDL2
+#pragma comment(lib, "sdl2")
+#else
 #pragma comment(lib, "sdlmain")
 #pragma comment(lib, "sdl")
 #endif
-
-#ifdef _MSC_VER
-#define CLIP_NAME "http://172.16.204.106/test/h265/Transformers3-720p.mp4"
-#else
-#define CLIP_NAME "e:/Work/HEVC/Transformers3-1080p.mp4"
 #endif
+
+#define CLIP_NAME "http://172.16.204.106/test/h265/Transformers3-720p.mp4"
 
 FFPlayer *player	= NULL;
 int g_finished		= 0;
@@ -32,6 +31,12 @@ int32_t g_width, g_height;
 int32_t g_duration;
 
 int32_t scr_width, scr_height;
+
+#ifdef USE_SDL2
+SDL_Window *sdlWindow	= NULL;
+SDL_Renderer *sdlRender = NULL;
+SDL_Texture *sdlTexture = NULL;
+#endif
 
 class my_listener:public MediaPlayerListener
 {
@@ -51,8 +56,15 @@ my_listener::~my_listener()
 
 }
 
+#ifdef USE_SDL2
+Uint32 timer_cb(Uint32 interval, void *param)
+{
+	(void)param;
+#else
 Uint32 timer_cb(Uint32 interval)
 {
+#endif
+
 	if (g_quit)
 		return 1000;
 
@@ -100,17 +112,51 @@ void start_player()
 	player->getVideoHeight(&g_height);
 	LOGI("duration %d sec, %dx%d", g_duration / 1000, g_width, g_height);
 
-	SDL_Init(SDL_INIT_EVERYTHING);
-	SDL_SetTimer((1000/10)*10, timer_cb);
-
-	SDL_Surface* screen;
 	scr_width	= GetSystemMetrics ( SM_CXSCREEN );
 	scr_height	= GetSystemMetrics ( SM_CYSCREEN );
+
+#ifdef USE_SDL2
+	SDL_InitSubSystem(SDL_INIT_VIDEO | SDL_INIT_AUDIO);
+
+#ifdef SDL_EMBEDDED_WINDOW
+	sdlWindow = SDL_CreateWindow("xxx", 200, 200, g_width, g_height, 0);
+#else
+	sdlWindow = SDL_CreateWindow("xxx", 0, 0, scr_width, scr_height, SDL_WINDOW_FULLSCREEN);
+#endif
+
+	sdlRender = SDL_CreateRenderer(sdlWindow, -1, SDL_RENDERER_ACCELERATED);
+#ifdef SDL_EMBEDDED_WINDOW
+	sdlTexture = SDL_CreateTexture(sdlRender, SDL_PIXELFORMAT_ARGB8888, 
+		SDL_TEXTUREACCESS_STREAMING, g_width, g_height);
+#else
+	sdlTexture = SDL_CreateTexture(sdlRender, SDL_PIXELFORMAT_ARGB8888, 
+		SDL_TEXTUREACCESS_STREAMING, scr_width, scr_height);
+#endif
+
+	if (!sdlTexture) {
+		printf("Couldn't set create texture: %s\n", SDL_GetError());
+		return;
+	}
+
+	SDL_SetRenderTarget(sdlRender, sdlTexture);
+
+#ifndef SDL_EMBEDDED_WINDOW
+	player->setVideoSurface((void *)sdlWindow);
+#endif
+	Surface_open3((void *)sdlWindow, (void *)sdlRender, (void *)sdlTexture);
+
+	SDL_AddTimer((1000/10)*10, timer_cb, NULL);
+#else
+	SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO);
+	
+	SDL_Surface* screen;
 	screen = SDL_SetVideoMode(scr_width, scr_height, 32, 
 		SDL_HWSURFACE | SDL_DOUBLEBUF | SDL_FULLSCREEN);
-
 	player->setVideoSurface((void *)screen);
 	Surface_open2((void *)screen);
+
+	SDL_SetTimer((1000/10)*10, timer_cb);
+#endif
 
 	player->start();
 }
@@ -158,7 +204,11 @@ int main(int argc, char **argv)
 		while (SDL_PollEvent(&e)) { // would block!
 			if (e.type == SDL_QUIT) {
 				LOGI("click quit");
+#ifdef USE_SDL2
+				SDL_RemoveTimer(0);
+#else
 				SDL_SetTimer(0, NULL);
+#endif
 				g_quit = 1;
 				break;
 			}
@@ -185,7 +235,11 @@ int main(int argc, char **argv)
 					break;
 				case SDLK_ESCAPE:
 					LOGI("escape quit");
+#ifdef USE_SDL2
+					SDL_RemoveTimer(0);
+#else
 					SDL_SetTimer(0, NULL);
+#endif
 					g_quit = 1;
 					break;
 				default:

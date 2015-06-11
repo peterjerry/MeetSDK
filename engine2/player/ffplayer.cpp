@@ -648,9 +648,17 @@ status_t FFPlayer::setVideoSurface(void* surface)
 
 		// realloc render
 		mSurface = surface;
+#ifdef USE_SDL2
+		SDL_Window* window = (SDL_Window *)surface;
+		int w, h;
+		SDL_GetWindowSize(window, &w, &h);
+		mVideoRenderer = new FFRender(mSurface, w, h, mVideoFormat);
+#else
 		SDL_Surface* surf = (SDL_Surface *)surface;
-
 		mVideoRenderer = new FFRender(mSurface, surf->w, surf->h, mVideoFormat);
+#endif
+
+		
 		bool force_sw = false;
 #ifdef USE_AV_FILTER
 		if (mVideoFiltFrame) {
