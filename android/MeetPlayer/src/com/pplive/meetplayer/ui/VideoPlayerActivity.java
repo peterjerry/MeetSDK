@@ -57,6 +57,9 @@ public class VideoPlayerActivity extends Activity implements Callback {
 	
 	private boolean mIsBuffering = false;
 	
+	/* 记录上一次按返回键的时间 */
+    private long backKeyTime = 0L;
+	
 	// subtitle
 	private SimpleSubTitleParser mSubtitleParser;
 	private TextView mSubtitleTextView;
@@ -542,41 +545,50 @@ public class VideoPlayerActivity extends Activity implements Callback {
 		case KeyEvent.KEYCODE_DPAD_UP:
 		case KeyEvent.KEYCODE_DPAD_CENTER:
 		case KeyEvent.KEYCODE_ENTER:
-				mController.show();
-				
-				if (KeyEvent.KEYCODE_DPAD_RIGHT == keyCode || 
-						KeyEvent.KEYCODE_DPAD_LEFT == keyCode) {
-					if (KeyEvent.KEYCODE_DPAD_RIGHT == keyCode)
-						incr = 1;
-					else
-						incr = -1;
-					
-					int pos = mVideoView.getCurrentPosition();
-					int step = mVideoView.getDuration() / 100 + 1000;
-					Log.i(TAG, String.format("Java pos %d, step %s", pos, step));
-					if (step > 30000)
-						step = 30000;
-					pos += (incr * step);
-					if (pos > mVideoView.getDuration())
-						pos = mVideoView.getDuration();
-					else if(pos < 0)
-						pos = 0;
-					mVideoView.seekTo(pos);
-				}
-				else if (KeyEvent.KEYCODE_DPAD_DOWN == keyCode || 
-						KeyEvent.KEYCODE_DPAD_UP == keyCode) {
-					if (KeyEvent.KEYCODE_DPAD_DOWN == keyCode)
-						incr = 1;
-					else
-						incr = -1;
-					
-					switchDisplayMode(incr);
-				}
-				
-				return true;
-			default:
-				return super.onKeyDown(keyCode, event);
+			mController.show();
+
+			if (KeyEvent.KEYCODE_DPAD_RIGHT == keyCode
+					|| KeyEvent.KEYCODE_DPAD_LEFT == keyCode) {
+				if (KeyEvent.KEYCODE_DPAD_RIGHT == keyCode)
+					incr = 1;
+				else
+					incr = -1;
+
+				int pos = mVideoView.getCurrentPosition();
+				int step = mVideoView.getDuration() / 100 + 1000;
+				Log.i(TAG, String.format("Java pos %d, step %s", pos, step));
+				if (step > 30000)
+					step = 30000;
+				pos += (incr * step);
+				if (pos > mVideoView.getDuration())
+					pos = mVideoView.getDuration();
+				else if (pos < 0)
+					pos = 0;
+				mVideoView.seekTo(pos);
+			} else if (KeyEvent.KEYCODE_DPAD_DOWN == keyCode
+					|| KeyEvent.KEYCODE_DPAD_UP == keyCode) {
+				if (KeyEvent.KEYCODE_DPAD_DOWN == keyCode)
+					incr = 1;
+				else
+					incr = -1;
+
+				switchDisplayMode(incr);
 			}
+
+			return true;
+		case KeyEvent.KEYCODE_BACK:
+			if ((System.currentTimeMillis() - backKeyTime) > 2000) {
+				Toast.makeText(VideoPlayerActivity.this,
+					"再按一次退出", Toast.LENGTH_SHORT)
+					.show();
+				backKeyTime = System.currentTimeMillis();
+			} else {
+				onBackPressed();
+			}
+			return true;
+		default:
+			return super.onKeyDown(keyCode, event);
+		}
 	}
 	
     public void toggleMediaControlsVisiblity() {

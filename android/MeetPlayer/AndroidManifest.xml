@@ -54,22 +54,22 @@
 		<activity
 			android:name=".ui.SohuVideoActivity" 
 			android:screenOrientation="portrait"
-            android:label="@string/app_name" >
+            android:label="@string/title_activity_sohu_video" >
 		</activity>
 		<activity
 			android:name=".ui.SohuEpisodeActivity" 
 			android:screenOrientation="portrait"
-            android:label="@string/app_name" >
+            android:label="@string/title_activity_sohu_video" >
 		</activity>
 		<activity
 			android:name=".ui.PPTVVideoActivity" 
 			android:screenOrientation="portrait"
-            android:label="@string/app_name" >
+            android:label="@string/title_activity_pptv_video" >
 		</activity>
 		<activity
 			android:name=".ui.PPTVEpisodeActivity" 
 			android:screenOrientation="portrait"
-            android:label="@string/app_name" >
+            android:label="@string/title_activity_pptv_video" >
 		</activity>
 		<activity
 			android:name=".ui.MeetViewActivity" 

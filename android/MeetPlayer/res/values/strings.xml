@@ -7,6 +7,9 @@
     <string name="title_activity_main">MainActivity</string>
     <string name="title_activity_update">UpdateActivity</string>
     
+    <string name="title_activity_sohu_video">搜狐视频</string>
+    <string name="title_activity_pptv_video">PPTV视频</string>
+    
     <!-- MENU -->
     <string name="menu_search">Search</string>
 	

@@ -78,8 +78,6 @@ public class SohuEpisodeActivity extends Activity {
 		
 		Log.i(TAG, "Java: onCreate()");
 		
-		setContentView(R.layout.activity_sohu_episode);  
-		
 		Intent intent = getIntent();
 		sub_channel_id = intent.getIntExtra("sub_channel_id", -1);
 		if (intent.hasExtra("search_key"))
@@ -90,8 +88,10 @@ public class SohuEpisodeActivity extends Activity {
 			return;
 		}
 		
-		gridView = (GridView) findViewById(R.id.grid_view);
-		gridView.setOnItemClickListener(new AdapterView.OnItemClickListener(){
+		setContentView(R.layout.activity_sohu_episode);  
+		
+		this.gridView = (GridView) findViewById(R.id.grid_view);
+		this.gridView.setOnItemClickListener(new AdapterView.OnItemClickListener(){
 
 			@Override
 			public void onItemClick(AdapterView<?> arg0, View v, int position,
@@ -129,7 +129,25 @@ public class SohuEpisodeActivity extends Activity {
 			
 		});
 		
-		gridView.setOnScrollListener(new AbsListView.OnScrollListener() {
+		this.gridView.setOnItemLongClickListener(new AdapterView.OnItemLongClickListener() {
+
+			@Override
+			public boolean onItemLongClick(AdapterView<?> arg0, View v,
+					int position, long id) {
+				// TODO Auto-generated method stub
+				
+				Map<String, Object> item = adapter.getItem(position);
+				String description = (String)item.get("desc");
+				new AlertDialog.Builder(SohuEpisodeActivity.this)
+					.setTitle("专辑介绍")
+					.setMessage(description)
+					.setPositiveButton("确定", null)
+					.show();
+				return true;
+			}
+		});
+		
+		this.gridView.setOnScrollListener(new AbsListView.OnScrollListener() {
 			
 			@Override
 			public void onScrollStateChanged(AbsListView view, int scrollState) {
@@ -217,6 +235,7 @@ public class SohuEpisodeActivity extends Activity {
     				
     				episode.put("title", al.getTitle());
     				episode.put("img_url", al.getImgUrl(true));
+    				episode.put("desc", al.getDescription());
     				episode.put("tip", al.getTip());
     				episode.put("aid", al.getAid());
     				episode.put("vid", al.getVid());
@@ -470,6 +489,7 @@ public class SohuEpisodeActivity extends Activity {
 				
 				episode.put("title", al.getTitle());
 				episode.put("img_url", al.getImgUrl(true));
+				episode.put("desc", al.getDescription());
 				episode.put("tip", al.getTip());
 				episode.put("aid", al.getAid());
 				episode.put("vid", al.getVid());

@@ -558,9 +558,9 @@ public class SohuUtil {
 				
 				String desc = "N/A";
 				if (video.has("album_desc"))
-					video.getString("album_desc");
+					desc = video.getString("album_desc");
 				else if (video.has("tv_desc"))
-					video.getString("tv_desc");
+					desc = video.getString("tv_desc");
 				
 				long aid = video.getLong("aid");
 				int vid = video.getInt("vid");
@@ -1044,9 +1044,9 @@ public class SohuUtil {
 			
 			String desc = "N/A";
 			if (video.has("album_desc"))
-				video.getString("album_desc");
+				desc = video.getString("album_desc");
 			else if (video.has("tv_desc"))
-				video.getString("tv_desc");
+				desc = video.getString("tv_desc");
 			
 			if (!video.has("aid")) {
 				Log.w(TAG, "Java: video has no aid");

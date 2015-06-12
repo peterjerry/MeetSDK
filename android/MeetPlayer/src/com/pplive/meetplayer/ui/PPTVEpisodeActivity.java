@@ -118,7 +118,25 @@ public class PPTVEpisodeActivity extends Activity {
 			
 		});
 		
-		gridView.setOnScrollListener(new AbsListView.OnScrollListener() {
+		this.gridView.setOnItemLongClickListener(new AdapterView.OnItemLongClickListener() {
+
+			@Override
+			public boolean onItemLongClick(AdapterView<?> arg0, View v,
+					int position, long id) {
+				// TODO Auto-generated method stub
+				
+				Map<String, Object> item = adapter.getItem(position);
+				String description = (String)item.get("desc");
+				new AlertDialog.Builder(PPTVEpisodeActivity.this)
+					.setTitle("专辑介绍")
+					.setMessage(description)
+					.setPositiveButton("确定", null)
+					.show();
+				return true;
+			}
+		});
+		
+		this.gridView.setOnScrollListener(new AbsListView.OnScrollListener() {
 			
 			@Override
 			public void onScrollStateChanged(AbsListView view, int scrollState) {
@@ -209,6 +227,7 @@ public class PPTVEpisodeActivity extends Activity {
     				episode.put("img_url", al.getImgUrl());
     				episode.put("tip", al.getVideoCount() + "集");
     				episode.put("vid", al.getId());
+    				episode.put("desc", al.getDescription());
     				listData.add(episode);
     			}
             	
@@ -475,6 +494,7 @@ public class PPTVEpisodeActivity extends Activity {
 				episode.put("img_url", al.getImgUrl());
 				episode.put("tip", al.getVideoCount() + "集");
 				episode.put("vid", al.getId());
+				episode.put("desc", al.getDescription());
 				items.add(episode);
 			}
 			

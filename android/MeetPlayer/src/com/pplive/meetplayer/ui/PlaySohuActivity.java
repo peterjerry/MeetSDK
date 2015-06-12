@@ -15,6 +15,7 @@ import com.pplive.common.sohu.SohuUtil;
 import com.pplive.meetplayer.R;
 import com.pplive.meetplayer.media.FragmentMp4MediaPlayer;
 import com.pplive.meetplayer.media.FragmentMp4MediaPlayerV2;
+import com.pplive.meetplayer.ui.widget.MyMediaController;
 
 import android.app.Activity;
 import android.content.Intent;
@@ -25,6 +26,7 @@ import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
+import android.pplive.media.player.MediaController.MediaPlayerControl;
 import android.util.Log;
 import android.view.SurfaceHolder;
 import android.view.SurfaceHolder.Callback;
@@ -34,12 +36,10 @@ import android.view.SurfaceView;
 import android.view.View;
 import android.view.Window;
 import android.view.WindowManager;
-import android.widget.MediaController;
 import android.widget.ProgressBar;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
 import android.widget.Toast;
-import android.widget.MediaController.MediaPlayerControl;
 
 public class PlaySohuActivity extends Activity implements Callback {
 	private final static String TAG = "PlaySohuActivity";
@@ -48,8 +48,8 @@ public class PlaySohuActivity extends Activity implements Callback {
 	private SurfaceView mView;
 	private SurfaceHolder mHolder;
 	private FragmentMp4MediaPlayerV2 mPlayer;
-	private MediaController mController;
-	private MediaPlayerControl mMediaPlayerControl;
+	private MyMediaController mController;
+	private MyMediaPlayerControl mMediaPlayerControl;
 	private ProgressBar mBufferingProgressBar;
 	private TextView mTextViewFileName;
 	
@@ -139,11 +139,15 @@ public class PlaySohuActivity extends Activity implements Callback {
 		
 		setContentView(R.layout.activity_frag_mp4_player);
 		
-		mLayout = (RelativeLayout) findViewById(R.id.main_layout);
-		mView = (SurfaceView) findViewById(R.id.player_view);
-		mBufferingProgressBar = (ProgressBar) findViewById(R.id.progressbar_buffering);
+		mLayout 				= (RelativeLayout) findViewById(R.id.main_layout);
+		mView 					= (SurfaceView) findViewById(R.id.player_view);
+		mController 			= (MyMediaController) findViewById(R.id.video_controller);
+		mBufferingProgressBar 	= (ProgressBar) findViewById(R.id.progressbar_buffering);
+		mTextViewFileName 		= (TextView) findViewById(R.id.tv_filename);
 		
-		mTextViewFileName = (TextView) findViewById(R.id.tv_filename);
+		mMediaPlayerControl = new MyMediaPlayerControl();
+		mController.setMediaPlayer(mMediaPlayerControl);
+		
 		mTextViewFileName.setTextColor(Color.RED);
 		mTextViewFileName.setTextSize(24);
 		
@@ -278,19 +282,14 @@ public class PlaySohuActivity extends Activity implements Callback {
 				finish();
 			}
 		};
-		
-		mMediaPlayerControl = new MyMediaPlayerControl();
-		mController = new MediaController(this);
-		mController.setMediaPlayer(mMediaPlayerControl);
-		mController.setAnchorView(mView);
-		
+
 		mSohu = new SohuUtil();
 	}
 	
 	@Override
 	public boolean onKeyDown(int keyCode, KeyEvent event) {
 		// TODO Auto-generated method stub
-		if (keyCode == KeyEvent.KEYCODE_DPAD_CENTER || 
+		/*if (keyCode == KeyEvent.KEYCODE_DPAD_CENTER || 
 				keyCode == KeyEvent.KEYCODE_ENTER) {
 			if (mPlayer != null) {
 				if (!mController.isShowing())
@@ -343,9 +342,98 @@ public class PlaySohuActivity extends Activity implements Callback {
             }
         }
 		
-		return super.onKeyDown(keyCode, event);
-	}
+		return super.onKeyDown(keyCode, event);*/
+		
+		int incr = -1;
+		
+		switch (keyCode) {
+		case KeyEvent.KEYCODE_DPAD_LEFT:
+		case KeyEvent.KEYCODE_DPAD_RIGHT:
+		case KeyEvent.KEYCODE_DPAD_DOWN:
+		case KeyEvent.KEYCODE_DPAD_UP:
+		case KeyEvent.KEYCODE_DPAD_CENTER:
+		case KeyEvent.KEYCODE_ENTER:
+			if (!mController.isShowing()) {
+				if (mPlayer != null) {
+					if (keyCode == KeyEvent.KEYCODE_DPAD_LEFT ||
+							keyCode == KeyEvent.KEYCODE_DPAD_RIGHT) {
+						if (!mSwichingEpisode) {
+							mSwichingEpisode = true;
+							
+							if (keyCode == KeyEvent.KEYCODE_DPAD_LEFT)
+								incr = -1;
 	
+							if (mInfoId != -1) {
+								new NextEpisodeTask().execute(LIST_PPTV, incr);
+							}
+							else if (mAid != -1) {
+								new NextEpisodeTask().execute(LIST_SOHU, incr);
+							}
+						}
+					}
+					else if (keyCode == KeyEvent.KEYCODE_DPAD_UP ||
+							keyCode == KeyEvent.KEYCODE_DPAD_DOWN) {
+						if (mDisplayMode == SCREEN_FIT)
+							mDisplayMode = SCREEN_STRETCH;
+						else
+							mDisplayMode = SCREEN_FIT;
+						toggleDisplayMode(mDisplayMode, true);
+					}
+					else {
+						mTextViewFileName.setVisibility(View.VISIBLE);
+						Message msg = mHandler.obtainMessage(MSG_FADE_OUT_TV_FILENAME);
+						mHandler.removeMessages(MSG_FADE_OUT_TV_FILENAME);
+			            mHandler.sendMessageDelayed(msg, MSG_FADE_OUT_TV_FILENAME);
+			            
+						mController.show(MEDIA_CONTROLLER_TIMEOUT * 2);
+					}
+				}
+				
+				return true;
+			}
+
+			if (KeyEvent.KEYCODE_DPAD_RIGHT == keyCode
+					|| KeyEvent.KEYCODE_DPAD_LEFT == keyCode) {
+				if (KeyEvent.KEYCODE_DPAD_RIGHT == keyCode)
+					incr = 1;
+				else
+					incr = -1;
+
+				int pos = mPlayer.getCurrentPosition();
+				int step = mPlayer.getDuration() / 100 + 1000;
+				Log.i(TAG, String.format("Java pos %d, step %s", pos, step));
+				if (step > 30000)
+					step = 30000;
+				pos += (incr * step);
+				if (pos > mPlayer.getDuration())
+					pos = mPlayer.getDuration();
+				else if (pos < 0)
+					pos = 0;
+				mPlayer.seekTo(pos);
+				
+				mController.show(MEDIA_CONTROLLER_TIMEOUT * 2);
+			} else if (KeyEvent.KEYCODE_DPAD_DOWN == keyCode
+					|| KeyEvent.KEYCODE_DPAD_UP == keyCode) {
+				// todo
+			}
+
+			return true;
+		case KeyEvent.KEYCODE_BACK:
+			if ((System.currentTimeMillis() - backKeyTime) > 2000) {
+				Toast.makeText(PlaySohuActivity.this,
+						"press another time to exit", Toast.LENGTH_SHORT)
+						.show();
+				backKeyTime = System.currentTimeMillis();
+			} else {
+				onBackPressed();
+			}
+			
+			return true;
+		default:
+			return super.onKeyDown(keyCode, event);
+		}
+	}
+
 	@Override
 	protected void onPause() {
 		// TODO Auto-generated method stub
@@ -426,6 +514,7 @@ public class PlaySohuActivity extends Activity implements Callback {
 		}
 		
 		mTextViewFileName.setText(mTitle);
+		mController.setFileName(mTitle);
 		Toast.makeText(this, "ready to play video: " + mTitle, Toast.LENGTH_SHORT).show();
 		
 		mPlayer = new FragmentMp4MediaPlayerV2();
@@ -691,12 +780,6 @@ public class PlaySohuActivity extends Activity implements Callback {
 		public boolean canSeekForward() {
 			// TODO Auto-generated method stub
 			return true;
-		}
-
-		@Override
-		public int getAudioSessionId() {
-			// TODO Auto-generated method stub
-			return 0;
 		}
 
 		@Override
