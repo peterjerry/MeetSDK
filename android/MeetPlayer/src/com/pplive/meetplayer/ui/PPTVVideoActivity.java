@@ -291,7 +291,8 @@ public class PPTVVideoActivity extends ListActivity {
 		.setItems(str_title_list, 
 			new DialogInterface.OnClickListener(){
 			public void onClick(DialogInterface dialog, int whichButton) {
-        		
+				String videoInfo = videoInfoList.get(whichButton);
+				int pos = videoInfo.indexOf("|");
 
 				dialog.dismiss();
 			}
@@ -300,7 +301,7 @@ public class PPTVVideoActivity extends ListActivity {
 			new DialogInterface.OnClickListener(){
 				public void onClick(DialogInterface dialog, int whichButton){
 					Util.writeSettings(PPTVVideoActivity.this, key, "");
-					Toast.makeText(PPTVVideoActivity.this, "sohu playlink history was clear", 
+					Toast.makeText(PPTVVideoActivity.this, "pptv playlink history was clear", 
 							Toast.LENGTH_LONG).show();
 			}})
 		.setNegativeButton("Cancel",

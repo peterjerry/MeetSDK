@@ -16,6 +16,7 @@ import com.pplive.sdk.MediaSDK;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.Dialog;
+import android.content.ComponentName;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.net.Uri;
@@ -259,13 +260,21 @@ public class PPTVEpisodeActivity extends Activity {
 		String url = PlayLinkUtil.getPlayUrl(Integer.valueOf(playlink), port, ft, 3, null);
 		
 		Uri uri = Uri.parse(url);
-		Intent intent = new Intent(PPTVEpisodeActivity.this,
+		
+		/*Intent intent = new Intent(Intent.ACTION_VIEW);
+		intent.setComponent(new ComponentName("com.pplive.tvduck", "com.pplive.tvduck.PlayerActivity"));
+		intent.setClassName("com.pplive.tvduck", "com.pplive.tvduck.PlayerActivity");
+        intent.putExtra(Intent.ACTION_VIEW, uri);
+        intent.setData(uri);*/
+		
+        Intent intent = new Intent(PPTVEpisodeActivity.this,
 				VideoPlayerActivity.class);
 		Log.i(TAG, "to play uri: " + uri.toString());
 
 		intent.setData(uri);
 		intent.putExtra("ft", ft);
 		intent.putExtra("best_ft", best_ft);
+        
 		startActivity(intent);
 	}
 	
@@ -416,7 +425,6 @@ public class PPTVEpisodeActivity extends Activity {
             		return false;
         		}
         		
-        		
         		int ft = -1;
         		for (int i=ft_list.length - 1;i>=0;i--) {
         			if (ft_list[i] >= 0 && ft_list[i] < 4) {
@@ -441,6 +449,45 @@ public class PPTVEpisodeActivity extends Activity {
 			return true;// all done!
 		}
 		
+	}
+	
+	private void add_video_history(String title, int playlink) {
+		String key = "PPTVPlayHistory";
+		String regularEx = ",";
+		final int save_max_count = 20;
+		String value = Util.readSettings(PPTVEpisodeActivity.this, key);
+		
+		List<String> playHistoryList = new ArrayList<String>();
+		StringTokenizer st = new StringTokenizer(value, regularEx, false);
+        while (st.hasMoreElements()) {
+        	String token = st.nextToken();
+        	playHistoryList.add(token);
+        }
+        
+        String new_video = String.format("%s|%d", title, playlink);
+        
+        int count = playHistoryList.size();
+        StringBuffer sb = new StringBuffer();
+        int start = count - save_max_count + 1;
+        if (start < 0)
+        	start = 0;
+        
+        boolean isNewVideo = true;
+        for (int i = start; i<count ; i++) {
+        	String item = playHistoryList.get(i);
+        	if (new_video.contains(item) && isNewVideo)
+        		isNewVideo = false;
+        	
+        	sb.append(item);
+        	sb.append(regularEx);
+        }
+        
+        if (isNewVideo)
+        	sb.append(new_video);
+        else
+        	Log.i(TAG, String.format("Java %s already in history list", new_video));
+        
+		Util.writeSettings(PPTVEpisodeActivity.this, key, sb.toString());
 	}
 	
 	private class SetDataTask extends AsyncTask<Integer, Integer, List<Map<String, Object>>> {

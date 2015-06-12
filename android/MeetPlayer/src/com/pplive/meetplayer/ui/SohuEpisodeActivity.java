@@ -311,7 +311,7 @@ public class SohuEpisodeActivity extends Activity {
 	private void add_video_history(String title, int vid, long aid, int site) {
 		String key = "SohuPlayHistory";
 		String regularEx = ",";
-		final int save_max_count = 10;
+		final int save_max_count = 20;
 		String value = Util.readSettings(SohuEpisodeActivity.this, key);
 		
 		List<String> playHistoryList = new ArrayList<String>();
