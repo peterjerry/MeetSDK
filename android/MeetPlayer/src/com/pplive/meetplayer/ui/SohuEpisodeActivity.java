@@ -168,7 +168,7 @@ public class SohuEpisodeActivity extends Activity {
         public void handleMessage(Message msg) {  
             switch (msg.what) {
             case MSG_EPISODE_DONE:
-            	if (mEpisodeList.size() == 1) {
+            	if (mEpisodeList.size() == 1 && ep_page_index == 1) {
             		EpisodeSohu ep = mEpisodeList.get(0);
 					selected_index = 0;
 					new SohuEpgTask().execute(TASK_PLAYLINK, ep.mAid, (long)ep.mVid);

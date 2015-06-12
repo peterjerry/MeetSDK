@@ -43,7 +43,6 @@ import android.widget.Toast;
 public class PPTVVideoActivity extends ListActivity {
 	private final static String TAG = "PPTVVideoActivity";
 	
-	private final int EPG_ITEM_FRONTPAGE		= 1;
 	private final int EPG_ITEM_CATALOG			= 2;
 	private final int EPG_ITEM_DETAIL			= 3;
 	private final int EPG_ITEM_SEARCH			= 4;
@@ -60,7 +59,6 @@ public class PPTVVideoActivity extends ListActivity {
 	private final static int MSG_FAIL_TO_CONTENTS_LIST			= 2002;
 	private final static int MSG_FAIL_TO_CHANNEL_SELECT			= 2003; 
 	
-	private static final int MSG_EPG_FRONTPAGE_DONE				= 501;
 	private static final int MSG_EPG_CATALOG_DONE					= 502;
 	private static final int MSG_EPG_DETAIL_DONE					= 503;
 	private static final int MSG_EPG_SEARCH_DONE					= 504;
@@ -253,7 +251,7 @@ public class PPTVVideoActivity extends ListActivity {
             	Log.i(TAG, "Java save last_key: " + mEPGsearchKey);
             	Util.writeSettings(PPTVVideoActivity.this, "last_searchkey", mEPGsearchKey);
 
-            	Intent intent = new Intent(PPTVVideoActivity.this, SohuEpisodeActivity.class);
+            	Intent intent = new Intent(PPTVVideoActivity.this, PPTVEpisodeActivity.class);
         		intent.putExtra("search_key", mEPGsearchKey);
         		startActivity(intent);
         		

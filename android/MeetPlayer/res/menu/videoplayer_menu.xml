@@ -3,13 +3,21 @@
     xmlns:tools="http://schemas.android.com/tools"
     tools:context="com.pplive.meetplayer.ui.VideoPlayerActivity" >
 
+	<item
+        android:id="@+id/select_player_impl"
+        android:orderInCategory="1"
+        android:title="选择播放器类型"/>
+	<item
+        android:id="@+id/select_ft"
+        android:orderInCategory="2"
+        android:title="选择码率"/>
     <item
         android:id="@+id/select_subtitle"
-        android:orderInCategory="1"
-        android:title="select subtitle"/>
+        android:orderInCategory="3"
+        android:title="加载字幕"/>
 	<item
         android:id="@+id/toggle_debug_info"
-        android:orderInCategory="2"
-        android:title="toggle debug info"/>
+        android:orderInCategory="4"
+        android:title="切换调试信息"/>
 
 </menu>

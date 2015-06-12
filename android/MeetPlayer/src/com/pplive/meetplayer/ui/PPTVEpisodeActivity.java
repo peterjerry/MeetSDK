@@ -27,6 +27,7 @@ import android.util.Log;
 import android.view.View;
 import android.widget.AbsListView;
 import android.widget.AdapterView;
+import android.widget.Button;
 import android.widget.GridView;
 import android.widget.Toast;
 
@@ -34,11 +35,14 @@ import android.widget.Toast;
 public class PPTVEpisodeActivity extends Activity {
 	private final static String TAG = "PPTVEpisodeActivity";
 	
+	private Button btnReputation;
+	private Button btnPopularity;
+	private Button btnUpdate;
 	private GridView gridView = null;  
     private MySohuEpAdapter adapter = null;
     
     private final static int MSG_EPISODE_DONE		= 1;
-    private final static int MSG_MORELIST_DONE	= 2;
+    private final static int MSG_MOREDATA_DONE	= 2;
     private final static int MSG_PLAY_CDN_FT		= 3;
     private final static int MSG_NO_MORE_EPISODE	= 11;
     private final static int MSG_FAIL_TO_DETAIL	= 12;
@@ -46,7 +50,8 @@ public class PPTVEpisodeActivity extends Activity {
     
     private final static int TASK_DETAIL			= 1;
     private final static int TASK_MORELIST		= 2;
-    private final static int TASK_ITEM_FT			= 3;
+    private final static int TASK_MORESEARCH		= 3;
+    private final static int TASK_ITEM_FT			= 4;
     
     private final static int SET_DATA_LIST		= 1;
     private final static int SET_DATA_SEARCH		= 2;
@@ -57,11 +62,11 @@ public class PPTVEpisodeActivity extends Activity {
     private int ep_page_incr;
     private int search_page_index = 1;
     
-    private List<Map<String, Object>> data2;
-    
     private EPGUtil mEPG;
     private String epg_param;
     private String epg_type;
+    // 最受好评, param: order=g|最高人气, param: order=t|最新更新, param: order=n
+    private String epg_order = "order=t";
     private String search_key;
     private List<PlayLink2> mAlbumList;
     private List<PlayLink2> mEpisodeList;
@@ -74,8 +79,6 @@ public class PPTVEpisodeActivity extends Activity {
 		super.onCreate(savedInstanceState);
 		
 		Log.i(TAG, "Java: onCreate()");
-		
-		setContentView(R.layout.activity_sohu_episode);  
 		
 		Intent intent = getIntent();
 		if (intent.hasExtra("epg_param")) {
@@ -90,8 +93,18 @@ public class PPTVEpisodeActivity extends Activity {
 			return;
 		}
 		
-		gridView = (GridView) findViewById(R.id.grid_view);
-		gridView.setOnItemClickListener(new AdapterView.OnItemClickListener(){
+		setContentView(R.layout.activity_pptv_episode);
+		
+		this.btnReputation = (Button) findViewById(R.id.btn_reputation);
+		this.btnPopularity = (Button) findViewById(R.id.btn_popularity);
+		this.btnUpdate = (Button) findViewById(R.id.btn_update);
+		
+		this.btnReputation.setOnClickListener(mClickListener);
+		this.btnPopularity.setOnClickListener(mClickListener);
+		this.btnUpdate.setOnClickListener(mClickListener);
+		
+		this.gridView = (GridView) findViewById(R.id.grid_view);
+		this.gridView.setOnItemClickListener(new AdapterView.OnItemClickListener(){
 
 			@Override
 			public void onItemClick(AdapterView<?> arg0, View v, int position,
@@ -124,7 +137,10 @@ public class PPTVEpisodeActivity extends Activity {
 		        if (totalItemCount > 0 && lastInScreen == totalItemCount && !noMoreData) {
 		        	if (!loadingMore) {
 		        		loadingMore = true;
-		                new PPTVEpgTask().execute(TASK_MORELIST);
+		        		if (search_key != null)
+		        			new PPTVEpgTask().execute(TASK_MORESEARCH);
+		        		else
+		        			new PPTVEpgTask().execute(TASK_MORELIST);
 		        	}
 		        }
 			}
@@ -137,6 +153,34 @@ public class PPTVEpisodeActivity extends Activity {
 	    else
 	    	new SetDataTask().execute(SET_DATA_LIST);
 	}
+	
+	private View.OnClickListener mClickListener = new View.OnClickListener() {
+
+		@Override
+		public void onClick(View v) {
+			// TODO Auto-generated method stub
+			
+			// 最受好评, param: order=g|最高人气, param: order=t|最新更新, param: order=n
+			
+			switch (v.getId()) {  
+            case R.id.btn_reputation:  
+                epg_order = "order=g";
+                new SetDataTask().execute(SET_DATA_LIST);
+                break;            
+            case R.id.btn_popularity:  
+            	epg_order = "order=t";
+            	new SetDataTask().execute(SET_DATA_LIST);
+                break;    
+            case R.id.btn_update:
+            	epg_order = "order=n";
+            	new SetDataTask().execute(SET_DATA_LIST);
+                break;  
+            default:
+            	Log.w(TAG, "Java unknown view id: " + v.getId());
+                break;  
+			}
+		}
+	};
 	
 	private Handler mhandler = new Handler(){  
   
@@ -153,7 +197,7 @@ public class PPTVEpisodeActivity extends Activity {
             	
             	popupSelectEpisodeDlg();
             	break;
-            case MSG_MORELIST_DONE:
+            case MSG_MOREDATA_DONE:
             	List<Map<String, Object>> listData = adapter.getData();
             	
     			int c = mAlbumList.size();
@@ -171,7 +215,7 @@ public class PPTVEpisodeActivity extends Activity {
             	adapter.notifyDataSetChanged();
             	break;
             case MSG_PLAY_CDN_FT:
-            	play_video(msg.arg1);
+            	play_video(msg.arg1, msg.arg2);
             	break;
             case MSG_NO_MORE_EPISODE:
             	Toast.makeText(PPTVEpisodeActivity.this, "No more episode", Toast.LENGTH_SHORT).show();
@@ -185,7 +229,7 @@ public class PPTVEpisodeActivity extends Activity {
         }
 	};
 	
-	private void play_video(int ft) {
+	private void play_video(int ft, int best_ft) {
 		String playlink = mEpisodeList.get(0).getId();
 		
 		String info = String.format("ready to play video playlink: %s, ft: %d", playlink, ft);
@@ -201,7 +245,8 @@ public class PPTVEpisodeActivity extends Activity {
 		Log.i(TAG, "to play uri: " + uri.toString());
 
 		intent.setData(uri);
-		intent.putExtra("impl", 0);
+		intent.putExtra("ft", ft);
+		intent.putExtra("best_ft", best_ft);
 		startActivity(intent);
 	}
 	
@@ -320,7 +365,7 @@ public class PPTVEpisodeActivity extends Activity {
 			}
 			else if (action == TASK_MORELIST) {
 				album_page_index++;
-				if (!mEPG.list(epg_param, epg_type, album_page_index, "order=t", page_size)) {
+				if (!mEPG.list(epg_param, epg_type, album_page_index, epg_order, page_size)) {
 					Log.e(TAG, "Java: failed to call list() more");
 					noMoreData = true;
 					return false;
@@ -328,7 +373,19 @@ public class PPTVEpisodeActivity extends Activity {
 				
 				mAlbumList = mEPG.getLink();
 				loadingMore = false;
-				mhandler.sendEmptyMessage(MSG_MORELIST_DONE);
+				mhandler.sendEmptyMessage(MSG_MOREDATA_DONE);
+			}
+			else if (action == TASK_MORESEARCH) {
+				album_page_index++;
+				if (!mEPG.search(search_key, 0, 0, album_page_index, page_size)) {
+					Log.e(TAG, "Java: failed to call search() more");
+					noMoreData = true;
+					return false;
+				}
+				
+				mAlbumList = mEPG.getLink();
+				loadingMore = false;
+				mhandler.sendEmptyMessage(MSG_MOREDATA_DONE);
 			}
 			else if (action == TASK_ITEM_FT) {
         		Log.i(TAG, "Java: EPGTask start to getCDNUrl");
@@ -354,7 +411,7 @@ public class PPTVEpisodeActivity extends Activity {
             		return false;
         		}
         		
-        		Message msg = mhandler.obtainMessage(MSG_PLAY_CDN_FT, ft, 0);
+        		Message msg = mhandler.obtainMessage(MSG_PLAY_CDN_FT, ft, ft);
     	        msg.sendToTarget();
         	}
 			else {
@@ -367,36 +424,47 @@ public class PPTVEpisodeActivity extends Activity {
 		
 	}
 	
-	private class SetDataTask extends AsyncTask<Integer, Integer, Boolean> {
+	private class SetDataTask extends AsyncTask<Integer, Integer, List<Map<String, Object>>> {
 		
 		@Override
-		protected void onPostExecute(Boolean result) {
+		protected void onPostExecute(List<Map<String, Object>> result) {
 			// TODO Auto-generated method stub
-			if (!result) {
-				Log.e(TAG, "Java: failed to get sub channel");
+			if (result == null) {
+				Log.e(TAG, "Java: failed to get data");
 				return;
 			}
 			
-			adapter = new MySohuEpAdapter(PPTVEpisodeActivity.this, data2);
-		    gridView.setAdapter(adapter);  
+			if (adapter == null) {
+				adapter = new MySohuEpAdapter(PPTVEpisodeActivity.this, result);
+				gridView.setAdapter(adapter);
+			}
+			else {
+				List<Map<String, Object>> listData = adapter.getData();
+				listData.clear();
+				listData.addAll(result);
+				adapter.notifyDataSetChanged();
+			}
 		}
 		
 		@Override
-		protected Boolean doInBackground(Integer... params) {
+		protected List<Map<String, Object>> doInBackground(Integer... params) {
 			// TODO Auto-generated method stub
 			int action = params[0];
 			
 			if (action == SET_DATA_SEARCH) {
-				
-			}
-			else {
-				if (!mEPG.list(epg_param, epg_type, album_page_index, "order=t", page_size))
-					return false;
+				if (!mEPG.search(search_key, 0, 0, album_page_index, page_size))
+					return null;
 				
 				mAlbumList = mEPG.getLink();
 			}
-						  
-			data2 = new ArrayList<Map<String, Object>>();
+			else {
+				if (!mEPG.list(epg_param, epg_type, album_page_index, "order=t", page_size))
+					return null;
+				
+				mAlbumList = mEPG.getLink();
+			}
+			
+			List<Map<String, Object>> items = new ArrayList<Map<String, Object>>();
 			int c = mAlbumList.size();
 			Log.i(TAG, "Java album size: " + c);
 			for (int i=0;i<c;i++) {
@@ -407,10 +475,10 @@ public class PPTVEpisodeActivity extends Activity {
 				episode.put("img_url", al.getImgUrl());
 				episode.put("tip", al.getVideoCount() + "集");
 				episode.put("vid", al.getId());
-				data2.add(episode);
+				items.add(episode);
 			}
 			
-			return true;
+			return items;
 		}
 	}  
 }

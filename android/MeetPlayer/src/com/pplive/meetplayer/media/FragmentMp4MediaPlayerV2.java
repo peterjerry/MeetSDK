@@ -284,15 +284,11 @@ public class FragmentMp4MediaPlayerV2 {
 		
 		try {
 			mCurrentPlayer.setDataSource(m_playlink_list.get(m_playlink_now_index));
-			mCurrentPlayer.prepare();
+			mCurrentPlayer.prepareAsync();
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 			return false;
-		}
-				
-		if (m_playlink_now_index < m_playlink_list.size() - 1) {
-			setupNextPlayer();
 		}
 		
 		return true;
@@ -351,8 +347,11 @@ public class FragmentMp4MediaPlayerV2 {
 			m_play_pos_offset += m_duration_list.get(m_playlink_now_index++);
 			
 			mp.setDisplay(null);
+			mp.release();
 			if (mNextPlayer == null && mOnErrorListener != null) {
-				mOnErrorListener.onError(mp, 556, m_playlink_now_index);
+				mOnErrorListener.onError(mp, MediaPlayer.MEDIA_ERROR_NOT_VALID_FOR_PROGRESSIVE_PLAYBACK, 
+					m_playlink_now_index);
+				return;
 			}
 			
 			mCurrentPlayer = mNextPlayer;
@@ -390,6 +389,10 @@ public class FragmentMp4MediaPlayerV2 {
 			else {
 				if (mOnInfoListener != null)
 					mOnInfoListener.onInfo(mCurrentPlayer, MediaPlayer.MEDIA_INFO_BUFFERING_END, 0);
+			}
+			
+			if (m_playlink_now_index < m_playlink_list.size() - 1) {
+				setupNextPlayer();
 			}
 		}
 		

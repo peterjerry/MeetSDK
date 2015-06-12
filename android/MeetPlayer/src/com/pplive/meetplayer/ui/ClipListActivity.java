@@ -483,7 +483,11 @@ public class ClipListActivity extends Activity implements
 								}
 								else {
 									Log.i(TAG, "Java: play http clip");
-									start_player(file_path);
+									String filename = file_path;
+									int pos = file_path.lastIndexOf('/');
+									if (pos != -1)
+										filename = file_path.substring(pos + 1);
+									start_player(filename, file_path);
 								}
 							}
 							else {
@@ -503,7 +507,7 @@ public class ClipListActivity extends Activity implements
 									}
 								}
 								else {
-									start_player(file_path);
+									start_player(file.getName(), file_path);
 								}
 							}
 						}
@@ -713,7 +717,7 @@ public class ClipListActivity extends Activity implements
 								Log.i(TAG, String.format("Java: choose tvplay.txt #%d title: %s, url: %s", 
 										whichButton, list_title.get(whichButton), url));
 								
-								start_player(url);
+								start_player(list_title.get(whichButton), url);
 							}
 							
 							dialog.cancel();
@@ -762,7 +766,7 @@ public class ClipListActivity extends Activity implements
 				
 				String ppbox_url = PlayLinkUtil.getPlayUrl(ppbox_playid, port, ppbox_ft, ppbox_bw_type, mPlayerLinkSurfix);
 				
-				start_player(ppbox_url);
+				start_player("N/A", ppbox_url);
 			}
 		});
 		
@@ -995,7 +999,7 @@ public class ClipListActivity extends Activity implements
 	}
 	
 	@SuppressWarnings("deprecation") // avoid setType warning
-	private int start_player(String path) {
+	private int start_player(String title, String path) {
 		mPlayUrl = path;
 		
 		setTitle(path);
@@ -1071,7 +1075,7 @@ public class ClipListActivity extends Activity implements
 		if (!mIsPreview) {
 			Uri uri = Uri.parse(path);
 			Log.i(TAG, "Java: goto PlayerActivity, uri:" + uri.toString());
-			start_fullscreen_play(uri, mPlayerImpl);
+			start_fullscreen_play(title, uri, mPlayerImpl);
 		}
 		else {
 			if (path.startsWith("file://") || path.startsWith("/")) {
@@ -1496,7 +1500,7 @@ public class ClipListActivity extends Activity implements
 			case MSG_PLAY_CDN_URL:
 				Log.i(TAG, "cdn url set %s"+ mDLNAPushUrl);
 				stop_player();
-				start_player(mDLNAPushUrl);
+				start_player("N/A", mDLNAPushUrl);
 				break;
 			case MSG_PLAY_CDN_FT:
 				btn_ft.setText(String.valueOf(msg.arg1));
@@ -2183,7 +2187,7 @@ public class ClipListActivity extends Activity implements
         }
     }
 
-	private void start_fullscreen_play(Uri uri, int player_impl) {
+	private void start_fullscreen_play(String title, Uri uri, int player_impl) {
 		Log.i(TAG, "java: start_fullscreen_play");
 
 		Intent intent = new Intent(ClipListActivity.this,
@@ -2191,6 +2195,7 @@ public class ClipListActivity extends Activity implements
 		Log.i(TAG, "to play uri: " + uri.toString());
 
 		intent.setData(uri);
+		intent.putExtra("title", title);
 		intent.putExtra("impl", player_impl);
 		startActivity(intent);
 	}
@@ -2362,9 +2367,9 @@ public class ClipListActivity extends Activity implements
 		//OptSubMenu.add(Menu.NONE, OPTION_DLNA_DMS, Menu.FIRST + 2, "dlna dms");
 		// epg
 		OptSubMenu.add(Menu.NONE, OPTION_EPG_FRONTPAGE, Menu.FIRST + 3, "epg frontpage");
-		OptSubMenu.add(Menu.NONE, OPTION_EPG_CONTENT, Menu.FIRST + 4, "epg content");
-		OptSubMenu.add(Menu.NONE, OPTION_EPG_SEARCH, Menu.FIRST + 5, "epg search");
-		OptSubMenu.add(Menu.NONE, OPTION_EPG_SOHUVIDEO, Menu.FIRST + 6, "sohu video");
+		OptSubMenu.add(Menu.NONE, OPTION_EPG_CONTENT, Menu.FIRST + 4, "PPTV video");
+		//OptSubMenu.add(Menu.NONE, OPTION_EPG_SEARCH, Menu.FIRST + 5, "epg search");
+		OptSubMenu.add(Menu.NONE, OPTION_EPG_SOHUVIDEO, Menu.FIRST + 5, "sohu video");
 			
 		MenuItem previewMenuItem = commonMenu.add(Menu.NONE, OPTION_COMMON_PREVIEW, Menu.FIRST, "Preview");
 		previewMenuItem.setCheckable(true);

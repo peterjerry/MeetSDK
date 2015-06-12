@@ -44,11 +44,16 @@ public class VideoPlayerActivity extends Activity implements Callback {
 	
 	private final static String []mode_desc = {"自适应", "铺满屏幕", "放大裁切", "原始大小"};
 
-	private Uri mUri = null;
-	private DecodeMode mDecodeMode = DecodeMode.AUTO;
 	private MeetVideoView mVideoView = null;
 	private MyMediaController mController;
 	private ProgressBar mBufferingProgressBar = null;
+	
+	private Uri mUri = null;
+	private int mPlayerImpl = 0;
+	private int mFt = 0;
+	private int mBestFt = 3;
+	private String mTitle;
+	private int pre_seek_msec = -1;
 	
 	private boolean mIsBuffering = false;
 	
@@ -72,32 +77,23 @@ public class VideoPlayerActivity extends Activity implements Callback {
 		
 		Intent intent = getIntent();
 		mUri = intent.getData();
-		int impl = 0;
-		if (intent.hasExtra("impl"))
-			impl = intent.getIntExtra("impl", 0);
-		else
-			impl = Util.readSettingsInt(this, "PlayerImpl");
-		Log.i(TAG, String.format("Java player impl: %d", impl));
-		
-		switch(impl) {
-		case 0:
-			mDecodeMode = DecodeMode.AUTO;
-			break;
-		case 1:
-			mDecodeMode = DecodeMode.HW_SYSTEM;
-			break;
-		case 3:
-			mDecodeMode = DecodeMode.SW;
-			break;
-		default:
-			Log.w(TAG, String.format("Java: unknown DecodeMode: %d", impl));
-			mDecodeMode = DecodeMode.SW;
-			break;
-		}
 		Log.i(TAG, "Java: mUri " + mUri.toString());
-
+		
+		if (intent.hasExtra("impl"))
+			mPlayerImpl = intent.getIntExtra("impl", 0);
+		else
+			mPlayerImpl = Util.readSettingsInt(this, "PlayerImpl");
+		Log.i(TAG, "Java player impl: " + mPlayerImpl);
+		
+		mFt = intent.getIntExtra("ft", 0);
+		mBestFt = intent.getIntExtra("best_ft", 3);
+		
+		mTitle = intent.getStringExtra("title");
+		
 		setContentView(R.layout.activity_video_player);
 		
+		this.mController = (MyMediaController) findViewById(R.id.video_controller);
+		this.mVideoView = (MeetVideoView) findViewById(R.id.surface_view);
 		this.mSubtitleTextView = (TextView) findViewById(R.id.textview_subtitle);
 		this.mBufferingProgressBar = (ProgressBar) findViewById(R.id.progressbar_buffering);
 		
@@ -118,6 +114,20 @@ public class VideoPlayerActivity extends Activity implements Callback {
 		Log.i(TAG, "Java: onOptionsItemSelected " + id);
 		
 		switch (id) {
+		case R.id.select_player_impl:
+			popupSelectPlayerImpl();
+			break;
+		case R.id.select_ft:
+			String path;
+			String scheme = mUri.getScheme();
+			if ("file".equalsIgnoreCase(scheme))
+				path = mUri.getPath();
+			else
+				path = mUri.toString();
+			
+			if (path.contains("&playlink="))
+				popupSelectFT();
+			break;
 		case R.id.select_subtitle:
 			popupSelectSubtitle();
 			break;
@@ -166,6 +176,77 @@ public class VideoPlayerActivity extends Activity implements Callback {
 		stop_subtitle();
 	}
 
+	private void popupSelectFT() {
+		final String[] ft_desc = {"流畅", "高清", "超清", "蓝光"};
+		
+		Dialog choose_ft_dlg = new AlertDialog.Builder(VideoPlayerActivity.this)
+		.setTitle("select ft")
+		.setSingleChoiceItems(ft_desc, mFt, /*default selection item number*/
+			new DialogInterface.OnClickListener() {
+				public void onClick(DialogInterface dialog, int whichButton){
+					if (whichButton != mFt) {
+						if (whichButton > mBestFt) {
+							Toast.makeText(VideoPlayerActivity.this, 
+									"该码率: " + ft_desc[whichButton] + " 无效", 
+									Toast.LENGTH_SHORT).show();
+						}
+						else {
+							Toast.makeText(VideoPlayerActivity.this, 
+								"选择码率: " + ft_desc[whichButton], Toast.LENGTH_SHORT).show();
+							String old_url = mUri.toString();
+							int pos = old_url.indexOf("%3Fft%3D");
+							if (pos != -1) {
+								String old_ft = old_url.substring(pos, pos + "%3Fft%3D".length() + 1);
+								String new_ft = "%3Fft%3D" + whichButton;
+								mUri = Uri.parse(old_url.replace(old_ft, new_ft));
+								
+								setupPlayer();
+							}
+						}
+					}
+					
+					dialog.dismiss();
+				}
+			})
+		.create();
+		choose_ft_dlg.show();
+	}
+	
+	private void popupSelectPlayerImpl() {
+		final String[] player_desc = {"Auto", "System", "XOPlayer", "FFPlayer"};
+		
+		Dialog choose_player_impl_dlg = new AlertDialog.Builder(VideoPlayerActivity.this)
+		.setTitle("select player impl")
+		.setSingleChoiceItems(player_desc, mPlayerImpl, /*default selection item number*/
+			new DialogInterface.OnClickListener(){
+				public void onClick(DialogInterface dialog, int whichButton){
+					Log.i(TAG, "select player impl: " + whichButton);
+					
+					boolean toggle_player = false;
+					if (mPlayerImpl != whichButton) {
+						toggle_player = true;
+					}
+					
+					mPlayerImpl = whichButton;
+					Util.writeSettingsInt(VideoPlayerActivity.this, "PlayerImpl", mPlayerImpl);
+					Toast.makeText(VideoPlayerActivity.this, 
+							"select type: " + player_desc[whichButton], Toast.LENGTH_SHORT).show();
+
+					dialog.dismiss();
+					
+					if (toggle_player) {
+						pre_seek_msec = mVideoView.getCurrentPosition() - 5000;
+						if (pre_seek_msec < 0)
+							pre_seek_msec = 0;
+						
+						setupPlayer();
+					}
+				}
+			})
+		.create();
+		choose_player_impl_dlg.show();
+	}
+	
 	private void popupSelectSubtitle() {
 		final String sub_folder = Environment.getExternalStorageDirectory().getAbsolutePath() + 
 				"/test2/subtitle";
@@ -241,10 +322,26 @@ public class VideoPlayerActivity extends Activity implements Callback {
 	private void setupPlayer() {
 		Log.i(TAG,"Step: setupPlayer()");
 
-		mController = (MyMediaController) findViewById(R.id.video_controller);
-		mVideoView = (MeetVideoView) findViewById(R.id.surface_view);
+		DecodeMode DecMode;
+		switch (mPlayerImpl) {
+		case 0:
+			DecMode = DecodeMode.AUTO;
+			break;
+		case 1:
+			DecMode = DecodeMode.HW_SYSTEM;
+			break;
+		case 3:
+			DecMode = DecodeMode.SW;
+			break;
+		default:
+			Log.w(TAG, String.format("Java: unknown DecodeMode: %d", mPlayerImpl));
+			DecMode = DecodeMode.SW;
+			break;
+		}
 		
-		mVideoView.setDecodeMode(mDecodeMode);
+		mVideoView.stopPlayback();
+		
+		mVideoView.setDecodeMode(DecMode);
 		mVideoView.setVideoURI(mUri);
 		mController.setMediaPlayer(mVideoView);
 		mVideoView.setOnCompletionListener(mCompletionListener);
@@ -260,9 +357,19 @@ public class VideoPlayerActivity extends Activity implements Callback {
 		else
 			path = mUri.toString();
 		
-		String name = getFileName(path);
-		mController.setFileName(name);
+		if (mTitle != null) {
+			mController.setFileName(mTitle);
+		}
+		else {
+			String name = getFileName(path);
+			mController.setFileName(name);
+		}
 
+		if (pre_seek_msec != -1) {
+			mVideoView.seekTo(pre_seek_msec);
+			pre_seek_msec = -1;
+		}
+		
 		mVideoView.start();
 		
 		mBufferingProgressBar.setVisibility(View.VISIBLE);
