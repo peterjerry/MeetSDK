@@ -66,6 +66,7 @@ public class PPTVEpisodeActivity extends Activity {
     private EPGUtil mEPG;
     private String epg_param;
     private String epg_type;
+    private String episode_title;
     // 最受好评, param: order=g|最高人气, param: order=t|最新更新, param: order=n
     private String epg_order = "order=t";
     private String search_key;
@@ -209,6 +210,7 @@ public class PPTVEpisodeActivity extends Activity {
             case MSG_EPISODE_DONE:
             	if (mEpisodeList.size() == 1) {
             		String vid = mEpisodeList.get(0).getId();
+            		episode_title = mEpisodeList.get(0).getTitle();
             		new PPTVEpgTask().execute(TASK_ITEM_FT, Integer.valueOf(vid));
             		
 					return;
@@ -299,6 +301,7 @@ public class PPTVEpisodeActivity extends Activity {
 			new DialogInterface.OnClickListener(){
 			public void onClick(DialogInterface dialog, int whichButton) {
 				String vid = mEpisodeList.get(whichButton).getId();
+				episode_title = mEpisodeList.get(0).getTitle();
 				new PPTVEpgTask().execute(TASK_DETAIL, Integer.valueOf(vid));
 				dialog.dismiss();
 			}
@@ -322,45 +325,6 @@ public class PPTVEpisodeActivity extends Activity {
 			}})
 		.create();
 		choose_episode_dlg.show();
-	}
-	
-	private void add_video_history(String title, int vid, long aid, int site) {
-		String key = "SohuPlayHistory";
-		String regularEx = ",";
-		final int save_max_count = 10;
-		String value = Util.readSettings(PPTVEpisodeActivity.this, key);
-		
-		List<String> playHistoryList = new ArrayList<String>();
-		StringTokenizer st = new StringTokenizer(value, regularEx, false);
-        while (st.hasMoreElements()) {
-        	String token = st.nextToken();
-        	playHistoryList.add(token);
-        }
-        
-        String new_video = String.format("%s|%d|%d|%d", title, vid, aid, site);
-        
-        int count = playHistoryList.size();
-        StringBuffer sb = new StringBuffer();
-        int start = count - save_max_count + 1;
-        if (start < 0)
-        	start = 0;
-        
-        boolean isNewVideo = true;
-        for (int i = start; i<count ; i++) {
-        	String item = playHistoryList.get(i);
-        	if (new_video.contains(item) && isNewVideo)
-        		isNewVideo = false;
-        	
-        	sb.append(item);
-        	sb.append(regularEx);
-        }
-        
-        if (isNewVideo)
-        	sb.append(new_video);
-        else
-        	Log.i(TAG, String.format("Java %s already in history list", new_video));
-        
-		Util.writeSettings(PPTVEpisodeActivity.this, key, sb.toString());
 	}
 	
 	private class PPTVEpgTask extends AsyncTask<Integer, Integer, Boolean> {
@@ -438,6 +402,8 @@ public class PPTVEpisodeActivity extends Activity {
             		return false;
         		}
         		
+        		add_video_history(episode_title, vid, ft);
+        		
         		Message msg = mhandler.obtainMessage(MSG_PLAY_CDN_FT, ft, ft);
     	        msg.sendToTarget();
         	}
@@ -451,7 +417,7 @@ public class PPTVEpisodeActivity extends Activity {
 		
 	}
 	
-	private void add_video_history(String title, int playlink) {
+	private void add_video_history(String title, int playlink, int ft) {
 		String key = "PPTVPlayHistory";
 		String regularEx = ",";
 		final int save_max_count = 20;
@@ -464,7 +430,7 @@ public class PPTVEpisodeActivity extends Activity {
         	playHistoryList.add(token);
         }
         
-        String new_video = String.format("%s|%d", title, playlink);
+        String new_video = String.format("%s|%d|%d", title, playlink, ft);
         
         int count = playHistoryList.size();
         StringBuffer sb = new StringBuffer();

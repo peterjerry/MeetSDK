@@ -10,6 +10,7 @@ import com.pplive.common.pptv.EPGUtil;
 import com.pplive.common.pptv.Episode;
 import com.pplive.common.pptv.Module;
 import com.pplive.common.pptv.PlayLink2;
+import com.pplive.common.pptv.PlayLinkUtil;
 import com.pplive.common.pptv.VirtualChannelInfo;
 import com.pplive.common.sohu.ChannelSohu;
 import com.pplive.common.sohu.PlaylinkSohu;
@@ -18,12 +19,14 @@ import com.pplive.common.sohu.SubChannelSohu;
 import com.pplive.common.sohu.PlaylinkSohu.SOHU_FT;
 import com.pplive.meetplayer.R;
 import com.pplive.meetplayer.util.Util;
+import com.pplive.sdk.MediaSDK;
 
 import android.app.AlertDialog;
 import android.app.Dialog;
 import android.app.ListActivity;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Handler;
@@ -292,7 +295,36 @@ public class PPTVVideoActivity extends ListActivity {
 			new DialogInterface.OnClickListener(){
 			public void onClick(DialogInterface dialog, int whichButton) {
 				String videoInfo = videoInfoList.get(whichButton);
+				
+				int playlink;
+				int ft = 0;
+				int bw_type = 3;
+				
 				int pos = videoInfo.indexOf("|");
+				if (pos == -1) {
+					playlink = Integer.valueOf(videoInfo);
+				}
+				else {
+					playlink = Integer.valueOf(videoInfo.substring(0, pos));
+					ft = Integer.valueOf(videoInfo.substring(pos + 1));
+					
+					short port = MediaSDK.getPort("http");
+					String url = PlayLinkUtil.getPlayUrl(playlink, port, ft, bw_type, null);
+					
+					Uri uri = Uri.parse(url);
+					Intent intent = new Intent(PPTVVideoActivity.this,
+							VideoPlayerActivity.class);
+					Log.i(TAG, "to play uri: " + uri.toString());
+					
+					Toast.makeText(PPTVVideoActivity.this, 
+							String.format("ready to play %s, 码流 %d",str_title_list[whichButton], ft), 
+									Toast.LENGTH_SHORT).show();
+
+					intent.setData(uri);
+					intent.putExtra("ft", ft);
+			        
+					startActivity(intent);
+				}
 
 				dialog.dismiss();
 			}

@@ -344,7 +344,7 @@ public class PlaySohuActivity extends Activity implements Callback {
 		
 		return super.onKeyDown(keyCode, event);*/
 		
-		int incr = -1;
+		int incr;
 		
 		switch (keyCode) {
 		case KeyEvent.KEYCODE_DPAD_LEFT:
@@ -362,6 +362,8 @@ public class PlaySohuActivity extends Activity implements Callback {
 							
 							if (keyCode == KeyEvent.KEYCODE_DPAD_LEFT)
 								incr = -1;
+							else
+								incr = 1;
 	
 							if (mInfoId != -1) {
 								new NextEpisodeTask().execute(LIST_PPTV, incr);
