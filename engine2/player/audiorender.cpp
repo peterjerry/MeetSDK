@@ -239,6 +239,10 @@ status_t AudioRender::open(int sampleRate,
 	mOneSecSize = mSampleRateOutput * mChannelsOutput * mBitPerSample / 8;
 
 #if defined(__CYGWIN__) || defined(_MSC_VER)
+	// 2015.6.15 guoliangma added
+	// sdl must init at the same thread
+	SDL_Init(SDL_INIT_AUDIO);
+
 	Uint16 fmt;
 	if (mBitPerSample == 8)
 		fmt = AUDIO_S8;
@@ -260,7 +264,7 @@ status_t AudioRender::open(int sampleRate,
 	wanted_spec.callback = audio_callback;
 	wanted_spec.userdata = this;
 
-	if(SDL_OpenAudio(&wanted_spec, &spec) < 0) {
+	if (SDL_OpenAudio(&wanted_spec, &spec) < 0) {
 		LOGE("SDL_OpenAudio: %s", SDL_GetError());
 		return ERROR;
 	}

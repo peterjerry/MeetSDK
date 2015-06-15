@@ -88,10 +88,9 @@ public class VideoPlayerActivity extends Activity implements Callback {
 			mPlayerImpl = Util.readSettingsInt(this, "PlayerImpl");
 		Log.i(TAG, "Java player impl: " + mPlayerImpl);
 		
+		mTitle = intent.getStringExtra("title");
 		mFt = intent.getIntExtra("ft", 0);
 		mBestFt = intent.getIntExtra("best_ft", 3);
-		
-		mTitle = intent.getStringExtra("title");
 		
 		setContentView(R.layout.activity_video_player);
 		
@@ -202,6 +201,10 @@ public class VideoPlayerActivity extends Activity implements Callback {
 								String old_ft = old_url.substring(pos, pos + "%3Fft%3D".length() + 1);
 								String new_ft = "%3Fft%3D" + whichButton;
 								mUri = Uri.parse(old_url.replace(old_ft, new_ft));
+								
+								pre_seek_msec = mVideoView.getCurrentPosition() - 5000;
+								if (pre_seek_msec < 0)
+									pre_seek_msec = 0;
 								
 								setupPlayer();
 							}
@@ -585,6 +588,9 @@ public class VideoPlayerActivity extends Activity implements Callback {
 			} else {
 				onBackPressed();
 			}
+			return true;
+		case KeyEvent.KEYCODE_MENU:
+			openOptionsMenu();
 			return true;
 		default:
 			return super.onKeyDown(keyCode, event);

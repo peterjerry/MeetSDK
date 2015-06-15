@@ -700,7 +700,7 @@ status_t FFPlayer::reset()
 status_t FFPlayer::prepare()
 {
     LOGI("player op prepare()");
-#ifndef _MSC_VER // fixme guolinagma
+#ifndef _MSC_VER // fixme guoliangma
 	AutoLock autolock(&mPlayerLock);
 #endif
 
@@ -730,8 +730,10 @@ status_t FFPlayer::prepareAsync()
 status_t FFPlayer::start()
 {
     LOGI("player op start()");
-
+	// 2015.6.15 guoliangma added
+#ifndef _MSC_VER // fixme guoliangma
 	AutoLock autolock(&mPlayerLock);
+#endif
 
 	// 20141124 guoliangma fix INVALID_OP(38) call start() twice when ad play finish
 	if (mPlayerStatus == MEDIA_PLAYER_STARTED)
@@ -817,15 +819,13 @@ bool FFPlayer::isPlaying()
 
 status_t FFPlayer::getVideoWidth(int32_t *w)
 {
-    if(mVideoRenderer != NULL)
-    {
+    if (mVideoRenderer != NULL) {
         //Use optimized size from render
         uint32_t optWidth = 0;
         mVideoRenderer->width(optWidth);
         *w = optWidth;
     }
-    else
-    {
+    else {
         *w = mVideoWidth;
     }
     return OK;
@@ -2147,8 +2147,8 @@ status_t FFPlayer::prepareVideo_l()
 		LOGI("video resolution %d x %d, display resolution switch to %d x %d",
 			mVideoWidth, mVideoHeight, render_w, render_h);
 	}
-#else
-	render_w = 1920;
+#elif !defined(USE_SDL2)
+	render_w = 1920; // fix me!
 	render_h = 1080;
 #endif
 #endif
@@ -2350,7 +2350,8 @@ status_t FFPlayer::prepare_l()
     }
 
 	// 2014.9.4 guoliangma change from while to if
-    if (mPlayerStatus == MEDIA_PLAYER_PREPARING) {
+	// 2015.6.15 guoliangma change back to while(fix cannot "sync" prepare problem)
+    while (mPlayerStatus == MEDIA_PLAYER_PREPARING) {
 		pthread_mutex_lock(&mPreparedLock);
         pthread_cond_wait(&mPreparedCondition, &mPreparedLock);
 		pthread_mutex_unlock(&mPreparedLock);

@@ -254,7 +254,8 @@ public class PPTVEpisodeActivity extends Activity {
 	private void play_video(int ft, int best_ft) {
 		String playlink = mEpisodeList.get(0).getId();
 		
-		String info = String.format("ready to play video playlink: %s, ft: %d", playlink, ft);
+		String info = String.format("ready to play video %s, playlink: %s, ft: %d", 
+				episode_title, playlink, ft);
 		Log.i(TAG, info);
 		Toast.makeText(this, info, Toast.LENGTH_SHORT).show();
 		
@@ -274,6 +275,7 @@ public class PPTVEpisodeActivity extends Activity {
 		Log.i(TAG, "to play uri: " + uri.toString());
 
 		intent.setData(uri);
+		intent.putExtra("title", episode_title);
 		intent.putExtra("ft", ft);
 		intent.putExtra("best_ft", best_ft);
         
