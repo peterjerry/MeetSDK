@@ -44,16 +44,16 @@ public class VideoPlayerActivity extends Activity implements Callback {
 	
 	private final static String []mode_desc = {"自适应", "铺满屏幕", "放大裁切", "原始大小"};
 
-	private MeetVideoView mVideoView = null;
-	private MyMediaController mController;
+	protected MeetVideoView mVideoView = null;
+	protected MyMediaController mController;
 	private ProgressBar mBufferingProgressBar = null;
 	
-	private Uri mUri = null;
-	private int mPlayerImpl = 0;
-	private int mFt = 0;
-	private int mBestFt = 3;
-	private String mTitle;
-	private int pre_seek_msec = -1;
+	protected Uri mUri = null;
+	protected int mPlayerImpl = 0;
+	protected int mFt = 0;
+	protected int mBestFt = 3;
+	protected String mTitle;
+	protected int pre_seek_msec = -1;
 	
 	private boolean mIsBuffering = false;
 	
@@ -183,7 +183,7 @@ public class VideoPlayerActivity extends Activity implements Callback {
 		
 		Dialog choose_ft_dlg = new AlertDialog.Builder(VideoPlayerActivity.this)
 		.setTitle("select ft")
-		.setSingleChoiceItems(ft_desc, mFt, /*default selection item number*/
+		.setSingleChoiceItems(ft_desc, mFt,
 			new DialogInterface.OnClickListener() {
 				public void onClick(DialogInterface dialog, int whichButton){
 					if (whichButton != mFt) {
@@ -195,11 +195,14 @@ public class VideoPlayerActivity extends Activity implements Callback {
 						else {
 							Toast.makeText(VideoPlayerActivity.this, 
 								"选择码率: " + ft_desc[whichButton], Toast.LENGTH_SHORT).show();
+							
+							mFt = whichButton;
+							
 							String old_url = mUri.toString();
 							int pos = old_url.indexOf("%3Fft%3D");
 							if (pos != -1) {
 								String old_ft = old_url.substring(pos, pos + "%3Fft%3D".length() + 1);
-								String new_ft = "%3Fft%3D" + whichButton;
+								String new_ft = "%3Fft%3D" + mFt;
 								mUri = Uri.parse(old_url.replace(old_ft, new_ft));
 								
 								pre_seek_msec = mVideoView.getCurrentPosition() - 5000;
@@ -228,25 +231,20 @@ public class VideoPlayerActivity extends Activity implements Callback {
 				public void onClick(DialogInterface dialog, int whichButton){
 					Log.i(TAG, "select player impl: " + whichButton);
 					
-					boolean toggle_player = false;
 					if (mPlayerImpl != whichButton) {
-						toggle_player = true;
-					}
-					
-					mPlayerImpl = whichButton;
-					Util.writeSettingsInt(VideoPlayerActivity.this, "PlayerImpl", mPlayerImpl);
-					Toast.makeText(VideoPlayerActivity.this, 
-							"select type: " + player_desc[whichButton], Toast.LENGTH_SHORT).show();
+						mPlayerImpl = whichButton;
+						Util.writeSettingsInt(VideoPlayerActivity.this, "PlayerImpl", mPlayerImpl);
+						Toast.makeText(VideoPlayerActivity.this, 
+								"select type: " + player_desc[whichButton], Toast.LENGTH_SHORT).show();
 
-					dialog.dismiss();
-					
-					if (toggle_player) {
 						pre_seek_msec = mVideoView.getCurrentPosition() - 5000;
 						if (pre_seek_msec < 0)
 							pre_seek_msec = 0;
 						
 						setupPlayer();
 					}
+					
+					dialog.dismiss();
 				}
 			})
 		.create();
@@ -325,7 +323,7 @@ public class VideoPlayerActivity extends Activity implements Callback {
 		}
 	}
 	
-	private void setupPlayer() {
+	protected void setupPlayer() {
 		Log.i(TAG,"Step: setupPlayer()");
 
 		DecodeMode DecMode;
@@ -580,7 +578,10 @@ public class VideoPlayerActivity extends Activity implements Callback {
 
 			return true;
 		case KeyEvent.KEYCODE_BACK:
-			if ((System.currentTimeMillis() - backKeyTime) > 2000) {
+			if (mController.isShowing()) {
+				mController.hide();
+			}
+			else if ((System.currentTimeMillis() - backKeyTime) > 2000) {
 				Toast.makeText(VideoPlayerActivity.this,
 					"再按一次退出", Toast.LENGTH_SHORT)
 					.show();

@@ -13,9 +13,9 @@ import com.pplive.common.sohu.PlaylinkSohu;
 import com.pplive.common.sohu.PlaylinkSohu.SOHU_FT;
 import com.pplive.common.sohu.SohuUtil;
 import com.pplive.meetplayer.R;
-import com.pplive.meetplayer.media.FragmentMp4MediaPlayer;
 import com.pplive.meetplayer.media.FragmentMp4MediaPlayerV2;
 import com.pplive.meetplayer.ui.widget.MyMediaController;
+import com.pplive.meetplayer.util.Util;
 
 import android.app.Activity;
 import android.content.Intent;
@@ -58,6 +58,7 @@ public class PlaySohuActivity extends Activity implements Callback {
 	private String mTitle;
 	private int mInfoId, mIndex;
 	private long mAid;
+	private int mSite = -1;
 	
 	private int mVideoWidth, mVideoHeight;
 	private List<String> m_playlink_list;
@@ -164,7 +165,10 @@ public class PlaySohuActivity extends Activity implements Callback {
 			mTitle				= intent.getStringExtra("title");
 			mInfoId				= intent.getIntExtra("info_id", -1);
     		mIndex				= intent.getIntExtra("index", -1);
-    		mAid				= intent.getLongExtra("aid", -1); // for sohu
+    		
+    		// for sohu
+    		mAid				= intent.getLongExtra("aid", -1); 
+    		mSite				= intent.getIntExtra("site", -1);
     		
     		Log.i(TAG, "Java: mDurationListStr " + mDurationListStr);
 		}
@@ -289,61 +293,6 @@ public class PlaySohuActivity extends Activity implements Callback {
 	@Override
 	public boolean onKeyDown(int keyCode, KeyEvent event) {
 		// TODO Auto-generated method stub
-		/*if (keyCode == KeyEvent.KEYCODE_DPAD_CENTER || 
-				keyCode == KeyEvent.KEYCODE_ENTER) {
-			if (mPlayer != null) {
-				if (!mController.isShowing())
-					mController.show(MEDIA_CONTROLLER_TIMEOUT);
-				
-				mTextViewFileName.setVisibility(View.VISIBLE);
-				Message msg = mHandler.obtainMessage(MSG_FADE_OUT_TV_FILENAME);
-				mHandler.removeMessages(MSG_FADE_OUT_TV_FILENAME);
-	            mHandler.sendMessageDelayed(msg, MSG_FADE_OUT_TV_FILENAME);
-				return true;
-			}
-		}
-		else if (keyCode == KeyEvent.KEYCODE_DPAD_LEFT ||
-				keyCode == KeyEvent.KEYCODE_DPAD_RIGHT) {
-			if (mPlayer != null) {
-				if (!mSwichingEpisode) {
-					mSwichingEpisode = true;
-					
-					int incr = 1;
-					if (keyCode == KeyEvent.KEYCODE_DPAD_LEFT)
-						incr = -1;
-
-					if (mInfoId != -1) {
-						new NextEpisodeTask().execute(LIST_PPTV, incr);
-					}
-					else if (mAid != -1) {
-						new NextEpisodeTask().execute(LIST_SOHU, incr);
-					}
-				}
-			}
-		}
-		else if (keyCode == KeyEvent.KEYCODE_DPAD_UP ||
-				keyCode == KeyEvent.KEYCODE_DPAD_DOWN) {
-			if (mDisplayMode == SCREEN_FIT)
-				mDisplayMode = SCREEN_STRETCH;
-			else
-				mDisplayMode = SCREEN_FIT;
-			toggleDisplayMode(mDisplayMode, true);
-		}
-		else if (keyCode == KeyEvent.KEYCODE_BACK) {
-            if ((System.currentTimeMillis() - backKeyTime) > 2000) {
-                Toast.makeText(PlaySohuActivity.this, "press another time to exit",
-                        Toast.LENGTH_SHORT).show();
-                backKeyTime = System.currentTimeMillis();
-                return true;
-            }
-            else {
-                onBackPressed();
-                return true;
-            }
-        }
-		
-		return super.onKeyDown(keyCode, event);*/
-		
 		int incr;
 		
 		switch (keyCode) {
@@ -421,7 +370,10 @@ public class PlaySohuActivity extends Activity implements Callback {
 
 			return true;
 		case KeyEvent.KEYCODE_BACK:
-			if ((System.currentTimeMillis() - backKeyTime) > 2000) {
+			if (mController.isShowing()) {
+				mController.hide();
+			}
+			else if ((System.currentTimeMillis() - backKeyTime) > 2000) {
 				Toast.makeText(PlaySohuActivity.this,
 						"press another time to exit", Toast.LENGTH_SHORT)
 						.show();
@@ -693,7 +645,14 @@ public class PlaySohuActivity extends Activity implements Callback {
 
 				int pos = mIndex - (page_index - 1) * sohu_page_size;
 				EpisodeSohu ep = mEpisodeList.get(pos);
-				l = mSohu.playlink_pptv(ep.mVid, 0);
+				
+				if (mAid > 1000000000000L)
+					l = mSohu.video_info(mSite, ep.mVid, mAid);
+				else
+					l = mSohu.playlink_pptv(ep.mVid, 0);
+				
+				Util.add_sohuvideo_history(PlaySohuActivity.this, 
+						l.getTitle(), ep.mVid, mAid, mSite);
 			}
 	    		
     		if (l == null) {
@@ -704,32 +663,26 @@ public class PlaySohuActivity extends Activity implements Callback {
     		
     		mTitle = l.getTitle();
     		
-    		/*if (action == LIST_PPTV) {
-	    		mUrlListStr 		= l.getUrl(SOHU_FT.SOHU_FT_HIGH);
-				mDurationListStr	= l.getDuration(SOHU_FT.SOHU_FT_HIGH);
-    		}
-    		else {*/
-    			SOHU_FT ft = SOHU_FT.SOHU_FT_ORIGIN;
+			SOHU_FT ft = SOHU_FT.SOHU_FT_ORIGIN;
+			mUrlListStr = l.getUrl(ft);
+    		if (mUrlListStr == null || mUrlListStr.isEmpty()) {
+    			ft = SOHU_FT.SOHU_FT_SUPER;
     			mUrlListStr = l.getUrl(ft);
-        		if (mUrlListStr == null || mUrlListStr.isEmpty()) {
-        			ft = SOHU_FT.SOHU_FT_SUPER;
-        			mUrlListStr = l.getUrl(ft);
-        		}
-        		if (mUrlListStr == null || mUrlListStr.isEmpty()) {
-        			ft = SOHU_FT.SOHU_FT_HIGH;
-        			mUrlListStr = l.getUrl(ft);
-        		}
-        		if (mUrlListStr == null || mUrlListStr.isEmpty()) {
-        			ft = SOHU_FT.SOHU_FT_NORMAL;
-        			mUrlListStr = l.getUrl(ft);
-        		}
-        		if (mUrlListStr == null || mUrlListStr.isEmpty()) {
-        			mHandler.sendEmptyMessage(MSG_FAIL_TO_GET_STREAM);
-        			return false;
-        		}
-        		
-        		mDurationListStr	= l.getDuration(ft);
-    		//}
+    		}
+    		if (mUrlListStr == null || mUrlListStr.isEmpty()) {
+    			ft = SOHU_FT.SOHU_FT_HIGH;
+    			mUrlListStr = l.getUrl(ft);
+    		}
+    		if (mUrlListStr == null || mUrlListStr.isEmpty()) {
+    			ft = SOHU_FT.SOHU_FT_NORMAL;
+    			mUrlListStr = l.getUrl(ft);
+    		}
+    		if (mUrlListStr == null || mUrlListStr.isEmpty()) {
+    			mHandler.sendEmptyMessage(MSG_FAIL_TO_GET_STREAM);
+    			return false;
+    		}
+    		
+    		mDurationListStr	= l.getDuration(ft);
 			
 			buildPlaylinkList();
 			

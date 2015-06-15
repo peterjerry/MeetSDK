@@ -5,6 +5,9 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.StringTokenizer;
 
 import android.content.Context;
 import android.content.SharedPreferences;
@@ -14,9 +17,7 @@ import android.os.Environment;
 import android.pplive.media.MeetSDK;
 import android.util.Log;
 
-import com.nostra13.universalimageloader.core.ImageLoader;
-import com.nostra13.universalimageloader.core.ImageLoaderConfiguration;
-import com.nostra13.universalimageloader.core.assist.QueueProcessingType;
+import com.pplive.meetplayer.ui.PPTVEpisodeActivity;
 import com.pplive.sdk.MediaSDK;
 
 public class Util {
@@ -119,6 +120,84 @@ public class Util {
 		}
 
 		return false;
+	}
+	
+	public static void add_sohuvideo_history(Context ctx, String title, int vid, long aid, int site) {
+		String key = "SohuPlayHistory";
+		String regularEx = ",";
+		final int save_max_count = 20;
+		String value = readSettings(ctx, key);
+		
+		List<String> playHistoryList = new ArrayList<String>();
+		StringTokenizer st = new StringTokenizer(value, regularEx, false);
+        while (st.hasMoreElements()) {
+        	String token = st.nextToken();
+        	playHistoryList.add(token);
+        }
+        
+        String new_video = String.format("%s|%d|%d|%d", title, vid, aid, site);
+        
+        int count = playHistoryList.size();
+        StringBuffer sb = new StringBuffer();
+        int start = count - save_max_count + 1;
+        if (start < 0)
+        	start = 0;
+        
+        boolean isNewVideo = true;
+        for (int i = start; i<count ; i++) {
+        	String item = playHistoryList.get(i);
+        	if (new_video.contains(item) && isNewVideo)
+        		isNewVideo = false;
+        	
+        	sb.append(item);
+        	sb.append(regularEx);
+        }
+        
+        if (isNewVideo)
+        	sb.append(new_video);
+        else
+        	Log.i(TAG, String.format("Java %s already in history list", new_video));
+        
+		writeSettings(ctx, key, sb.toString());
+	}
+	
+	public static void add_pptvvideo_history(Context ctx, String title, int playlink, int ft) {
+		String key = "PPTVPlayHistory";
+		String regularEx = ",";
+		final int save_max_count = 20;
+		String value = readSettings(ctx, key);
+		
+		List<String> playHistoryList = new ArrayList<String>();
+		StringTokenizer st = new StringTokenizer(value, regularEx, false);
+        while (st.hasMoreElements()) {
+        	String token = st.nextToken();
+        	playHistoryList.add(token);
+        }
+        
+        String new_video = String.format("%s|%d|%d", title, playlink, ft);
+        
+        int count = playHistoryList.size();
+        StringBuffer sb = new StringBuffer();
+        int start = count - save_max_count + 1;
+        if (start < 0)
+        	start = 0;
+        
+        boolean isNewVideo = true;
+        for (int i = start; i<count ; i++) {
+        	String item = playHistoryList.get(i);
+        	if (new_video.contains(item) && isNewVideo)
+        		isNewVideo = false;
+        	
+        	sb.append(item);
+        	sb.append(regularEx);
+        }
+        
+        if (isNewVideo)
+        	sb.append(new_video);
+        else
+        	Log.i(TAG, String.format("Java %s already in history list", new_video));
+        
+		writeSettings(ctx, key, sb.toString());
 	}
 	
 	public static boolean IsHaveInternet(final Context context) { 

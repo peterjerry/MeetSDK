@@ -4,7 +4,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.StringTokenizer;
 
 import com.pplive.common.sohu.AlbumSohu;
 import com.pplive.common.sohu.EpisodeSohu;
@@ -27,6 +26,7 @@ import android.util.Log;
 import android.view.View;
 import android.widget.AbsListView;
 import android.widget.AdapterView;
+import android.widget.EditText;
 import android.widget.GridView;
 import android.widget.Toast;
 
@@ -65,7 +65,7 @@ public class SohuEpisodeActivity extends Activity {
     private PlaylinkSohu mPlaylink;
     private int sub_channel_id		= -1;
     private long selected_aid		= -1;
-    private long selected_site		= -1;
+    private int selected_site		= -1;
     private int selected_index		= -1;
     private String search_key;
     
@@ -223,6 +223,7 @@ public class SohuEpisodeActivity extends Activity {
         		intent.putExtra("title", mPlaylink.getTitle());
         		intent.putExtra("index", (ep_page_index - 1) * page_size + selected_index);
         		intent.putExtra("aid", selected_aid);
+        		intent.putExtra("site", selected_site);
         		startActivity(intent);
             	break;
             case MSG_MORELIST_DONE:
@@ -300,6 +301,14 @@ public class SohuEpisodeActivity extends Activity {
 						dialog.dismiss();
 					}
 				})
+		.setNeutralButton("Page", 
+				new DialogInterface.OnClickListener(){
+					public void onClick(DialogInterface dialog, int whichButton){
+						popupSelectPage(ep_page_index);
+						
+						dialog.dismiss();
+					}
+				})
 		.setNegativeButton("Cancel",
 			new DialogInterface.OnClickListener(){
 				public void onClick(DialogInterface dialog, int whichButton){
@@ -308,43 +317,25 @@ public class SohuEpisodeActivity extends Activity {
 		choose_episode_dlg.show();
 	}
 	
-	private void add_video_history(String title, int vid, long aid, int site) {
-		String key = "SohuPlayHistory";
-		String regularEx = ",";
-		final int save_max_count = 20;
-		String value = Util.readSettings(SohuEpisodeActivity.this, key);
+	private void popupSelectPage(int default_page) {
+		AlertDialog.Builder builder;
 		
-		List<String> playHistoryList = new ArrayList<String>();
-		StringTokenizer st = new StringTokenizer(value, regularEx, false);
-        while (st.hasMoreElements()) {
-        	String token = st.nextToken();
-        	playHistoryList.add(token);
-        }
-        
-        String new_video = String.format("%s|%d|%d|%d", title, vid, aid, site);
-        
-        int count = playHistoryList.size();
-        StringBuffer sb = new StringBuffer();
-        int start = count - save_max_count + 1;
-        if (start < 0)
-        	start = 0;
-        
-        boolean isNewVideo = true;
-        for (int i = start; i<count ; i++) {
-        	String item = playHistoryList.get(i);
-        	if (new_video.contains(item) && isNewVideo)
-        		isNewVideo = false;
-        	
-        	sb.append(item);
-        	sb.append(regularEx);
-        }
-        
-        if (isNewVideo)
-        	sb.append(new_video);
-        else
-        	Log.i(TAG, String.format("Java %s already in history list", new_video));
-        
-		Util.writeSettings(SohuEpisodeActivity.this, key, sb.toString());
+		final EditText inputKey = new EditText(this);
+    	inputKey.setText(String.valueOf(default_page));
+		inputKey.setHint("select episode page");
+		
+        builder = new AlertDialog.Builder(this);
+        builder.setTitle("input page number").setIcon(android.R.drawable.ic_dialog_info).setView(inputKey)
+                .setNegativeButton("Cancel", null);
+        builder.setPositiveButton("Ok", new DialogInterface.OnClickListener() {
+
+            public void onClick(DialogInterface dialog, int which) {
+            	ep_page_index = Integer.valueOf(inputKey.getText().toString());
+            	new SohuEpgTask().execute(TASK_EPISODE, selected_aid);
+        		dialog.dismiss();
+             }
+        });
+        builder.show();
 	}
 	
 	private class SohuEpgTask extends AsyncTask<Long, Integer, Boolean> {
@@ -390,7 +381,8 @@ public class SohuEpisodeActivity extends Activity {
 					return false;
 				}
 				
-				add_video_history(mPlaylink.getTitle(), (int)vid, -1, -1);
+				Util.add_sohuvideo_history(SohuEpisodeActivity.this, 
+						mPlaylink.getTitle(), (int)vid, -1, -1);
 				
 				mhandler.sendEmptyMessage(MSG_PLAYLINK_DONE);	
 			}
@@ -421,7 +413,8 @@ public class SohuEpisodeActivity extends Activity {
 					return false;
 				}
 				
-				add_video_history(mPlaylink.getTitle(), (int)vid, aid, (int)site);
+				Util.add_sohuvideo_history(SohuEpisodeActivity.this, 
+						mPlaylink.getTitle(), (int)vid, aid, (int)site);
 				
 				mhandler.sendEmptyMessage(MSG_PLAYLINK_DONE);	
 			}

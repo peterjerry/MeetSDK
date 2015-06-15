@@ -67,6 +67,8 @@ public class PPTVEpisodeActivity extends Activity {
     private String epg_param;
     private String epg_type;
     private String episode_title;
+    private int episode_index;
+    private int selected_episode = -1;
     // 最受好评, param: order=g|最高人气, param: order=t|最新更新, param: order=n
     private String epg_order = "order=t";
     private String search_key;
@@ -252,15 +254,16 @@ public class PPTVEpisodeActivity extends Activity {
 	};
 	
 	private void play_video(int ft, int best_ft) {
-		String playlink = mEpisodeList.get(0).getId();
+		String vid = mEpisodeList.get(0).getId();
 		
 		String info = String.format("ready to play video %s, playlink: %s, ft: %d", 
-				episode_title, playlink, ft);
+				episode_title, vid, ft);
 		Log.i(TAG, info);
 		Toast.makeText(this, info, Toast.LENGTH_SHORT).show();
 		
 		short port = MediaSDK.getPort("http");
-		String url = PlayLinkUtil.getPlayUrl(Integer.valueOf(playlink), port, ft, 3, null);
+		int playlink = Integer.valueOf(vid);
+		String url = PlayLinkUtil.getPlayUrl(playlink, port, ft, 3, null);
 		
 		Uri uri = Uri.parse(url);
 		
@@ -271,13 +274,15 @@ public class PPTVEpisodeActivity extends Activity {
         intent.setData(uri);*/
 		
         Intent intent = new Intent(PPTVEpisodeActivity.this,
-				VideoPlayerActivity.class);
+        		PPTVPlayerActivity.class);
 		Log.i(TAG, "to play uri: " + uri.toString());
 
 		intent.setData(uri);
 		intent.putExtra("title", episode_title);
 		intent.putExtra("ft", ft);
 		intent.putExtra("best_ft", best_ft);
+		intent.putExtra("vid", selected_episode);
+		intent.putExtra("index", episode_index);
         
 		startActivity(intent);
 	}
@@ -303,7 +308,8 @@ public class PPTVEpisodeActivity extends Activity {
 			new DialogInterface.OnClickListener(){
 			public void onClick(DialogInterface dialog, int whichButton) {
 				String vid = mEpisodeList.get(whichButton).getId();
-				episode_title = mEpisodeList.get(0).getTitle();
+				episode_title = mEpisodeList.get(whichButton).getTitle();
+				episode_index = whichButton;
 				new PPTVEpgTask().execute(TASK_DETAIL, Integer.valueOf(vid));
 				dialog.dismiss();
 			}
@@ -355,6 +361,9 @@ public class PPTVEpisodeActivity extends Activity {
 				}
 				
 				mEpisodeList = mEPG.getLink();
+				if (mEpisodeList.size() > 1)
+					selected_episode = vid;
+				
 				mhandler.sendEmptyMessage(MSG_EPISODE_DONE);
 			}
 			else if (action == TASK_MORELIST) {
@@ -404,7 +413,7 @@ public class PPTVEpisodeActivity extends Activity {
             		return false;
         		}
         		
-        		add_video_history(episode_title, vid, ft);
+        		Util.add_pptvvideo_history(PPTVEpisodeActivity.this, episode_title, vid, ft);
         		
         		Message msg = mhandler.obtainMessage(MSG_PLAY_CDN_FT, ft, ft);
     	        msg.sendToTarget();
@@ -417,45 +426,6 @@ public class PPTVEpisodeActivity extends Activity {
 			return true;// all done!
 		}
 		
-	}
-	
-	private void add_video_history(String title, int playlink, int ft) {
-		String key = "PPTVPlayHistory";
-		String regularEx = ",";
-		final int save_max_count = 20;
-		String value = Util.readSettings(PPTVEpisodeActivity.this, key);
-		
-		List<String> playHistoryList = new ArrayList<String>();
-		StringTokenizer st = new StringTokenizer(value, regularEx, false);
-        while (st.hasMoreElements()) {
-        	String token = st.nextToken();
-        	playHistoryList.add(token);
-        }
-        
-        String new_video = String.format("%s|%d|%d", title, playlink, ft);
-        
-        int count = playHistoryList.size();
-        StringBuffer sb = new StringBuffer();
-        int start = count - save_max_count + 1;
-        if (start < 0)
-        	start = 0;
-        
-        boolean isNewVideo = true;
-        for (int i = start; i<count ; i++) {
-        	String item = playHistoryList.get(i);
-        	if (new_video.contains(item) && isNewVideo)
-        		isNewVideo = false;
-        	
-        	sb.append(item);
-        	sb.append(regularEx);
-        }
-        
-        if (isNewVideo)
-        	sb.append(new_video);
-        else
-        	Log.i(TAG, String.format("Java %s already in history list", new_video));
-        
-		Util.writeSettings(PPTVEpisodeActivity.this, key, sb.toString());
 	}
 	
 	private class SetDataTask extends AsyncTask<Integer, Integer, List<Map<String, Object>>> {

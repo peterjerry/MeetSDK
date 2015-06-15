@@ -121,18 +121,18 @@ public class SohuFrame extends JFrame {
 							BufferedImage image = null;
 							try {
 								String img_url = al.getImgUrl(false);
-								System.out.println("Java image url: " + img_url);
-								URL imageURL = new URL(img_url);
-								InputStream is = imageURL.openConnection()
-										.getInputStream();
-								image = ImageIO.read(is);
-								System.out.println("Java image is: " + image);
+								if (img_url != null && img_url.startsWith("http://")) {
+									System.out.println("Java image url: " + img_url);
+									URL imageURL = new URL(img_url);
+									InputStream is = imageURL.openConnection()
+											.getInputStream();
+									image = ImageIO.read(is);
+									lblImage.setIcon(new ImageIcon(image));
+								}
 							} catch (Exception e) {
 								e.printStackTrace();
 								return;
 							}
-
-							lblImage.setIcon(new ImageIcon(image));
 						}
 					} else if (event.getClickCount() == 2) {
 						action();
