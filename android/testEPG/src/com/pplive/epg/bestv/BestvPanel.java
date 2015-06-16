@@ -14,9 +14,8 @@ import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
 
-import javax.swing.event.*;
-
-public class BestvFrame extends JFrame {
+@SuppressWarnings("serial")
+public class BestvPanel extends JPanel {
 	
 	private BESTV_EPG_STATE mState = BESTV_EPG_STATE.BESTV_EPG_STATE_IDLE;
 	
@@ -36,7 +35,6 @@ public class BestvFrame extends JFrame {
 	//List<PlayLinkLb> mPlayLinkList;
 	//List<StreamIdLb> mStrmList;
 	
-	JButton btnOK		= new JButton("OK");
 	JButton btnReset 	= new JButton("重置");
 	JButton btnGo 		= new JButton("进入");
 	
@@ -59,24 +57,16 @@ public class BestvFrame extends JFrame {
 	
 	Font f = new Font("宋体", 0, 18);
 	
-	public BestvFrame() {
+	public BestvPanel() {
 		super();
 		
-		mEPG = new BestvUtil();
+		this.setLayout(null);
 		
-		this.setTitle("Test EPG");
-		this.setBounds(400, 300, 500, 600);
-		this.addWindowListener(new WindowAdapter() {
-			public void windowClosing(WindowEvent e) {
-				dispose();
-				System.exit(0);
-			}
-		});
+		mEPG = new BestvUtil();
 
-		this.getContentPane().setLayout(null);
 		// Action
 		lblInfo.setBounds(5, 40, 300, 30);
-		this.getContentPane().add(lblInfo);
+		this.add(lblInfo);
 		
 		comboItem = new JComboBox<String>();
 		comboItem.setFont(f);
@@ -99,34 +89,26 @@ public class BestvFrame extends JFrame {
 
 		});
 		
-		this.getContentPane().add(comboItem);
+		this.add(comboItem);
 		
 		comboStream = new JComboBox<String>();
 		comboStream.setFont(f);
 		comboStream.setBounds(20, 130, 450, 40);
-		//this.getContentPane().add(comboStream);
+		//this.add(comboStream);
 		
 		lblNowPlayInfo.setBounds(5, 130, 500, 40);
 		lblNowPlayInfo.setFont(f);
-		this.getContentPane().add(lblNowPlayInfo);
+		this.add(lblNowPlayInfo);
 		lblWillPlayInfo.setBounds(5, 180, 500, 40);
 		lblWillPlayInfo.setFont(f);
-		this.getContentPane().add(lblWillPlayInfo);
+		this.add(lblWillPlayInfo);
 		
-		btnOK.setBounds(0, 0, 80, 30);
-		this.getContentPane().add(btnOK);
 		btnGo.setBounds(230, 80, 70, 40);
 		btnGo.setFont(f);
-		this.getContentPane().add(btnGo);
+		this.add(btnGo);
 		btnReset.setBounds(300, 80, 70, 40);
 		btnReset.setFont(f);
-		this.getContentPane().add(btnReset);
-
-		btnOK.addActionListener(new AbstractAction() {
-			public void actionPerformed(ActionEvent e) {
-				lblInfo.setText("You Click OK!");
-			}
-		});
+		this.add(btnReset);
 
 		btnReset.addActionListener(new AbstractAction() {
 			public void actionPerformed(ActionEvent e) {
@@ -157,7 +139,7 @@ public class BestvFrame extends JFrame {
 	private void initTimePicker() {
 		lbl_day.setBounds(10, 250, 50, 40);
 		lbl_day.setFont(f);
-		this.getContentPane().add(lbl_day);
+		this.add(lbl_day);
 		
 		SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd");
 		List<String> DayList = new ArrayList<String>();
@@ -176,11 +158,11 @@ public class BestvFrame extends JFrame {
 		comboDay.setFont(f);
 		comboDay.setBounds(60, 250, 140, 40);
 		comboDay.setSelectedIndex(0);
-		this.getContentPane().add(comboDay);
+		this.add(comboDay);
 		
 		lbl_start_time.setBounds(210, 250, 50, 40);
 		lbl_start_time.setFont(f);
-		this.getContentPane().add(lbl_start_time);
+		this.add(lbl_start_time);
 		
 		List<String> HourList = new ArrayList<String>();
 		for(int i=0;i<24;i++) {
@@ -193,11 +175,11 @@ public class BestvFrame extends JFrame {
 		comboHour.setFont(f);
 		comboHour.setBounds(260, 250, 80, 40);
 		comboHour.setSelectedIndex(16);
-		this.getContentPane().add(comboHour);
+		this.add(comboHour);
 		
 		lbl_duration.setBounds(10, 300, 50, 40);
 		lbl_duration.setFont(f);
-		this.getContentPane().add(lbl_duration);
+		this.add(lbl_duration);
 		
 		String[] duration_desc = {"直播", "半小时", "1小时",
 				"1.5小时", "2小时", "2.5小时", "3小时"};
@@ -205,7 +187,7 @@ public class BestvFrame extends JFrame {
 		comboDuration.setFont(f);
 		comboDuration.setBounds(60, 300, 80, 40);
 		comboDuration.setSelectedIndex(0);
-		this.getContentPane().add(comboDuration);
+		this.add(comboDuration);
 	}
 	
 	private void selectProgram() {
@@ -247,7 +229,7 @@ public class BestvFrame extends JFrame {
 
 		System.out.println("final play link " + url);
 		
-		String exe_filepath  = "D:/software/ffmpeg/ffplay.exe";
+		String exe_filepath  = "E:/git/PPTV/MeetSDK/engine2/build/win32/bin/Release/player_vc.exe";
 		String[] cmd = new String[] {exe_filepath, url};
 		openExe(cmd);
 	}

@@ -422,11 +422,16 @@ public class VideoPlayerActivity extends Activity implements Callback {
 		return name;
 	}
 	
+	protected void onComplete() {
+		finish();
+	}
+	
 	private MediaPlayer.OnCompletionListener mCompletionListener = new MediaPlayer.OnCompletionListener() {
 		public void onCompletion(MediaPlayer mp) {
 			Log.i(TAG, "MEDIA_PLAYBACK_COMPLETE");
+			
 			mVideoView.stopPlayback();
-			finish();
+			onComplete();
 		}
 	};
 
@@ -537,24 +542,22 @@ public class VideoPlayerActivity extends Activity implements Callback {
 	public boolean onKeyDown(int keyCode, KeyEvent event) {
 		
 		Log.d(TAG, "keyCode: " + keyCode);
-		int incr = -1;
+		int incr;
 		
 		switch (keyCode) {
-		case KeyEvent.KEYCODE_DPAD_LEFT:
-		case KeyEvent.KEYCODE_DPAD_RIGHT:
-		case KeyEvent.KEYCODE_DPAD_DOWN:
-		case KeyEvent.KEYCODE_DPAD_UP:
 		case KeyEvent.KEYCODE_DPAD_CENTER:
 		case KeyEvent.KEYCODE_ENTER:
-			mController.show();
-
-			if (KeyEvent.KEYCODE_DPAD_RIGHT == keyCode
-					|| KeyEvent.KEYCODE_DPAD_LEFT == keyCode) {
+			if (!mController.isShowing())
+				mController.show();
+			return true;
+		case KeyEvent.KEYCODE_DPAD_LEFT:
+		case KeyEvent.KEYCODE_DPAD_RIGHT:
+			if (mController.isShowing()) {
 				if (KeyEvent.KEYCODE_DPAD_RIGHT == keyCode)
 					incr = 1;
 				else
 					incr = -1;
-
+	
 				int pos = mVideoView.getCurrentPosition();
 				int step = mVideoView.getDuration() / 100 + 1000;
 				Log.i(TAG, String.format("Java pos %d, step %s", pos, step));
@@ -566,16 +569,18 @@ public class VideoPlayerActivity extends Activity implements Callback {
 				else if (pos < 0)
 					pos = 0;
 				mVideoView.seekTo(pos);
-			} else if (KeyEvent.KEYCODE_DPAD_DOWN == keyCode
-					|| KeyEvent.KEYCODE_DPAD_UP == keyCode) {
-				if (KeyEvent.KEYCODE_DPAD_DOWN == keyCode)
-					incr = 1;
-				else
-					incr = -1;
-
-				switchDisplayMode(incr);
+				
+				mController.show();
 			}
+			return true;
+		case KeyEvent.KEYCODE_DPAD_DOWN:
+		case KeyEvent.KEYCODE_DPAD_UP:
+			if (KeyEvent.KEYCODE_DPAD_DOWN == keyCode)
+				incr = 1;
+			else
+				incr = -1;
 
+			switchDisplayMode(incr);
 			return true;
 		case KeyEvent.KEYCODE_BACK:
 			if (mController.isShowing()) {

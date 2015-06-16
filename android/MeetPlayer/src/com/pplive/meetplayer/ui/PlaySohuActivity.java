@@ -334,7 +334,7 @@ public class PlaySohuActivity extends Activity implements Callback {
 						mTextViewFileName.setVisibility(View.VISIBLE);
 						Message msg = mHandler.obtainMessage(MSG_FADE_OUT_TV_FILENAME);
 						mHandler.removeMessages(MSG_FADE_OUT_TV_FILENAME);
-			            mHandler.sendMessageDelayed(msg, MSG_FADE_OUT_TV_FILENAME);
+			            mHandler.sendMessageDelayed(msg, MEDIA_CONTROLLER_TIMEOUT);
 			            
 						mController.show(MEDIA_CONTROLLER_TIMEOUT * 2);
 					}

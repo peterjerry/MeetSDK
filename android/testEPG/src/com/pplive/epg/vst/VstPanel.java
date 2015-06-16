@@ -12,7 +12,7 @@ import java.util.List;
 
 import javax.swing.event.*;
 
-public class VstFrame extends JFrame {
+public class VstPanel extends JPanel {
 	
 	private VST_EPG_STATE mState = VST_EPG_STATE.VST_EPG_STATE_IDLE;
 	
@@ -30,7 +30,6 @@ public class VstFrame extends JFrame {
 	VstUtil mEPG;
 	List<ProgramVst> mProgramList;
 	
-	JButton btnOK		= new JButton("OK");
 	JButton btnReset 	= new JButton("重置");
 	JButton btnGo 		= new JButton("进入");
 	
@@ -43,24 +42,16 @@ public class VstFrame extends JFrame {
 	
 	JTextPane editorPlayLink = new JTextPane();
 	
-	public VstFrame() {
+	public VstPanel() {
 		super();
 		
-		mEPG = new VstUtil();
+		this.setLayout(null);
 		
-		this.setTitle("Test EPG");
-		this.setBounds(400, 300, 500, 600);
-		this.addWindowListener(new WindowAdapter() {
-			public void windowClosing(WindowEvent e) {
-				dispose();
-				System.exit(0);
-			}
-		});
+		mEPG = new VstUtil();
 
-		this.getContentPane().setLayout(null);
 		// Action
 		lblInfo.setBounds(5, 40, 300, 30);
-		this.getContentPane().add(lblInfo);
+		this.add(lblInfo);
 		
 		comboItem = new JComboBox<String>();
 		Font f = new Font("宋体", 0, 18);
@@ -84,34 +75,26 @@ public class VstFrame extends JFrame {
 
 		});
 		
-		this.getContentPane().add(comboItem);
+		this.add(comboItem);
 		
 		comboStream = new JComboBox<String>();
 		comboStream.setFont(f);
 		comboStream.setBounds(20, 130, 450, 40);
-		this.getContentPane().add(comboStream);
+		this.add(comboStream);
 		
 		lblNowPlayInfo.setBounds(5, 180, 500, 40);
 		lblNowPlayInfo.setFont(f);
-		this.getContentPane().add(lblNowPlayInfo);
+		this.add(lblNowPlayInfo);
 		lblWillPlayInfo.setBounds(5, 230, 500, 40);
 		lblWillPlayInfo.setFont(f);
-		this.getContentPane().add(lblWillPlayInfo);
+		this.add(lblWillPlayInfo);
 		
-		btnOK.setBounds(0, 0, 80, 30);
-		this.getContentPane().add(btnOK);
 		btnGo.setBounds(230, 80, 70, 40);
 		btnGo.setFont(f);
-		this.getContentPane().add(btnGo);
+		this.add(btnGo);
 		btnReset.setBounds(300, 80, 70, 40);
 		btnReset.setFont(f);
-		this.getContentPane().add(btnReset);
-
-		btnOK.addActionListener(new AbstractAction() {
-			public void actionPerformed(ActionEvent e) {
-				lblInfo.setText("You Click OK!");
-			}
-		});
+		this.add(btnReset);
 
 		btnReset.addActionListener(new AbstractAction() {
 			public void actionPerformed(ActionEvent e) {
@@ -154,7 +137,7 @@ public class VstFrame extends JFrame {
 		int index = comboStream.getSelectedIndex();
 		String url = comboStream.getItemAt(index);
 		
-		String exe_filepath  = "D:/software/ffmpeg/ffplay.exe";
+		String exe_filepath  = "E:/git/PPTV/MeetSDK/engine2/build/win32/bin/Release/player_vc.exe";
 		String[] cmd = new String[] {exe_filepath, url};
 		openExe(cmd);
 	}

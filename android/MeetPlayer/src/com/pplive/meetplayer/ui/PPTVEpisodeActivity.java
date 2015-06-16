@@ -267,12 +267,20 @@ public class PPTVEpisodeActivity extends Activity {
 		
 		Uri uri = Uri.parse(url);
 		
-		/*Intent intent = new Intent(Intent.ACTION_VIEW);
+		/* method 1
+		 * Intent intent = new Intent(Intent.ACTION_VIEW);
 		intent.setComponent(new ComponentName("com.pplive.tvduck", "com.pplive.tvduck.PlayerActivity"));
 		intent.setClassName("com.pplive.tvduck", "com.pplive.tvduck.PlayerActivity");
         intent.putExtra(Intent.ACTION_VIEW, uri);
         intent.setData(uri);*/
+        
+        /*Intent intent = new Intent(Intent.ACTION_VIEW);
+        intent.setDataAndType(uri, "video/*");
+        intent.putExtra(Intent.ACTION_VIEW, uri);
+        Intent wrapperIntent = Intent.createChooser(intent, "选择播放器");
+        startActivity(wrapperIntent);*/
 		
+        // method 3
         Intent intent = new Intent(PPTVEpisodeActivity.this,
         		PPTVPlayerActivity.class);
 		Log.i(TAG, "to play uri: " + uri.toString());

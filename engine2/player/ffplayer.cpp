@@ -2350,8 +2350,7 @@ status_t FFPlayer::prepare_l()
     }
 
 	// 2014.9.4 guoliangma change from while to if
-	// 2015.6.15 guoliangma change back to while(fix cannot "sync" prepare problem)
-    while (mPlayerStatus == MEDIA_PLAYER_PREPARING) {
+    if (mPlayerStatus == MEDIA_PLAYER_PREPARING) {
 		pthread_mutex_lock(&mPreparedLock);
         pthread_cond_wait(&mPreparedCondition, &mPreparedLock);
 		pthread_mutex_unlock(&mPreparedLock);

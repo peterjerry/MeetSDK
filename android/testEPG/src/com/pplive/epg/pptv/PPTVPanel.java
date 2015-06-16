@@ -16,12 +16,11 @@ import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
 
-import javax.swing.event.*;
-
 import com.pplive.epg.sohu.PlaylinkSohu;
 import com.pplive.epg.sohu.SohuUtil;
 
-public class PPTVFrame extends JFrame {
+@SuppressWarnings("serial")
+public class PPTVPanel extends JPanel {
 	
 	private EPG_STATE mState = EPG_STATE.EPG_STATE_IDLE;
 	private EPGUtil mEPG;
@@ -89,46 +88,38 @@ public class PPTVFrame extends JFrame {
 	
 	JTextPane editorPlayExe = new JTextPane();
 
-	public PPTVFrame() {
+	public PPTVPanel() {
 		super();
 		
+		this.setLayout(null);
+		
 		mEPG = new EPGUtil();
-		
-		this.setTitle("PPTV 电视节目");
-		this.setBounds(400, 300, 500, 600);
-		this.addWindowListener(new WindowAdapter() {
-			public void windowClosing(WindowEvent e) {
-				dispose();
-				System.exit(0);
-			}
-		});
-		
+
 		Font f = new Font("宋体", 0, 20);
 
-		this.getContentPane().setLayout(null);
 		// Action
 		lblInfo.setBounds(20, 20, 300, 40);
 		lblInfo.setFont(f);
-		this.getContentPane().add(lblInfo);
+		this.add(lblInfo);
 		
 		btnGo.setFont(f);
 		btnGo.setBounds(180, 110, 80, 40);
-		this.getContentPane().add(btnGo);
+		this.add(btnGo);
 		btnReset.setFont(f);
 		btnReset.setBounds(260, 110, 80, 40);
-		this.getContentPane().add(btnReset);
+		this.add(btnReset);
 		btnNext.setFont(f);
 		btnNext.setBounds(330, 110, 80, 40);
-		this.getContentPane().add(btnNext);
+		this.add(btnNext);
 		
 		lbl_link.setFont(f);
 		lbl_link.setBounds(20, 110, 40, 40);
-		this.getContentPane().add(lbl_link);
+		this.add(lbl_link);
 		
 		editorPlayLink.setFont(f);
 		editorPlayLink.setBounds(60, 110, 100, 40);
 		editorPlayLink.setText("20986187");
-	    this.getContentPane().add(editorPlayLink);
+	    this.add(editorPlayLink);
 
 		btnReset.addActionListener(new AbstractAction() {
 			public void actionPerformed(ActionEvent e) {
@@ -197,24 +188,24 @@ public class PPTVFrame extends JFrame {
 
 		});
 		
-		this.getContentPane().add(comboItem);
+		this.add(comboItem);
 		
 		comboFt = new JComboBox<String>(ft_desc);
 		comboFt.setFont(f);
 		comboFt.setBounds(20, 170, 80, 40);
 		comboFt.setSelectedIndex(1);
-		this.getContentPane().add(comboFt);
+		this.add(comboFt);
 		
 		String[] bw_type = {"P2P", "CDNP2P", "CDN", "PPTV", "DLNA"};
 		comboBwType = new JComboBox<String>(bw_type);
 		comboBwType.setFont(f);
 		comboBwType.setBounds(120, 170, 80, 40);
 		comboBwType.setSelectedIndex(3);
-		this.getContentPane().add(comboBwType);
+		this.add(comboBwType);
 
 		cbNoVideo.setBounds(220, 170, 120, 40);
 		cbNoVideo.setFont(f);
-		this.getContentPane().add(cbNoVideo);
+		this.add(cbNoVideo);
 		
 		/*String exe_filepath  = "D:/Software/ppbox/ppbox_test-win32-msvc90-mt-gd-1.1.0.exe";
 		String[] cmd = new String[] {exe_filepath, ""};
@@ -223,12 +214,12 @@ public class PPTVFrame extends JFrame {
 		editorSearch.setFont(f);
 		editorSearch.setBounds(20, 350, 200, 40);
 		editorSearch.setText("海贼王");
-	    this.getContentPane().add(editorSearch);
+	    this.add(editorSearch);
 	    
 	    btnSearch.setFont(f);
 	    btnSearch.setBounds(230, 350, 80, 40);
 	    editorSearch.setFont(f);
-		this.getContentPane().add(btnSearch);
+		this.add(btnSearch);
 		btnSearch.addActionListener(new AbstractAction() {
 			public void actionPerformed(ActionEvent e) {
 				String key = editorSearch.getText();//"沈震轩PPTV独家专访";
@@ -238,7 +229,7 @@ public class PPTVFrame extends JFrame {
 		
 		lbl_day.setBounds(10, 250, 50, 40);
 		lbl_day.setFont(f);
-		this.getContentPane().add(lbl_day);
+		this.add(lbl_day);
 		
 		SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd");
 		List<String> DayList = new ArrayList<String>();
@@ -257,11 +248,11 @@ public class PPTVFrame extends JFrame {
 		comboDay.setFont(f);
 		comboDay.setBounds(60, 250, 140, 40);
 		comboDay.setSelectedIndex(0);
-		this.getContentPane().add(comboDay);
+		this.add(comboDay);
 		
 		lbl_start_time.setBounds(210, 250, 50, 40);
 		lbl_start_time.setFont(f);
-		this.getContentPane().add(lbl_start_time);
+		this.add(lbl_start_time);
 		
 		List<String> HourList = new ArrayList<String>();
 		for(int i=0;i<24;i++) {
@@ -274,11 +265,11 @@ public class PPTVFrame extends JFrame {
 		comboHour.setFont(f);
 		comboHour.setBounds(260, 250, 80, 40);
 		comboHour.setSelectedIndex(16);
-		this.getContentPane().add(comboHour);
+		this.add(comboHour);
 		
 		lbl_duration.setBounds(10, 300, 50, 40);
 		lbl_duration.setFont(f);
-		this.getContentPane().add(lbl_duration);
+		this.add(lbl_duration);
 		
 		String[] duration_desc = {"直播", "半小时", "1小时",
 				"1.5小时", "2小时", "2.5小时", "3小时"};
@@ -286,12 +277,12 @@ public class PPTVFrame extends JFrame {
 		comboDuration.setFont(f);
 		comboDuration.setBounds(80, 300, 80, 40);
 		comboDuration.setSelectedIndex(0);
-		this.getContentPane().add(comboDuration);
+		this.add(comboDuration);
 		
 		editorPlayExe.setFont(f);
 		editorPlayExe.setBounds(10, 400, 450, 40);
-		editorPlayExe.setText("D:/Software/ffmpeg/ffplay.exe");
-	    this.getContentPane().add(editorPlayExe);
+		editorPlayExe.setText("E:/git/PPTV/MeetSDK/engine2/build/win32/bin/Release/player_vc.exe");
+	    this.add(editorPlayExe);
 	}
 	
 	private void playvideo() {
@@ -394,7 +385,7 @@ public class PPTVFrame extends JFrame {
 		
 		String exe_filepath = editorPlayExe.getText();
 		if (exe_filepath == null || exe_filepath.equals(""))
-			exe_filepath  = "D:/Software/ffmpeg/ffplay.exe";
+			exe_filepath  = "E:/git/PPTV/MeetSDK/engine2/build/win32/bin/Release/player_vc.exe";
 		String[] cmd = new String[] {exe_filepath, url};
 		openExe(cmd);
 	}

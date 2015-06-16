@@ -86,6 +86,10 @@ int apProxyUDP::in(char* data, size_t len)
 	else
 		LOGD("buffer in %d", len);
 
+	pthread_mutex_lock(&m_mutex);
+	pthread_cond_signal(&m_cond);
+	pthread_mutex_unlock(&m_mutex);
+
 	return size;
 }
 
@@ -119,7 +123,7 @@ void apProxyUDP::dump_thread_impl()
 
 	while (!m_bQuit) {
 		while (m_fifo.used() < READ_SIZE_UDP) {
-			wait(5000);
+			wait(WAIT_TIME * 1000);
 
 			if (m_bQuit)
 				break;

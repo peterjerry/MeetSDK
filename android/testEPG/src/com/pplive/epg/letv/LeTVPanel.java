@@ -13,9 +13,8 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
 
-import javax.swing.event.*;
-
-public class LeTVFrame extends JFrame {
+@SuppressWarnings("serial")
+public class LeTVPanel extends JPanel {
 	
 	private LETV_EPG_STATE mState = LETV_EPG_STATE.LETV_EPG_STATE_IDLE;
 	
@@ -35,7 +34,6 @@ public class LeTVFrame extends JFrame {
 	List<PlayLinkLb> mPlayLinkList;
 	List<StreamIdLb> mStrmList;
 	
-	JButton btnOK		= new JButton("OK");
 	JButton btnReset 	= new JButton("重置");
 	JButton btnGo 		= new JButton("进入");
 	
@@ -48,24 +46,16 @@ public class LeTVFrame extends JFrame {
 	
 	JTextPane editorPlayLink = new JTextPane();
 	
-	public LeTVFrame() {
+	public LeTVPanel() {
 		super();
+		
+		this.setLayout(null);
 		
 		mEPG = new LetvUtil();
 		
-		this.setTitle("Test EPG");
-		this.setBounds(400, 300, 500, 600);
-		this.addWindowListener(new WindowAdapter() {
-			public void windowClosing(WindowEvent e) {
-				dispose();
-				System.exit(0);
-			}
-		});
-
-		this.getContentPane().setLayout(null);
 		// Action
 		lblInfo.setBounds(5, 40, 300, 30);
-		this.getContentPane().add(lblInfo);
+		this.add(lblInfo);
 		
 		comboItem = new JComboBox<String>();
 		Font f = new Font("宋体", 0, 18);
@@ -89,34 +79,26 @@ public class LeTVFrame extends JFrame {
 
 		});
 		
-		this.getContentPane().add(comboItem);
+		this.add(comboItem);
 		
 		comboStream = new JComboBox<String>();
 		comboStream.setFont(f);
 		comboStream.setBounds(20, 130, 200, 40);
-		this.getContentPane().add(comboStream);
+		this.add(comboStream);
 		
 		lblNowPlayInfo.setBounds(5, 180, 500, 40);
 		lblNowPlayInfo.setFont(f);
-		this.getContentPane().add(lblNowPlayInfo);
+		this.add(lblNowPlayInfo);
 		lblWillPlayInfo.setBounds(5, 230, 500, 40);
 		lblWillPlayInfo.setFont(f);
-		this.getContentPane().add(lblWillPlayInfo);
+		this.add(lblWillPlayInfo);
 		
-		btnOK.setBounds(0, 0, 80, 30);
-		this.getContentPane().add(btnOK);
 		btnGo.setBounds(230, 80, 70, 40);
 		btnGo.setFont(f);
-		this.getContentPane().add(btnGo);
+		this.add(btnGo);
 		btnReset.setBounds(300, 80, 70, 40);
 		btnReset.setFont(f);
-		this.getContentPane().add(btnReset);
-
-		btnOK.addActionListener(new AbstractAction() {
-			public void actionPerformed(ActionEvent e) {
-				lblInfo.setText("You Click OK!");
-			}
-		});
+		this.add(btnReset);
 
 		btnReset.addActionListener(new AbstractAction() {
 			public void actionPerformed(ActionEvent e) {

@@ -31,7 +31,7 @@ int apAudioEncoder::ff_write_packet(void *opaque, uint8_t *buf, int buf_size)
 	apAudioEncoder *pIns = (apAudioEncoder*)opaque;
 	if (pIns->m_dump) {
 		int written = pIns->m_dump->in((char *)buf, buf_size);
-		LOGD("ff_write_packet %d/%d", buf_size, written);
+		LOGI("ff_write_packet %d/%d", buf_size, written);
 	}
 	
 	return buf_size;
@@ -182,10 +182,14 @@ bool apAudioEncoder::write_audio_frame(uint8_t* pBuffer, int datalen)
 	int offset = 0;
 
 	while (left >= m_audio_buf_size) {
-		if (m_audio_buf_offset > 0)
-			memcpy(m_audio_buf + m_audio_buf_offset, pBuffer + offset, m_audio_buf_size - m_audio_buf_offset);
+		int process_data_size = m_audio_buf_size;
+		if (m_audio_buf_offset > 0) {
+			process_data_size = m_audio_buf_size - m_audio_buf_offset;
+			memcpy(m_audio_buf + m_audio_buf_offset, pBuffer + offset, process_data_size);
+			m_audio_buf_offset = 0;
+		}
 		else
-			memcpy(m_audio_buf, pBuffer + offset, m_audio_buf_size);
+			memcpy(m_audio_buf, pBuffer + offset, process_data_size);
 		
 		ret = avcodec_encode_audio2(c, &pkt, m_pAudioFrame, &got_packet);
 		if (ret < 0) {
@@ -204,11 +208,8 @@ bool apAudioEncoder::write_audio_frame(uint8_t* pBuffer, int datalen)
 			}	
 		}
 
-		left	-= m_audio_buf_size;
-		offset	+= m_audio_buf_size;
-
-		if (m_audio_buf_offset > 0)
-			m_audio_buf_offset = 0;
+		left	-= process_data_size;
+		offset	+= process_data_size;
 	}
 
 	if (left > 0) {
@@ -271,6 +272,7 @@ AVStream * apAudioEncoder::add_audiostream(int channels, int sample_rate, int sa
 	m_audio_frame_size = c->frame_size * c->channels * 2;
 	m_audio_buf_size = len;
 	m_audio_buf = (uint8_t*)av_mallocz(m_audio_buf_size);
+	LOGI("audio frame size: %d, buf size %d", m_audio_frame_size, m_audio_buf_size);
 
 	ret = avcodec_fill_audio_frame(m_pAudioFrame, c->channels,
 		c->sample_fmt, m_audio_buf, len, 1);

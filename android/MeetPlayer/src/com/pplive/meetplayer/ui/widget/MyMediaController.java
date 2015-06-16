@@ -59,6 +59,10 @@ public class MyMediaController extends MediaController {
 		mControllerView = makeControllerView();
 	}
 	
+	public void setLivePlay(boolean isLive) {
+		mIsLivePlay = isLive;
+	}
+	
 	public void setFileName(String name) {
 		if (name != null)
 			mFileName.setText(name);

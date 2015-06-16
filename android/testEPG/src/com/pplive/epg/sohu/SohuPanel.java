@@ -7,8 +7,6 @@ import org.jdom2.Document;
 import org.jdom2.Element;
 import org.jdom2.output.XMLOutputter;
 
-import java.awt.Container;
-import java.awt.FlowLayout;
 import java.awt.Font;
 import java.awt.event.*; 
 import java.awt.image.BufferedImage;
@@ -24,7 +22,8 @@ import java.util.StringTokenizer;
 
 import com.pplive.epg.sohu.PlaylinkSohu.SOHU_FT;
 
-public class SohuFrame extends JFrame {
+@SuppressWarnings("serial")
+public class SohuPanel extends JPanel {
 	
 	private SOHUVIDEO_EPG_STATE mState = SOHUVIDEO_EPG_STATE.SOHUVIDEO_EPG_STATE_IDLE;
 	
@@ -63,7 +62,6 @@ public class SohuFrame extends JFrame {
 	private int ep_page_index = 1;
 	private int ep_page_incr;
 	
-	JButton btnOK		= new JButton("OK");
 	JButton btnReset 	= new JButton("重置");
 	JButton btnGo 		= new JButton("进入");
 	JButton btnNext 	= new JButton("翻页");
@@ -81,24 +79,16 @@ public class SohuFrame extends JFrame {
 	
 	Font f = new Font("宋体", 0, 18);
 	
-	public SohuFrame() {
+	public SohuPanel() {
 		super();
 		
-		mEPG = new SohuUtil();
+		this.setLayout(null);
 		
-		this.setTitle("Test EPG");
-		this.setBounds(400, 300, 700, 600);
-		this.addWindowListener(new WindowAdapter() {
-			public void windowClosing(WindowEvent e) {
-				dispose();
-				System.exit(0);
-			}
-		});
+		mEPG = new SohuUtil();
 
-		this.getContentPane().setLayout(null);
 		// Action
 		lblInfo.setBounds(5, 40, 300, 30);
-		this.getContentPane().add(lblInfo);
+		this.add(lblInfo);
 		
 		listItem = new JList<String>();
 		listItem.setFont(f);
@@ -141,33 +131,24 @@ public class SohuFrame extends JFrame {
 				}
 			}
 		});
-		this.getContentPane().add(listItem);
+		this.add(listItem);
 		
 		lblImage.setBounds(350, 100, 256, 256);
-		this.getContentPane().add(lblImage);
+		this.add(lblImage);
 		
 		lblTip.setFont(f);
 		lblTip.setBounds(500, 320, 100, 40);
-		this.getContentPane().add(lblTip);
-		
-		btnOK.setBounds(0, 0, 80, 30);
-		this.getContentPane().add(btnOK);
+		this.add(lblTip);
 		
 		btnGo.setBounds(350, 80, 70, 40);
 		btnGo.setFont(f);
-		this.getContentPane().add(btnGo);
+		this.add(btnGo);
 		btnReset.setBounds(430, 80, 70, 40);
 		btnReset.setFont(f);
-		this.getContentPane().add(btnReset);
+		this.add(btnReset);
 		btnNext.setFont(f);
 		btnNext.setBounds(510, 80, 80, 40);
-		this.getContentPane().add(btnNext);
-
-		btnOK.addActionListener(new AbstractAction() {
-			public void actionPerformed(ActionEvent e) {
-				lblInfo.setText("You Click OK!");
-			}
-		});
+		this.add(btnNext);
 
 		btnReset.addActionListener(new AbstractAction() {
 			public void actionPerformed(ActionEvent e) {
@@ -208,12 +189,12 @@ public class SohuFrame extends JFrame {
 		editorSearch.setFont(f);
 		editorSearch.setBounds(20, 350, 200, 40);
 		editorSearch.setText("墨丹文");
-	    this.getContentPane().add(editorSearch);
+	    this.add(editorSearch);
 	    
 	    btnSearch.setFont(f);
 	    btnSearch.setBounds(230, 350, 80, 40);
 	    editorSearch.setFont(f);
-		this.getContentPane().add(btnSearch);
+		this.add(btnSearch);
 		btnSearch.addActionListener(new AbstractAction() {
 			public void actionPerformed(ActionEvent e) {
 				String key = editorSearch.getText();
@@ -249,9 +230,9 @@ public class SohuFrame extends JFrame {
 		case SOHUVIDEO_EPG_STATE_CATE:
 			selectAlbumNew();
 			break;
-		case SOHUVIDEO_EPG_STATE_CLIP:
-			selectClip();
-			break;
+		//case SOHUVIDEO_EPG_STATE_CLIP:
+		//	selectClip();
+		//	break;
 		case SOHUVIDEO_EPG_STATE_TOPIC:
 			//selectTopic();
 			break;
@@ -266,7 +247,7 @@ public class SohuFrame extends JFrame {
 		}
 	}
 	
-	private void selectClip() {
+	/*private void selectClip() {
 		int n = listItem.getSelectedIndex();
 		System.out.println("Java: clip info: " + mAlbumList.get(n).toString());
 		
@@ -276,20 +257,15 @@ public class SohuFrame extends JFrame {
 			link = mEPG.video_info(al.getSite(), al.getVid(), al.getAid());
 		else
 			link = mEPG.playlink_pptv(al.getVid(), 0);
-		if (link != null) {
-			System.out.println("Java: link info: " + link.getTitle());
+		if (link == null) {
+			System.out.print("Java: playlink is null");
+			return;
 		}
 		
-		String url = link.getUrl(SOHU_FT.SOHU_FT_HIGH);
-
-		System.out.println("final play link " + url);
+		System.out.println("Java: link info: " + link.getTitle());
 		
-		gen_xml(link, SOHU_FT.SOHU_FT_HIGH);
-		
-		String exe_filepath  = "D:/software/ffmpeg/ffplay.exe";
-		String[] cmd = new String[] {exe_filepath, url};
-		openExe(cmd);
-	}
+		play_video(link);
+	}*/
 	
 	private void selectEpisode() {
 		if (last_aid == -1) {
@@ -302,17 +278,8 @@ public class SohuFrame extends JFrame {
 					pl = mEPG.video_info(al.getSite(), al.getVid(), al.getAid());
 				else
 					pl = mEPG.playlink_pptv(al.getVid(), 0);
-				if (pl != null) {
-					String url = pl.getUrl(SOHU_FT.SOHU_FT_HIGH);
-
-					System.out.println("quick play link " + url);
-					
-					gen_xml(pl, SOHU_FT.SOHU_FT_HIGH);
-					
-					String exe_filepath  = "D:/software/ffmpeg/ffplay.exe";
-					String[] cmd = new String[] {exe_filepath, url};
-					openExe(cmd);
-				}
+				if (pl != null)
+					play_video(pl);
 				
 				return;
 			}
@@ -475,6 +442,15 @@ public class SohuFrame extends JFrame {
 		else
 			pl = mEPG.playlink_pptv(ep.mVid, 0);
 		
+		if (pl == null) {
+			System.out.println("Java: playlink is null");
+			return;
+		}
+		
+		play_video(pl);
+	}
+	
+	private void play_video(PlaylinkSohu pl) {
 		SOHU_FT ft = SOHU_FT.SOHU_FT_ORIGIN;
 		String strUrl = pl.getUrl(ft);
 		if (strUrl == null || strUrl.isEmpty()) {
@@ -507,7 +483,7 @@ public class SohuFrame extends JFrame {
 
 		System.out.println("final play link " + url);
 		
-		String exe_filepath  = "D:/software/ffmpeg/ffplay.exe";
+		String exe_filepath  = "E:/git/PPTV/MeetSDK/engine2/build/win32/bin/Release/player_vc.exe";
 		String[] cmd = new String[] {exe_filepath, url};
 		openExe(cmd);
 	}

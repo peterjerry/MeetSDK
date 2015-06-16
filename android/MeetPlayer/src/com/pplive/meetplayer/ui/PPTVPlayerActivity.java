@@ -49,6 +49,25 @@ public class PPTVPlayerActivity extends VideoPlayerActivity {
 	}
 	
 	@Override
+	protected void onComplete() {
+		mVideoView.stopPlayback();
+		
+		mEpisodeIndex ++;
+		
+		if (mEpisodeList == null) {
+			if (mVid == -1) {
+				Toast.makeText(this, "mVid is invalid", Toast.LENGTH_SHORT).show();
+			}
+			else {
+				new EpisodeTask().execute(TASK_DETAIL, mVid);
+			}
+		}
+		else {
+			mHandler.sendEmptyMessage(MSG_EPISODE_DONE);
+		}
+	}
+	
+	@Override
 	public boolean onKeyDown(int keyCode, KeyEvent event) {
 		
 		Log.d(TAG, "keyCode: " + keyCode);
@@ -57,6 +76,9 @@ public class PPTVPlayerActivity extends VideoPlayerActivity {
 		switch (keyCode) {
 		case KeyEvent.KEYCODE_DPAD_LEFT:
 		case KeyEvent.KEYCODE_DPAD_RIGHT:
+			if (mController.isShowing()) {
+				return super.onKeyDown(keyCode, event);
+			}
 			
 			if (KeyEvent.KEYCODE_DPAD_LEFT == keyCode)
 				incr = -1;
@@ -76,6 +98,7 @@ public class PPTVPlayerActivity extends VideoPlayerActivity {
 			else {
 				mHandler.sendEmptyMessage(MSG_EPISODE_DONE);
 			}
+			
 			return true;
 		default:
 			return super.onKeyDown(keyCode, event);
