@@ -91,11 +91,16 @@ else
 	SYSROOT=$NDK/platforms/android-9/arch-$ARCH
 fi
 
+USER_ROOT=`pwd`
+FDK_AAC_HOME=$USER_ROOT/thirdparty/fdk-aac
+FDK_AAC_LIB=
+
 if [ $ARCH == 'arm' ] 
 then
 	CROSS_PREFIX=$NDK/toolchains/arm-linux-androideabi-4.8/prebuilt/$HOST/bin/arm-linux-androideabi-
 	EXTRA_CFLAGS="$EXTRA_CFLAGS -fstack-protector -fstrict-aliasing"
 	OPTFLAGS="-O2"
+	FDK_AAC_LIB=$FDK_AAC_HOME/lib/armeabi-v7a
 elif [ $ARCH == 'arm64' ] 
 then
 	CROSS_PREFIX=$NDK/toolchains/aarch64-linux-android-4.9/prebuilt/$HOST/bin/aarch64-linux-android-
@@ -106,13 +111,22 @@ then
 	CROSS_PREFIX=$NDK/toolchains/x86-4.8/prebuilt/$HOST/bin/i686-linux-android-
 	EXTRA_CFLAGS="$EXTRA_CFLAGS -fstrict-aliasing"
 	OPTFLAGS="-O2 -fno-pic"
-	MXLIB_PATH="../libs/x86"
+	FDK_AAC_LIB=$FDK_AAC_HOME/lib/x86
 elif [ $ARCH == 'mips' ] 
 then
 	CROSS_PREFIX=$NDK/toolchains/mipsel-linux-android-4.8/prebuilt/$HOST/bin/mipsel-linux-android-
 	EXTRA_CFLAGS="$EXTRA_CFLAGS -fno-strict-aliasing -fmessage-length=0 -fno-inline-functions-called-once -frerun-cse-after-loop -frename-registers"
 	OPTFLAGS="-O2"
-	MXLIB_PATH="../libs/mips"
+fi
+
+if [ ${3}x == 'enc'x ]; then
+echo "build-in fdk-aac" 
+echo "USER_ROOT: $USER_ROOT"
+echo "fdk-aac include: $FDK_AAC_HOME/include"
+echo "fdk-aac lib: $FDK_AAC_LIB"
+
+EXTRA_CFLAGS="$EXTRA_CFLAGS -I$FDK_AAC_HOME/include"
+EXTRA_LDFLAGS="$EXTRA_LDFLAGS -L$FDK_AAC_LIB"
 fi
 
 #remove ac3 eac3
@@ -134,6 +148,13 @@ EXTRA_PARAMETERS="$EXTRA_PARAMETERS \
 # hevc,liblenthevchm91,liblenthevchm10,liblenthevc
 else
 echo "full build"
+fi
+
+if [ ${3}x == 'enc'x ]; then
+EXTRA_PARAMETERS="$EXTRA_PARAMETERS \
+	--enable-encoder=libfdk_aac \
+	--enable-libfdk-aac \
+	--enable-muxer=mpegts,flv,hls"
 fi
 
 #liblenthevcdec

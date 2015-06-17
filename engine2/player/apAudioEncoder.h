@@ -5,6 +5,7 @@ struct AVFormatContext;
 struct AVOutputFormat;
 struct AVStream;
 struct AVFrame;
+struct AVBitStreamFilterContext;
 
 class apProxyUDP;
 
@@ -43,6 +44,8 @@ private:
 	int64_t				m_encodered_frames;
 	int64_t				m_dump_bytes;
 	bool				m_exit;
+
+	AVBitStreamFilterContext*	m_pBsfc_aac;
 
 	apProxyUDP*			m_dump;
 

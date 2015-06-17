@@ -10,7 +10,8 @@ apAudioEncoder::apAudioEncoder(void)
 	:m_ctx(NULL), m_ofmt(NULL), m_audio_st(NULL), m_pAudioFrame(NULL),
 		m_audio_frame_size(0), m_audio_buf_size(0), 
 		m_audio_buf(NULL), m_audio_buf_offset(0), 
-		m_pb_buf(NULL), m_encodered_frames(0), m_dump_bytes(0), m_exit(false)
+		m_pb_buf(NULL), m_encodered_frames(0), m_dump_bytes(0), m_exit(false),
+		m_pBsfc_aac(NULL)
 {
 	av_register_all();
 	avformat_network_init();
@@ -88,20 +89,23 @@ bool apAudioEncoder::init(const char *ip_addr, int port, int channels, int sampl
 
 	AVIOContext* my_pb = NULL;
 
-	m_ofmt = av_guess_format("mpegts", NULL, NULL);  
-	if (!m_ofmt) {
-		LOGE("Could not find MPEG-TS muxer.");
-		return false;
-	}
+#ifdef PROTOCOL_RTMP
+	const char* out_filename = "rtmp://172.16.204.106/live/test01";
+	ret = avformat_alloc_output_context2(&m_ctx, NULL, "flv", out_filename);
+#else
+	const char* out_filename = NULL;
+	ret = avformat_alloc_output_context2(&m_ctx, NULL, "mpegts", out_filename);
+#endif
 
-	ret = avformat_alloc_output_context2(&m_ctx, NULL, m_ofmt->name, NULL);
 	if (ret < 0) {
 		LOGE("Could not allocated output context");
 		return false;
 	}
 
-	m_ctx->oformat = m_ofmt;
+	m_ofmt = m_ctx->oformat;
+#ifndef PROTOCOL_RTMP
 	m_ctx->oformat->flags |= AVFMT_TS_NONSTRICT;
+#endif
 	m_ctx->interrupt_callback.callback = encode_interrupt_cb;
 	m_ctx->interrupt_callback.opaque = this;
 
@@ -111,6 +115,7 @@ bool apAudioEncoder::init(const char *ip_addr, int port, int channels, int sampl
 		return false;
 	}
 
+#ifndef PROTOCOL_RTMP
 	m_pb_buf = (uint8_t *)av_mallocz(PB_BUF_SIZE);
 	my_pb = avio_alloc_context(m_pb_buf, PB_BUF_SIZE, 1, this, NULL, ff_write_packet, NULL);
 	if(!my_pb){
@@ -119,16 +124,29 @@ bool apAudioEncoder::init(const char *ip_addr, int port, int channels, int sampl
 	}
 
 	m_ctx->pb = my_pb;
+#endif
 
-	av_dump_format(m_ctx, 0, NULL, 1);
+	av_dump_format(m_ctx, 0, out_filename, 1);
+	
+#ifdef PROTOCOL_RTMP
+	if (!(m_ofmt->flags & AVFMT_NOFILE)) {
+        ret = avio_open(&m_ctx->pb, out_filename, AVIO_FLAG_WRITE);
+        if (ret < 0) {
+            LOGE("Could not open output file '%s'", out_filename);
+            return false;
+        }
+    }
+#endif
 
 	avformat_write_header(m_ctx, NULL);
 
+#ifndef PROTOCOL_RTMP
 	m_dump = new apProxyUDP();
 	if (!m_dump->init(ip_addr, port)) {
 		LOGE("failed to init udp dump");
 		return false;
 	}
+#endif
 
 	m_encodered_frames	= 0;
 	m_dump_bytes		= 0;
@@ -150,17 +168,28 @@ void apAudioEncoder::close()
 		av_free(m_audio_buf);
 		av_free(m_pAudioFrame);
 	}
+#ifdef PROTOCOL_RTMP
+	if (m_pBsfc_aac) {
+		av_bitstream_filter_close(m_pBsfc_aac);
+		m_pBsfc_aac = NULL;
+	}
+#endif
 
 	if (m_ctx) {
+#ifdef PROTOCOL_RTMP
+		avformat_free_context(m_ctx);
+#else
 		/* free the streams */
 		for(int i = 0; i < (int)m_ctx->nb_streams; i++) {
 			av_freep(&m_ctx->streams[i]->codec);
 			av_freep(&m_ctx->streams[i]);
 		}
+
 		m_ctx->pb->opaque = NULL;//hard code, need fix
 		avio_close(m_ctx->pb);
 		av_free(m_ctx);
 		m_ctx = NULL;
+#endif
 	}
 
 	if (m_dump) {
@@ -198,10 +227,15 @@ bool apAudioEncoder::write_audio_frame(uint8_t* pBuffer, int datalen)
 		}
 
 		if (got_packet) {
+#ifdef PROTOCOL_RTMP
+			int isKeyFrame = pkt.flags & AV_PKT_FLAG_KEY;
+			av_bitstream_filter_filter(m_pBsfc_aac, m_audio_st->codec, NULL, &pkt.data, &pkt.size, 
+				pkt.data, pkt.size, isKeyFrame);
+#endif
+
 			pkt.stream_index = m_audio_st->index;
 			ret = av_interleaved_write_frame(m_ctx, &pkt);
-			if ( ret != 0)
-			{
+			if ( ret != 0) {
 				LOGE("failed to write audio frame. err = %d", ret);
 				av_free_packet(&pkt);
 				return false;
@@ -248,6 +282,12 @@ AVStream * apAudioEncoder::add_audiostream(int channels, int sample_rate, int sa
 	c->bit_rate			= bitrate;
 	c->channel_layout	= AV_CH_LAYOUT_STEREO; // hard code
 
+#ifdef PROTOCOL_RTMP
+	c->codec_tag = 0;
+	if (m_ofmt->flags & AVFMT_GLOBALHEADER)
+		c->flags |= CODEC_FLAG_GLOBAL_HEADER;
+#endif
+
 	ret = avcodec_open2(c, codec, NULL);
 	if (ret < 0) {
 		char buf[1024] = "";
@@ -276,10 +316,18 @@ AVStream * apAudioEncoder::add_audiostream(int channels, int sample_rate, int sa
 
 	ret = avcodec_fill_audio_frame(m_pAudioFrame, c->channels,
 		c->sample_fmt, m_audio_buf, len, 1);
-	if(ret < 0) {
+	if (ret < 0) {
 		LOGE("failed to assign sample buffer for audio.");
 		return NULL;
 	}
+
+#ifdef PROTOCOL_RTMP
+	m_pBsfc_aac =  av_bitstream_filter_init("aac_adtstoasc");
+	if (!m_pBsfc_aac) {
+		LOGE("Could not aquire aac_adtstoasc filter");
+		return NULL;
+	}
+#endif
 
 	return st;
 }

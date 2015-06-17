@@ -1497,14 +1497,14 @@ void FFPlayer::onBufferingUpdateImpl()
         return;
     }
 
-    int64_t cachedDurationMs; // abosolute position
+    int64_t cachedDurationMs; // absolute position
 	if (mSeeking)
-		cachedDurationMs = mSeekTimeMs;
+		cachedDurationMs = mSeekTimeMs - mDataStream->getStartTime();
 	else
 		cachedDurationMs = mDataStream->getCachedDurationMs();
 	int64_t pos_msec = get_master_clock();
-	if (cachedDurationMs < pos_msec)
-		cachedDurationMs = pos_msec;
+	if (cachedDurationMs < pos_msec - mDataStream->getStartTime())
+		cachedDurationMs = pos_msec - mDataStream->getStartTime();
 	int percent100 = (int)(cachedDurationMs * 100 / mDurationMs) + 1; // 1 is for compensation.
 	if (percent100 > 100) 
 		percent100 = 100;
