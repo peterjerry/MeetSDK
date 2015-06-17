@@ -1762,6 +1762,7 @@ status_t FFPlayer::setISubtitle(ISubtitles* subtitle)
 void FFPlayer::notify(int32_t msg, int32_t ext1, int32_t ext2)
 {
 	// called from audio_player or ffstream
+	// notify that only loop thread is detached jni-thread
     switch(msg)
     {
         case MEDIA_INFO:

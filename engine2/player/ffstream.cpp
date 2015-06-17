@@ -9,6 +9,8 @@
 #endif
 #ifdef __ANDROID__
 #include <sys/sysinfo.h>
+#include <jni.h> // for detach jni thread
+extern JavaVM* gs_jvm;
 #endif
 #include <sched.h> // in pthread
 
@@ -796,12 +798,14 @@ void FFStream::thread_impl()
 				seek_target= av_rescale_q(seek_target, AV_TIME_BASE_Q, mMovieFile->streams[stream_index]->time_base);
 #endif
                 if (av_seek_frame(mMovieFile, stream_index, seek_target, mSeekFlag) < 0) {
-                    LOGW("failed to seek to: %lld(ms)", mSeekTimeMs);
+#ifdef _MSC_VER
+					LOGE("failed to seek to: %I64d(ms)", mSeekTimeMs);
+#else
+                    LOGE("failed to seek to: %lld(ms)", mSeekTimeMs);
+#endif
                     mSeeking = false;
-					continue;
-					//cause crash
-					//notifyListener_l(MEDIA_ERROR, MEDIA_ERROR_FAIL_TO_SEEK, 0);
-                    //break; 
+					notifyListener_l(MEDIA_ERROR, MEDIA_ERROR_FAIL_TO_SEEK, (int)mSeekTimeMs);
+                    break; 
                 }
 				
                 LOGI("after seek to :%lld(ms)", mSeekTimeMs);
@@ -1255,7 +1259,19 @@ void* FFStream::demux_thread(void* ptr)
 {
 	LOGI("demux_thread thread started");
     FFStream* stream = (FFStream*)ptr;
+
+	// 2015.6.17 guoliangma added to fix seek onError crash bug
+#ifdef __ANDROID__
+	JNIEnv *env = NULL;
+    gs_jvm->AttachCurrentThread(&env, NULL);
+#endif
+
     stream->thread_impl();
+
+#ifdef __ANDROID__
+    gs_jvm->DetachCurrentThread();
+#endif
+
 	LOGI("demux_thread thread exited");
     return NULL;
 }
@@ -1306,10 +1322,10 @@ int FFStream::interrupt_l(void* ctx)
 
 void FFStream::notifyListener_l(int msg, int ext1, int ext2)
 {
-    if (mListener == NULL)
+	if (mListener == NULL)
 		LOGE("mListener is null");
-
-    mListener->notify(msg, ext1, ext2);
+	else
+		mListener->notify(msg, ext1, ext2);
 }
 
 status_t FFStream::getBufferingTime(int *msec)

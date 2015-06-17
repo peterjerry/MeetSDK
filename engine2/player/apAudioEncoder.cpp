@@ -11,7 +11,7 @@ apAudioEncoder::apAudioEncoder(void)
 		m_audio_frame_size(0), m_audio_buf_size(0), 
 		m_audio_buf(NULL), m_audio_buf_offset(0), 
 		m_pb_buf(NULL), m_encodered_frames(0), m_dump_bytes(0), m_exit(false),
-		m_pBsfc_aac(NULL)
+		m_pBsfc_aac(NULL), m_dump(NULL)
 {
 	av_register_all();
 	avformat_network_init();
@@ -87,8 +87,6 @@ bool apAudioEncoder::init(const char *ip_addr, int port, int channels, int sampl
 
 	int ret;
 
-	AVIOContext* my_pb = NULL;
-
 #ifdef PROTOCOL_RTMP
 	const char* out_filename = "rtmp://172.16.204.106/live/test01";
 	ret = avformat_alloc_output_context2(&m_ctx, NULL, "flv", out_filename);
@@ -116,6 +114,7 @@ bool apAudioEncoder::init(const char *ip_addr, int port, int channels, int sampl
 	}
 
 #ifndef PROTOCOL_RTMP
+	AVIOContext* my_pb = NULL;
 	m_pb_buf = (uint8_t *)av_mallocz(PB_BUF_SIZE);
 	my_pb = avio_alloc_context(m_pb_buf, PB_BUF_SIZE, 1, this, NULL, ff_write_packet, NULL);
 	if(!my_pb){
@@ -173,14 +172,23 @@ void apAudioEncoder::close()
 		av_bitstream_filter_close(m_pBsfc_aac);
 		m_pBsfc_aac = NULL;
 	}
+#else
+	if (m_dump) {
+		delete m_dump;
+		m_dump = NULL;
+	}
 #endif
 
 	if (m_ctx) {
 #ifdef PROTOCOL_RTMP
+		/* close output */
+		if (!(m_ofmt->flags & AVFMT_NOFILE))
+			avio_close(m_ctx->pb);
 		avformat_free_context(m_ctx);
+		m_ctx = NULL;
 #else
 		/* free the streams */
-		for(int i = 0; i < (int)m_ctx->nb_streams; i++) {
+		for (int i = 0; i < (int)m_ctx->nb_streams; i++) {
 			av_freep(&m_ctx->streams[i]->codec);
 			av_freep(&m_ctx->streams[i]);
 		}
@@ -190,11 +198,6 @@ void apAudioEncoder::close()
 		av_free(m_ctx);
 		m_ctx = NULL;
 #endif
-	}
-
-	if (m_dump) {
-		delete m_dump;
-		m_dump = NULL;
 	}
 }
 

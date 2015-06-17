@@ -420,7 +420,7 @@ public class ClipListActivity extends Activity implements
 		}
 		
 		if (initDLNA() == false) {
-			Toast.makeText(this, "failed to load meet lib", 
+			Toast.makeText(this, "failed to load dlna lib", 
 				Toast.LENGTH_SHORT).show();
 		}
 		

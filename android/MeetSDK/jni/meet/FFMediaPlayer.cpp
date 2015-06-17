@@ -181,14 +181,24 @@ JNIMediaPlayerListener::~JNIMediaPlayerListener()
 	// remove global references
 	//JNIEnv *env = AndroidRuntime::getJNIEnv();
 	JNIEnv *env = getJNIEnvPP();
-	env->DeleteGlobalRef(mObject);
-	env->DeleteGlobalRef(mClass);
+	if (env) {
+		env->DeleteGlobalRef(mObject);
+		env->DeleteGlobalRef(mClass);
+	}
+	else {
+		PPLOGE("~JNIMediaPlayerListener() env is null");
+	}
 }
 
 void JNIMediaPlayerListener::notify(int msg, int ext1, int ext2)
 {
 	JNIEnv *env = getJNIEnvPP();
-	env->CallStaticVoidMethod(mClass, fields.post_event, mObject, msg, ext1, ext2, 0);
+	if (env) {
+		env->CallStaticVoidMethod(mClass, fields.post_event, mObject, msg, ext1, ext2, 0);
+	}
+	else {
+		PPLOGE("notify() env is null");
+	}
 }
 
 // ----------------------------------------------------------------------------

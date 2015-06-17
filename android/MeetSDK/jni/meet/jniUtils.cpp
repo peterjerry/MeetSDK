@@ -151,7 +151,6 @@ JNIEnv* getAttachedJNIEnv()
 			return NULL;
 		}
 
-
 		return env;
 	}
 	else {
