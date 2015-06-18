@@ -1718,36 +1718,6 @@ void FFPlayer::onSeekingCompleteImpl()
     notifyListener_l(MEDIA_SEEK_COMPLETE);
 }
 
-void FFPlayer::FFIOBitrateInfoEvent::action(void *opaque, int64_t now_us)
-{
-	FFPlayer *ins= (FFPlayer *)opaque;
-	if (ins)
-		ins->onIOBitrateInfoImpl();
-}
-
-void FFPlayer::onIOBitrateInfoImpl()
-{
-	LOGD("onBitrateInfo");
-    notifyListener_l(MEDIA_INFO, MEDIA_INFO_TEST_IO_BITRATE, mIOBitrate);
-
-	int msec = 0;
-	getBufferingTime(&msec);
-	notifyListener_l(MEDIA_INFO, MEDIA_INFO_TEST_BUFFERING_MSEC, msec);
-}
-
-void FFPlayer::FFMediaBitrateInfoEvent::action(void *opaque, int64_t now_us)
-{
-	FFPlayer *ins= (FFPlayer *)opaque;
-	if (ins)
-		ins->onMediaBitrateInfoImpl();
-}
-
-void FFPlayer::onMediaBitrateInfoImpl()
-{
-	LOGD("onBitrateInfo");
-    notifyListener_l(MEDIA_INFO, MEDIA_INFO_TEST_MEDIA_BITRATE, mVideoBitrate);
-}
-
 status_t FFPlayer::setISubtitle(ISubtitles* subtitle)
 {
 	if (!subtitle) {
@@ -1773,12 +1743,18 @@ void FFPlayer::notify(int32_t msg, int32_t ext1, int32_t ext2)
                 postBufferingEndEvent_l();
             }
 			else if(ext1 == MEDIA_INFO_TEST_IO_BITRATE){
-				mIOBitrate = ext2;
-				postIOBitrateInfoEvent_l();
+				// 2015.6.18 guoliangma change to notifyListener_l
+				// because ffstream thread has detach thread
+				notifyListener_l(MEDIA_INFO, MEDIA_INFO_TEST_IO_BITRATE, ext2);
+
+				int msec = 0;
+				getBufferingTime(&msec);
+				notifyListener_l(MEDIA_INFO, MEDIA_INFO_TEST_BUFFERING_MSEC, msec);
 			}
 			else if(ext1 == MEDIA_INFO_TEST_MEDIA_BITRATE){
-				mVideoBitrate = ext2;
-				postMediaBitrateInfoEvent_l();
+				// 2015.6.18 guoliangma change to notifyListener_l
+				// because ffstream thread has detach thread
+				notifyListener_l(MEDIA_INFO, MEDIA_INFO_TEST_MEDIA_BITRATE, ext2);
 			}
             break;
         case MEDIA_SEEK_COMPLETE:
@@ -1936,16 +1912,6 @@ void FFPlayer::postSeekingCompleteEvent_l() {
     mSeekingCompleteEventPending = true;
 	
 	FFSeekingCompleteEvent *evt = new FFSeekingCompleteEvent(this);
-	mMsgLoop.postEventTohHeader(evt);
-}
-
-void FFPlayer::postIOBitrateInfoEvent_l() {
-	FFIOBitrateInfoEvent *evt = new FFIOBitrateInfoEvent(this);
-	mMsgLoop.postEventTohHeader(evt);
-}
-
-void FFPlayer::postMediaBitrateInfoEvent_l() {
-	FFMediaBitrateInfoEvent *evt = new FFMediaBitrateInfoEvent(this);
 	mMsgLoop.postEventTohHeader(evt);
 }
 

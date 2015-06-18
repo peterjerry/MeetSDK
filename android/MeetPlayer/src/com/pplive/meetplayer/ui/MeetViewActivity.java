@@ -161,6 +161,10 @@ public class MeetViewActivity extends Activity implements OnFocusChangeListener 
 		mVideoView.setOnInfoListener(mInfoListener);
 		mVideoView.setOnPreparedListener(mPreparedListener);
 		
+		String audio_opt = Util.readSettings(this, "last_audio_ip_port");
+		if (audio_opt != null && !audio_opt.isEmpty())
+			mVideoView.setOption(audio_opt);
+		
 		mController = (MiniMediaController) findViewById(R.id.video_controller2);
 		
 		mController.setInstance(this);

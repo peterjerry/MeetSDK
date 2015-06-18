@@ -9,6 +9,8 @@ import android.app.AlertDialog;
 import android.app.Dialog;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.graphics.Color;
+import android.graphics.Typeface;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
@@ -59,6 +61,19 @@ public class VideoPlayerActivity extends Activity implements Callback {
 	
 	/* 记录上一次按返回键的时间 */
     private long backKeyTime = 0L;
+    
+    // debug info
+ 	private TextView mTextViewDebugInfo;
+ 	private boolean mbShowDebugInfo = false;
+ 	
+ 	private int decode_fps						= 0;
+	private int render_fps 					= 0;
+	private int decode_avg_msec 				= 0;
+	private int render_avg_msec 				= 0;
+	private int render_frame_num				= 0;
+	private int decode_drop_frame				= 0;
+	private int av_latency_msec				= 0;
+	private int video_bitrate					= 0;
 	
 	// subtitle
 	private SimpleSubTitleParser mSubtitleParser;
@@ -70,8 +85,11 @@ public class VideoPlayerActivity extends Activity implements Callback {
 	private String subtitle_filename;
 	private boolean mSubtitleStoped = false;
 	
+	// message
 	private static final int MSG_DISPLAY_SUBTITLE					= 401;
 	private static final int MSG_HIDE_SUBTITLE					= 402;
+	private static final int MSG_UPDATE_PLAY_INFO 				= 403;
+	private static final int MSG_UPDATE_RENDER_INFO				= 404;
 	
 	@Override
 	public void onCreate(Bundle savedInstanceState) {
@@ -95,9 +113,16 @@ public class VideoPlayerActivity extends Activity implements Callback {
 		setContentView(R.layout.activity_video_player);
 		
 		this.mController = (MyMediaController) findViewById(R.id.video_controller);
-		this.mVideoView = (MeetVideoView) findViewById(R.id.surface_view);
+		this.mVideoView = (MeetVideoView) findViewById(R.id.video_view);
 		this.mSubtitleTextView = (TextView) findViewById(R.id.textview_subtitle);
 		this.mBufferingProgressBar = (ProgressBar) findViewById(R.id.progressbar_buffering);
+		this.mTextViewDebugInfo = (TextView) findViewById(R.id.tv_debuginfo);
+		
+		this.mTextViewDebugInfo.setTextColor(Color.RED);
+		this.mTextViewDebugInfo.setTextSize(18);
+		this.mTextViewDebugInfo.setTypeface(Typeface.MONOSPACE);
+		
+		this.mController.setMediaPlayer(mVideoView);
 		
 		Util.initMeetSDK(this);
 		
@@ -134,6 +159,11 @@ public class VideoPlayerActivity extends Activity implements Callback {
 			popupSelectSubtitle();
 			break;
 		case R.id.toggle_debug_info:
+			mbShowDebugInfo = !mbShowDebugInfo;
+			if (mbShowDebugInfo)
+				mTextViewDebugInfo.setVisibility(View.VISIBLE);
+			else
+				mTextViewDebugInfo.setVisibility(View.GONE);
 			break;
 		default:
 			Log.w(TAG, "unknown menu id " + id);
@@ -347,11 +377,14 @@ public class VideoPlayerActivity extends Activity implements Callback {
 		
 		mVideoView.setDecodeMode(DecMode);
 		mVideoView.setVideoURI(mUri);
-		mController.setMediaPlayer(mVideoView);
 		mVideoView.setOnCompletionListener(mCompletionListener);
 		mVideoView.setOnErrorListener(mErrorListener);
 		mVideoView.setOnInfoListener(mInfoListener);
 		mVideoView.setOnPreparedListener(mPreparedListener);
+		
+		String audio_opt = Util.readSettings(this, "last_audio_ip_port");
+		if (audio_opt != null && !audio_opt.isEmpty())
+			mVideoView.setOption(audio_opt);
 		
 		String schema = mUri.getScheme();
 		String path = null;
@@ -471,6 +504,46 @@ public class VideoPlayerActivity extends Activity implements Callback {
 				else
 					str_player_type = "Unknown Player";
 				Toast.makeText(VideoPlayerActivity.this, str_player_type, Toast.LENGTH_SHORT).show();
+			}
+			else if(MediaPlayer.MEDIA_INFO_TEST_DECODE_AVG_MSEC == what) {
+				decode_avg_msec = extra;
+			}
+			else if(MediaPlayer.MEDIA_INFO_TEST_RENDER_AVG_MSEC == what) {
+				render_avg_msec = extra;
+			}
+			else if(MediaPlayer.MEDIA_INFO_TEST_DECODE_FPS == what) {
+				decode_fps = extra;
+				mHandler.sendEmptyMessage(MSG_UPDATE_PLAY_INFO);
+			}
+			else if(MediaPlayer.MEDIA_INFO_TEST_RENDER_FPS == what) {
+				render_fps = extra;
+				mHandler.sendEmptyMessage(MSG_UPDATE_PLAY_INFO);
+			}
+			else if(MediaPlayer.MEDIA_INFO_TEST_RENDER_FRAME == what) {
+				render_frame_num = extra;
+				mHandler.sendEmptyMessage(MSG_UPDATE_RENDER_INFO);
+			}
+			else if(MediaPlayer.MEDIA_INFO_TEST_LATENCY_MSEC == what) {
+				av_latency_msec = extra;
+			}
+			else if(MediaPlayer.MEDIA_INFO_TEST_DROP_FRAME == what) {
+				decode_drop_frame++;
+				mHandler.sendEmptyMessage(MSG_UPDATE_RENDER_INFO);
+			}
+			else if(MediaPlayer.MEDIA_INFO_TEST_MEDIA_BITRATE == what) {
+				video_bitrate = extra;
+				mHandler.sendEmptyMessage(MSG_UPDATE_PLAY_INFO);
+			}
+			else if(android.media.MediaPlayer.MEDIA_INFO_VIDEO_RENDERING_START == what) {
+				
+			}
+			else if(MediaPlayer.MEDIA_INFO_VIDEO_TRACK_LAGGING == what) {
+				av_latency_msec = extra;
+				
+				decode_fps = render_fps = 0;
+				decode_drop_frame = 0;
+				video_bitrate = 0;
+				mHandler.sendEmptyMessage(MSG_UPDATE_PLAY_INFO);
 			}
 			
 			return true;
@@ -604,7 +677,7 @@ public class VideoPlayerActivity extends Activity implements Callback {
 	}
 	
     public void toggleMediaControlsVisiblity() {
-    	if (mVideoView != null && mVideoView.isPlaying() && mController != null) {
+    	if (mVideoView.isPlaying() && mController != null) {
 	        if (mController.isShowing()) {
 	        	mController.hide();
 	        } else {
@@ -750,37 +823,16 @@ public class VideoPlayerActivity extends Activity implements Callback {
         @Override  
         public void handleMessage(Message msg) {  
             switch(msg.what) {
-			/*case MSG_CLIP_LIST_DONE:
-				if (mAdapter == null) {
-					mAdapter = new LocalFileAdapter(ClipListActivity.this, mListUtil.getList(), R.layout.pptv_list);
-					lv_filelist.setAdapter(mAdapter);
-				}
-				else {
-					mAdapter.updateData(mListUtil.getList());
-					mAdapter.notifyDataSetChanged();
-				}
-				break;
 			case MSG_UPDATE_PLAY_INFO:
 			case MSG_UPDATE_RENDER_INFO:
-				if (isLandscape) {
-					mTextViewInfo.setText(String.format("%02d|%03d v-a: %+04d "
+				if (mbShowDebugInfo) {
+					mTextViewDebugInfo.setText(String.format("%02d|%03d v-a: %+04d "
 							+ "dec/render %d(%d)/%d(%d) fps/msec bitrate %d kbps", 
 						render_frame_num % 25, decode_drop_frame % 1000, av_latency_msec, 
 						decode_fps, decode_avg_msec, render_fps, render_avg_msec,
 						video_bitrate));
 				}
-				else {
-					mTextViewInfo.setText(String.format("%02d|%03d v-a: %+04d\n"
-							+ "dec/render %d(%d)/%d(%d) fps/msec\nbitrate %d kbps", 
-						render_frame_num % 25, decode_drop_frame % 1000, av_latency_msec, 
-						decode_fps, decode_avg_msec, render_fps, render_avg_msec,
-						video_bitrate));
-				}
 				break;
-			case MSG_CLIP_PLAY_DONE:
-				Toast.makeText(ClipListActivity.this, "clip completed", Toast.LENGTH_SHORT).show();
-				mTextViewInfo.setText("play info");
-				break;*/
 			case MSG_DISPLAY_SUBTITLE:
 				mSubtitleTextView.setText(mSubtitleText);
 				break;

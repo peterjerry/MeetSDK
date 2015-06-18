@@ -116,8 +116,6 @@ public:
     static void onBufferingStart(void *opaque);
     static void onBufferingEnd(void *opaque);
     static void onSeekingComplete(void *opaque);
-	static void onIOBitrateInfo(void *opaque);
-	static void onMediaBitrateInfo(void *opaque);
 
 	void onPrepareImpl();
     void onStreamDoneImpl();
@@ -129,8 +127,6 @@ public:
     void onBufferingStartImpl();
     void onBufferingEndImpl();
     void onSeekingCompleteImpl();
-	void onIOBitrateInfoImpl();
-	void onMediaBitrateInfoImpl();
 
 private:
     enum Flags {
@@ -150,8 +146,6 @@ private:
 		BUFFERING_START_EVENT,
 		BUFFERING_END_EVENT,
 		SEEKING_COMPLETE_EVENT,
-		IO_BITRATE_INFO_EVENT,
-		MEDIA_BITRATE_INFO_EVENT,
 	};
 	
 	status_t prepare_l();
@@ -351,24 +345,6 @@ private:
 			m_opaque	= opaque;
 		}
 		~FFSeekingCompleteEvent(){}
-		virtual void action(void *opaque, int64_t now_us);
-	};
-	class FFIOBitrateInfoEvent:public Event {
-	public:
-		FFIOBitrateInfoEvent(void * opaque){
-			m_id		= IO_BITRATE_INFO_EVENT;
-			m_opaque	= opaque;
-		}
-		~FFIOBitrateInfoEvent(){}
-		virtual void action(void *opaque, int64_t now_us);
-	};
-	class FFMediaBitrateInfoEvent:public Event {
-	public:
-		FFMediaBitrateInfoEvent(void * opaque){
-			m_id		= MEDIA_BITRATE_INFO_EVENT;
-			m_opaque	= opaque;
-		}
-		~FFMediaBitrateInfoEvent(){}
 		virtual void action(void *opaque, int64_t now_us);
 	};
 	
