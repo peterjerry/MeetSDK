@@ -111,6 +111,11 @@ public class PPTVPlayerActivity extends VideoPlayerActivity {
         public void handleMessage(Message msg) {  
             switch(msg.what) {
             case MSG_EPISODE_DONE:
+            	if (mEpisodeList.size() < 2) {
+            		finish();
+            		return;
+            	}
+            	
             	if (mEpisodeIndex < 0) {
             		mEpisodeIndex = mEpisodeList.size() - 1;
             		Toast.makeText(PPTVPlayerActivity.this, 

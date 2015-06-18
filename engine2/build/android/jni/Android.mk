@@ -11,6 +11,8 @@ else
 FDK_AAC_PATH	:= ../../../../foundation/foundation_rext/thirdparty/fdk-aac/lib/x86
 endif
 
+RTMPDUMP_PATH	:= ../../../../foundation/foundation_rext/thirdparty/rtmpdump/lib/$(TARGET_ARCH_ABI)
+
 ifeq ($(TARGET_ARCH_ABI),armeabi)
 FFMPEG_PATH		:= ../../../../foundation/output/android/neon
 else
@@ -27,6 +29,21 @@ include $(CLEAR_VARS)
 LOCAL_MODULE 	:= fdk-aac
 LOCAL_SRC_FILES := $(FDK_AAC_PATH)/libfdk-aac.a
 include $(PREBUILT_STATIC_LIBRARY)
+
+include $(CLEAR_VARS)
+LOCAL_MODULE 	:= rtmp
+LOCAL_SRC_FILES := $(RTMPDUMP_PATH)/librtmp.a
+#include $(PREBUILT_STATIC_LIBRARY)
+
+include $(CLEAR_VARS)
+LOCAL_MODULE 	:= ssl
+LOCAL_SRC_FILES := $(RTMPDUMP_PATH)/libssl.a
+#include $(PREBUILT_STATIC_LIBRARY)
+
+include $(CLEAR_VARS)
+LOCAL_MODULE 	:= crypto
+LOCAL_SRC_FILES := $(RTMPDUMP_PATH)/libcrypto.a
+#include $(PREBUILT_STATIC_LIBRARY)
 endif
 
 include $(CLEAR_VARS)
@@ -84,13 +101,15 @@ ifdef BUILD_PCM_DUMP
 LOCAL_SRC_FILES 		+= $(addprefix $(PLATFORMPATH)/clsocket/, $(MY_SRC_SOCKET_FILES))
 endif
 LOCAL_STATIC_LIBRARIES 	:= ffmpeg cpufeatures
-ifdef BUILD_PCM_DUMP
-LOCAL_STATIC_LIBRARIES 	+= fdk-aac
-endif
 #LOCAL_SHARED_LIBRARIES 	:= lenthevcdec
 LOCAL_LDLIBS 			:= -llog -lz -landroid -L$(FFMPEG_PATH)/lib
 ifdef BUILD_OSLES
 LOCAL_LDLIBS			+= -lOpenSLES
+endif
+ifdef BUILD_PCM_DUMP
+LOCAL_STATIC_LIBRARIES 	+= fdk-aac
+#rtmp
+#LOCAL_LDLIBS 			+= -lssl -lcrypto
 endif
 include $(BUILD_SHARED_LIBRARY)
 
