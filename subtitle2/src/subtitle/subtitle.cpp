@@ -75,8 +75,8 @@ protected:
 	
     CSimpleTextSubtitle* getSelectedSimpleTextSubtitle()
     {
-		LOGD("getSelectedSimpleTextSubtitle mSubtitles size= %d", mSubtitles.size());
-		LOGD("getSelectedSimpleTextSubtitle mSelected= %d", mSelected);
+		LOGD("getSelectedSimpleTextSubtitle mSubtitles size: %d", mSubtitles.size());
+		LOGD("getSelectedSimpleTextSubtitle mSelected: %d", mSelected);
         if (mSelected >= 0 && mSelected < mSubtitles.size()) {
             return mSubtitles[mSelected];
         }

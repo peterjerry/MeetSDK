@@ -98,6 +98,8 @@ int _tmain(int argc, _TCHAR* argv[])
 			printf("swr_init failed\n");
 			goto end;
 		}
+
+		printf("swr_init done!\n");
     }
 
 	/* dump input information to stderr */

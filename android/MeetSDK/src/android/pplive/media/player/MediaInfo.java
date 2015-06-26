@@ -188,13 +188,13 @@ public class MediaInfo {
 		subtitleTrackInfos.add(subtitletrackinfo);
 	}
 	
-	public void setSubtitleChannelsInfo(int i, int j, String s, String s1, String s2) {
+	public void setSubtitleChannelsInfo(int id, int streamIndex, String codecName, String lang, String title) {
 		TrackInfo subtitletrackinfo = new TrackInfo();
-		subtitletrackinfo.setId(i);
-		subtitletrackinfo.setStreamIndex(j);
-		subtitletrackinfo.setCodecName(s);
-		subtitletrackinfo.setLanguage(s1);
-		subtitletrackinfo.setTitle(s2);
+		subtitletrackinfo.setId(id);
+		subtitletrackinfo.setStreamIndex(streamIndex);
+		subtitletrackinfo.setCodecName(codecName);
+		subtitletrackinfo.setLanguage(lang);
+		subtitletrackinfo.setTitle(title);
 		subtitleTrackInfos.add(subtitletrackinfo);
 	}
 

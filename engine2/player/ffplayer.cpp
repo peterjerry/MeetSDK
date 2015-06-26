@@ -3261,7 +3261,8 @@ bool FFPlayer::getCurrentMediaInfo(MediaInfo *info)
 
 	AVCodec* codec = avcodec_find_decoder(codec_ctx->codec_id);
 	if (codec == NULL) {
-		LOGE("avcodec_find_decoder() video failed");
+		LOGE("avcodec_find_decoder() video %d(%s) failed",
+			codec_ctx->codec_id, avcodec_get_name(codec_ctx->codec_id));
 		return false;
 	}
 	
@@ -3270,9 +3271,10 @@ bool FFPlayer::getCurrentMediaInfo(MediaInfo *info)
 	for (unsigned int i=0;i<mMediaFile->nb_streams;i++) {
 		if (mMediaFile->streams[i]->codec->codec_type == AVMEDIA_TYPE_AUDIO) {
 			AVStream *stream = mMediaFile->streams[i];
-			AVCodec* codec = avcodec_find_decoder(mAudioStream->codec->codec_id);
+			AVCodec* codec = avcodec_find_decoder(stream->codec->codec_id);
 			if (codec == NULL) {
-				LOGW("avcodec_find_decoder audio failed");
+				LOGW("avcodec_find_decoder audio %d(%s) failed", 
+					stream->codec->codec_id, avcodec_get_name(stream->codec->codec_id));
 				continue;
 			}
 
@@ -3290,7 +3292,8 @@ bool FFPlayer::getCurrentMediaInfo(MediaInfo *info)
 			AVStream* stream = mMediaFile->streams[i];
 			AVCodec* codec = avcodec_find_decoder(stream->codec->codec_id);
 			if (codec == NULL) {
-				LOGW("avcodec_find_decoder subtitle failed");
+				LOGW("avcodec_find_decoder subtitle %d(%s) failed",
+					stream->codec->codec_id, avcodec_get_name(stream->codec->codec_id));
 				continue;
 			}
 
@@ -3369,7 +3372,8 @@ bool FFPlayer::getMediaDetailInfo(const char* url, MediaInfo* info)
 			AVCodec* codec = avcodec_find_decoder(codec_ctx->codec_id);
 			if (codec == NULL)
 			{
-				LOGE("avcodec_find_decoder() video failed");
+				LOGE("avcodec_find_decoder() video %d(%s) failed",
+					codec_ctx->codec_id, avcodec_get_name(codec_ctx->codec_id));
 				continue;
 			}
 
@@ -3380,7 +3384,8 @@ bool FFPlayer::getMediaDetailInfo(const char* url, MediaInfo* info)
 			AVCodec* codec = avcodec_find_decoder(stream->codec->codec_id);
 
 			if (codec == NULL) {
-				LOGE("avcodec_find_decoder audio failed");
+				LOGE("avcodec_find_decoder audio %d(%s) failed",
+					stream->codec->codec_id, avcodec_get_name(stream->codec->codec_id));
 				notifyListener_l(MEDIA_ERROR, MEDIA_ERROR_UNSUPPORTED, 0);
 				continue;
 			}
@@ -3400,7 +3405,8 @@ bool FFPlayer::getMediaDetailInfo(const char* url, MediaInfo* info)
 			AVCodec* codec = avcodec_find_decoder(stream->codec->codec_id);
 
 			if (codec == NULL) {
-				LOGW("avcodec_find_decoder subtitle failed");
+				LOGW("avcodec_find_decoder subtitle %d(%s) failed",
+					stream->codec->codec_id, avcodec_get_name(stream->codec->codec_id));
 				continue;
 			}
 

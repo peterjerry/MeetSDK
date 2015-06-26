@@ -1335,7 +1335,19 @@ public class SohuUtil {
 					int size = clipsSize_nor.getInt(k);
 					sbNor.append(size);
 					sbNor.append(",");
-					System.out.println(String.format("Java: nor segment #%d %dk byte", k, size / 1024));
+					
+					String unit = " byte";
+					double unified_size = size;
+					if (unified_size > 1024) {
+						unified_size /= (double)1024;
+						unit = "k byte";
+					}
+					if (unified_size > 1024) {
+						unified_size /= (double)1024;
+						unit = "M byte";
+					}
+					System.out.println(String.format("Java: normal segment #%d %.3f%s", 
+							k, unified_size, unit));
 				}
 				StrNorBytes = sbNor.toString();
 			}
@@ -1348,7 +1360,19 @@ public class SohuUtil {
 					int size = clipsSize_high.getInt(k);
 					sbHigh.append(size);
 					sbHigh.append(",");
-					System.out.println(String.format("Java: high segment #%d %dk byte", k, size / 1024));
+					
+					String unit = " byte";
+					double unified_size = size;
+					if (unified_size > 1024) {
+						unified_size /= (double)1024;
+						unit = "k byte";
+					}
+					if (unified_size > 1024) {
+						unified_size /= (double)1024;
+						unit = "M byte";
+					}
+					System.out.println(String.format("Java: high segment #%d %.3f%s", 
+							k, unified_size, unit));
 				}
 				StrHighBytes = sbHigh.toString();
 			}
