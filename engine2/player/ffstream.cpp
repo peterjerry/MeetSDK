@@ -444,7 +444,8 @@ AVFormatContext* FFStream::open(char* uri)
 			codec_id = SUBTITLE_CODEC_ID_ASS;
 		}
 		else if(mSubtitleStream->codec->codec_id == AV_CODEC_ID_TEXT
-			|| mSubtitleStream->codec->codec_id == AV_CODEC_ID_SRT)
+			|| mSubtitleStream->codec->codec_id == AV_CODEC_ID_SRT
+			|| mSubtitleStream->codec->codec_id == AV_CODEC_ID_SUBRIP)
 		{
 			codec_id = SUBTITLE_CODEC_ID_TEXT;
 		}
@@ -1223,9 +1224,16 @@ void FFStream::thread_impl()
 							stop_time = av_rescale_q(mAVSubtitle->pts + mAVSubtitle->end_display_time * 1000,
 										AV_TIME_BASE_Q, mSubtitleStream->time_base);
 #endif
-							mISubtitle->addEmbeddingSubtitleEntity(mSubtitleTrackIndex, 
-								start_time, stop_time - start_time, 
-								(const char*)pPacket->data, pPacket->size);
+							if (SUBTITLE_ASS == (*(mAVSubtitle->rects))->type) {
+								mISubtitle->addEmbeddingSubtitleEntity(mSubtitleTrackIndex, 
+									start_time, stop_time - start_time, 
+									(const char*)pPacket->data, pPacket->size);
+							}
+							else {
+								mISubtitle->addEmbeddingSubtitleEntity(mSubtitleTrackIndex, 
+									start_time, stop_time - start_time, 
+									(*(mAVSubtitle->rects))->text, 0);
+							}
 							avsubtitle_free(mAVSubtitle);
 						}
 

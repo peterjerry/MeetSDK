@@ -131,8 +131,8 @@ public class MyMediaController extends MediaController {
     }
 	
 	private int setProgress() {
-		if(mPlayer == null) {
-			Log.e(TAG, "aaaaa setProgress() player is null");
+		if (mPlayer == null) {
+			return 0;
 		}
 		int position = mPlayer.getCurrentPosition();
 		return setProgress(position);
@@ -218,13 +218,14 @@ public class MyMediaController extends MediaController {
         public void handleMessage(Message msg) {
             //Log.d(TAG, "handleMessage: " + msg.what);
             
-            int pos;
             switch (msg.what) {
                 case FADE_OUT:
                 	mControllerView.setVisibility(View.INVISIBLE);
                 	mIsShowing = false;
                     break;
                 case SHOW:
+                	updateVolumeProgress();
+                    setProgress();
                 	mControllerView.setVisibility(View.VISIBLE);
                 	mPlayPauseBtn.requestFocus();
                 	mHandler.sendEmptyMessage(UPDATE_PROGRESS);
@@ -232,7 +233,7 @@ public class MyMediaController extends MediaController {
                     break;
                case UPDATE_PROGRESS:
             	   updateVolumeProgress();
-                   pos = setProgress();
+                   setProgress();
                    // keep UI always show up
                    if (isShowing() && mPlayer.isPlaying()) {
                        msg = obtainMessage(UPDATE_PROGRESS);
