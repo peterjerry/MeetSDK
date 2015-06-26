@@ -140,6 +140,7 @@ jboolean setSegment(JNIEnv* env, STSSegment* src, jobject target)
 	int64_t stopTime = src->getStopTime();
 	char buf[MAX_SIZE];
 	src->getSubtitleText(buf, MAX_SIZE);
+	LOGI("aaa src_text %s, %lld, %lld", buf, startTime, stopTime);
 	jstring text = cstr2jstr(env, buf);
 
 	env->CallVoidMethod(target, gSegmentFields.setFromTimeID, startTime);
@@ -315,11 +316,11 @@ Java_android_pplive_media_subtitle_SimpleSubTitleParser_native_1next(JNIEnv *env
 	LOGD("native_next");
 
 	ISubtitles* parser = getSubTitleParser(env, thiz);
-	if (NULL == parser)
-	{
+	if (NULL == parser) {
 		JNU_ThrowByName(env, "java/lang/IllegalStateException", "Subtitle parser not found");
 		return false;
 	}
+
 	STSSegment* src = NULL;
 	if (parser->getNextSubtitleSegment(&src)) {
 		return setSegment(env, src, segment);

@@ -88,7 +88,8 @@ const char* url_list[PROG_MAX_NUM] = {
 	_T("http://172.16.204.106/test/hls/600000/index.m3u8"),
 	_T("http://172.16.204.106/test/hls/600000/noend.m3u8"),
 	//_T("D:\\Archive\\media\\[圣斗士星矢Ω].[hysub]Saint.Seiya.Omega_11_[GB_mp4][480p].mp4"),
-	_T("D:\\Archive\\media\\test\\subtitle\\Manhattan.S01E08.HDTVrip.1024X576_sub.mkv"),
+	//_T("D:\\Archive\\media\\test\\subtitle\\Manhattan.S01E08.HDTVrip.1024X576_sub.mkv"),
+	_T("E:\\BaiduYunDownload\\红猪.Porco.Rosso.1992.D9.3Audio.MiniSD-TLF.mkv"),
 	_T("D:\\Archive\\media\\mv\\G.NA_Secret.mp4"),
 
 	_T("http://zb.v.qq.com:1863/?progid=1975434150"),
@@ -479,11 +480,13 @@ void CtestSDLdlgDlg::OnTimer(UINT_PTR nIDEvent)
 				mSubtitleStartTime = segment->getStartTime();
 				mSubtitleStopTime = segment->getStopTime();
 				segment->getSubtitleText(subtitleText, 1024);
-				LOGI("%01d:%02d:%02d.%02d  --> %01d:%02d:%02d.%02d  %s",
+				LOGI("%01d:%02d:%02d.%02d(%I64d)  --> %01d:%02d:%02d.%02d(%I64d)  %s",
 					int(mSubtitleStartTime/1000/3600), int(mSubtitleStartTime/1000%3600/60), 
 					int(mSubtitleStartTime/1000%60), int(mSubtitleStartTime%1000)/10,
-					int(mSubtitleStartTime/1000/3600), int(mSubtitleStartTime/1000%3600/60), 
-					int(mSubtitleStartTime/1000%60), int(mSubtitleStartTime%1000)/10,
+					mSubtitleStartTime,
+					int(mSubtitleStopTime/1000/3600), int(mSubtitleStopTime/1000%3600/60), 
+					int(mSubtitleStopTime/1000%60), int(mSubtitleStopTime%1000)/10,
+					mSubtitleStopTime,
 					CW2A(CA2W(subtitleText, CP_UTF8)));
 
 				mSubtitleText = CW2A(CA2W(subtitleText, CP_UTF8));
@@ -655,6 +658,7 @@ bool CtestSDLdlgDlg::start_player(const char *url)
 
 #ifdef ENABLE_SUBTITLE
 	if (!ISubtitles::create(&mSubtitleParser)) {
+	//if (!(mSubtitleParser = ISubtitles::create2())) {
 		LOGE("failed to create subtitle instance.");
         return false;
     }
@@ -701,7 +705,7 @@ void CtestSDLdlgDlg::stop_player()
 	}
 
 	if (mSubtitleParser) {
-		mSubtitleParser->close();
+		delete mSubtitleParser;
 		mSubtitleParser = NULL;
 
 		mSubtitleStartTime = mSubtitleStopTime = 0;
