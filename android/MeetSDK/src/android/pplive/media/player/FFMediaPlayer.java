@@ -390,6 +390,9 @@ public class FFMediaPlayer extends BaseMediaPlayer {
 
 	}
 
+    /**
+     * @param index: index of all streams(NOT audio index)
+     */
 	@Override
 	public void selectTrack(int index) throws IllegalStateException {
 		// TODO Auto-generated method stub

@@ -669,6 +669,9 @@ public class MeetVideoView extends SurfaceView implements MediaPlayerControl {
         return DecodeMode.UNKNOWN;
     }
     
+    /**
+     * @param index: index of all streams(NOT audio index)
+     */
     public void selectAudioChannel(int index){
         mAudioChannel = index;
         if (mMediaPlayer != null) {

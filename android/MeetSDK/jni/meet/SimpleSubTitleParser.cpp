@@ -140,7 +140,6 @@ jboolean setSegment(JNIEnv* env, STSSegment* src, jobject target)
 	int64_t stopTime = src->getStopTime();
 	char buf[MAX_SIZE];
 	src->getSubtitleText(buf, MAX_SIZE);
-	LOGI("aaa src_text %s, %lld, %lld", buf, startTime, stopTime);
 	jstring text = cstr2jstr(env, buf);
 
 	env->CallVoidMethod(target, gSegmentFields.setFromTimeID, startTime);

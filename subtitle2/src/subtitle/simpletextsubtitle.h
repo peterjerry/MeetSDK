@@ -33,6 +33,7 @@ public:
     }
     bool seekTo(int64_t time);
     bool getNextSubtitleSegment(STSSegment** segment);
+	void resetSegment();
     ASS_Event* getEventAt(int pos);
 
     const char* getFileName()

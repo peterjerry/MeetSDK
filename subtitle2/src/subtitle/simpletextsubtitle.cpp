@@ -143,9 +143,20 @@ bool CSimpleTextSubtitle::parseXMLNode(const char* fileName, tinyxml2::XMLElemen
     return true;
 }
 
+void CSimpleTextSubtitle::resetSegment()
+{
+	for (int i=0;i<mSegments.size();i++) {
+		CSTSSegment* segment = mSegments.at(i);
+		delete segment;
+		segment = NULL;
+	}
+	mSegments.clear();
+	mSegmentIndex = 0;
+}
+
 bool CSimpleTextSubtitle::arrangeTrack(ASS_Track* track)
 {
-	LOGD("arrangeTrack()");
+	// need re-locate add-position and read-position after seek
 
 	// get all event time code
     std::set<int64_t> breakpoints;
@@ -183,24 +194,33 @@ bool CSimpleTextSubtitle::arrangeTrack(ASS_Track* track)
 		LOGI("arrangeTrack: %s %lld", event->Text, startTime);
 #endif
 
-		
-		// to find 1st event
-        size_t j = 0;
-        for (j = 0; j < mSegments.size() && mSegments[j]->mStartTime < startTime; ++j) {
-			// do nothing
+		// to find coresponding segment in mSegments with event
+        size_t index = 0;
+        while (index < mSegments.size()) {
+			if (mSegments[index]->mStartTime >= startTime)
+				break;
+
+			++index;
         }
 
-        for (; j < mSegments.size() && mSegments[j]->mStopTime <= stopTime; ++j) {
-			CSTSSegment* s = mSegments[j];
+        while (index < mSegments.size()) {
+			if (mSegments[index]->mStopTime > stopTime)
+				break;
+
+			CSTSSegment* s = mSegments[index];
 			int l = 0;
 			int size = s->mSubs.size();
 
+			// merge subtile line in one event
 			for (int l = 0;l <= size;l++) {
 				if (l == size || event->ReadOrder < track->events[s->mSubs[l]].ReadOrder) {
                     s->mSubs.insert(s->mSubs.begin() + l, i);
+					//LOGI("mSubs.insert %d %d", l, i);
                     break;
                 }
 			}
+
+			++index;
         }
 		
     }
@@ -218,37 +238,30 @@ bool CSimpleTextSubtitle::arrangeTrack(ASS_Track* track)
 
 bool CSimpleTextSubtitle::seekTo(int64_t time)
 {
-    size_t nextPos = 0;
-    for (size_t i = 0; i < mSegments.size(); ++i, ++nextPos) {
-        CSTSSegment* segment = mSegments.at(i);
-        if (segment->mStopTime >= time) {
-            break;
-        }
-    }
+	if (isEmbedding()) {
+		ass_flush_events(mAssTrack);
+		resetSegment();
+	}
+	else {
+		size_t nextPos = 0;
+		for (size_t i = 0; i < mSegments.size(); ++i, ++nextPos) {
+			CSTSSegment* segment = mSegments.at(i);
+			if (segment->mStopTime >= time)
+				break;
+		}
 
-    mSegmentIndex = nextPos;
+		mSegmentIndex = nextPos;
+	}
     return true;
 }
 
 bool CSimpleTextSubtitle::getNextSubtitleSegment(STSSegment** segment)
 {
-    if (!segment) {
+    if (!segment)
         return false;
-    }
-
-    if (isEmbedding() && mDirty) {
-		LOGI("getNextSubtitleSegment() mDirty is true");
-        pthread_mutex_lock(mEmbeddingLock);
-        //arrangeTrack(mAssTrack);
-		// 2015.4.30 guoliangma added to fix duplicated text problem
-		mDirty = false;
-        pthread_mutex_unlock(mEmbeddingLock);
-    }
 	
-	LOGD("getNextSubtitleSegment index %d, size %d", mSegmentIndex, mSegments.size());
-
     if (mSegmentIndex >= mSegments.size()) {
-		LOGE("no more segment is available, index %d, size %d", mSegmentIndex, mSegments.size());
+		//LOGW("no more segment is available, index %d, size %d", mSegmentIndex, mSegments.size());
 		return false;
 	}
 	
@@ -306,18 +319,17 @@ bool CSimpleTextSubtitle::addEmbeddingEntity(int64_t startTime, int64_t duration
         event->Duration = duration;
         event->Text		= ass_remove_format_tag(strdup(text));
 
-		//pthread_mutex_lock(mEmbeddingLock);
-		CSTSSegment* segment = new CSTSSegment(this, event->Start, event->Duration);
-		segment->mSubs.push_back(eid);
-        mSegments.push_back(segment);
-		//pthread_mutex_unlock(mEmbeddingLock);
-
-		LOGI("aaa event text: %lld, time %s", event->Start, event->Text);
-
         if (strlen(event->Text) == 0) {
             ass_free_event(mAssTrack, eid);
             mAssTrack->n_events--;
         }
+		else {
+			CSTSSegment* segment = new CSTSSegment(this, event->Start, event->Start + event->Duration);
+			segment->mSubs.push_back(eid);
+			mSegments.push_back(segment);
+
+			LOGD("new CSTSSegment push_back event text: %lld, time %s", event->Start, event->Text);
+		}
     } else if (mCodecId == SUBTITLE_CODEC_ID_ASS){
         LOGD("addEmbeddingEntity ass_process_chunk = %s", text);
 		// 2015.4.30 guoliangma modify function call to fix add event problem
@@ -325,7 +337,6 @@ bool CSimpleTextSubtitle::addEmbeddingEntity(int64_t startTime, int64_t duration
 		ass_process_data(mAssTrack, (char*)text, textLen);
     }
 
-    mDirty = true;
     pthread_mutex_unlock(mEmbeddingLock);
 
     return true;
