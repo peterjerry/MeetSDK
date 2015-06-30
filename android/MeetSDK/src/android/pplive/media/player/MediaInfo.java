@@ -126,6 +126,13 @@ public class MediaInfo {
 	}
 
 	// video
+	public void setVideoInfo(int width, int height, String codecName, int duration) {
+		mWidth			= width;
+		mHeight			= height;
+		mVideoCodecName	= codecName;
+		mDurationMS		= duration;
+	}
+	
 	public int getVideoChannels() {
 		return mVideoChannels;
 	}
@@ -154,6 +161,10 @@ public class MediaInfo {
 		return mThumbnail;
 	}
 
+	public void setAudioChannels(int num) {
+		mAudioChannels = num;
+	}
+	
 	public int getAudioChannels() {
 		return mAudioChannels;
 	}

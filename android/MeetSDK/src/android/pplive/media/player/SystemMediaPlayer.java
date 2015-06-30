@@ -5,6 +5,7 @@ import java.lang.reflect.Method;
 import android.annotation.SuppressLint;
 import android.content.Context;
 import android.media.TimedText;
+import android.media.MediaPlayer.TrackInfo;
 import android.util.Log;
 import android.view.Surface;
 import android.view.SurfaceHolder;
@@ -338,5 +339,12 @@ public class SystemMediaPlayer extends android.media.MediaPlayer implements
 	public void setOption(String option) {
 		// TODO Auto-generated method stub
 		
+	}
+	
+	public TrackInfo[] getTrackInfo() throws IllegalStateException {
+		if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN)
+			return super.getTrackInfo();
+		
+		return null;
 	}
 }
