@@ -13,7 +13,7 @@ class ISubtitles;
 #include <stdint.h> // fix ios uint8_t undefined error
 #endif
 
-#define MAX_CHANNEL_CNT 8
+#define MAX_CHANNEL_CNT 16
 #define SAFE_DELETE(p)       { if(p) { delete (p);     (p)=NULL; } }
 
 typedef struct MediaInfo {

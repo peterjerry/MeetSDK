@@ -239,7 +239,9 @@ bool CSimpleTextSubtitle::arrangeTrack(ASS_Track* track)
 bool CSimpleTextSubtitle::seekTo(int64_t time)
 {
 	if (isEmbedding()) {
+#ifndef _MSC_VER
 		ass_flush_events(mAssTrack);
+#endif
 		resetSegment();
 	}
 	else {
@@ -328,13 +330,21 @@ bool CSimpleTextSubtitle::addEmbeddingEntity(int64_t startTime, int64_t duration
 			segment->mSubs.push_back(eid);
 			mSegments.push_back(segment);
 
-			LOGD("new CSTSSegment push_back event text: %lld, time %s", event->Start, event->Text);
+			LOGD("SUBTITLE_CODEC_ID_TEXT: new CSTSSegment push_back event text: %lld, time %s", event->Start, event->Text);
 		}
     } else if (mCodecId == SUBTITLE_CODEC_ID_ASS){
         LOGD("addEmbeddingEntity ass_process_chunk = %s", text);
 		// 2015.4.30 guoliangma modify function call to fix add event problem
         //ass_process_chunk(mAssTrack, (char*)text, textLen, startTime, duration);
 		ass_process_data(mAssTrack, (char*)text, textLen);
+		
+		ASS_Event *event;
+		event = mAssTrack->events + mAssTrack->n_events - 1;
+		CSTSSegment* segment = new CSTSSegment(this, event->Start, event->Start + event->Duration);
+		segment->mSubs.push_back(mAssTrack->n_events - 1);
+		mSegments.push_back(segment);
+
+		LOGD("SUBTITLE_CODEC_ID_ASS: new CSTSSegment push_back event text: %lld, time %s", event->Start, event->Text);
     }
 
     pthread_mutex_unlock(mEmbeddingLock);
