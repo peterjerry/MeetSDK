@@ -238,6 +238,8 @@ bool CSimpleTextSubtitle::arrangeTrack(ASS_Track* track)
 
 bool CSimpleTextSubtitle::seekTo(int64_t time)
 {
+	pthread_mutex_lock(mEmbeddingLock);
+
 	if (isEmbedding()) {
 #ifndef _MSC_VER
 		ass_flush_events(mAssTrack);
@@ -254,6 +256,8 @@ bool CSimpleTextSubtitle::seekTo(int64_t time)
 
 		mSegmentIndex = nextPos;
 	}
+
+	pthread_mutex_unlock(mEmbeddingLock);
     return true;
 }
 

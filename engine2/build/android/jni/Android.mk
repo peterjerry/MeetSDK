@@ -3,7 +3,7 @@ LOCAL_PATH := $(call my-dir)
 BUILD_OSLES				:= 1
 BUILD_NATIVEWINDOOW		:= 1
 #BUILD_RENDER_RGB565	:= 1
-#BUILD_PCM_DUMP			:= 1
+BUILD_PCM_DUMP			:= 1
 
 ifeq ($(TARGET_ARCH_ABI),armeabi)
 FDK_AAC_PATH	:= ../../../../foundation/foundation_rext/thirdparty/fdk-aac/lib/armeabi-v7a
@@ -38,12 +38,12 @@ LOCAL_SRC_FILES := $(RTMPDUMP_PATH)/librtmp.a
 include $(CLEAR_VARS)
 LOCAL_MODULE 	:= ssl
 LOCAL_SRC_FILES := $(RTMPDUMP_PATH)/libssl.a
-#include $(PREBUILT_STATIC_LIBRARY)
+include $(PREBUILT_STATIC_LIBRARY)
 
 include $(CLEAR_VARS)
 LOCAL_MODULE 	:= crypto
 LOCAL_SRC_FILES := $(RTMPDUMP_PATH)/libcrypto.a
-#include $(PREBUILT_STATIC_LIBRARY)
+include $(PREBUILT_STATIC_LIBRARY)
 endif
 
 include $(CLEAR_VARS)
@@ -107,9 +107,8 @@ ifdef BUILD_OSLES
 LOCAL_LDLIBS			+= -lOpenSLES
 endif
 ifdef BUILD_PCM_DUMP
-LOCAL_STATIC_LIBRARIES 	+= fdk-aac
+LOCAL_STATIC_LIBRARIES 	+= fdk-aac ssl crypto
 #rtmp
-#LOCAL_LDLIBS 			+= -lssl -lcrypto
 endif
 include $(BUILD_SHARED_LIBRARY)
 
