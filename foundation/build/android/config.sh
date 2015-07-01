@@ -133,7 +133,7 @@ echo "rtmpdump lib: $RTMPDUMP_LIB"
 
 EXTRA_CFLAGS="$EXTRA_CFLAGS -I$FDK_AAC_HOME/include -I$RTMPDUMP_HOME/include"
 EXTRA_LDFLAGS="$EXTRA_LDFLAGS -L$FDK_AAC_LIB"
-#EXTRA_LDFLAGS="$EXTRA_LDFLAGS -L$RTMPDUMP_LIB -lssl -lcrypto -lz"
+EXTRA_LDFLAGS="$EXTRA_LDFLAGS -L$RTMPDUMP_LIB -lssl -lcrypto -lz"
 fi
 
 #remove ac3 eac3
@@ -161,7 +161,8 @@ if [ ${3}x == 'enc'x ]; then
 EXTRA_PARAMETERS="$EXTRA_PARAMETERS \
 	--enable-encoder=libfdk_aac \
 	--enable-libfdk-aac \
-	--enable-muxer=mpegts,flv,hls"
+	--enable-muxer=mpegts,flv,hls \
+	--enable-openssl"
 #	--enable-librtmp \	
 fi
 

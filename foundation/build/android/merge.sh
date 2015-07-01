@@ -90,6 +90,7 @@ fi
 
 if [ ${3}x == 'enc'x ]; then
 	EXTRA_LIB="$FDK_AAC_LIB/libfdk-aac.a"
+	EXTRA_LIB="$EXTRA_LIB $RTMPDUMP_LIB/libssl.a $RTMPDUMP_LIB/libcrypto.a"
 #	EXTRA_LIB="$EXTRA_LIB $RTMPDUMP_LIB/librtmp.a $RTMPDUMP_LIB/libssl.a $RTMPDUMP_LIB/libcrypto.a"
 fi
 
