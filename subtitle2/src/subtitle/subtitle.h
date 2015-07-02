@@ -108,7 +108,11 @@ class ISubtitles
 {
 public:
     static bool create(ISubtitles** subtitle);
+
+	ISubtitles() {}
+	virtual ~ISubtitles() {}
 public:
+
     /*
      * 关闭字幕组件
      */

@@ -1720,6 +1720,9 @@ status_t FFPlayer::setISubtitle(ISubtitles* subtitle)
 	}
     
     mSubtitles = subtitle;
+	if (mDataStream)
+		mDataStream->setISubtitle(mSubtitles);
+
 	return OK;
 }
 

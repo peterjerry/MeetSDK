@@ -865,12 +865,16 @@ public class MediaPlayer implements MediaPlayerInterface {
 		}
 	}
 
+	/**
+     * @param index: index of all streams(NOT audio index)
+     */
 	@Override
 	/**
      * @param index: index of ALL stream
      */
 	public void selectTrack(int index) throws IllegalStateException {
 		if (mPlayer != null) {
+			// system player fix me!!!
 			mPlayer.selectTrack(index);
 		}
 	}

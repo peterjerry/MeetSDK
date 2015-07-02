@@ -315,11 +315,11 @@ Java_android_pplive_media_subtitle_SimpleSubTitleParser_native_1next(JNIEnv *env
 	LOGD("native_next");
 
 	ISubtitles* parser = getSubTitleParser(env, thiz);
-	if (NULL == parser)
-	{
+	if (NULL == parser) {
 		JNU_ThrowByName(env, "java/lang/IllegalStateException", "Subtitle parser not found");
 		return false;
 	}
+
 	STSSegment* src = NULL;
 	if (parser->getNextSubtitleSegment(&src)) {
 		return setSegment(env, src, segment);

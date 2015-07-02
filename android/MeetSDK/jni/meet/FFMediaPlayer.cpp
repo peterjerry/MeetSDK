@@ -587,16 +587,17 @@ void android_media_MediaPlayer_setSubtitleParser(JNIEnv *env, jobject thiz, jobj
 	//fields.iSubtitle
 	jfieldID is = env->GetFieldID(clazzSubtitle, "mNativeContext", "I");
 	PPLOGD("GetFieldID: mNativeContext");
-	ISubtitles* p = (ISubtitles*)env->GetIntField(paser, is);
-	//PPLOGD("isubtitle %d", env->GetIntField(paser, is));
+	ISubtitles* p = NULL;
+	if(paser)
+		p = (ISubtitles*)env->GetIntField(paser, is);
 
 	IPlayer* mp = getMediaPlayer(env, thiz);
 	if (mp == NULL ) {
 		jniThrowException(env, "java/lang/IllegalStateException", NULL);
 		return;
 	}
-	//mp->setISubtitle(p);
-	process_media_player_call(env, thiz, mp->setISubtitle(p) , NULL, NULL);
+
+	process_media_player_call(env, thiz, mp->setISubtitle(p), NULL, NULL);
 }
 
 static

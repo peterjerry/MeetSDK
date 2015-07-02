@@ -170,6 +170,13 @@ public class MediaInfo {
 	}
 	
 	// audio
+	/**
+	 * @param id: audio channel count
+	 * @param streamIndex: stream index of all stream
+	 * @param codecName:
+	 * @param lang: language meta data
+	 * @param title: title meta data
+	 */
 	public void setAudioChannelsInfo(int id, int streamIndex, String codecName, String lang, String title) {
 		TrackInfo audiotrackinfo = new TrackInfo();
 		audiotrackinfo.setId(id);
@@ -199,6 +206,13 @@ public class MediaInfo {
 		subtitleTrackInfos.add(subtitletrackinfo);
 	}
 	
+	/**
+	 * @param id: subtitle channel count
+	 * @param streamIndex: stream index of all stream
+	 * @param codecName:
+	 * @param lang: language meta data
+	 * @param title: title meta data
+	 */
 	public void setSubtitleChannelsInfo(int id, int streamIndex, String codecName, String lang, String title) {
 		TrackInfo subtitletrackinfo = new TrackInfo();
 		subtitletrackinfo.setId(id);
