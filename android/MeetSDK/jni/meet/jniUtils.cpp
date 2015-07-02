@@ -3,11 +3,13 @@
 #include "pplog.h"
 #include "FFMediaPlayer.h"
 #include "FFMediaExtractor.h"
+#include "platform/autolock.h" // for pthread
 
 #include <stdio.h>
 #include <stdlib.h> // for strxxx
 
 JavaVM *gs_jvm = NULL;
+pthread_mutex_t sLock;
 
 char* vstrcat_impl(const char* first, ...)
 {
@@ -87,6 +89,8 @@ jint JNI_OnLoad(JavaVM* vm, void* reserved)
 		goto bail;
 	}
 
+	pthread_mutex_init(&sLock, NULL);
+
 	if (register_android_media_MediaExtractor(env) < 0) {
 		AND_LOGE("ERROR: MediaExtractor native registration failed");
 		goto bail;
@@ -109,6 +113,8 @@ void JNI_OnUnload(JavaVM* vm, void* reserved)
 	PPLOGI("JNI_OnUnload");
 
 	unload_player();
+
+	pthread_mutex_destroy(&sLock);
 
 	pplog_close();
 }

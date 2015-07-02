@@ -2250,7 +2250,7 @@ status_t FFPlayer::stop_l()
 		av_freep(mSnapshotPic);
 	if (mSnapShotFrame != NULL)
 		av_frame_free(&mSnapShotFrame);
-	if(mSwsCtx != NULL) {
+	if (mSwsCtx != NULL) {
 		sws_freeContext(mSwsCtx);
 		mSwsCtx = NULL;
 	}

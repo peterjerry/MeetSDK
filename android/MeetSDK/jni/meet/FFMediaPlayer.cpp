@@ -34,9 +34,13 @@
 
 #define LOG_FATAL_IF(cond, ...) if (cond) { PPLOGE(__VA_ARGS__); return -1;}
 
+class Surface;
+
 struct fields_t {
-	jfieldID    context;
-	jfieldID    surface;
+	jfieldID    context; // for save player handle
+	// 2015.7.2 guoliang.ma add to support mutil-session player
+	jfieldID	listener; // for save listener handle
+	jfieldID    surface; // for save surface object
 	/* actually in android.view.Surface XXX */
 	jfieldID    surface_native;
 
@@ -44,21 +48,13 @@ struct fields_t {
 	jfieldID    iSubtitle;
 };
 
-static fields_t fields;
-
-static pthread_mutex_t sLock;
-
-static bool sInited = false;
-
 extern JavaVM *gs_jvm;
+extern pthread_mutex_t sLock;
 
-class Surface;
-
-PlatformInfo* gPlatformInfo = NULL;
-
+static fields_t fields;
+static bool sInited = false;
+static PlatformInfo* gPlatformInfo = NULL;
 static void* player_handle_software = NULL;
-
-static JNIMediaPlayerListener* s_player_listener = NULL;
 
 // new
 typedef IPlayer* (*GET_PLAYER_FUN) (void*);
@@ -782,6 +778,10 @@ jboolean android_media_MediaPlayer_native_init(JNIEnv *env, jobject thiz)
 	if (fields.context == NULL)
 		jniThrowException(env, "java/lang/RuntimeException", "Can't find FFMediaPlayer.mNativeContext");
 
+	fields.listener = env->GetFieldID(clazz, "mListenerContext", "I");
+	if (fields.listener == NULL)
+		jniThrowException(env, "java/lang/RuntimeException", "Can't find FFMediaPlayer.mListenerContext");
+
 	fields.post_event = env->GetStaticMethodID(clazz, "postEventFromNative",
 			"(Ljava/lang/Object;IIILjava/lang/Object;)V");
 	if (fields.post_event == NULL)
@@ -899,8 +899,6 @@ void android_media_MediaPlayer_native_setup(JNIEnv *env, jobject thiz, jobject w
 {
 	PPLOGI("native_setup");
 
-	pthread_mutex_init(&sLock, NULL);
-
 	IPlayer* mp = getPlayerFun((void*)gPlatformInfo);
 	if (mp == NULL) {
 		jniThrowException(env, "java/lang/RuntimeException", "Create IPlayer failed.");
@@ -908,9 +906,12 @@ void android_media_MediaPlayer_native_setup(JNIEnv *env, jobject thiz, jobject w
 	}
 
 	// create new listener and give it to MediaPlayer
-	s_player_listener = new JNIMediaPlayerListener(env, thiz, weak_this);
+	JNIMediaPlayerListener * player_listener = new JNIMediaPlayerListener(env, thiz, weak_this);
 	//IPlayer takes responsibility to release listener.
-	mp->setListener(s_player_listener);
+	mp->setListener(player_listener);
+
+	// 2015.7.2 guoliang.ma add to support multi-session player
+	env->SetIntField(thiz, fields.listener, (int)player_listener);
 
 	// Stow our new C++ MediaPlayer in an opaque field in the Java object.
 	setMediaPlayer(env, thiz, mp);
@@ -932,12 +933,13 @@ void android_media_MediaPlayer_release(JNIEnv *env, jobject thiz)
 		}
     }
 
-	if (s_player_listener) {
-		delete s_player_listener;
-		s_player_listener = NULL;
+	JNIMediaPlayerListener* player_listener = (JNIMediaPlayerListener *)env->GetIntField(thiz, fields.listener);
+	if (player_listener) {
+		delete player_listener;
+		player_listener = NULL;
 	}
+	env->SetIntField(thiz, fields.listener, 0);
 
-	pthread_mutex_destroy(&sLock);
 	PPLOGI("release done!");
 }
 

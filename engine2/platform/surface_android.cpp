@@ -16,6 +16,8 @@ extern JavaVM* gs_jvm;
 
 status_t Surface_open(void* surface, void** window)
 {
+	LOGI("Surface_open() %p", surface);
+
 	if (surface == NULL)
         return ERROR;
 
@@ -84,6 +86,8 @@ status_t Surface_updateSurface(void* window)
 
 status_t Surface_close(void* window)
 {
+	LOGI("Surface_close() %p", window);
+
 	ANativeWindow *native_window = (ANativeWindow *)window;
 	if (native_window) {
 		ANativeWindow_release(native_window);
