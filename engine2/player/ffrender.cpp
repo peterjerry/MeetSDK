@@ -292,8 +292,13 @@ status_t FFRender::render_sws(AVFrame* frame)
 	}
 
 	void* surfacePixels = NULL;
+#ifdef __ANDROID__
 	if (Surface_getPixels(mNativeWindow, &mSurfaceWidth, &mSurfaceHeight, &mSurfaceStride, &surfacePixels) != OK)
 		return ERROR;
+#else
+	if (Surface_getPixels(&mSurfaceWidth, &mSurfaceHeight, &mSurfaceStride, &surfacePixels) != OK)
+		return ERROR;
+#endif
 
 	// Convert the image
 	int64_t begin_scale = getNowMs();
@@ -322,7 +327,11 @@ status_t FFRender::render_sws(AVFrame* frame)
 	}
 
 	LOGD("before rendering frame");
+#ifdef __ANDROID__
 	if(Surface_updateSurface(mNativeWindow) != OK) {
+#else
+	if(Surface_updateSurface() != OK) {
+#endif
 		LOGE("Failed to render picture");
 		return ERROR;
 	}
@@ -369,8 +378,12 @@ FFRender::~FFRender()
 #if defined(__CYGWIN__)
 	//todo
 #else
+#ifdef __ANDROID__
 	if (mNativeWindow)
 		Surface_close(mNativeWindow);
+#else
+	Surface_close();
+#endif
 	mSurface = NULL;
 #endif
 	LOGD("FFRender destructor");
