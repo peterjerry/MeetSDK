@@ -241,6 +241,9 @@ int and_osles::setVol(double nvolume)
 	//calc SLES volume
 	SLmillibel Volume = MinVolume + (SLmillibel)( ((double)(MaxVolume - MinVolume))*nvolume );
 
+	//int dBVolume = 20* log2(x)/log2(10);
+	//SLmillibel volume = dBVolume * 100; //1dB = 100mB
+
 	//set
 	res = (*SLES_Volume)->SetVolumeLevel(SLES_Volume, Volume);
 	if (SL_RESULT_SUCCESS != res) {

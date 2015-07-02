@@ -49,7 +49,6 @@
 #include <jni.h>
 #include "platforminfo.h"
 JavaVM* gs_jvm = NULL;
-jobject gs_androidsurface = NULL;
 PlatformInfo* platformInfo = NULL;
 LogFunc pplog = NULL;
 #endif
@@ -614,9 +613,8 @@ status_t FFPlayer::selectAudioChannel(int32_t index)
 status_t FFPlayer::setVideoSurface(void* surface)
 {
 #ifdef __ANDROID__
-#ifdef USE_NDK_SURFACE_REF
-	LOGI("use java side surface object");
-	gs_androidsurface = (jobject)surface;
+	mSurface = surface;
+
 	if (mVideoRenderer) {
 		delete mVideoRenderer;
 
@@ -636,10 +634,6 @@ status_t FFPlayer::setVideoSurface(void* surface)
 
 		LOGI("Java: realloc render");
 	}
-#else
-	LOGI("use global info surface object");
-    gs_androidsurface = platformInfo->javaSurface;
-#endif
 #endif
 
 #ifdef _MSC_VER

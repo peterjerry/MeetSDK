@@ -27,6 +27,10 @@ static int s_swsFlag = SWS_POINT;
 FFRender::FFRender(void* surface, uint32_t frameWidth, uint32_t frameHeight, int32_t format)
 {
 	mSurface		= surface;
+#ifdef __ANDROID__
+	mNativeWindow	= NULL;
+#endif
+
 	mFrameWidth		= frameWidth;
 	mFrameHeight	= frameHeight;
 	mFrameFormat	= format;
@@ -47,7 +51,7 @@ status_t FFRender::init(bool force_sw)
 	mForceSW = force_sw;
 
 #ifdef __ANDROID__
-	if (Surface_open(mSurface)!= OK)
+	if (Surface_open(mSurface, &mNativeWindow)!= OK)
 		return ERROR;
 #endif
 
@@ -93,7 +97,7 @@ status_t FFRender::render_neon(AVFrame* frame)
 {
 #if defined(__ANDROID__) && defined(__arm__)
 	void* surfacePixels = NULL;
-	if (Surface_getPixels(&mSurfaceWidth, &mSurfaceHeight, &mSurfaceStride, &surfacePixels) != OK)
+	if (Surface_getPixels(mNativeWindow, &mSurfaceWidth, &mSurfaceHeight, &mSurfaceStride, &surfacePixels) != OK)
 		return ERROR;
 
 	int64_t begin_scale = getNowMs();
@@ -165,8 +169,7 @@ status_t FFRender::render_neon(AVFrame* frame)
 	}
 
 	LOGD("before rendering frame");
-	if(Surface_updateSurface() != OK)
-	{
+	if(Surface_updateSurface(mNativeWindow) != OK) {
 		LOGE("Failed to render picture");
 		return ERROR;
 	}
@@ -174,12 +177,10 @@ status_t FFRender::render_neon(AVFrame* frame)
 
 	int64_t end_scale = getNowMs();
 	int64_t costTime = end_scale - begin_scale;
-	if(mAveScaleTimeMs == 0)
-	{
+	if(mAveScaleTimeMs == 0) {
 		mAveScaleTimeMs = costTime;
 	}
-	else
-	{
+	else {
 		mAveScaleTimeMs = (mAveScaleTimeMs*4+costTime)/5;
 	}
 	LOGD("neon scale picture cost %lld[ms]", costTime);
@@ -291,7 +292,7 @@ status_t FFRender::render_sws(AVFrame* frame)
 	}
 
 	void* surfacePixels = NULL;
-	if (Surface_getPixels(&mSurfaceWidth, &mSurfaceHeight, &mSurfaceStride, &surfacePixels) != OK)
+	if (Surface_getPixels(mNativeWindow, &mSurfaceWidth, &mSurfaceHeight, &mSurfaceStride, &surfacePixels) != OK)
 		return ERROR;
 
 	// Convert the image
@@ -316,14 +317,12 @@ status_t FFRender::render_sws(AVFrame* frame)
 		LOGD("sws_scale surface height:%d", mSurfaceHeight);
 		LOGD("sws_scale surface stride:%d", mSurfaceStride);
 	}
-	else
-	{
+	else {
 		LOGE("Surface memory is too small");
 	}
 
 	LOGD("before rendering frame");
-	if(Surface_updateSurface() != OK)
-	{
+	if(Surface_updateSurface(mNativeWindow) != OK) {
 		LOGE("Failed to render picture");
 		return ERROR;
 	}
@@ -332,13 +331,9 @@ status_t FFRender::render_sws(AVFrame* frame)
 	int64_t end_scale = getNowMs();
 	int64_t costTime = end_scale-begin_scale;
 	if(mAveScaleTimeMs == 0)
-	{
 		mAveScaleTimeMs = costTime;
-	}
 	else
-	{
 		mAveScaleTimeMs = (mAveScaleTimeMs*4+costTime)/5;
-	}
 	LOGD("sws scale picture cost %lld[ms]", costTime);
 	LOGV("mAveScaleTimeMs %lld[ms]", mAveScaleTimeMs);
 
@@ -357,24 +352,25 @@ status_t FFRender::render_sws(AVFrame* frame)
 
 FFRender::~FFRender()
 {
-	if(mConvertCtx != NULL) {
+	if (mConvertCtx != NULL) {
 		sws_freeContext(mConvertCtx);
 		mConvertCtx = NULL;
 	}
-	if(mSurfaceFrame != NULL) {
+	if (mSurfaceFrame != NULL) {
 		av_frame_free(&mSurfaceFrame);
 	}
-	if(mScalePixels != NULL) {
+	if (mScalePixels != NULL) {
 		free(mScalePixels);
 		mScalePixels = NULL;
 	}
-	if(mScaleFrame != NULL) {
+	if (mScaleFrame != NULL) {
 		av_frame_free(&mScaleFrame);
 	}
 #if defined(__CYGWIN__)
 	//todo
 #else
-	Surface_close();
+	if (mNativeWindow)
+		Surface_close(mNativeWindow);
 	mSurface = NULL;
 #endif
 	LOGD("FFRender destructor");
