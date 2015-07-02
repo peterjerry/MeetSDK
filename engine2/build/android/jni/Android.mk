@@ -3,7 +3,7 @@ LOCAL_PATH := $(call my-dir)
 BUILD_OSLES				:= 1
 BUILD_NATIVEWINDOOW		:= 1
 #BUILD_RENDER_RGB565	:= 1
-BUILD_PCM_DUMP			:= 1
+#BUILD_PCM_DUMP			:= 1
 
 ifeq ($(TARGET_ARCH_ABI),armeabi)
 FDK_AAC_PATH	:= ../../../../foundation/foundation_rext/thirdparty/fdk-aac/lib/armeabi-v7a

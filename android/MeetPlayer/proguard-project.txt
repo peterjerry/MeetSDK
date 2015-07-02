@@ -26,3 +26,6 @@
 -libraryjars libs/jdom-2.0.5.jar
 -dontwarn org.jdom2.**
 -keep class org.jdom2.** {*;}
+
+-libraryjars libs/MeetSDK.jar
+-keep public class android.pplive.media.** {*;}

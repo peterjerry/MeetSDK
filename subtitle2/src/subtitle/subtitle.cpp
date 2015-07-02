@@ -320,9 +320,9 @@ bool CSubtitleManager::addEmbeddingSubtitleEntity(int index, int64_t startTime, 
     }
 	
 #ifdef _MSC_VER
-	LOGI("addEmbeddingSubtitle: #%d startTime %I64d, text %s", index, startTime, text);
+	LOGD("addEmbeddingSubtitle: #%d startTime %I64d, text %s", index, startTime, text);
 #else
-	LOGI("addEmbeddingSubtitle: #%d startTime %lld, text %s", index, startTime, text);
+	LOGD("addEmbeddingSubtitle: #%d startTime %lld, text %s", index, startTime, text);
 #endif
     return subtitle->addEmbeddingEntity(startTime, duration, text, textLen);
 }
