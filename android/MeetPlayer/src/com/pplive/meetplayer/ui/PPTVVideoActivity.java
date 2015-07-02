@@ -437,6 +437,7 @@ public class PPTVVideoActivity extends ListActivity {
 					mAdapter.clear();
 					mAdapter.addAll(result);
 					mAdapter.notifyDataSetChanged();
+					PPTVVideoActivity.this.setSelection(0);
 				}
 			}
         }

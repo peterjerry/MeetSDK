@@ -20,7 +20,7 @@ public:
 	
 	void flush();
 
-	int setVol(int vol); // 0-100
+	int setVol(double vol); // 0-1
 
 	int getVol();
 

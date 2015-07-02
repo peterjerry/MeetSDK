@@ -310,6 +310,7 @@ public class SohuVideoActivity extends ListActivity {
 					mAdapter.clear();
 					mAdapter.addAll(result);
 					mAdapter.notifyDataSetChanged();
+					SohuVideoActivity.this.setSelection(0);
 				}
 			}
         }
