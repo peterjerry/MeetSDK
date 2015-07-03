@@ -13,6 +13,8 @@ import android.content.Context;
 import android.content.SharedPreferences;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
+import android.net.wifi.WifiInfo;
+import android.net.wifi.WifiManager;
 import android.os.Environment;
 import android.pplive.media.MeetSDK;
 import android.util.Log;
@@ -109,18 +111,6 @@ public class Util {
 		SharedPreferences settings = ctx.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE); // create it if NOT exist
     	return settings.getInt(key, 0);
 	}
-
-	public static boolean isWifiConnected(final Context context) {
-		ConnectivityManager connectivityManager = (ConnectivityManager) context
-				.getSystemService(Context.CONNECTIVITY_SERVICE);
-		NetworkInfo wifiNetworkInfo = connectivityManager
-				.getNetworkInfo(ConnectivityManager.TYPE_WIFI);
-		if (wifiNetworkInfo.isConnected()) {
-			return true;
-		}
-
-		return false;
-	}
 	
 	public static void add_sohuvideo_history(Context ctx, String title, int vid, long aid, int site) {
 		String key = "SohuPlayHistory";
@@ -200,6 +190,25 @@ public class Util {
 		writeSettings(ctx, key, sb.toString());
 	}
 	
+	public static boolean isWifiConnected(Context context) {
+		ConnectivityManager connectivityManager = (ConnectivityManager) context
+				.getSystemService(Context.CONNECTIVITY_SERVICE);
+		NetworkInfo wifiNetworkInfo = connectivityManager
+				.getNetworkInfo(ConnectivityManager.TYPE_WIFI);
+		if (wifiNetworkInfo.isConnected()) {
+			return true;
+		}
+
+		return false;
+	}
+	
+	public static String getIpAddr(Context context) {
+		WifiManager wifiManager = (WifiManager) context.getSystemService(Context.WIFI_SERVICE);
+		WifiInfo wifiInfo = wifiManager.getConnectionInfo();
+		int ipAddress = wifiInfo.getIpAddress();
+		return intToIp(ipAddress);
+	}
+	
 	public static boolean IsHaveInternet(final Context context) { 
         try { 
             ConnectivityManager manger = (ConnectivityManager) 
@@ -272,5 +281,10 @@ public class Util {
 			e.printStackTrace();
 
 		}
+	}
+	
+	private static String intToIp(int i) {
+		return (i & 0xFF) + "." + ((i >> 8) & 0xFF) + "." + ((i >> 16) & 0xFF)
+				+ "." + (i >> 24 & 0xFF);
 	}
 }

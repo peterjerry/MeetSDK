@@ -426,7 +426,14 @@ public class ClipListActivity extends Activity implements
 				Toast.LENGTH_SHORT).show();
 		}
 		
-		Util.startP2PEngine(this);
+		if (Util.startP2PEngine(this) == false) {
+			Toast.makeText(this, "failed to start p2p engine", 
+					Toast.LENGTH_SHORT).show();
+		}
+		
+		if (Util.IsHaveInternet(this)) {
+			setTitle(getTitle() + " ip: " + Util.getIpAddr(this));
+		}
 		
 		mHolder = mPreview.getHolder();
 		mHolder.setType(SurfaceHolder.SURFACE_TYPE_NORMAL);
@@ -2207,12 +2214,9 @@ public class ClipListActivity extends Activity implements
 		intent.putExtra("impl", player_impl);
 		startActivity(intent);
 	}
-
-	private void upload_crash_report(int type) { 
-        WifiManager wifiManager = (WifiManager) getSystemService(Context.WIFI_SERVICE);
-        WifiInfo wifiInfo = wifiManager.getConnectionInfo();       
-        int ipAddress = wifiInfo.getIpAddress();   
-        String ip = intToIp(ipAddress);
+	
+	private void upload_crash_report(int type) {  
+        String ip = Util.getIpAddr(this);
         
         MeetSDK.makePlayerlog();
         
@@ -2322,11 +2326,6 @@ public class ClipListActivity extends Activity implements
 			}})
 		.create();
 		choose_device_dlg.show();
-	}
-	
-	private String intToIp(int i) {
-		return (i & 0xFF) + "." + ((i >> 8) & 0xFF) + "." + ((i >> 16) & 0xFF)
-				+ "." + (i >> 24 & 0xFF);
 	}
 	
 	private boolean start_subtitle(String filename) {
