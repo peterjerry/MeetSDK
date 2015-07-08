@@ -23,6 +23,7 @@
 
 extern "C"
 {
+#include "libavutil\time.h"
 #include "libavcodec\avcodec.h"
 #include "libavformat\avformat.h"
 #include "libswscale\swscale.h"
@@ -82,7 +83,7 @@ int _tmain(int argc, _TCHAR* argv[])
 		apBlockDownloader downloader(url);
 		char save_filename[64] = {0};
 		sprintf(save_filename, "d:\\dump\\%I64d.flv", segment_time);
-		/*
+		
 		if (!downloader.saveAs(save_filename)) {
 			LOGE("failed to download segment %s", url);
 			break;
@@ -90,8 +91,9 @@ int _tmain(int argc, _TCHAR* argv[])
 
 		LOGI("segment %I64d.block downloaded as %s", segment_time, save_filename);
 		printf("segment %I64d.block downloaded as %s\n", segment_time, save_filename);
-		*/
+		
 
+		/*
 		if (!downloader.saveInMemory()) {
 			LOGE("failed to download segment %s", url);
 			break;
@@ -121,8 +123,10 @@ int _tmain(int argc, _TCHAR* argv[])
 		}
 
 		demux.demux();
+		*/
 
 		segment_time += 5;
+		Sleep(500);
 	}
 
 	dumper.close();

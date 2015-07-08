@@ -2219,6 +2219,8 @@ public class ClipListActivity extends Activity implements
         String ip = Util.getIpAddr(this);
         
         MeetSDK.makePlayerlog();
+        Util.copyFile(getCacheDir().getAbsolutePath() + "/meetplayer.log", 
+        		Environment.getExternalStorageDirectory().getAbsolutePath() + "/meetplayer.txt");
         
         if (ip.startsWith("192.168.")) {
         	String URL = "http://172.16.10.137/crashapi/api/crashreport/launcher";

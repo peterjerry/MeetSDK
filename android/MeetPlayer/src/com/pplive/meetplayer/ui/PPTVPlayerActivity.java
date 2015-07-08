@@ -57,6 +57,7 @@ public class PPTVPlayerActivity extends VideoPlayerActivity {
 		if (mEpisodeList == null) {
 			if (mVid == -1) {
 				Toast.makeText(this, "mVid is invalid", Toast.LENGTH_SHORT).show();
+				finish();
 			}
 			else {
 				new EpisodeTask().execute(TASK_DETAIL, mVid);

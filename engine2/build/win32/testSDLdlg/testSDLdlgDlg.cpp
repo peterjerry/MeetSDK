@@ -1315,7 +1315,7 @@ void CtestSDLdlgDlg::OnBnClickedButtonPlayEpg()
 		url = NULL;
 	}
 	else {
-		_snprintf(str_playlink, 512, "%d?ft=%d&bwtype=%d&platform=android3&type=phone.android.vip&sv=4.1.3", // &param=userType%3D1
+		_snprintf(str_playlink, 512, "%d?ft=%d&bwtype=%d&platform=android3&type=phone.android.vip&sv=4.0.1", // &param=userType%3D1
 			link, ft, bw_type);
 		LOGI("playlink before urlencode: %s", str_playlink);
 		int out_len = 0;
@@ -1323,7 +1323,7 @@ void CtestSDLdlgDlg::OnBnClickedButtonPlayEpg()
 		LOGI("playlink after urlencode: %s", encoded_playlink);
 
 		_snprintf(str_url, 1024, pptv_playlink_ppvod2_fmt, HOST, mhttpPort, encoded_playlink);
-		strcat(str_url, "%26param%3DuserType%253D1&mux.M3U8.segment_duration=5");
+		strcat(str_url, "%26param%3DuserType%253D1&mux.M3U8.segment_duration=5");// %26param%3DuserType%253D1
 	}
 
 	LOGI("final vod url: %s", str_url);

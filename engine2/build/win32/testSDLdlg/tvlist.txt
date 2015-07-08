@@ -13,8 +13,8 @@ crash
 http://115.231.44.163:80/w/743a609778819144fa4d9ff86fb786ec.mp4?w=1&key=f4d1d48c1dbaeafc60eeabc1b6f496b2&k=53d1e512b432451af49d485e04901383-ca45-1433411750%26chid%3D150343009%26cp%3Dprivate_cloud&type=phone.android.cloudplay&vvid=07c4a1b1-421a-42c1-9d55-41b581064ff2&sv=5.1.0&platform=android3&ft=0&accessType=wifi
 new
 rtmp://172.16.204.106/live/test01
-pcs
-https://pcs.baidu.com/rest/2.0/pcs/file?method=download&access_token=23.5f79508c79414e2f9624c486be585bc3.2592000.1438309135.184740130-266719&path=%2F%E6%88%91%E7%9A%84%E8%A7%86%E9%A2%91%2F%E5%90%84%E7%A7%8D%E7%94%B5%E5%BD%B1%2F%5B%E9%9F%A9%5D%E6%B1%9F%E5%8D%971970.Gangnam.Blues.%5B2014%5D.mp4
+m3u8
+http://172.16.204.106/test/test/dump/1.m3u8
 
 
 

@@ -213,7 +213,7 @@ bool apAudioEncoder::write_audio_frame(uint8_t* pBuffer, int datalen)
 	int left = datalen;
 	int offset = 0;
 
-	while (left >= m_audio_buf_size) {
+	while (left + m_audio_buf_offset >= m_audio_buf_size) {
 		int process_data_size = m_audio_buf_size;
 		if (m_audio_buf_offset > 0) {
 			process_data_size = m_audio_buf_size - m_audio_buf_offset;
@@ -242,7 +242,7 @@ bool apAudioEncoder::write_audio_frame(uint8_t* pBuffer, int datalen)
 				LOGE("failed to write audio frame. err = %d", ret);
 				av_free_packet(&pkt);
 				return false;
-			}	
+			}
 		}
 
 		left	-= process_data_size;
@@ -250,8 +250,14 @@ bool apAudioEncoder::write_audio_frame(uint8_t* pBuffer, int datalen)
 	}
 
 	if (left > 0) {
+		// 2015.7.7 guoliang.ma add to fix write_audio_frame "datalen < m_audio_buf_size" case
+		if (m_audio_buf_offset > 0)
+			offset = m_audio_buf_offset;
+
+		LOGI("m_audio_buf_offset %d, offset %d, left %d, m_audio_buf_size %d", 
+			m_audio_buf_offset, offset, left, m_audio_buf_size);
 		memcpy(m_audio_buf, pBuffer + offset, left);
-		m_audio_buf_offset = left;
+		m_audio_buf_offset += left;
 	}
 
 	av_free_packet(&pkt);
@@ -307,7 +313,7 @@ AVStream * apAudioEncoder::add_audiostream(int channels, int sample_rate, int sa
 
 	int len = av_samples_get_buffer_size(NULL, c->channels, 
 		c->frame_size, c->sample_fmt, 0);
-	if(len <16) {
+	if (len <16) {
 		LOGE("failed to calc audio frame buffer len:%d", len);
 		return NULL;
 	}

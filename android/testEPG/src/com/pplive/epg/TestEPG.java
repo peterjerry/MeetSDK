@@ -2,6 +2,8 @@ package com.pplive.epg;
 
 import javax.swing.JFrame;
 
+import com.pplive.epg.baidu.BaiduPanel;
+
 public class TestEPG { 
 	
 	public static void main(String[] args) {
@@ -17,6 +19,9 @@ public class TestEPG {
 		frame.pack();
 		frame.setBounds(400, 300, 750, 600);
 		frame.setVisible(true);
+		
+		//JFrame myFrame = new BaiduFrame();
+		//myFrame.setVisible(true);
 	}
 	
 }

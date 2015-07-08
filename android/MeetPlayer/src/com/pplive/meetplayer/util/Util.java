@@ -5,7 +5,11 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.InputStream;
+import java.net.InetAddress;
+import java.net.NetworkInterface;
+import java.net.SocketException;
 import java.util.ArrayList;
+import java.util.Enumeration;
 import java.util.List;
 import java.util.StringTokenizer;
 
@@ -190,25 +194,6 @@ public class Util {
 		writeSettings(ctx, key, sb.toString());
 	}
 	
-	public static boolean isWifiConnected(Context context) {
-		ConnectivityManager connectivityManager = (ConnectivityManager) context
-				.getSystemService(Context.CONNECTIVITY_SERVICE);
-		NetworkInfo wifiNetworkInfo = connectivityManager
-				.getNetworkInfo(ConnectivityManager.TYPE_WIFI);
-		if (wifiNetworkInfo.isConnected()) {
-			return true;
-		}
-
-		return false;
-	}
-	
-	public static String getIpAddr(Context context) {
-		WifiManager wifiManager = (WifiManager) context.getSystemService(Context.WIFI_SERVICE);
-		WifiInfo wifiInfo = wifiManager.getConnectionInfo();
-		int ipAddress = wifiInfo.getIpAddress();
-		return intToIp(ipAddress);
-	}
-	
 	public static boolean IsHaveInternet(final Context context) { 
         try { 
             ConnectivityManager manger = (ConnectivityManager) 
@@ -221,6 +206,59 @@ public class Util {
             return false; 
         } 
     } 
+	
+	public static boolean isWifiConnected(Context context) {
+		ConnectivityManager connectivityManager = (ConnectivityManager) context
+				.getSystemService(Context.CONNECTIVITY_SERVICE);
+		NetworkInfo wifiNetworkInfo = connectivityManager
+				.getNetworkInfo(ConnectivityManager.TYPE_WIFI);
+
+		return wifiNetworkInfo.isConnected();
+	}
+	
+	public static boolean isLANConnected(Context context){
+	        ConnectivityManager connectivityManager =(ConnectivityManager) context
+	        		.getSystemService(Context.CONNECTIVITY_SERVICE);
+	        NetworkInfo lanNetworkInfo = connectivityManager
+	        		.getNetworkInfo(ConnectivityManager.TYPE_ETHERNET);
+	        return lanNetworkInfo.isConnected();
+	}
+	
+	public static String getWifiIpAddr(Context context) {
+		WifiManager wifiManager = (WifiManager) context.getSystemService(Context.WIFI_SERVICE);
+		WifiInfo wifiInfo = wifiManager.getConnectionInfo();
+		int ipAddress = wifiInfo.getIpAddress();
+		return intToIp(ipAddress);
+	}
+	
+	public static String getIpAddr(Context context) {
+		try {
+			Enumeration<NetworkInterface> en = NetworkInterface.getNetworkInterfaces();
+			while (en.hasMoreElements()) {
+				NetworkInterface intf = en.nextElement();
+				if (intf.getName().toLowerCase().equals("eth0")
+						|| intf.getName().toLowerCase().equals("wlan0")) {
+					for (Enumeration<InetAddress> enumIpAddr = intf
+							.getInetAddresses(); enumIpAddr.hasMoreElements();) {
+						InetAddress inetAddress = enumIpAddr.nextElement();
+						if (!inetAddress.isLoopbackAddress()) {
+							String ipaddress = inetAddress.getHostAddress().toString();
+							if (!ipaddress.contains("::")) {// ipV6的地址
+								return ipaddress;
+							}
+						}
+					}
+				} else {
+					continue;
+				}
+			}
+		}
+		catch (SocketException e) {
+			e.printStackTrace();
+		}
+		
+		return null;
+	}
 
 	public static void copyFile(String oldPath, String newPath) {
 		try {

@@ -108,7 +108,7 @@ status_t AudioRender::open(int sampleRate,
 	mSampleFormat = sampleFormat;
 
 	mChannelLayout = channelLayout;
-	if(mChannelLayout <= 0)
+	if (mChannelLayout <= 0)
 		mChannelLayout = AV_CH_LAYOUT_MONO;
 
 	mChannels = channels;
