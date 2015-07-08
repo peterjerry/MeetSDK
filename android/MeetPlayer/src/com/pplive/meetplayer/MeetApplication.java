@@ -3,19 +3,17 @@ package com.pplive.meetplayer;
 import com.nostra13.universalimageloader.core.ImageLoader;
 import com.nostra13.universalimageloader.core.ImageLoaderConfiguration;
 import com.nostra13.universalimageloader.core.assist.QueueProcessingType;
-import com.pplive.meetplayer.util.MyNanoHTTPD;
 
-import fi.iki.elonen.NanoHTTPD;
+import com.pplive.meetplayer.service.MyHttpService;
 
 import android.app.Application;
+import android.content.Intent;
 import android.util.Log;
 
 public class MeetApplication extends Application {
 	
 	private final static String TAG = "MeetApplication";
-	private final static int HTTP_PORT = 8080;
 	
-	private NanoHTTPD nanoHttpd;
 	@Override
 	public void onCreate() {
 		// TODO Auto-generated method stub
@@ -30,12 +28,8 @@ public class MeetApplication extends Application {
    
 		ImageLoader.getInstance().init(config);*/
 		
-		nanoHttpd = new MyNanoHTTPD(this, HTTP_PORT, null);  
-        try {  
-            nanoHttpd.start();  
-        } catch(Exception e) {  
-            e.printStackTrace();  
-        }  
+		Intent intent = new Intent(getApplicationContext(), MyHttpService.class);  
+		startService(intent);
 	}
 	
 	@Override

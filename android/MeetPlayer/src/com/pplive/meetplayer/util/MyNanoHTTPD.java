@@ -12,8 +12,12 @@ import java.text.SimpleDateFormat;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.Date;
+import java.util.Iterator;
+import java.util.Map;
+import java.util.Set;
 
 import android.content.Context;
+import android.os.Build;
 import android.os.Environment;
 import android.util.Log;
 import android.webkit.MimeTypeMap;
@@ -27,6 +31,7 @@ public class MyNanoHTTPD extends NanoHTTPD{
 	private final static int ONE_MAGABYTE = (ONE_KILOBYTE * ONE_KILOBYTE);
 	private final static int ONE_GIGABYTE = (ONE_MAGABYTE * ONE_KILOBYTE);
 	
+	private int mPort = 8080;
 	private String mRootDir;
 	private Context mContext;
 	private MimeTypeMap  mMimeTypeMap;
@@ -34,8 +39,9 @@ public class MyNanoHTTPD extends NanoHTTPD{
     public MyNanoHTTPD(Context ctx, int port, String wwwroot) {
     	super(port);
  
-    	mContext = ctx;
-    	mRootDir = wwwroot;
+    	mContext 	= ctx;
+    	mPort		= port;
+    	mRootDir 	= wwwroot;
     	if (mRootDir == null || mRootDir.isEmpty())
     		mRootDir = Environment.getExternalStorageDirectory().getAbsolutePath();
     	
@@ -58,10 +64,37 @@ public class MyNanoHTTPD extends NanoHTTPD{
 			
 			InputStream is = null;
 			long len = 0;
+			long from = 0;
+			long to = -1;
+			
 			String uri = session.getUri();
 			Log.i(TAG, "Java: uri: " + uri);
 			String filepath = mRootDir + uri;
 			Log.i(TAG, "Java: GET file: " + filepath);
+			
+			Map<String, String> headers = session.getHeaders();
+			Set<String> keys = headers.keySet();
+			Iterator<String> it = keys.iterator();
+			while (it.hasNext()) {
+				String key = it.next();
+				String value = headers.get(key);
+				
+				if (key.equals("range")) {
+					// Range: bytes=500-999
+					int pos;
+					pos = value.indexOf("-");
+					from = Long.valueOf(value.substring(6, pos));
+					String info = String.format("Java: range %s(%d - ", value, from);
+					if (pos != value.length() - 1) {
+						to = Long.valueOf(value.substring(pos + 1, value.length()));
+						info += to;
+					}
+					info += ")";
+					Log.i(TAG, info);
+				}
+				
+				//Log.d(TAG, String.format("Java: http header key %s, value %s", key, value));
+			}
 			
 			try {
 				if (uri.equals("/favicon.ico") || //favicon.ico
@@ -90,6 +123,9 @@ public class MyNanoHTTPD extends NanoHTTPD{
 								"</td><td><a href=\"%s\">%s</a></td>" +
 								"<td align=\"right\">%s  </td><td align=\"right\">%s</td>" +
 										"<td>&nbsp;</td></tr>";
+						String tail_fmt = "<tr><th colspan=\"5\"><hr></th></tr></table>" +
+								"<address>%s (Android Phone %s) Server at %s Port %d" +
+								"</address></body></html>";
 						SimpleDateFormat dateFormat = new SimpleDateFormat(
 								"yyyy-MM-dd HH:mm:ss");
 						
@@ -143,13 +179,16 @@ public class MyNanoHTTPD extends NanoHTTPD{
 							}
 						}
 						
-						sb_html_context.append(getAssetFileContext("tail.txt"));
+						String str_tail = String.format(tail_fmt, 
+								Build.DEVICE, Build.VERSION.RELEASE, Util.getIpAddr(mContext), mPort);
+						sb_html_context.append(str_tail);
+						//sb_html_context.append(getAssetFileContext("tail.txt"));
 
 						String str_html_context = sb_html_context.toString();
 						len = str_html_context.length();
 						
 						InputStream html_is = new ByteArrayInputStream(str_html_context.getBytes(/*"UTF-8"*/));
-						return new myResponse(Status.OK, mimeType, html_is, len);
+						return new myResponse(Status.OK, mimeType, html_is, 0, len, false);
 					}
 					else { // is a file
 						is = new FileInputStream(file);
@@ -157,6 +196,8 @@ public class MyNanoHTTPD extends NanoHTTPD{
 				}
 				
 				len = is.available();
+				if (to == -1)
+					to = len;
 
 				if (len > 0) {
 					Log.i(TAG, "before get mime_type: " + filepath);
@@ -173,7 +214,13 @@ public class MyNanoHTTPD extends NanoHTTPD{
 						mimeType += ";charset=utf-8";
 					Log.i(TAG, "mime_type: " + mimeType);
 					
-					return new myResponse(Status.OK, mimeType, is, len);
+					if (from > 0L) {
+						Log.i(TAG, "Java: skip " + from);
+						is.skip(from);
+					}
+					
+					return new myResponse(Status.OK, mimeType, is, 
+							from, to, headers.containsKey("range"));
 				}
 				else {
 					Log.w(TAG, "cannot get file size");
@@ -221,9 +268,11 @@ public class MyNanoHTTPD extends NanoHTTPD{
 	private class myResponse extends Response {
 
 		protected myResponse(IStatus status, String mimeType, InputStream data,
-				long totalBytes) {
-			super(status, mimeType, data, totalBytes);
-			// TODO Auto-generated constructor stub
+				long from, long to, boolean addrange) {
+			super(status, mimeType, data, to - from);
+			
+			if (addrange || from > 0)
+				this.addHeader("Content-Range", String.format("bytes %d-", from));
 		}
 		
 	}
