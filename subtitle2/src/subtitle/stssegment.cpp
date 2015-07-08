@@ -25,15 +25,20 @@ int CSTSSegment::getSubtitleText(char* text, int maxLength)
             if (textLength && maxLength > 1) {
                 *text++ = '\n';
                 textLength ++;
-                maxLength --;
+                maxLength--;
             }
-            const char* p = event->Text;
-            for ( ;maxLength > 1 && *p; --maxLength, *text++ = *p++, ++textLength) {
+
+			// handle ansi and unicode charset
+			const char* p = event->Text;
+			while (maxLength > 1 && *p) {
+				--maxLength;
+				*text++ = *p++;
+				++textLength;
             }
         }
     }
     if (text) {
-        *text = '\x0';
+        *text = '\0';
     }
 
     return textLength;

@@ -6,6 +6,7 @@ import java.util.Map;
 
 import android.content.Context;
 import android.database.Cursor;
+import android.media.MediaFormat;
 import android.media.MediaPlayer.TrackInfo;
 import android.media.TimedText;
 import android.graphics.PixelFormat;
@@ -14,11 +15,6 @@ import android.net.Uri;
 import android.view.Surface;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
-import android.os.Handler;
-import android.os.Looper;
-import android.os.Message;
-import android.os.PowerManager;
-import android.provider.MediaStore;
 import android.pplive.media.MeetSDK;
 import android.pplive.media.util.LogUtils;
 import android.pplive.media.subtitle.SimpleSubTitleParser;
@@ -869,14 +865,24 @@ public class MediaPlayer implements MediaPlayerInterface {
 		}
 	}
 
+	/**
+     * @param index: index of all streams(NOT audio index)
+     */
 	@Override
+	/**
+     * @param index: index of ALL stream
+     */
 	public void selectTrack(int index) throws IllegalStateException {
 		if (mPlayer != null) {
+			// system player fix me!!!
 			mPlayer.selectTrack(index);
 		}
 	}
 
 	@Override
+	/**
+     * @param index: index of ALL stream
+     */
 	public void deselectTrack(int index) throws IllegalStateException {
 		if (mPlayer != null) {
 			mPlayer.deselectTrack(index);
@@ -942,6 +948,39 @@ public class MediaPlayer implements MediaPlayerInterface {
 	public MediaInfo getMediaInfo() {
 		if (mPlayer instanceof FFMediaPlayer) {
 			return ((FFMediaPlayer) mPlayer).getCurrentMediaInfo();
+		}
+		else if (mPlayer instanceof SystemMediaPlayer) {
+			TrackInfo []trackinfos = mPlayer.getTrackInfo();
+			if (trackinfos == null)
+				return null;
+					
+			MediaInfo info = new MediaInfo();
+			int audioId = 0;
+			for (int i=0;i<trackinfos.length;i++) {
+				StringBuffer sb = new StringBuffer();
+				int type = trackinfos[i].getTrackType();
+				MediaFormat format = trackinfos[i].getFormat();
+				String lang = trackinfos[i].getLanguage();
+				sb.append("type: " + type);
+				sb.append("(");
+				sb.append(type == TrackInfo.MEDIA_TRACK_TYPE_VIDEO ? "video" : "audio");
+				sb.append(")");
+				sb.append(", format: ");
+				sb.append(format == null ? "N/A" : format.toString());
+				sb.append(", lang: " + lang);
+				
+				if (TrackInfo.MEDIA_TRACK_TYPE_VIDEO == type) {
+					info.setVideoInfo(getVideoWidth(), getVideoHeight(), 
+						format == null ? "N/A" : format.toString(), getDuration());
+				}
+				else if (TrackInfo.MEDIA_TRACK_TYPE_AUDIO == type) {
+					info.setAudioChannelsInfo(audioId++, i, 
+						format == null ? "N/A" : format.toString(), lang, null);
+				}
+			}
+			
+			info.setAudioChannels(audioId);
+			return info;
 		}
 		
 		return null;

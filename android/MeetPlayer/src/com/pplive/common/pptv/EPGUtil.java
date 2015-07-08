@@ -602,6 +602,8 @@ public class EPGUtil {
     	String link_act = v.getChild("act").getText();
     	String link_year = v.getChild("year").getText();
     	String link_area = v.getChild("area").getText();
+    	String link_count = v.getChild("state").getText();
+    	String link_imgurl = v.getChild("imgurl").getText();
     	
     	String str_du;
     	int duration_sec;
@@ -693,6 +695,7 @@ public class EPGUtil {
 	    	if(src_res != null && !src_res.isEmpty())
 	    		link_resolution = src_res; // overwrite
 	    	PlayLink2 l = new PlayLink2(link_title, ext_title, link_id, link_description, 
+	    			Integer.valueOf(link_count), link_imgurl,
 	    			src_mark, link_director, link_act,
 	    			link_year, link_area,
 	    			link_resolution, duration_sec);

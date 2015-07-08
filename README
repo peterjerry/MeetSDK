@@ -2,19 +2,24 @@ cross-platform player for android IOS win32
 
 build guide:
 1) android
+i) build ffmpeg 
 cd foundation/build/android
-config.sh neon
-build.sh neon
-merge.sh neon
+./config.sh neon
+./build.sh neon
+./merge.sh neon
+
 copy to output/android
 
+ii) build subtitle
 cd subtitle2/build/android
-ndk-build
+ndk-build -j4
 copy to output/android
 
+iii) build engine2
 cd engine2/build/android
 ndk build
 
+iv) build meetsdk
 cd android/meetsdk
 ant release
 
@@ -23,3 +28,64 @@ ant debug install
 
 # "ant quick" to set no-dependency apk build
 # "ant normal" to set lib-denpendent apk build
+
+2) ios
+i) build ffmpeg
+cd foundation/build/ios
+BUILD_SELECTION=full (available value: full, lite (default is full))
+ARCHS="arm64 armv7s armv7 x86_64 i386"
+for ARCH in $ARCHS; do
+	echo "building $ARCH..."
+	./config_$XCODE_VERSION.sh $ARCH $BUILD_SELECTION
+    ./build_$XCODE_VERSION.sh $ARCH $BUILD_SELECTION
+done	
+./merge.sh
+
+copy to output/ios
+
+ii) build subtitle
+cd subtitle2/build/ios
+chmod +x *.sh
+
+./build.sh
+
+rm -rf output
+mkdir output
+mkdir -p output/include
+mkdir -p output/lib
+
+cp ../../src/subtitle/subtitle.h output/include/
+
+OUTPUT_DIST=output/lib
+FILE=libsubtitle.a
+ARCHS="arm64 armv7s armv7 x86_64 i386"
+for ARCH in $ARCHS
+do
+    mkdir -p output/$ARCH
+done
+
+xcrun -sdk iphoneos lipo -output output/i386/$FILE -thin i386 subtitle2/subtitle/build/Release-iphonesimulator/$FILE
+xcrun -sdk iphoneos lipo -output output/x86_64/$FILE -thin x86_64 subtitle2/subtitle/build/Release-iphonesimulator/$FILE
+xcrun -sdk iphoneos lipo -output output/armv7/$FILE -thin armv7 subtitle2/subtitle/build/Release-iphoneos/$FILE
+xcrun -sdk iphoneos lipo -output output/arm64/$FILE -thin arm64 subtitle2/subtitle/build/Release-iphoneos/$FILE
+
+xcrun -sdk iphoneos lipo -output $OUTPUT_DIST/$FILE -create \
+    -arch i386 output/i386/$FILE \
+    -arch x86_64 output/x86_64/$FILE \
+    -arch armv7 output/armv7/$FILE \
+    -arch arm64 output/arm64/$FILE
+xcrun -sdk iphoneos lipo -info $OUTPUT_DIST/$FILE
+
+for ARCH in $ARCHS
+do
+    rm -r output/$ARCH
+done
+
+cd output
+zip -r subtitle2_univernal_${release_version}.zip ./
+
+iii)build engine2 and PPMediaplayer framework
+
+cd ios/build
+chmod +x build.sh
+./build.sh $version

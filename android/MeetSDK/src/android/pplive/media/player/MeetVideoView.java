@@ -70,6 +70,7 @@ public class MeetVideoView extends SurfaceView implements MediaPlayerControl {
 	private DecodeMode mDecodeModeImpl;
 	private Context mContext;
 	private int mAudioChannel = -1; // default
+	private String mOption;
 	// end of guoliangma added
 	
     // All the stuff we need for playing and showing a video
@@ -271,6 +272,8 @@ public class MeetVideoView extends SurfaceView implements MediaPlayerControl {
             mMediaPlayer.setDisplay(mSurfaceHolder);
             mMediaPlayer.setAudioStreamType(AudioManager.STREAM_MUSIC);
             mMediaPlayer.setScreenOnWhilePlaying(true);
+            if (mOption != null)
+            	mMediaPlayer.setOption(mOption);
             if (mAudioChannel != -1) {
             	mMediaPlayer.selectTrack(mAudioChannel);
             	mAudioChannel = -1;
@@ -666,6 +669,9 @@ public class MeetVideoView extends SurfaceView implements MediaPlayerControl {
         return DecodeMode.UNKNOWN;
     }
     
+    /**
+     * @param index: index of all streams(NOT audio index)
+     */
     public void selectAudioChannel(int index){
         mAudioChannel = index;
         if (mMediaPlayer != null) {
@@ -688,4 +694,7 @@ public class MeetVideoView extends SurfaceView implements MediaPlayerControl {
 		setDisplayMode((mDisplayMode + 1) % 4);
 	}
 	
+	public void setOption(String opt) {
+		mOption = opt;
+	}
 }

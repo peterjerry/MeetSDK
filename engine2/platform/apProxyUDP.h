@@ -6,10 +6,9 @@
 #include <stdint.h>
 #include <pthread.h>
 
-#define WAIT_TIME		1 //msec
-#define FIFO_SIZE		1024*1024*2 
+#define WAIT_TIME		5 //msec
+#define FIFO_SIZE		1048576
 #define READ_SIZE_UDP	1316
-#define MAX_SENDBUF		65536
 
 class apProxyUDP
 {

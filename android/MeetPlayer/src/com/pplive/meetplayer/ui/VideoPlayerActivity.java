@@ -9,6 +9,8 @@ import android.app.AlertDialog;
 import android.app.Dialog;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.graphics.Color;
+import android.graphics.Typeface;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
@@ -44,13 +46,34 @@ public class VideoPlayerActivity extends Activity implements Callback {
 	
 	private final static String []mode_desc = {"自适应", "铺满屏幕", "放大裁切", "原始大小"};
 
-	private Uri mUri = null;
-	private DecodeMode mDecodeMode = DecodeMode.AUTO;
-	private MeetVideoView mVideoView = null;
-	private MyMediaController mController;
+	protected MeetVideoView mVideoView = null;
+	protected MyMediaController mController;
 	private ProgressBar mBufferingProgressBar = null;
 	
+	protected Uri mUri = null;
+	protected int mPlayerImpl = 0;
+	protected int mFt = 0;
+	protected int mBestFt = 3;
+	protected String mTitle;
+	protected int pre_seek_msec = -1;
+	
 	private boolean mIsBuffering = false;
+	
+	/* 记录上一次按返回键的时间 */
+    private long backKeyTime = 0L;
+    
+    // debug info
+ 	private TextView mTextViewDebugInfo;
+ 	private boolean mbShowDebugInfo = false;
+ 	
+ 	private int decode_fps						= 0;
+	private int render_fps 					= 0;
+	private int decode_avg_msec 				= 0;
+	private int render_avg_msec 				= 0;
+	private int render_frame_num				= 0;
+	private int decode_drop_frame				= 0;
+	private int av_latency_msec				= 0;
+	private int video_bitrate					= 0;
 	
 	// subtitle
 	private SimpleSubTitleParser mSubtitleParser;
@@ -62,8 +85,11 @@ public class VideoPlayerActivity extends Activity implements Callback {
 	private String subtitle_filename;
 	private boolean mSubtitleStoped = false;
 	
+	// message
 	private static final int MSG_DISPLAY_SUBTITLE					= 401;
 	private static final int MSG_HIDE_SUBTITLE					= 402;
+	private static final int MSG_UPDATE_PLAY_INFO 				= 403;
+	private static final int MSG_UPDATE_RENDER_INFO				= 404;
 	
 	@Override
 	public void onCreate(Bundle savedInstanceState) {
@@ -72,34 +98,31 @@ public class VideoPlayerActivity extends Activity implements Callback {
 		
 		Intent intent = getIntent();
 		mUri = intent.getData();
-		int impl = 0;
-		if (intent.hasExtra("impl"))
-			impl = intent.getIntExtra("impl", 0);
-		else
-			impl = Util.readSettingsInt(this, "PlayerImpl");
-		Log.i(TAG, String.format("Java player impl: %d", impl));
-		
-		switch(impl) {
-		case 0:
-			mDecodeMode = DecodeMode.AUTO;
-			break;
-		case 1:
-			mDecodeMode = DecodeMode.HW_SYSTEM;
-			break;
-		case 3:
-			mDecodeMode = DecodeMode.SW;
-			break;
-		default:
-			Log.w(TAG, String.format("Java: unknown DecodeMode: %d", impl));
-			mDecodeMode = DecodeMode.SW;
-			break;
-		}
 		Log.i(TAG, "Java: mUri " + mUri.toString());
-
+		
+		if (intent.hasExtra("impl"))
+			mPlayerImpl = intent.getIntExtra("impl", 0);
+		else
+			mPlayerImpl = Util.readSettingsInt(this, "PlayerImpl");
+		Log.i(TAG, "Java player impl: " + mPlayerImpl);
+		
+		mTitle = intent.getStringExtra("title");
+		mFt = intent.getIntExtra("ft", 0);
+		mBestFt = intent.getIntExtra("best_ft", 3);
+		
 		setContentView(R.layout.activity_video_player);
 		
+		this.mController = (MyMediaController) findViewById(R.id.video_controller);
+		this.mVideoView = (MeetVideoView) findViewById(R.id.video_view);
 		this.mSubtitleTextView = (TextView) findViewById(R.id.textview_subtitle);
 		this.mBufferingProgressBar = (ProgressBar) findViewById(R.id.progressbar_buffering);
+		this.mTextViewDebugInfo = (TextView) findViewById(R.id.tv_debuginfo);
+		
+		this.mTextViewDebugInfo.setTextColor(Color.RED);
+		this.mTextViewDebugInfo.setTextSize(18);
+		this.mTextViewDebugInfo.setTypeface(Typeface.MONOSPACE);
+		
+		this.mController.setMediaPlayer(mVideoView);
 		
 		Util.initMeetSDK(this);
 		
@@ -118,10 +141,29 @@ public class VideoPlayerActivity extends Activity implements Callback {
 		Log.i(TAG, "Java: onOptionsItemSelected " + id);
 		
 		switch (id) {
+		case R.id.select_player_impl:
+			popupSelectPlayerImpl();
+			break;
+		case R.id.select_ft:
+			String path;
+			String scheme = mUri.getScheme();
+			if ("file".equalsIgnoreCase(scheme))
+				path = mUri.getPath();
+			else
+				path = mUri.toString();
+			
+			if (path.contains("&playlink="))
+				popupSelectFT();
+			break;
 		case R.id.select_subtitle:
 			popupSelectSubtitle();
 			break;
 		case R.id.toggle_debug_info:
+			mbShowDebugInfo = !mbShowDebugInfo;
+			if (mbShowDebugInfo)
+				mTextViewDebugInfo.setVisibility(View.VISIBLE);
+			else
+				mTextViewDebugInfo.setVisibility(View.GONE);
 			break;
 		default:
 			Log.w(TAG, "unknown menu id " + id);
@@ -166,6 +208,79 @@ public class VideoPlayerActivity extends Activity implements Callback {
 		stop_subtitle();
 	}
 
+	private void popupSelectFT() {
+		final String[] ft_desc = {"流畅", "高清", "超清", "蓝光"};
+		
+		Dialog choose_ft_dlg = new AlertDialog.Builder(VideoPlayerActivity.this)
+		.setTitle("select ft")
+		.setSingleChoiceItems(ft_desc, mFt,
+			new DialogInterface.OnClickListener() {
+				public void onClick(DialogInterface dialog, int whichButton){
+					if (whichButton != mFt) {
+						if (whichButton > mBestFt) {
+							Toast.makeText(VideoPlayerActivity.this, 
+									"该码率: " + ft_desc[whichButton] + " 无效", 
+									Toast.LENGTH_SHORT).show();
+						}
+						else {
+							Toast.makeText(VideoPlayerActivity.this, 
+								"选择码率: " + ft_desc[whichButton], Toast.LENGTH_SHORT).show();
+							
+							mFt = whichButton;
+							
+							String old_url = mUri.toString();
+							int pos = old_url.indexOf("%3Fft%3D");
+							if (pos != -1) {
+								String old_ft = old_url.substring(pos, pos + "%3Fft%3D".length() + 1);
+								String new_ft = "%3Fft%3D" + mFt;
+								mUri = Uri.parse(old_url.replace(old_ft, new_ft));
+								
+								pre_seek_msec = mVideoView.getCurrentPosition() - 5000;
+								if (pre_seek_msec < 0)
+									pre_seek_msec = 0;
+								
+								setupPlayer();
+							}
+						}
+					}
+					
+					dialog.dismiss();
+				}
+			})
+		.create();
+		choose_ft_dlg.show();
+	}
+	
+	private void popupSelectPlayerImpl() {
+		final String[] player_desc = {"Auto", "System", "XOPlayer", "FFPlayer"};
+		
+		Dialog choose_player_impl_dlg = new AlertDialog.Builder(VideoPlayerActivity.this)
+		.setTitle("select player impl")
+		.setSingleChoiceItems(player_desc, mPlayerImpl, /*default selection item number*/
+			new DialogInterface.OnClickListener(){
+				public void onClick(DialogInterface dialog, int whichButton){
+					Log.i(TAG, "select player impl: " + whichButton);
+					
+					if (mPlayerImpl != whichButton) {
+						mPlayerImpl = whichButton;
+						Util.writeSettingsInt(VideoPlayerActivity.this, "PlayerImpl", mPlayerImpl);
+						Toast.makeText(VideoPlayerActivity.this, 
+								"select type: " + player_desc[whichButton], Toast.LENGTH_SHORT).show();
+
+						pre_seek_msec = mVideoView.getCurrentPosition() - 5000;
+						if (pre_seek_msec < 0)
+							pre_seek_msec = 0;
+						
+						setupPlayer();
+					}
+					
+					dialog.dismiss();
+				}
+			})
+		.create();
+		choose_player_impl_dlg.show();
+	}
+	
 	private void popupSelectSubtitle() {
 		final String sub_folder = Environment.getExternalStorageDirectory().getAbsolutePath() + 
 				"/test2/subtitle";
@@ -238,19 +353,38 @@ public class VideoPlayerActivity extends Activity implements Callback {
 		}
 	}
 	
-	private void setupPlayer() {
+	protected void setupPlayer() {
 		Log.i(TAG,"Step: setupPlayer()");
 
-		mController = (MyMediaController) findViewById(R.id.video_controller);
-		mVideoView = (MeetVideoView) findViewById(R.id.surface_view);
+		DecodeMode DecMode;
+		switch (mPlayerImpl) {
+		case 0:
+			DecMode = DecodeMode.AUTO;
+			break;
+		case 1:
+			DecMode = DecodeMode.HW_SYSTEM;
+			break;
+		case 3:
+			DecMode = DecodeMode.SW;
+			break;
+		default:
+			Log.w(TAG, String.format("Java: unknown DecodeMode: %d", mPlayerImpl));
+			DecMode = DecodeMode.SW;
+			break;
+		}
 		
-		mVideoView.setDecodeMode(mDecodeMode);
+		mVideoView.stopPlayback();
+		
+		mVideoView.setDecodeMode(DecMode);
 		mVideoView.setVideoURI(mUri);
-		mController.setMediaPlayer(mVideoView);
 		mVideoView.setOnCompletionListener(mCompletionListener);
 		mVideoView.setOnErrorListener(mErrorListener);
 		mVideoView.setOnInfoListener(mInfoListener);
 		mVideoView.setOnPreparedListener(mPreparedListener);
+		
+		String audio_opt = Util.readSettings(this, "last_audio_ip_port");
+		if (audio_opt != null && !audio_opt.isEmpty())
+			mVideoView.setOption(audio_opt);
 		
 		String schema = mUri.getScheme();
 		String path = null;
@@ -260,9 +394,19 @@ public class VideoPlayerActivity extends Activity implements Callback {
 		else
 			path = mUri.toString();
 		
-		String name = getFileName(path);
-		mController.setFileName(name);
+		if (mTitle != null) {
+			mController.setFileName(mTitle);
+		}
+		else {
+			String name = getFileName(path);
+			mController.setFileName(name);
+		}
 
+		if (pre_seek_msec != -1) {
+			mVideoView.seekTo(pre_seek_msec);
+			pre_seek_msec = -1;
+		}
+		
 		mVideoView.start();
 		
 		mBufferingProgressBar.setVisibility(View.VISIBLE);
@@ -311,11 +455,16 @@ public class VideoPlayerActivity extends Activity implements Callback {
 		return name;
 	}
 	
+	protected void onComplete() {
+		finish();
+	}
+	
 	private MediaPlayer.OnCompletionListener mCompletionListener = new MediaPlayer.OnCompletionListener() {
 		public void onCompletion(MediaPlayer mp) {
 			Log.i(TAG, "MEDIA_PLAYBACK_COMPLETE");
+			
 			mVideoView.stopPlayback();
-			finish();
+			onComplete();
 		}
 	};
 
@@ -355,6 +504,46 @@ public class VideoPlayerActivity extends Activity implements Callback {
 				else
 					str_player_type = "Unknown Player";
 				Toast.makeText(VideoPlayerActivity.this, str_player_type, Toast.LENGTH_SHORT).show();
+			}
+			else if(MediaPlayer.MEDIA_INFO_TEST_DECODE_AVG_MSEC == what) {
+				decode_avg_msec = extra;
+			}
+			else if(MediaPlayer.MEDIA_INFO_TEST_RENDER_AVG_MSEC == what) {
+				render_avg_msec = extra;
+			}
+			else if(MediaPlayer.MEDIA_INFO_TEST_DECODE_FPS == what) {
+				decode_fps = extra;
+				mHandler.sendEmptyMessage(MSG_UPDATE_PLAY_INFO);
+			}
+			else if(MediaPlayer.MEDIA_INFO_TEST_RENDER_FPS == what) {
+				render_fps = extra;
+				mHandler.sendEmptyMessage(MSG_UPDATE_PLAY_INFO);
+			}
+			else if(MediaPlayer.MEDIA_INFO_TEST_RENDER_FRAME == what) {
+				render_frame_num = extra;
+				mHandler.sendEmptyMessage(MSG_UPDATE_RENDER_INFO);
+			}
+			else if(MediaPlayer.MEDIA_INFO_TEST_LATENCY_MSEC == what) {
+				av_latency_msec = extra;
+			}
+			else if(MediaPlayer.MEDIA_INFO_TEST_DROP_FRAME == what) {
+				decode_drop_frame++;
+				mHandler.sendEmptyMessage(MSG_UPDATE_RENDER_INFO);
+			}
+			else if(MediaPlayer.MEDIA_INFO_TEST_MEDIA_BITRATE == what) {
+				video_bitrate = extra;
+				mHandler.sendEmptyMessage(MSG_UPDATE_PLAY_INFO);
+			}
+			else if(android.media.MediaPlayer.MEDIA_INFO_VIDEO_RENDERING_START == what) {
+				
+			}
+			else if(MediaPlayer.MEDIA_INFO_VIDEO_TRACK_LAGGING == what) {
+				av_latency_msec = extra;
+				
+				decode_fps = render_fps = 0;
+				decode_drop_frame = 0;
+				video_bitrate = 0;
+				mHandler.sendEmptyMessage(MSG_UPDATE_PLAY_INFO);
 			}
 			
 			return true;
@@ -426,54 +615,69 @@ public class VideoPlayerActivity extends Activity implements Callback {
 	public boolean onKeyDown(int keyCode, KeyEvent event) {
 		
 		Log.d(TAG, "keyCode: " + keyCode);
-		int incr = -1;
+		int incr;
 		
 		switch (keyCode) {
-		case KeyEvent.KEYCODE_DPAD_LEFT:
-		case KeyEvent.KEYCODE_DPAD_RIGHT:
-		case KeyEvent.KEYCODE_DPAD_DOWN:
-		case KeyEvent.KEYCODE_DPAD_UP:
 		case KeyEvent.KEYCODE_DPAD_CENTER:
 		case KeyEvent.KEYCODE_ENTER:
+			if (!mController.isShowing())
 				mController.show();
+			return true;
+		case KeyEvent.KEYCODE_DPAD_LEFT:
+		case KeyEvent.KEYCODE_DPAD_RIGHT:
+			if (mController.isShowing()) {
+				if (KeyEvent.KEYCODE_DPAD_RIGHT == keyCode)
+					incr = 1;
+				else
+					incr = -1;
+	
+				int pos = mVideoView.getCurrentPosition();
+				int step = mVideoView.getDuration() / 100 + 1000;
+				Log.i(TAG, String.format("Java pos %d, step %s", pos, step));
+				if (step > 30000)
+					step = 30000;
+				pos += (incr * step);
+				if (pos > mVideoView.getDuration())
+					pos = mVideoView.getDuration();
+				else if (pos < 0)
+					pos = 0;
+				mVideoView.seekTo(pos);
 				
-				if (KeyEvent.KEYCODE_DPAD_RIGHT == keyCode || 
-						KeyEvent.KEYCODE_DPAD_LEFT == keyCode) {
-					if (KeyEvent.KEYCODE_DPAD_RIGHT == keyCode)
-						incr = 1;
-					else
-						incr = -1;
-					
-					int pos = mVideoView.getCurrentPosition();
-					int step = mVideoView.getDuration() / 100 + 1000;
-					Log.i(TAG, String.format("Java pos %d, step %s", pos, step));
-					if (step > 30000)
-						step = 30000;
-					pos += (incr * step);
-					if (pos > mVideoView.getDuration())
-						pos = mVideoView.getDuration();
-					else if(pos < 0)
-						pos = 0;
-					mVideoView.seekTo(pos);
-				}
-				else if (KeyEvent.KEYCODE_DPAD_DOWN == keyCode || 
-						KeyEvent.KEYCODE_DPAD_UP == keyCode) {
-					if (KeyEvent.KEYCODE_DPAD_DOWN == keyCode)
-						incr = 1;
-					else
-						incr = -1;
-					
-					switchDisplayMode(incr);
-				}
-				
-				return true;
-			default:
-				return super.onKeyDown(keyCode, event);
+				mController.show();
 			}
+			return true;
+		case KeyEvent.KEYCODE_DPAD_DOWN:
+		case KeyEvent.KEYCODE_DPAD_UP:
+			if (KeyEvent.KEYCODE_DPAD_DOWN == keyCode)
+				incr = 1;
+			else
+				incr = -1;
+
+			switchDisplayMode(incr);
+			return true;
+		case KeyEvent.KEYCODE_BACK:
+			if (mController.isShowing()) {
+				mController.hide();
+			}
+			else if ((System.currentTimeMillis() - backKeyTime) > 2000) {
+				Toast.makeText(VideoPlayerActivity.this,
+					"再按一次退出", Toast.LENGTH_SHORT)
+					.show();
+				backKeyTime = System.currentTimeMillis();
+			} else {
+				onBackPressed();
+			}
+			return true;
+		case KeyEvent.KEYCODE_MENU:
+			openOptionsMenu();
+			return true;
+		default:
+			return super.onKeyDown(keyCode, event);
+		}
 	}
 	
     public void toggleMediaControlsVisiblity() {
-    	if (mVideoView != null && mVideoView.isPlaying() && mController != null) {
+    	if (mVideoView.isPlaying() && mController != null) {
 	        if (mController.isShowing()) {
 	        	mController.hide();
 	        } else {
@@ -619,37 +823,16 @@ public class VideoPlayerActivity extends Activity implements Callback {
         @Override  
         public void handleMessage(Message msg) {  
             switch(msg.what) {
-			/*case MSG_CLIP_LIST_DONE:
-				if (mAdapter == null) {
-					mAdapter = new LocalFileAdapter(ClipListActivity.this, mListUtil.getList(), R.layout.pptv_list);
-					lv_filelist.setAdapter(mAdapter);
-				}
-				else {
-					mAdapter.updateData(mListUtil.getList());
-					mAdapter.notifyDataSetChanged();
-				}
-				break;
 			case MSG_UPDATE_PLAY_INFO:
 			case MSG_UPDATE_RENDER_INFO:
-				if (isLandscape) {
-					mTextViewInfo.setText(String.format("%02d|%03d v-a: %+04d "
+				if (mbShowDebugInfo) {
+					mTextViewDebugInfo.setText(String.format("%02d|%03d v-a: %+04d "
 							+ "dec/render %d(%d)/%d(%d) fps/msec bitrate %d kbps", 
 						render_frame_num % 25, decode_drop_frame % 1000, av_latency_msec, 
 						decode_fps, decode_avg_msec, render_fps, render_avg_msec,
 						video_bitrate));
 				}
-				else {
-					mTextViewInfo.setText(String.format("%02d|%03d v-a: %+04d\n"
-							+ "dec/render %d(%d)/%d(%d) fps/msec\nbitrate %d kbps", 
-						render_frame_num % 25, decode_drop_frame % 1000, av_latency_msec, 
-						decode_fps, decode_avg_msec, render_fps, render_avg_msec,
-						video_bitrate));
-				}
 				break;
-			case MSG_CLIP_PLAY_DONE:
-				Toast.makeText(ClipListActivity.this, "clip completed", Toast.LENGTH_SHORT).show();
-				mTextViewInfo.setText("play info");
-				break;*/
 			case MSG_DISPLAY_SUBTITLE:
 				mSubtitleTextView.setText(mSubtitleText);
 				break;

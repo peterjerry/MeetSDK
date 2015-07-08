@@ -86,7 +86,7 @@ public:
 	int64_t getDurationMs();
 
 	// absolute positon(not cached length)
-	int64_t getCachedDurationMs(){return mCachedDurationMs;}
+	int64_t getCachedDurationMs(){return (mCachedDurationMs - mStartTimeMs);}
 
 	int64_t getStartTime(){return mStartTimeMs;}
 

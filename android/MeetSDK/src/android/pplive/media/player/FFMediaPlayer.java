@@ -19,7 +19,7 @@ import android.pplive.media.player.MediaPlayer.DecodeMode;
 
 public class FFMediaPlayer extends BaseMediaPlayer {
 
-	private int mNativeContext; // accessed by native methods
+	private int mNativeContext; // ISubtitle ctx, accessed by native methods
 	private int mListenerContext; // accessed by native methods
 	
 	private static String libPath = "";
@@ -75,10 +75,10 @@ public class FFMediaPlayer extends BaseMediaPlayer {
 			LogUtils.info("System.loadLibrary() " + lib_name + " loaded!");
 			return true;
 		}
-		catch (Exception e) 
+		catch (Throwable t) 
 		{
-			e.printStackTrace();
-			LogUtils.error("failed to load system library meet: " + e.toString());
+			t.printStackTrace();
+			LogUtils.error("failed to load system library meet: " + t.toString());
 		}
 		
 		return false;
@@ -91,10 +91,10 @@ public class FFMediaPlayer extends BaseMediaPlayer {
 			LogUtils.info("System.load() " + path_name + " loaded!");
 			return true;
 		}
-		catch (Exception e) 
+		catch (Throwable t) 
 		{
-			e.printStackTrace();
-			LogUtils.error("failed to load local library meet: " + e.toString());
+			t.printStackTrace();
+			LogUtils.error("failed to load local library meet: " + t.toString());
 		}
 		
 		return false;
@@ -390,6 +390,9 @@ public class FFMediaPlayer extends BaseMediaPlayer {
 
 	}
 
+    /**
+     * @param index: index of all streams(NOT audio index)
+     */
 	@Override
 	public void selectTrack(int index) throws IllegalStateException {
 		// TODO Auto-generated method stub

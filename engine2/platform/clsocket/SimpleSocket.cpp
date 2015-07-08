@@ -324,6 +324,7 @@ uint16 CSimpleSocket::SetWindowSize(uint32 nOptionName, uint32 nWindowSize)
         SetSocketError(CSimpleSocket::SocketInvalidSocket);
     }
 
+	(void)nRetVal;
     return (uint16)nWindowSize;
 }
 

@@ -4,7 +4,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.StringTokenizer;
 
 import com.pplive.common.sohu.AlbumSohu;
 import com.pplive.common.sohu.EpisodeSohu;
@@ -27,6 +26,7 @@ import android.util.Log;
 import android.view.View;
 import android.widget.AbsListView;
 import android.widget.AdapterView;
+import android.widget.EditText;
 import android.widget.GridView;
 import android.widget.Toast;
 
@@ -65,7 +65,7 @@ public class SohuEpisodeActivity extends Activity {
     private PlaylinkSohu mPlaylink;
     private int sub_channel_id		= -1;
     private long selected_aid		= -1;
-    private long selected_site		= -1;
+    private int selected_site		= -1;
     private int selected_index		= -1;
     private String search_key;
     
@@ -78,8 +78,6 @@ public class SohuEpisodeActivity extends Activity {
 		
 		Log.i(TAG, "Java: onCreate()");
 		
-		setContentView(R.layout.activity_sohu_episode);  
-		
 		Intent intent = getIntent();
 		sub_channel_id = intent.getIntExtra("sub_channel_id", -1);
 		if (intent.hasExtra("search_key"))
@@ -90,8 +88,10 @@ public class SohuEpisodeActivity extends Activity {
 			return;
 		}
 		
-		gridView = (GridView) findViewById(R.id.grid_view);
-		gridView.setOnItemClickListener(new AdapterView.OnItemClickListener(){
+		setContentView(R.layout.activity_sohu_episode);  
+		
+		this.gridView = (GridView) findViewById(R.id.grid_view);
+		this.gridView.setOnItemClickListener(new AdapterView.OnItemClickListener(){
 
 			@Override
 			public void onItemClick(AdapterView<?> arg0, View v, int position,
@@ -105,7 +105,8 @@ public class SohuEpisodeActivity extends Activity {
 					selected_aid = (Long)item.get("aid");
 					int last_count = (Integer)item.get("last_count");
 					if (last_count > 30) {
-						ep_page_index = last_count / page_size + 1;
+						// " last_count - 1" fix 50 / 10 case
+						ep_page_index = (last_count - 1) / page_size + 1;
 						ep_page_incr = -1;
 					}
 					else {
@@ -128,7 +129,25 @@ public class SohuEpisodeActivity extends Activity {
 			
 		});
 		
-		gridView.setOnScrollListener(new AbsListView.OnScrollListener() {
+		this.gridView.setOnItemLongClickListener(new AdapterView.OnItemLongClickListener() {
+
+			@Override
+			public boolean onItemLongClick(AdapterView<?> arg0, View v,
+					int position, long id) {
+				// TODO Auto-generated method stub
+				
+				Map<String, Object> item = adapter.getItem(position);
+				String description = (String)item.get("desc");
+				new AlertDialog.Builder(SohuEpisodeActivity.this)
+					.setTitle("专辑介绍")
+					.setMessage(description)
+					.setPositiveButton("确定", null)
+					.show();
+				return true;
+			}
+		});
+		
+		this.gridView.setOnScrollListener(new AbsListView.OnScrollListener() {
 			
 			@Override
 			public void onScrollStateChanged(AbsListView view, int scrollState) {
@@ -167,7 +186,7 @@ public class SohuEpisodeActivity extends Activity {
         public void handleMessage(Message msg) {  
             switch (msg.what) {
             case MSG_EPISODE_DONE:
-            	if (mEpisodeList.size() == 1) {
+            	if (mEpisodeList.size() == 1 && ep_page_index == 1) {
             		EpisodeSohu ep = mEpisodeList.get(0);
 					selected_index = 0;
 					new SohuEpgTask().execute(TASK_PLAYLINK, ep.mAid, (long)ep.mVid);
@@ -204,6 +223,7 @@ public class SohuEpisodeActivity extends Activity {
         		intent.putExtra("title", mPlaylink.getTitle());
         		intent.putExtra("index", (ep_page_index - 1) * page_size + selected_index);
         		intent.putExtra("aid", selected_aid);
+        		intent.putExtra("site", selected_site);
         		startActivity(intent);
             	break;
             case MSG_MORELIST_DONE:
@@ -216,6 +236,7 @@ public class SohuEpisodeActivity extends Activity {
     				
     				episode.put("title", al.getTitle());
     				episode.put("img_url", al.getImgUrl(true));
+    				episode.put("desc", al.getDescription());
     				episode.put("tip", al.getTip());
     				episode.put("aid", al.getAid());
     				episode.put("vid", al.getVid());
@@ -272,7 +293,18 @@ public class SohuEpisodeActivity extends Activity {
 				new DialogInterface.OnClickListener(){
 					public void onClick(DialogInterface dialog, int whichButton){
 						ep_page_index += ep_page_incr;
-						new SohuEpgTask().execute(TASK_EPISODE, selected_aid);
+						if (ep_page_index > 0)
+							new SohuEpgTask().execute(TASK_EPISODE, selected_aid);
+						else
+							Toast.makeText(SohuEpisodeActivity.this, "No more episode", Toast.LENGTH_SHORT).show();
+						
+						dialog.dismiss();
+					}
+				})
+		.setNeutralButton("Page", 
+				new DialogInterface.OnClickListener(){
+					public void onClick(DialogInterface dialog, int whichButton){
+						popupSelectPage(ep_page_index);
 						
 						dialog.dismiss();
 					}
@@ -285,33 +317,25 @@ public class SohuEpisodeActivity extends Activity {
 		choose_episode_dlg.show();
 	}
 	
-	private void add_video_history(String title, int vid, long aid, int site) {
-		String key = "SohuPlayHistory";
-		String regularEx = ",";
-		final int save_max_count = 10;
-		String value = Util.readSettings(SohuEpisodeActivity.this, key);
+	private void popupSelectPage(int default_page) {
+		AlertDialog.Builder builder;
 		
-		List<String> playHistoryList = new ArrayList<String>();
-		StringTokenizer st = new StringTokenizer(value, regularEx, false);
-        while (st.hasMoreElements()) {
-        	String token = st.nextToken();
-        	playHistoryList.add(token);
-        }
-        
-        int count = playHistoryList.size();
-        StringBuffer sb = new StringBuffer();
-        int start = count - save_max_count + 1;
-        if (start < 0)
-        	start = 0;
-        for (int i = start; i<count ; i++) {
-        	sb.append(playHistoryList.get(i));
-        	sb.append(regularEx);
-        }
-        
-        String new_video = String.format("%s|%d|%d|%d", title, vid, aid, site);
-        sb.append(new_video);
-        
-		Util.writeSettings(SohuEpisodeActivity.this, key, sb.toString());
+		final EditText inputKey = new EditText(this);
+    	inputKey.setText(String.valueOf(default_page));
+		inputKey.setHint("select episode page");
+		
+        builder = new AlertDialog.Builder(this);
+        builder.setTitle("input page number").setIcon(android.R.drawable.ic_dialog_info).setView(inputKey)
+                .setNegativeButton("Cancel", null);
+        builder.setPositiveButton("Ok", new DialogInterface.OnClickListener() {
+
+            public void onClick(DialogInterface dialog, int which) {
+            	ep_page_index = Integer.valueOf(inputKey.getText().toString());
+            	new SohuEpgTask().execute(TASK_EPISODE, selected_aid);
+        		dialog.dismiss();
+             }
+        });
+        builder.show();
 	}
 	
 	private class SohuEpgTask extends AsyncTask<Long, Integer, Boolean> {
@@ -336,7 +360,7 @@ public class SohuEpisodeActivity extends Activity {
 				if (!mEPG.episode(aid, ep_page_index, page_size)) {
 					Log.e(TAG, "Java: failed to call episode()");
 					mhandler.sendEmptyMessage(MSG_NO_MORE_EPISODE);
-					return false;
+					return true;
 				}
 				
 				mEpisodeList = mEPG.getEpisodeList();
@@ -357,7 +381,8 @@ public class SohuEpisodeActivity extends Activity {
 					return false;
 				}
 				
-				add_video_history(mPlaylink.getTitle(), (int)vid, -1, -1);
+				Util.add_sohuvideo_history(SohuEpisodeActivity.this, 
+						mPlaylink.getTitle(), (int)vid, -1, -1);
 				
 				mhandler.sendEmptyMessage(MSG_PLAYLINK_DONE);	
 			}
@@ -388,7 +413,8 @@ public class SohuEpisodeActivity extends Activity {
 					return false;
 				}
 				
-				add_video_history(mPlaylink.getTitle(), (int)vid, aid, (int)site);
+				Util.add_sohuvideo_history(SohuEpisodeActivity.this, 
+						mPlaylink.getTitle(), (int)vid, aid, (int)site);
 				
 				mhandler.sendEmptyMessage(MSG_PLAYLINK_DONE);	
 			}
@@ -456,6 +482,7 @@ public class SohuEpisodeActivity extends Activity {
 				
 				episode.put("title", al.getTitle());
 				episode.put("img_url", al.getImgUrl(true));
+				episode.put("desc", al.getDescription());
 				episode.put("tip", al.getTip());
 				episode.put("aid", al.getAid());
 				episode.put("vid", al.getVid());

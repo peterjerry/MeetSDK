@@ -134,7 +134,8 @@ public class MySohuEpAdapter extends BaseAdapter {
 		holder.getTitle().setText(title);
 		holder.getTip().setText(tip);
 
-		new LoadPicTask().execute(holder, img_url);
+		if (img_url != null && img_url.startsWith("http://"))
+			new LoadPicTask().execute(holder, img_url);
 		
 		// 注意 默认为返回null,必须得返回convertView视图
 		return convertView;

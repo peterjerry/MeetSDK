@@ -91,28 +91,49 @@ else
 	SYSROOT=$NDK/platforms/android-9/arch-$ARCH
 fi
 
+USER_ROOT=`pwd`
+FDK_AAC_HOME=$USER_ROOT/thirdparty/fdk-aac
+RTMPDUMP_HOME=$USER_ROOT/thirdparty/rtmpdump
+
 if [ $ARCH == 'arm' ] 
 then
 	CROSS_PREFIX=$NDK/toolchains/arm-linux-androideabi-4.8/prebuilt/$HOST/bin/arm-linux-androideabi-
 	EXTRA_CFLAGS="$EXTRA_CFLAGS -fstack-protector -fstrict-aliasing"
 	OPTFLAGS="-O2"
+	FDK_AAC_LIB=$FDK_AAC_HOME/lib/armeabi-v7a
+	RTMPDUMP_LIB=$USER_ROOT/thirdparty/rtmpdump/lib/armeabi
 elif [ $ARCH == 'arm64' ] 
 then
 	CROSS_PREFIX=$NDK/toolchains/aarch64-linux-android-4.9/prebuilt/$HOST/bin/aarch64-linux-android-
 	EXTRA_CFLAGS="$EXTRA_CFLAGS -fstack-protector -fstrict-aliasing"
 	OPTFLAGS="-O2"
+	RTMPDUMP_LIB=$USER_ROOT/thirdparty/rtmpdump/lib/arm64-v8a
 elif [ $ARCH == 'x86' ] 
 then
 	CROSS_PREFIX=$NDK/toolchains/x86-4.8/prebuilt/$HOST/bin/i686-linux-android-
 	EXTRA_CFLAGS="$EXTRA_CFLAGS -fstrict-aliasing"
 	OPTFLAGS="-O2 -fno-pic"
-	MXLIB_PATH="../libs/x86"
+	FDK_AAC_LIB=$FDK_AAC_HOME/lib/x86
+	RTMPDUMP_LIB=$USER_ROOT/thirdparty/rtmpdump/lib/x86
 elif [ $ARCH == 'mips' ] 
 then
 	CROSS_PREFIX=$NDK/toolchains/mipsel-linux-android-4.8/prebuilt/$HOST/bin/mipsel-linux-android-
 	EXTRA_CFLAGS="$EXTRA_CFLAGS -fno-strict-aliasing -fmessage-length=0 -fno-inline-functions-called-once -frerun-cse-after-loop -frename-registers"
 	OPTFLAGS="-O2"
-	MXLIB_PATH="../libs/mips"
+fi
+
+if [ ${3}x == 'enc'x ]; then
+echo "build-in fdk-aac" 
+echo "USER_ROOT: $USER_ROOT"
+echo "fdk-aac include: $FDK_AAC_HOME/include"
+echo "fdk-aac lib: $FDK_AAC_LIB"
+
+echo "rtmpdump include: $RTMPDUMP_HOME/include"
+echo "rtmpdump lib: $RTMPDUMP_LIB"
+
+EXTRA_CFLAGS="$EXTRA_CFLAGS -I$FDK_AAC_HOME/include -I$RTMPDUMP_HOME/include"
+EXTRA_LDFLAGS="$EXTRA_LDFLAGS -L$FDK_AAC_LIB"
+EXTRA_LDFLAGS="$EXTRA_LDFLAGS -L$RTMPDUMP_LIB -lssl -lcrypto -lz"
 fi
 
 #remove ac3 eac3
@@ -125,7 +146,7 @@ then
 echo "lite build"
 EXTRA_PARAMETERS="$EXTRA_PARAMETERS \
 	--disable-decoders \
-	--enable-decoder=h263,h264,hevc,flv,mpeg1video,mpeg2video,mpeg4,ac3,aac,mp1,mp2,mp3,rv30,rv40,cook,wmv1,wmv2,wmv3,wmv3image,ape,flac,wmav1,wmav2,wmapro,pcm_s16be,pcm_s16be_planar,pcm_s16le,pcm_s16le_planar \
+	--enable-decoder=h263,h264,hevc,flv,mpeg1video,mpeg2video,mpeg4,ac3,aac,mp1,mp2,mp3,rv30,rv40,cook,wmv1,wmv2,wmv3,wmv3image,ape,flac,wmav1,wmav2,wmapro,pcm_s16be,pcm_s16be_planar,pcm_s16le,pcm_s16le_planar,ass,dvbsub,dvdsub,mov_text,sami,srt,ssa,subrip,text \
 	--disable-demuxers \
 	--enable-demuxer=rm,mpegvideo,avi,h263,h264,hevc,matroska,aac,flv,mpegts,mp4,m4v,mov,ape,hls,flac,rawvideo,realtext,rtsp,vc1,mp3,wav,asf \
 	--disable-parsers \
@@ -134,6 +155,15 @@ EXTRA_PARAMETERS="$EXTRA_PARAMETERS \
 # hevc,liblenthevchm91,liblenthevchm10,liblenthevc
 else
 echo "full build"
+fi
+
+if [ ${3}x == 'enc'x ]; then
+EXTRA_PARAMETERS="$EXTRA_PARAMETERS \
+	--enable-encoder=libfdk_aac \
+	--enable-libfdk-aac \
+	--enable-muxer=mpegts,flv,hls \
+	--enable-openssl"
+#	--enable-librtmp \	
 fi
 
 #liblenthevcdec

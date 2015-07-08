@@ -126,6 +126,13 @@ public class MediaInfo {
 	}
 
 	// video
+	public void setVideoInfo(int width, int height, String codecName, int duration) {
+		mWidth			= width;
+		mHeight			= height;
+		mVideoCodecName	= codecName;
+		mDurationMS		= duration;
+	}
+	
 	public int getVideoChannels() {
 		return mVideoChannels;
 	}
@@ -154,11 +161,22 @@ public class MediaInfo {
 		return mThumbnail;
 	}
 
+	public void setAudioChannels(int num) {
+		mAudioChannels = num;
+	}
+	
 	public int getAudioChannels() {
 		return mAudioChannels;
 	}
 	
 	// audio
+	/**
+	 * @param id: audio channel count
+	 * @param streamIndex: stream index of all stream
+	 * @param codecName:
+	 * @param lang: language meta data
+	 * @param title: title meta data
+	 */
 	public void setAudioChannelsInfo(int id, int streamIndex, String codecName, String lang, String title) {
 		TrackInfo audiotrackinfo = new TrackInfo();
 		audiotrackinfo.setId(id);
@@ -188,13 +206,20 @@ public class MediaInfo {
 		subtitleTrackInfos.add(subtitletrackinfo);
 	}
 	
-	public void setSubtitleChannelsInfo(int i, int j, String s, String s1, String s2) {
+	/**
+	 * @param id: subtitle channel count
+	 * @param streamIndex: stream index of all stream
+	 * @param codecName:
+	 * @param lang: language meta data
+	 * @param title: title meta data
+	 */
+	public void setSubtitleChannelsInfo(int id, int streamIndex, String codecName, String lang, String title) {
 		TrackInfo subtitletrackinfo = new TrackInfo();
-		subtitletrackinfo.setId(i);
-		subtitletrackinfo.setStreamIndex(j);
-		subtitletrackinfo.setCodecName(s);
-		subtitletrackinfo.setLanguage(s1);
-		subtitletrackinfo.setTitle(s2);
+		subtitletrackinfo.setId(id);
+		subtitletrackinfo.setStreamIndex(streamIndex);
+		subtitletrackinfo.setCodecName(codecName);
+		subtitletrackinfo.setLanguage(lang);
+		subtitletrackinfo.setTitle(title);
 		subtitleTrackInfos.add(subtitletrackinfo);
 	}
 

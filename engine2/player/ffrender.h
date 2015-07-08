@@ -53,6 +53,9 @@ private:
 
 private:
     void* mSurface;
+#ifdef __ANDROID__
+	void* mNativeWindow;
+#endif
     uint32_t mFrameWidth;
     uint32_t mFrameHeight;
     int32_t mFrameFormat;

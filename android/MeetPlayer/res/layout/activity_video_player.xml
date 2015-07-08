@@ -6,9 +6,9 @@
     android:background="@android:color/black">
 
     <android.pplive.media.player.MeetVideoView
-        android:id="@+id/surface_view"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
+        android:id="@+id/video_view"
+        android:layout_width="fill_parent"
+        android:layout_height="fill_parent"
         android:layout_centerInParent="true" />
     
     <ProgressBar 
@@ -37,11 +37,17 @@
 		
 	<com.pplive.meetplayer.ui.widget.MyMediaController
 		android:id="@+id/video_controller"
-        android:layout_width="wrap_content"
+        android:layout_width="fill_parent"
         android:layout_height="wrap_content"
-        android:layout_centerHorizontal="true"
         android:layout_alignParentBottom="true"
     	android:visibility="gone" />
+	
+	<TextView 
+        android:id="@+id/tv_debuginfo"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentTop="true"
+        android:visibility="gone" />
 	
 	<TextView
 		android:id="@+id/textview_subtitle"

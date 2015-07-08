@@ -88,7 +88,8 @@ const char* url_list[PROG_MAX_NUM] = {
 	_T("http://172.16.204.106/test/hls/600000/index.m3u8"),
 	_T("http://172.16.204.106/test/hls/600000/noend.m3u8"),
 	//_T("D:\\Archive\\media\\[圣斗士星矢Ω].[hysub]Saint.Seiya.Omega_11_[GB_mp4][480p].mp4"),
-	_T("D:\\Archive\\media\\test\\subtitle\\Manhattan.S01E08.HDTVrip.1024X576_sub.mkv"),
+	//_T("D:\\Archive\\media\\test\\subtitle\\Manhattan.S01E08.HDTVrip.1024X576_sub.mkv"),
+	_T("E:\\BaiduYunDownload\\红猪.Porco.Rosso.1992.D9.3Audio.MiniSD-TLF.mkv"),
 	_T("D:\\Archive\\media\\mv\\G.NA_Secret.mp4"),
 
 	_T("http://zb.v.qq.com:1863/?progid=1975434150"),
@@ -479,11 +480,13 @@ void CtestSDLdlgDlg::OnTimer(UINT_PTR nIDEvent)
 				mSubtitleStartTime = segment->getStartTime();
 				mSubtitleStopTime = segment->getStopTime();
 				segment->getSubtitleText(subtitleText, 1024);
-				LOGI("%01d:%02d:%02d.%02d  --> %01d:%02d:%02d.%02d  %s",
+				LOGI("%01d:%02d:%02d.%02d(%I64d)  --> %01d:%02d:%02d.%02d(%I64d)  %s",
 					int(mSubtitleStartTime/1000/3600), int(mSubtitleStartTime/1000%3600/60), 
 					int(mSubtitleStartTime/1000%60), int(mSubtitleStartTime%1000)/10,
-					int(mSubtitleStartTime/1000/3600), int(mSubtitleStartTime/1000%3600/60), 
-					int(mSubtitleStartTime/1000%60), int(mSubtitleStartTime%1000)/10,
+					mSubtitleStartTime,
+					int(mSubtitleStopTime/1000/3600), int(mSubtitleStopTime/1000%3600/60), 
+					int(mSubtitleStopTime/1000%60), int(mSubtitleStopTime%1000)/10,
+					mSubtitleStopTime,
 					CW2A(CA2W(subtitleText, CP_UTF8)));
 
 				mSubtitleText = CW2A(CA2W(subtitleText, CP_UTF8));
@@ -640,7 +643,18 @@ bool CtestSDLdlgDlg::start_player(const char *url)
 
 	mPlayer = new FFPlayer;
 	mPlayer->setListener(this);
-	mPlayer->set_opt("192.168.27.134/9891");
+
+	char   name[128]  ={0};  
+	hostent*   pHost;  
+	gethostname(name,   128);//获主机名  
+	pHost = gethostbyname(name);//获主机结构  
+	char *ip_addr = inet_ntoa(*((in_addr   *)pHost->h_addr));
+	LOGI("host_name %s, ip address %s", name, ip_addr);
+
+	char opt[128]  ={0};
+	sprintf(opt, "%s/9891", ip_addr);
+	LOGI("player option %s", opt);
+	mPlayer->set_opt(opt);
 
 #ifdef ENABLE_SUBTITLE
 	if (!ISubtitles::create(&mSubtitleParser)) {
@@ -690,7 +704,7 @@ void CtestSDLdlgDlg::stop_player()
 	}
 
 	if (mSubtitleParser) {
-		mSubtitleParser->close();
+		delete mSubtitleParser;
 		mSubtitleParser = NULL;
 
 		mSubtitleStartTime = mSubtitleStopTime = 0;
@@ -1301,7 +1315,7 @@ void CtestSDLdlgDlg::OnBnClickedButtonPlayEpg()
 		url = NULL;
 	}
 	else {
-		_snprintf(str_playlink, 512, "%d?ft=%d&bwtype=%d&platform=android3&type=phone.android.vip&sv=4.1.3", // &param=userType%3D1
+		_snprintf(str_playlink, 512, "%d?ft=%d&bwtype=%d&platform=android3&type=phone.android.vip&sv=4.0.1", // &param=userType%3D1
 			link, ft, bw_type);
 		LOGI("playlink before urlencode: %s", str_playlink);
 		int out_len = 0;
@@ -1309,7 +1323,7 @@ void CtestSDLdlgDlg::OnBnClickedButtonPlayEpg()
 		LOGI("playlink after urlencode: %s", encoded_playlink);
 
 		_snprintf(str_url, 1024, pptv_playlink_ppvod2_fmt, HOST, mhttpPort, encoded_playlink);
-		strcat(str_url, "%26param%3DuserType%253D1&mux.M3U8.segment_duration=5");
+		strcat(str_url, "%26param%3DuserType%253D1&mux.M3U8.segment_duration=5");// %26param%3DuserType%253D1
 	}
 
 	LOGI("final vod url: %s", str_url);

@@ -213,35 +213,46 @@ int and_osles::getVol()
 	return 0;
 }
 
-int and_osles::setVol(int vol)
+int and_osles::setVol(double nvolume)
 {
-	SLresult    res; 
-	//SLVolumeItf  volumeItf; 
-	SLmillibel  bel_vol;
-	
+	LOGI("and_osles: setVol2 %.3f", nvolume);
+
+	SLresult res;
+	SLmillibel currentVolume;
+
+	//get min & max
+	SLmillibel MinVolume = SL_MILLIBEL_MIN;
+	SLmillibel MaxVolume = SL_MILLIBEL_MIN;
+
 	osles_handle * handle = (osles_handle *)m_osles_handle;
+	SLVolumeItf SLES_Volume = handle->bqPlayerVolume;
 
-	int increment;
-	if(vol >= 0)
-		increment =  250;
-	else
-		increment = -250;
+	(*SLES_Volume)->GetMaxVolumeLevel(SLES_Volume, &MaxVolume);
+	LOGI("and_osles: min_vol %d, max_vol %d", MinVolume, MaxVolume);
 
-	res = (*(handle->bqPlayerVolume))->GetVolumeLevel(handle->bqPlayerVolume, &bel_vol);
+	res = (*(handle->bqPlayerVolume))->GetVolumeLevel(handle->bqPlayerVolume, &currentVolume);
 	if (SL_RESULT_SUCCESS != res) {
-		LOGE("and_osles: failed to get vol %d", bel_vol);
+		LOGE("and_osles: failed to get vol %d", currentVolume);
 		return -1;
 	}
 
-	bel_vol += increment;
-	res = (*(handle->bqPlayerVolume))->SetVolumeLevel(handle->bqPlayerVolume, bel_vol + increment);
+	LOGI("and_osles: cur_vol %d", currentVolume);
+
+	//calc SLES volume
+	SLmillibel Volume = MinVolume + (SLmillibel)( ((double)(MaxVolume - MinVolume))*nvolume );
+
+	//int dBVolume = 20* log2(x)/log2(10);
+	//SLmillibel volume = dBVolume * 100; //1dB = 100mB
+
+	//set
+	res = (*SLES_Volume)->SetVolumeLevel(SLES_Volume, Volume);
 	if (SL_RESULT_SUCCESS != res) {
-		LOGE("and_osles: failed to set vol %d.%d", vol, bel_vol);
+		LOGE("and_osles: failed to set vol %d", Volume);
 		return -1;
 	}
 
-	LOGI("and_osles: set vol to %d.%d", vol, bel_vol);
-	return bel_vol;
+	LOGI("and_osles: set vol to %d", Volume);
+	return Volume;
 }
 
 // create the engine and output mix objects

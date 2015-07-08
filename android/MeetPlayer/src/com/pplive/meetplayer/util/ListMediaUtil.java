@@ -214,12 +214,6 @@ public class ListMediaUtil {
 			URL url = (URL)FileList.get(i);
 			String clip_fullpath = url.toString();
 			String filename = GetFileName(clip_fullpath);
-			/*MediaInfo info = MeetSDK.getMediaDetailInfo(clip_fullpath);
-			String string_res = "N/A";
-			if (info != null) {
-				String.format("%dx%d %s", 
-					info.getWidth(), info.getHeight(), msecToString(info.getDuration()));
-			}*/
 			
 			HashMap<String, Object> map = new HashMap<String, Object>();
 			map.put("filename", filename);

@@ -43,8 +43,8 @@ public class SohuVideoActivity extends ListActivity {
 	
 	private final static int MSG_PLAYLINK_DONE			= 1001;
 	private final static int MSG_FAIL_TO_GET_PLAYLINK		= 2001;
-	
-	private List<String> mItems; 
+	private final static int MSG_FAIL_TO_CHANNEL_LIST		= 2002;
+	private final static int MSG_FAIL_TO_CHANNEL_SELECT	= 2003; 
 	
 	private SohuUtil mEPG;
 	private List<ChannelSohu> mChannelList;
@@ -66,7 +66,6 @@ public class SohuVideoActivity extends ListActivity {
 		//this.setTheme(android.R.style.Theme_Black);
 		
 		mEPG = new SohuUtil();
-		mItems = new ArrayList<String>();
 		
 		new EPGTask().execute(EPG_TASK_LIST_CHANNEL);
 	}
@@ -145,6 +144,14 @@ public class SohuVideoActivity extends ListActivity {
             	Toast.makeText(SohuVideoActivity.this, "failed to get playlink",
             			Toast.LENGTH_SHORT).show();
             	break;
+            case MSG_FAIL_TO_CHANNEL_LIST:
+            	Toast.makeText(SohuVideoActivity.this, "failed to do channel list",
+            			Toast.LENGTH_SHORT).show();
+            	break;
+            case MSG_FAIL_TO_CHANNEL_SELECT:
+            	Toast.makeText(SohuVideoActivity.this, "failed to do channel select",
+            			Toast.LENGTH_SHORT).show();
+            	break;
             default:
             	Toast.makeText(SohuVideoActivity.this, "invalid msg: " + msg.what,
             			Toast.LENGTH_SHORT).show();
@@ -203,6 +210,8 @@ public class SohuVideoActivity extends ListActivity {
             	Intent intent = new Intent(SohuVideoActivity.this, SohuEpisodeActivity.class);
         		intent.putExtra("search_key", mEPGsearchKey);
         		startActivity(intent);
+        		
+        		dialog.dismiss();
              }
         });
         builder.show();
@@ -292,9 +301,17 @@ public class SohuVideoActivity extends ListActivity {
 		@Override
         protected void onPostExecute(List<String> result) {
 			if (result != null && result.size() > 0) {
-				mAdapter = new ArrayAdapter<String>(
-						SohuVideoActivity.this, android.R.layout.simple_expandable_list_item_1, result);
-				SohuVideoActivity.this.setListAdapter(mAdapter);
+				if (mAdapter == null) {
+					mAdapter = new ArrayAdapter<String>(
+							SohuVideoActivity.this, android.R.layout.simple_expandable_list_item_1, result);
+					SohuVideoActivity.this.setListAdapter(mAdapter);
+				}
+				else {
+					mAdapter.clear();
+					mAdapter.addAll(result);
+					mAdapter.notifyDataSetChanged();
+					SohuVideoActivity.this.setSelection(0);
+				}
 			}
         }
 		
@@ -303,66 +320,76 @@ public class SohuVideoActivity extends ListActivity {
 			// TODO Auto-generated method stub
 			int action = params[0];
 			
-			mItems.clear();
+			List<String> Items = null;
 			
 			if (action == EPG_TASK_LIST_CHANNEL) {
 				mSubChannelSelected = false;
 				
-				if (!mEPG.channel_list())
+				if (!mEPG.channel_list()) {
+					Log.e(TAG, "Java: failed to call channel_list():");
+					mhandler.sendEmptyMessage(MSG_FAIL_TO_CHANNEL_LIST);
 					return null;
+				}
 				
 				mChannelList = mEPG.getChannelList();
 				
+				Items = new ArrayList<String>();
 	
 				for (int i=0;i<mChannelList.size();i++) {
-					mItems.add(mChannelList.get(i).mTitle);
+					Items.add(mChannelList.get(i).mTitle);
 				}
 			}
 			else if (action == EPG_TASK_SELECT_CHANNEL) {
-				if (!mEPG.channel_select(mChannelId))
+				if (!mEPG.channel_select(mChannelId)) {
+					Log.e(TAG, "Java: failed to call channel_select() channel_id: " + mChannelId);
+					mhandler.sendEmptyMessage(MSG_FAIL_TO_CHANNEL_SELECT);
 					return null;
+				}
 				
 				mSubChannelList = mEPG.getSubChannelList();
-				List<String> items = new ArrayList<String>();
 	
+				Items = new ArrayList<String>();
+				
 				for (int i=0;i<mSubChannelList.size();i++) {
-					mItems.add(mSubChannelList.get(i).mTitle);
+					Items.add(mSubChannelList.get(i).mTitle);
 				}
 				
 				mSubChannelSelected = true;
 			}
-			else if (action == EPG_TASK_GET_PLAYLINK) {
-				if (params.length < 2)
-					return null;
-				
-				int vid = params[1];
-				mPlaylink = mEPG.playlink_pptv(vid, 0);
-				if (mPlaylink == null) {
-					Log.e(TAG, "Java: failed to call playlink_pptv() vid: " + vid);
-					mhandler.sendEmptyMessage(MSG_FAIL_TO_GET_PLAYLINK);
-					return null;
+			else {
+				if (action == EPG_TASK_GET_PLAYLINK) {
+					if (params.length < 2)
+						return null;
+					
+					int vid = params[1];
+					mPlaylink = mEPG.playlink_pptv(vid, 0);
+					if (mPlaylink == null) {
+						Log.e(TAG, "Java: failed to call playlink_pptv() vid: " + vid);
+						mhandler.sendEmptyMessage(MSG_FAIL_TO_GET_PLAYLINK);
+						return null;
+					}
+					
+					mhandler.sendEmptyMessage(MSG_PLAYLINK_DONE);
 				}
-				
-				mhandler.sendEmptyMessage(MSG_PLAYLINK_DONE);
-			}
-			else if (action == EPG_TASK_GET_VIDEOINFO) {
-				if (params.length < 3)
-					return null;
-				
-				int vid = params[1];
-				int site = params[2];
-				
-				mPlaylink = mEPG.video_info(site, vid, mAid);
-				if (mPlaylink == null) {
-					Log.e(TAG, "Java: failed to call video_info() vid: " + vid);
-					mhandler.sendEmptyMessage(MSG_FAIL_TO_GET_PLAYLINK);
-					return null;
+				else if (action == EPG_TASK_GET_VIDEOINFO) {
+					if (params.length < 3)
+						return null;
+					
+					int vid = params[1];
+					int site = params[2];
+					
+					mPlaylink = mEPG.video_info(site, vid, mAid);
+					if (mPlaylink == null) {
+						Log.e(TAG, "Java: failed to call video_info() vid: " + vid);
+						mhandler.sendEmptyMessage(MSG_FAIL_TO_GET_PLAYLINK);
+						return null;
+					}
+					
+					mhandler.sendEmptyMessage(MSG_PLAYLINK_DONE);
 				}
-				
-				mhandler.sendEmptyMessage(MSG_PLAYLINK_DONE);
 			}
 			
-			return mItems;
+			return Items;
 		}
 		
 	}

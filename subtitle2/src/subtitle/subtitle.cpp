@@ -48,7 +48,7 @@ class CSubtitleManager :
 {
 public:
     CSubtitleManager();
-    virtual ~CSubtitleManager();
+    ~CSubtitleManager();
 
     // ISubtitles
 public:
@@ -75,8 +75,8 @@ protected:
 	
     CSimpleTextSubtitle* getSelectedSimpleTextSubtitle()
     {
-		LOGD("getSelectedSimpleTextSubtitle mSubtitles size= %d", mSubtitles.size());
-		LOGD("getSelectedSimpleTextSubtitle mSelected= %d", mSelected);
+		LOGD("getSelectedSimpleTextSubtitle mSubtitles size: %d", mSubtitles.size());
+		LOGD("getSelectedSimpleTextSubtitle mSelected: %d", mSelected);
         if (mSelected >= 0 && mSelected < mSubtitles.size()) {
             return mSubtitles[mSelected];
         }
@@ -127,10 +127,14 @@ void CSubtitleManager::close()
 		mAssLibrary = NULL;
 	}
 
-    std::vector<CSimpleTextSubtitle*>::iterator itr = mSubtitles.begin();
-    for (; itr != mSubtitles.end(); ++itr) {
-        delete *itr;
+    std::vector<CSimpleTextSubtitle *>::iterator itr = mSubtitles.begin();
+    while (itr != mSubtitles.end()) {
+#ifndef _MSC_VER
+        delete (*itr);
+#endif
+		itr = mSubtitles.erase(itr);
     }
+
     mSubtitles.clear();
 }
 
@@ -315,7 +319,11 @@ bool CSubtitleManager::addEmbeddingSubtitleEntity(int index, int64_t startTime, 
         return false;
     }
 	
+#ifdef _MSC_VER
+	LOGD("addEmbeddingSubtitle: #%d startTime %I64d, text %s", index, startTime, text);
+#else
 	LOGD("addEmbeddingSubtitle: #%d startTime %lld, text %s", index, startTime, text);
+#endif
     return subtitle->addEmbeddingEntity(startTime, duration, text, textLen);
 }
 
@@ -334,4 +342,6 @@ bool ISubtitles::create(ISubtitles** subtitle)
 
     return true;
 }
+
+
 

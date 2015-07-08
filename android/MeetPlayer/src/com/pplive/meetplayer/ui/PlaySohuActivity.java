@@ -13,7 +13,9 @@ import com.pplive.common.sohu.PlaylinkSohu;
 import com.pplive.common.sohu.PlaylinkSohu.SOHU_FT;
 import com.pplive.common.sohu.SohuUtil;
 import com.pplive.meetplayer.R;
-import com.pplive.meetplayer.media.FragmentMp4MediaPlayer;
+import com.pplive.meetplayer.media.FragmentMp4MediaPlayerV2;
+import com.pplive.meetplayer.ui.widget.MyMediaController;
+import com.pplive.meetplayer.util.Util;
 
 import android.app.Activity;
 import android.content.Intent;
@@ -24,6 +26,7 @@ import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
+import android.pplive.media.player.MediaController.MediaPlayerControl;
 import android.util.Log;
 import android.view.SurfaceHolder;
 import android.view.SurfaceHolder.Callback;
@@ -33,12 +36,10 @@ import android.view.SurfaceView;
 import android.view.View;
 import android.view.Window;
 import android.view.WindowManager;
-import android.widget.MediaController;
 import android.widget.ProgressBar;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
 import android.widget.Toast;
-import android.widget.MediaController.MediaPlayerControl;
 
 public class PlaySohuActivity extends Activity implements Callback {
 	private final static String TAG = "PlaySohuActivity";
@@ -46,9 +47,9 @@ public class PlaySohuActivity extends Activity implements Callback {
 	private RelativeLayout mLayout;
 	private SurfaceView mView;
 	private SurfaceHolder mHolder;
-	private FragmentMp4MediaPlayer mPlayer;
-	private MediaController mController;
-	private MediaPlayerControl mMediaPlayerControl;
+	private FragmentMp4MediaPlayerV2 mPlayer;
+	private MyMediaController mController;
+	private MyMediaPlayerControl mMediaPlayerControl;
 	private ProgressBar mBufferingProgressBar;
 	private TextView mTextViewFileName;
 	
@@ -57,6 +58,7 @@ public class PlaySohuActivity extends Activity implements Callback {
 	private String mTitle;
 	private int mInfoId, mIndex;
 	private long mAid;
+	private int mSite = -1;
 	
 	private int mVideoWidth, mVideoHeight;
 	private List<String> m_playlink_list;
@@ -81,6 +83,8 @@ public class PlaySohuActivity extends Activity implements Callback {
 	private final static int LIST_PPTV = 1;
 	private final static int LIST_SOHU = 2;
 	
+	private final static int MEDIA_CONTROLLER_TIMEOUT = 3000;
+	
 	private MediaPlayer.OnVideoSizeChangedListener mOnVideoSizeChangedListener;
 	private MediaPlayer.OnPreparedListener mOnPreparedListener;
 	private MediaPlayer.OnErrorListener	 mOnErrorListener;
@@ -98,7 +102,8 @@ public class PlaySohuActivity extends Activity implements Callback {
 	private int mDisplayMode = SCREEN_FIT;
 	
 	private final static int MSG_PLAY_NEXT_EPISODE 		= 1;
-	private static final int MSG_FADE_OUT_TV_FILENAME		= 2;
+	private final static int MSG_FADE_OUT_TV_FILENAME		= 2;
+	private final static int MSG_SHOW_MEDIA_CONTROLLER	= 3;
 	
 	private final static int MSG_INVALID_EPISODE_INDEX	= 101;
 	private final static int MSG_FAIL_TO_GET_PLAYLINK		= 102;
@@ -135,11 +140,15 @@ public class PlaySohuActivity extends Activity implements Callback {
 		
 		setContentView(R.layout.activity_frag_mp4_player);
 		
-		mLayout = (RelativeLayout) findViewById(R.id.main_layout);
-		mView = (SurfaceView) findViewById(R.id.player_view);
-		mBufferingProgressBar = (ProgressBar) findViewById(R.id.progressbar_buffering);
+		mLayout 				= (RelativeLayout) findViewById(R.id.main_layout);
+		mView 					= (SurfaceView) findViewById(R.id.player_view);
+		mController 			= (MyMediaController) findViewById(R.id.video_controller);
+		mBufferingProgressBar 	= (ProgressBar) findViewById(R.id.progressbar_buffering);
+		mTextViewFileName 		= (TextView) findViewById(R.id.tv_filename);
 		
-		mTextViewFileName = (TextView) findViewById(R.id.tv_filename);
+		mMediaPlayerControl = new MyMediaPlayerControl();
+		mController.setMediaPlayer(mMediaPlayerControl);
+		
 		mTextViewFileName.setTextColor(Color.RED);
 		mTextViewFileName.setTextSize(24);
 		
@@ -156,7 +165,10 @@ public class PlaySohuActivity extends Activity implements Callback {
 			mTitle				= intent.getStringExtra("title");
 			mInfoId				= intent.getIntExtra("info_id", -1);
     		mIndex				= intent.getIntExtra("index", -1);
-    		mAid				= intent.getLongExtra("aid", -1); // for sohu
+    		
+    		// for sohu
+    		mAid				= intent.getLongExtra("aid", -1); 
+    		mSite				= intent.getIntExtra("site", -1);
     		
     		Log.i(TAG, "Java: mDurationListStr " + mDurationListStr);
 		}
@@ -230,8 +242,8 @@ public class PlaySohuActivity extends Activity implements Callback {
 				
 				mp.start();
 				
-				mController.setMediaPlayer(mMediaPlayerControl);
-				mController.show(3000);
+				if (!mController.isShowing())
+					mController.show(MEDIA_CONTROLLER_TIMEOUT);
 			}
 		};
 		
@@ -274,71 +286,108 @@ public class PlaySohuActivity extends Activity implements Callback {
 				finish();
 			}
 		};
-		
-		mMediaPlayerControl = new MyMediaPlayerControl();
-		mController = new MediaController(this);
-		
+
 		mSohu = new SohuUtil();
 	}
 	
 	@Override
 	public boolean onKeyDown(int keyCode, KeyEvent event) {
 		// TODO Auto-generated method stub
-		if (keyCode == KeyEvent.KEYCODE_DPAD_CENTER || 
-				keyCode == KeyEvent.KEYCODE_ENTER) {
-			if (mPlayer != null) {
-				mController.show(3000);
-				
-				mTextViewFileName.setVisibility(View.VISIBLE);
-				Message msg = mHandler.obtainMessage(MSG_FADE_OUT_TV_FILENAME);
-				mHandler.removeMessages(MSG_FADE_OUT_TV_FILENAME);
-	            mHandler.sendMessageDelayed(msg, 3000);
-				return true;
-			}
-		}
-		else if (keyCode == KeyEvent.KEYCODE_DPAD_LEFT ||
-				keyCode == KeyEvent.KEYCODE_DPAD_RIGHT) {
-			if (mPlayer != null) {
-				if (!mSwichingEpisode) {
-					mSwichingEpisode = true;
-					
-					int incr = 1;
-					if (keyCode == KeyEvent.KEYCODE_DPAD_LEFT)
-						incr = -1;
-
-					if (mInfoId != -1) {
-						new NextEpisodeTask().execute(LIST_PPTV, incr);
+		int incr;
+		
+		switch (keyCode) {
+		case KeyEvent.KEYCODE_DPAD_LEFT:
+		case KeyEvent.KEYCODE_DPAD_RIGHT:
+		case KeyEvent.KEYCODE_DPAD_DOWN:
+		case KeyEvent.KEYCODE_DPAD_UP:
+		case KeyEvent.KEYCODE_DPAD_CENTER:
+		case KeyEvent.KEYCODE_ENTER:
+			if (!mController.isShowing()) {
+				if (mPlayer != null) {
+					if (keyCode == KeyEvent.KEYCODE_DPAD_LEFT ||
+							keyCode == KeyEvent.KEYCODE_DPAD_RIGHT) {
+						if (!mSwichingEpisode) {
+							mSwichingEpisode = true;
+							
+							if (keyCode == KeyEvent.KEYCODE_DPAD_LEFT)
+								incr = -1;
+							else
+								incr = 1;
+	
+							if (mInfoId != -1) {
+								new NextEpisodeTask().execute(LIST_PPTV, incr);
+							}
+							else if (mAid != -1) {
+								new NextEpisodeTask().execute(LIST_SOHU, incr);
+							}
+						}
 					}
-					else if (mAid != -1) {
-						new NextEpisodeTask().execute(LIST_SOHU, incr);
+					else if (keyCode == KeyEvent.KEYCODE_DPAD_UP ||
+							keyCode == KeyEvent.KEYCODE_DPAD_DOWN) {
+						if (mDisplayMode == SCREEN_FIT)
+							mDisplayMode = SCREEN_STRETCH;
+						else
+							mDisplayMode = SCREEN_FIT;
+						toggleDisplayMode(mDisplayMode, true);
+					}
+					else {
+						mTextViewFileName.setVisibility(View.VISIBLE);
+						Message msg = mHandler.obtainMessage(MSG_FADE_OUT_TV_FILENAME);
+						mHandler.removeMessages(MSG_FADE_OUT_TV_FILENAME);
+			            mHandler.sendMessageDelayed(msg, MEDIA_CONTROLLER_TIMEOUT);
+			            
+						mController.show(MEDIA_CONTROLLER_TIMEOUT * 2);
 					}
 				}
+				
+				return true;
 			}
+
+			if (KeyEvent.KEYCODE_DPAD_RIGHT == keyCode
+					|| KeyEvent.KEYCODE_DPAD_LEFT == keyCode) {
+				if (KeyEvent.KEYCODE_DPAD_RIGHT == keyCode)
+					incr = 1;
+				else
+					incr = -1;
+
+				int pos = mPlayer.getCurrentPosition();
+				int step = mPlayer.getDuration() / 100 + 1000;
+				Log.i(TAG, String.format("Java pos %d, step %s", pos, step));
+				if (step > 30000)
+					step = 30000;
+				pos += (incr * step);
+				if (pos > mPlayer.getDuration())
+					pos = mPlayer.getDuration();
+				else if (pos < 0)
+					pos = 0;
+				mPlayer.seekTo(pos);
+				
+				mController.show(MEDIA_CONTROLLER_TIMEOUT * 2);
+			} else if (KeyEvent.KEYCODE_DPAD_DOWN == keyCode
+					|| KeyEvent.KEYCODE_DPAD_UP == keyCode) {
+				// todo
+			}
+
+			return true;
+		case KeyEvent.KEYCODE_BACK:
+			if (mController.isShowing()) {
+				mController.hide();
+			}
+			else if ((System.currentTimeMillis() - backKeyTime) > 2000) {
+				Toast.makeText(PlaySohuActivity.this,
+						"press another time to exit", Toast.LENGTH_SHORT)
+						.show();
+				backKeyTime = System.currentTimeMillis();
+			} else {
+				onBackPressed();
+			}
+			
+			return true;
+		default:
+			return super.onKeyDown(keyCode, event);
 		}
-		else if (keyCode == KeyEvent.KEYCODE_DPAD_UP ||
-				keyCode == KeyEvent.KEYCODE_DPAD_DOWN) {
-			if (mDisplayMode == SCREEN_FIT)
-				mDisplayMode = SCREEN_STRETCH;
-			else
-				mDisplayMode = SCREEN_FIT;
-			toggleDisplayMode(mDisplayMode, true);
-		}
-		else if (keyCode == KeyEvent.KEYCODE_BACK) {
-            if ((System.currentTimeMillis() - backKeyTime) > 2000) {
-                Toast.makeText(PlaySohuActivity.this, "press another time to exit",
-                        Toast.LENGTH_SHORT).show();
-                backKeyTime = System.currentTimeMillis();
-                return true;
-            }
-            else {
-                onBackPressed();
-                return true;
-            }
-        }
-		
-		return super.onKeyDown(keyCode, event);
 	}
-	
+
 	@Override
 	protected void onPause() {
 		// TODO Auto-generated method stub
@@ -354,8 +403,8 @@ public class PlaySohuActivity extends Activity implements Callback {
 	@Override
 	public boolean onTouchEvent(MotionEvent event) {
 		// TODO Auto-generated method stub
-		if (mPlayer != null)
-			mController.show(3000);
+		if (mPlayer != null && !mController.isShowing())
+			mController.show(MEDIA_CONTROLLER_TIMEOUT);
 		
 		return super.onTouchEvent(event);
 	}
@@ -391,6 +440,8 @@ public class PlaySohuActivity extends Activity implements Callback {
 			case MSG_FADE_OUT_TV_FILENAME:
 				mTextViewFileName.setVisibility(View.GONE);
 				break;
+			case MSG_SHOW_MEDIA_CONTROLLER:
+				break;
 			case MSG_INVALID_EPISODE_INDEX:
 				Toast.makeText(PlaySohuActivity.this, "invalid episode", Toast.LENGTH_SHORT).show();
 				break;
@@ -417,9 +468,10 @@ public class PlaySohuActivity extends Activity implements Callback {
 		}
 		
 		mTextViewFileName.setText(mTitle);
+		mController.setFileName(mTitle);
 		Toast.makeText(this, "ready to play video: " + mTitle, Toast.LENGTH_SHORT).show();
 		
-		mPlayer = new FragmentMp4MediaPlayer();
+		mPlayer = new FragmentMp4MediaPlayerV2();
 		mPlayer.reset();
 		
 		mPlayer.setDisplay(mHolder);
@@ -455,9 +507,6 @@ public class PlaySohuActivity extends Activity implements Callback {
 			return false;
 		
 		mPlayer.prepareAsync();
-		mController.setMediaPlayer(mMediaPlayerControl);
-		mController.setAnchorView(mView);
-		
 		
 		mIsBuffering = true;
 		mBufferingProgressBar.setVisibility(View.VISIBLE);
@@ -596,7 +645,14 @@ public class PlaySohuActivity extends Activity implements Callback {
 
 				int pos = mIndex - (page_index - 1) * sohu_page_size;
 				EpisodeSohu ep = mEpisodeList.get(pos);
-				l = mSohu.playlink_pptv(ep.mVid, 0);
+				
+				if (mAid > 1000000000000L)
+					l = mSohu.video_info(mSite, ep.mVid, mAid);
+				else
+					l = mSohu.playlink_pptv(ep.mVid, 0);
+				
+				Util.add_sohuvideo_history(PlaySohuActivity.this, 
+						l.getTitle(), ep.mVid, mAid, mSite);
 			}
 	    		
     		if (l == null) {
@@ -607,32 +663,26 @@ public class PlaySohuActivity extends Activity implements Callback {
     		
     		mTitle = l.getTitle();
     		
-    		/*if (action == LIST_PPTV) {
-	    		mUrlListStr 		= l.getUrl(SOHU_FT.SOHU_FT_HIGH);
-				mDurationListStr	= l.getDuration(SOHU_FT.SOHU_FT_HIGH);
-    		}
-    		else {*/
-    			SOHU_FT ft = SOHU_FT.SOHU_FT_ORIGIN;
+			SOHU_FT ft = SOHU_FT.SOHU_FT_ORIGIN;
+			mUrlListStr = l.getUrl(ft);
+    		if (mUrlListStr == null || mUrlListStr.isEmpty()) {
+    			ft = SOHU_FT.SOHU_FT_SUPER;
     			mUrlListStr = l.getUrl(ft);
-        		if (mUrlListStr == null || mUrlListStr.isEmpty()) {
-        			ft = SOHU_FT.SOHU_FT_SUPER;
-        			mUrlListStr = l.getUrl(ft);
-        		}
-        		if (mUrlListStr == null || mUrlListStr.isEmpty()) {
-        			ft = SOHU_FT.SOHU_FT_HIGH;
-        			mUrlListStr = l.getUrl(ft);
-        		}
-        		if (mUrlListStr == null || mUrlListStr.isEmpty()) {
-        			ft = SOHU_FT.SOHU_FT_NORMAL;
-        			mUrlListStr = l.getUrl(ft);
-        		}
-        		if (mUrlListStr == null || mUrlListStr.isEmpty()) {
-        			mHandler.sendEmptyMessage(MSG_FAIL_TO_GET_STREAM);
-        			return false;
-        		}
-        		
-        		mDurationListStr	= l.getDuration(ft);
-    		//}
+    		}
+    		if (mUrlListStr == null || mUrlListStr.isEmpty()) {
+    			ft = SOHU_FT.SOHU_FT_HIGH;
+    			mUrlListStr = l.getUrl(ft);
+    		}
+    		if (mUrlListStr == null || mUrlListStr.isEmpty()) {
+    			ft = SOHU_FT.SOHU_FT_NORMAL;
+    			mUrlListStr = l.getUrl(ft);
+    		}
+    		if (mUrlListStr == null || mUrlListStr.isEmpty()) {
+    			mHandler.sendEmptyMessage(MSG_FAIL_TO_GET_STREAM);
+    			return false;
+    		}
+    		
+    		mDurationListStr	= l.getDuration(ft);
 			
 			buildPlaylinkList();
 			
@@ -685,12 +735,6 @@ public class PlaySohuActivity extends Activity implements Callback {
 		public boolean canSeekForward() {
 			// TODO Auto-generated method stub
 			return true;
-		}
-
-		@Override
-		public int getAudioSessionId() {
-			// TODO Auto-generated method stub
-			return 0;
 		}
 
 		@Override

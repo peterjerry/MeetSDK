@@ -9,6 +9,8 @@
 #endif
 #ifdef __ANDROID__
 #include <sys/sysinfo.h>
+#include <jni.h> // for detach jni thread
+extern JavaVM* gs_jvm;
 #endif
 #include <sched.h> // in pthread
 
@@ -419,6 +421,10 @@ AVFormatContext* FFStream::open(char* uri)
 		LOGI("audio stream time_base %d/%d, codec time_base %d/%d", 
 			mAudioStream->time_base.num, mAudioStream->time_base.den,
 			mAudioStream->codec->time_base.num, mAudioStream->codec->time_base.den);
+
+		AVCodecContext *audio_codec = mAudioStream->codec;
+		if (CODEC_ID_AAC == audio_codec->codec_id)
+			LOGI("aac profile %d", audio_codec->profile);
 	}
 
 	if (mSubtitleStream) {
@@ -442,7 +448,8 @@ AVFormatContext* FFStream::open(char* uri)
 			codec_id = SUBTITLE_CODEC_ID_ASS;
 		}
 		else if(mSubtitleStream->codec->codec_id == AV_CODEC_ID_TEXT
-			|| mSubtitleStream->codec->codec_id == AV_CODEC_ID_SRT)
+			|| mSubtitleStream->codec->codec_id == AV_CODEC_ID_SRT
+			|| mSubtitleStream->codec->codec_id == AV_CODEC_ID_SUBRIP)
 		{
 			codec_id = SUBTITLE_CODEC_ID_TEXT;
 		}
@@ -796,12 +803,14 @@ void FFStream::thread_impl()
 				seek_target= av_rescale_q(seek_target, AV_TIME_BASE_Q, mMovieFile->streams[stream_index]->time_base);
 #endif
                 if (av_seek_frame(mMovieFile, stream_index, seek_target, mSeekFlag) < 0) {
-                    LOGW("failed to seek to: %lld(ms)", mSeekTimeMs);
+#ifdef _MSC_VER
+					LOGE("failed to seek to: %I64d(ms)", mSeekTimeMs);
+#else
+                    LOGE("failed to seek to: %lld(ms)", mSeekTimeMs);
+#endif
                     mSeeking = false;
-					continue;
-					//cause crash
-					//notifyListener_l(MEDIA_ERROR, MEDIA_ERROR_FAIL_TO_SEEK, 0);
-                    //break; 
+					notifyListener_l(MEDIA_ERROR, MEDIA_ERROR_FAIL_TO_SEEK, (int)mSeekTimeMs);
+                    break; 
                 }
 				
                 LOGI("after seek to :%lld(ms)", mSeekTimeMs);
@@ -1219,9 +1228,16 @@ void FFStream::thread_impl()
 							stop_time = av_rescale_q(mAVSubtitle->pts + mAVSubtitle->end_display_time * 1000,
 										AV_TIME_BASE_Q, mSubtitleStream->time_base);
 #endif
-							mISubtitle->addEmbeddingSubtitleEntity(mSubtitleTrackIndex, 
-								start_time, stop_time - start_time, 
-								(const char*)pPacket->data, pPacket->size);
+							if (SUBTITLE_ASS == (*(mAVSubtitle->rects))->type) {
+								mISubtitle->addEmbeddingSubtitleEntity(mSubtitleTrackIndex, 
+									start_time, stop_time - start_time, 
+									(const char*)pPacket->data, pPacket->size);
+							}
+							else {
+								mISubtitle->addEmbeddingSubtitleEntity(mSubtitleTrackIndex, 
+									start_time, stop_time - start_time, 
+									(*(mAVSubtitle->rects))->text, 0);
+							}
 							avsubtitle_free(mAVSubtitle);
 						}
 
@@ -1255,7 +1271,19 @@ void* FFStream::demux_thread(void* ptr)
 {
 	LOGI("demux_thread thread started");
     FFStream* stream = (FFStream*)ptr;
+
+	// 2015.6.17 guoliangma added to fix seek onError crash bug
+#ifdef __ANDROID__
+	JNIEnv *env = NULL;
+    gs_jvm->AttachCurrentThread(&env, NULL);
+#endif
+
     stream->thread_impl();
+
+#ifdef __ANDROID__
+    gs_jvm->DetachCurrentThread();
+#endif
+
 	LOGI("demux_thread thread exited");
     return NULL;
 }
@@ -1306,10 +1334,10 @@ int FFStream::interrupt_l(void* ctx)
 
 void FFStream::notifyListener_l(int msg, int ext1, int ext2)
 {
-    if (mListener == NULL)
+	if (mListener == NULL)
 		LOGE("mListener is null");
-
-    mListener->notify(msg, ext1, ext2);
+	else
+		mListener->notify(msg, ext1, ext2);
 }
 
 status_t FFStream::getBufferingTime(int *msec)

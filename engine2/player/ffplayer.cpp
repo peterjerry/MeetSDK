@@ -49,7 +49,6 @@
 #include <jni.h>
 #include "platforminfo.h"
 JavaVM* gs_jvm = NULL;
-jobject gs_androidsurface = NULL;
 PlatformInfo* platformInfo = NULL;
 LogFunc pplog = NULL;
 #endif
@@ -614,9 +613,8 @@ status_t FFPlayer::selectAudioChannel(int32_t index)
 status_t FFPlayer::setVideoSurface(void* surface)
 {
 #ifdef __ANDROID__
-#ifdef USE_NDK_SURFACE_REF
-	LOGI("use java side surface object");
-	gs_androidsurface = (jobject)surface;
+	mSurface = surface;
+
 	if (mVideoRenderer) {
 		delete mVideoRenderer;
 
@@ -636,10 +634,6 @@ status_t FFPlayer::setVideoSurface(void* surface)
 
 		LOGI("Java: realloc render");
 	}
-#else
-	LOGI("use global info surface object");
-    gs_androidsurface = platformInfo->javaSurface;
-#endif
 #endif
 
 #ifdef _MSC_VER
@@ -648,9 +642,17 @@ status_t FFPlayer::setVideoSurface(void* surface)
 
 		// realloc render
 		mSurface = surface;
+#ifdef USE_SDL2
+		SDL_Window* window = (SDL_Window *)surface;
+		int w, h;
+		SDL_GetWindowSize(window, &w, &h);
+		mVideoRenderer = new FFRender(mSurface, w, h, mVideoFormat);
+#else
 		SDL_Surface* surf = (SDL_Surface *)surface;
-
 		mVideoRenderer = new FFRender(mSurface, surf->w, surf->h, mVideoFormat);
+#endif
+
+		
 		bool force_sw = false;
 #ifdef USE_AV_FILTER
 		if (mVideoFiltFrame) {
@@ -692,7 +694,7 @@ status_t FFPlayer::reset()
 status_t FFPlayer::prepare()
 {
     LOGI("player op prepare()");
-#ifndef _MSC_VER // fixme guolinagma
+#ifndef _MSC_VER // fixme guoliangma
 	AutoLock autolock(&mPlayerLock);
 #endif
 
@@ -722,8 +724,10 @@ status_t FFPlayer::prepareAsync()
 status_t FFPlayer::start()
 {
     LOGI("player op start()");
-
+	// 2015.6.15 guoliangma added
+#ifndef _MSC_VER // fixme guoliangma
 	AutoLock autolock(&mPlayerLock);
+#endif
 
 	// 20141124 guoliangma fix INVALID_OP(38) call start() twice when ad play finish
 	if (mPlayerStatus == MEDIA_PLAYER_STARTED)
@@ -809,15 +813,13 @@ bool FFPlayer::isPlaying()
 
 status_t FFPlayer::getVideoWidth(int32_t *w)
 {
-    if(mVideoRenderer != NULL)
-    {
+    if (mVideoRenderer != NULL) {
         //Use optimized size from render
         uint32_t optWidth = 0;
         mVideoRenderer->width(optWidth);
         *w = optWidth;
     }
-    else
-    {
+    else {
         *w = mVideoWidth;
     }
     return OK;
@@ -1489,14 +1491,14 @@ void FFPlayer::onBufferingUpdateImpl()
         return;
     }
 
-    int64_t cachedDurationMs; // abosolute position
+    int64_t cachedDurationMs; // absolute position
 	if (mSeeking)
-		cachedDurationMs = mSeekTimeMs;
+		cachedDurationMs = mSeekTimeMs - mDataStream->getStartTime();
 	else
 		cachedDurationMs = mDataStream->getCachedDurationMs();
 	int64_t pos_msec = get_master_clock();
-	if (cachedDurationMs < pos_msec)
-		cachedDurationMs = pos_msec;
+	if (cachedDurationMs < pos_msec - mDataStream->getStartTime())
+		cachedDurationMs = pos_msec - mDataStream->getStartTime();
 	int percent100 = (int)(cachedDurationMs * 100 / mDurationMs) + 1; // 1 is for compensation.
 	if (percent100 > 100) 
 		percent100 = 100;
@@ -1710,36 +1712,6 @@ void FFPlayer::onSeekingCompleteImpl()
     notifyListener_l(MEDIA_SEEK_COMPLETE);
 }
 
-void FFPlayer::FFIOBitrateInfoEvent::action(void *opaque, int64_t now_us)
-{
-	FFPlayer *ins= (FFPlayer *)opaque;
-	if (ins)
-		ins->onIOBitrateInfoImpl();
-}
-
-void FFPlayer::onIOBitrateInfoImpl()
-{
-	LOGD("onBitrateInfo");
-    notifyListener_l(MEDIA_INFO, MEDIA_INFO_TEST_IO_BITRATE, mIOBitrate);
-
-	int msec = 0;
-	getBufferingTime(&msec);
-	notifyListener_l(MEDIA_INFO, MEDIA_INFO_TEST_BUFFERING_MSEC, msec);
-}
-
-void FFPlayer::FFMediaBitrateInfoEvent::action(void *opaque, int64_t now_us)
-{
-	FFPlayer *ins= (FFPlayer *)opaque;
-	if (ins)
-		ins->onMediaBitrateInfoImpl();
-}
-
-void FFPlayer::onMediaBitrateInfoImpl()
-{
-	LOGD("onBitrateInfo");
-    notifyListener_l(MEDIA_INFO, MEDIA_INFO_TEST_MEDIA_BITRATE, mVideoBitrate);
-}
-
 status_t FFPlayer::setISubtitle(ISubtitles* subtitle)
 {
 	if (!subtitle) {
@@ -1748,12 +1720,16 @@ status_t FFPlayer::setISubtitle(ISubtitles* subtitle)
 	}
     
     mSubtitles = subtitle;
+	if (mDataStream)
+		mDataStream->setISubtitle(mSubtitles);
+
 	return OK;
 }
 
 void FFPlayer::notify(int32_t msg, int32_t ext1, int32_t ext2)
 {
 	// called from audio_player or ffstream
+	// notify that only loop thread is detached jni-thread
     switch(msg)
     {
         case MEDIA_INFO:
@@ -1764,12 +1740,18 @@ void FFPlayer::notify(int32_t msg, int32_t ext1, int32_t ext2)
                 postBufferingEndEvent_l();
             }
 			else if(ext1 == MEDIA_INFO_TEST_IO_BITRATE){
-				mIOBitrate = ext2;
-				postIOBitrateInfoEvent_l();
+				// 2015.6.18 guoliangma change to notifyListener_l
+				// because ffstream thread has detach thread
+				notifyListener_l(MEDIA_INFO, MEDIA_INFO_TEST_IO_BITRATE, ext2);
+
+				int msec = 0;
+				getBufferingTime(&msec);
+				notifyListener_l(MEDIA_INFO, MEDIA_INFO_TEST_BUFFERING_MSEC, msec);
 			}
 			else if(ext1 == MEDIA_INFO_TEST_MEDIA_BITRATE){
-				mVideoBitrate = ext2;
-				postMediaBitrateInfoEvent_l();
+				// 2015.6.18 guoliangma change to notifyListener_l
+				// because ffstream thread has detach thread
+				notifyListener_l(MEDIA_INFO, MEDIA_INFO_TEST_MEDIA_BITRATE, ext2);
 			}
             break;
         case MEDIA_SEEK_COMPLETE:
@@ -1927,16 +1909,6 @@ void FFPlayer::postSeekingCompleteEvent_l() {
     mSeekingCompleteEventPending = true;
 	
 	FFSeekingCompleteEvent *evt = new FFSeekingCompleteEvent(this);
-	mMsgLoop.postEventTohHeader(evt);
-}
-
-void FFPlayer::postIOBitrateInfoEvent_l() {
-	FFIOBitrateInfoEvent *evt = new FFIOBitrateInfoEvent(this);
-	mMsgLoop.postEventTohHeader(evt);
-}
-
-void FFPlayer::postMediaBitrateInfoEvent_l() {
-	FFMediaBitrateInfoEvent *evt = new FFMediaBitrateInfoEvent(this);
 	mMsgLoop.postEventTohHeader(evt);
 }
 
@@ -2139,8 +2111,8 @@ status_t FFPlayer::prepareVideo_l()
 		LOGI("video resolution %d x %d, display resolution switch to %d x %d",
 			mVideoWidth, mVideoHeight, render_w, render_h);
 	}
-#else
-	render_w = 1920;
+#elif !defined(USE_SDL2)
+	render_w = 1920; // fix me!
 	render_h = 1080;
 #endif
 #endif
@@ -2281,7 +2253,7 @@ status_t FFPlayer::stop_l()
 		av_freep(mSnapshotPic);
 	if (mSnapShotFrame != NULL)
 		av_frame_free(&mSnapShotFrame);
-	if(mSwsCtx != NULL) {
+	if (mSwsCtx != NULL) {
 		sws_freeContext(mSwsCtx);
 		mSwsCtx = NULL;
 	}
@@ -3249,6 +3221,9 @@ bool getStreamLangTitle(char** langcode, char** langtitle, int index, AVStream* 
 			*langcode ? *langcode : "N/A", 
 			*langtitle ? *langcode : "N/A");
 	}
+	else {
+		LOGW("stream index: #d lang and title are both empty", index);
+	}
 
     return gotlanguage;
 }
@@ -3283,7 +3258,8 @@ bool FFPlayer::getCurrentMediaInfo(MediaInfo *info)
 
 	AVCodec* codec = avcodec_find_decoder(codec_ctx->codec_id);
 	if (codec == NULL) {
-		LOGE("avcodec_find_decoder() video failed");
+		LOGE("avcodec_find_decoder() video %d(%s) failed",
+			codec_ctx->codec_id, avcodec_get_name(codec_ctx->codec_id));
 		return false;
 	}
 	
@@ -3292,9 +3268,10 @@ bool FFPlayer::getCurrentMediaInfo(MediaInfo *info)
 	for (unsigned int i=0;i<mMediaFile->nb_streams;i++) {
 		if (mMediaFile->streams[i]->codec->codec_type == AVMEDIA_TYPE_AUDIO) {
 			AVStream *stream = mMediaFile->streams[i];
-			AVCodec* codec = avcodec_find_decoder(mAudioStream->codec->codec_id);
+			AVCodec* codec = avcodec_find_decoder(stream->codec->codec_id);
 			if (codec == NULL) {
-				LOGW("avcodec_find_decoder audio failed");
+				LOGW("avcodec_find_decoder audio %d(%s) failed", 
+					stream->codec->codec_id, avcodec_get_name(stream->codec->codec_id));
 				continue;
 			}
 
@@ -3312,7 +3289,8 @@ bool FFPlayer::getCurrentMediaInfo(MediaInfo *info)
 			AVStream* stream = mMediaFile->streams[i];
 			AVCodec* codec = avcodec_find_decoder(stream->codec->codec_id);
 			if (codec == NULL) {
-				LOGW("avcodec_find_decoder subtitle failed");
+				LOGW("avcodec_find_decoder subtitle %d(%s) failed",
+					stream->codec->codec_id, avcodec_get_name(stream->codec->codec_id));
 				continue;
 			}
 
@@ -3391,7 +3369,8 @@ bool FFPlayer::getMediaDetailInfo(const char* url, MediaInfo* info)
 			AVCodec* codec = avcodec_find_decoder(codec_ctx->codec_id);
 			if (codec == NULL)
 			{
-				LOGE("avcodec_find_decoder() video failed");
+				LOGE("avcodec_find_decoder() video %d(%s) failed",
+					codec_ctx->codec_id, avcodec_get_name(codec_ctx->codec_id));
 				continue;
 			}
 
@@ -3402,7 +3381,8 @@ bool FFPlayer::getMediaDetailInfo(const char* url, MediaInfo* info)
 			AVCodec* codec = avcodec_find_decoder(stream->codec->codec_id);
 
 			if (codec == NULL) {
-				LOGE("avcodec_find_decoder audio failed");
+				LOGE("avcodec_find_decoder audio %d(%s) failed",
+					stream->codec->codec_id, avcodec_get_name(stream->codec->codec_id));
 				notifyListener_l(MEDIA_ERROR, MEDIA_ERROR_UNSUPPORTED, 0);
 				continue;
 			}
@@ -3422,7 +3402,8 @@ bool FFPlayer::getMediaDetailInfo(const char* url, MediaInfo* info)
 			AVCodec* codec = avcodec_find_decoder(stream->codec->codec_id);
 
 			if (codec == NULL) {
-				LOGW("avcodec_find_decoder subtitle failed");
+				LOGW("avcodec_find_decoder subtitle %d(%s) failed",
+					stream->codec->codec_id, avcodec_get_name(stream->codec->codec_id));
 				continue;
 			}
 

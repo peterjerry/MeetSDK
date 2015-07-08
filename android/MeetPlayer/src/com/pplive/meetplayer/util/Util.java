@@ -5,18 +5,25 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.InputStream;
+import java.net.InetAddress;
+import java.net.NetworkInterface;
+import java.net.SocketException;
+import java.util.ArrayList;
+import java.util.Enumeration;
+import java.util.List;
+import java.util.StringTokenizer;
 
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
+import android.net.wifi.WifiInfo;
+import android.net.wifi.WifiManager;
 import android.os.Environment;
 import android.pplive.media.MeetSDK;
 import android.util.Log;
 
-import com.nostra13.universalimageloader.core.ImageLoader;
-import com.nostra13.universalimageloader.core.ImageLoaderConfiguration;
-import com.nostra13.universalimageloader.core.assist.QueueProcessingType;
+import com.pplive.meetplayer.ui.PPTVEpisodeActivity;
 import com.pplive.sdk.MediaSDK;
 
 public class Util {
@@ -108,17 +115,83 @@ public class Util {
 		SharedPreferences settings = ctx.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE); // create it if NOT exist
     	return settings.getInt(key, 0);
 	}
-
-	public static boolean isWifiConnected(final Context context) {
-		ConnectivityManager connectivityManager = (ConnectivityManager) context
-				.getSystemService(Context.CONNECTIVITY_SERVICE);
-		NetworkInfo wifiNetworkInfo = connectivityManager
-				.getNetworkInfo(ConnectivityManager.TYPE_WIFI);
-		if (wifiNetworkInfo.isConnected()) {
-			return true;
-		}
-
-		return false;
+	
+	public static void add_sohuvideo_history(Context ctx, String title, int vid, long aid, int site) {
+		String key = "SohuPlayHistory";
+		String regularEx = ",";
+		final int save_max_count = 20;
+		String value = readSettings(ctx, key);
+		
+		List<String> playHistoryList = new ArrayList<String>();
+		StringTokenizer st = new StringTokenizer(value, regularEx, false);
+        while (st.hasMoreElements()) {
+        	String token = st.nextToken();
+        	playHistoryList.add(token);
+        }
+        
+        String new_video = String.format("%s|%d|%d|%d", title, vid, aid, site);
+        
+        int count = playHistoryList.size();
+        StringBuffer sb = new StringBuffer();
+        int start = count - save_max_count + 1;
+        if (start < 0)
+        	start = 0;
+        
+        boolean isNewVideo = true;
+        for (int i = start; i<count ; i++) {
+        	String item = playHistoryList.get(i);
+        	if (new_video.contains(item) && isNewVideo)
+        		isNewVideo = false;
+        	
+        	sb.append(item);
+        	sb.append(regularEx);
+        }
+        
+        if (isNewVideo)
+        	sb.append(new_video);
+        else
+        	Log.i(TAG, String.format("Java %s already in history list", new_video));
+        
+		writeSettings(ctx, key, sb.toString());
+	}
+	
+	public static void add_pptvvideo_history(Context ctx, String title, int playlink, int ft) {
+		String key = "PPTVPlayHistory";
+		String regularEx = ",";
+		final int save_max_count = 20;
+		String value = readSettings(ctx, key);
+		
+		List<String> playHistoryList = new ArrayList<String>();
+		StringTokenizer st = new StringTokenizer(value, regularEx, false);
+        while (st.hasMoreElements()) {
+        	String token = st.nextToken();
+        	playHistoryList.add(token);
+        }
+        
+        String new_video = String.format("%s|%d|%d", title, playlink, ft);
+        
+        int count = playHistoryList.size();
+        StringBuffer sb = new StringBuffer();
+        int start = count - save_max_count + 1;
+        if (start < 0)
+        	start = 0;
+        
+        boolean isNewVideo = true;
+        for (int i = start; i<count ; i++) {
+        	String item = playHistoryList.get(i);
+        	if (new_video.contains(item) && isNewVideo)
+        		isNewVideo = false;
+        	
+        	sb.append(item);
+        	sb.append(regularEx);
+        }
+        
+        if (isNewVideo)
+        	sb.append(new_video);
+        else
+        	Log.i(TAG, String.format("Java %s already in history list", new_video));
+        
+		writeSettings(ctx, key, sb.toString());
 	}
 	
 	public static boolean IsHaveInternet(final Context context) { 
@@ -133,6 +206,59 @@ public class Util {
             return false; 
         } 
     } 
+	
+	public static boolean isWifiConnected(Context context) {
+		ConnectivityManager connectivityManager = (ConnectivityManager) context
+				.getSystemService(Context.CONNECTIVITY_SERVICE);
+		NetworkInfo wifiNetworkInfo = connectivityManager
+				.getNetworkInfo(ConnectivityManager.TYPE_WIFI);
+
+		return wifiNetworkInfo.isConnected();
+	}
+	
+	public static boolean isLANConnected(Context context){
+	        ConnectivityManager connectivityManager =(ConnectivityManager) context
+	        		.getSystemService(Context.CONNECTIVITY_SERVICE);
+	        NetworkInfo lanNetworkInfo = connectivityManager
+	        		.getNetworkInfo(ConnectivityManager.TYPE_ETHERNET);
+	        return lanNetworkInfo.isConnected();
+	}
+	
+	public static String getWifiIpAddr(Context context) {
+		WifiManager wifiManager = (WifiManager) context.getSystemService(Context.WIFI_SERVICE);
+		WifiInfo wifiInfo = wifiManager.getConnectionInfo();
+		int ipAddress = wifiInfo.getIpAddress();
+		return intToIp(ipAddress);
+	}
+	
+	public static String getIpAddr(Context context) {
+		try {
+			Enumeration<NetworkInterface> en = NetworkInterface.getNetworkInterfaces();
+			while (en.hasMoreElements()) {
+				NetworkInterface intf = en.nextElement();
+				if (intf.getName().toLowerCase().equals("eth0")
+						|| intf.getName().toLowerCase().equals("wlan0")) {
+					for (Enumeration<InetAddress> enumIpAddr = intf
+							.getInetAddresses(); enumIpAddr.hasMoreElements();) {
+						InetAddress inetAddress = enumIpAddr.nextElement();
+						if (!inetAddress.isLoopbackAddress()) {
+							String ipaddress = inetAddress.getHostAddress().toString();
+							if (!ipaddress.contains("::")) {// ipV6的地址
+								return ipaddress;
+							}
+						}
+					}
+				} else {
+					continue;
+				}
+			}
+		}
+		catch (SocketException e) {
+			e.printStackTrace();
+		}
+		
+		return null;
+	}
 
 	public static void copyFile(String oldPath, String newPath) {
 		try {
@@ -193,5 +319,10 @@ public class Util {
 			e.printStackTrace();
 
 		}
+	}
+	
+	private static String intToIp(int i) {
+		return (i & 0xFF) + "." + ((i >> 8) & 0xFF) + "." + ((i >> 16) & 0xFF)
+				+ "." + (i >> 24 & 0xFF);
 	}
 }

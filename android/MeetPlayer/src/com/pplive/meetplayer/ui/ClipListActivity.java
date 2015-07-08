@@ -158,7 +158,9 @@ public class ClipListActivity extends Activity implements
 	private boolean mIsPreview	;
 	private boolean mIsLoop					= false;
 	private boolean mIsNoVideo					= false;
+	private boolean mTvduck					= true;
 	private MenuItem noVideoMenuItem;
+	private MenuItem tvduckMenuItem;
 	
 	private int mBufferingPertent				= 0;
 	private boolean mIsBuffering 				= false;
@@ -271,7 +273,7 @@ public class ClipListActivity extends Activity implements
 	final static int OPTION_COMMON_PREVIEW		= Menu.FIRST + 21;
 	final static int OPTION_COMMON_LOOP		= Menu.FIRST + 22;
 	final static int OPTION_COMMON_NO_VIDEO	= Menu.FIRST + 23;
-	final static int OPTION_COMMON_MEETVIEW	= Menu.FIRST + 24;
+	final static int OPTION_COMMON_TVDUCK		= Menu.FIRST + 24;
 	final static int OPTION_COMMON_SUBTITLE	= Menu.FIRST + 25;
 	final static int OPTION_COMMON_AUDIO_DST	= Menu.FIRST + 26;
 	
@@ -420,11 +422,18 @@ public class ClipListActivity extends Activity implements
 		}
 		
 		if (initDLNA() == false) {
-			Toast.makeText(this, "failed to load meet lib", 
+			Toast.makeText(this, "failed to load dlna lib", 
 				Toast.LENGTH_SHORT).show();
 		}
 		
-		Util.startP2PEngine(this);
+		if (Util.startP2PEngine(this) == false) {
+			Toast.makeText(this, "failed to start p2p engine", 
+					Toast.LENGTH_SHORT).show();
+		}
+		
+		if (Util.IsHaveInternet(this)) {
+			setTitle(getTitle() + " ip: " + Util.getIpAddr(this));
+		}
 		
 		mHolder = mPreview.getHolder();
 		mHolder.setType(SurfaceHolder.SURFACE_TYPE_NORMAL);
@@ -483,7 +492,11 @@ public class ClipListActivity extends Activity implements
 								}
 								else {
 									Log.i(TAG, "Java: play http clip");
-									start_player(file_path);
+									String filename = file_path;
+									int pos = file_path.lastIndexOf('/');
+									if (pos != -1)
+										filename = file_path.substring(pos + 1);
+									start_player(filename, file_path);
 								}
 							}
 							else {
@@ -503,7 +516,7 @@ public class ClipListActivity extends Activity implements
 									}
 								}
 								else {
-									start_player(file_path);
+									start_player(file.getName(), file_path);
 								}
 							}
 						}
@@ -713,7 +726,7 @@ public class ClipListActivity extends Activity implements
 								Log.i(TAG, String.format("Java: choose tvplay.txt #%d title: %s, url: %s", 
 										whichButton, list_title.get(whichButton), url));
 								
-								start_player(url);
+								start_player(list_title.get(whichButton), url);
 							}
 							
 							dialog.cancel();
@@ -762,7 +775,7 @@ public class ClipListActivity extends Activity implements
 				
 				String ppbox_url = PlayLinkUtil.getPlayUrl(ppbox_playid, port, ppbox_ft, ppbox_bw_type, mPlayerLinkSurfix);
 				
-				start_player(ppbox_url);
+				start_player("N/A", ppbox_url);
 			}
 		});
 		
@@ -995,7 +1008,7 @@ public class ClipListActivity extends Activity implements
 	}
 	
 	@SuppressWarnings("deprecation") // avoid setType warning
-	private int start_player(String path) {
+	private int start_player(String title, String path) {
 		mPlayUrl = path;
 		
 		setTitle(path);
@@ -1071,7 +1084,7 @@ public class ClipListActivity extends Activity implements
 		if (!mIsPreview) {
 			Uri uri = Uri.parse(path);
 			Log.i(TAG, "Java: goto PlayerActivity, uri:" + uri.toString());
-			start_fullscreen_play(uri, mPlayerImpl);
+			start_fullscreen_play(title, uri, mPlayerImpl);
 		}
 		else {
 			if (path.startsWith("file://") || path.startsWith("/")) {
@@ -1496,7 +1509,7 @@ public class ClipListActivity extends Activity implements
 			case MSG_PLAY_CDN_URL:
 				Log.i(TAG, "cdn url set %s"+ mDLNAPushUrl);
 				stop_player();
-				start_player(mDLNAPushUrl);
+				start_player("N/A", mDLNAPushUrl);
 				break;
 			case MSG_PLAY_CDN_FT:
 				btn_ft.setText(String.valueOf(msg.arg1));
@@ -2183,25 +2196,31 @@ public class ClipListActivity extends Activity implements
         }
     }
 
-	private void start_fullscreen_play(Uri uri, int player_impl) {
-		Log.i(TAG, "java: start_fullscreen_play");
+	private void start_fullscreen_play(String title, Uri uri, int player_impl) {
+		Log.i(TAG, "java: start_fullscreen_play: " + uri.toString());
 
-		Intent intent = new Intent(ClipListActivity.this,
-				VideoPlayerActivity.class);
-		Log.i(TAG, "to play uri: " + uri.toString());
+		Intent intent = null;
+		if (mTvduck) {
+			intent = new Intent(Intent.ACTION_VIEW);
+			intent.setClassName("com.pplive.tvduck", "com.pplive.tvduck.PlayerActivity");
+	        intent.putExtra(Intent.ACTION_VIEW, uri);
+		}
+		else {
+			intent = new Intent(ClipListActivity.this, VideoPlayerActivity.class);
+		}
 
 		intent.setData(uri);
+		intent.putExtra("title", title);
 		intent.putExtra("impl", player_impl);
 		startActivity(intent);
 	}
-
-	private void upload_crash_report(int type) { 
-        WifiManager wifiManager = (WifiManager) getSystemService(Context.WIFI_SERVICE);
-        WifiInfo wifiInfo = wifiManager.getConnectionInfo();       
-        int ipAddress = wifiInfo.getIpAddress();   
-        String ip = intToIp(ipAddress);
+	
+	private void upload_crash_report(int type) {  
+        String ip = Util.getIpAddr(this);
         
         MeetSDK.makePlayerlog();
+        Util.copyFile(getCacheDir().getAbsolutePath() + "/meetplayer.log", 
+        		Environment.getExternalStorageDirectory().getAbsolutePath() + "/meetplayer.txt");
         
         if (ip.startsWith("192.168.")) {
         	String URL = "http://172.16.10.137/crashapi/api/crashreport/launcher";
@@ -2311,11 +2330,6 @@ public class ClipListActivity extends Activity implements
 		choose_device_dlg.show();
 	}
 	
-	private String intToIp(int i) {
-		return (i & 0xFF) + "." + ((i >> 8) & 0xFF) + "." + ((i >> 16) & 0xFF)
-				+ "." + (i >> 24 & 0xFF);
-	}
-	
 	private boolean start_subtitle(String filename) {
 		Log.i(TAG, "Java: subtitle start_subtitle " + filename);
     	
@@ -2362,9 +2376,9 @@ public class ClipListActivity extends Activity implements
 		//OptSubMenu.add(Menu.NONE, OPTION_DLNA_DMS, Menu.FIRST + 2, "dlna dms");
 		// epg
 		OptSubMenu.add(Menu.NONE, OPTION_EPG_FRONTPAGE, Menu.FIRST + 3, "epg frontpage");
-		OptSubMenu.add(Menu.NONE, OPTION_EPG_CONTENT, Menu.FIRST + 4, "epg content");
-		OptSubMenu.add(Menu.NONE, OPTION_EPG_SEARCH, Menu.FIRST + 5, "epg search");
-		OptSubMenu.add(Menu.NONE, OPTION_EPG_SOHUVIDEO, Menu.FIRST + 6, "sohu video");
+		OptSubMenu.add(Menu.NONE, OPTION_EPG_CONTENT, Menu.FIRST + 4, "PPTV video");
+		//OptSubMenu.add(Menu.NONE, OPTION_EPG_SEARCH, Menu.FIRST + 5, "epg search");
+		OptSubMenu.add(Menu.NONE, OPTION_EPG_SOHUVIDEO, Menu.FIRST + 5, "sohu video");
 			
 		MenuItem previewMenuItem = commonMenu.add(Menu.NONE, OPTION_COMMON_PREVIEW, Menu.FIRST, "Preview");
 		previewMenuItem.setCheckable(true);
@@ -2385,7 +2399,11 @@ public class ClipListActivity extends Activity implements
 		if (mIsNoVideo)
 			noVideoMenuItem.setChecked(false);
 		
-		commonMenu.add(Menu.NONE, OPTION_COMMON_MEETVIEW, Menu.FIRST + 3, "test view");
+		tvduckMenuItem = commonMenu.add(Menu.NONE, OPTION_COMMON_TVDUCK, Menu.FIRST + 3, "tvduck");
+		tvduckMenuItem.setCheckable(true);
+		if (mTvduck)
+			tvduckMenuItem.setChecked(true);
+		
 		commonMenu.add(Menu.NONE, OPTION_COMMON_SUBTITLE, Menu.FIRST + 4, "load subtitle");
 		commonMenu.add(Menu.NONE, OPTION_COMMON_AUDIO_DST, Menu.FIRST + 5, "audio dst");
 		
@@ -2453,10 +2471,15 @@ public class ClipListActivity extends Activity implements
 			mIsNoVideo = !mIsNoVideo;
 			Util.writeSettingsInt(this, "IsNoVideo", mIsNoVideo ? 1 : 0);
 			break;
-		case OPTION_COMMON_MEETVIEW:
+		/*case OPTION_COMMON_MEETVIEW:
 			intent = new Intent(ClipListActivity.this, MeetViewActivity.class);
 			intent.putExtra("playlink", "9037770");
 			startActivity(intent);
+			break;
+		*/
+		case OPTION_COMMON_TVDUCK:
+			mTvduck = !mTvduck;
+			tvduckMenuItem.setChecked(mTvduck);
 			break;
 		case OPTION_COMMON_SUBTITLE:
 			popupSelectSubtitle();
@@ -2533,8 +2556,10 @@ public class ClipListActivity extends Activity implements
 				return true;
 			}
 			
-			Toast.makeText(this, "loading epg contents...", Toast.LENGTH_SHORT).show();
-			new EPGTask().execute(EPG_ITEM_CONTENT_LIST);
+			//Toast.makeText(this, "loading epg contents...", Toast.LENGTH_SHORT).show();
+			//new EPGTask().execute(EPG_ITEM_CONTENT_LIST);
+			intent = new Intent(ClipListActivity.this, PPTVVideoActivity.class);
+    		startActivity(intent);
 			break;
 		case OPTION_EPG_SOHUVIDEO:
 			if (!Util.IsHaveInternet(this)) {

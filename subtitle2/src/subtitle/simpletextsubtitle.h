@@ -15,14 +15,15 @@ public:
     friend class STSSegment;
     CSimpleTextSubtitle(ASS_Library* assLibrary):mAssLibrary(assLibrary),mAssTrack(NULL)
     {
-        mNextSegment = 0;
+        mSegmentIndex = 0;
         mFileName = NULL;
         mLanguageName = NULL;
         mCodecId = SUBTITLE_CODEC_ID_NONE;
         mDirty = false;
         mEmbeddingLock = NULL;
     }
-    virtual ~CSimpleTextSubtitle();
+
+    ~CSimpleTextSubtitle();
 
     bool loadFile(const char* fileName);
     bool parseXMLNode(const char* fileName, tinyxml2::XMLElement* element);
@@ -32,6 +33,7 @@ public:
     }
     bool seekTo(int64_t time);
     bool getNextSubtitleSegment(STSSegment** segment);
+	void resetSegment();
     ASS_Event* getEventAt(int pos);
 
     const char* getFileName()
@@ -57,7 +59,7 @@ protected:
     std::vector<CSTSSegment*>  mSegments;
     ASS_Library*            mAssLibrary;
     ASS_Track*              mAssTrack;
-    size_t                  mNextSegment;
+    size_t                  mSegmentIndex;
     const char*             mFileName;
     const char*             mLanguageName;
     SubtitleCodecId         mCodecId;
