@@ -39,4 +39,8 @@ public class CDNItem {
 	public String getHost() {
 		return m_sh;
 	}
+	
+	public String getST() {
+		return m_st;
+	}
 }

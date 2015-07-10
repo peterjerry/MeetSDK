@@ -9,6 +9,7 @@
 #include "apBlockDownloader.h"
 #include "apFlvDemuxer.h"
 #include "apTsWriter.h"
+#include "apFormatConverter.h"
 #define LOG_TAG "testPPTVLive"
 #include "log.h"
 #include "apFileLog.h"
@@ -39,7 +40,9 @@ extern "C"
 							"&type=phone.android.vip&sdk=1" \
 							"&channel=162&vvid=41&k=%s"
 
+#define OUT_TS_MAX_SIZE 1048576
 apTsWriter dumper;
+
 
 int onFrame(AVPacket *pkt)
 {
@@ -75,7 +78,10 @@ int _tmain(int argc, _TCHAR* argv[])
 
 	bool dumper_opened = false;
 
-	for (int i=0;i<100;i++) {  
+	uint8_t *out_ts = new uint8_t[OUT_TS_MAX_SIZE];
+	memset(out_ts, 0, OUT_TS_MAX_SIZE);
+
+	for (int i=0;i<10;i++) {  
 		sprintf(url, LIVE_URL_FMT, item->get_sh(), segment_time, (char *)key);
 
 		LOGI("ready to download segment: %s", url);
@@ -84,27 +90,48 @@ int _tmain(int argc, _TCHAR* argv[])
 		char save_filename[64] = {0};
 		sprintf(save_filename, "d:\\dump\\%I64d.flv", segment_time);
 		
-		if (!downloader.saveAs(save_filename)) {
+		/*if (!downloader.saveAs(save_filename)) {
 			LOGE("failed to download segment %s", url);
 			break;
 		}
 
 		LOGI("segment %I64d.block downloaded as %s", segment_time, save_filename);
-		printf("segment %I64d.block downloaded as %s\n", segment_time, save_filename);
+		printf("segment %I64d.block downloaded as %s\n", segment_time, save_filename);*/
 		
-
-		/*
+		
 		if (!downloader.saveInMemory()) {
 			LOGE("failed to download segment %s", url);
 			break;
 		}
 
 		int size;
-		char * data = downloader.getData(&size);
-		LOGI("segment %I64d.block downloaded %p, size %d", segment_time, data, size);
-		printf("segment %I64d.block downloaded %p, size %d\n", segment_time, data, size);
+		uint8_t * flv_data = (uint8_t *)downloader.getData(&size);
+		if (flv_data == NULL) {
+			LOGE("failed to get flv data");
+			break;
+		}
 
-		apFlvDemuxer demux;
+		LOGI("segment %I64d.block downloaded %p, size %d", segment_time, flv_data, size);
+		printf("segment %I64d.block downloaded %p, size %d\n", segment_time, flv_data, size);
+
+		apFormatConverter converter;
+		int out_ts_len = OUT_TS_MAX_SIZE;
+		if (!converter.convert(flv_data, size, out_ts, &out_ts_len)) {
+			LOGE("failed to convert");
+			printf("failed to convert");
+			break;
+		}
+
+		sprintf(save_filename, "d:\\dump\\%I64d.ts", segment_time);
+		FILE *pFile = fopen(save_filename, "wb");
+		if (pFile) {
+			fwrite(out_ts, 1, out_ts_len, pFile);
+			fclose(pFile);
+			printf("save ts file %s: size %d\n", save_filename, out_ts_len);
+			pFile = NULL;
+		}
+
+		/*apFlvDemuxer demux;
 
 		demux.setOnFrame(onFrame);
 		if (!demux.setSource(data, size)) {
@@ -129,7 +156,7 @@ int _tmain(int argc, _TCHAR* argv[])
 		Sleep(500);
 	}
 
-	dumper.close();
+	//dumper.close();
 
 	return 0;
 }

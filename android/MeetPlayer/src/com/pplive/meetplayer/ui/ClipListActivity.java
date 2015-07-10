@@ -4,9 +4,11 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.net.URLConnection;
 import java.net.URLEncoder;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -16,7 +18,6 @@ import java.util.GregorianCalendar;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
-import java.util.StringTokenizer;
 
 import android.app.Activity;
 import android.app.ProgressDialog;
@@ -53,7 +54,6 @@ import android.os.Build;
 import android.media.AudioManager;
 import android.graphics.Bitmap;
 import android.net.Uri;
-import android.net.wifi.WifiInfo;
 import android.net.wifi.WifiManager;
 import android.net.wifi.WifiManager.WifiLock;
 import android.os.AsyncTask;
@@ -78,7 +78,10 @@ import com.pplive.meetplayer.util.ListMediaUtil;
 import com.pplive.meetplayer.util.LoadPlayLinkUtil;
 import com.pplive.meetplayer.util.LogcatHelper;
 import com.pplive.meetplayer.util.Util;
+import com.pplive.meetplayer.util.httpUtil;
+import com.pplive.meetplayer.util.MyFormatConverter;
 import com.pplive.meetplayer.ui.widget.MiniMediaController;
+import com.pplive.common.pptv.CDNItem;
 import com.pplive.common.pptv.Catalog;
 import com.pplive.common.pptv.Content;
 import com.pplive.common.pptv.EPGUtil;
@@ -90,11 +93,7 @@ import com.pplive.common.pptv.VirtualChannelInfo;
 import com.pplive.common.sohu.PlaylinkSohu;
 import com.pplive.common.sohu.PlaylinkSohu.SOHU_FT;
 import com.pplive.common.sohu.SohuUtil;
-import com.pplive.db.DBmanager;
-import com.pplive.db.MediaInfoEntry;
 import com.pplive.dlna.DLNASdk;
-import com.pplive.dlna.DLNASdk.DLNASdkInterface;
-import com.pplive.dlna.DLNASdkDMSItemInfo;
 
 
 
@@ -124,8 +123,6 @@ public class ClipListActivity extends Activity implements
 	
     private final static String PORT_HTTP = "http";
     private final static String PORT_RTSP = "rtsp";
-		
-    private DBmanager dbManager;
     
 	private Button btnPlay;
 	private Button btnSelectTime;
@@ -233,6 +230,8 @@ public class ClipListActivity extends Activity implements
 	private final int EPG_ITEM_VIRTUAL_LIST	= 9;
 	private final int EPG_ITEM_CDN				= 11;
 	private final int EPG_ITEM_FT				= 12;
+	
+	private final int TEST_XXX					= 100;
 
 	private boolean mListLocalFile				= true;
 	
@@ -324,8 +323,6 @@ public class ClipListActivity extends Activity implements
 		super.onCreate(savedInstanceState);
 		   
 		Log.i(TAG, "Java: onCreate()");
-		
-		dbManager = new DBmanager(this);
 		
 		// compatible with tvbox
 		if (getResources().getConfiguration().orientation == 1) 
@@ -1822,6 +1819,34 @@ public class ClipListActivity extends Activity implements
 		choose_subtitle_dlg.show();
 	}
 
+	private void testConvert() {
+		CDNItem liveitem = mEPG.live_cdn(300156);
+		if (liveitem != null) {
+			String block_url_fmt = "http://%s/live/074094e6c24c4ebbb4bf6a82f4ceabda/" +
+					"%d.block?ft=1&platform=android3" +
+					"&type=phone.android.vip&sdk=1" +
+					"&channel=162&vvid=41&k=%s";
+            
+            String st = liveitem.getST();
+            long start_time = new Date(st).getTime() / 1000;
+            start_time -= 45;
+            start_time -= (start_time % 5);
+            
+			String httpUrl = String.format(block_url_fmt, liveitem.getHost(), start_time, liveitem.getK());
+			Log.i(TAG, "Java: live flv block: " + httpUrl);
+			
+			String saveFile = String.format("d:\\%d.flv", start_time);
+			Log.i(TAG, "Java: download flv block: " + start_time);
+			byte[] in_flv = new byte[1048576];
+			int in_size = httpUtil.httpDownloadBuffer(httpUrl, in_flv);
+			byte[] out_ts = new byte[1048576];
+			if (in_flv != null) {
+				int out_size = MyFormatConverter.Convert(in_flv, out_ts);
+				Log.i(TAG, "Java: out_size " + out_size);
+			}
+		}
+	}
+	
 	private void popupDMSDlg() {
 		int dev_num = IDlnaCallback.mDMSmap.size();
 		
@@ -2128,6 +2153,9 @@ public class ClipListActivity extends Activity implements
     				}
         		}
         	}
+        	else if (TEST_XXX == type) {
+        		testConvert();
+        	}
         	else {
         		Log.w(TAG, "Java: EPGTask invalid type: " + type);
         	}
@@ -2373,7 +2401,7 @@ public class ClipListActivity extends Activity implements
 		SubMenu commonMenu = OptSubMenu.addSubMenu(Menu.NONE, OPTION_COMMON, Menu.FIRST, "common");
 		// dlna
 		OptSubMenu.add(Menu.NONE, OPTION_DLNA_DMR, Menu.FIRST + 1, "dlna dmr");
-		//OptSubMenu.add(Menu.NONE, OPTION_DLNA_DMS, Menu.FIRST + 2, "dlna dms");
+		OptSubMenu.add(Menu.NONE, OPTION_DLNA_DMS, Menu.FIRST + 2, "dlna dms");
 		// epg
 		OptSubMenu.add(Menu.NONE, OPTION_EPG_FRONTPAGE, Menu.FIRST + 3, "epg frontpage");
 		OptSubMenu.add(Menu.NONE, OPTION_EPG_CONTENT, Menu.FIRST + 4, "PPTV video");
@@ -2510,7 +2538,8 @@ public class ClipListActivity extends Activity implements
 			push_to_dmr();
 			break;
 		case OPTION_DLNA_DMS:
-			popupDMSDlg();
+			//popupDMSDlg();
+			new EPGTask().execute(TEST_XXX);
 			break;
 		case OPTION_EPG_FRONTPAGE:
 			if (!Util.IsHaveInternet(this)) {
@@ -3254,6 +3283,7 @@ public class ClipListActivity extends Activity implements
 	
 	static {
 		//System.loadLibrary("lenthevcdec");
+		//System.loadLibrary("player_neon");
 	}
 	
 }
