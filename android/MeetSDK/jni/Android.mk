@@ -5,7 +5,7 @@ JNI_BASE 		:= meet
 ENGINE_BASE 	:= ../../engine2
 SUBTITLE_BASE	:= ../../subtitle2
 
-BUILD_ONE_LIB	:= 1
+#BUILD_ONE_LIB	:= 1
 
 ifeq ($(TARGET_ARCH_ABI),armeabi)
 FFMPEG_PATH		:= ../../../foundation/output/android/neon
@@ -70,8 +70,9 @@ endif
 ########################[libmeet]########################
 include $(CLEAR_VARS)
 LOCAL_C_INCLUDES 		:= meet $(ENGINE_BASE) $(SUBTITLE_BASE)/output/android/include
+LOCAL_CFLAGS    		+= -DUSE_TS_CONVERT
 ifdef BUILD_ONE_LIB
-LOCAL_CFLAGS    		+= -DBUILD_ONE_LIB
+LOCAL_CFLAGS    		+= -DBUILD_ONE_LIB -DUSE_TS_CONVERT
 endif
 MY_SRC_FILES 			:= cpuext.cpp jniUtils.cpp FFMediaExtractor.cpp FFMediaPlayer.cpp native_convert.cpp
 LOCAL_SRC_FILES 		:= $(addprefix $(JNI_BASE)/, $(MY_SRC_FILES))

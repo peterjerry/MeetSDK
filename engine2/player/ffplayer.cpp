@@ -51,6 +51,7 @@
 #include "platforminfo.h"
 #ifdef BUILD_ONE_LIB
 extern JavaVM* gs_jvm;
+extern int __pp_log_vprint(int prio, const char *tag, const char *fmt, va_list ap);
 #else
 JavaVM* gs_jvm = NULL;
 #endif
@@ -173,11 +174,13 @@ static void ff_log_callback(void* avcl, int level, const char* fmt, va_list vl);
 extern "C" IPlayer* getPlayer(void* context)
 {
 #ifdef __ANDROID__
+#ifdef BUILD_ONE_LIB
+	pplog = __pp_log_vprint;
+#else
     platformInfo = (PlatformInfo*)context;
-#ifndef BUILD_ONE_LIB
     gs_jvm = (JavaVM*)(platformInfo->jvm);
+	pplog = (LogFunc)(platformInfo->pplog_func); 
 #endif
-    pplog = (LogFunc)(platformInfo->pplog_func);
 #endif
     return new FFPlayer();
 }
