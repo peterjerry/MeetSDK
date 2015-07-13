@@ -48,6 +48,7 @@ struct fields_t {
 	jfieldID    iSubtitle;
 };
 
+// member from jniUtils.cpp
 extern JavaVM *gs_jvm;
 extern pthread_mutex_t sLock;
 
@@ -788,10 +789,15 @@ jboolean android_media_MediaPlayer_native_init(JNIEnv *env, jobject thiz)
 	if (fields.post_event == NULL)
 		jniThrowException(env, "java/lang/RuntimeException", "Can't find FFMediaPlayer.postEventFromNative");
 
+#ifdef BUILD_ONE_LIB
+	getPlayerFun = getPlayer;
+	releasePlayerFun = releasePlayer;
+#else
 	if (!loadPlayerLib()) {
 		jniThrowException(env, "java/lang/RuntimeException", "Load Library Failed!!!");
 		return false;
 	}
+#endif
 
 	sInited = true;
 	return true;
@@ -1484,7 +1490,9 @@ int register_android_media_MediaPlayer(JNIEnv *env)
 
 void unload_player()
 {
+#ifndef BUILD_ONE_LIB
 	unloadPlayerLib(&player_handle_software);
+#endif
 
 	if (gPlatformInfo != NULL) {
 		delete gPlatformInfo;

@@ -110,10 +110,7 @@
     <ClCompile Include="apTsWriter.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="apFormatConverter.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
-    <ClCompile Include="native_convert.cpp">
+    <ClCompile Include="..\..\..\player\apFormatConverter.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
   </ItemGroup>

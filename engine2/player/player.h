@@ -303,4 +303,6 @@ extern "C" IPlayer* getPlayer(void* context);
 
 extern "C" void releasePlayer(IPlayer *player);
 
+extern "C" bool my_convert(uint8_t* flv_data, int flv_data_size, uint8_t* ts_data, int *out_size);
+
 #endif

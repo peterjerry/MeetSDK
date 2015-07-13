@@ -1,8 +1,15 @@
 package com.pplive.meetplayer.ui;
 
+import java.io.BufferedOutputStream;
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
+import java.io.FileReader;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
@@ -178,7 +185,7 @@ public class ClipListActivity extends Activity implements
 	
 	private String mPlayUrl;
 	private int mVideoWidth, mVideoHeight;
-	private int mAudioTrackNum = 4;
+	private int mAudioTrackNum = -1;
 	private int mAudioChannel = 1;
 	private int mPlayerImpl = 0;
 	// subtitle
@@ -822,13 +829,14 @@ public class ClipListActivity extends Activity implements
 				
 				// TODO Auto-generated method stub
 				if (mPlayer != null) {
-					Log.i(TAG, "Java: trackinfo " + mPlayer.getMediaInfo());
-					
 					mAudioChannel++;
 					if (mAudioChannel > mAudioTrackNum)
 						mAudioChannel = 1;
-					// fixme!
+
+					Log.i(TAG, "Java: selectTrack #" + mAudioChannel);
 					mPlayer.selectTrack(mAudioChannel);
+					Toast.makeText(ClipListActivity.this, "switch to audio #" + mAudioChannel, 
+							Toast.LENGTH_SHORT).show();
 				}
 			}
 		});
@@ -1100,8 +1108,10 @@ public class ClipListActivity extends Activity implements
 							trackInfo.getTitle()));
 					}
 					
-					if (info.getAudioChannels() > 1)
-						btnSelectAudioTrack.setVisibility(View.VISIBLE);	
+					if (info.getAudioChannels() > 1) {
+						mAudioTrackNum = info.getAudioChannels();
+						btnSelectAudioTrack.setVisibility(View.VISIBLE);
+					}
 					
 					ArrayList<TrackInfo> subtitleTrackList = info.getSubtitleChannelsInfo();
 					for (TrackInfo trackInfo : subtitleTrackList) {
@@ -1835,14 +1845,83 @@ public class ClipListActivity extends Activity implements
 			String httpUrl = String.format(block_url_fmt, liveitem.getHost(), start_time, liveitem.getK());
 			Log.i(TAG, "Java: live flv block: " + httpUrl);
 			
-			String saveFile = String.format("d:\\%d.flv", start_time);
-			Log.i(TAG, "Java: download flv block: " + start_time);
+			String save_filepath = Environment.getExternalStorageDirectory().getAbsolutePath() + 
+					String.format("/%d.ts", start_time);
+			Log.i(TAG, "Java: transcode mpegts block: " + save_filepath);
 			byte[] in_flv = new byte[1048576];
+			
 			int in_size = httpUtil.httpDownloadBuffer(httpUrl, in_flv);
 			byte[] out_ts = new byte[1048576];
-			if (in_flv != null) {
-				int out_size = MyFormatConverter.Convert(in_flv, out_ts);
-				Log.i(TAG, "Java: out_size " + out_size);
+			
+			StringBuffer sbHex = new StringBuffer();
+			for (int i=0;i<16;i++) {
+				sbHex.append(String.format("0x%02x ", in_flv[i]));
+			}
+			
+			byte[] header = new byte[4];
+			header[0] = in_flv[0];
+			header[1] = in_flv[1];
+			header[2] = in_flv[2];
+			header[3] = '\0';
+			String strHeader = "";
+			try {
+				strHeader = new String(header, "UTF-8");
+			} catch (UnsupportedEncodingException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+			
+			Log.i(TAG, "Java: flv file context " + sbHex.toString() + 
+					" , string: " + strHeader);
+
+			int out_size = MyFormatConverter.Convert(in_flv, in_size, out_ts);
+			Log.i(TAG, "Java: out_size " + out_size);
+
+			// save output ts file
+			saveFile(out_ts, out_size, save_filepath);
+		}
+	}
+	
+	private void saveFile(byte[] buffer, int size, String filePath) {
+		BufferedOutputStream bos = null;
+		FileOutputStream fos = null;
+		int offset = 0;
+		int left = size;
+		int chunk_size = 1024;
+		
+		try {
+			File file = new File(filePath);
+			fos = new FileOutputStream(file);
+			bos = new BufferedOutputStream(fos);
+			while (left > 0) {
+				int towrite = chunk_size;
+				if (left < towrite)
+					towrite = left;
+				bos.write(buffer, offset, towrite);
+				
+				offset	+= towrite;
+				left	-= towrite;
+				//Log.i(TAG, "Java: ts write " + towrite);
+			}
+			
+			Log.i(TAG, "Java: total write file size " + offset);
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+			if (bos != null) {
+				try {
+					bos.close();
+				} catch (IOException e1) {
+					e1.printStackTrace();
+				}
+			}
+			if (fos != null) {
+				try {
+					fos.flush();
+					fos.close();
+				} catch (IOException e1) {
+					e1.printStackTrace();
+				}
 			}
 		}
 	}
@@ -3283,7 +3362,6 @@ public class ClipListActivity extends Activity implements
 	
 	static {
 		//System.loadLibrary("lenthevcdec");
-		//System.loadLibrary("player_neon");
 	}
 	
 }

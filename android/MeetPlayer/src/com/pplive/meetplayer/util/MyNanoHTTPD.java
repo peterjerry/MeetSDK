@@ -16,7 +16,11 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 
+import com.pplive.common.pptv.CDNItem;
+import com.pplive.common.pptv.EPGUtil;
+
 import android.content.Context;
+import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Environment;
 import android.util.Log;
@@ -36,6 +40,15 @@ public class MyNanoHTTPD extends NanoHTTPD{
 	private Context mContext;
 	private MimeTypeMap  mMimeTypeMap;
 	
+	private EPGUtil mEPG;
+	private CDNItem mLiveitem;
+	private long start_time;
+	
+	private String block_url_fmt = "http://%s/live/074094e6c24c4ebbb4bf6a82f4ceabda/" +
+			"%d.block?ft=1&platform=android3" +
+			"&type=phone.android.vip&sdk=1" +
+			"&channel=162&vvid=41&k=%s";
+	
     public MyNanoHTTPD(Context ctx, int port, String wwwroot) {
     	super(port);
  
@@ -46,6 +59,9 @@ public class MyNanoHTTPD extends NanoHTTPD{
     		mRootDir = Environment.getExternalStorageDirectory().getAbsolutePath();
     	
     	mMimeTypeMap = MimeTypeMap.getSingleton();
+    	
+    	mEPG = new EPGUtil();
+    	new EPGTask().execute();
     }  
       
     public MyNanoHTTPD(Context ctx, String hostName,int port){  
@@ -105,6 +121,12 @@ public class MyNanoHTTPD extends NanoHTTPD{
 					Log.i(TAG, "Java: load resource: " + uri);
 					int pos = uri.lastIndexOf("/");
 					is = mContext.getAssets().open(uri.substring(pos + 1, uri.length()));
+				}
+				else if (uri.equals("/index.m3u8")) {
+					return serveM3u8();
+				}
+				else if (uri.endsWith(".ts")) {
+					return serveSegment(uri);
 				}
 				else {
 					File file = new File(filepath);
@@ -241,6 +263,52 @@ public class MyNanoHTTPD extends NanoHTTPD{
          return super.serve(session);  
      }
 	
+	private myResponse serveM3u8() {
+		StringBuffer sb_m3u8_context = new StringBuffer();
+		sb_m3u8_context.append("#EXTM3U\n");
+		sb_m3u8_context.append("#EXT-X-TARGETDURATION:5\n");
+		sb_m3u8_context.append("#EXT-X-MEDIA-SEQUENCE:0\n");
+		
+		int count = 3600 / 5;
+		for (int i=0;i<count;i++) {
+			sb_m3u8_context.append("#EXTINF:5,\n");
+			String filename = String.format("%d.ts", start_time + i * 5);
+			sb_m3u8_context.append(filename);
+			sb_m3u8_context.append("\n");
+		}
+		
+		sb_m3u8_context.append("#EXT-X-ENDLIST\n\n");
+		
+		String str_m3u8_context = sb_m3u8_context.toString();
+		int len = sb_m3u8_context.length();
+		
+		InputStream m3u8_is = new ByteArrayInputStream(str_m3u8_context.getBytes());
+		String mimeType = MimeTypeMap.getSingleton().getMimeTypeFromExtension("m3u8");
+		return new myResponse(Status.OK, mimeType, m3u8_is, 0, len, false);
+	}
+	
+	private myResponse serveSegment(String uri) {
+		Log.i(TAG, "Java serveSegment: " + uri);
+		
+		int time_stamp = Integer.valueOf(uri.substring(1, uri.length() - 3));
+		Log.i(TAG, "Java: time_stamp " + time_stamp);
+		
+		byte[] in_flv = new byte[1048576];
+		
+		String httpUrl = String.format(block_url_fmt, mLiveitem.getHost(), 
+				time_stamp, mLiveitem.getK());
+		int in_size = httpUtil.httpDownloadBuffer(httpUrl, in_flv);
+		byte[] out_ts = new byte[1048576];
+		
+		int out_size = MyFormatConverter.Convert(in_flv, in_size, out_ts);
+		Log.i(TAG, "Java: out_size " + out_size);
+		
+		String mimeType = MimeTypeMap.getSingleton().getMimeTypeFromExtension("ts");
+		ByteArrayInputStream is = new ByteArrayInputStream(out_ts); 
+		return new myResponse(Status.OK, mimeType, is, 
+				0, out_size, false);
+	}
+	
 	private String getAssetFileContext(String filename) {
 		String line = null;
 		
@@ -305,7 +373,30 @@ public class MyNanoHTTPD extends NanoHTTPD{
 		return strSize;
     }
 	
-	class FileComparator implements Comparator<File> {
+	private class EPGTask extends AsyncTask<Integer, Integer, Boolean> {
+
+		@Override
+		protected Boolean doInBackground(Integer... params) {
+			// TODO Auto-generated method stub
+			mLiveitem = mEPG.live_cdn(300156);
+			if (mLiveitem == null) {
+				Log.e(TAG, "Java: failed to get mLiveitem");
+				return false;
+			}
+			
+            String st = mLiveitem.getST();
+            start_time = new Date(st).getTime() / 1000;
+            start_time -= 45; // second
+            start_time -= 3600; // 1 hour
+            start_time -= (start_time % 5);
+            Log.i(TAG, "Java: start_time " + start_time);
+			
+			return true;
+		}
+		
+	}
+	
+	private class FileComparator implements Comparator<File> {
 		@Override
 		public int compare(File f1, File f2) {
 			if (f1.isFile() && f2.isDirectory())

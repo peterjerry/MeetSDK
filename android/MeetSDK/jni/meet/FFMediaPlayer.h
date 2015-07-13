@@ -1,6 +1,6 @@
 #ifndef _FF_MEDIA_PLAYER_H
 #define _FF_MEDIA_PLAYER_H
-#include <player/player.h>
+#include "player/player.h"
 #include <jni.h>
 
 // This function only registers the native methods
