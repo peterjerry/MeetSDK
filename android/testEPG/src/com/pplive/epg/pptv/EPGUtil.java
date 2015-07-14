@@ -202,7 +202,7 @@ public class EPGUtil {
 			String d_st = d.getChild("st").getText(); // server time
 			String d_key = d.getChild("key").getText();
 			
-			CDNItem item = new CDNItem(d_ft, d_sh, d_st, d_bh, d_key);	
+			CDNItem item = new CDNItem(d_ft, d_sh, d_st, d_bh, d_key, rid);	
 			return item;
 		}
 		catch (JDOMException e) {
@@ -903,7 +903,7 @@ public class EPGUtil {
 				String d_st = d.getChild("st").getText(); // server time
 				String d_key = d.getChild("key").getText();
 				
-				CDNItem item = new CDNItem(d_ft, d_sh, d_st, d_bh, d_key);
+				CDNItem item = new CDNItem(d_ft, d_sh, d_st, d_bh, d_key, ridList.get(i).m_rid);
 				itemList.add(item);
 			}
 			

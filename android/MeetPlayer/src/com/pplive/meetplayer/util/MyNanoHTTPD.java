@@ -8,6 +8,9 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.UnsupportedEncodingException;
+import java.net.URLDecoder;
+import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Arrays;
 import java.util.Comparator;
@@ -15,6 +18,7 @@ import java.util.Date;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
+import java.util.StringTokenizer;
 
 import com.pplive.common.pptv.CDNItem;
 import com.pplive.common.pptv.EPGUtil;
@@ -42,12 +46,16 @@ public class MyNanoHTTPD extends NanoHTTPD{
 	
 	private EPGUtil mEPG;
 	private CDNItem mLiveitem;
-	private long start_time;
+	private int mVid;
+	private long start_time = -1;
 	
-	private String block_url_fmt = "http://%s/live/074094e6c24c4ebbb4bf6a82f4ceabda/" +
+	private String block_url_fmt = "http://%s/live/" +
+			"%s/" + // rid 074094e6c24c4ebbb4bf6a82f4ceabda
 			"%d.block?ft=1&platform=android3" +
 			"&type=phone.android.vip&sdk=1" +
-			"&channel=162&vvid=41&k=%s";
+			"&channel=162" + 
+			"&vvid=41" +
+			"&k=%s"; 
 	
     public MyNanoHTTPD(Context ctx, int port, String wwwroot) {
     	super(port);
@@ -61,7 +69,6 @@ public class MyNanoHTTPD extends NanoHTTPD{
     	mMimeTypeMap = MimeTypeMap.getSingleton();
     	
     	mEPG = new EPGUtil();
-    	new EPGTask().execute();
     }  
       
     public MyNanoHTTPD(Context ctx, String hostName,int port){  
@@ -78,15 +85,11 @@ public class MyNanoHTTPD extends NanoHTTPD{
 			String queryParams = session.getQueryParameterString();
 			Log.i(TAG, "params: " + queryParams);
 			
-			InputStream is = null;
-			long len = 0;
 			long from = 0;
 			long to = -1;
 			
 			String uri = session.getUri();
 			Log.i(TAG, "Java: uri: " + uri);
-			String filepath = mRootDir + uri;
-			Log.i(TAG, "Java: GET file: " + filepath);
 			
 			Map<String, String> headers = session.getHeaders();
 			Set<String> keys = headers.keySet();
@@ -120,137 +123,35 @@ public class MyNanoHTTPD extends NanoHTTPD{
 						uri.contains("/unknown.gif")) {
 					Log.i(TAG, "Java: load resource: " + uri);
 					int pos = uri.lastIndexOf("/");
-					is = mContext.getAssets().open(uri.substring(pos + 1, uri.length()));
+					InputStream is = mContext.getAssets().open(uri.substring(pos + 1, uri.length()));
+					return serveLocalFile(is, uri, 0, is.available(), false);
 				}
-				else if (uri.equals("/index.m3u8")) {
-					return serveM3u8();
+				else if (uri.contains("/play.m3u8") && 
+						queryParams != null && queryParams.contains("type=pplive3")) {
+					return serveM3u8(uri, queryParams);
 				}
 				else if (uri.endsWith(".ts")) {
 					return serveSegment(uri);
 				}
 				else {
+					String filepath = mRootDir + uri;
+					
 					File file = new File(filepath);
-					if (file.isDirectory()) {
-						// list folder
-						Log.i(TAG, "Java: list folder " + file.getAbsolutePath());
-						
-						String mimeType = MimeTypeMap.getSingleton().getMimeTypeFromExtension("html");
-						mimeType += ";charset=utf-8";
-						
-						StringBuffer sb_html_context = new StringBuffer();
-						sb_html_context.append(getAssetFileContext("head.txt"));
-						
-						String line_fmt = "<tr><td valign=\"top\"><img src=\"%s\" " +
-								"alt=\"[%s]\">" +
-								"</td><td><a href=\"%s\">%s</a></td>" +
-								"<td align=\"right\">%s  </td><td align=\"right\">%s</td>" +
-										"<td>&nbsp;</td></tr>";
-						String tail_fmt = "<tr><th colspan=\"5\"><hr></th></tr></table>" +
-								"<address>%s (Android Phone %s) Server at %s Port %d" +
-								"</address></body></html>";
-						SimpleDateFormat dateFormat = new SimpleDateFormat(
-								"yyyy-MM-dd HH:mm:ss");
-						
-						File folder = new File(filepath);
-						File[] files = folder.listFiles();
-						
-						Arrays.sort(files, new FileComparator());
-						
-						if (files != null) {
-							for (File onefile : files) {
-								if (onefile.isHidden())
-									continue;
-								
-								String altType = "DIR";
-								if (!onefile.isDirectory()) {
-									String filename = onefile.getName();
-									String fileMimeType = null;
-									int pos = filename.lastIndexOf(".");
-									if (pos > 0) {
-										String extension = filename.substring(pos + 1, filename.length());
-										if (mMimeTypeMap.hasExtension(extension))
-											fileMimeType = mMimeTypeMap.getMimeTypeFromExtension(extension);
-									}
-									
-									if (fileMimeType == null)
-										fileMimeType = "application/octet-stream";
-																		
-									pos = fileMimeType.indexOf("/");
-									altType = fileMimeType.substring(0, pos).toUpperCase();
-								}
-								
-								String fileName = onefile.getName();
-								long filesize = onefile.length();
-								long modTime = onefile.lastModified();
-								
-								String icon = "unknown.gif";
-								if (onefile.isDirectory()) {
-									icon = "folder.gif";
-								}
-								
-								String href;
-								if (uri.equals("/"))
-									href = fileName;
-								else
-									href = uri + "/" + fileName;
-								
-								sb_html_context.append(String.format(line_fmt, 
-										icon, altType, href, fileName,
-										dateFormat.format(new Date(modTime)),
-										onefile.isDirectory() ? "-" : getFileSize(filesize)));
-							}
-						}
-						
-						String str_tail = String.format(tail_fmt, 
-								Build.DEVICE, Build.VERSION.RELEASE, Util.getIpAddr(mContext), mPort);
-						sb_html_context.append(str_tail);
-						//sb_html_context.append(getAssetFileContext("tail.txt"));
-
-						String str_html_context = sb_html_context.toString();
-						len = str_html_context.length();
-						
-						InputStream html_is = new ByteArrayInputStream(str_html_context.getBytes(/*"UTF-8"*/));
-						return new myResponse(Status.OK, mimeType, html_is, 0, len, false);
-					}
-					else { // is a file
-						is = new FileInputStream(file);
-					}
-				}
-				
-				len = is.available();
-				if (to == -1)
-					to = len;
-
-				if (len > 0) {
-					Log.i(TAG, "before get mime_type: " + filepath);
-					String extension = getExtension(filepath);
-					Log.i(TAG, "before extension: " + extension);
-					String mimeType;
-					if (extension.isEmpty())
-						mimeType = "application/octet-stream";
-					else if (mMimeTypeMap.hasExtension(extension))
-						mimeType = mMimeTypeMap.getMimeTypeFromExtension(extension);
-					else
-						mimeType = "application/octet-stream";
-				    if (mimeType.contains("text"))
-						mimeType += ";charset=utf-8";
-					Log.i(TAG, "mime_type: " + mimeType);
+					if (file.isDirectory())
+						return serveList(uri, filepath);
 					
-					if (from > 0L) {
-						Log.i(TAG, "Java: skip " + from);
-						is.skip(from);
+					try {
+						FileInputStream is = new FileInputStream(file);
+						return serveLocalFile(is, filepath, from, to, headers.containsKey("range"));
+					} catch (FileNotFoundException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
 					}
-					
-					return new myResponse(Status.OK, mimeType, is, 
-							from, to, headers.containsKey("range"));
-				}
-				else {
-					Log.w(TAG, "cannot get file size");
 				}
 			} catch (FileNotFoundException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
-				Log.e(TAG, "failed to open file: " + filepath);
+				Log.e(TAG, "failed to open file: " + uri);
 			} catch (IOException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
@@ -263,21 +164,234 @@ public class MyNanoHTTPD extends NanoHTTPD{
          return super.serve(session);  
      }
 	
-	private myResponse serveM3u8() {
-		StringBuffer sb_m3u8_context = new StringBuffer();
+	private myResponse serveLocalFile(InputStream is, String path, 
+			long from, long to, boolean range) {
+		Log.i(TAG, "Java: GET file: " + path);
+		
+		try {
+			int len = is.available();
+			
+			if (to == -1)
+				to = len;
+
+			if (len > 0) {
+				Log.i(TAG, "before get mime_type: " + path);
+				String extension = getExtension(path);
+				Log.i(TAG, "before extension: " + extension);
+				String mimeType;
+				if (extension.isEmpty())
+					mimeType = "application/octet-stream";
+				else if (mMimeTypeMap.hasExtension(extension))
+					mimeType = mMimeTypeMap.getMimeTypeFromExtension(extension);
+				else
+					mimeType = "application/octet-stream";
+			    if (mimeType.contains("text"))
+					mimeType += ";charset=utf-8";
+				Log.i(TAG, "mime_type: " + mimeType);
+				
+				if (from > 0L) {
+					Log.i(TAG, "Java: skip " + from);
+					is.skip(from);
+				}
+				
+				return new myResponse(Status.OK, mimeType, is, 
+						from, to, range);
+			}
+			else {
+				Log.w(TAG, "cannot get file size");
+			}
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+		return new myResponse(Status.BAD_REQUEST, "", null, 0, 0, false);
+	}
+	
+	private myResponse serveList(String uri, String path) {
+		// list folder
+		Log.i(TAG, "Java: list folder: " + path);
+		
+		String mimeType = MimeTypeMap.getSingleton().getMimeTypeFromExtension("html");
+		mimeType += ";charset=utf-8";
+		
+		StringBuffer sb_html_context = new StringBuffer();
+		sb_html_context.append(getAssetFileContext("head.txt"));
+		
+		String line_fmt = "<tr><td valign=\"top\"><img src=\"%s\" " +
+				"alt=\"[%s]\">" +
+				"</td><td><a href=\"%s\">%s</a></td>" +
+				"<td align=\"right\">%s  </td><td align=\"right\">%s</td>" +
+						"<td>&nbsp;</td></tr>";
+		String tail_fmt = "<tr><th colspan=\"5\"><hr></th></tr></table>" +
+				"<address>%s (Android Phone %s) Server at %s Port %d" +
+				"</address></body></html>";
+		SimpleDateFormat dateFormat = new SimpleDateFormat(
+				"yyyy-MM-dd HH:mm:ss");
+		
+		File folder = new File(path);
+		File[] files = folder.listFiles();
+		
+		Arrays.sort(files, new FileComparator());
+		
+		if (files != null) {
+			for (File onefile : files) {
+				if (onefile.isHidden())
+					continue;
+				
+				String altType = "DIR";
+				if (!onefile.isDirectory()) {
+					String filename = onefile.getName();
+					String fileMimeType = null;
+					int pos = filename.lastIndexOf(".");
+					if (pos > 0) {
+						String extension = filename.substring(pos + 1, filename.length());
+						if (mMimeTypeMap.hasExtension(extension))
+							fileMimeType = mMimeTypeMap.getMimeTypeFromExtension(extension);
+					}
+					
+					if (fileMimeType == null)
+						fileMimeType = "application/octet-stream";
+														
+					pos = fileMimeType.indexOf("/");
+					altType = fileMimeType.substring(0, pos).toUpperCase();
+				}
+				
+				String fileName = onefile.getName();
+				long filesize = onefile.length();
+				long modTime = onefile.lastModified();
+				
+				String icon = "unknown.gif";
+				if (onefile.isDirectory()) {
+					icon = "folder.gif";
+				}
+				
+				String href;
+				if (uri.equals("/"))
+					href = fileName;
+				else
+					href = uri + "/" + fileName;
+				
+				sb_html_context.append(String.format(line_fmt, 
+						icon, altType, href, fileName,
+						dateFormat.format(new Date(modTime)),
+						onefile.isDirectory() ? "-" : getFileSize(filesize)));
+			}
+		}
+		
+		String str_tail = String.format(tail_fmt, 
+				Build.DEVICE, Build.VERSION.RELEASE, Util.getIpAddr(mContext), mPort);
+		sb_html_context.append(str_tail);
+		//sb_html_context.append(getAssetFileContext("tail.txt"));
+
+		String str_html_context = sb_html_context.toString();
+		int len = str_html_context.length();
+		
+		InputStream html_is = new ByteArrayInputStream(str_html_context.getBytes(/*"UTF-8"*/));
+		return new myResponse(Status.OK, mimeType, html_is, 0, len, false);
+	}
+	
+	private myResponse serveM3u8(String uri, String params) {
+		// http://127.0.0.1:9006/play.m3u8?type=pplive3&playlink=300151
+		// %3Fft%3D1%26bwtype%3D0%26platform%3Dandroid3%26type%3Dphone.android.vip
+		// %26begin_time%3D1436716800%26end_time%3D1436722200
+		
+		Log.i(TAG, "Java: serveM3u8() params: " + params);
+		
+		String decoded_params = null;
+		try {
+			decoded_params = URLDecoder.decode(params, "UTF-8");
+			Log.i(TAG, "Java: decoded_params: " + decoded_params);
+		} catch (UnsupportedEncodingException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+			return new myResponse(Status.BAD_REQUEST, null, null, 0, 0, false);
+		}
+		
+		boolean isLive = true;
+		long begin_time = 0;
+		long end_time = 0;
+		
+		StringTokenizer st = new StringTokenizer(decoded_params, "&", false);
+		while (st.hasMoreElements()) {
+			String param = st.nextToken();
+			Log.i(TAG, "Java: param: " + param);
+			int pos;
+			pos = param.indexOf("=");
+			String key, value;
+			if (pos > 0) {
+				key = param.substring(0, pos);
+				value = param.substring(pos + 1);
+			}
+			else {
+				key = param;
+				value = "N/A";
+			}
+			
+			Log.i(TAG, "Java: key: " + key + " , value: " + value);
+			if (key.equals("begin_time")) {
+				begin_time = Long.valueOf(value);
+				isLive = false;
+			}
+			else if (key.equals("end_time")) {
+				end_time = Long.valueOf(value);
+				
+				Log.i(TAG, String.format("Java: begin_time %d, end_time %d", begin_time, end_time));
+			}
+			else if (key.equals("playlink")) {
+				pos = value.indexOf("?");
+				if (pos > 0)
+					value = value.substring(0, pos);
+				mVid = Integer.valueOf(value);
+				Log.i(TAG, "Java: vid " + mVid);
+			}
+		}
+		
+		mLiveitem = mEPG.live_cdn(mVid);// 300156
+		if (mLiveitem == null) {
+			Log.e(TAG, "Java: failed to get mLiveitem");
+			return new myResponse(Status.BAD_REQUEST, null, null, 0, 0, false);
+		}
+		
+        StringBuffer sb_m3u8_context = new StringBuffer();
 		sb_m3u8_context.append("#EXTM3U\n");
 		sb_m3u8_context.append("#EXT-X-TARGETDURATION:5\n");
 		sb_m3u8_context.append("#EXT-X-MEDIA-SEQUENCE:0\n");
-		
-		int count = 3600 / 5;
-		for (int i=0;i<count;i++) {
-			sb_m3u8_context.append("#EXTINF:5,\n");
-			String filename = String.format("%d.ts", start_time + i * 5);
-			sb_m3u8_context.append(filename);
-			sb_m3u8_context.append("\n");
+        
+		if (isLive) {
+			if (start_time == -1) {
+				start_time = System.currentTimeMillis();
+			}
+			
+			long elapsed_time = System.currentTimeMillis() - start_time;
+			int offset_sec = (int)(elapsed_time / 1000) % 5;
+			
+			String item_st = mLiveitem.getST();
+	        begin_time = new Date(item_st).getTime() / 1000;
+	        begin_time -= 45; // second
+	        begin_time -= 1800; // 1800 sec
+	        begin_time -= (begin_time % 5);
+	        Log.i(TAG, "Java: live begin_time " + begin_time);
+	        
+	        int count = 360;
+			for (int i=0;i<count;i++) {
+				sb_m3u8_context.append("#EXTINF:5,\n");
+				String filename = String.format("%d.ts", begin_time + offset_sec + i * 5);
+				sb_m3u8_context.append(filename);
+				sb_m3u8_context.append("\n");
+			}
 		}
-		
-		sb_m3u8_context.append("#EXT-X-ENDLIST\n\n");
+		else {
+			int count = (int)(end_time - begin_time) / 5;
+			for (int i=0;i<count;i++) {
+				sb_m3u8_context.append("#EXTINF:5,\n");
+				String filename = String.format("%d.ts", begin_time + i * 5);
+				sb_m3u8_context.append(filename);
+				sb_m3u8_context.append("\n");
+			}
+			
+			sb_m3u8_context.append("#EXT-X-ENDLIST\n\n");
+		}
 		
 		String str_m3u8_context = sb_m3u8_context.toString();
 		int len = sb_m3u8_context.length();
@@ -295,8 +409,9 @@ public class MyNanoHTTPD extends NanoHTTPD{
 		
 		byte[] in_flv = new byte[1048576];
 		
-		String httpUrl = String.format(block_url_fmt, mLiveitem.getHost(), 
+		String httpUrl = String.format(block_url_fmt, mLiveitem.getHost(), mLiveitem.getRid(),
 				time_stamp, mLiveitem.getK());
+		Log.i(TAG, "Java: download flv segment: " + httpUrl);
 		int in_size = httpUtil.httpDownloadBuffer(httpUrl, in_flv);
 		byte[] out_ts = new byte[1048576];
 		
@@ -372,29 +487,6 @@ public class MyNanoHTTPD extends NanoHTTPD{
 			strSize = String.format("%d Byte", size);
 		return strSize;
     }
-	
-	private class EPGTask extends AsyncTask<Integer, Integer, Boolean> {
-
-		@Override
-		protected Boolean doInBackground(Integer... params) {
-			// TODO Auto-generated method stub
-			mLiveitem = mEPG.live_cdn(300156);
-			if (mLiveitem == null) {
-				Log.e(TAG, "Java: failed to get mLiveitem");
-				return false;
-			}
-			
-            String st = mLiveitem.getST();
-            start_time = new Date(st).getTime() / 1000;
-            start_time -= 45; // second
-            start_time -= 3600; // 1 hour
-            start_time -= (start_time % 5);
-            Log.i(TAG, "Java: start_time " + start_time);
-			
-			return true;
-		}
-		
-	}
 	
 	private class FileComparator implements Comparator<File> {
 		@Override
