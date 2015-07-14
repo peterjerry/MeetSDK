@@ -24,6 +24,7 @@
 #include "ffrender.h"
 #include "autolock.h"
 #include "filesource.h"
+#include "apFormatConverter.h" // for ts converter
 #ifdef __ANDROID__
 #include <cpu-features.h> // for get cpu core count
 #endif
@@ -48,7 +49,12 @@
 #ifdef __ANDROID__
 #include <jni.h>
 #include "platforminfo.h"
+#ifdef BUILD_ONE_LIB
+extern JavaVM* gs_jvm;
+extern int __pp_log_vprint(int prio, const char *tag, const char *fmt, va_list ap);
+#else
 JavaVM* gs_jvm = NULL;
+#endif
 PlatformInfo* platformInfo = NULL;
 LogFunc pplog = NULL;
 #endif
@@ -168,9 +174,13 @@ static void ff_log_callback(void* avcl, int level, const char* fmt, va_list vl);
 extern "C" IPlayer* getPlayer(void* context)
 {
 #ifdef __ANDROID__
+#ifdef BUILD_ONE_LIB
+	pplog = __pp_log_vprint;
+#else
     platformInfo = (PlatformInfo*)context;
     gs_jvm = (JavaVM*)(platformInfo->jvm);
-    pplog = (LogFunc)(platformInfo->pplog_func);
+	pplog = (LogFunc)(platformInfo->pplog_func); 
+#endif
 #endif
     return new FFPlayer();
 }
@@ -181,6 +191,14 @@ extern "C" void releasePlayer(IPlayer* player)
 		delete player;
 		player = NULL;
 	}
+}
+
+extern "C" bool my_convert(uint8_t* flv_data, int flv_data_size, uint8_t* ts_data, int *out_size)
+{
+	LOGI("my_convert()");
+
+	apFormatConverter converter;
+	return converter.convert(flv_data, flv_data_size, ts_data, out_size);
 }
 
 FFPlayer::FFPlayer()

@@ -52,7 +52,7 @@
     <ClCompile>
       <Optimization>Disabled</Optimization>
       <AdditionalIncludeDirectories>..\..\..\..\engine2;..\..\..\..\subtitle2\output\android\include;..\..\..\..\subtitle2\output\android\include;..\meet;D:\Software\android-ndk-r10d\platforms\android-9\arch-x86\usr\include;D:\Software\android-ndk-r10d\sources\cpufeatures</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>BUILD_ONE_LIB;WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <MinimalRebuild>true</MinimalRebuild>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
@@ -99,6 +99,7 @@
     <ClCompile Include="..\meet\FFMediaExtractor.cpp" />
     <ClCompile Include="..\meet\FFMediaPlayer.cpp" />
     <ClCompile Include="..\meet\jniUtils.cpp" />
+    <ClCompile Include="..\meet\native_convert.cpp" />
     <ClCompile Include="..\meet\pplog.cpp" />
     <ClCompile Include="..\meet\SimpleSubTitleParser.cpp" />
   </ItemGroup>

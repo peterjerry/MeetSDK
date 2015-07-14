@@ -48,6 +48,7 @@ struct fields_t {
 	jfieldID    iSubtitle;
 };
 
+// member from jniUtils.cpp
 extern JavaVM *gs_jvm;
 extern pthread_mutex_t sLock;
 
@@ -62,6 +63,9 @@ typedef void (*RELEASE_PLAYER_FUN) (IPlayer *);
 
 GET_PLAYER_FUN getPlayerFun = NULL; // function to NEW player instance
 RELEASE_PLAYER_FUN releasePlayerFun = NULL; // function to DELETE player instance
+#ifdef USE_TS_CONVERT
+CONVERT_FUN convertFun = NULL;
+#endif
 
 static int jniThrowException(JNIEnv* env, const char* className, const char* msg);
 
@@ -788,10 +792,18 @@ jboolean android_media_MediaPlayer_native_init(JNIEnv *env, jobject thiz)
 	if (fields.post_event == NULL)
 		jniThrowException(env, "java/lang/RuntimeException", "Can't find FFMediaPlayer.postEventFromNative");
 
+#ifdef BUILD_ONE_LIB
+	getPlayerFun		= getPlayer;
+	releasePlayerFun	= releasePlayer;
+#ifdef USE_TS_CONVERT
+	convertFun			= my_convert;
+#endif
+#else
 	if (!loadPlayerLib()) {
 		jniThrowException(env, "java/lang/RuntimeException", "Load Library Failed!!!");
 		return false;
 	}
+#endif
 
 	sInited = true;
 	return true;
@@ -885,6 +897,14 @@ static bool loadPlayerLib()
 		PPLOGE("Init releasePlayer() failed: %s", dlerror());
 		return false;
 	}
+
+#ifdef USE_TS_CONVERT
+	convertFun = (CONVERT_FUN)dlsym(*player_handle, "my_convert");
+	if (convertFun == NULL) {
+		PPLOGE("Init convert() failed: %s", dlerror());
+		return false;
+	}
+#endif
 
 	if (!setup_extractor(*player_handle))
 		return false;
@@ -1484,7 +1504,9 @@ int register_android_media_MediaPlayer(JNIEnv *env)
 
 void unload_player()
 {
+#ifndef BUILD_ONE_LIB
 	unloadPlayerLib(&player_handle_software);
+#endif
 
 	if (gPlatformInfo != NULL) {
 		delete gPlatformInfo;

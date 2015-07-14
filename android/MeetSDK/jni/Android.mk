@@ -5,6 +5,22 @@ JNI_BASE 		:= meet
 ENGINE_BASE 	:= ../../engine2
 SUBTITLE_BASE	:= ../../subtitle2
 
+#BUILD_ONE_LIB	:= 1
+
+ifeq ($(TARGET_ARCH_ABI),armeabi)
+FFMPEG_PATH		:= ../../../foundation/output/android/neon
+else
+FFMPEG_PATH		:= ../../../foundation/output/android/x86
+endif
+
+ifeq ($(TARGET_ARCH_ABI),armeabi)
+FDK_AAC_PATH	:= ../../../foundation/foundation_rext/thirdparty/fdk-aac/lib/armeabi-v7a
+else
+FDK_AAC_PATH	:= ../../../foundation/foundation_rext/thirdparty/fdk-aac/lib/x86
+endif
+
+RTMPDUMP_PATH	:= ../../../foundation/foundation_rext/thirdparty/rtmpdump/lib/$(TARGET_ARCH_ABI)
+
 ########################[libpplog]########################
 include $(CLEAR_VARS)
 LOCAL_C_INCLUDES := meet
@@ -19,17 +35,54 @@ MY_SO_PREFIX := debug/
 #else
 #MY_SO_PREFIX := 
 #endif
+
+ifdef BUILD_ONE_LIB
+LOCAL_SRC_FILES := ../$(ENGINE_BASE)/output/android/$(TARGET_ARCH_ABI)/$(MY_SO_PREFIX)libplayer_neon.a
+LOCAL_MODULE := player_neon
+include $(PREBUILT_STATIC_LIBRARY)
+
+include $(CLEAR_VARS)
+LOCAL_MODULE 	:= ffmpeg
+LOCAL_SRC_FILES := $(FFMPEG_PATH)/lib/libffmpeg.a
+include $(PREBUILT_STATIC_LIBRARY)
+
+include $(CLEAR_VARS)
+LOCAL_MODULE 	:= fdk-aac
+LOCAL_SRC_FILES := $(FDK_AAC_PATH)/libfdk-aac.a
+include $(PREBUILT_STATIC_LIBRARY)
+
+include $(CLEAR_VARS)
+LOCAL_MODULE 	:= ssl
+LOCAL_SRC_FILES := $(RTMPDUMP_PATH)/libssl.a
+include $(PREBUILT_STATIC_LIBRARY)
+
+include $(CLEAR_VARS)
+LOCAL_MODULE 	:= crypto
+LOCAL_SRC_FILES := $(RTMPDUMP_PATH)/libcrypto.a
+include $(PREBUILT_STATIC_LIBRARY)
+
+else
 LOCAL_SRC_FILES := ../$(ENGINE_BASE)/output/android/$(TARGET_ARCH_ABI)/$(MY_SO_PREFIX)libplayer_neon.so
 LOCAL_MODULE := player_neon
 include $(PREBUILT_SHARED_LIBRARY)
+endif
 
 ########################[libmeet]########################
 include $(CLEAR_VARS)
 LOCAL_C_INCLUDES 		:= meet $(ENGINE_BASE) $(SUBTITLE_BASE)/output/android/include
-MY_SRC_FILES 			:= cpuext.cpp jniUtils.cpp FFMediaExtractor.cpp FFMediaPlayer.cpp
+LOCAL_CFLAGS    		+= -DUSE_TS_CONVERT
+ifdef BUILD_ONE_LIB
+LOCAL_CFLAGS    		+= -DBUILD_ONE_LIB -DUSE_TS_CONVERT
+endif
+MY_SRC_FILES 			:= cpuext.cpp jniUtils.cpp FFMediaExtractor.cpp FFMediaPlayer.cpp native_convert.cpp
 LOCAL_SRC_FILES 		:= $(addprefix $(JNI_BASE)/, $(MY_SRC_FILES))
 LOCAL_STATIC_LIBRARIES 	:= pplog cpufeatures
 LOCAL_LDLIBS 			:= -llog
+ifdef BUILD_ONE_LIB
+LOCAL_STATIC_LIBRARIES 	+= player_neon ffmpeg fdk-aac ssl crypto
+LOCAL_LDLIBS 			+= -lz -landroid -lOpenSLES -L../$(ENGINE_BASE)/output/android/$(TARGET_ARCH_ABI)/$(MY_SO_PREFIX) \
+	-L$(FFMPEG_PATH)/lib -L$(FDK_AAC_PATH) -L$(RTMPDUMP_PATH)
+endif
 LOCAL_MODULE 			:= meet
 include $(BUILD_SHARED_LIBRARY)
 

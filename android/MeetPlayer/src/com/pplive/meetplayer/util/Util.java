@@ -65,24 +65,26 @@ public class Util {
 		// so must NOT change path
 		String path = Environment.getExternalStorageDirectory().getAbsolutePath() + "/PlayerPolicy.xml";
 		File file = new File(path);
-		try{
-			FileInputStream fin = new FileInputStream(file);
-			Log.i(TAG, "Java: PlayerPolicy file size: " + fin.available());
-			
-			byte[] buf = new byte[fin.available()];
-			int readed = fin.read(buf);
-			Log.i(TAG, "Java: PlayerPolicy read size: " + readed);
-			String xml = new String(buf);
-			Log.i(TAG, "Java: PlayerPolicy xml: " + xml);
-			MeetSDK.setPlayerPolicy(new String(buf));
-		}
-		catch (FileNotFoundException e) {
-			e.printStackTrace();
-			Log.e(TAG, "file not found");
-		}
-		catch(Exception e){   
-			e.printStackTrace();
-			Log.e(TAG, "an error occured while load policy", e);
+		if (file.exists()) {
+			try{
+				FileInputStream fin = new FileInputStream(file);
+				Log.i(TAG, "Java: PlayerPolicy file size: " + fin.available());
+				
+				byte[] buf = new byte[fin.available()];
+				int readed = fin.read(buf);
+				Log.i(TAG, "Java: PlayerPolicy read size: " + readed);
+				String xml = new String(buf);
+				Log.i(TAG, "Java: PlayerPolicy xml: " + xml);
+				MeetSDK.setPlayerPolicy(new String(buf));
+			}
+			catch (FileNotFoundException e) {
+				e.printStackTrace();
+				Log.e(TAG, "file not found");
+			}
+			catch(Exception e){   
+				e.printStackTrace();
+				Log.e(TAG, "an error occured while load policy", e);
+			}
 		}
 		
 		MeetSDK.setLogPath(

@@ -51,8 +51,8 @@ public class TabbedPaneDemo extends JPanel {
        //tp.setMnemonicAt(1, KeyEvent.VK_1);
  
        //第三个标签
-       tp.addTab("VST", ii, vstPanel, "全聚合");
-       tp.setMnemonicAt(1, KeyEvent.VK_2);
+       //tp.addTab("VST", ii, vstPanel, "全聚合");
+       //tp.setMnemonicAt(1, KeyEvent.VK_2);
        
        //第四个标签
        //tp.addTab("Best TV", ii, bestvPanel, "百事通");
@@ -60,7 +60,7 @@ public class TabbedPaneDemo extends JPanel {
        
        //第五个标签
        tp.addTab("SohuVideo", ii, sohuPanel, "搜狐视频");
-       tp.setMnemonicAt(2, KeyEvent.VK_4);
+       tp.setMnemonicAt(1, KeyEvent.VK_4);
        //设置合适的显示尺寸，这个是必须的，因为如果所有的标签都
        //不指定适合的显示尺寸，系统无法判断初始显示尺寸大小
        //默认是使用最小化，并且对一个标签设计即可
@@ -68,7 +68,7 @@ public class TabbedPaneDemo extends JPanel {
  
        //第六个标签
        tp.addTab("BaiduPan", ii, baiduPanel, "百度网盘");
-       tp.setMnemonicAt(3, KeyEvent.VK_5);
+       tp.setMnemonicAt(2, KeyEvent.VK_5);
        
        //将tabbedPanel添加到Jpanel中
        add(tp);

@@ -4,10 +4,16 @@
 
 #define PB_BUF_SIZE 65536
 
-static void log_packet(const AVFormatContext *fmt_ctx, const AVPacket *pkt, const char *tag);
-
 apFormatConverter::apFormatConverter(void)
+	:m_ifmt_ctx(NULL), m_in_fmt(NULL), 
+	m_in_pb(NULL), m_in_pb_buf(NULL), 
+	m_indata(NULL), m_indata_len(0), m_indata_offset(0),
+	m_ofmt_ctx(NULL), m_out_fmt(NULL), 
+	m_out_pb(NULL), m_out_pb_buf(NULL), 
+	m_outdata(NULL), m_outdata_len(0), m_outdata_offset(0),
+	m_pBsfc_h264(NULL)
 {
+	av_register_all();
 }
 
 
@@ -22,8 +28,6 @@ int apFormatConverter::interrupt_l(void* ctx)
 
 int apFormatConverter::ff_read_packet(void *opaque, uint8_t *buf, int buf_size)
 {
-	//LOGD("ff_read_packet");
-
 	apFormatConverter *pIns = (apFormatConverter *)opaque;
 	if (pIns)
 		return pIns->ff_read_packet_impl(buf, buf_size);
@@ -39,13 +43,17 @@ int apFormatConverter::ff_read_packet_impl(uint8_t *buf, int buf_size)
 
 	memcpy(buf, m_indata + m_indata_offset, to_read);
 	m_indata_offset += to_read;
-	LOGD("apFlvDemuxer: read_packet %d", to_read);
+	LOGD("apFormatConverter: read_packet %d", to_read);
 	return to_read;
 }
 
 int64_t apFormatConverter::ff_seek_packet(void *opaque, int64_t offset, int whence)
 {
-	LOGI("FFStream: seek_packet offset %lld, whence %d", offset, whence);
+#ifdef _MSC_VER
+	LOGI("apFormatConverter: seek_packet offset %I64d, whence %d", offset, whence);
+#else
+	LOGI("apFormatConverter: seek_packet offset %lld, whence %d", offset, whence);
+#endif
 	
 	apFormatConverter *pIns = (apFormatConverter *)opaque;
 	if (pIns)
@@ -58,7 +66,11 @@ int64_t apFormatConverter::ff_seek_packet_impl(int64_t offset, int whence)
 {
 	if (AVSEEK_SIZE == whence) {
 		int64_t size = m_indata_len;
+#ifdef _MSC_VER
 		LOGI("AVSEEK_SIZE: filesize %I64d", size);
+#else
+		LOGI("AVSEEK_SIZE: filesize %lld", size);
+#endif
 		return (int64_t)size;
 	}
 	else if (AVSEEK_FORCE == whence) {
@@ -103,6 +115,7 @@ bool apFormatConverter::convert(uint8_t* from, int from_size, uint8_t *to, int *
 	int ret;
 	int video_stream_idx = -1;
 	AVStream *video_stream = NULL;
+	int audio_stream_idx = -1;
 
 	// Step1: output
 	m_ifmt_ctx = avformat_alloc_context();
@@ -172,6 +185,13 @@ bool apFormatConverter::convert(uint8_t* from, int from_size, uint8_t *to, int *
 			video_stream_idx = i;
 			video_stream = in_stream;
 		}
+		else if (in_stream->codec->codec_type == AVMEDIA_TYPE_AUDIO) {
+			audio_stream_idx = i;
+		}
+		else {
+			LOGI("useless stream: #%d %d", i, in_stream->codec->codec_type);
+			continue;
+		}
 
 		AVStream *out_stream = avformat_new_stream(m_ofmt_ctx, in_stream->codec->codec);
 		if (!out_stream) {
@@ -221,17 +241,21 @@ bool apFormatConverter::convert(uint8_t* from, int from_size, uint8_t *to, int *
 		if (ret < 0)
 			break;
 
+		if (pkt.stream_index != video_stream_idx && 
+			pkt.stream_index != audio_stream_idx)
+		{
+			av_free_packet(&pkt);
+			continue;
+		}
+
 		in_stream  = m_ifmt_ctx->streams[pkt.stream_index];
 		out_stream = m_ofmt_ctx->streams[pkt.stream_index];
-
-		//log_packet(m_ifmt_ctx, &pkt, "in");
 
 		/* copy packet */
 		pkt.pts = av_rescale_q_rnd(pkt.pts, in_stream->time_base, out_stream->time_base, (AVRounding)(AV_ROUND_NEAR_INF|AV_ROUND_PASS_MINMAX));
 		pkt.dts = av_rescale_q_rnd(pkt.dts, in_stream->time_base, out_stream->time_base, (AVRounding)(AV_ROUND_NEAR_INF|AV_ROUND_PASS_MINMAX));
 		pkt.duration = av_rescale_q(pkt.duration, in_stream->time_base, out_stream->time_base);
 		pkt.pos = -1;
-		//log_packet(m_ofmt_ctx, &pkt, "out");
 
 		if (pkt.stream_index == video_stream_idx) {
 			// Apply MP4 to H264 Annex B filter on buffer
@@ -269,28 +293,9 @@ end:
 		m_pBsfc_h264 = NULL;
 	}
 
-	if (result)
+	if (result) {
 		*to_size = m_outdata_offset;
+		LOGI("conversion done! output file size %d", m_outdata_offset);
+	}
 	return result;
-}
-
-static void log_packet(const AVFormatContext *fmt_ctx, const AVPacket *pkt, const char *tag)
-{
-#ifdef _MSC_VER
-	printf("%s: pts:%I64d dts:%I64d duration:%d stream_index:%d\n",
-           tag,
-           pkt->pts,
-           pkt->dts,
-           pkt->duration,
-           pkt->stream_index);
-#else
-    //AVRational *time_base = &fmt_ctx->streams[pkt->stream_index]->time_base;
-
-    printf("%s: pts:%lld dts:%lld duration:%d stream_index:%d\n",
-           tag,
-           pkt->pts,
-           pkt->dts,
-           pkt->duration,
-           pkt->stream_index);
-#endif
 }
