@@ -3,7 +3,7 @@ LOCAL_PATH := $(call my-dir)
 BUILD_OSLES				:= 1
 BUILD_NATIVEWINDOOW		:= 1
 #BUILD_RENDER_RGB565	:= 1
-BUILD_PCM_DUMP			:= 1
+#BUILD_PCM_DUMP			:= 1
 #BUILD_ONE_LIB			:= 1
 
 ifeq ($(TARGET_ARCH_ABI),armeabi)
@@ -64,7 +64,7 @@ LOCAL_C_INCLUDES		:= $(LOCAL_PATH)/$(FFMPEG_PATH)/include $(LOCAL_PATH)/$(SUBTIT
 	$(LOCAL_PATH)/$(PLAYERPATH) $(LOCAL_PATH)/$(EXTRACTORPATH) 
 	
 LOCAL_CFLAGS    		:= -Wall -DNDK_BUILD=1 -DUSE_NDK_SURFACE_REF -DUSE_AV_FILTER -DTEST_PERFORMANCE -DTEST_PERFORMANCE_BITRATE #-DNO_AUDIO_PLAY 
-MY_SRC_PLAYER_FILES 	:= ffstream.cpp audioplayer.cpp audiorender.cpp ffplayer.cpp ffrender.cpp filesource.cpp ffextractor.cpp apFormatConverter.cpp
+MY_SRC_PLAYER_FILES 	:= ffstream.cpp audioplayer.cpp audiorender.cpp ffplayer.cpp ffrender.cpp filesource.cpp ffextractor.cpp #apFormatConverter.cpp
 MY_SRC_PLATFORM_FILES	:= audiotrack_android.c \
 	surface_android.cpp log_android.c packetqueue.cpp list.cpp loop.cpp utils.cpp
 MY_SRC_SOCKET_FILES		:= SimpleSocket.cpp ActiveSocket.cpp
