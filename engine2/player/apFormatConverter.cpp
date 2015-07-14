@@ -3,6 +3,9 @@
 #include "log.h"
 
 #define PB_BUF_SIZE 65536
+#define INIT_PTS	-1
+
+int64_t apFormatConverter::m_start_pts = INIT_PTS;
 
 apFormatConverter::apFormatConverter(void)
 	:m_ifmt_ctx(NULL), m_in_fmt(NULL), 
@@ -107,9 +110,12 @@ int apFormatConverter::ff_write_packet_impl(uint8_t *buf, int buf_size)
 	return 0;
 }
 
-bool apFormatConverter::convert(uint8_t* from, int from_size, uint8_t *to, int *to_size)
+bool apFormatConverter::convert(uint8_t* from, int from_size, uint8_t *to, int *to_size, int first_seg)
 {
 	LOGI("convert()");
+
+	if (first_seg)
+		apFormatConverter::m_start_pts = INIT_PTS;
 
 	bool result = false;
 	int ret;
@@ -256,6 +262,12 @@ bool apFormatConverter::convert(uint8_t* from, int from_size, uint8_t *to, int *
 		pkt.dts = av_rescale_q_rnd(pkt.dts, in_stream->time_base, out_stream->time_base, (AVRounding)(AV_ROUND_NEAR_INF|AV_ROUND_PASS_MINMAX));
 		pkt.duration = av_rescale_q(pkt.duration, in_stream->time_base, out_stream->time_base);
 		pkt.pos = -1;
+
+		if (apFormatConverter::m_start_pts == INIT_PTS)
+			apFormatConverter::m_start_pts = pkt.pts;
+
+		pkt.pts -= apFormatConverter::m_start_pts;
+		pkt.dts -= apFormatConverter::m_start_pts;
 
 		if (pkt.stream_index == video_stream_idx) {
 			// Apply MP4 to H264 Annex B filter on buffer

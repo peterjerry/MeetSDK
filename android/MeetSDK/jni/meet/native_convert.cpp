@@ -21,7 +21,7 @@ extern "C" {
  * Signature: ([B[B)I
  */
 JNIEXPORT jint JNICALL Java_com_pplive_meetplayer_util_MyFormatConverter_Convert
-  (JNIEnv *env, jclass clazz, jbyteArray in_flv, jint in_size, jbyteArray out_ts)
+  (JNIEnv *env, jclass clazz, jbyteArray in_flv, jint in_size, jbyteArray out_ts, jint first_seg)
 {
 	PPLOGI("Convert()");
 
@@ -34,7 +34,7 @@ JNIEXPORT jint JNICALL Java_com_pplive_meetplayer_util_MyFormatConverter_Convert
 	jsize ts_data_size = env->GetArrayLength(out_ts);
 
 	PPLOGI("before call my_convert() flv %p %d, ts %p %d", flv_data, flv_data_size, ts_data, ts_data_size);
-	bool bRet = convertFun((uint8_t *)flv_data, flv_data_size, (uint8_t *)ts_data, &ts_data_size);
+	bool bRet = convertFun((uint8_t *)flv_data, flv_data_size, (uint8_t *)ts_data, &ts_data_size, first_seg);
 	if (bRet)
 		ret = ts_data_size;
 	PPLOGI("after call my_convert() %d", ret);

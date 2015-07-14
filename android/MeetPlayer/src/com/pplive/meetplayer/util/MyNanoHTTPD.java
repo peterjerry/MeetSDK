@@ -46,6 +46,8 @@ public class MyNanoHTTPD extends NanoHTTPD{
 	
 	private EPGUtil mEPG;
 	private CDNItem mLiveitem;
+	private String mLastM3u8;
+	private int m_first_seg = 1;
 	private int mVid;
 	private long start_time = -1;
 	
@@ -297,6 +299,11 @@ public class MyNanoHTTPD extends NanoHTTPD{
 		// %26begin_time%3D1436716800%26end_time%3D1436722200
 		
 		Log.i(TAG, "Java: serveM3u8() params: " + params);
+		if (mLastM3u8 == null || !mLastM3u8.equals(uri + params)) {
+			Log.i(TAG, "Java: reset m3u8 segment time");
+			m_first_seg = 1;
+		}
+		mLastM3u8 = uri + params;
 		
 		String decoded_params = null;
 		try {
@@ -415,8 +422,9 @@ public class MyNanoHTTPD extends NanoHTTPD{
 		int in_size = httpUtil.httpDownloadBuffer(httpUrl, in_flv);
 		byte[] out_ts = new byte[1048576];
 		
-		int out_size = MyFormatConverter.Convert(in_flv, in_size, out_ts);
+		int out_size = MyFormatConverter.Convert(in_flv, in_size, out_ts, m_first_seg);
 		Log.i(TAG, "Java: out_size " + out_size);
+		m_first_seg = 0;
 		
 		String mimeType = MimeTypeMap.getSingleton().getMimeTypeFromExtension("ts");
 		ByteArrayInputStream is = new ByteArrayInputStream(out_ts); 

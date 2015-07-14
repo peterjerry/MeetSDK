@@ -1874,7 +1874,7 @@ public class ClipListActivity extends Activity implements
 			Log.i(TAG, "Java: flv file context " + sbHex.toString() + 
 					" , string: " + strHeader);
 
-			int out_size = MyFormatConverter.Convert(in_flv, in_size, out_ts);
+			int out_size = MyFormatConverter.Convert(in_flv, in_size, out_ts, 0);
 			Log.i(TAG, "Java: out_size " + out_size);
 
 			// save output ts file

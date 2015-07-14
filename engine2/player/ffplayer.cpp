@@ -195,12 +195,12 @@ extern "C" void releasePlayer(IPlayer* player)
 	}
 }
 
-extern "C" bool my_convert(uint8_t* flv_data, int flv_data_size, uint8_t* ts_data, int *out_size)
+extern "C" bool my_convert(uint8_t* flv_data, int flv_data_size, uint8_t* ts_data, int *out_size, int first_seg)
 {
 	LOGI("my_convert()");
 #ifdef USE_TS_CONVERT
 	apFormatConverter converter;
-	return converter.convert(flv_data, flv_data_size, ts_data, out_size);
+	return converter.convert(flv_data, flv_data_size, ts_data, out_size, first_seg);
 #else
 	return false;
 #endif

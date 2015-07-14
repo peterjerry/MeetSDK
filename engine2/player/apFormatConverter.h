@@ -26,7 +26,7 @@ public:
 	apFormatConverter(void);
 	~apFormatConverter(void);
 
-	bool convert(uint8_t* from, int from_size, uint8_t *to, int *to_size);
+	bool convert(uint8_t* from, int from_size, uint8_t *to, int *to_size, int first_seg);
 
 protected:
 	static int interrupt_l(void* ctx);
@@ -38,6 +38,8 @@ protected:
 	int ff_write_packet_impl(uint8_t *buf, int buf_size);
 
 private:
+	static int64_t		m_start_pts;
+
 	AVFormatContext*	m_ifmt_ctx;
 	AVInputFormat*		m_in_fmt;
 	AVIOContext *		m_in_pb;
