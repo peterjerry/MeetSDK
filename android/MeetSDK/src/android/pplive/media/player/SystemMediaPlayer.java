@@ -100,12 +100,14 @@ public class SystemMediaPlayer extends android.media.MediaPlayer implements
 	@Override
 	public void selectTrack(int index) {
 		// TODO Auto-generated method stub
+		LogUtils.info("system player selectTrack #" + index);
 		super.selectTrack(index);
 	}
 	
 	@Override
 	public void deselectTrack(int index) {
 		// TODO Auto-generated method stub
+		LogUtils.info("system player deselectTrack #" + index);
 		super.deselectTrack(index);
 	}
 	

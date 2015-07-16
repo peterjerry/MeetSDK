@@ -580,6 +580,20 @@ void android_media_MediaPlayer_selectAudioChannel(JNIEnv *env, jobject thiz, int
 }
 
 static
+void android_media_MediaPlayer_selectSubtitleChannel(JNIEnv *env, jobject thiz, int index)
+{
+	PPLOGI("selectSubtitleChannel: %d", index);
+	IPlayer* mp = getMediaPlayer(env, thiz);
+	if (mp == NULL ) {
+		PPLOGE("player is null, selectSubtitleChannel failed");
+		return;
+	}
+
+	if (OK != mp->selectSubtitleChannel(index))
+		PPLOGW("failed to set audio channel %d", index);
+}
+
+static
 void android_media_MediaPlayer_setSubtitleParser(JNIEnv *env, jobject thiz, jobject paser)
 {
 	PPLOGI("setSubtitleParser");
@@ -1465,6 +1479,7 @@ static JNINativeMethod gMethods[] = {
 	// set
 	{"_setAudioStreamType",  "(I)V",					(void *)android_media_MediaPlayer_setAudioStreamType},
 	{"_selectAudioChannel",  "(I)V",					(void *)android_media_MediaPlayer_selectAudioChannel},
+	{"_selectSubtitleChannel",  "(I)V",					(void *)android_media_MediaPlayer_selectSubtitleChannel},
 	{"setLooping",          "(Z)V",					(void *)android_media_MediaPlayer_setLooping},
 	{"setVolume",           "(FF)V",				(void *)android_media_MediaPlayer_setVolume},
 

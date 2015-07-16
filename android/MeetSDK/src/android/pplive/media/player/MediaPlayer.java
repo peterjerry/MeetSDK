@@ -874,7 +874,6 @@ public class MediaPlayer implements MediaPlayerInterface {
      */
 	public void selectTrack(int index) throws IllegalStateException {
 		if (mPlayer != null) {
-			// system player fix me!!!
 			mPlayer.selectTrack(index);
 		}
 	}

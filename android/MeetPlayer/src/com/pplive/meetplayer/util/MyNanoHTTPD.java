@@ -22,11 +22,13 @@ import java.util.StringTokenizer;
 
 import com.pplive.common.pptv.CDNItem;
 import com.pplive.common.pptv.EPGUtil;
+import com.pplive.common.util.httpUtil;
 
 import android.content.Context;
 import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Environment;
+import android.pplive.media.MeetSDK;
 import android.util.Log;
 import android.webkit.MimeTypeMap;
 import fi.iki.elonen.NanoHTTPD;
@@ -49,7 +51,7 @@ public class MyNanoHTTPD extends NanoHTTPD{
 	private String mLastM3u8;
 	private int m_first_seg = 1;
 	private int mVid;
-	private long start_time = -1;
+	private boolean mIsLive = true;
 	
 	private String block_url_fmt = "http://%s/live/" +
 			"%s/" + // rid 074094e6c24c4ebbb4bf6a82f4ceabda
@@ -189,7 +191,7 @@ public class MyNanoHTTPD extends NanoHTTPD{
 					mimeType = "application/octet-stream";
 			    if (mimeType.contains("text"))
 					mimeType += ";charset=utf-8";
-				Log.i(TAG, "mime_type: " + mimeType);
+				Log.i(TAG, String.format("Java: extension %s mime_type: %s", extension, mimeType));
 				
 				if (from > 0L) {
 					Log.i(TAG, "Java: skip " + from);
@@ -315,9 +317,10 @@ public class MyNanoHTTPD extends NanoHTTPD{
 			return new myResponse(Status.BAD_REQUEST, null, null, 0, 0, false);
 		}
 		
-		boolean isLive = true;
 		long begin_time = 0;
 		long end_time = 0;
+		
+		mIsLive = true;
 		
 		StringTokenizer st = new StringTokenizer(decoded_params, "&", false);
 		while (st.hasMoreElements()) {
@@ -338,7 +341,7 @@ public class MyNanoHTTPD extends NanoHTTPD{
 			Log.i(TAG, "Java: key: " + key + " , value: " + value);
 			if (key.equals("begin_time")) {
 				begin_time = Long.valueOf(value);
-				isLive = false;
+				mIsLive = false;
 			}
 			else if (key.equals("end_time")) {
 				end_time = Long.valueOf(value);
@@ -363,32 +366,31 @@ public class MyNanoHTTPD extends NanoHTTPD{
         StringBuffer sb_m3u8_context = new StringBuffer();
 		sb_m3u8_context.append("#EXTM3U\n");
 		sb_m3u8_context.append("#EXT-X-TARGETDURATION:5\n");
-		sb_m3u8_context.append("#EXT-X-MEDIA-SEQUENCE:0\n");
         
-		if (isLive) {
-			if (start_time == -1) {
-				start_time = System.currentTimeMillis();
-			}
-			
-			long elapsed_time = System.currentTimeMillis() - start_time;
-			int offset_sec = (int)(elapsed_time / 1000) % 5;
-			
+		if (mIsLive) {
 			String item_st = mLiveitem.getST();
 	        begin_time = new Date(item_st).getTime() / 1000;
-	        begin_time -= 45; // second
-	        begin_time -= 1800; // 1800 sec
+	        Log.i(TAG, "Java: live begin_time(origin) " + begin_time);
+	        begin_time -= 45; // second live lag
+	        begin_time -= (5 * (180 + 3)); // 900 sec
 	        begin_time -= (begin_time % 5);
-	        Log.i(TAG, "Java: live begin_time " + begin_time);
+	        Log.i(TAG, "Java: live begin_time(final) " + begin_time);
 	        
-	        int count = 360;
+	        process_live_seg(begin_time);
+	        
+	        sb_m3u8_context.append(String.format("#EXT-X-MEDIA-SEQUENCE:%d\n", begin_time));
+			
+	        int count = 180 + 3;
 			for (int i=0;i<count;i++) {
 				sb_m3u8_context.append("#EXTINF:5,\n");
-				String filename = String.format("%d.ts", begin_time + offset_sec + i * 5);
+				String filename = String.format("%d.ts", begin_time + i * 5);
 				sb_m3u8_context.append(filename);
 				sb_m3u8_context.append("\n");
 			}
 		}
 		else {
+			sb_m3u8_context.append("#EXT-X-MEDIA-SEQUENCE:1\n");
+			
 			int count = (int)(end_time - begin_time) / 5;
 			for (int i=0;i<count;i++) {
 				sb_m3u8_context.append("#EXTINF:5,\n");
@@ -404,8 +406,25 @@ public class MyNanoHTTPD extends NanoHTTPD{
 		int len = sb_m3u8_context.length();
 		
 		InputStream m3u8_is = new ByteArrayInputStream(str_m3u8_context.getBytes());
-		String mimeType = MimeTypeMap.getSingleton().getMimeTypeFromExtension("m3u8");
+		String mimeType = "application/vnd.apple.mpegurl";
 		return new myResponse(Status.OK, mimeType, m3u8_is, 0, len, false);
+	}
+	
+	private void process_live_seg(long time_stamp) {
+		if (m_first_seg == 0)
+			return;
+		
+		byte[] in_flv = new byte[1048576];
+		
+		String httpUrl = String.format(block_url_fmt, mLiveitem.getHost(), mLiveitem.getRid(),
+				time_stamp, mLiveitem.getK());
+		Log.i(TAG, "Java: download live first flv segment: " + httpUrl);
+		int in_size = httpUtil.httpDownloadBuffer(httpUrl, 1400, in_flv);
+		byte[] out_ts = new byte[1048576];
+		
+		int out_size = MeetSDK.Convert(in_flv, in_size, out_ts, 1, m_first_seg);
+		Log.i(TAG, "Java: live first flv out_size " + out_size);
+		m_first_seg = 0;
 	}
 	
 	private myResponse serveSegment(String uri) {
@@ -419,10 +438,10 @@ public class MyNanoHTTPD extends NanoHTTPD{
 		String httpUrl = String.format(block_url_fmt, mLiveitem.getHost(), mLiveitem.getRid(),
 				time_stamp, mLiveitem.getK());
 		Log.i(TAG, "Java: download flv segment: " + httpUrl);
-		int in_size = httpUtil.httpDownloadBuffer(httpUrl, in_flv);
+		int in_size = httpUtil.httpDownloadBuffer(httpUrl, 1400, in_flv);
 		byte[] out_ts = new byte[1048576];
 		
-		int out_size = MyFormatConverter.Convert(in_flv, in_size, out_ts, m_first_seg);
+		int out_size = MeetSDK.Convert(in_flv, in_size, out_ts, 1, m_first_seg);
 		Log.i(TAG, "Java: out_size " + out_size);
 		m_first_seg = 0;
 		

@@ -26,7 +26,7 @@ public:
 	apFormatConverter(void);
 	~apFormatConverter(void);
 
-	bool convert(uint8_t* from, int from_size, uint8_t *to, int *to_size, int first_seg);
+	bool convert(uint8_t* from, int from_size, uint8_t *to, int *to_size, int is_live, int first_seg);
 
 protected:
 	static int interrupt_l(void* ctx);

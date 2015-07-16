@@ -54,6 +54,7 @@ public:
     status_t setDataSource(const char* url);
 	status_t setDataSource(int32_t fd, int64_t offset, int64_t length);
 	status_t selectAudioChannel(int32_t index);
+	status_t selectSubtitleChannel(int32_t index);
 	status_t setVideoSurface(void* surface);
 	status_t prepare();
 	status_t prepareAsync();

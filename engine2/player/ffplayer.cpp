@@ -195,12 +195,12 @@ extern "C" void releasePlayer(IPlayer* player)
 	}
 }
 
-extern "C" bool my_convert(uint8_t* flv_data, int flv_data_size, uint8_t* ts_data, int *out_size, int first_seg)
+extern "C" bool my_convert(uint8_t* flv_data, int flv_data_size, uint8_t* ts_data, int *out_size, int process_timestamp, int first_seg)
 {
 	LOGI("my_convert()");
 #ifdef USE_TS_CONVERT
 	apFormatConverter converter;
-	return converter.convert(flv_data, flv_data_size, ts_data, out_size, first_seg);
+	return converter.convert(flv_data, flv_data_size, ts_data, out_size, process_timestamp, first_seg);
 #else
 	return false;
 #endif
@@ -630,6 +630,22 @@ status_t FFPlayer::selectAudioChannel(int32_t index)
 	postSeekingEvent_l();
 	
 	ResetStatics();
+	return OK;
+}
+
+status_t FFPlayer::selectSubtitleChannel(int32_t index)
+{
+	LOGI("player op selectSubtitleChannel(%d)", index);
+
+	// now ONLY support same codec param subtitle selection
+
+	// verify if index is available
+	if (mDataStream->selectSubtitleChannel(index) != OK) {
+		LOGE("failed to call demux selectSubtitleChannel");
+		return ERROR;
+	}
+
+	LOGI("after demuxer selectSubtitleChannel");
 	return OK;
 }
 

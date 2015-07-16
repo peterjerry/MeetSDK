@@ -60,6 +60,8 @@ public:
 	
 	status_t selectAudioChannel(int32_t index);
 
+	status_t selectSubtitleChannel(int32_t index);
+
 	void setSource(FFSourceBase *source){mSource = source;}
 	FFSourceBase *getSource(){return mSource;}
 
@@ -131,6 +133,8 @@ private:
 
 	static int64_t ff_seek_packet(void *opaque, int64_t offset, int whence);
 
+	bool open_subtitle_codec();
+
 private:
 	status_t mStatus;
 
@@ -193,6 +197,8 @@ private:
 
 	int64_t	mOpenStreamStartMs;
 	int64_t mReadStreamStartMs;
+
+	pthread_mutex_t mSubtitleLock;
 };
 
 

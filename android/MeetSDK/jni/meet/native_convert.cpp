@@ -8,20 +8,20 @@
 
 extern CONVERT_FUN convertFun;
 
-/* Header for class com_pplive_meetplayer_MyFormatConverter */
+/* Header for class _Included_android_pplive_media_MeetSDK */
 
-#ifndef _Included_com_pplive_meetplayer_MyFormatConverter
-#define _Included_com_pplive_meetplayer_MyFormatConverter
+#ifndef _Included_android_pplive_media_MeetSDK
+#define _Included_android_pplive_media_MeetSDK
 #ifdef __cplusplus
 extern "C" {
 #endif
 /*
- * Class:     com_pplive_meetplayer_MyFormatConverter
+ * Class:     android_pplive_media_MeetSDK
  * Method:    Convert
  * Signature: ([B[B)I
  */
-JNIEXPORT jint JNICALL Java_com_pplive_meetplayer_util_MyFormatConverter_Convert
-  (JNIEnv *env, jclass clazz, jbyteArray in_flv, jint in_size, jbyteArray out_ts, jint first_seg)
+JNIEXPORT jint JNICALL Java_android_pplive_media_MeetSDK_Convert
+  (JNIEnv *env, jclass clazz, jbyteArray in_flv, jint in_size, jbyteArray out_ts, jint process_timestamp, jint first_seg)
 {
 	PPLOGI("Convert()");
 
@@ -34,7 +34,7 @@ JNIEXPORT jint JNICALL Java_com_pplive_meetplayer_util_MyFormatConverter_Convert
 	jsize ts_data_size = env->GetArrayLength(out_ts);
 
 	PPLOGI("before call my_convert() flv %p %d, ts %p %d", flv_data, flv_data_size, ts_data, ts_data_size);
-	bool bRet = convertFun((uint8_t *)flv_data, flv_data_size, (uint8_t *)ts_data, &ts_data_size, first_seg);
+	bool bRet = convertFun((uint8_t *)flv_data, flv_data_size, (uint8_t *)ts_data, &ts_data_size, process_timestamp, first_seg);
 	if (bRet)
 		ret = ts_data_size;
 	PPLOGI("after call my_convert() %d", ret);
