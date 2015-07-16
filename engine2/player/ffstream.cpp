@@ -51,6 +51,8 @@ extern JavaVM* gs_jvm;
 #define MEDIA_OPEN_TIMEOUT_MSEC							(120 * 1000) // 2 min
 #define MEDIA_READ_TIMEOUT_MSEC							(300 * 1000) // 5 min
 
+static bool getStreamLangTitle(char** langcode, char** langtitle, int index, AVStream* stream);
+
 FFStream::FFStream()
 {
 	mSource				= NULL;
@@ -85,6 +87,8 @@ FFStream::FFStream()
 	mAudioStreamIndex		= -1; // invalid stream id
 	mVideoStreamIndex		= -1; // invalid stream id
 	mSubtitleStreamIndex	= -1; // invalid stream id
+	mSubtitleTrackFirstIndex= -1;
+	mSubtitleTrackIndex		= -1; // for ISubtitle
     mStreamsCount			= 0;
     mDurationMs				= 0;
     mFrameRate				= 0;
@@ -282,6 +286,10 @@ status_t FFStream::selectSubtitleChannel(int32_t index)
 		return ERROR;
 	}
 
+	mSubtitleTrackIndex = index - mSubtitleTrackFirstIndex;
+	mISubtitle->setSelectedLanguage(mSubtitleTrackIndex);
+	LOGI("select sub track #%d", mSubtitleTrackIndex);
+
 	mISubtitle->seekTo(0); // do flush
 
 	return OK;
@@ -411,16 +419,54 @@ AVFormatContext* FFStream::open(char* uri)
 		// only set mISubtitle will do this
 		for (int32_t i = 0; i < (int32_t)mStreamsCount; i++) {
 			if (mMovieFile->streams[i]->codec->codec_type == AVMEDIA_TYPE_SUBTITLE) {
+				AVStream *subtitle_stream = mMovieFile->streams[i];
+
 				if (mSubtitleStreamIndex == -1) {
     				mSubtitleStreamIndex = i;
 					LOGI("mSubtitleStreamIndex: %d", mSubtitleStreamIndex);
-					mSubtitleStream = mMovieFile->streams[mSubtitleStreamIndex];
-					break;
+					mSubtitleStream = subtitle_stream;
+
+					if (!open_subtitle_codec()) {
+						LOGE("failed to open subtitle codec");
+					}
 				}
 				else {
 					//Disable variant streams, like m3u8
-					mMovieFile->streams[i]->discard = AVDISCARD_ALL;
+					subtitle_stream->discard = AVDISCARD_ALL;
 					LOGI("Discard mSubtitleStreamIndex stream: %d", i);
+				}
+
+				// add subtitle track
+				SubtitleCodecId codec_id = SUBTITLE_CODEC_ID_NONE;
+				if (subtitle_stream->codec->codec_id == AV_CODEC_ID_ASS
+					|| subtitle_stream->codec->codec_id == AV_CODEC_ID_SSA)
+				{
+					codec_id = SUBTITLE_CODEC_ID_ASS;
+				}
+				else if(subtitle_stream->codec->codec_id == AV_CODEC_ID_TEXT
+					|| subtitle_stream->codec->codec_id == AV_CODEC_ID_SRT
+					|| subtitle_stream->codec->codec_id == AV_CODEC_ID_SUBRIP)
+				{
+					codec_id = SUBTITLE_CODEC_ID_TEXT;
+				}
+
+				const char* extraData = (const char*)subtitle_stream->codec->extradata;
+				int dataLen = subtitle_stream->codec->extradata_size;
+				char *langcode = NULL;
+				char *langtitle = NULL;
+				getStreamLangTitle(&langcode, &langtitle, i, subtitle_stream);
+				int track_index = mISubtitle->addEmbeddingSubtitle(codec_id, langcode/*"chs"*/, langtitle/*"chs"*/, extraData, dataLen);
+				if (track_index < 0) {
+					LOGE("failed to add embedding subtitle");
+					break;
+				}
+
+				LOGI("subtitle track %d added", track_index);
+
+				if (mSubtitleTrackIndex == -1) {
+					mSubtitleTrackFirstIndex	= i;
+					mSubtitleTrackIndex			= track_index;
+					LOGI("subtitle track from #%d (sub select #%d)", i, track_index);
 				}
 			}
 		}
@@ -472,36 +518,6 @@ AVFormatContext* FFStream::open(char* uri)
 		AVCodecContext *audio_codec = mAudioStream->codec;
 		if (CODEC_ID_AAC == audio_codec->codec_id)
 			LOGI("aac profile %d", audio_codec->profile);
-	}
-
-	if (mSubtitleStream) {
-		if(open_subtitle_codec()) {
-			SubtitleCodecId codec_id = SUBTITLE_CODEC_ID_NONE;
-			if (mSubtitleStream->codec->codec_id == AV_CODEC_ID_ASS
-				|| mSubtitleStream->codec->codec_id == AV_CODEC_ID_SSA)
-			{
-				codec_id = SUBTITLE_CODEC_ID_ASS;
-			}
-			else if(mSubtitleStream->codec->codec_id == AV_CODEC_ID_TEXT
-				|| mSubtitleStream->codec->codec_id == AV_CODEC_ID_SRT
-				|| mSubtitleStream->codec->codec_id == AV_CODEC_ID_SUBRIP)
-			{
-				codec_id = SUBTITLE_CODEC_ID_TEXT;
-			}
-
-			const char* extraData = (const char*)mSubtitleStream->codec->extradata;
-			int dataLen = mSubtitleStream->codec->extradata_size;
-			mSubtitleTrackIndex = mISubtitle->addEmbeddingSubtitle(codec_id, "chs", "chs", extraData, dataLen);
-			if (mSubtitleTrackIndex < 0) {
-				LOGE("failed to add embedding subtitle");
-				return NULL;
-			}
-
-			LOGI("subtitle track %d added", mSubtitleTrackIndex);
-		}
-		else {
-			LOGE("failed to open subtitle codec");
-		}
 	}
 	
     //check url type
@@ -1468,6 +1484,46 @@ status_t FFStream::disableStream(int32_t streamIndex)
     return OK;
 }
 
+static bool getStreamLangTitle(char** langcode, char** langtitle, int index, AVStream* stream)
+{
+    bool gotlanguage = false;
 
+	if (langcode == NULL || langtitle == NULL)
+		return false;
+
+	if (stream == NULL || stream->metadata == NULL)
+		return false;
+
+    AVDictionaryEntry* elem = NULL;
+
+	elem = av_dict_get(stream->metadata, "language", NULL, 0);
+    if (elem && elem->value != NULL) {
+		int len = strlen(elem->value) + 1;
+		*langcode = new char[len];
+		memset(*langcode, 0, len);
+        strcpy(*langcode, elem->value);
+        gotlanguage = true;
+    }
+
+    elem = av_dict_get(stream->metadata, "title", NULL, 0);
+    if (elem && elem->value != NULL) {
+		int len = strlen(elem->value) + 1;
+		*langtitle = new char[len];
+		memset(*langtitle, 0, len);
+        strcpy(*langtitle, elem->value);
+        gotlanguage = true;
+    }
+
+	if (gotlanguage) {
+		LOGI("stream index: #%d(lang %s, title: %s)", index, 
+			*langcode ? *langcode : "N/A", 
+			*langtitle ? *langcode : "N/A");
+	}
+	else {
+		LOGW("stream index: #d lang and title are both empty", index);
+	}
+
+    return gotlanguage;
+}
 
 
