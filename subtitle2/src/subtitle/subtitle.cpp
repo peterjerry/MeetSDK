@@ -75,7 +75,11 @@ protected:
 	
     CSimpleTextSubtitle* getSelectedSimpleTextSubtitle()
     {
-        return mSubtitles[mSelectedTrackIdx];
+        if (mSelectedTrackIdx >= 0 && mSelectedTrackIdx < mSubtitles.size()) {
+            return mSubtitles[mSelectedTrackIdx];
+        }
+
+        return NULL;
     }
 
     ASS_Library*  mAssLibrary;
@@ -88,7 +92,7 @@ CSubtitleManager::CSubtitleManager()
     mAssLibrary = ass_library_init();
 	ass_set_message_cb(mAssLibrary, ass_log, this);
 
-    mSelectedTrackIdx = 0; // default select first subtitle track
+    mSelectedTrackIdx = -1;
 }
 
 CSubtitleManager::~CSubtitleManager()
@@ -157,6 +161,7 @@ bool CSubtitleManager::getLanguageName(int language, char* name)
 
 bool CSubtitleManager::getLanguageCode(int language, char* code)
 {
+	// not implement
     return false;
 }
 
@@ -167,7 +172,10 @@ int  CSubtitleManager::getLanguageFlags(int language)
 
 int CSubtitleManager::getSelectedLanguage()
 {
-    return mSelectedTrackIdx;
+	if (mSelectedTrackIdx >= 0 && mSelectedTrackIdx < mSubtitles.size()) 
+        return mSelectedTrackIdx;
+    
+	return -1;
 }
 
 bool CSubtitleManager::setSelectedLanguage(int selected)
@@ -294,8 +302,14 @@ int CSubtitleManager::addEmbeddingSubtitle(SubtitleCodecId codecId, const char* 
         delete subtitle;
         return -1;
     }
+
     mSubtitles.push_back(subtitle);
-	LOGD("addEmbeddingSubtitle push_back = %d", mSubtitles.size());
+	LOGI("addEmbeddingSubtitle size: %d", mSubtitles.size());
+
+	// select 1st track by default
+	if (mSelectedTrackIdx == -1)
+		mSelectedTrackIdx = 0;
+
     return mSubtitles.size() - 1;
 }
 

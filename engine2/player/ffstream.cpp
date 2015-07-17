@@ -249,6 +249,12 @@ status_t FFStream::selectAudioChannel(int32_t index)
 
 status_t FFStream::selectSubtitleChannel(int32_t index)
 {
+	// only set mISubtitle will do subtitle parse and decode
+	if (!mISubtitle) {
+		LOGW("ISubtitle is not set, cannot selectSubtitleChannel %d", index);
+		return OK;
+	}
+
 	if (FFSTREAM_INITED == mStatus || FFSTREAM_STOPPED == mStatus || FFSTREAM_STOPPING == mStatus) {
 		LOGE("wrong state(%d) to selectSubtitleChannel: %d", mStatus, index);
 		return INVALID_OPERATION;
@@ -287,8 +293,9 @@ status_t FFStream::selectSubtitleChannel(int32_t index)
 	}
 
 	mSubtitleTrackIndex = index - mSubtitleTrackFirstIndex;
-	mISubtitle->setSelectedLanguage(mSubtitleTrackIndex);
-	LOGI("select sub track #%d", mSubtitleTrackIndex);
+	LOGI("to select sub track #%d", mSubtitleTrackIndex);
+	if (!mISubtitle->setSelectedLanguage(mSubtitleTrackIndex))
+		LOGE("sub track #%d selected", mSubtitleTrackIndex);
 
 	mISubtitle->seekTo(0); // do flush
 
@@ -415,8 +422,8 @@ AVFormatContext* FFStream::open(char* uri)
     	}
     }
 
+	// only set mISubtitle will do subtitle parse and decode
 	if (mISubtitle) {
-		// only set mISubtitle will do this
 		for (int32_t i = 0; i < (int32_t)mStreamsCount; i++) {
 			if (mMovieFile->streams[i]->codec->codec_type == AVMEDIA_TYPE_SUBTITLE) {
 				AVStream *subtitle_stream = mMovieFile->streams[i];
@@ -431,7 +438,6 @@ AVFormatContext* FFStream::open(char* uri)
 					}
 				}
 				else {
-					//Disable variant streams, like m3u8
 					subtitle_stream->discard = AVDISCARD_ALL;
 					LOGI("Discard mSubtitleStreamIndex stream: %d", i);
 				}
@@ -454,7 +460,11 @@ AVFormatContext* FFStream::open(char* uri)
 				int dataLen = subtitle_stream->codec->extradata_size;
 				char *langcode = NULL;
 				char *langtitle = NULL;
-				getStreamLangTitle(&langcode, &langtitle, i, subtitle_stream);
+				if (!getStreamLangTitle(&langcode, &langtitle, i, subtitle_stream)) {
+					langcode = (char *)"N/A";
+					langtitle = (char *)"N/A";
+				}
+
 				int track_index = mISubtitle->addEmbeddingSubtitle(codec_id, langcode/*"chs"*/, langtitle/*"chs"*/, extraData, dataLen);
 				if (track_index < 0) {
 					LOGE("failed to add embedding subtitle");
@@ -1290,7 +1300,7 @@ void FFStream::thread_impl()
 						}
 
 						if (got_sub) {
-							LOGI("got subtitle %d %d %s", mAVSubtitle->format, (*(mAVSubtitle->rects))->type, (*(mAVSubtitle->rects))->ass);
+							LOGI("got subtitle format: %d, type: %d, content: %s", mAVSubtitle->format, (*(mAVSubtitle->rects))->type, (*(mAVSubtitle->rects))->ass);
 							int64_t start_time ,stop_time;
 #ifdef _MSC_VER
 							AVRational ra;
