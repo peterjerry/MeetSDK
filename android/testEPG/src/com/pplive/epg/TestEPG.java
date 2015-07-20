@@ -34,21 +34,31 @@ public class TestEPG {
 		
 		//frame.getContentPane().requestFocus();
 		
-		frame.setBounds(400, 300, 400, 400);
-		frame.setVisible(true);
-		
 		Font f = new Font("宋体", 0, 18);
 		String []strManuel = {"上下左右 - 上下左右", "Ctrl键 - 退出", "Enter - 进入", 
-				"空格键 - 菜单", "backspace - 退格"};
+				"空格键 - 菜单", "backspace - 退格", "F1 - HOME"};
 		for (int i=0;i<strManuel.length;i++) {
-			JLabel lblInfo = new JLabel(strManuel[i]);
-			lblInfo.setFont(f);
-			lblInfo.setBounds(20, 60 + i * 40, 300, 40);
-			frame.add(lblInfo);
+			JLabel lblManual = new JLabel(strManuel[i]);
+			lblManual.setFont(f);
+			lblManual.setBounds(20, 60 + i * 40, 300, 40);
+			frame.add(lblManual);
 		}
 		
-		final MyBoxController con = new MyBoxController();
-		con.connect("192.168.200.149", 59465);
+		JLabel lblInfo = new JLabel("信息");
+		lblInfo.setFont(f);
+		lblInfo.setBounds(20, 350, 300, 40);
+		frame.add(lblInfo);
+		
+		frame.setBounds(400, 400, 400, 400);
+		frame.setVisible(true);
+		
+		final String ip_addr = "192.168.200.63";
+		final int port = 51637;
+		final MyBoxController con = new MyBoxController(ip_addr, port);
+		
+		if (!con.connect()) {
+			lblInfo.setText("连接失败！");
+		}
 		
 		frame.addKeyListener(new KeyListener() {
 
@@ -86,6 +96,9 @@ public class TestEPG {
 						break;
 					case KeyEvent.VK_BACK_SPACE:
 						con.sendKeyEvent(Code.KEYCODE_DEL);
+						break;
+					case KeyEvent.VK_F1:
+						con.sendKeyEvent(Code.KEYCODE_HOME);
 						break;
 					default:
 						break;

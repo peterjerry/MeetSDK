@@ -244,7 +244,10 @@ bool CSubtitleManager::loadSubtitle(const char* fileName, bool isMediaFile)
     subtitle->seekTo(0);
 
     mSubtitles.push_back(subtitle);
-
+	
+	// activate track
+	mSelectedTrackIdx = 0;
+	
     return true;
 }
 
