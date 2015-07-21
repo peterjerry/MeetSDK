@@ -1,8 +1,9 @@
 ------------android-------------------
 expat         ->
-					->fontconfig ->libass
-freetype(ft2) ->
-
+					->fontconfig ->
+freetype(ft2) ->                       libass
+					  enca	     ->
+					  iconv	     ->
 ------------ios----------------------
 automake autoconf libtool configure->make install
 pkg-config ?  ./configure  --with-internal-glib

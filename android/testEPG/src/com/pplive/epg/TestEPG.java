@@ -34,6 +34,8 @@ public class TestEPG {
 		
 		//frame.getContentPane().requestFocus();
 		
+		frame.setLayout(null);
+		
 		Font f = new Font("宋体", 0, 18);
 		String []strManuel = {"上下左右 - 上下左右", "Ctrl键 - 退出", "Enter - 进入", 
 				"空格键 - 菜单", "backspace - 退格", "F1 - HOME"};
@@ -45,8 +47,7 @@ public class TestEPG {
 		}
 		
 		JLabel lblInfo = new JLabel("信息");
-		lblInfo.setFont(f);
-		lblInfo.setBounds(20, 350, 300, 40);
+		lblInfo.setBounds(20, 300, 300, 40);
 		frame.add(lblInfo);
 		
 		frame.setBounds(400, 400, 400, 400);

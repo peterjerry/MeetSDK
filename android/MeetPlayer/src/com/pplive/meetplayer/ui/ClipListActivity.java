@@ -85,8 +85,7 @@ import com.pplive.meetplayer.util.ListMediaUtil;
 import com.pplive.meetplayer.util.LoadPlayLinkUtil;
 import com.pplive.meetplayer.util.LogcatHelper;
 import com.pplive.meetplayer.util.Util;
-import com.pplive.meetplayer.util.httpUtil;
-import com.pplive.meetplayer.util.MyFormatConverter;
+import com.pplive.common.util.httpUtil;
 import com.pplive.meetplayer.ui.widget.MiniMediaController;
 import com.pplive.common.pptv.CDNItem;
 import com.pplive.common.pptv.Catalog;
@@ -1850,7 +1849,7 @@ public class ClipListActivity extends Activity implements
 			Log.i(TAG, "Java: transcode mpegts block: " + save_filepath);
 			byte[] in_flv = new byte[1048576];
 			
-			int in_size = httpUtil.httpDownloadBuffer(httpUrl, in_flv);
+			int in_size = httpUtil.httpDownloadBuffer(httpUrl, 1400, in_flv);
 			byte[] out_ts = new byte[1048576];
 			
 			StringBuffer sbHex = new StringBuffer();
@@ -1874,7 +1873,7 @@ public class ClipListActivity extends Activity implements
 			Log.i(TAG, "Java: flv file context " + sbHex.toString() + 
 					" , string: " + strHeader);
 
-			int out_size = MyFormatConverter.Convert(in_flv, in_size, out_ts, 0, 0);
+			int out_size = MeetSDK.Convert(in_flv, in_size, out_ts, 0, 0);
 			Log.i(TAG, "Java: out_size " + out_size);
 
 			// save output ts file
