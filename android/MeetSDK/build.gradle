@@ -47,21 +47,23 @@ android {
         delete 'build/outputs/MeetSDK.jar'
     }
 
-    task makeJar(type: Copy) {
+    task copyJar(type: Copy) {
         from('build/intermediates/bundles/release/')
         into('build/outputs/')
         include('classes.jar')
         rename ('classes.jar', 'MeetSDK.jar')
     }
 
-    // call regular ndk-build(.cmd) script from app directory
-    task ndkBuild(type: Exec) {
-        workingDir file('./')
-        commandLine getNdkBuildCmd()
+    task copyLib(type: Copy) {
+        from('libs/')
+        into('build/outputs/libs/')
+        include('**/*.so')
     }
 
-    tasks.withType(JavaCompile) {
-        compileTask -> compileTask.dependsOn ndkBuild
+    // call regular ndk-build(.cmd) script from app directory
+    task ndkBuild(type: Exec, description: 'Compile JNI source via NDK') {
+        workingDir file('./')
+        commandLine getNdkBuildCmd()
     }
 
     task cleanNative(type: Exec) {
@@ -69,17 +71,22 @@ android {
         commandLine getNdkBuildCmd(), 'clean'
     }
 
-    task ndkLibsToJar(type: Zip, dependsOn: 'ndkBuild', description: 'Create a JAR of the native libs') {
-        destinationDir new File(buildDir, 'libs')
-        baseName 'ndk-libs'
-        extension 'jar'
-        from(new File(buildDir, 'libs')) { include '**/*.so' }
-        into 'build/outputs'
+    tasks.withType(JavaCompile) {
+        compileTask -> compileTask.dependsOn /*cleanNative, */ndkBuild
+    }
+
+    task dist(type: Zip, description: 'distribute zip file') {
+        destinationDir new File(buildDir, 'outputs')
+        baseName 'MeetSDK-3.3.9'
+        extension 'zip'
+        from(new File(buildDir, 'outputs')) { include 'libs/**/*.so' }
+        from(new File(buildDir, 'outputs')) { include 'MeetSDK.jar' }
+        into('/')
     }
 
     clean.dependsOn cleanNative
 
-    build.dependsOn(clearJar, makeJar, ndkLibsToJar)
+    build.dependsOn(clearJar, copyJar, copyLib, dist)
 }
 
 def getNdkDir() {
