@@ -1,6 +1,7 @@
 package com.pplive.epg;
 
 import java.awt.Font;
+import java.awt.event.ActionEvent;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
 import java.io.IOException;
@@ -9,14 +10,18 @@ import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.SocketTimeoutException;
 
+import javax.swing.AbstractAction;
+import javax.swing.JButton;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
+import javax.swing.JTextPane;
 
 import com.pplive.epg.baidu.BaiduPanel;
 import com.pplive.epg.boxcontroller.Code;
 import com.pplive.epg.boxcontroller.MyBoxController;
 
 public class TestEPG { 
+	private static MyBoxController con;
 	
 	public static void main(String[] args) {
 		createAndShowGUI();
@@ -26,15 +31,13 @@ public class TestEPG {
 		JFrame frame = new JFrame("电视鸭");
 		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
-		/*frame.add(new TabbedPaneDemo());
+		frame.add(new TabbedPaneDemo());
 		frame.pack();
 		frame.setBounds(400, 300, 750, 600);
 		
-		frame.setVisible(true);*/
+		frame.setVisible(true);
 		
-		//frame.getContentPane().requestFocus();
-		
-		frame.setLayout(null);
+		/*frame.setLayout(null);
 		
 		Font f = new Font("宋体", 0, 18);
 		String []strManuel = {"上下左右 - 上下左右", "Ctrl键 - 退出", "Enter - 进入", 
@@ -44,22 +47,61 @@ public class TestEPG {
 			lblManual.setFont(f);
 			lblManual.setBounds(20, 60 + i * 40, 300, 40);
 			frame.add(lblManual);
-		}
+		}*/
 		
-		JLabel lblInfo = new JLabel("信息");
+		/*
+		JLabel lblIpAddr = new JLabel("ip");
+		lblIpAddr.setBounds(20, 40, 30, 20);
+		frame.add(lblIpAddr);
+		
+		final JTextPane editIPAddr = new JTextPane();
+		editIPAddr.setText("192.168.200.63");
+		editIPAddr.setBounds(40, 40, 100, 20);
+		frame.add(editIPAddr);
+		
+		JLabel lblPort = new JLabel("port");
+		lblPort.setBounds(160, 40, 80, 20);
+		frame.add(lblPort);
+		
+		final JTextPane editPort = new JTextPane();
+		editPort.setText("50609");
+		editPort.setBounds(190, 40, 50, 20);
+		frame.add(editPort);*/
+		
+		/*final JLabel lblInfo = new JLabel("信息");
 		lblInfo.setBounds(20, 300, 300, 40);
 		frame.add(lblInfo);
 		
-		frame.setBounds(400, 400, 400, 400);
-		frame.setVisible(true);
+		/*final JButton btnRun = new JButton("连接");
+		btnRun.setFont(f);
+		btnRun.setBounds(260, 30, 80, 40);
+		btnRun.addActionListener(new AbstractAction() {
+			public void actionPerformed(ActionEvent e) {
+				final String ip_addr = "192.168.200.63"; // editIPAddr.getText();
+				final int port = 50609; //Integer.valueOf(editPort.getText());
+				con = new MyBoxController(ip_addr, port);
+				
+				if (!con.connect()) {
+					lblInfo.setText("连接失败！");
+					return;
+				}
+				
+				lblInfo.requestFocus();
+			}
+		});
+		frame.add(btnRun);*/
 		
-		final String ip_addr = "192.168.200.63";
-		final int port = 51637;
-		final MyBoxController con = new MyBoxController(ip_addr, port);
+		/*final String ip_addr = "192.168.200.63"; // editIPAddr.getText();
+		final int port = 50609; //Integer.valueOf(editPort.getText());
+		con = new MyBoxController(ip_addr, port);
 		
 		if (!con.connect()) {
 			lblInfo.setText("连接失败！");
+			return;
 		}
+		
+		frame.setBounds(400, 400, 400, 400);
+		frame.setVisible(true);
 		
 		frame.addKeyListener(new KeyListener() {
 
@@ -119,7 +161,7 @@ public class TestEPG {
 				System.out.println("Java: keyTyped " + e.getKeyCode());
 			}
 			
-		});
+		});*/
 	}
 	
 	

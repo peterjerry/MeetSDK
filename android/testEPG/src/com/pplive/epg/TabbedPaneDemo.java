@@ -30,6 +30,7 @@ public class TabbedPaneDemo extends JPanel {
        //创建标签显示的图标
        ImageIcon iiVST = createImageIcon("images/label.png");  
        ImageIcon iiBaidu = createImageIcon("images/baidu.png");  
+       ImageIcon iiBestv = createImageIcon("images/bestv.png");
        ImageIcon iiPPTV = createImageIcon("images/pptv.png");  
        ImageIcon iiSohu = createImageIcon("images/sohu.png");  
        
@@ -38,7 +39,7 @@ public class TabbedPaneDemo extends JPanel {
        PPTVPanel pptvPanel = new PPTVPanel();
        //LeTVPanel letvPanel = new LeTVPanel();
        //VstPanel vstPanel = new VstPanel();
-       //BestvPanel bestvPanel = new BestvPanel();
+       BestvPanel bestvPanel = new BestvPanel();
        SohuPanel sohuPanel = new SohuPanel();
        BaiduPanel baiduPanel = new BaiduPanel();
        
@@ -56,12 +57,12 @@ public class TabbedPaneDemo extends JPanel {
        //tp.setMnemonicAt(1, KeyEvent.VK_2);
        
        //第四个标签
-       //tp.addTab("Best TV", ii, bestvPanel, "百事通");
-       //tp.setMnemonicAt(3, KeyEvent.VK_3);
+       tp.addTab("Best TV", iiBestv, bestvPanel, "百事通");
+       tp.setMnemonicAt(1, KeyEvent.VK_3);
        
        //第五个标签
        tp.addTab("SohuVideo", iiSohu, sohuPanel, "搜狐视频");
-       tp.setMnemonicAt(1, KeyEvent.VK_4);
+       tp.setMnemonicAt(2, KeyEvent.VK_4);
        //设置合适的显示尺寸，这个是必须的，因为如果所有的标签都
        //不指定适合的显示尺寸，系统无法判断初始显示尺寸大小
        //默认是使用最小化，并且对一个标签设计即可
@@ -69,7 +70,7 @@ public class TabbedPaneDemo extends JPanel {
  
        //第六个标签
        tp.addTab("BaiduPan", iiBaidu, baiduPanel, "百度网盘");
-       tp.setMnemonicAt(2, KeyEvent.VK_5);
+       tp.setMnemonicAt(3, KeyEvent.VK_5);
        
        //将tabbedPanel添加到Jpanel中
        add(tp);
@@ -78,7 +79,7 @@ public class TabbedPaneDemo extends JPanel {
        tp.setTabLayoutPolicy(JTabbedPane.SCROLL_TAB_LAYOUT);
        //设置标签停放的位置，这里设置为左侧停放
        tp.setTabPlacement(JTabbedPane.LEFT);
-       tp.setSelectedIndex(2);
+       tp.setSelectedIndex(1);
     }
 	
 	private JPanel createPanel(String string) {

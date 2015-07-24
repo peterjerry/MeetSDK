@@ -1,23 +1,20 @@
 package android.pplive.media.player;
 
-import java.io.IOException;
-import java.io.FileDescriptor;
-import java.util.Map;
-
 import android.content.Context;
-import android.database.Cursor;
-import android.media.MediaFormat;
-import android.media.MediaPlayer.TrackInfo;
-import android.media.TimedText;
-import android.graphics.PixelFormat;
 import android.graphics.Bitmap;
+import android.graphics.PixelFormat;
+import android.media.MediaPlayer.TrackInfo;
 import android.net.Uri;
+import android.os.Build;
+import android.pplive.media.MeetSDK;
+import android.pplive.media.subtitle.SimpleSubTitleParser;
+import android.pplive.media.util.LogUtils;
 import android.view.Surface;
 import android.view.SurfaceHolder;
-import android.view.SurfaceView;
-import android.pplive.media.MeetSDK;
-import android.pplive.media.util.LogUtils;
-import android.pplive.media.subtitle.SimpleSubTitleParser;
+
+import java.io.FileDescriptor;
+import java.io.IOException;
+import java.util.Map;
 
 public class MediaPlayer implements MediaPlayerInterface {
 	private final static String TAG = "pplive/MediaPlayer";
@@ -840,11 +837,10 @@ public class MediaPlayer implements MediaPlayerInterface {
 
 	@Override
 	public TrackInfo[] getTrackInfo() throws IllegalStateException {
-		if (mPlayer != null) {
+		if (mPlayer != null)
 			return mPlayer.getTrackInfo();
-		} else {
-			return null;
-		}
+			
+		return null;
 	}
 
 	public static final String MEDIA_MIMETYPE_TEXT_SUBRIP = "application/x-subrip";
@@ -944,45 +940,14 @@ public class MediaPlayer implements MediaPlayerInterface {
 		}
 	}
 	
-	public MediaInfo getMediaInfo() {
-		if (mPlayer instanceof FFMediaPlayer) {
-			return ((FFMediaPlayer) mPlayer).getCurrentMediaInfo();
-		}
-		else if (mPlayer instanceof SystemMediaPlayer) {
-			TrackInfo []trackinfos = mPlayer.getTrackInfo();
-			if (trackinfos == null)
-				return null;
-					
-			MediaInfo info = new MediaInfo();
-			int audioId = 0;
-			for (int i=0;i<trackinfos.length;i++) {
-				StringBuffer sb = new StringBuffer();
-				int type = trackinfos[i].getTrackType();
-				MediaFormat format = trackinfos[i].getFormat();
-				String lang = trackinfos[i].getLanguage();
-				sb.append("type: " + type);
-				sb.append("(");
-				sb.append(type == TrackInfo.MEDIA_TRACK_TYPE_VIDEO ? "video" : "audio");
-				sb.append(")");
-				sb.append(", format: ");
-				sb.append(format == null ? "N/A" : format.toString());
-				sb.append(", lang: " + lang);
-				
-				if (TrackInfo.MEDIA_TRACK_TYPE_VIDEO == type) {
-					info.setVideoInfo(getVideoWidth(), getVideoHeight(), 
-						format == null ? "N/A" : format.toString(), getDuration());
-				}
-				else if (TrackInfo.MEDIA_TRACK_TYPE_AUDIO == type) {
-					info.setAudioChannelsInfo(audioId++, i, 
-						format == null ? "N/A" : format.toString(), lang, null);
-				}
-			}
-			
-			info.setAudioChannels(audioId);
-			return info;
+	@Override
+	public MediaInfo getMediaInfo() throws IllegalStateException {
+		if (mPlayer != null) {
+			return mPlayer.getMediaInfo();
 		}
 		
-		return null;
+		LogUtils.error("MediaPlayer has't initialized!!!");
+		throw new IllegalStateException("MediaPlayer has't initialized!!!");
 	}
 	
 	// event

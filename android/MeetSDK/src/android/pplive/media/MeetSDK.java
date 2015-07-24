@@ -182,7 +182,7 @@ public final class MeetSDK {
 
 		return info;
 	}
-
+	
 	public static MediaInfo getMediaDetailInfo(String url) {
 		MediaInfo info = null;
 		

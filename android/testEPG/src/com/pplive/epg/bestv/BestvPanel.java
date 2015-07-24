@@ -207,14 +207,15 @@ public class BestvPanel extends JPanel {
 		int index = comboItem.getSelectedIndex();
 		String url = mChannelList.get(index).getPlayUrl();
 		
-		BestvKey b_key = mEPG.getLiveKey();
+		/*BestvKey b_key = mEPG.getLiveKey();
 		if (b_key == null) {
 			System.out.println("Java: failed to get bestv key");
 			return;
 		}
 		
 		System.out.println("Java: key " + b_key.toString());
-		String key = b_key.getKey();
+		String key = b_key.getKey();*/
+		String key = "4BE9666ECD5CA07A02A52EC9689B81621E354113967482965E8A7CC79F52A526";
 		
 		String timeStr = getTimeStr();
 		if (timeStr != null && !timeStr.isEmpty()) {

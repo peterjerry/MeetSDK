@@ -189,9 +189,9 @@ bool CSimpleTextSubtitle::arrangeTrack(ASS_Track* track)
         int64_t startTime = event->Start;
         int64_t stopTime  = event->Start + event->Duration;
 #ifdef _MSC_VER
-		LOGI("arrangeTrack: %s %I64d", event->Text, startTime);
+		LOGD("arrangeTrack: %s start_time: %I64d, stop_time %I64d", event->Text, startTime, stopTime);
 #else
-		LOGI("arrangeTrack: %s %lld", event->Text, startTime);
+		LOGD("arrangeTrack: %s start_time: %lld, stop_time %lld", event->Text, startTime, stopTime);
 #endif
 
 		// to find coresponding segment in mSegments with event

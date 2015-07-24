@@ -399,7 +399,7 @@ public class FFMediaPlayer extends BaseMediaPlayer {
 		// TODO Auto-generated method stub
 		LogUtils.info("selectTrack #" + index);
 		
-		MediaInfo info = this.getCurrentMediaInfo();
+		MediaInfo info = this.getMediaInfo();
 		if (info == null)
 			_selectAudioChannel(index);
 		else {
@@ -427,7 +427,8 @@ public class FFMediaPlayer extends BaseMediaPlayer {
 	@Override
 	public native void setOption(String option);
 	
-	public MediaInfo getCurrentMediaInfo() {
+	@Override
+	public MediaInfo getMediaInfo() throws IllegalStateException {
 		MediaInfo info = new MediaInfo();
 		if (native_getCurrentMediaInfo(info))
 			return info;
