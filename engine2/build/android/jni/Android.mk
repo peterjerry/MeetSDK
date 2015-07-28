@@ -4,6 +4,7 @@ BUILD_OSLES				:= 1
 BUILD_NATIVEWINDOOW		:= 1
 #BUILD_RENDER_RGB565	:= 1
 #BUILD_PCM_DUMP			:= 1
+#BUILD_ONE_LIB			:= 1
 
 ifeq ($(TARGET_ARCH_ABI),armeabi)
 FDK_AAC_PATH	:= ../../../../foundation/foundation_rext/thirdparty/fdk-aac/lib/armeabi-v7a
@@ -62,8 +63,8 @@ LOCAL_C_INCLUDES		:= $(LOCAL_PATH)/$(FFMPEG_PATH)/include $(LOCAL_PATH)/$(SUBTIT
 	$(LOCAL_PATH)/$(PLATFORMPATH) $(LOCAL_PATH)/$(PLATFORMPATH)/yuv2rgb $(LOCAL_PATH)/$(PLATFORMPATH)/clsocket \
 	$(LOCAL_PATH)/$(PLAYERPATH) $(LOCAL_PATH)/$(EXTRACTORPATH) 
 	
-LOCAL_CFLAGS    		:= -Wall -DNDK_BUILD=1 -DUSE_NDK_SURFACE_REF -DUSE_AV_FILTER #-DTEST_PERFORMANCE -DTEST_PERFORMANCE_BITRATE -DNO_AUDIO_PLAY 
-MY_SRC_PLAYER_FILES 	:= ffstream.cpp audioplayer.cpp audiorender.cpp ffplayer.cpp ffrender.cpp filesource.cpp ffextractor.cpp
+LOCAL_CFLAGS    		:= -Wall -DNDK_BUILD=1 -DUSE_NDK_SURFACE_REF -DUSE_AV_FILTER -DTEST_PERFORMANCE -DTEST_PERFORMANCE_BITRATE #-DNO_AUDIO_PLAY 
+MY_SRC_PLAYER_FILES 	:= ffstream.cpp audioplayer.cpp audiorender.cpp ffplayer.cpp ffrender.cpp filesource.cpp ffextractor.cpp #apFormatConverter.cpp
 MY_SRC_PLATFORM_FILES	:= audiotrack_android.c \
 	surface_android.cpp log_android.c packetqueue.cpp list.cpp loop.cpp utils.cpp
 MY_SRC_SOCKET_FILES		:= SimpleSocket.cpp ActiveSocket.cpp
@@ -102,15 +103,23 @@ LOCAL_SRC_FILES 		+= $(addprefix $(PLATFORMPATH)/clsocket/, $(MY_SRC_SOCKET_FILE
 endif
 LOCAL_STATIC_LIBRARIES 	:= ffmpeg cpufeatures
 #LOCAL_SHARED_LIBRARIES 	:= lenthevcdec
+ifdef BUILD_ONE_LIB
+LOCAL_CFLAGS			+= -DBUILD_ONE_LIB
+else
 LOCAL_LDLIBS 			:= -llog -lz -landroid -L$(FFMPEG_PATH)/lib
 ifdef BUILD_OSLES
 LOCAL_LDLIBS			+= -lOpenSLES
+endif
 endif
 ifdef BUILD_PCM_DUMP
 LOCAL_STATIC_LIBRARIES 	+= fdk-aac ssl crypto
 #rtmp
 endif
+ifdef BUILD_ONE_LIB
+include $(BUILD_STATIC_LIBRARY)
+else
 include $(BUILD_SHARED_LIBRARY)
+endif
 
 $(call import-module,cpufeatures)
 

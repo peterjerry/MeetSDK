@@ -42,7 +42,7 @@
 #define USER_LIST_OFFSET (PPTV_HLS_URL_OFFSET + 12)
 
 #define HOST "127.0.0.1"
-#define HTTP_PORT 9008
+//#define HTTP_PORT 8080
 
 const char* url_desc[PROG_MAX_NUM] = {
 	_T("变形金刚2 720p"),
@@ -1193,8 +1193,12 @@ bool CtestSDLdlgDlg::startP2P()
 
 	mrtspPort = PPBOX_GetPort("rtsp");
 	mhttpPort = PPBOX_GetPort("http");
-
 	LOGI("p2pEngine: rtsp port %d, http port %d", mrtspPort, mhttpPort);
+
+#ifdef HTTP_PORT
+	mhttpPort = HTTP_PORT;
+	LOGI("use http port %d", mhttpPort);
+#endif
 
 	return true;
 }

@@ -4,6 +4,7 @@ import java.lang.reflect.Method;
 
 import android.annotation.SuppressLint;
 import android.content.Context;
+import android.media.MediaFormat;
 import android.media.TimedText;
 import android.media.MediaPlayer.TrackInfo;
 import android.util.Log;
@@ -100,12 +101,14 @@ public class SystemMediaPlayer extends android.media.MediaPlayer implements
 	@Override
 	public void selectTrack(int index) {
 		// TODO Auto-generated method stub
+		LogUtils.info("system player selectTrack #" + index);
 		super.selectTrack(index);
 	}
 	
 	@Override
 	public void deselectTrack(int index) {
 		// TODO Auto-generated method stub
+		LogUtils.info("system player deselectTrack #" + index);
 		super.deselectTrack(index);
 	}
 	
@@ -341,10 +344,134 @@ public class SystemMediaPlayer extends android.media.MediaPlayer implements
 		
 	}
 	
+	@Override
 	public TrackInfo[] getTrackInfo() throws IllegalStateException {
 		if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN)
 			return super.getTrackInfo();
 		
 		return null;
+	}
+
+	@Override
+	public MediaInfo getMediaInfo() throws IllegalStateException {
+		
+		if (Build.VERSION.SDK_INT < Build.VERSION_CODES.JELLY_BEAN)
+			return null;
+		
+		TrackInfo []trackinfos = super.getTrackInfo();
+		if (trackinfos == null || trackinfos.length == 0)
+			return null;
+				
+		return fillMediaInfo(trackinfos);
+	}
+	
+	private MediaInfo fillMediaInfo(TrackInfo []trackinfos) {
+		//Java: getMediaInfo 
+		//dragon_trainer_4audio|/storage/usbotg/usbotg-sda1/dragon_trainer_4audio.mkv
+		//|6115243|0|1280x720|null|
+		//{language=und, height=720, width=1280, mime=video/avc}
+		//|{sample-rate=24000, channel-count=2, language=und, mime=audio/mp4a-latm}
+		//(null,und)|{sample-rate=24000, channel-count=2, language=chi, mime=audio/mp4a-latm}
+		//(null,chi)|{sample-rate=24000, channel-count=2, language=chi, mime=audio/mp4a-latm}
+		//(null,chi)|{sample-rate=24000, channel-count=2, language=chi, mime=audio/mp4a-latm}
+		//(null,chi)|
+
+		int audioId = 0;
+		int subtitleId = 0;
+		MediaInfo retMediaInfo = new MediaInfo();
+		for (int i=0;i<trackinfos.length;i++) {
+			android.media.MediaPlayer.TrackInfo info = trackinfos[i];
+
+			int type 			= info.getTrackType();
+			String lang 		= info.getLanguage();
+			
+			StringBuffer sb 	= new StringBuffer();
+			sb.append("track #" + i);
+			sb.append(" : type: " + type);
+			sb.append("(");
+			if (type == TrackInfo.MEDIA_TRACK_TYPE_VIDEO)
+				sb.append("video");
+			else if (type == TrackInfo.MEDIA_TRACK_TYPE_AUDIO)
+				sb.append("audio");
+			else if (type == TrackInfo.MEDIA_TRACK_TYPE_TIMEDTEXT)
+				sb.append("subtitle");
+			else
+				sb.append("other");
+			sb.append(")");
+			sb.append(", lang: " + lang);
+			
+			boolean hasMediaFormat = false;
+			
+			if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
+				MediaFormat format 	= info.getFormat();
+				if (format != null) {
+					String mime			= format.getString(MediaFormat.KEY_MIME);
+					String title 		= format.getString(MediaFormat.KEY_LANGUAGE);
+					
+					sb.append(", mime: " + mime);
+					sb.append(", title: " + title);
+					
+					if (format.containsKey(MediaFormat.KEY_CHANNEL_COUNT)) {
+						sb.append(", channel count: " + format.getInteger(MediaFormat.KEY_CHANNEL_COUNT));
+					}
+					
+					int pos = mime.indexOf("/");
+					if (pos > 0)
+						mime = mime.substring(pos + 1);
+
+					sb.append(", format: " + format.toString());
+					
+					if (TrackInfo.MEDIA_TRACK_TYPE_VIDEO == type) {
+						int width = format.getInteger(MediaFormat.KEY_WIDTH);
+						int height = format.getInteger(MediaFormat.KEY_HEIGHT);
+						
+						float framerate = 0.0f;
+						if (format.containsKey(MediaFormat.KEY_FRAME_RATE))
+							framerate = format.getFloat(MediaFormat.KEY_FRAME_RATE);
+						
+						sb.append(", width: " + width);
+						sb.append(", height: " + height);
+						sb.append(", framerate: " + framerate);
+						
+						retMediaInfo.setVideoInfo(width, height,
+								mime, super.getDuration());
+					}
+					else if (TrackInfo.MEDIA_TRACK_TYPE_AUDIO == type) {
+						int sample_rate = format.getInteger(MediaFormat.KEY_SAMPLE_RATE);
+						sb.append(", sample_rate: " + sample_rate);
+						retMediaInfo.setAudioChannelsInfo(audioId++, i, 
+								mime, lang, title);
+						
+					}
+					else if (TrackInfo.MEDIA_TRACK_TYPE_TIMEDTEXT == type) {
+						retMediaInfo.setSubtitleChannelsInfo(subtitleId++, i, 
+								mime, lang, title);	
+					}
+					
+					hasMediaFormat = true;
+				}
+			}
+			
+			if (!hasMediaFormat) {
+				if (TrackInfo.MEDIA_TRACK_TYPE_VIDEO == type) {
+					retMediaInfo.setVideoInfo(super.getVideoWidth(), super.getVideoHeight(),
+							"N/A", super.getDuration());
+				}
+				else if (TrackInfo.MEDIA_TRACK_TYPE_AUDIO == type) {
+					retMediaInfo.setAudioChannelsInfo(audioId++, i, 
+							"N/A", lang, "");
+					
+				}
+				else if (TrackInfo.MEDIA_TRACK_TYPE_TIMEDTEXT == type) {
+					retMediaInfo.setSubtitleChannelsInfo(subtitleId++, i, 
+							"N/A", lang, "");	
+				}
+			}
+
+			Log.i("MeetPlayerHelper", "Java: trackinfo: " + sb.toString());
+		}
+		
+		retMediaInfo.setAudioChannels(audioId);
+		return retMediaInfo;
 	}
 }

@@ -1,6 +1,5 @@
 package com.pplive.epg;
 
-import java.awt.Dimension;
 import java.awt.Font;
 import java.awt.GridLayout;
 import java.awt.event.KeyEvent;
@@ -29,20 +28,23 @@ public class TabbedPaneDemo extends JPanel {
        //创建JTabbedPane
        JTabbedPane tp = new JTabbedPane();
        //创建标签显示的图标
-       ImageIcon ii = createImageIcon("images/label.png");  
+       ImageIcon iiVST = createImageIcon("images/label.png");  
+       ImageIcon iiBaidu = createImageIcon("images/baidu.png");  
+       ImageIcon iiBestv = createImageIcon("images/bestv.png");
+       ImageIcon iiPPTV = createImageIcon("images/pptv.png");  
+       ImageIcon iiSohu = createImageIcon("images/sohu.png");  
        
        Font f = new Font("宋体", 0, 20);
        
        PPTVPanel pptvPanel = new PPTVPanel();
        //LeTVPanel letvPanel = new LeTVPanel();
-       VstPanel vstPanel = new VstPanel();
-       //BestvPanel bestvPanel = new BestvPanel();
+       //VstPanel vstPanel = new VstPanel();
+       BestvPanel bestvPanel = new BestvPanel();
        SohuPanel sohuPanel = new SohuPanel();
        BaiduPanel baiduPanel = new BaiduPanel();
        
        //指定标签名，标签图标，panel，和提示信息
-       tp.setFont(f);
-       tp.addTab("PPTV", ii, pptvPanel, "聚力传媒");
+       tp.addTab("PPTV", iiPPTV, pptvPanel, "聚力传媒");
        //设置标签的快捷键
        tp.setMnemonicAt(0, KeyEvent.VK_0);
       
@@ -51,15 +53,15 @@ public class TabbedPaneDemo extends JPanel {
        //tp.setMnemonicAt(1, KeyEvent.VK_1);
  
        //第三个标签
-       tp.addTab("VST", ii, vstPanel, "全聚合");
-       tp.setMnemonicAt(1, KeyEvent.VK_2);
+       //tp.addTab("VST", iiVST, vstPanel, "全聚合");
+       //tp.setMnemonicAt(1, KeyEvent.VK_2);
        
        //第四个标签
-       //tp.addTab("Best TV", ii, bestvPanel, "百事通");
-       //tp.setMnemonicAt(3, KeyEvent.VK_3);
+       tp.addTab("Best TV", iiBestv, bestvPanel, "百事通");
+       tp.setMnemonicAt(1, KeyEvent.VK_3);
        
        //第五个标签
-       tp.addTab("SohuVideo", ii, sohuPanel, "搜狐视频");
+       tp.addTab("SohuVideo", iiSohu, sohuPanel, "搜狐视频");
        tp.setMnemonicAt(2, KeyEvent.VK_4);
        //设置合适的显示尺寸，这个是必须的，因为如果所有的标签都
        //不指定适合的显示尺寸，系统无法判断初始显示尺寸大小
@@ -67,7 +69,7 @@ public class TabbedPaneDemo extends JPanel {
        //tp.setPreferredSize(new Dimension(700,600));
  
        //第六个标签
-       tp.addTab("BaiduPan", ii, baiduPanel, "百度网盘");
+       tp.addTab("BaiduPan", iiBaidu, baiduPanel, "百度网盘");
        tp.setMnemonicAt(3, KeyEvent.VK_5);
        
        //将tabbedPanel添加到Jpanel中
@@ -77,7 +79,7 @@ public class TabbedPaneDemo extends JPanel {
        tp.setTabLayoutPolicy(JTabbedPane.SCROLL_TAB_LAYOUT);
        //设置标签停放的位置，这里设置为左侧停放
        tp.setTabPlacement(JTabbedPane.LEFT);
-      
+       tp.setSelectedIndex(3);
     }
 	
 	private JPanel createPanel(String string) {
@@ -96,7 +98,7 @@ public class TabbedPaneDemo extends JPanel {
 	}
 	
 	private ImageIcon createImageIcon(String string) {
-		URL url = TabbedPaneDemo.class.getResource(string);
+		URL url = this.getClass().getResource(string);
 		if (url == null) {
 			System.out.println("the image " + string + " is not exist!");
 			return null;

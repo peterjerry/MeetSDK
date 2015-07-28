@@ -37,12 +37,6 @@
 				android:layout_width="wrap_content"
 				android:layout_height="wrap_content"
 				android:text="snap"/>
-			<Button
-				android:id="@+id/btn_select_audiotrack"
-				android:layout_width="wrap_content"
-				android:layout_height="wrap_content"
-				android:text="track" 
-				android:visibility="gone" />
 		</LinearLayout>		
 		<LinearLayout  
 			android:layout_width="match_parent"  
@@ -97,6 +91,12 @@
 				android:layout_width="wrap_content"
 				android:layout_height="wrap_content"
 				android:text="menu" />
+			<Button
+				android:id="@+id/btn_select_audiotrack"
+				android:layout_width="wrap_content"
+				android:layout_height="wrap_content"
+				android:text="track" 
+				android:visibility="gone" />
 		</LinearLayout>
 		<ListView
 			android:layout_width="fill_parent"

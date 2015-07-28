@@ -1,0 +1,109 @@
+apply plugin: 'android-library'
+
+dependencies {
+    compile fileTree(dir: 'libs', include: '*.jar')
+}
+
+android {
+    compileSdkVersion 20
+    buildToolsVersion "20.0.0"
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_7
+        targetCompatibility JavaVersion.VERSION_1_7
+    }
+
+    sourceSets {
+        main {
+            manifest.srcFile 'AndroidManifest.xml'
+            java.srcDirs = ['src']
+            resources.srcDirs = ['src']
+            aidl.srcDirs = ['src']
+            renderscript.srcDirs = ['src']
+            res.srcDirs = ['res']
+            assets.srcDirs = ['assets']
+            jni.srcDirs = []
+            jniLibs.srcDirs = ['jni']
+        }
+
+        // Move the tests to tests/java, tests/res, etc...
+        instrumentTest.setRoot('tests')
+
+        // Move the build types to build-types/<type>
+        // For instance, build-types/debug/java, build-types/debug/AndroidManifest.xml, ...
+        // This moves them out of them default location under src/<type>/... which would
+        // conflict with src/ being used by the main source set.
+        // Adding new build types or product flavors should be accompanied
+        // by a similar customization.
+        debug.setRoot('build-types/debug')
+        release.setRoot('build-types/release')
+    }
+
+    lintOptions {
+        abortOnError false
+    }
+
+    task clearJar(type: Delete) {
+        delete 'build/outputs/MeetSDK.jar'
+    }
+
+    task copyJar(type: Copy) {
+        from('build/intermediates/bundles/release/')
+        into('build/outputs/')
+        include('classes.jar')
+        rename ('classes.jar', 'MeetSDK.jar')
+    }
+
+    task copyLib(type: Copy) {
+        from('libs/')
+        into('build/outputs/libs/')
+        include('**/*.so')
+    }
+
+    // call regular ndk-build(.cmd) script from app directory
+    task ndkBuild(type: Exec, description: 'Compile JNI source via NDK') {
+        workingDir file('./')
+        commandLine getNdkBuildCmd()
+    }
+
+    task cleanNative(type: Exec) {
+        workingDir file('./')
+        commandLine getNdkBuildCmd(), 'clean'
+    }
+
+    tasks.withType(JavaCompile) {
+        compileTask -> compileTask.dependsOn /*cleanNative, */ndkBuild
+    }
+
+    task dist(type: Zip, description: 'distribute zip file') {
+        destinationDir new File(buildDir, 'outputs')
+        baseName 'MeetSDK-3.3.9'
+        extension 'zip'
+        from(new File(buildDir, 'outputs')) { include 'libs/**/*.so' }
+        from(new File(buildDir, 'outputs')) { include 'MeetSDK.jar' }
+        into('/')
+    }
+
+    clean.dependsOn cleanNative
+
+    build.dependsOn(clearJar, copyJar, copyLib, dist)
+}
+
+def getNdkDir() {
+    if (System.env.ANDROID_NDK_ROOT != null)
+        return System.env.ANDROID_NDK_ROOT
+    Properties properties = new Properties()
+    properties.load(project.rootProject.file('local.properties').newDataInputStream())
+    def ndkdir = properties.getProperty('ndk.dir', null)
+    if (ndkdir == null)
+        throw new GradleException("NDK location not found. " +
+                "Define location with ndk.dir in the local.properties file or with an ANDROID_NDK_ROOT environment variable.")
+    return ndkdir
+}
+
+def getNdkBuildCmd() {
+    def ndkbuild = getNdkDir() + "/ndk-build"
+    //if (Os.isFamily(Os.FAMILY_WINDOWS))
+        ndkbuild += ".cmd"
+    return ndkbuild
+}

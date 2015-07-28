@@ -145,7 +145,7 @@ public:
      * 获取当前选择字幕语言
      * @param[out]  selected
     */
-    virtual bool getSelectedLanguage(int* selected) = 0;
+    virtual int getSelectedLanguage() = 0;
 
     /**
      * 设置字幕语言

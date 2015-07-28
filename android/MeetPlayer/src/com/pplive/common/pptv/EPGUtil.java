@@ -23,7 +23,6 @@ import org.json.JSONException;
 import org.json.JSONObject;
 import org.json.JSONTokener;
 
-
 import android.util.Log;
 
 public class EPGUtil { 
@@ -88,6 +87,16 @@ public class EPGUtil {
 			+ "&type=%d" // 156 地方台, 164 卫视
 			+ "&nowplay=1"
 			+ "&appid=com.pplive.androidphone&appver=4.1.3&appplt=aph";
+	
+	private final static String live_cdn_url_fmt = "http://play.api.pptv.com/boxplay.api?" +
+			"ft=1" +
+			"&platform=android3" +
+			"&type=phone.android.vip" +
+			"&sdk=1" +
+			"&channel=162" +
+			"&vvid=41" +
+			"&auth=55b7c50dc1adfc3bcabe2d9b2015e35c" +
+			"&id=%d";
 	
 	private final static String boxplay_prefix = "http://play.api.pptv.com/boxplay.api?" + 
 			"platform=android3&type=phone.android.vip&sv=4.0.1&param=";
@@ -785,6 +794,66 @@ public class EPGUtil {
 		return null;
 	}
 	
+	public CDNItem live_cdn(int vid) {
+		String url = String.format(live_cdn_url_fmt, vid);
+		Log.i(TAG, "Java: live_cdn() url: " + url);
+		
+		HttpGet request = new HttpGet(url);
+		
+		HttpResponse response;
+		try {
+			response = new DefaultHttpClient().execute(request);
+			if (response.getStatusLine().getStatusCode() != 200){
+				return null;
+			}
+			
+			String result = EntityUtils.toString(response.getEntity());
+			return parseLiveCdnUrlxml(result);
+		} catch (ClientProtocolException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+		return null;
+	}
+	
+	private CDNItem parseLiveCdnUrlxml(String xml) {
+		Log.d(TAG, "Java: epg parseLiveCdnUrlxml \n" + xml.replace("\n", ""));
+		
+		SAXBuilder builder = new SAXBuilder();
+		Reader returnQuote = new StringReader(xml);  
+        Document doc;
+		try {
+			doc = builder.build(returnQuote);
+			Element root = doc.getRootElement();
+			
+			String rid = root.getChild("channel").getAttributeValue("rid");
+			
+			Element d = root.getChildren("dt").get(0);
+			
+			String d_ft = d.getAttributeValue("ft");
+			String d_sh = d.getChild("sh").getText(); // main server
+			String d_bh = d.getChild("bh").getText(); // backup server
+			String d_st = d.getChild("st").getText(); // server time
+			String d_key = d.getChild("key").getText();
+			
+			CDNItem item = new CDNItem(d_ft, d_sh, d_st, d_bh, d_key, rid);	
+			return item;
+		}
+		catch (JDOMException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+        
+		return null;
+	}
+	
 	public String getCDNUrl(String link, String ft, boolean is_m3u8, boolean noVideo) {
 		Log.i(TAG, String.format("java: getCDNUrl() %s", link));
 		
@@ -855,7 +924,7 @@ public class EPGUtil {
 				String d_st = d.getChild("st").getText(); // server time
 				String d_key = d.getChild("key").getText();
 				
-				CDNItem item = new CDNItem(d_ft, d_sh, d_st, d_bh, d_key);
+				CDNItem item = new CDNItem(d_ft, d_sh, d_st, d_bh, d_key, ridList.get(i).m_rid);
 				itemList.add(item);
 			}
 			

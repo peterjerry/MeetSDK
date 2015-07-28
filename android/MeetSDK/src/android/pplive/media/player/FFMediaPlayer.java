@@ -3,6 +3,7 @@ package android.pplive.media.player;
 import java.io.FileDescriptor;
 import java.io.IOException;
 import java.lang.ref.WeakReference;
+import java.util.ArrayList;
 import java.util.Map;
 
 import android.content.Context;
@@ -396,13 +397,26 @@ public class FFMediaPlayer extends BaseMediaPlayer {
 	@Override
 	public void selectTrack(int index) throws IllegalStateException {
 		// TODO Auto-generated method stub
-		_selectAudioChannel(index);
+		LogUtils.info("selectTrack #" + index);
+		
+		MediaInfo info = this.getMediaInfo();
+		if (info == null)
+			_selectAudioChannel(index);
+		else {
+			ArrayList<android.pplive.media.player.TrackInfo> subtitleTrackInfo = info.getSubtitleChannelsInfo();
+			
+			if (subtitleTrackInfo != null && subtitleTrackInfo.size() > 0 && 
+					index >= subtitleTrackInfo.get(0).getStreamIndex())
+				_selectSubtitleChannel(index);
+			else
+				_selectAudioChannel(index);
+		}
 	}
 
 	@Override
 	public void deselectTrack(int index) throws IllegalStateException {
 		// TODO Auto-generated method stub
-
+		LogUtils.info("deselectTrack #" + index);
 	}
 	
 	@Override
@@ -413,7 +427,8 @@ public class FFMediaPlayer extends BaseMediaPlayer {
 	@Override
 	public native void setOption(String option);
 	
-	public MediaInfo getCurrentMediaInfo() {
+	@Override
+	public MediaInfo getMediaInfo() throws IllegalStateException {
 		MediaInfo info = new MediaInfo();
 		if (native_getCurrentMediaInfo(info))
 			return info;
@@ -435,6 +450,8 @@ public class FFMediaPlayer extends BaseMediaPlayer {
 	private native void _setAudioStreamType(int streamType);
 	
 	private native void _selectAudioChannel(int index);
+	
+	private native void _selectSubtitleChannel(int index);
 	
 	private native void _prepare() throws IOException, IllegalStateException;
 	

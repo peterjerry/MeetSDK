@@ -182,7 +182,7 @@ public final class MeetSDK {
 
 		return info;
 	}
-
+	
 	public static MediaInfo getMediaDetailInfo(String url) {
 		MediaInfo info = null;
 		
@@ -518,4 +518,8 @@ public final class MeetSDK {
     }
     
 	private MeetSDK() {}
+	
+	// for ts convert
+	public static native int Convert(byte[] in_flv, int in_size, byte[] out_ts, 
+			int process_timestamp, int first_seg);
 }

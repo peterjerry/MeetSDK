@@ -123,4 +123,6 @@ public interface MediaPlayerInterface {
 	public abstract DecodeMode getDecodeMode();
 
 	public abstract void setOption(String option);
+	
+	public abstract MediaInfo getMediaInfo() throws IllegalStateException;
 }

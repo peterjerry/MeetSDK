@@ -53,7 +53,7 @@
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>SAVE_LOG_FILE;_CRT_SECURE_NO_WARNINGS;CURL_STATICLIB;MARKUP_STL;WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <SDLCheck>true</SDLCheck>
-      <AdditionalIncludeDirectories>..\testSDLdlg;..\testEPG\libjsoncpp\include;..\testEPG\libcurl\include;..\testEPG;..\..\..\platform;D:\Archive\SDK\FFMPEG\ffmpeg-20140613-git-1c5aa64-win32\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\..\..\player;..\testSDLdlg;..\testEPG\libjsoncpp\include;..\testEPG\libcurl\include;..\testEPG;..\..\..\platform;D:\Archive\SDK\FFMPEG\ffmpeg-20140613-git-1c5aa64-win32\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -84,6 +84,7 @@
   <ItemGroup>
     <ClInclude Include="apBlockDownloader.h" />
     <ClInclude Include="apCDNItem.h" />
+    <ClInclude Include="apFormatConverter.h" />
     <ClInclude Include="apTsWriter.h" />
     <ClInclude Include="stdafx.h" />
     <ClInclude Include="targetver.h" />
@@ -93,6 +94,9 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="..\..\..\platform\utils.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="..\..\..\player\apFormatConverter.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="..\testEPG\apCatalog.cpp">

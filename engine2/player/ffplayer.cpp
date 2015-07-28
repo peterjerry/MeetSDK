@@ -24,6 +24,9 @@
 #include "ffrender.h"
 #include "autolock.h"
 #include "filesource.h"
+#ifdef USE_TS_CONVERT
+#include "apFormatConverter.h" // for ts converter
+#endif
 #ifdef __ANDROID__
 #include <cpu-features.h> // for get cpu core count
 #endif
@@ -48,7 +51,12 @@
 #ifdef __ANDROID__
 #include <jni.h>
 #include "platforminfo.h"
+#ifdef BUILD_ONE_LIB
+extern JavaVM* gs_jvm;
+extern int __pp_log_vprint(int prio, const char *tag, const char *fmt, va_list ap);
+#else
 JavaVM* gs_jvm = NULL;
+#endif
 PlatformInfo* platformInfo = NULL;
 LogFunc pplog = NULL;
 #endif
@@ -168,9 +176,13 @@ static void ff_log_callback(void* avcl, int level, const char* fmt, va_list vl);
 extern "C" IPlayer* getPlayer(void* context)
 {
 #ifdef __ANDROID__
+#ifdef BUILD_ONE_LIB
+	pplog = __pp_log_vprint;
+#else
     platformInfo = (PlatformInfo*)context;
     gs_jvm = (JavaVM*)(platformInfo->jvm);
-    pplog = (LogFunc)(platformInfo->pplog_func);
+	pplog = (LogFunc)(platformInfo->pplog_func); 
+#endif
 #endif
     return new FFPlayer();
 }
@@ -181,6 +193,17 @@ extern "C" void releasePlayer(IPlayer* player)
 		delete player;
 		player = NULL;
 	}
+}
+
+extern "C" bool my_convert(uint8_t* flv_data, int flv_data_size, uint8_t* ts_data, int *out_size, int process_timestamp, int first_seg)
+{
+	LOGI("my_convert()");
+#ifdef USE_TS_CONVERT
+	apFormatConverter converter;
+	return converter.convert(flv_data, flv_data_size, ts_data, out_size, process_timestamp, first_seg);
+#else
+	return false;
+#endif
 }
 
 FFPlayer::FFPlayer()
@@ -607,6 +630,22 @@ status_t FFPlayer::selectAudioChannel(int32_t index)
 	postSeekingEvent_l();
 	
 	ResetStatics();
+	return OK;
+}
+
+status_t FFPlayer::selectSubtitleChannel(int32_t index)
+{
+	LOGI("player op selectSubtitleChannel(%d)", index);
+
+	// now ONLY support same codec param subtitle selection
+
+	// verify if index is available
+	if (mDataStream->selectSubtitleChannel(index) != OK) {
+		LOGE("failed to call demux selectSubtitleChannel");
+		return ERROR;
+	}
+
+	LOGI("after demuxer selectSubtitleChannel");
 	return OK;
 }
 

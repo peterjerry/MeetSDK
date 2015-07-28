@@ -1,40 +1,47 @@
 package com.pplive.meetplayer.ui;
 
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.UnsupportedEncodingException;
-import java.net.HttpURLConnection;
-import java.net.URL;
-import java.net.URLEncoder;
-import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Calendar;
-import java.util.Date;
-import java.util.GregorianCalendar;
-import java.util.List;
-import java.util.Map;
-import java.util.Random;
-import java.util.StringTokenizer;
-
 import android.app.Activity;
+import android.app.AlertDialog;
+import android.app.Dialog;
 import android.app.ProgressDialog;
 import android.app.Service;
 import android.content.ComponentName;
-import android.content.Intent;
 import android.content.Context;
+import android.content.DialogInterface;
+import android.content.Intent;
 import android.content.ServiceConnection;
+import android.graphics.Bitmap;
+import android.graphics.Color;
 import android.graphics.PixelFormat;
 import android.graphics.Typeface;
+import android.graphics.drawable.Drawable;
+import android.media.AudioManager;
+import android.net.Uri;
+import android.net.wifi.WifiManager;
+import android.net.wifi.WifiManager.WifiLock;
+import android.os.AsyncTask;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
+import android.os.Handler;
 import android.os.IBinder;
+import android.os.Message;
+import android.pplive.media.MeetSDK;
+import android.pplive.media.player.MediaController.MediaPlayerControl;
+import android.pplive.media.player.MediaInfo;
+import android.pplive.media.player.MediaPlayer;
+import android.pplive.media.player.MediaPlayer.DecodeMode;
+import android.pplive.media.player.TrackInfo;
+import android.pplive.media.subtitle.SimpleSubTitleParser;
+import android.pplive.media.subtitle.SubTitleParser;
+import android.pplive.media.subtitle.SubTitleSegment;
+import android.text.ClipboardManager;
+import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.KeyEvent;
 import android.view.Menu;
-import android.view.SubMenu;
 import android.view.MenuItem;
+import android.view.SubMenu;
 import android.view.SurfaceHolder;
 import android.view.View;
 import android.view.View.OnFocusChangeListener;
@@ -47,38 +54,11 @@ import android.widget.ImageView;
 import android.widget.ListView;
 import android.widget.ProgressBar;
 import android.widget.RelativeLayout;
+import android.widget.TextView;
 import android.widget.TimePicker;
 import android.widget.Toast;
-import android.os.Build;
-import android.media.AudioManager;
-import android.graphics.Bitmap;
-import android.net.Uri;
-import android.net.wifi.WifiInfo;
-import android.net.wifi.WifiManager;
-import android.net.wifi.WifiManager.WifiLock;
-import android.os.AsyncTask;
-import android.widget.TextView;
-import android.graphics.drawable.Drawable;
-import android.graphics.Color;
-import android.util.DisplayMetrics; // for display width and height
-import android.content.DialogInterface;
-import android.app.AlertDialog;
-import android.app.Dialog;
 
-import com.pplive.meetplayer.R;
-
-import com.pplive.meetplayer.service.DLNAService;
-import com.pplive.meetplayer.util.AtvUtils;
-import com.pplive.meetplayer.util.DownloadAsyncTask;
-import com.pplive.meetplayer.util.FeedBackFactory;
-import com.pplive.meetplayer.util.FileFilterTest;
-import com.pplive.meetplayer.util.HttpPostUtil;
-import com.pplive.meetplayer.util.IDlnaCallback;
-import com.pplive.meetplayer.util.ListMediaUtil;
-import com.pplive.meetplayer.util.LoadPlayLinkUtil;
-import com.pplive.meetplayer.util.LogcatHelper;
-import com.pplive.meetplayer.util.Util;
-import com.pplive.meetplayer.ui.widget.MiniMediaController;
+import com.pplive.common.pptv.CDNItem;
 import com.pplive.common.pptv.Catalog;
 import com.pplive.common.pptv.Content;
 import com.pplive.common.pptv.EPGUtil;
@@ -90,29 +70,44 @@ import com.pplive.common.pptv.VirtualChannelInfo;
 import com.pplive.common.sohu.PlaylinkSohu;
 import com.pplive.common.sohu.PlaylinkSohu.SOHU_FT;
 import com.pplive.common.sohu.SohuUtil;
-import com.pplive.db.DBmanager;
-import com.pplive.db.MediaInfoEntry;
+import com.pplive.common.util.httpUtil;
 import com.pplive.dlna.DLNASdk;
-import com.pplive.dlna.DLNASdk.DLNASdkInterface;
-import com.pplive.dlna.DLNASdkDMSItemInfo;
-
-
-
-// for thread
-import android.os.Handler;  
-import android.os.Message;
-import android.pplive.media.MeetSDK;
-import android.pplive.media.player.MediaController.MediaPlayerControl;
-import android.pplive.media.player.MediaPlayer;
-import android.pplive.media.player.MediaInfo;
-import android.pplive.media.subtitle.SimpleSubTitleParser;
-import android.pplive.media.subtitle.SubTitleParser;
-import android.pplive.media.subtitle.SubTitleSegment;
-import android.pplive.media.player.TrackInfo;
-import android.pplive.media.player.MediaPlayer.DecodeMode;
-
+import com.pplive.meetplayer.R;
+import com.pplive.meetplayer.service.DLNAService;
+import com.pplive.meetplayer.ui.widget.MiniMediaController;
+import com.pplive.meetplayer.util.AtvUtils;
+import com.pplive.meetplayer.util.DownloadAsyncTask;
+import com.pplive.meetplayer.util.FeedBackFactory;
+import com.pplive.meetplayer.util.FileFilterTest;
+import com.pplive.meetplayer.util.HttpPostUtil;
+import com.pplive.meetplayer.util.IDlnaCallback;
+import com.pplive.meetplayer.util.ListMediaUtil;
+import com.pplive.meetplayer.util.LoadPlayLinkUtil;
+import com.pplive.meetplayer.util.LogcatHelper;
+import com.pplive.meetplayer.util.Util;
 import com.pplive.sdk.MediaSDK;
 import com.pplive.thirdparty.BreakpadUtil;
+
+import java.io.BufferedOutputStream;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.UnsupportedEncodingException;
+import java.net.HttpURLConnection;
+import java.net.URL;
+import java.net.URLDecoder;
+import java.net.URLEncoder;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Date;
+import java.util.GregorianCalendar;
+import java.util.List;
+import java.util.Map;
+import java.util.Random;
+
+// for thread
 
 public class ClipListActivity extends Activity implements
 		MediaPlayer.OnPreparedListener, MediaPlayer.OnCompletionListener,
@@ -124,8 +119,6 @@ public class ClipListActivity extends Activity implements
 	
     private final static String PORT_HTTP = "http";
     private final static String PORT_RTSP = "rtsp";
-		
-    private DBmanager dbManager;
     
 	private Button btnPlay;
 	private Button btnSelectTime;
@@ -154,8 +147,10 @@ public class ClipListActivity extends Activity implements
 	private TextView mProgressTextView;
 	private Dialog mUpdateDialog;
 	
+	private int screen_width, screen_height;
+	
 	private DecodeMode mDecMode = DecodeMode.AUTO;
-	private boolean mIsPreview	;
+	private boolean mIsPreview;
 	private boolean mIsLoop					= false;
 	private boolean mIsNoVideo					= false;
 	private boolean mTvduck					= true;
@@ -181,8 +176,9 @@ public class ClipListActivity extends Activity implements
 	
 	private String mPlayUrl;
 	private int mVideoWidth, mVideoHeight;
-	private int mAudioTrackNum = 4;
-	private int mAudioChannel = 1;
+	private int mAudioTrackCount 		= 0;
+	private int mAudioSelectedTrack 	= -1;
+	private int mAudioFirstTrack 		= -1;
 	private int mPlayerImpl = 0;
 	// subtitle
 	private SimpleSubTitleParser mSubtitleParser;
@@ -265,7 +261,7 @@ public class ClipListActivity extends Activity implements
 	final static int QUIT 						= Menu.FIRST + 4;
 	final static int OPTION_COMMON				= Menu.FIRST + 11;
 	final static int OPTION_DLNA_DMR			= Menu.FIRST + 12;
-	final static int OPTION_DLNA_DMS			= Menu.FIRST + 13;
+	final static int OPTION_BESTV_VIDEO			= Menu.FIRST + 13;
 	final static int OPTION_EPG_FRONTPAGE		= Menu.FIRST + 14;
 	final static int OPTION_EPG_CONTENT		= Menu.FIRST + 15;
 	final static int OPTION_EPG_SEARCH			= Menu.FIRST + 16;
@@ -325,13 +321,22 @@ public class ClipListActivity extends Activity implements
 		   
 		Log.i(TAG, "Java: onCreate()");
 		
-		dbManager = new DBmanager(this);
-		
 		// compatible with tvbox
-		if (getResources().getConfiguration().orientation == 1) 
+		/*if (getResources().getConfiguration().orientation == 1) 
 			isLandscape = false;
 		else
+			isLandscape = true;*/
+		
+		DisplayMetrics dm = new DisplayMetrics(); 
+		getWindowManager().getDefaultDisplay().getMetrics(dm); 
+		screen_width	= dm.widthPixels; 
+		screen_height	= dm.heightPixels;
+		Log.i(TAG, String.format("Java: screen %dx%d", screen_width, screen_height));
+		
+		if (screen_width > screen_height)
 			isLandscape = true;
+		else
+			isLandscape = false;
 		
 		if (isLandscape) {
 			setContentView(R.layout.list_landscape);
@@ -562,10 +567,8 @@ public class ClipListActivity extends Activity implements
 								}
 							}
 							else {
-								// todo
+								
 							}
-
-							dialog.dismiss();
 						}
 					})
 				.setNegativeButton("Cancel", null)
@@ -825,13 +828,7 @@ public class ClipListActivity extends Activity implements
 				
 				// TODO Auto-generated method stub
 				if (mPlayer != null) {
-					Log.i(TAG, "Java: trackinfo " + mPlayer.getMediaInfo());
-					
-					mAudioChannel++;
-					if (mAudioChannel > mAudioTrackNum)
-						mAudioChannel = 1;
-					// fixme!
-					mPlayer.selectTrack(mAudioChannel);
+					popupAudioTrackDialog();
 				}
 			}
 		});
@@ -1087,37 +1084,6 @@ public class ClipListActivity extends Activity implements
 			start_fullscreen_play(title, uri, mPlayerImpl);
 		}
 		else {
-			if (path.startsWith("file://") || path.startsWith("/")) {
-				// only get mediainfo from local file
-				MediaInfo info;
-				
-				info = MeetSDK.getMediaDetailInfo(path);
-				if (info != null) {
-					ArrayList<TrackInfo> audioTrackList = info.getAudioChannelsInfo();
-					for (TrackInfo trackInfo : audioTrackList) {
-						Log.i(TAG, String.format("Java: audio Trackinfo: streamindex #%d id %d, codec %s, lang %s, title %s", 
-							trackInfo.getStreamIndex(), 
-							trackInfo.getId(), 
-							trackInfo.getCodecName(), 
-							trackInfo.getLanguage(),
-							trackInfo.getTitle()));
-					}
-					
-					if (info.getAudioChannels() > 1)
-						btnSelectAudioTrack.setVisibility(View.VISIBLE);	
-					
-					ArrayList<TrackInfo> subtitleTrackList = info.getSubtitleChannelsInfo();
-					for (TrackInfo trackInfo : subtitleTrackList) {
-						Log.i(TAG, String.format("Java: subtitle Trackinfo: streamindex #%d id %d, codec %s, lang %s, title %s", 
-							trackInfo.getStreamIndex(), 
-							trackInfo.getId(), 
-							trackInfo.getCodecName(), 
-							trackInfo.getLanguage(),
-							trackInfo.getTitle()));
-					}
-				}
-			}
-			
 			if (DecodeMode.AUTO == mDecMode) {
 				mDecMode = MeetSDK.getPlayerType(mPlayUrl);
 				Log.i(TAG, "Java: mDecMode " + mDecMode.toString());
@@ -1172,31 +1138,20 @@ public class ClipListActivity extends Activity implements
 			mDMRcontrolling		= false;
 			imageDMR.setVisibility(View.GONE);
 			
-			boolean succeed = true;
+			boolean succeed = false;
 			try {
 				mPlayer.setDataSource(path);
+				mPlayer.prepareAsync();
+				succeed = true;
 			} catch (IllegalArgumentException e) {
 				// TODO Auto-generated catch block
-				succeed = false;
 				e.printStackTrace();
 			} catch (IllegalStateException e) {
 				// TODO Auto-generated catch block
-				succeed = false;
 				e.printStackTrace();
 			} catch (IOException e) {
 				// TODO Auto-generated catch block
-				succeed = false;
 				e.printStackTrace();
-			}
-			
-			try {
-				mPlayer.prepareAsync();
-			}
-			catch (IllegalStateException e) {
-				// TODO Auto-generated catch block
-				succeed = false;
-				e.printStackTrace();
-				Log.e(TAG, "Java: prepareAsync() exception: " + e.getMessage());
 			}
 			
 			if (succeed) {
@@ -1822,38 +1777,193 @@ public class ClipListActivity extends Activity implements
 		choose_subtitle_dlg.show();
 	}
 
-	private void popupDMSDlg() {
-		int dev_num = IDlnaCallback.mDMSmap.size();
+	private void testConvert() {
+		CDNItem liveitem = mEPG.live_cdn(300156);
+		if (liveitem != null) {
+			String block_url_fmt = "http://%s/live/074094e6c24c4ebbb4bf6a82f4ceabda/" +
+					"%d.block?ft=1&platform=android3" +
+					"&type=phone.android.vip&sdk=1" +
+					"&channel=162&vvid=41&k=%s";
+            
+            String st = liveitem.getST();
+            long start_time = new Date(st).getTime() / 1000;
+            start_time -= 45;
+            start_time -= (start_time % 5);
+            
+			String httpUrl = String.format(block_url_fmt, liveitem.getHost(), start_time, liveitem.getK());
+			Log.i(TAG, "Java: live flv block: " + httpUrl);
+			
+			String save_filepath = Environment.getExternalStorageDirectory().getAbsolutePath() + 
+					String.format("/%d.ts", start_time);
+			Log.i(TAG, "Java: transcode mpegts block: " + save_filepath);
+			byte[] in_flv = new byte[1048576];
+			
+			int in_size = httpUtil.httpDownloadBuffer(httpUrl, 1400, in_flv);
+			byte[] out_ts = new byte[1048576];
+			
+			StringBuffer sbHex = new StringBuffer();
+			for (int i=0;i<16;i++) {
+				sbHex.append(String.format("0x%02x ", in_flv[i]));
+			}
+			
+			byte[] header = new byte[4];
+			header[0] = in_flv[0];
+			header[1] = in_flv[1];
+			header[2] = in_flv[2];
+			header[3] = '\0';
+			String strHeader = "";
+			try {
+				strHeader = new String(header, "UTF-8");
+			} catch (UnsupportedEncodingException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+			
+			Log.i(TAG, "Java: flv file context " + sbHex.toString() + 
+					" , string: " + strHeader);
+
+			int out_size = MeetSDK.Convert(in_flv, in_size, out_ts, 0, 0);
+			Log.i(TAG, "Java: out_size " + out_size);
+
+			// save output ts file
+			saveFile(out_ts, out_size, save_filepath);
+		}
+	}
+	
+	private void saveFile(byte[] buffer, int size, String filePath) {
+		BufferedOutputStream bos = null;
+		FileOutputStream fos = null;
+		int offset = 0;
+		int left = size;
+		int chunk_size = 1024;
 		
-		if (dev_num == 0) {
-			Log.i(TAG, "Java: dlna no dms device found");
-			Toast.makeText(this, "no dlna dms device found", Toast.LENGTH_SHORT).show();
+		try {
+			File file = new File(filePath);
+			fos = new FileOutputStream(file);
+			bos = new BufferedOutputStream(fos);
+			while (left > 0) {
+				int towrite = chunk_size;
+				if (left < towrite)
+					towrite = left;
+				bos.write(buffer, offset, towrite);
+				
+				offset	+= towrite;
+				left	-= towrite;
+				//Log.i(TAG, "Java: ts write " + towrite);
+			}
+			
+			Log.i(TAG, "Java: total write file size " + offset);
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+			if (bos != null) {
+				try {
+					bos.close();
+				} catch (IOException e1) {
+					e1.printStackTrace();
+				}
+			}
+			if (fos != null) {
+				try {
+					fos.flush();
+					fos.close();
+				} catch (IOException e1) {
+					e1.printStackTrace();
+				}
+			}
+		}
+	}
+	
+	private void popupAudioTrackDialog() {
+		MediaInfo info = mPlayer.getMediaInfo();
+		if (info == null || info.getAudioChannels() == 0) {
+			Toast.makeText(this, "Cannot get audio track", Toast.LENGTH_SHORT).show();
 			return;
 		}
 		
-		ArrayList<String> dev_list = new ArrayList<String>();
-		ArrayList<String> uuid_list = new ArrayList<String>();
-		for (Object obj : IDlnaCallback.mDMSmap.keySet()){
-	          Object name = IDlnaCallback.mDMSmap.get(obj);
-	          Log.d(TAG, "Java: dlna [dlna dev] uuid: " + obj.toString() + " name: " + name.toString());
-	          uuid_list.add(obj.toString());
-	          dev_list.add(name.toString());
+		List<TrackInfo> trackList = info.getAudioChannelsInfo();
+		if (trackList == null || trackList.size() == 0) {
+			Toast.makeText(this, "Cannot get audio track info", Toast.LENGTH_SHORT).show();
+			return;
+		}
+		
+		ArrayList<String> lang_list = new ArrayList<String>();
+		
+		int c = trackList.size();
+		for (int i=0;i<c;i++) {
+			TrackInfo t = trackList.get(i);
+			String title = t.getTitle();
+    		String lang = t.getLanguage();
+    		
+    		String name;
+            if (title != null && !title.isEmpty())
+            	name = title;
+            else if (lang != null && !lang.isEmpty())
+            	name = lang;
+            else if (i == 0)
+            	name = "默认";
+            else
+            	name = "N/A";
+            
+            String desc = getTrackTitle(true, i, name);
+            
+            lang_list.add(desc);
 	    }
 		
-		final String[] str_dev_list = (String[])dev_list.toArray(new String[dev_list.size()]);
+		final String[] str_lang_list = (String[])lang_list.toArray(new String[lang_list.size()]);
 		
-		Dialog choose_dms_dlg = new AlertDialog.Builder(ClipListActivity.this)
-		.setTitle("select dms")
-		.setItems(str_dev_list, /*default selection item number*/
-			new DialogInterface.OnClickListener(){
+		Dialog choose_audio_track_dlg = new AlertDialog.Builder(ClipListActivity.this)
+		.setTitle("select audio track")
+		.setSingleChoiceItems(str_lang_list, mAudioSelectedTrack - mAudioFirstTrack, /*default selection item number*/
+			new DialogInterface.OnClickListener() {
 				public void onClick(DialogInterface dialog, int whichButton){
+					if (mAudioSelectedTrack == mAudioFirstTrack + whichButton)
+						return;
+					
+					mAudioSelectedTrack = mAudioFirstTrack + whichButton;
+
+					Log.i(TAG, "Java: selectTrack #" + mAudioSelectedTrack);
+					mPlayer.selectTrack(mAudioSelectedTrack);
+					Toast.makeText(ClipListActivity.this, 
+							"switch to audio #" + mAudioSelectedTrack + " 语言 " + str_lang_list[whichButton], 
+							Toast.LENGTH_SHORT).show();
 					
 					dialog.dismiss();
 				}
 			})
+		.setNegativeButton("Cancel", null)
 		.create();
-		choose_dms_dlg.show();	
+		choose_audio_track_dlg.show();	
 	}
+	
+	private String getTrackTitle(boolean isAudio, int position, String value) {
+        if ("eng".equals(value)) {
+            value = "英语";
+        }
+        else if ("chi".equals(value) || "chn".equals(value)) {
+            value = "汉语";
+        }
+        else if ("fra".equals(value)) {
+            value = "法语";
+        }
+        else if ("ita".equals(value)) {
+            value = "意大利语";
+        }
+        else if ("jpn".equals(value)) {
+            value = "日语";
+        }
+        else if ("spa".equals(value)) {
+            value = "西班牙语";
+        }
+        else if ("kor".equals(value)) {
+            value = "韩语";
+        }
+        else if ("rus".equals(value)) {
+            value = "俄语";
+        }
+        
+        return String.format("%s%d (%s)", isAudio?"音轨":"字幕", position + 1, value);
+    }
 	
 	private void push_cdn_clip() {
 		//mDLNA.EnableRendererControler(true);
@@ -2373,7 +2483,7 @@ public class ClipListActivity extends Activity implements
 		SubMenu commonMenu = OptSubMenu.addSubMenu(Menu.NONE, OPTION_COMMON, Menu.FIRST, "common");
 		// dlna
 		OptSubMenu.add(Menu.NONE, OPTION_DLNA_DMR, Menu.FIRST + 1, "dlna dmr");
-		//OptSubMenu.add(Menu.NONE, OPTION_DLNA_DMS, Menu.FIRST + 2, "dlna dms");
+		OptSubMenu.add(Menu.NONE, OPTION_BESTV_VIDEO, Menu.FIRST + 2, "bestv video");
 		// epg
 		OptSubMenu.add(Menu.NONE, OPTION_EPG_FRONTPAGE, Menu.FIRST + 3, "epg frontpage");
 		OptSubMenu.add(Menu.NONE, OPTION_EPG_CONTENT, Menu.FIRST + 4, "PPTV video");
@@ -2509,8 +2619,38 @@ public class ClipListActivity extends Activity implements
 		case OPTION_DLNA_DMR:
 			push_to_dmr();
 			break;
-		case OPTION_DLNA_DMS:
-			popupDMSDlg();
+		case OPTION_BESTV_VIDEO:
+			ClipboardManager cmb = (ClipboardManager)this.getSystemService(Context.CLIPBOARD_SERVICE);
+			if (cmb.hasText()) {
+				String strText = (String)cmb.getText();
+				Log.i(TAG, "Java: clipboard manager: " + strText);
+				// http://wechat.bestv.com.cn/activity/androidPlay.jsp
+				// ?playUrl=http%3A%2F%2Fwx.live.bestvcdn.com.cn%2Flive%2Fprogram%2Flive991%2Fweixinhddfws%2Findex.m3u8
+				// %3Fse%3Dweixin%26ct%3D1%26starttime%3D1437409560%26endtime%3D1437413340%26_cp
+				// %3D1%26_fk%3D4BE9666ECD5CA07A02A52EC9689B81621E354113967482965E8A7CC79F52A526
+				// &token=&t=%E4%B8%9C%E6%96%B9%E5%8D%AB%E8%A7%86%20%E6%9E%81%E9%99%90%E6%8C%91%E6%88%98%E7%AC%AC%E4%BA%94%E9%9B%86
+				// &seq=1&actcode=&tabIndex=1&topOffset=0&channelAbbr=dfws&type=0&channelCode=Umai:CHAN/1325@BESTV.SMG.SMG
+
+				int pos = strText.indexOf("?playUrl=");
+				String origin_url = strText.substring(pos + "?playUrl=".length());
+				try {
+					String decoded_url = URLDecoder.decode(origin_url, "UTF-8");
+
+					int pos1 = decoded_url.indexOf("&t=");
+					int pos2 = decoded_url.indexOf("&seq=");
+					if (pos1 > -1 && pos2 > -1) {
+						String play_url = decoded_url.substring(0, pos1) + decoded_url.substring(pos2);
+						Log.i(TAG, "Java: to play bestv url: " + play_url);
+						start_player("百事通视频", play_url);
+					}
+					else {
+						Toast.makeText(this, "解析百事通播放串失败", Toast.LENGTH_SHORT).show();
+					}
+				}
+				catch (UnsupportedEncodingException e) {
+					e.printStackTrace();
+				}
+			}
 			break;
 		case OPTION_EPG_FRONTPAGE:
 			if (!Util.IsHaveInternet(this)) {
@@ -2698,6 +2838,39 @@ public class ClipListActivity extends Activity implements
 		
 		mBufferingProgressBar.setVisibility(View.GONE);
 		mIsBuffering = false;
+		
+		// audio track(activate track info)
+		MediaInfo info = mp.getMediaInfo();
+		if (info != null) {
+			ArrayList<TrackInfo> audioTrackList = info.getAudioChannelsInfo();
+			if (audioTrackList != null && audioTrackList.size() > 0) {
+				for (TrackInfo trackInfo : audioTrackList) {
+					Log.i(TAG, String.format("Java: audio Trackinfo: streamindex #%d id %d, codec %s, lang %s, title %s", 
+						trackInfo.getStreamIndex(), 
+						trackInfo.getId(), 
+						trackInfo.getCodecName(), 
+						trackInfo.getLanguage(),
+						trackInfo.getTitle()));
+				}
+				
+				mAudioFirstTrack		= audioTrackList.get(0).getStreamIndex();
+				mAudioSelectedTrack		= mAudioFirstTrack;
+				mAudioTrackCount		= info.getAudioChannels();
+				
+				if (audioTrackList.size() > 1)
+					btnSelectAudioTrack.setVisibility(View.VISIBLE);
+			}
+			
+			ArrayList<TrackInfo> subtitleTrackList = info.getSubtitleChannelsInfo();
+			for (TrackInfo trackInfo : subtitleTrackList) {
+				Log.i(TAG, String.format("Java: subtitle Trackinfo: streamindex #%d id %d, codec %s, lang %s, title %s", 
+					trackInfo.getStreamIndex(), 
+					trackInfo.getId(), 
+					trackInfo.getCodecName(), 
+					trackInfo.getLanguage(),
+					trackInfo.getTitle()));
+			}
+		}
 		
 		// subtitle
 		if (mPlayUrl.startsWith("/")) {
@@ -2887,11 +3060,7 @@ public class ClipListActivity extends Activity implements
 		super.onResume();
 		
 		Log.i(TAG, "Java: onResume()");
-
-		DisplayMetrics dm = new DisplayMetrics(); 
-		getWindowManager().getDefaultDisplay().getMetrics(dm); 
-		int screen_width	= dm.widthPixels; 
-		int screen_height	= dm.heightPixels;
+		
 		if (!isLandscape) {
 			Log.i(TAG, String.format("screen %dx%d, preview height %d", screen_width, screen_height, preview_height));
 			

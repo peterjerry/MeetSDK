@@ -1717,4 +1717,10 @@ public class XOMediaPlayer extends BaseMediaPlayer {
 			mExtractor.unselectTrack(index);
 	}
 
+	@Override
+	public MediaInfo getMediaInfo() throws IllegalStateException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
 }

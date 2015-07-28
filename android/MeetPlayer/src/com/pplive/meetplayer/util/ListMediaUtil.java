@@ -118,6 +118,8 @@ public class ListMediaUtil {
 		
 		sbMediaInfo.append(", f:");
 		String strFormat = info.getFormatName();
+		if (strFormat == null)
+			strFormat = "N/A";
 		if (strFormat.length() > 6)
 			strFormat = strFormat.substring(0, 6);
 		sbMediaInfo.append(strFormat);
@@ -128,44 +130,45 @@ public class ListMediaUtil {
 		}
 		
 		ArrayList<TrackInfo> audiolist = info.getAudioChannelsInfo();
-		if (audiolist.size() > 0) {
+		if (audiolist != null && audiolist.size() > 0) {
 			sbMediaInfo.append(", a:");
+			for (int i=0;i<audiolist.size();i++) {
+				TrackInfo item = audiolist.get(i);
+				sbMediaInfo.append(item.getCodecName());
+				sbMediaInfo.append("(");
+				
+				if(item.getTitle() != null) {
+					sbMediaInfo.append(item.getTitle());
+				}
+				else if(item.getLanguage() != null) {
+					sbMediaInfo.append(item.getLanguage());
+				}
+				else {
+					sbMediaInfo.append("默认");
+				}
+				sbMediaInfo.append(")|");
+			}
 		}
-		for (int i=0;i<audiolist.size();i++) {
-			TrackInfo item = audiolist.get(i);
-			sbMediaInfo.append(item.getCodecName());
-			sbMediaInfo.append("(");
-			
-			if(item.getTitle() != null) {
-				sbMediaInfo.append(item.getTitle());
-			}
-			else if(item.getLanguage() != null) {
-				sbMediaInfo.append(item.getLanguage());
-			}
-			else {
-				sbMediaInfo.append("默认");
-			}
-			sbMediaInfo.append(")|");
-		}
+		
 		ArrayList<TrackInfo> subtitlelist = info.getSubtitleChannelsInfo();
-		if (subtitlelist.size() > 0) {
+		if (subtitlelist != null && subtitlelist.size() > 0) {
 			sbMediaInfo.append(", s:");
-		}
-		for (int i=0;i<subtitlelist.size();i++) {
-			TrackInfo item = subtitlelist.get(i);
-			sbMediaInfo.append(item.getCodecName());
-			sbMediaInfo.append("(");
-			
-			if(item.getTitle() != null) {
-				sbMediaInfo.append(item.getTitle());
+			for (int i=0;i<subtitlelist.size();i++) {
+				TrackInfo item = subtitlelist.get(i);
+				sbMediaInfo.append(item.getCodecName());
+				sbMediaInfo.append("(");
+				
+				if(item.getTitle() != null) {
+					sbMediaInfo.append(item.getTitle());
+				}
+				else if(item.getLanguage() != null) {
+					sbMediaInfo.append(item.getLanguage());
+				}
+				else {
+					sbMediaInfo.append("默认");
+				}
+				sbMediaInfo.append(")|");
 			}
-			else if(item.getLanguage() != null) {
-				sbMediaInfo.append(item.getLanguage());
-			}
-			else {
-				sbMediaInfo.append("默认");
-			}
-			sbMediaInfo.append(")|");
 		}
 		
 		return sbMediaInfo.toString();

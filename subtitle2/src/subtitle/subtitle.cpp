@@ -57,7 +57,7 @@ public:
     virtual bool getLanguageName(int language, char* name);
     virtual bool getLanguageCode(int language, char* code);
     virtual int  getLanguageFlags(int language);
-    virtual bool getSelectedLanguage(int* selected);
+    virtual int  getSelectedLanguage();
     virtual bool setSelectedLanguage(int selected);
     virtual bool getSubtitleSegment(int64_t time, STSSegment** segment);
     virtual bool seekTo(int64_t time);
@@ -75,24 +75,24 @@ protected:
 	
     CSimpleTextSubtitle* getSelectedSimpleTextSubtitle()
     {
-		LOGD("getSelectedSimpleTextSubtitle mSubtitles size: %d", mSubtitles.size());
-		LOGD("getSelectedSimpleTextSubtitle mSelected: %d", mSelected);
-        if (mSelected >= 0 && mSelected < mSubtitles.size()) {
-            return mSubtitles[mSelected];
+        if (mSelectedTrackIdx >= 0 && mSelectedTrackIdx < mSubtitles.size()) {
+            return mSubtitles[mSelectedTrackIdx];
         }
+
         return NULL;
     }
 
     ASS_Library*  mAssLibrary;
     std::vector<CSimpleTextSubtitle*>  mSubtitles;
-    int           mSelected;
+    int           mSelectedTrackIdx;
 };
 
 CSubtitleManager::CSubtitleManager()
 {
     mAssLibrary = ass_library_init();
 	ass_set_message_cb(mAssLibrary, ass_log, this);
-    mSelected = 0;
+
+    mSelectedTrackIdx = -1;
 }
 
 CSubtitleManager::~CSubtitleManager()
@@ -161,6 +161,7 @@ bool CSubtitleManager::getLanguageName(int language, char* name)
 
 bool CSubtitleManager::getLanguageCode(int language, char* code)
 {
+	// not implement
     return false;
 }
 
@@ -169,31 +170,28 @@ int  CSubtitleManager::getLanguageFlags(int language)
     return 0;
 }
 
-bool CSubtitleManager::getSelectedLanguage(int* selected)
+int CSubtitleManager::getSelectedLanguage()
 {
-    if (!selected) {
-        return false;
-    }
-
-    if (mSelected >= 0 && mSelected < mSubtitles.size()) {
-        *selected = mSelected;
-        return true;
-    }
-
-    return false;
+	if (mSelectedTrackIdx >= 0 && mSelectedTrackIdx < mSubtitles.size()) 
+        return mSelectedTrackIdx;
+    
+	return -1;
 }
 
 bool CSubtitleManager::setSelectedLanguage(int selected)
 {
     if (selected < 0 && selected >= mSubtitles.size()) {
+		LOGE("failed to setSelectedLanguage sel: %d, size %d", selected, mSubtitles.size());
         return false;
-    }
-    mSelected = selected;
+	}
+
+    mSelectedTrackIdx = selected;
     return true;
 }
 
 bool CSubtitleManager::getSubtitleSegment(int64_t time, STSSegment** segment)
 {
+	// not implement
     return false;
 }
 
@@ -218,7 +216,7 @@ bool CSubtitleManager::getNextSubtitleSegment(STSSegment** segment)
 		return false;
     }
 
-	//mSelected ++;
+	//mSelectedTrackIdx ++;
 	return subtitle->getNextSubtitleSegment(segment);
 }
 
@@ -246,7 +244,10 @@ bool CSubtitleManager::loadSubtitle(const char* fileName, bool isMediaFile)
     subtitle->seekTo(0);
 
     mSubtitles.push_back(subtitle);
-
+	
+	// activate track
+	mSelectedTrackIdx = 0;
+	
     return true;
 }
 
@@ -292,6 +293,8 @@ int  CSubtitleManager::getSubtitleIndex(const char* fileName)
 int CSubtitleManager::addEmbeddingSubtitle(SubtitleCodecId codecId, const char* langCode, const char* langName,
     const char* extraData, int dataLen)
 {
+	LOGI("addEmbeddingSubtitle() codedId %d, langCode %s, langName %s, datalen %d", codecId, langCode, langName, dataLen);
+
     CSimpleTextSubtitle* subtitle = new CSimpleTextSubtitle(mAssLibrary);
     if (!subtitle) {
         return -1;
@@ -302,8 +305,14 @@ int CSubtitleManager::addEmbeddingSubtitle(SubtitleCodecId codecId, const char* 
         delete subtitle;
         return -1;
     }
+
     mSubtitles.push_back(subtitle);
-	LOGD("addEmbeddingSubtitle push_back = %d", mSubtitles.size());
+	LOGI("addEmbeddingSubtitle size: %d", mSubtitles.size());
+
+	// select 1st track by default
+	if (mSelectedTrackIdx == -1)
+		mSelectedTrackIdx = 0;
+
     return mSubtitles.size() - 1;
 }
 

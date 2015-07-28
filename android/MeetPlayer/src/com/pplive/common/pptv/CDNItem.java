@@ -7,6 +7,7 @@ public class CDNItem {
 	private String m_st;
 	private String m_bh;
 	private String m_ft;
+	private String m_rid;
 	
 	private String m_key;
 	
@@ -15,12 +16,13 @@ public class CDNItem {
 		
 	}
 	
-	public CDNItem(String ft, String sh, String st, String bh, String key) {
+	public CDNItem(String ft, String sh, String st, String bh, String key, String rid) {
 		m_ft			= ft;
 		m_sh			= sh;
 		m_st			= st;
 		m_bh			= bh;
 		m_key			= key;
+		m_rid			= rid;
 	}
 	
 	@SuppressWarnings("deprecation")
@@ -38,5 +40,13 @@ public class CDNItem {
 	
 	public String getHost() {
 		return m_sh;
+	}
+	
+	public String getST() {
+		return m_st;
+	}
+	
+	public String getRid() {
+		return m_rid;
 	}
 }
