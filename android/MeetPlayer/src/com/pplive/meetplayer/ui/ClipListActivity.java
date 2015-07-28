@@ -2856,7 +2856,9 @@ public class ClipListActivity extends Activity implements
 				mAudioFirstTrack		= audioTrackList.get(0).getStreamIndex();
 				mAudioSelectedTrack		= mAudioFirstTrack;
 				mAudioTrackCount		= info.getAudioChannels();
-				btnSelectAudioTrack.setVisibility(View.VISIBLE);
+				
+				if (audioTrackList.size() > 1)
+					btnSelectAudioTrack.setVisibility(View.VISIBLE);
 			}
 			
 			ArrayList<TrackInfo> subtitleTrackList = info.getSubtitleChannelsInfo();

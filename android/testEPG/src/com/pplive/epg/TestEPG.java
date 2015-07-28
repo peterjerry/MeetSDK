@@ -31,13 +31,13 @@ public class TestEPG {
 		JFrame frame = new JFrame("电视鸭");
 		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
-		frame.add(new TabbedPaneDemo());
+		/*frame.add(new TabbedPaneDemo());
 		frame.pack();
 		frame.setBounds(400, 300, 750, 600);
 		
-		frame.setVisible(true);
+		frame.setVisible(true);*/
 		
-		/*frame.setLayout(null);
+		frame.setLayout(null);
 		
 		Font f = new Font("宋体", 0, 18);
 		String []strManuel = {"上下左右 - 上下左右", "Ctrl键 - 退出", "Enter - 进入", 
@@ -47,7 +47,7 @@ public class TestEPG {
 			lblManual.setFont(f);
 			lblManual.setBounds(20, 60 + i * 40, 300, 40);
 			frame.add(lblManual);
-		}*/
+		}
 		
 		/*
 		JLabel lblIpAddr = new JLabel("ip");
@@ -68,10 +68,6 @@ public class TestEPG {
 		editPort.setBounds(190, 40, 50, 20);
 		frame.add(editPort);*/
 		
-		/*final JLabel lblInfo = new JLabel("信息");
-		lblInfo.setBounds(20, 300, 300, 40);
-		frame.add(lblInfo);
-		
 		/*final JButton btnRun = new JButton("连接");
 		btnRun.setFont(f);
 		btnRun.setBounds(260, 30, 80, 40);
@@ -91,8 +87,12 @@ public class TestEPG {
 		});
 		frame.add(btnRun);*/
 		
-		/*final String ip_addr = "192.168.200.63"; // editIPAddr.getText();
-		final int port = 50609; //Integer.valueOf(editPort.getText());
+		final JLabel lblInfo = new JLabel("信息");
+		lblInfo.setBounds(20, 300, 300, 40);
+		frame.add(lblInfo);
+		
+		final String ip_addr = "192.168.200.63"; // editIPAddr.getText();
+		final int port = 41987; //Integer.valueOf(editPort.getText());
 		con = new MyBoxController(ip_addr, port);
 		
 		if (!con.connect()) {
@@ -161,7 +161,7 @@ public class TestEPG {
 				System.out.println("Java: keyTyped " + e.getKeyCode());
 			}
 			
-		});*/
+		});
 	}
 	
 	
