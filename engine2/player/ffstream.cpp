@@ -846,7 +846,7 @@ void FFStream::thread_impl()
             ts.tv_sec = 0;
             ts.tv_nsec = 10000000; // 10 msec
             AutoLock autoLock(&mLock);
-#if defined(__CYGWIN__) || defined(_MSC_VER)
+#if defined(__CYGWIN__) || defined(_MSC_VER) || defined(__aarch64__)
 			int64_t now_usec = getNowUs();
 			int64_t now_sec = now_usec / 1000000;
 			now_usec = now_usec - now_sec * 1000000;
@@ -982,7 +982,7 @@ void FFStream::thread_impl()
 						ts.tv_sec = 0;
 						ts.tv_nsec = 100000000ll; // 100 msec
 						AutoLock autoLock(&mLock);
-#if defined(__CYGWIN__) || defined(_MSC_VER)
+#if defined(__CYGWIN__) || defined(_MSC_VER) || defined(__aarch64__)
 						int64_t now_usec = getNowUs();
 						int64_t now_sec = now_usec / 1000000;
 						now_usec = now_usec - now_sec * 1000000;
@@ -1082,7 +1082,7 @@ void FFStream::thread_impl()
                 ts.tv_sec = 0;
                 ts.tv_nsec = 10000000; // 10 msec
 				AutoLock autoLock(&mLock);
-#if defined(__CYGWIN__) || defined(_MSC_VER)
+#if defined(__CYGWIN__) || defined(_MSC_VER) || defined(__aarch64__)
 				int64_t now_usec = getNowUs();
 				int64_t now_sec = now_usec / 1000000;
 				now_usec = now_usec - now_sec * 1000000;

@@ -1,14 +1,18 @@
 package com.pplive.dlna;
 
+import android.util.Log;
+
 public class DLNASdk
 {
 	private boolean mIsLoadSuccess = true;
 	public DLNASdk() 
 	{
-		try {System.loadLibrary("dlna");}
+		try {
+			System.loadLibrary("dlna");
+		}
 		catch (Throwable e)
 		{
-			//Log.d("DLNASdk_jni", e.toString());
+			Log.e("DLNASdk_jni", e.toString());
 			mIsLoadSuccess = false;
 		}
 	}

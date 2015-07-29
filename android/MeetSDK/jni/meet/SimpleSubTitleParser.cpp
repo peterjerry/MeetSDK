@@ -98,15 +98,15 @@ const jstring cstr2jstr(JNIEnv* env, const char* cstr)
 static
 ISubtitles* getSubTitleParser(JNIEnv* env, jobject thiz)
 {
-	ISubtitles* p = (ISubtitles*)env->GetIntField(thiz, gFields.context);
+	ISubtitles* p = (ISubtitles *)env->GetLongField(thiz, gFields.context);
 	return p;
 }
 
 static
 ISubtitles* setSubTitleParser(JNIEnv* env, jobject thiz, ISubtitles* parser)
 {
-	ISubtitles* old = (ISubtitles*)env->GetIntField(thiz, gFields.context);
-	env->SetIntField(thiz, gFields.context, (int)parser);
+	ISubtitles* old = (ISubtitles *)env->GetLongField(thiz, gFields.context);
+	env->SetLongField(thiz, gFields.context, (int64_t)parser);
 	return old;
 }
 
@@ -167,7 +167,7 @@ Java_android_pplive_media_subtitle_SimpleSubTitleParser_native_1init(JNIEnv* env
 		return;
 	}
 
-	gFields.context = env->GetFieldID(clazz, "mNativeContext", "I");
+	gFields.context = env->GetFieldID(clazz, "mNativeContext", "J");
 	if (gFields.context == NULL)
 	{
 		JNU_ThrowByName(env, "java/lang/IllegalStateException", "Field not found.");

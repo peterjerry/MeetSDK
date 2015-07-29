@@ -9,6 +9,9 @@
 #include "autolock.h"
 #ifdef __ANDROID__
 #include <cpu-features.h> // for decide render implement
+#ifdef __aarch64__
+#include "libyuv/row.h"
+#endif
 #endif
 
 #ifdef RENDER_RGB565
@@ -16,6 +19,15 @@ extern "C" {
 #include "yuv2rgb.h" // new implement
 }
 #include "yuv2rgb565.h" // from strongplayer
+#endif
+
+#ifdef __aarch64__
+// Convert I420 to ARGB.
+static int I420ToABGR(const uint8_t* src_y, int src_stride_y,
+               const uint8_t* src_u, int src_stride_u,
+               const uint8_t* src_v, int src_stride_v,
+               uint8_t* dst_argb, int dst_stride_argb,
+               int width, int height);
 #endif
 
 #ifdef _MSC_VER
@@ -84,6 +96,11 @@ status_t FFRender::render(AVFrame* frame)
 	{
 		return render_sws(frame);
 	}
+#elif defined(__aarch64__)
+	if (mFrameFormat == AV_PIX_FMT_YUV420P)
+		return render_neon(frame);
+	else
+		return render_sws(frame);
 #else // android_x86 implement
 	return render_sws(frame);
 #endif
@@ -95,7 +112,7 @@ status_t FFRender::render(AVFrame* frame)
 // for android neon accelerate
 status_t FFRender::render_neon(AVFrame* frame)
 {
-#if defined(__ANDROID__) && defined(__arm__)
+#ifdef __ANDROID__
 	void* surfacePixels = NULL;
 	if (Surface_getPixels(mNativeWindow, &mSurfaceWidth, &mSurfaceHeight, &mSurfaceStride, &surfacePixels) != OK)
 		return ERROR;
@@ -118,6 +135,7 @@ status_t FFRender::render_neon(AVFrame* frame)
 			// 2015.4.24 guoliangma modify mSurfaceStride to mSurfaceWidth
 			// fix crash when play some small res clip then play big res clip 
 			if ((int)mSurfaceWidth >= frame->width && (int)mSurfaceHeight >= frame->height) {
+#ifdef __arm__
 #ifdef RENDER_RGB565
 				/*yuv420_2_rgb565((uint8_t *)surfacePixels, 
 					frame->data[0], frame->data[1], frame->data[2],
@@ -139,7 +157,14 @@ status_t FFRender::render_neon(AVFrame* frame)
 				struct yuv_pack out = {surfacePixels, (int32_t)mSurfaceStride * 4};
 				struct yuv_planes in = {frame->data[0], frame->data[1], frame->data[2], frame->linesize[0]};
 				i420_rgb_neon(&out, &in, frame->width, frame->height);
-#endif
+#endif // end of RENDER_RGB565
+#else // __aarch64__
+				I420ToABGR(frame->data[0], frame->linesize[0],
+					frame->data[1], frame->linesize[1],
+					frame->data[2], frame->linesize[2],
+					(uint8_t *)surfacePixels, mSurfaceStride * 4,
+					frame->width, frame->height);
+#endif // end of __arm__
 			}
 			else {
 				LOGW("surface memory is too small: surf_w %d, surf_h %d, surf_stride %d, frame_w %d, frame_h %d", 
@@ -149,6 +174,7 @@ status_t FFRender::render_neon(AVFrame* frame)
 
 			break;
 		}
+#ifdef __arm__ // only supported in armeabi
 	case AV_PIX_FMT_NV12:
 		{
 			struct yuv_pack out = {surfacePixels, (int32_t)mSurfaceStride * 4};
@@ -163,6 +189,7 @@ status_t FFRender::render_neon(AVFrame* frame)
 			nv21_rgb_neon (&out, &in, frame->width, frame->height);
 			break;
 		}
+#endif
 	default:
 		LOGE("Video output format:%d does not support", mFrameFormat);
 		return ERROR;
@@ -406,3 +433,26 @@ void FFRender::saveFrameRGB(void* data, int stride, int height, char* path)
 	fwrite(data, 1, stride*height, pFile);
 	fclose(pFile);
 }
+
+#ifdef __aarch64__
+// Convert I420 to ARGB.
+static int I420ToABGR(const uint8_t* src_y, int src_stride_y,
+               const uint8_t* src_u, int src_stride_u,
+               const uint8_t* src_v, int src_stride_v,
+               uint8_t* dst_argb, int dst_stride_argb,
+               int width, int height)
+{
+	int y;
+	for (y = 0; y < height; ++y) {
+		libyuv::I422ToABGRRow_NEON(src_y, src_u, src_v, dst_argb, width);
+		dst_argb += dst_stride_argb;
+		src_y += src_stride_y;
+		if (y & 1) {
+			src_u += src_stride_u;
+			src_v += src_stride_v;
+		}
+	}
+	return 0;
+}
+#endif
+

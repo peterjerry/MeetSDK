@@ -20,8 +20,8 @@ import android.pplive.media.player.MediaPlayer.DecodeMode;
 
 public class FFMediaPlayer extends BaseMediaPlayer {
 
-	private int mNativeContext; // ISubtitle ctx, accessed by native methods
-	private int mListenerContext; // accessed by native methods
+	private long mNativeContext; // ISubtitle ctx, accessed by native methods
+	private long mListenerContext; // accessed by native methods
 	
 	private static String libPath = "";
 	private static boolean libLoaded = false;
