@@ -112,7 +112,9 @@ status_t FFRender::render(AVFrame* frame)
 // for android neon accelerate
 status_t FFRender::render_neon(AVFrame* frame)
 {
-#ifdef __ANDROID__
+#if !defined(__ANDROID__) || defined(__i386__) || defined(__x86_64__)
+	return ERROR;
+#else
 	void* surfacePixels = NULL;
 	if (Surface_getPixels(mNativeWindow, &mSurfaceWidth, &mSurfaceHeight, &mSurfaceStride, &surfacePixels) != OK)
 		return ERROR;
@@ -223,8 +225,6 @@ status_t FFRender::render_neon(AVFrame* frame)
 	saveFrameRGB(mSurfaceFrame->data[0], mSurfaceFrame->linesize[0], mOptiSurfaceHeight, path);
 	*/
 	return OK;
-#else
-	return ERROR;
 #endif
 }
 
