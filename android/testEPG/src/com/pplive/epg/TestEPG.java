@@ -4,6 +4,10 @@ import java.awt.Font;
 import java.awt.event.ActionEvent;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.net.InetSocketAddress;
@@ -31,13 +35,13 @@ public class TestEPG {
 		JFrame frame = new JFrame("电视鸭");
 		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
-		/*frame.add(new TabbedPaneDemo());
+		frame.add(new TabbedPaneDemo());
 		frame.pack();
 		frame.setBounds(400, 300, 750, 600);
 		
-		frame.setVisible(true);*/
+		frame.setVisible(true);
 		
-		frame.setLayout(null);
+		/*frame.setLayout(null);
 		
 		Font f = new Font("宋体", 0, 18);
 		String []strManuel = {"上下左右 - 上下左右", "Ctrl键 - 退出", "Enter - 进入", 
@@ -49,55 +53,23 @@ public class TestEPG {
 			frame.add(lblManual);
 		}
 		
-		/*
-		JLabel lblIpAddr = new JLabel("ip");
-		lblIpAddr.setBounds(20, 40, 30, 20);
-		frame.add(lblIpAddr);
-		
-		final JTextPane editIPAddr = new JTextPane();
-		editIPAddr.setText("192.168.200.63");
-		editIPAddr.setBounds(40, 40, 100, 20);
-		frame.add(editIPAddr);
-		
-		JLabel lblPort = new JLabel("port");
-		lblPort.setBounds(160, 40, 80, 20);
-		frame.add(lblPort);
-		
-		final JTextPane editPort = new JTextPane();
-		editPort.setText("50609");
-		editPort.setBounds(190, 40, 50, 20);
-		frame.add(editPort);*/
-		
-		/*final JButton btnRun = new JButton("连接");
-		btnRun.setFont(f);
-		btnRun.setBounds(260, 30, 80, 40);
-		btnRun.addActionListener(new AbstractAction() {
-			public void actionPerformed(ActionEvent e) {
-				final String ip_addr = "192.168.200.63"; // editIPAddr.getText();
-				final int port = 50609; //Integer.valueOf(editPort.getText());
-				con = new MyBoxController(ip_addr, port);
-				
-				if (!con.connect()) {
-					lblInfo.setText("连接失败！");
-					return;
-				}
-				
-				lblInfo.requestFocus();
-			}
-		});
-		frame.add(btnRun);*/
-		
 		final JLabel lblInfo = new JLabel("信息");
 		lblInfo.setBounds(20, 300, 300, 40);
 		frame.add(lblInfo);
 		
-		final String ip_addr = "192.168.200.63"; // editIPAddr.getText();
-		final int port = 41987; //Integer.valueOf(editPort.getText());
+		String strCfg = readFileContent("config.txt");
+		int pos = strCfg.indexOf(":");
+		if (pos == -1) {
+			lblInfo.setText(" 获取配置文件失败！");
+		}
+		
+		String ip_addr = strCfg.substring(0, pos); // "192.168.200.63"
+		int port = Integer.valueOf(strCfg.substring(pos + 1)); // 46891
+		
 		con = new MyBoxController(ip_addr, port);
 		
 		if (!con.connect()) {
 			lblInfo.setText("连接失败！");
-			return;
 		}
 		
 		frame.setBounds(400, 400, 400, 400);
@@ -161,8 +133,40 @@ public class TestEPG {
 				System.out.println("Java: keyTyped " + e.getKeyCode());
 			}
 			
-		});
+		});*/
 	}
 	
+	private static String readFileContent(String fileName) {
+		BufferedReader bf = null;
+		StringBuilder sb = new StringBuilder();
+		
+		try {
+			File file = new File(fileName);
+			bf = new BufferedReader(new FileReader(file));
+			String content = "";
+			while(content != null) {
+				content = bf.readLine();
+				if (content == null)
+					break;
+				
+				sb.append(content.trim());
+			}
+		}
+		catch (IOException e) {
+			e.printStackTrace();
+		}
+		finally {
+			if (bf != null) {
+				try {
+					bf.close();
+				} catch (IOException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+			}
+		}
+		
+		return sb.toString(); 
+	}
 	
 }

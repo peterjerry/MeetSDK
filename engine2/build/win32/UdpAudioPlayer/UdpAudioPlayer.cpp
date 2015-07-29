@@ -182,13 +182,19 @@ static int decode_packet(int *got_frame, int cached)
 {
     int ret = 0;
 
-	if (pkt.stream_index == audio_stream_idx) {
+	if (pkt.stream_index != audio_stream_idx)
+		return 0;
+
+	while (1) {
         /* decode audio frame */
         ret = avcodec_decode_audio4(audio_dec_ctx, frame, got_frame, &pkt);
         if (ret < 0) {
             fprintf(stderr, "Error decoding audio frame\n");
             return ret;
         }
+
+		pkt.data += ret;
+        pkt.size -= ret;
 
         if (*got_frame) {
             printf("audio_frame%s n:%d nb_samples:%d pts:%.3f sec\r",
@@ -218,6 +224,10 @@ static int decode_packet(int *got_frame, int cached)
 				//printf("swr output: sample:%d, size:%d, written %d\n", sampleCountOutput, audio_buffer_size, written);
 			}
         }
+
+		/* packet has no more data, decode next packet. */
+		if (pkt.size <= 0)
+			break;
     }
 
     return ret;
