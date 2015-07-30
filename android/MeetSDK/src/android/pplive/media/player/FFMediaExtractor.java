@@ -106,5 +106,5 @@ public class FFMediaExtractor implements MediaExtractable {
 	
 	private native void setup(Object mediaplayer_this);
 	
-	private int mNativeContext;
+	private long mNativeContext;
 }

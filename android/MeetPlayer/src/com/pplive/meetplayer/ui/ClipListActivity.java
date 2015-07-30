@@ -3089,7 +3089,7 @@ public class ClipListActivity extends Activity implements
 	protected void onDestroy() {
 		super.onDestroy();
 		
-		unbindService(dlna_conn);
+		//unbindService(dlna_conn);
 		Log.i(TAG, "Java: onDestroy()");
 	}
 
@@ -3136,7 +3136,7 @@ public class ClipListActivity extends Activity implements
 		FeedBackFactory.sContext = this;
 	}
 	
-	DLNAService.MyBinder binder;
+	/*DLNAService.MyBinder binder;
 	private ServiceConnection dlna_conn = new ServiceConnection() {
 
 		@Override
@@ -3152,7 +3152,7 @@ public class ClipListActivity extends Activity implements
 			Log.i(TAG, "Java: ClipActivity onServiceDisconnected()");
 		}
 		
-	};
+	};*/
 	
 	boolean add_list_history(String title, int playlink) {
 		String key = "PlayHistory";
@@ -3187,10 +3187,10 @@ public class ClipListActivity extends Activity implements
 	private boolean initDLNA() {
 		//bindService(new Intent(DLNAService.ACTION), serv_conn, BIND_AUTO_CREATE);
 		
-		Intent intent = new Intent();
+		/*Intent intent = new Intent();
 		intent.setAction(DLNAService.ACTION);
-		//startService(intent);
-		bindService(intent, dlna_conn, Service.BIND_AUTO_CREATE);
+		startService(intent);
+		bindService(intent, dlna_conn, Service.BIND_AUTO_CREATE);*/
 		
 		mDLNA = new DLNASdk();
 		if (!mDLNA.isLibLoadSuccess()) {

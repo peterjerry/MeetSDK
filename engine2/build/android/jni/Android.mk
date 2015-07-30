@@ -15,10 +15,12 @@ endif
 RTMPDUMP_PATH	:= ../../../../foundation/foundation_rext/thirdparty/rtmpdump/lib/$(TARGET_ARCH_ABI)
 
 ifeq ($(TARGET_ARCH_ABI),armeabi)
-FFMPEG_PATH		:= ../../../../foundation/output/android/neon
+LIB_FOLDER		:= neon
 else
-FFMPEG_PATH		:= ../../../../foundation/output/android/x86
+LIB_FOLDER		:= $(TARGET_ARCH_ABI)
 endif
+
+FFMPEG_PATH		:= ../../../../foundation/output/android/$(LIB_FOLDER)
 
 PLAYERPATH		:= ../../../player
 EXTRACTORPATH	:= ../../../extractor
@@ -62,11 +64,14 @@ LOCAL_MODULE			:= player_neon
 LOCAL_C_INCLUDES		:= $(LOCAL_PATH)/$(FFMPEG_PATH)/include $(LOCAL_PATH)/$(SUBTITLEPATH)/include \
 	$(LOCAL_PATH)/$(PLATFORMPATH) $(LOCAL_PATH)/$(PLATFORMPATH)/yuv2rgb $(LOCAL_PATH)/$(PLATFORMPATH)/clsocket \
 	$(LOCAL_PATH)/$(PLAYERPATH) $(LOCAL_PATH)/$(EXTRACTORPATH) 
+ifeq ($(TARGET_ARCH_ABI),arm64-v8a)
+LOCAL_C_INCLUDES		+= $(LOCAL_PATH)/$(PLATFORMPATH)/libyuv/jni/include
+endif	
 	
-LOCAL_CFLAGS    		:= -Wall -DNDK_BUILD=1 -DUSE_NDK_SURFACE_REF -DUSE_AV_FILTER -DTEST_PERFORMANCE -DTEST_PERFORMANCE_BITRATE #-DNO_AUDIO_PLAY 
+LOCAL_CFLAGS    		:= -Wall -DNDK_BUILD=1 -DUSE_NDK_SURFACE_REF -DUSE_AV_FILTER #-DTEST_PERFORMANCE -DTEST_PERFORMANCE_BITRATE -DNO_AUDIO_PLAY 
 MY_SRC_PLAYER_FILES 	:= ffstream.cpp audioplayer.cpp audiorender.cpp ffplayer.cpp ffrender.cpp filesource.cpp ffextractor.cpp #apFormatConverter.cpp
-MY_SRC_PLATFORM_FILES	:= audiotrack_android.c \
-	surface_android.cpp log_android.c packetqueue.cpp list.cpp loop.cpp utils.cpp
+MY_SRC_PLATFORM_FILES	:= surface_android.cpp \
+	log_android.c packetqueue.cpp list.cpp loop.cpp utils.cpp
 MY_SRC_SOCKET_FILES		:= SimpleSocket.cpp ActiveSocket.cpp
 ifdef BUILD_PCM_DUMP
 MY_SRC_PLAYER_FILES 	+= apAudioEncoder.cpp
@@ -98,6 +103,9 @@ endif
 LOCAL_SRC_FILES 		:= $(addprefix $(PLAYERPATH)/, $(MY_SRC_PLAYER_FILES))
 LOCAL_SRC_FILES 		+= $(addprefix $(PLATFORMPATH)/, $(MY_SRC_PLATFORM_FILES))
 LOCAL_SRC_FILES 		+= $(addprefix $(PLATFORMPATH)/yuv2rgb/, $(MY_SRC_YUV2RGB_FILES))
+ifeq ($(TARGET_ARCH_ABI),arm64-v8a)
+LOCAL_SRC_FILES 		+= $(addprefix $(PLATFORMPATH)/libyuv/jni/source/, row_neon64.cc)
+endif
 ifdef BUILD_PCM_DUMP
 LOCAL_SRC_FILES 		+= $(addprefix $(PLATFORMPATH)/clsocket/, $(MY_SRC_SOCKET_FILES))
 endif
