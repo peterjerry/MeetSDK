@@ -1030,8 +1030,8 @@ void FFPlayer::onPrepareImpl()
 			return;
 		}
 
-     	LOGE("open stream: %s failed", mUri);
-		abortPrepare_l(ERROR);
+     	LOGE("failed to open stream: %s", mUri);
+		abortPrepare_l(MEDIA_ERROR_DEMUXER);
 		return;
     }
 
@@ -1051,7 +1051,7 @@ void FFPlayer::onPrepareImpl()
 #ifndef NO_AUDIO_PLAY
     if (prepareAudio_l() != OK) {
      	LOGE("Initing audio decoder failed");
-        abortPrepare_l(ERROR);
+        abortPrepare_l(MEDIA_ERROR_UNSUPPORTED_AUDIO);
         return;
     }
 #endif
@@ -1063,7 +1063,7 @@ void FFPlayer::onPrepareImpl()
 
     if (prepareVideo_l() != OK) {
      	LOGE("Initing video decoder failed");
-        abortPrepare_l(ERROR);
+        abortPrepare_l(MEDIA_ERROR_UNSUPPORTED_VIDEO);
         return;
     }
 
@@ -1955,7 +1955,7 @@ void FFPlayer::abortPrepare_l(status_t err)
 {
     notifyListener_l(MEDIA_ERROR, MEDIA_ERROR_FAIL_TO_OPEN, err);
 
-    mPrepareResult = err;
+    mPrepareResult = ERROR;// err
     mPlayerStatus = MEDIA_PLAYER_STATE_ERROR;
 	AutoLock autolock(&mPreparedLock);
     pthread_cond_broadcast(&mPreparedCondition);
