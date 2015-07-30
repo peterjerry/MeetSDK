@@ -417,7 +417,10 @@ public class EPGUtil {
 	}
 	
 	public boolean list(String param, String type, 
-			int start_page, String order, int count) {
+			int start_page, String order, int count, boolean isCatalog) {
+		Log.i(TAG, String.format("Java: list() param %s, type %s, start_page %d, order %s, count %d",
+				param, type, start_page, order, count));
+		
 		String encoded_param;
 		int pos = param.indexOf('=');
 		if (pos == -1)
@@ -442,11 +445,14 @@ public class EPGUtil {
 			url += type;
 		}
 		
+		if (isCatalog)
+			url += "&vt=21%2C22";
+		
 		url += "&";
 		url += encoded_param;
 		url += "&appid=com.pplive.androidphone&appplt=aph";
 		url += ppi;
-		Log.i(TAG, "Java epg list() url: " + url);
+		Log.i(TAG, "Java: epg list() url: " + url);
 		
 		boolean ret = false;
 		

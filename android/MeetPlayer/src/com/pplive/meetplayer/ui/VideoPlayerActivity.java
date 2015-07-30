@@ -243,8 +243,6 @@ public class VideoPlayerActivity extends Activity implements Callback {
 							}
 						}
 					}
-					
-					dialog.dismiss();
 				}
 			})
 		.create();
@@ -273,8 +271,6 @@ public class VideoPlayerActivity extends Activity implements Callback {
 						
 						setupPlayer();
 					}
-					
-					dialog.dismiss();
 				}
 			})
 		.create();
@@ -303,15 +299,13 @@ public class VideoPlayerActivity extends Activity implements Callback {
 		.setTitle("select subtitle")
 		.setItems(str_file_list, new DialogInterface.OnClickListener(){
 				public void onClick(DialogInterface dialog, int whichButton){
+					stop_subtitle();
+					
 					subtitle_filename = sub_folder + "/" + str_file_list[whichButton];
 					Log.i(TAG, "Load subtitle file: " + subtitle_filename);
 					Toast.makeText(VideoPlayerActivity.this, 
 							"Load subtitle file: " + subtitle_filename, Toast.LENGTH_SHORT).show();
-					if (mVideoView != null) {
-						start_subtitle(subtitle_filename);
-					}
-					
-					dialog.dismiss();
+					start_subtitle(subtitle_filename);
 				}
 			})
 		.create();
@@ -320,8 +314,6 @@ public class VideoPlayerActivity extends Activity implements Callback {
 	
 	private boolean start_subtitle(String filename) {
 		Log.i(TAG, "Java: subtitle start_subtitle " + filename);
-    	
-		stop_subtitle();
 		
 		mSubtitleParser = new SimpleSubTitleParser();
 		mSubtitleParser.setOnPreparedListener(this);

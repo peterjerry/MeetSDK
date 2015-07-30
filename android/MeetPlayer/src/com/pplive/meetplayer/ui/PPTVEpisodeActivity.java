@@ -4,7 +4,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.StringTokenizer;
 
 import com.pplive.common.pptv.EPGUtil;
 import com.pplive.common.pptv.PlayLink2;
@@ -16,12 +15,13 @@ import com.pplive.sdk.MediaSDK;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.Dialog;
-import android.content.ComponentName;
+import android.app.ProgressDialog;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.os.Environment;
 import android.os.Handler;
 import android.os.Message;
 import android.util.Log;
@@ -29,6 +29,7 @@ import android.view.View;
 import android.widget.AbsListView;
 import android.widget.AdapterView;
 import android.widget.Button;
+import android.widget.CheckBox;
 import android.widget.GridView;
 import android.widget.Toast;
 
@@ -39,7 +40,9 @@ public class PPTVEpisodeActivity extends Activity {
 	private Button btnReputation;
 	private Button btnPopularity;
 	private Button btnUpdate;
-	private GridView gridView = null;  
+	private CheckBox cbIsCatalog;
+	private Button btnFt;
+	private GridView gridView = null;
     private MySohuEpAdapter adapter = null;
     
     private final static int MSG_EPISODE_DONE		= 1;
@@ -74,10 +77,13 @@ public class PPTVEpisodeActivity extends Activity {
     private String search_key;
     private List<PlayLink2> mAlbumList;
     private List<PlayLink2> mEpisodeList;
+    private boolean is_catalog = false;
     
-    boolean noMoreData = false;
-    boolean loadingMore = false;
-	
+    private boolean interrupted = false;
+    
+    private boolean noMoreData = false;
+    private boolean loadingMore = false;
+
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
@@ -102,10 +108,33 @@ public class PPTVEpisodeActivity extends Activity {
 		this.btnReputation = (Button) findViewById(R.id.btn_reputation);
 		this.btnPopularity = (Button) findViewById(R.id.btn_popularity);
 		this.btnUpdate = (Button) findViewById(R.id.btn_update);
+		this.cbIsCatalog = (CheckBox) findViewById(R.id.cb_is_catalog);
+		this.btnFt = (Button) findViewById(R.id.btn_ft);
 		
 		this.btnReputation.setOnClickListener(mClickListener);
 		this.btnPopularity.setOnClickListener(mClickListener);
 		this.btnUpdate.setOnClickListener(mClickListener);
+		this.cbIsCatalog.setOnClickListener(mClickListener);
+		
+		this.btnFt.setOnClickListener(new Button.OnClickListener() {
+
+			@Override
+			public void onClick(View view) {
+				// TODO Auto-generated method stub
+				final String[] ft = {"流畅", "高清", "超清", "蓝光"};
+				
+				Dialog choose_ft_dlg = new AlertDialog.Builder(PPTVEpisodeActivity.this)
+				.setTitle("select download ft")
+				.setSingleChoiceItems(ft, Integer.parseInt(btnFt.getText().toString()), /*default selection item number*/
+					new DialogInterface.OnClickListener(){
+						public void onClick(DialogInterface dialog, int whichButton){
+							btnFt.setText(Integer.toString(whichButton));
+						}
+					})
+				.create();
+				choose_ft_dlg.show();	
+			}
+		});
 		
 		this.gridView = (GridView) findViewById(R.id.grid_view);
 		this.gridView.setOnItemClickListener(new AdapterView.OnItemClickListener(){
@@ -130,12 +159,7 @@ public class PPTVEpisodeActivity extends Activity {
 				// TODO Auto-generated method stub
 				
 				Map<String, Object> item = adapter.getItem(position);
-				String description = (String)item.get("desc");
-				new AlertDialog.Builder(PPTVEpisodeActivity.this)
-					.setTitle("专辑介绍")
-					.setMessage(description)
-					.setPositiveButton("确定", null)
-					.show();
+				popupMoreDialog(item);
 				return true;
 			}
 		});
@@ -174,7 +198,41 @@ public class PPTVEpisodeActivity extends Activity {
 	    	new SetDataTask().execute(SET_DATA_SEARCH);
 	    else
 	    	new SetDataTask().execute(SET_DATA_LIST);
+	    
+	    if (Util.startP2PEngine(this) == false) {
+			Toast.makeText(this, "failed to start p2p engine", 
+					Toast.LENGTH_SHORT).show();
+		}
 	}
+	
+	private void popupMoreDialog(final Map<String, Object> item) {
+    	final String[] action = {"详情", "下载"};
+		Dialog choose_action_dlg = new AlertDialog.Builder(this)
+		.setTitle("选择操作")
+		.setItems(action, new DialogInterface.OnClickListener(){
+				public void onClick(DialogInterface dialog, int whichButton){
+					if (whichButton == 0) {
+						String description = (String)item.get("desc");
+						new AlertDialog.Builder(PPTVEpisodeActivity.this)
+							.setTitle("专辑介绍")
+							.setMessage(description)
+							.setPositiveButton("确定", null)
+							.show();
+					}
+					else if (whichButton == 1) {
+						String vid = (String) item.get("vid");
+						String title = (String)item.get("title");
+						String save_path = Environment.getExternalStorageDirectory().getAbsolutePath() + 
+								"/test2/" + title + ".mp4";
+						
+						new PPBoxDownloadTask().execute(vid, save_path, title);
+					}
+				}
+			})
+		.setNegativeButton("取消", null)
+		.create();
+		choose_action_dlg.show();
+    }
 	
 	private View.OnClickListener mClickListener = new View.OnClickListener() {
 
@@ -182,6 +240,7 @@ public class PPTVEpisodeActivity extends Activity {
 		public void onClick(View v) {
 			// TODO Auto-generated method stub
 			
+			album_page_index = 1;
 			// 最受好评, param: order=g|最高人气, param: order=t|最新更新, param: order=n
 			
 			switch (v.getId()) {  
@@ -196,7 +255,11 @@ public class PPTVEpisodeActivity extends Activity {
             case R.id.btn_update:
             	epg_order = "order=n";
             	new SetDataTask().execute(SET_DATA_LIST);
-                break;  
+                break;
+            case R.id.cb_is_catalog:
+            	is_catalog = !is_catalog;
+            	new SetDataTask().execute(SET_DATA_LIST);
+            	break;
             default:
             	Log.w(TAG, "Java unknown view id: " + v.getId());
                 break;  
@@ -365,7 +428,7 @@ public class PPTVEpisodeActivity extends Activity {
 				if (!mEPG.detail(String.valueOf(vid))) {
 					Log.e(TAG, "Java: failed to call detail()");
 					mhandler.sendEmptyMessage(MSG_FAIL_TO_DETAIL);
-					return true;
+					return false;
 				}
 				
 				mEpisodeList = mEPG.getLink();
@@ -376,7 +439,7 @@ public class PPTVEpisodeActivity extends Activity {
 			}
 			else if (action == TASK_MORELIST) {
 				album_page_index++;
-				if (!mEPG.list(epg_param, epg_type, album_page_index, epg_order, page_size)) {
+				if (!mEPG.list(epg_param, epg_type, album_page_index, epg_order, page_size, is_catalog)) {
 					Log.e(TAG, "Java: failed to call list() more");
 					noMoreData = true;
 					return false;
@@ -470,7 +533,7 @@ public class PPTVEpisodeActivity extends Activity {
 				mAlbumList = mEPG.getLink();
 			}
 			else {
-				if (!mEPG.list(epg_param, epg_type, album_page_index, "order=t", page_size))
+				if (!mEPG.list(epg_param, epg_type, album_page_index, epg_order, page_size, is_catalog))
 					return null;
 				
 				mAlbumList = mEPG.getLink();
@@ -494,5 +557,179 @@ public class PPTVEpisodeActivity extends Activity {
 			return items;
 		}
 	}  
+	
+	public void interrupt() {
+		interrupted = true;
+	}
+	
+	private class PPBoxDownloadTask extends AsyncTask<String, Integer, Boolean> {
+		private String mTitle;
+		private String mSavePath;
+		
+		ProgressDialog progressDialog;
+		
+		@Override
+		protected void onPreExecute() {
+			// TODO Auto-generated method stub
+			progressDialog = new ProgressDialog(PPTVEpisodeActivity.this);
+			progressDialog.setTitle("下载中...");
+			progressDialog.setMessage("文件\n下载进度: ");
+			progressDialog.setProgressStyle(ProgressDialog.STYLE_HORIZONTAL);
+			progressDialog.setMax(100);
+			progressDialog.setIndeterminate(false);
+			progressDialog.setCancelable(true);
+	    	progressDialog.setOnCancelListener(new DialogInterface.OnCancelListener() {
+				
+				@Override
+				public void onCancel(DialogInterface dialog) {
+					// TODO Auto-generated method stub
+					interrupt();
+					Toast.makeText(getApplicationContext(), 
+							"文件 " + mSavePath + " 下载取消", Toast.LENGTH_SHORT).show();
+					dialog.dismiss();
+				}
+			});
+	    	progressDialog.show();
+		}
+		
+		@Override
+		protected void onPostExecute(Boolean result) {
+			// TODO Auto-generated method stub
+			progressDialog.dismiss();
+			
+			if (result) {
+				Toast.makeText(PPTVEpisodeActivity.this, "file " + mTitle + "saved to " + mSavePath, 
+						Toast.LENGTH_SHORT).show();
+			}
+			else {
+				Toast.makeText(PPTVEpisodeActivity.this, "failed to download file " + mTitle, 
+						Toast.LENGTH_SHORT).show();
+			}
+		}
+		
+		@Override
+		protected Boolean doInBackground(String... params) {
+			if (params.length < 3)
+				return false;
+			
+			String vid		= params[0];
+			mSavePath		= params[1];
+			mTitle			= params[2];
+			
+			publishProgress(0, 0);
+			
+			if (!mEPG.detail(String.valueOf(vid))) {
+				Log.e(TAG, "Java: failed to call detail()");
+				return false;
+			}
+			
+			mEpisodeList = mEPG.getLink();
+			if (mEpisodeList == null || mEpisodeList.size() == 0) {
+				Log.e(TAG, "Java: mEpisodeList is empty");
+				return false;
+			}
+			
+			PlayLink2 link = mEpisodeList.get(0);
+			String playlink = link.getId();
+			int ft= Integer.parseInt(btnFt.getText().toString());
+			
+			//playcode:ppvod2:///23832333?ft=1&bwtype=3&platform=android3
+			//&type=phone.android.download.vip&sv=4.1.3&p2p.source=7&bighead=true&p2p.level=1
+			String playcode = String.format("%s?ft=%d&bwtype=3&platform=android3" +
+					"&type=phone.android.download.vip&sv=4.1.3", playlink, ft);
+			playcode = "ppvod2:///" + playcode + "&p2p.source=7&bighead=true&p2p.level=1";
+			Log.i(TAG, String.format("Java: playcode %s, mSavePath %s", playcode, mSavePath));
+			// TODO Auto-generated method stub
+			long handle = -1;
+			try {
+				handle = MediaSDK.downloadOpen(playcode, "mp4", mSavePath, 
+					new MediaSDK.Download_Callback() {
+
+						@Override
+						public void invoke(long result) {
+							// TODO Auto-generated method stub
+							Log.i(TAG, "Java: MediaSDK invoke " + result);
+							
+							/**
+                             * sdk 正常关闭回调，handle <= 0不回调
+                             * 0：成功
+                             * 5：取消操作，调用了close
+                             */
+						}
+				
+				});
+			}
+			catch (Throwable e) {
+                e.printStackTrace();
+                return false;
+            }
+			
+			// open失败
+            if (handle == 0 || handle == -1) {
+            	Log.e(TAG, "Java: failed to open download session");
+                return false;
+            }
+            
+            Log.i(TAG, "Java: download handle: " + handle);
+			
+			while (true) {
+                MediaSDK.Download_Statistic stat = new MediaSDK.Download_Statistic();
+                long resultCode = -1;
+                try {
+                    resultCode = MediaSDK.getDownloadInfo(handle, stat);
+                    Log.i(TAG, String.format("Java: download stat: %d/%d, speed %d kB/s", 
+                    		stat.finish_size, stat.total_size, stat.speed / 1024));
+                    if (stat.total_size > 0 && stat.speed > 0)
+                    	publishProgress((int)(stat.finish_size * 100 / stat.total_size), stat.speed / 1024);
+                }
+                catch (Throwable e) {
+                    // Log.v(TAG, "getDownloadInfo");
+                    // addLog("getDownloadInfo\n");
+                    e.printStackTrace();
+                    MediaSDK.downloadClose(handle);
+                    return false;
+                }
+                
+                if (resultCode != 0) {
+                    // 下载出错
+                    Log.e(TAG, "Java: download error: " + resultCode);
+                    MediaSDK.downloadClose(handle);
+                    return false;
+                }
+                
+                if (stat.total_size > 0 && stat.finish_size >= stat.total_size) {
+                	Log.i(TAG, String.format("Java: download done! %s %s", 
+                			stat.finish_size, stat.total_size));
+                	break;
+                }
+                
+                if (interrupted) {
+					Log.w(TAG, "interrupted by user");
+					break;
+				}
+                
+                try {
+                    Thread.sleep(300);
+                }
+                catch (InterruptedException e) {
+                    
+                }
+			}
+			
+			MediaSDK.downloadClose(handle);
+			return true;
+		}
+		
+		@Override
+		protected void onProgressUpdate(Integer... values) {
+			// TODO Auto-generated method stub
+			int progress = values[0];
+			double speed = (double)values[1] / 1000.0f;
+			progressDialog.setMessage(
+					String.format("%s\n下载进度: %d%%\n下载速度 %.3f MB/sec", 
+							mSavePath, progress, speed));
+			progressDialog.setProgress(progress);	
+		}
+	}
 }
 

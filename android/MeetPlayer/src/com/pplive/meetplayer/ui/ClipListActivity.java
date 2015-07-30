@@ -153,7 +153,7 @@ public class ClipListActivity extends Activity implements
 	private boolean mIsPreview;
 	private boolean mIsLoop					= false;
 	private boolean mIsNoVideo					= false;
-	private boolean mTvduck					= true;
+	private boolean mTvduck					= false;
 	private MenuItem noVideoMenuItem;
 	private MenuItem tvduckMenuItem;
 	
@@ -2131,7 +2131,7 @@ public class ClipListActivity extends Activity implements
         			ret = mEPG.live(start_page, count, live_type);
         		}
         		else {
-        			ret = mEPG.list(mEPGparam, mEPGtype, start_page, "order=n", count);
+        			ret = mEPG.list(mEPGparam, mEPGtype, start_page, "order=n", count, false);
         		}
         		
         		if (!ret) {

@@ -498,7 +498,7 @@ public class MeetViewActivity extends Activity implements OnFocusChangeListener 
 		if (param.startsWith("type="))
 			ContentType = "";
 		
-		ret = util.list(param, ContentType, start_page, "order=n", 15);
+		ret = util.list(param, ContentType, start_page, "order=n", 15, false);
 		if (!ret)
 			return false;
 		
