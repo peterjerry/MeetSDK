@@ -69,16 +69,15 @@ public class PPTVPlayerActivity extends VideoPlayerActivity {
 	}
 	
 	@Override
-	public boolean onKeyDown(int keyCode, KeyEvent event) {
+	public boolean onKeyUp(int keyCode, KeyEvent event) {
 		
 		Log.d(TAG, "keyCode: " + keyCode);
 		int incr;
 		
-		switch (keyCode) {
-		case KeyEvent.KEYCODE_DPAD_LEFT:
-		case KeyEvent.KEYCODE_DPAD_RIGHT:
+		if (keyCode == KeyEvent.KEYCODE_DPAD_LEFT ||
+				keyCode == KeyEvent.KEYCODE_DPAD_RIGHT) {
 			if (mController.isShowing()) {
-				return super.onKeyDown(keyCode, event);
+				return super.onKeyUp(keyCode, event);
 			}
 			
 			if (KeyEvent.KEYCODE_DPAD_LEFT == keyCode)
@@ -101,9 +100,9 @@ public class PPTVPlayerActivity extends VideoPlayerActivity {
 			}
 			
 			return true;
-		default:
-			return super.onKeyDown(keyCode, event);
 		}
+		
+		return super.onKeyUp(keyCode, event);
 	}
 	
 	private Handler mHandler = new Handler(){  

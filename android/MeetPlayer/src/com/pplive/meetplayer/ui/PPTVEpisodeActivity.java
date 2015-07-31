@@ -129,6 +129,7 @@ public class PPTVEpisodeActivity extends Activity {
 					new DialogInterface.OnClickListener(){
 						public void onClick(DialogInterface dialog, int whichButton){
 							btnFt.setText(Integer.toString(whichButton));
+							dialog.dismiss();
 						}
 					})
 				.create();

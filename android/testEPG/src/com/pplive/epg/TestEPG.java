@@ -22,6 +22,7 @@ import javax.swing.JTextPane;
 
 import com.pplive.epg.baidu.BaiduPanel;
 import com.pplive.epg.boxcontroller.Code;
+import com.pplive.epg.boxcontroller.MyActionEvent;
 import com.pplive.epg.boxcontroller.MyBoxController;
 
 public class TestEPG { 
@@ -35,13 +36,22 @@ public class TestEPG {
 		JFrame frame = new JFrame("电视鸭");
 		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
-		frame.add(new TabbedPaneDemo());
-		frame.pack();
-		frame.setBounds(400, 300, 750, 600);
+		boolean useController = true;
 		
-		frame.setVisible(true);
-		
-		/*frame.setLayout(null);
+		if (useController) {
+			initController(frame);
+		}
+		else {
+			frame.add(new TabbedPaneDemo());
+			frame.pack();
+			frame.setBounds(400, 300, 750, 600);
+			
+			frame.setVisible(true);
+		}
+	}
+	
+	private static void initController(JFrame frame) {
+		frame.setLayout(null);
 		
 		Font f = new Font("宋体", 0, 18);
 		String []strManuel = {"上下左右 - 上下左右", "Ctrl键 - 退出", "Enter - 进入", 
@@ -86,6 +96,8 @@ public class TestEPG {
 					con.sendKeyEvent(Code.KEYCODE_A + keycode - KeyEvent.VK_A);
 				else if (keycode >= KeyEvent.VK_0 && keycode <= KeyEvent.VK_9)
 					con.sendKeyEvent(Code.KEYCODE_0 + keycode - KeyEvent.VK_0);
+				else if (keycode == KeyEvent.VK_SLASH)
+					con.sendKeyEvent(Code.KEYCODE_NUMPAD_DIVIDE);
 				else {
 					switch (keycode) {
 					case KeyEvent.VK_DOWN:
@@ -133,7 +145,7 @@ public class TestEPG {
 				System.out.println("Java: keyTyped " + e.getKeyCode());
 			}
 			
-		});*/
+		});
 	}
 	
 	private static String readFileContent(String fileName) {

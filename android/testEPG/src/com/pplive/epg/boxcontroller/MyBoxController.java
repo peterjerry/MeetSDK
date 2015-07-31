@@ -59,6 +59,12 @@ public class MyBoxController {
 		return false;
 	}
 	
+	/**
+	 * 单独发送key值
+	 * 
+	 * @param key
+	 *            KEY值
+	 */
 	public void sendKeyEvent(int key) {
 		byte[] mbyte = new byte[BYTE_DEFAULT_SIZE + KEYEVENT_BYTE_SIZE];
 		int length = KEYEVENT_BYTE_SIZE;
@@ -98,6 +104,40 @@ public class MyBoxController {
 			}
 			
 			retry++;
+		}
+	}
+	
+	/**
+	 * 发送带有action的KEY值
+	 * 
+	 * @param key
+	 *            KEY值
+	 * @param action
+	 *            动作
+	 */
+	public void sendKeyEvent(int key, int action)
+	{
+		byte[] mbyte = new byte[BYTE_DEFAULT_SIZE + ACTION_KEYEVENT_BYTE_SIZE];
+		int length = ACTION_KEYEVENT_BYTE_SIZE;
+		mbyte[0] = 'K'; // 以K开头的byte数组存放的是按键事件
+		putInt(mbyte, length, 1);
+		putInt(mbyte, key, BYTE_DEFAULT_SIZE);
+		putInt(mbyte, action, length);
+		buildPacket(mbyte, length);
+		try {
+			StringBuffer sb = new StringBuffer();
+			for (int i=0;i<mbyte.length;i++)
+				sb.append(String.format("0x%02x ", mbyte[i]));
+			sb.append(" , content: ");
+			sb.append(new String(mbyte, "UTF-8"));
+			System.out.println("Java: sendKeyEvent: " + sb.toString());
+			
+			if (mOs != null)
+				mOs.write(mbyte);
+		}
+		catch (IOException e) {
+			e.printStackTrace();
+			System.out.println("Java: sendKeyEvent(key, action): ioexception");
 		}
 	}
 	
