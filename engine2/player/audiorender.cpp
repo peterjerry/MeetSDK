@@ -333,7 +333,7 @@ status_t AudioRender::render(AVFrame* audioFrame)//int16_t* buffer, uint32_t buf
 			AV_ROUND_UP);
 
 		int sampleCountOutput = swr_convert(mConvertCtx,
-			(uint8_t**)(&mSamples), (int)sampleOutCount,
+			(uint8_t**)(&mSamples), sampleOutCount,
 			(const uint8_t**)(audioFrame->extended_data), sampleInCount);
 		if (sampleCountOutput < 0) {
 			LOGE("Audio convert sampleformat(%d) failed, ret %d", mSampleFormat, sampleCountOutput);

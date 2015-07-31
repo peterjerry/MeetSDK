@@ -959,6 +959,7 @@ status_t FFPlayer::setVolume(float leftVolume, float rightVolume)
 
 status_t FFPlayer::setListener(MediaPlayerListener* listener)
 {
+	LOGI("setListener %p", listener);
     mListener = listener;
     return OK;
 }
@@ -3076,7 +3077,10 @@ status_t FFPlayer::getBufferingTime(int *msec)
 
 bool FFPlayer::getMediaInfo(const char* url, MediaInfo* info)
 {
-    if(url == NULL || info == NULL) return false;
+	LOGI("player op getMediaInfo() %s", url);
+
+    if(url == NULL || info == NULL)
+		return false;
 
     bool ret = false;
 
@@ -3269,6 +3273,8 @@ bool getStreamLangTitle(char** langcode, char** langtitle, int index, AVStream* 
 
 bool FFPlayer::getCurrentMediaInfo(MediaInfo *info)
 {
+	LOGI("player op getCurrentMediaInfo()");
+
 	if (info == NULL || mMediaFile == NULL)
 		return false;
 
@@ -3350,6 +3356,8 @@ bool FFPlayer::getCurrentMediaInfo(MediaInfo *info)
 
 bool FFPlayer::getMediaDetailInfo(const char* url, MediaInfo* info)
 {
+	LOGI("player op getMediaDetailInfo() %s", url);
+
     if (url == NULL || info == NULL)
 		return false;
 
@@ -3476,9 +3484,10 @@ bool FFPlayer::getMediaDetailInfo(const char* url, MediaInfo* info)
     return true;
 }
 
+// deprecated
 bool FFPlayer::getThumbnail2(const char* url, MediaInfo* info)
 {
-	LOGD("getThumbnail()");
+	LOGI("player op getThumbnail2() %s", url);
 
 	if (url == NULL || info == NULL)
 		return false;
@@ -3655,7 +3664,7 @@ bool FFPlayer::getThumbnail2(const char* url, MediaInfo* info)
 
 bool FFPlayer::getThumbnail(const char* url, MediaInfo* info)
 {
-	LOGD("getThumbnail()");
+	LOGI("player op getThumbnail() %s", url);
 
 	if (url == NULL || info == NULL)
 		return false;

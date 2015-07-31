@@ -99,6 +99,7 @@ public:
 
 	bool getThumbnail(const char* url, MediaInfo* info);
 
+	// deprecated
 	bool getThumbnail2(const char* url, MediaInfo* info);
 
 	SnapShot* getSnapShot(int width, int height, int fmt, int msec = -1);

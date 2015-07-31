@@ -45,6 +45,10 @@ public class PPTVEpisodeActivity extends Activity {
 	private GridView gridView = null;
     private MySohuEpAdapter adapter = null;
     
+    private final static int ONE_KILOBYTE 	= 1024;
+	private final static int ONE_MAGABYTE 	= (ONE_KILOBYTE * ONE_KILOBYTE);
+	private final static int ONE_GIGABYTE 	= (ONE_MAGABYTE * ONE_KILOBYTE);
+    
     private final static int MSG_EPISODE_DONE		= 1;
     private final static int MSG_MOREDATA_DONE	= 2;
     private final static int MSG_PLAY_CDN_FT		= 3;
@@ -566,6 +570,8 @@ public class PPTVEpisodeActivity extends Activity {
 	private class PPBoxDownloadTask extends AsyncTask<String, Integer, Boolean> {
 		private String mTitle;
 		private String mSavePath;
+		private long mFileSize = 0;
+		private long mDownloadedSize = 0;
 		
 		ProgressDialog progressDialog;
 		
@@ -599,7 +605,9 @@ public class PPTVEpisodeActivity extends Activity {
 			progressDialog.dismiss();
 			
 			if (result) {
-				Toast.makeText(PPTVEpisodeActivity.this, "file " + mTitle + "saved to " + mSavePath, 
+				Toast.makeText(PPTVEpisodeActivity.this, 
+						String.format("file %s saved to %s(size %s)", 
+								mTitle, mSavePath, getFileSize(mFileSize)),
 						Toast.LENGTH_SHORT).show();
 			}
 			else {
@@ -704,9 +712,15 @@ public class PPTVEpisodeActivity extends Activity {
                 	break;
                 }
                 
+                if (stat.total_size > 0 && mFileSize == 0)
+                	mFileSize = stat.total_size;
+                if (stat.finish_size > 0)
+                	mDownloadedSize = stat.finish_size;
+                
                 if (interrupted) {
 					Log.w(TAG, "interrupted by user");
-					break;
+					MediaSDK.downloadClose(handle);
+					return false;
 				}
                 
                 try {
@@ -727,10 +741,30 @@ public class PPTVEpisodeActivity extends Activity {
 			int progress = values[0];
 			double speed = (double)values[1] / 1000.0f;
 			progressDialog.setMessage(
-					String.format("%s\n下载进度: %d%%\n下载速度 %.3f MB/sec", 
-							mSavePath, progress, speed));
+					String.format("%s\n下载进度: %d%%\n下载速度 %.3f MB/sec %s/%s", 
+							mSavePath, progress, speed, 
+							getFileSize(mDownloadedSize), getFileSize(mFileSize)));
 			progressDialog.setProgress(progress);	
 		}
 	}
+	
+	private String getFileSize(long size) {
+	    String strSize;
+	    if (size < 0)
+	    	return "N/A";
+	    
+	    if (size > ONE_GIGABYTE)
+			strSize = String.format("%.3f GB",
+					(double) size / (double) ONE_GIGABYTE);
+	    else if (size > ONE_MAGABYTE)
+			strSize = String.format("%.3f MB",
+					(double) size / (double) ONE_MAGABYTE);
+		else if (size > ONE_KILOBYTE)
+			strSize = String.format("%.3f kB",
+					(double) size / (double) ONE_KILOBYTE);
+		else
+			strSize = String.format("%d Byte", size);
+		return strSize;
+    }
 }
 
