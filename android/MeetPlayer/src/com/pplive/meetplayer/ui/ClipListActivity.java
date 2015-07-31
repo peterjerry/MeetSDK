@@ -135,6 +135,7 @@ public class ClipListActivity extends Activity implements
 	private RelativeLayout mLayout;
 	private ProgressBar mBufferingProgressBar;
 	private EditText et_playlink;
+	private TextView tv_player_impl;
 	private Button btn_ft;
 	private Button btn_bw_type;
 	private ImageView imageDMR;
@@ -364,6 +365,9 @@ public class ClipListActivity extends Activity implements
 		
 		this.mPreview = (MyPreView2) findViewById(R.id.preview);
 		this.mLayout = (RelativeLayout) findViewById(R.id.layout_preview);
+		this.tv_player_impl = (TextView) findViewById(R.id.textview_play_impl);
+		
+		this.tv_player_impl.setTextSize(14);
 		
 		this.mBufferingProgressBar = (ProgressBar) findViewById(R.id.progressbar_buffering);
 		this.mSubtitleTextView = (TextView) findViewById(R.id.textview_subtitle);
@@ -2734,18 +2738,29 @@ public class ClipListActivity extends Activity implements
 			Log.i(TAG, "Java: MEDIA_INFO_BUFFERING_END");
 		}		
 		else if (MediaPlayer.MEDIA_INFO_TEST_PLAYER_TYPE == what) {
-			String str_player_type;
-			if (MediaPlayer.PLAYER_IMPL_TYPE_SYSTEM_PLAYER == extra)
+			String str_player_type, short_type;
+			if (MediaPlayer.PLAYER_IMPL_TYPE_SYSTEM_PLAYER == extra) {
 				str_player_type = "System Player";
-			else if(MediaPlayer.PLAYER_IMPL_TYPE_XO_PLAYER == extra)
+				short_type = "sys";
+			}
+			else if(MediaPlayer.PLAYER_IMPL_TYPE_XO_PLAYER == extra) {
 				str_player_type = "XO Player";
-			else if(MediaPlayer.PLAYER_IMPL_TYPE_FF_PLAYER == extra)
+				short_type = "xo";
+			}
+			else if(MediaPlayer.PLAYER_IMPL_TYPE_FF_PLAYER == extra) {
 				str_player_type = "FF Player";
-			else if(MediaPlayer.PLAYER_IMPL_TYPE_PP_PLAYER == extra)
+				short_type = "ff";
+			}
+			else if(MediaPlayer.PLAYER_IMPL_TYPE_PP_PLAYER == extra) {
 				str_player_type = "PP Player";
-			else
+				short_type = "pp";
+			}
+			else {
 				str_player_type = "Unknown Player";
-			Toast.makeText(ClipListActivity.this, str_player_type, Toast.LENGTH_SHORT).show();
+				short_type = "un";
+			}
+			//Toast.makeText(ClipListActivity.this, str_player_type, Toast.LENGTH_SHORT).show();
+			tv_player_impl.setText(short_type);
 		}
 		else if(MediaPlayer.MEDIA_INFO_TEST_DECODE_AVG_MSEC == what) {
 			decode_avg_msec = extra;
