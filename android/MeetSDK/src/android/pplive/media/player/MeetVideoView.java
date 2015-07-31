@@ -697,4 +697,11 @@ public class MeetVideoView extends SurfaceView implements MediaPlayerControl {
 	public void setOption(String opt) {
 		mOption = opt;
 	}
+	
+	public MediaInfo getMediaInfo() {
+		if (mMediaPlayer != null)
+			return mMediaPlayer.getMediaInfo();
+		
+		return null;
+	}
 }
