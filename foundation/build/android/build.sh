@@ -38,3 +38,4 @@ fi
 
 make clean
 make -j4 install
+
