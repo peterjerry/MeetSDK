@@ -14,12 +14,13 @@ FFMPEG_PATH		:= ../../../foundation/output/android/x86
 endif
 
 ifeq ($(TARGET_ARCH_ABI),armeabi)
-FDK_AAC_PATH	:= ../../../foundation/foundation_rext/thirdparty/fdk-aac/lib/armeabi-v7a
+FDK_AAC_PATH	:= ../../../foundation/foundation_rext/thirdparty/fdk-aac/lib/android/armeabi-v7a
 else
-FDK_AAC_PATH	:= ../../../foundation/foundation_rext/thirdparty/fdk-aac/lib/x86
+FDK_AAC_PATH	:= ../../../foundation/foundation_rext/thirdparty/fdk-aac/lib/android/x86
 endif
 
-RTMPDUMP_PATH	:= ../../../foundation/foundation_rext/thirdparty/rtmpdump/lib/$(TARGET_ARCH_ABI)
+RTMPDUMP_PATH	:= ../../../foundation/foundation_rext/thirdparty/rtmpdump/lib/android/$(TARGET_ARCH_ABI)
+X264_PATH		:= ../../../foundation/foundation_rext/thirdparty/x264/lib/android/$(TARGET_ARCH_ABI)
 
 ########################[libpplog]########################
 include $(CLEAR_VARS)
@@ -61,6 +62,11 @@ LOCAL_MODULE 	:= crypto
 LOCAL_SRC_FILES := $(RTMPDUMP_PATH)/libcrypto.a
 include $(PREBUILT_STATIC_LIBRARY)
 
+include $(CLEAR_VARS)
+LOCAL_MODULE 	:= x264
+LOCAL_SRC_FILES := $(X264_PATH)/libx264.a
+include $(PREBUILT_STATIC_LIBRARY)
+
 else
 LOCAL_SRC_FILES := ../$(ENGINE_BASE)/output/android/$(TARGET_ARCH_ABI)/$(MY_SO_PREFIX)libplayer_neon.so
 LOCAL_MODULE := player_neon
@@ -80,9 +86,9 @@ LOCAL_SRC_FILES 		:= $(addprefix $(JNI_BASE)/, $(MY_SRC_FILES))
 LOCAL_STATIC_LIBRARIES 	:= pplog cpufeatures
 LOCAL_LDLIBS 			:= -llog
 ifdef BUILD_ONE_LIB
-LOCAL_STATIC_LIBRARIES 	+= player_neon ffmpeg fdk-aac ssl crypto
+LOCAL_STATIC_LIBRARIES 	+= player_neon ffmpeg fdk-aac x264 ssl crypto
 LOCAL_LDLIBS 			+= -lz -landroid -lOpenSLES -L../$(ENGINE_BASE)/output/android/$(TARGET_ARCH_ABI)/$(MY_SO_PREFIX) \
-	-L$(FFMPEG_PATH)/lib -L$(FDK_AAC_PATH) -L$(RTMPDUMP_PATH)
+	-L$(FFMPEG_PATH)/lib -L$(FDK_AAC_PATH) -L$(RTMPDUMP_PATH) -L$(X264_PATH)
 endif
 LOCAL_MODULE 			:= meet
 include $(BUILD_SHARED_LIBRARY)

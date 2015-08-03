@@ -694,8 +694,10 @@ public class MediaPlayer implements MediaPlayerInterface {
 	public static final int MEDIA_ERROR_VIDEO_RENDER 	= 314;
 	public static final int MEDIA_ERROR_DEMUXER		= 315;
 	
-	public static final int MEDIA_ERROR_AUDIO_DECODER = 321;
-	public static final int MEDIA_ERROR_VIDEO_DECODER = 322;
+	public static final int MEDIA_ERROR_AUDIO_DECODER 	= 321;
+	public static final int MEDIA_ERROR_VIDEO_DECODER 	= 322;
+	public static final int MEDIA_ERROR_UNSUPPORTED_AUDIO	= 331;
+	public static final int MEDIA_ERROR_UNSUPPORTED_VIDEO	= 332;
 
 	/**
 	 * Interface definition of a callback to be invoked when there has been an

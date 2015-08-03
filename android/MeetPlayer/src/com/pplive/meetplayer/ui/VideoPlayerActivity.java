@@ -216,7 +216,11 @@ public class VideoPlayerActivity extends Activity implements Callback {
 		.setSingleChoiceItems(ft_desc, mFt,
 			new DialogInterface.OnClickListener() {
 				public void onClick(DialogInterface dialog, int whichButton){
-					if (whichButton != mFt) {
+					if (whichButton == mFt) {
+						dialog.dismiss();
+						return;
+					}
+					else {
 						if (whichButton > mBestFt) {
 							Toast.makeText(VideoPlayerActivity.this, 
 									"该码率: " + ft_desc[whichButton] + " 无效", 
@@ -241,6 +245,8 @@ public class VideoPlayerActivity extends Activity implements Callback {
 								
 								setupPlayer();
 							}
+							
+							dialog.dismiss();
 						}
 					}
 				}
@@ -271,6 +277,8 @@ public class VideoPlayerActivity extends Activity implements Callback {
 						
 						setupPlayer();
 					}
+					
+					dialog.dismiss();
 				}
 			})
 		.create();

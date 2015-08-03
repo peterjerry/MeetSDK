@@ -7,12 +7,13 @@ BUILD_NATIVEWINDOOW		:= 1
 #BUILD_ONE_LIB			:= 1
 
 ifeq ($(TARGET_ARCH_ABI),armeabi)
-FDK_AAC_PATH	:= ../../../../foundation/foundation_rext/thirdparty/fdk-aac/lib/armeabi-v7a
+FDK_AAC_PATH	:= ../../../../foundation/foundation_rext/thirdparty/fdk-aac/lib/android/armeabi-v7a
 else
-FDK_AAC_PATH	:= ../../../../foundation/foundation_rext/thirdparty/fdk-aac/lib/x86
+FDK_AAC_PATH	:= ../../../../foundation/foundation_rext/thirdparty/fdk-aac/lib/android/x86
 endif
 
-RTMPDUMP_PATH	:= ../../../../foundation/foundation_rext/thirdparty/rtmpdump/lib/$(TARGET_ARCH_ABI)
+RTMPDUMP_PATH	:= ../../../../foundation/foundation_rext/thirdparty/rtmpdump/lib/android/$(TARGET_ARCH_ABI)
+X264_PATH		:= ../../../../foundation/foundation_rext/thirdparty/x264/lib/android/$(TARGET_ARCH_ABI)
 
 ifeq ($(TARGET_ARCH_ABI),armeabi)
 LIB_FOLDER		:= neon
@@ -47,6 +48,11 @@ include $(CLEAR_VARS)
 LOCAL_MODULE 	:= crypto
 LOCAL_SRC_FILES := $(RTMPDUMP_PATH)/libcrypto.a
 include $(PREBUILT_STATIC_LIBRARY)
+
+include $(CLEAR_VARS)
+LOCAL_MODULE 	:= x264
+LOCAL_SRC_FILES := $(X264_PATH)/libx264.a
+include $(PREBUILT_STATIC_LIBRARY)
 endif
 
 include $(CLEAR_VARS)
@@ -68,7 +74,7 @@ ifeq ($(TARGET_ARCH_ABI),arm64-v8a)
 LOCAL_C_INCLUDES		+= $(LOCAL_PATH)/$(PLATFORMPATH)/libyuv/jni/include
 endif	
 	
-LOCAL_CFLAGS    		:= -Wall -DNDK_BUILD=1 -DUSE_NDK_SURFACE_REF -DUSE_AV_FILTER #-DTEST_PERFORMANCE -DTEST_PERFORMANCE_BITRATE -DNO_AUDIO_PLAY 
+LOCAL_CFLAGS    		:= -Wall -DNDK_BUILD=1 -DUSE_NDK_SURFACE_REF -DUSE_AV_FILTER #-DTEST_PERFORMANCE -DTEST_PERFORMANCE_BITRATE -DUSE_TS_CONVERT -DNO_AUDIO_PLAY 
 MY_SRC_PLAYER_FILES 	:= ffstream.cpp audioplayer.cpp audiorender.cpp ffplayer.cpp ffrender.cpp filesource.cpp ffextractor.cpp #apFormatConverter.cpp
 MY_SRC_PLATFORM_FILES	:= surface_android.cpp \
 	log_android.c packetqueue.cpp list.cpp loop.cpp utils.cpp
@@ -120,7 +126,7 @@ LOCAL_LDLIBS			+= -lOpenSLES
 endif
 endif
 ifdef BUILD_PCM_DUMP
-LOCAL_STATIC_LIBRARIES 	+= fdk-aac ssl crypto
+LOCAL_STATIC_LIBRARIES 	+= fdk-aac x264 ssl crypto
 #rtmp
 endif
 ifdef BUILD_ONE_LIB
