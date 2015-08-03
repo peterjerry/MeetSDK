@@ -15,12 +15,15 @@ int CSTSSegment::getSubtitleText(char* text, int maxLength)
 {
     int textLength = 0;
     for (size_t i = 0; i < mSubs.size(); ++i) {
-        ASS_Event* event = mSubtitle->getEventAt(mSubs[i]);
+        ASS_Event* one_event = mSubtitle->getEventAt(mSubs[i]);
+		if (!one_event)
+			continue;
+
         if (!text) {
             if (textLength) {
                 textLength += 1;
             }
-            textLength += strlen(event->Text);
+            textLength += strlen(one_event->Text);
         } else {
             if (textLength && maxLength > 1) {
                 *text++ = '\n';
@@ -29,7 +32,7 @@ int CSTSSegment::getSubtitleText(char* text, int maxLength)
             }
 
 			// handle ansi and unicode charset
-			const char* p = event->Text;
+			const char* p = one_event->Text;
 			while (maxLength > 1 && *p) {
 				--maxLength;
 				*text++ = *p++;

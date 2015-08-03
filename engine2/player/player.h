@@ -21,9 +21,9 @@ typedef struct MediaInfo {
 	long long size_byte; //in byte
 	int32_t width;
 	int32_t height;
+	int32_t	bitrate;
 
 	const char* format_name;
-	//const char* audio_name;
 	const char* videocodec_name;
 	int32_t thumbnail_width;
 	int32_t thumbnail_height;

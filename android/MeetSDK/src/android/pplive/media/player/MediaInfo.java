@@ -13,6 +13,7 @@ public class MediaInfo {
 	private long mDurationMS;
 	private long mSizeByte;
 	private File mFile;
+	private int mBitrate; // bit/s
 	
 	private String mFormatName;
 	private HashMap<Integer, String> mChannels;
@@ -115,6 +116,10 @@ public class MediaInfo {
 			mFile = new File(getPath());
 		}
 		return mFile;
+	}
+	
+	public int getBitrate() {
+		return mBitrate;
 	}
 
 	public long lastModified() {

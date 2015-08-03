@@ -3096,17 +3096,17 @@ bool FFPlayer::getMediaInfo(const char* url, MediaInfo* info)
 
     AVFormatContext* movieFile = avformat_alloc_context();
     LOGD("check file %s", url);
-    if(!avformat_open_input(&movieFile, url, NULL, NULL))
+    if (!avformat_open_input(&movieFile, url, NULL, NULL))
     {
+		info->bitrate = movieFile->bit_rate;
+
         if(movieFile->duration <= 0)
         {
-        	if(avformat_find_stream_info(movieFile, NULL) >= 0)
-            {
+        	if(avformat_find_stream_info(movieFile, NULL) >= 0) {
                 ret = true;
                 info->duration_ms = (int32_t)(movieFile->duration * 1000 / AV_TIME_BASE);
         	}
-            else
-            {
+            else {
                 LOGE("failed to avformat_find_stream_info: %s", url);
             }
         }
@@ -3121,14 +3121,13 @@ bool FFPlayer::getMediaInfo(const char* url, MediaInfo* info)
         LOGE("failed to avformat_open_input: %s", url);
     }
 
-    if(movieFile != NULL)
-    {
+    if (movieFile != NULL) {
         // Close stream
-        LOGD("avformat_close_input");
+        LOGI("avformat_close_input()");
         avformat_close_input(&movieFile);
     }
-    LOGD("File duration:%d", info->duration_ms);
-    LOGD("File size:%lld", info->size_byte);
+
+    LOGI("File duration: %d msec, size: %lld", info->duration_ms, info->size_byte);
     return ret;
 }
 
@@ -3239,6 +3238,12 @@ bool getStreamLangTitle(char** langcode, char** langtitle, int index, AVStream* 
 	if (stream == NULL || stream->metadata == NULL)
 		return false;
 
+	const char *stream_type = "other";
+	if (stream->codec->codec_type == AVMEDIA_TYPE_AUDIO)
+		stream_type = "audio";
+	else if (stream->codec->codec_type == AVMEDIA_TYPE_SUBTITLE)
+		stream_type = "subtitle";
+
     AVDictionaryEntry* elem = NULL;
 
 	elem = av_dict_get(stream->metadata, "language", NULL, 0);
@@ -3260,12 +3265,13 @@ bool getStreamLangTitle(char** langcode, char** langtitle, int index, AVStream* 
     }
 
 	if (gotlanguage) {
-		LOGI("stream index: #%d(lang %s, title: %s)", index, 
+		LOGI("%s stream index: #%d(lang %s, title: %s)", 
+			stream_type, index, 
 			*langcode ? *langcode : "N/A", 
 			*langtitle ? *langcode : "N/A");
 	}
 	else {
-		LOGW("stream index: #d lang and title are both empty", index);
+		LOGW("%s stream index: #d lang and title are both empty", stream_type, index);
 	}
 
     return gotlanguage;
@@ -3282,6 +3288,7 @@ bool FFPlayer::getCurrentMediaInfo(MediaInfo *info)
 	info->duration_ms = (int32_t)(mMediaFile->duration * 1000 / AV_TIME_BASE);
 	info->format_name = mMediaFile->iformat->name;
 	info->channels = (int32_t)mMediaFile->nb_streams;
+	info->bitrate = mMediaFile->bit_rate;
 
 	info->audio_channels	= 0;
 	info->video_channels	= 0;
@@ -3385,6 +3392,7 @@ bool FFPlayer::getMediaDetailInfo(const char* url, MediaInfo* info)
 
 	info->duration_ms = (int32_t)(movieFile->duration * 1000 / AV_TIME_BASE);
 	info->format_name = movieFile->iformat->name;
+	info->bitrate = movieFile->bit_rate;
 
 	uint32_t streamsCount = movieFile->nb_streams;
 	LOGD("streamsCount:%d", streamsCount);

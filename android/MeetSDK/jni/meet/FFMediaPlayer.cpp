@@ -1157,12 +1157,14 @@ android_media_MediaPlayer_native_getMediaInfo(JNIEnv *env, jobject thiz, jstring
 		jfieldID f_path = env->GetFieldID(clazz, "mPath", "Ljava/lang/String;");
 		jfieldID f_duration = env->GetFieldID(clazz, "mDurationMS", "J");
 		jfieldID f_size = env->GetFieldID(clazz, "mSizeByte", "J");
+		jfieldID f_bitrate = env->GetFieldID(clazz, "mBitrate", "I");
 		//jfieldID f_audio_channels = env->GetFieldID(clazz, "mAudioChannels", "I");
 		//jfieldID f_video_channels = env->GetFieldID(clazz, "mVideoChannels", "I");
 
 		env->SetObjectField(info, f_path, js_media_file_path);
 		env->SetLongField(info, f_duration, native_info.duration_ms);
 		env->SetLongField(info, f_size, native_info.size_byte);
+		env->SetLongField(info, f_bitrate, native_info.bitrate);
 		//env->SetIntField(info, f_audio_channels, native_info.audio_channels);
 		//env->SetIntField(info, f_video_channels, native_info.video_channels);
 	}
@@ -1178,6 +1180,7 @@ static void fill_media_info(JNIEnv *env, jobject thiz, jobject info, jstring fil
 	jfieldID f_path = env->GetFieldID(clazz, "mPath", "Ljava/lang/String;");
 	jfieldID f_duration = env->GetFieldID(clazz, "mDurationMS", "J");
 	jfieldID f_size = env->GetFieldID(clazz, "mSizeByte", "J");
+	jfieldID f_bitrate = env->GetFieldID(clazz, "mBitrate", "I");
 	jfieldID f_format = env->GetFieldID(clazz, "mFormatName", "Ljava/lang/String;");
 
 	jfieldID f_videocodec_name = env->GetFieldID(clazz, "mVideoCodecName", "Ljava/lang/String;");
@@ -1223,6 +1226,7 @@ static void fill_media_info(JNIEnv *env, jobject thiz, jobject info, jstring fil
 		env->SetObjectField(info, f_path, env->NewStringUTF("N/A"));
 	env->SetLongField(info, f_duration, native_info->duration_ms);
 	env->SetLongField(info, f_size, native_info->size_byte);
+	env->SetIntField(info, f_bitrate, native_info->bitrate);
 		
 	env->SetObjectField(info, f_format, env->NewStringUTF(native_info->format_name));
 	env->SetIntField(info, f_video_channels, native_info->video_channels);
