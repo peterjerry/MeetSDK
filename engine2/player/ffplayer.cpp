@@ -959,6 +959,7 @@ status_t FFPlayer::setVolume(float leftVolume, float rightVolume)
 
 status_t FFPlayer::setListener(MediaPlayerListener* listener)
 {
+	LOGI("setListener %p", listener);
     mListener = listener;
     return OK;
 }

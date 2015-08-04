@@ -928,7 +928,7 @@ static bool loadPlayerLib()
 	return true;
 }
 
-// callled when new FFMediaPlayer
+// called when new FFMediaPlayer
 static
 void android_media_MediaPlayer_native_setup(JNIEnv *env, jobject thiz, jobject weak_this)
 {
@@ -942,6 +942,11 @@ void android_media_MediaPlayer_native_setup(JNIEnv *env, jobject thiz, jobject w
 
 	// create new listener and give it to MediaPlayer
 	JNIMediaPlayerListener * player_listener = new JNIMediaPlayerListener(env, thiz, weak_this);
+	if (player_listener == NULL) {
+		jniThrowException(env, "java/lang/RuntimeException", "Create JNIMediaPlayerListener failed.");
+		return;
+	}
+
 	//IPlayer takes responsibility to release listener.
 	mp->setListener(player_listener);
 
