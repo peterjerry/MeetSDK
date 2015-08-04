@@ -3809,7 +3809,7 @@ bool FFPlayer::getThumbnail(const char* url, MediaInfo* info)
                     info->thumbnail = (int*)malloc(info->thumbnail_width * info->thumbnail_height * 4);
                     if (generateThumbnail(frame, info->thumbnail, info->thumbnail_width, info->thumbnail_height)) {
 						got_thumbnail = 1;
-						LOGI("generateThumbnail");
+						LOGI("generateThumbnail done!");
 					}
 					av_frame_unref(frame);
 				}

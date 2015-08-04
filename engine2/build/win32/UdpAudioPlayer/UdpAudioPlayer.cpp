@@ -54,6 +54,7 @@ int _tmain(int argc, _TCHAR* argv[])
 	if (argc != 3) {
         fprintf(stderr, "usage: %s input_file fifo_size(in byte)\n"
                 "\n", argv[0]);
+		fprintf(stderr, "example: %s \"rtmp://172.16.204.106/live/test01 live=1\" 128000\n", argv[0]);
         exit(1);
     }
 
@@ -87,7 +88,7 @@ int _tmain(int argc, _TCHAR* argv[])
 		}
 
 		swr_ctx = swr_alloc_set_opts(swr_ctx,
-			audio_dec_ctx->channel_layout,
+			AV_CH_LAYOUT_STEREO,
 			AV_SAMPLE_FMT_S16,
 			audio_dec_ctx->sample_rate,
 			audio_dec_ctx->channel_layout,
@@ -124,7 +125,7 @@ int _tmain(int argc, _TCHAR* argv[])
 	memset(&spec, 0, sizeof(SDL_AudioSpec));
 	wanted_spec.freq		= audio_dec_ctx->sample_rate;
 	wanted_spec.format		= AUDIO_S16SYS;
-	wanted_spec.channels	= audio_dec_ctx->channels;
+	wanted_spec.channels	= 2;
 	wanted_spec.silence		= 0;
 	wanted_spec.samples		= SDL_AUDIO_SAMPLES;
 	wanted_spec.callback	= audio_callback;
@@ -212,7 +213,7 @@ static int decode_packet(int *got_frame, int cached)
 					AV_ROUND_UP);
 
 				int sampleCountOutput = swr_convert(swr_ctx,
-					(uint8_t**)(&audio_dst_data), (int)sampleOutCount,
+					(uint8_t**)(&audio_dst_data), sampleOutCount,
 					(const uint8_t**)(frame->extended_data), sampleInCount);
 				if (sampleCountOutput < 0) {
 					printf("Audio convert sampleformat failed, ret %d\n", sampleCountOutput);
