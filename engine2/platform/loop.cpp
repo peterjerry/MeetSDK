@@ -48,6 +48,8 @@ Event::~Event()
 
 void StopEvent::action(void *opaque, int64_t now_us)
 {
+	LOGI("StopEvent::action()");
+
 	EventLoop *ins = (EventLoop *)opaque;
 	ins->setStop();
 }
@@ -101,7 +103,7 @@ void EventLoop::stop(bool flush)
 	if (flush)
 		postEventToBack(stopEvent);
 	else
-		postTimedEvent(stopEvent, INT64_MIN);
+		postEventTohHeader(stopEvent);
 
 	void *dummy;
 	LOGI("before pthread_join %p", mThread);
@@ -234,11 +236,11 @@ void * EventLoop::ThreadWrapper(void *me)
 void EventLoop::threadEntry() {
     //prctl(PR_SET_NAME, (unsigned long)"ffplayer Loop", 0, 0, 0);
 
-	int64_t nowUs = 0;
-
 	pthread_mutex_lock(&mLock);
+
     while (!mStopped) {
 		Event* evt = NULL;
+		int64_t nowUs = 0;
 
 		while (mEvtQueue.IsEmpty())
 			pthread_cond_wait(&mQueueNotEmptyCondition, &mLock);
@@ -299,6 +301,7 @@ void EventLoop::threadEntry() {
 				// Fire event with the lock NOT held.
 			
 				LOGD("action #%lld %d", evt->m_index, evt->m_id);
+
 				pthread_mutex_unlock(&mLock);
 				evt->action(evt->m_opaque, nowUs);
 				pthread_mutex_lock(&mLock);

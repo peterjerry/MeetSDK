@@ -55,7 +55,7 @@ void pplog_close()
 
 int __pp_log_print(int prio, const char *tag, const char *fmt, ...)
 {
-    if(!gs_inited)
+    if (!gs_inited)
 		return -1;
 
 	va_list ap;
@@ -70,10 +70,10 @@ int __pp_log_print(int prio, const char *tag, const char *fmt, ...)
 
 int __pp_log_vprint(int prio, const char *tag, const char *fmt, va_list ap)
 {
-	if(!gs_inited)
+	if (!gs_inited)
 		return -1;
 
-    static char buf[LOG_BUF_SIZE];
+    char buf[LOG_BUF_SIZE];
 	vsnprintf(buf, LOG_BUF_SIZE, fmt, ap);
 	return java_log(prio, tag, buf);
 }

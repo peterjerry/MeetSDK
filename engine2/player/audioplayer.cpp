@@ -227,26 +227,22 @@ status_t AudioPlayer::stop()
 	pthread_cond_signal(&mCondition);
 	pthread_mutex_unlock(&mLock);
 
-	if (mPlayerStatus == MEDIA_PLAYER_STARTED || mPlayerStatus == MEDIA_PLAYER_PAUSED ||
-		mPlayerStatus == MEDIA_PLAYER_PLAYBACK_COMPLETE) {
-		if (mRender)
-			mRender->close();
-	}
-
 	if (mPlayerStatus == MEDIA_PLAYER_STARTED || mPlayerStatus == MEDIA_PLAYER_PAUSED) {
 		mPlayerStatus = MEDIA_PLAYER_STOPPING; // notify audio thread to exit
+		
+		// empty fifo avoid write block
+		if (mRender)
+			mRender->flush();
+			
 		LOGI("before pthread_join %p", mThread);
 		if (pthread_join(mThread, NULL) != 0)
 			LOGE("failed to join audioplayer thread");
 
 		LOGI("after join");
-
-#if !defined(OSLES_IMPL) && !defined(__CYGWIN__) && !defined(_MSC_VER)
-		AudioTrack_stop();
-#endif
 	}
 
-    if (mRender) {  
+    if (mRender) {
+		mRender->close();	
 		delete mRender;
         mRender = NULL;
 		LOGI("after audio render released");

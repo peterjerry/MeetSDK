@@ -208,8 +208,9 @@ extern "C" bool my_convert(uint8_t* flv_data, int flv_data_size, uint8_t* ts_dat
 
 FFPlayer::FFPlayer()
 {
-	LOGD("FFPlayer constructor");
-    mListener		= NULL;
+	LOGI("FFPlayer constructor[player op new()]");
+    
+	mListener		= NULL;
     mDurationMs		= 0;
     mVideoFrameRate = 0;
 	mVideoGapMs		= 0;
@@ -322,7 +323,7 @@ FFPlayer::FFPlayer()
 
 FFPlayer::~FFPlayer()
 {
-	LOGI("FFPlayer destructor()");
+	LOGI("FFPlayer destructor()[player op release()]");
 
     reset_l();
 
@@ -1615,7 +1616,10 @@ void FFPlayer::FFStreamDoneEvent::action(void *opaque, int64_t now_us)
 void FFPlayer::onStreamDoneImpl()
 {
     LOGI("onStreamDone");
-	AutoLock autolock(&mPlayerLock);
+
+	// 2015.8.5 guoliangma comment out to fix "quick switch play stuck"
+	// because stop() also call autolock, will dead-lock
+	//AutoLock autolock(&mPlayerLock);
 
     if (!mStreamDoneEventPending)
         return;
@@ -1644,7 +1648,9 @@ void FFPlayer::FFCheckAudioStatusEvent::action(void *opaque, int64_t now_us)
 
 void FFPlayer::onCheckAudioStatusImpl()
 {
-	AutoLock autolock(&mPlayerLock);
+	// 2015.8.5 guoliangma comment out to fix "quick switch play stuck"
+	// because stop() also call autolock, will dead-lock
+	//AutoLock autolock(&mPlayerLock);
 
     if (!mAudioStatusEventPending)
         return;
@@ -1670,7 +1676,9 @@ void FFPlayer::FFBufferingStartEvent::action(void *opaque, int64_t now_us)
 void FFPlayer::onBufferingStartImpl()
 {
 	LOGD("onBufferingStart");
-	AutoLock autolock(&mPlayerLock);
+	// 2015.8.5 guoliangma comment out to fix "quick switch play stuck"
+	// because stop() also call autolock, will dead-lock
+	//AutoLock autolock(&mPlayerLock);
 
     if (!mBufferingStartEventPending)
         return;
@@ -1702,7 +1710,9 @@ void FFPlayer::FFBufferingEndEvent::action(void *opaque, int64_t now_us)
 void FFPlayer::onBufferingEndImpl()
 {
 	LOGD("onBufferingEnd");
-	AutoLock autolock(&mPlayerLock);
+	// 2015.8.5 guoliangma comment out to fix "quick switch play stuck"
+	// because stop() also call autolock, will dead-lock
+	//AutoLock autolock(&mPlayerLock);
 
     if (!mBufferingEndEventPending)
         return;
@@ -1739,7 +1749,9 @@ void FFPlayer::FFSeekingCompleteEvent::action(void *opaque, int64_t now_us)
 void FFPlayer::onSeekingCompleteImpl()
 {
 	LOGD("onSeekingComplete");
-	AutoLock autolock(&mPlayerLock);
+	// 2015.8.5 guoliangma comment out to fix "quick switch play stuck"
+	// because stop() also call autolock, will dead-lock
+	//AutoLock autolock(&mPlayerLock);
 
     if (!mSeekingCompleteEventPending)
         return;
