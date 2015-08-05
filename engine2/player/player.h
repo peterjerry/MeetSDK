@@ -155,7 +155,7 @@ enum media_info_type {
 
 enum PLAYER_IMPL_TYPE {
 	SYSTEM_PLAYER = 10001,
-	NU_PLAYER,
+	XO_PLAYER,
 	FF_PLAYER,
 	PP_PLAYER,
 };

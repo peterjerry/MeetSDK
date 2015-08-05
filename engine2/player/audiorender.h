@@ -84,6 +84,7 @@ private:
 	int mBitPerSample; // 8, 16, ...
 	int mOneSecSize;
 
+	bool mStopping;
 	bool mClosed;
 
 #ifdef PCM_DUMP

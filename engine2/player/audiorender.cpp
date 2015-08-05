@@ -37,6 +37,7 @@ AudioRender::AudioRender()
 	mAudioLogCnt = 0;
 #endif
 
+	mStopping	= false;
 	mClosed		= false;
 
 #ifdef PCM_DUMP
@@ -333,7 +334,7 @@ status_t AudioRender::render(AVFrame* audioFrame)//int16_t* buffer, uint32_t buf
 			AV_ROUND_UP);
 
 		int sampleCountOutput = swr_convert(mConvertCtx,
-			(uint8_t**)(&mSamples), (int)sampleOutCount,
+			(uint8_t**)(&mSamples), sampleOutCount,
 			(const uint8_t**)(audioFrame->extended_data), sampleInCount);
 		if (sampleCountOutput < 0) {
 			LOGE("Audio convert sampleformat(%d) failed, ret %d", mSampleFormat, sampleCountOutput);
@@ -397,6 +398,13 @@ status_t AudioRender::render(AVFrame* audioFrame)//int16_t* buffer, uint32_t buf
 	if (written != (int)audio_buffer_size)
 		LOGW("fifo overflow(sdl audio) %d -> %d", audio_buffer_size, written);
 #elif defined(OSLES_IMPL)
+	while (!mStopping) {
+		if (a_render->free_size() >= (int)audio_buffer_size)
+			break;
+		
+		usleep(1000 * 5);// 5 msec
+	}
+
 	int written;
 	written = a_render->write_data((const char *)audio_buffer, audio_buffer_size);
 	if (written != (int)audio_buffer_size) // may occur when stopping
@@ -438,6 +446,9 @@ status_t AudioRender::close()
 {
 	if (mClosed)
 		return OK;
+
+	// interrupt blocked write
+	mStopping = true;
 
 #if defined(__CYGWIN__) || defined(_MSC_VER)
 	SDL_CloseAudio();
