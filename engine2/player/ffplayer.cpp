@@ -296,6 +296,7 @@ FFPlayer::FFPlayer()
 	mBufferSinkCtx	= NULL;  
     mBufferSrcCtx	= NULL;
 	mVideoFiltFrame	= NULL;
+	mAudioFiltFrame	= NULL;
 	mLastFilter		= NULL;
 	int i;
 	for(i=0;i<MAX_FILTER_CNT;i++)
@@ -349,8 +350,8 @@ bool FFPlayer::FixInterlace(AVStream *video_st)
 {
 #ifdef USE_AV_FILTER
 	mFilterDescr[0] = "yadif";
-	if (!init_filters(mFilterDescr)) {
-		LOGE("failed to init filters");
+	if (!init_filters_video(mFilterDescr)) {
+		LOGE("failed to init video filters");
 		return false;
 	}
 	mVideoFiltFrame = av_frame_alloc();
@@ -387,13 +388,13 @@ bool FFPlayer::FixRotateVideo(AVStream *video_st)
             }
 
 			int i = 0;
-			while(mFilterDescr[i]) {
+			while (mFilterDescr[i]) {
 				LOGI("set filter descr[%d]: %s", i, mFilterDescr[i]);
 				i++;
 			}
 
-			if (!init_filters(mFilterDescr)) {
-				LOGE("failed to init filters");
+			if (!init_filters_video(mFilterDescr)) {
+				LOGE("failed to init video filters");
 				return false;
 			}
 			mVideoFiltFrame = av_frame_alloc();
@@ -445,7 +446,7 @@ bool FFPlayer::insert_filter(const char *name, const char* arg, AVFilterContext 
 	return true;
 }
 
-bool FFPlayer::init_filters(const char **filters_descr)
+bool FFPlayer::init_filters_video(const char **filters_descr)
 {
 	char args[512] = {0};
     int ret = 0;
@@ -495,6 +496,150 @@ bool FFPlayer::init_filters(const char **filters_descr)
     }
 
     ret = av_opt_set_int_list(mBufferSinkCtx, "pix_fmts", pix_fmts,
+                              AV_PIX_FMT_NONE, AV_OPT_SEARCH_CHILDREN);
+    if (ret < 0) {
+        LOGE("Cannot set output pixel format");
+        goto end;
+    }
+
+	mLastFilter = mBufferSinkCtx;
+	index = 1;
+	while(filters_descr[index]) {
+		const char* name = NULL;
+		const char* arg = NULL;
+
+		char tmp[64] = {0};
+		char* pos = NULL;
+		strncpy(tmp, filters_descr[index], 64);
+		pos = strchr(tmp, '=');
+		if (pos != NULL) {
+			*pos = '\0';
+			name = tmp;
+			arg = pos + 1;
+		}
+		else {
+			name = filters_descr[index];
+			arg = NULL;
+		}
+		insert_filter(name, arg, &mLastFilter);
+		index++;
+	}
+
+    /* Endpoints for the filter graph. */
+    mFilterOutputs->name       = av_strdup("in");
+    mFilterOutputs->filter_ctx = mBufferSrcCtx;
+    mFilterOutputs->pad_idx    = 0;
+    mFilterOutputs->next       = NULL;
+
+    mFilterInputs->name       = av_strdup("out");
+    mFilterInputs->filter_ctx = mLastFilter;//mBufferSinkCtx;
+    mFilterInputs->pad_idx    = 0;
+    mFilterInputs->next       = NULL;
+
+    if ((ret = avfilter_graph_parse_ptr(mFilterGraph, filters_descr[0],
+                                    &mFilterInputs, &mFilterOutputs, NULL)) < 0) {
+		LOGE("Cannot avfilter_graph_parse_ptr");
+        goto end;
+	}
+
+    if ((ret = avfilter_graph_config(mFilterGraph, NULL)) < 0) {
+		LOGE("Cannot avfilter_graph_config");
+        goto end;
+	}
+
+end:
+    avfilter_inout_free(&mFilterInputs);
+    avfilter_inout_free(&mFilterOutputs);
+
+    return (ret == 0) ? true : false;
+}
+
+int FFPlayer::onAudioFrame(AVFrame *frame, void * opaque) {
+	FFPlayer *ins = (FFPlayer *)opaque;
+	return ins->onAudioFrameImpl(frame);
+}
+
+int FFPlayer::onAudioFrameImpl(AVFrame *frame)
+{
+	int ret;
+	/* push the audio data from decoded frame into the filtergraph */
+    if (av_buffersrc_add_frame_flags(mBufferSrcCtx, frame, 0) < 0) {
+        LOGE("Error while feeding the audio filtergraph");
+        return -1;
+    }
+
+    /* pull filtered audio from the filtergraph */
+    while (1) {
+		ret = av_buffersink_get_frame(mBufferSinkCtx, mAudioFiltFrame);
+        if (ret == AVERROR(EAGAIN) || ret == AVERROR_EOF)
+			break;
+		if (ret < 0)
+			break;
+
+		// update ui
+		if ( OK != mVideoRenderer->render(mAudioFiltFrame))
+			notifyListener_l(MEDIA_ERROR, MEDIA_ERROR_VIDEO_RENDER, 0);
+
+		av_frame_unref(mAudioFiltFrame);
+    }
+
+	return 0;
+}
+
+bool FFPlayer::init_filters_audio(const char **filters_descr)
+{
+	char args[512] = {0};
+    int ret = 0;
+	int index;
+    AVFilter *buffersrc  = avfilter_get_by_name("abuffer");
+    AVFilter *buffersink = avfilter_get_by_name("buffersink");
+
+	AVCodecContext *dec_ctx = mAudioStream->codec;
+	AVRational time_base = mAudioStream->time_base;
+
+	mFilterOutputs = avfilter_inout_alloc();
+    mFilterInputs  = avfilter_inout_alloc();
+	enum AVPixelFormat pix_fmts[] = { AV_PIX_FMT_YUV420P, AV_PIX_FMT_NONE };
+
+    mFilterGraph = avfilter_graph_alloc();
+    if (!mFilterOutputs || !mFilterInputs || !mFilterGraph) {
+        ret = AVERROR(ENOMEM);
+        goto end;
+    }
+
+	/* buffer audio source: the decoded frames from the decoder will be inserted here. */
+    if (!dec_ctx->channel_layout)
+        dec_ctx->channel_layout = av_get_default_channel_layout(dec_ctx->channels);
+#ifdef _MSC_VER
+	_snprintf(args, sizeof(args),
+            "time_base=%d/%d:sample_rate=%d:sample_fmt=%s:channel_layout=0x%I64d",
+             time_base.num, time_base.den, dec_ctx->sample_rate,
+             av_get_sample_fmt_name(dec_ctx->sample_fmt), dec_ctx->channel_layout);
+#else
+	snprintf(args, sizeof(args),
+            "time_base=%d/%d:sample_rate=%d:sample_fmt=%s:channel_layout=0x%"PRIx64,
+             time_base.num, time_base.den, dec_ctx->sample_rate,
+             av_get_sample_fmt_name(dec_ctx->sample_fmt), dec_ctx->channel_layout);
+#endif
+
+    ret = avfilter_graph_create_filter(&mBufferSrcCtx, buffersrc, "in",
+                                       args, NULL, mFilterGraph);
+    if (ret < 0) {
+        LOGE("Cannot create buffer source");
+        goto end;
+    }
+
+
+
+    /* buffer video sink: to terminate the filter chain. */
+    ret = avfilter_graph_create_filter(&mBufferSinkCtx, buffersink, "out",
+                                       NULL, NULL, mFilterGraph);
+    if (ret < 0) {
+        LOGE("Cannot create buffer sink");
+        goto end;
+    }
+
+	ret = av_opt_set_int_list(mBufferSinkCtx, "pix_fmts", pix_fmts,
                               AV_PIX_FMT_NONE, AV_OPT_SEARCH_CHILDREN);
     if (ret < 0) {
         LOGE("Cannot set output pixel format");
@@ -2032,7 +2177,7 @@ status_t FFPlayer::prepareAudio_l()
 
     mAudioPlayer->setListener(this);
     status_t ret = mAudioPlayer->prepare();
-    if(ret != OK){
+    if (ret != OK){
      	LOGE("failed to prepare audio player");
         return ret;
     }
@@ -2046,7 +2191,30 @@ status_t FFPlayer::prepareVideo_l()
 	mVideoStream = mDataStream->getVideoStream();
 	if (mVideoStreamIndex == -1 || mVideoStream == NULL) {
         LOGI("No video stream");
-        notifyListener_l(MEDIA_SET_VIDEO_SIZE, 0, 0);
+
+		if (mAudioPlayer) {
+			mAudioPlayer->setOnFrame(onAudioFrame, this);
+			LOGI("set auido Frame callback");
+		}
+
+		// "showwaves=s=640x480:mode=line:rate=5"
+		// "showwavespic=s=640x480"
+		// "showspectrum=mode=separate:color=intensity:slide=1:scale=cbrt:s=640x480"
+		mFilterDescr[0] = "showspectrum=mode=separate:color=intensity:slide=1:scale=cbrt:s=640x480"; 
+		if (!init_filters_audio(mFilterDescr)) {
+			LOGE("failed to init audio filters");
+			return ERROR;
+		}
+
+		mAudioFiltFrame = av_frame_alloc();
+        notifyListener_l(MEDIA_SET_VIDEO_SIZE, 640, 480);
+
+		mVideoRenderer = new FFRender(mSurface, 640, 480, AV_PIX_FMT_YUV420P);
+        if (mVideoRenderer->init() != OK) {
+         	LOGE("Initing video render failed");
+            return ERROR;
+        }
+
 		return OK;
 	}
 
@@ -2309,10 +2477,13 @@ status_t FFPlayer::stop_l()
 	}
 
 #ifdef USE_AV_FILTER
-	if(mVideoFiltFrame != NULL) {
+	if (mVideoFiltFrame != NULL) {
 		av_frame_free(&mVideoFiltFrame);
     }
-    LOGI("after avcodec_free_frame mVideoFiltFrame");
+	if (mAudioFiltFrame != NULL) {
+		av_frame_free(&mAudioFiltFrame);
+    }
+    LOGI("after avcodec_free_frame Filter Frame");
 
 	for (int i=0;i<MAX_FILTER_CNT;i++)
 		mFilterDescr[i] = NULL;
