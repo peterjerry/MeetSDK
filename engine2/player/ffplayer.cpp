@@ -734,9 +734,7 @@ status_t FFPlayer::reset()
 status_t FFPlayer::prepare()
 {
     LOGI("player op prepare()");
-#ifndef _MSC_VER // fixme guoliangma
 	AutoLock autolock(&mPlayerLock);
-#endif
 
     if (mPlayerStatus != MEDIA_PLAYER_INITIALIZED) {
 		LOGE("status to call prepare() is wrong: %d", mPlayerStatus);
@@ -749,9 +747,7 @@ status_t FFPlayer::prepare()
 status_t FFPlayer::prepareAsync()
 {
     LOGI("player op prepareAsync()");
-#ifndef _MSC_VER // fixme guoliangma
 	AutoLock autolock(&mPlayerLock);
-#endif
 
     if (mPlayerStatus != MEDIA_PLAYER_INITIALIZED) {
 		LOGE("status to call prepareAsync() is wrong: %d", mPlayerStatus);
@@ -764,10 +760,7 @@ status_t FFPlayer::prepareAsync()
 status_t FFPlayer::start()
 {
     LOGI("player op start()");
-	// 2015.6.15 guoliangma added
-#ifndef _MSC_VER // fixme guoliangma
 	AutoLock autolock(&mPlayerLock);
-#endif
 
 	// 20141124 guoliangma fix INVALID_OP(38) call start() twice when ad play finish
 	if (mPlayerStatus == MEDIA_PLAYER_STARTED)
@@ -821,6 +814,7 @@ status_t FFPlayer::pause()
 status_t FFPlayer::seekTo(int32_t msec)
 {
 	LOGI("player op seekTo()");
+	AutoLock autolock(&mPlayerLock);
 
     if (mPlayerStatus != MEDIA_PLAYER_PREPARED &&
         mPlayerStatus != MEDIA_PLAYER_STARTED &&
@@ -1514,7 +1508,9 @@ void FFPlayer::FFBufferingUpdateEvent::action(void *opaque, int64_t now_us)
 
 void FFPlayer::onBufferingUpdateImpl()
 {
-	AutoLock autolock(&mPlayerLock);
+	// 2015.8.5 guoliangma comment out to fix "quick switch play stuck"
+	// because stop() also call autolock, will dead-lock
+	//AutoLock autolock(&mPlayerLock);
 
     if (!mBufferingUpdateEventPending)
         return;
@@ -1560,7 +1556,9 @@ void FFPlayer::FFSeekingEvent::action(void *opaque, int64_t now_us)
 void FFPlayer::onSeekingImpl()
 {
 	LOGD("onSeeking");
-	AutoLock autolock(&mPlayerLock);
+	// 2015.8.5 guoliangma comment out to fix "quick switch play stuck"
+	// because stop() also call autolock, will dead-lock
+	//AutoLock autolock(&mPlayerLock);
 
     if (!mSeekingEventPending) // more than 1 seek request in event loop
 		return;
