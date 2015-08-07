@@ -3294,11 +3294,11 @@ bool FFPlayer::getCurrentMediaInfo(MediaInfo *info)
 	if (info == NULL || mMediaFile == NULL)
 		return false;
 
-	info->size_byte = 0;
-	info->duration_ms = (int32_t)(mMediaFile->duration * 1000 / AV_TIME_BASE);
-	info->format_name = mMediaFile->iformat->name;
-	info->channels = (int32_t)mMediaFile->nb_streams;
-	info->bitrate = mMediaFile->bit_rate;
+	info->size_byte		= 0;
+	info->duration_ms	= (int32_t)(mMediaFile->duration * 1000 / AV_TIME_BASE);
+	info->format_name	= mMediaFile->iformat->name;
+	info->channels		= (int32_t)mMediaFile->nb_streams;
+	info->bitrate		= mMediaFile->bit_rate;
 
 	info->audio_channels	= 0;
 	info->video_channels	= 0;
@@ -3309,6 +3309,7 @@ bool FFPlayer::getCurrentMediaInfo(MediaInfo *info)
 		return false;
 	}
 
+	info->frame_rate = av_q2d(mVideoStream->avg_frame_rate);
 	AVCodecContext* codec_ctx = mVideoStream->codec;
 	if(codec_ctx == NULL) {
 		LOGE("codec_ctx is NULL");
@@ -3389,7 +3390,7 @@ bool FFPlayer::getMediaDetailInfo(const char* url, MediaInfo* info)
 	}
 
     AVFormatContext* movieFile = avformat_alloc_context();
-    LOGD("check file %s", url);
+    LOGI("before avformat_open_input() %s", url);
     if (0 != avformat_open_input(&movieFile, url, NULL, NULL)) {
 		LOGE("failed to avformat_open_input: %s", url);
 		return false;
@@ -3400,12 +3401,12 @@ bool FFPlayer::getMediaDetailInfo(const char* url, MediaInfo* info)
 		return false;
 	}
 
-	info->duration_ms = (int32_t)(movieFile->duration * 1000 / AV_TIME_BASE);
-	info->format_name = movieFile->iformat->name;
-	info->bitrate = movieFile->bit_rate;
+	info->duration_ms	= (int32_t)(movieFile->duration * 1000 / AV_TIME_BASE);
+	info->format_name	= movieFile->iformat->name;
+	info->bitrate		= movieFile->bit_rate;
 
 	uint32_t streamsCount = movieFile->nb_streams;
-	LOGD("streamsCount:%d", streamsCount);
+	LOGI("streamsCount: %d", streamsCount);
 
 	info->channels = streamsCount;
 
@@ -3417,19 +3418,18 @@ bool FFPlayer::getMediaDetailInfo(const char* url, MediaInfo* info)
 		if (movieFile->streams[i]->codec->codec_type == AVMEDIA_TYPE_VIDEO) {
 			info->video_channels++;
 			AVStream* stream = movieFile->streams[i];
-			if(stream == NULL)
-			{
+			if (stream == NULL) {
 				LOGE("stream is NULL");
 				continue;
 			}
 			AVCodecContext* codec_ctx = stream->codec;
-			if(codec_ctx == NULL)
-			{
+			if (codec_ctx == NULL) {
 				LOGE("codec_ctx is NULL");
 				continue;
 			}
-			info->width = codec_ctx->width;
-			info->height = codec_ctx->height;
+			info->width			= codec_ctx->width;
+			info->height		= codec_ctx->height;
+			info->frame_rate	= av_q2d(stream->avg_frame_rate);//stream->avg_frame_rate.num / mVideoStream->avg_frame_rate.den;
 
 			AVCodec* codec = avcodec_find_decoder(codec_ctx->codec_id);
 			if (codec == NULL)
@@ -3486,19 +3486,17 @@ bool FFPlayer::getMediaDetailInfo(const char* url, MediaInfo* info)
 
 	if (movieFile != NULL) {
         // Close stream
-        LOGD("avformat_close_input");
+        LOGD("avformat_close_input()");
         avformat_close_input(&movieFile);
     }
 
-    LOGD("File duration:%d", info->duration_ms);
-    LOGD("File size:%lld", info->size_byte);
-    LOGD("width:%d", info->width);
-    LOGD("height:%d", info->height);
-    LOGD("format name:%s", info->format_name!=NULL?info->format_name:"");
-    LOGD("audio name:%s", info->audio_name!=NULL?info->audio_name:"");
-    LOGD("video name:%s", info->video_name!=NULL?info->video_name:"");
-    LOGD("audio_channels:%d", info->audio_channels);
-    LOGD("video_channels:%d", info->video_channels);
+    LOGI("File duration: %d msec, size: %lld", info->duration_ms, info->size_byte);
+    LOGI("width: %d, height: %d", info->width, info->height);
+	LOGI("frame_rate:%.2f, bitrate: %d bps", info->frame_rate, info->bitrate);
+    LOGI("format_name:%s", info->format_name != NULL ? info->format_name : "N/A");
+	LOGI("videocodec_name:%s", info->videocodec_name != NULL ? info->videocodec_name : "N/A");
+    LOGI("video_channels:%d, audio_channels:%d, subtitle_channels:%d", 
+		info->video_channels, info->audio_channels, info->subtitle_channels);
     return true;
 }
 

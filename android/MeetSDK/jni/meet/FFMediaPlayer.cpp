@@ -1180,6 +1180,7 @@ static void fill_media_info(JNIEnv *env, jobject thiz, jobject info, jstring fil
 	jfieldID f_path = env->GetFieldID(clazz, "mPath", "Ljava/lang/String;");
 	jfieldID f_duration = env->GetFieldID(clazz, "mDurationMS", "J");
 	jfieldID f_size = env->GetFieldID(clazz, "mSizeByte", "J");
+	jfieldID f_frame_rate = env->GetFieldID(clazz, "mFrameRate", "D");
 	jfieldID f_bitrate = env->GetFieldID(clazz, "mBitrate", "I");
 	jfieldID f_format = env->GetFieldID(clazz, "mFormatName", "Ljava/lang/String;");
 
@@ -1226,6 +1227,7 @@ static void fill_media_info(JNIEnv *env, jobject thiz, jobject info, jstring fil
 		env->SetObjectField(info, f_path, env->NewStringUTF("N/A"));
 	env->SetLongField(info, f_duration, native_info->duration_ms);
 	env->SetLongField(info, f_size, native_info->size_byte);
+	env->SetDoubleField(info, f_frame_rate, native_info->frame_rate);
 	env->SetIntField(info, f_bitrate, native_info->bitrate);
 		
 	env->SetObjectField(info, f_format, env->NewStringUTF(native_info->format_name));

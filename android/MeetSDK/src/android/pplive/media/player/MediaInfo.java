@@ -13,6 +13,7 @@ public class MediaInfo {
 	private long mDurationMS;
 	private long mSizeByte;
 	private File mFile;
+	private double mFrameRate;
 	private int mBitrate; // bit/s
 	
 	private String mFormatName;
@@ -45,21 +46,23 @@ public class MediaInfo {
 	}
 
 	public MediaInfo(String path, long durationMS, long sizeByte) {
-		mTitle = getTitleImpl(path);
-		mPath = path;
-		mDurationMS = durationMS;
-		mSizeByte = sizeByte;
-		mFile = null;
-		mWidth = 0;
-		mHeight = 0;
-		mFormatName = null;
-		mVideoCodecName = null;
-		mThumbnailWidth = 0;
-		mThumbnailHeight = 0;
-		mThumbnail = null;
-		mAudioChannels = 0;
-		mVideoChannels = 0;
-		mSubTitleChannels = 0;
+		mTitle 				= getTitleImpl(path);
+		mPath 				= path;
+		mDurationMS 		= durationMS;
+		mSizeByte 			= sizeByte;
+		mFile				= null;
+		mWidth				= 0;
+		mHeight				= 0;
+		mFrameRate			= 0.0f;
+		mBitrate			= 0;
+		mFormatName			= null;
+		mVideoCodecName		= null;
+		mThumbnailWidth		= 0;
+		mThumbnailHeight	= 0;
+		mThumbnail			= null;
+		mAudioChannels		= 0;
+		mVideoChannels		= 0;
+		mSubTitleChannels	= 0;
 		mChannels = new HashMap<Integer, String>();
 		audioTrackInfos = new ArrayList<TrackInfo>();
 		subtitleTrackInfos = new ArrayList<TrackInfo>();
@@ -116,6 +119,10 @@ public class MediaInfo {
 			mFile = new File(getPath());
 		}
 		return mFile;
+	}
+	
+	public double getFrameRate() {
+		return mFrameRate;
 	}
 	
 	public int getBitrate() {
