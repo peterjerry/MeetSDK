@@ -88,7 +88,8 @@ const char* url_list[PROG_MAX_NUM] = {
 	_T("http://172.16.204.106/test/hls/600000/index.m3u8"),
 	_T("http://172.16.204.106/test/hls/600000/noend.m3u8"),
 	//_T("D:\\Archive\\media\\[圣斗士星矢Ω].[hysub]Saint.Seiya.Omega_11_[GB_mp4][480p].mp4"),
-	_T("E:\\BaiduYunDownload\\第三季第八集.mkv"),
+	//_T("E:\\BaiduYunDownload\\第三季第八集.mkv"),
+	_T("D:\\Archive\\media\\audio\\笨小孩.mp3"),
 	//_T("E:\\BaiduYunDownload\\红猪.Porco.Rosso.1992.D9.3Audio.MiniSD-TLF.mkv"),
 	_T("D:\\Archive\\media\\mv\\G.NA_Secret.mp4"),
 
@@ -891,6 +892,9 @@ LRESULT CtestSDLdlgDlg::OnNotify(WPARAM wParam, LPARAM lParam)
 
 	if (MEDIA_PREPARED == msg) {
 		OnPrepared();
+	}
+	else if (MEDIA_SET_VIDEO_SIZE == msg) {
+		// todo
 	}
 	else if (MEDIA_BUFFERING_UPDATE == msg) {
 		mBufferPercentage = ext1;

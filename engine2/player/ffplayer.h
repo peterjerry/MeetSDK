@@ -185,7 +185,8 @@ private:
 	void SwapResolution(int32_t *width, int32_t *height);
 
 #ifdef USE_AV_FILTER
-	bool init_filters(const char **filters_descr);
+	bool init_filters_video(const char **filters_descr);
+	bool init_filters_audio(const char **filters_descr);
 	bool insert_filter(const char *name, const char* arg, AVFilterContext **last_filter);
 #endif
 
@@ -211,7 +212,8 @@ private:
 	int64_t get_external_clock();
 
 	void ResetStatics();
-
+	static int onAudioFrame(AVFrame *frame, void* opaque);
+	int onAudioFrameImpl(AVFrame *frame);
 private:
     char*				mUri;
 	FFSourceBase*		mSource;
@@ -400,6 +402,7 @@ private:
 	AVFilterContext*	mLastFilter;
 	const char*			mFilterDescr[MAX_FILTER_CNT];
 	AVFrame*			mVideoFiltFrame;
+	AVFrame*			mAudioFiltFrame;
 #endif
 };
 

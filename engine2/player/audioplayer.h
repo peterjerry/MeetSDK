@@ -17,6 +17,8 @@ struct AVStream;
 struct AVFrame;
 class AudioRender;
 
+typedef int (* FunOnFrame)(AVFrame *frame, void *opaque);
+
 class AudioPlayer
 {
 public:
@@ -43,6 +45,11 @@ public:
     status_t seekTo(int64_t msec);
 
 	status_t selectAudioChannel(int32_t index);
+
+	void setOnFrame(FunOnFrame func, void *opaque) {
+		mOnFrame = func;
+		mOpaque = opaque;
+	}
 
 #ifdef PCM_DUMP
 	void set_dump(const char *ip_addr, int port) {
@@ -101,6 +108,9 @@ private:
     pthread_mutex_t mLock;
     pthread_cond_t mCondition;
 	pthread_mutex_t mClockLock;
+
+	FunOnFrame mOnFrame;
+	void* mOpaque;
 
 #ifdef PCM_DUMP
 	const char*		mIpAddr;

@@ -3,7 +3,16 @@
 USER_ROOT=`pwd`
 FFMPEG_HOME=$USER_ROOT/../../foundation_rext
 MS_INT_TYPES_HOME=$USER_ROOT/msinttypes
-PREFIX=$USER_ROOT/../../output/icl
+PREFIX=$USER_ROOT/../../output/win32
+
+if [ ${1}x == 'lite'x ]
+then
+echo "lite build"
+PREFIX=$PREFIX/lite
+else
+echo "full build"
+PREFIX=$PREFIX/full
+fi
 
 rm -rf $PREFIX
 

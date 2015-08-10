@@ -38,6 +38,8 @@ static int s_swsFlag = SWS_POINT;
 
 FFRender::FFRender(void* surface, uint32_t frameWidth, uint32_t frameHeight, int32_t format)
 {
+	LOGI("surface %p, frame_resolution %d x %d, format %d", surface, frameWidth, frameHeight, format);
+
 	mSurface		= surface;
 #ifdef __ANDROID__
 	mNativeWindow	= NULL;

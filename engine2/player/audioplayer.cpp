@@ -40,6 +40,8 @@ AudioPlayer::AudioPlayer(FFStream* dataStream, AVStream* context, int32_t stream
     mListener = NULL;
     mRender = NULL;
     mReachEndStream = false;
+	mOnFrame = NULL;
+	mOpaque = NULL;
 
 #ifdef PCM_DUMP
 	mIpAddr		= NULL;
@@ -297,6 +299,10 @@ int AudioPlayer::process_pkt(AVPacket *packet)
 		/* packet has no more data ,and is in-complete frame discard whole audio packet. */
 		if (packet->size == 0 && !got_frame)
 			break;
+
+		if (mOnFrame && mOpaque) {
+			mOnFrame(mAudioFrame, mOpaque);
+		}
 
 		if (mAudioFrame->linesize[0] != 0) { //got audio frame
 			LOGD("decode audio samples: %d", mAudioFrame->nb_samples);
