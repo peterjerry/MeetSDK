@@ -300,10 +300,6 @@ int AudioPlayer::process_pkt(AVPacket *packet)
 		if (packet->size == 0 && !got_frame)
 			break;
 
-		if (mOnFrame && mOpaque) {
-			mOnFrame(mAudioFrame, mOpaque);
-		}
-
 		if (mAudioFrame->linesize[0] != 0) { //got audio frame
 			LOGD("decode audio samples: %d", mAudioFrame->nb_samples);
 			
@@ -319,8 +315,11 @@ int AudioPlayer::process_pkt(AVPacket *packet)
 					int64_t pos = get_time_msec();
 					pos += (mAudioFrame->nb_samples * 1000 / mAudioContext->codec->sample_rate);
 					set_time_msec(pos);
-					LOGD("update mAudioPlayingTimeMs %lld", pos);
+					LOGI("update mAudioPlayingTimeMs %lld", pos);
 
+					if (mOnFrame && mOpaque) {
+						mOnFrame(mAudioFrame, mOpaque);
+					}
 				}
 			}
 		}
@@ -465,7 +464,6 @@ void* AudioPlayer::audio_thread(void* ptr)
 	LOGI("audio player thread started");
 
 	AudioPlayer* audioPlayer = (AudioPlayer *) ptr;
-    
     audioPlayer->audio_thread_impl();
 
 	LOGI("audio player thread exited");

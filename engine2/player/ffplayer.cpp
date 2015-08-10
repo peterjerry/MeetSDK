@@ -73,7 +73,7 @@ LogFunc pplog = NULL;
 
 int autorotate		= 1;
 
-int audio_visual	= 0;
+int audio_visual	= 1;
 #define AUDIO_VISUAL_WIDTH	640
 #define AUDIO_VISUAL_HEIGHT	480
 
@@ -567,6 +567,15 @@ int FFPlayer::onAudioFrameImpl(AVFrame *frame)
 {
 	int ret;
 
+	/*AVFrame *new_frame = av_frame_alloc();
+	new_frame->channels			= frame->channels;
+	new_frame->channel_layout	= frame->channel_layout;
+	new_frame->sample_rate		= frame->sample_rate;
+	new_frame->format			= frame->format;
+	new_frame->nb_samples		= frame->nb_samples;
+	av_frame_get_buffer(new_frame, 1);
+	av_frame_copy(new_frame, frame);*/
+
 	/* push the audio data from decoded frame into the filtergraph */
     if (av_buffersrc_add_frame_flags(mBufferSrcCtx, frame, 0) < 0) {
         LOGE("Error while feeding the audio filtergraph");
@@ -582,11 +591,36 @@ int FFPlayer::onAudioFrameImpl(AVFrame *frame)
 			break;
 
 		// update ui
+#ifdef TEST_PERFORMANCE
+		int64_t begin_render = getNowMs();
+#endif
 		if ( OK != mVideoRenderer->render(mAudioFiltFrame))
 			notifyListener_l(MEDIA_ERROR, MEDIA_ERROR_VIDEO_RENDER, 0);
 
+#ifdef TEST_PERFORMANCE
+		int64_t end_render, costTime;
+		end_render = getNowMs();
+		costTime = end_render - begin_render;
+
+		if (mAveRenderTimeMs == 0)
+			mAveRenderTimeMs = costTime;
+		else
+			mAveRenderTimeMs = (mAveRenderTimeMs * 4 + costTime) / 5;
+
+		notifyListener_l(MEDIA_INFO, MEDIA_INFO_TEST_RENDER_FRAME, (int)mRenderedFrames);
+
+		if (getNowMs() - mRenderGapStartTimeMs > 1000) {
+			notifyListener_l(MEDIA_INFO, MEDIA_INFO_TEST_RENDER_AVG_MSEC, (int)mAveRenderTimeMs);
+			int64_t duration = getNowMs() - mTotalStartTimeMs;
+			if (duration > 0)
+				notifyListener_l(MEDIA_INFO, MEDIA_INFO_TEST_RENDER_FPS, (int)(mRenderedFrames * 1000 / (double)duration + 0.3f));
+			mRenderGapStartTimeMs = getNowMs();
+		}	
+#endif
+
+		mRenderedFrames++;
 		av_frame_unref(mAudioFiltFrame);
-    }
+	}
 
 	return 0;
 }
@@ -615,6 +649,7 @@ bool FFPlayer::init_filters_audio(const char **filters_descr)
 	/* buffer audio source: the decoded frames from the decoder will be inserted here. */
     if (!dec_ctx->channel_layout)
         dec_ctx->channel_layout = av_get_default_channel_layout(dec_ctx->channels);
+
 #ifdef _MSC_VER
 	_snprintf(args, sizeof(args),
             "time_base=%d/%d:sample_rate=%d:sample_fmt=%s:channel_layout=0x%I64d",
@@ -626,6 +661,7 @@ bool FFPlayer::init_filters_audio(const char **filters_descr)
              time_base.num, time_base.den, dec_ctx->sample_rate,
              av_get_sample_fmt_name(dec_ctx->sample_fmt), dec_ctx->channel_layout);
 #endif
+	LOGI("avfilter_graph_create_filter params: %s", args);
 
     ret = avfilter_graph_create_filter(&mBufferSrcCtx, buffersrc, "in",
                                        args, NULL, mFilterGraph);
@@ -633,8 +669,6 @@ bool FFPlayer::init_filters_audio(const char **filters_descr)
         LOGE("Cannot create buffer source");
         goto end;
     }
-
-
 
     /* buffer video sink: to terminate the filter chain. */
     ret = avfilter_graph_create_filter(&mBufferSinkCtx, buffersink, "out",
@@ -2200,7 +2234,7 @@ status_t FFPlayer::prepareVideo_l()
 			// "showwaves=s=640x480:mode=line:rate=5"
 			// "showwavespic=s=640x480"
 			// "showspectrum=mode=separate:color=intensity:slide=1:scale=cbrt:s=640x480"
-			mFilterDescr[0] = "showspectrum=mode=separate:color=intensity:slide=1:scale=cbrt:s=640x480"; 
+			mFilterDescr[0] = "showwaves=s=640x480:mode=line:rate=10"; 
 			if (init_filters_audio(mFilterDescr)) {
 				mAudioFiltFrame = av_frame_alloc();
 				notifyListener_l(MEDIA_SET_VIDEO_SIZE, AUDIO_VISUAL_WIDTH, AUDIO_VISUAL_HEIGHT);
@@ -2217,8 +2251,12 @@ status_t FFPlayer::prepareVideo_l()
 				}
 			}
 			else {
+				notifyListener_l(MEDIA_SET_VIDEO_SIZE, 0, 0);
 				LOGW("failed to init audio filters");
 			}
+		}
+		else {
+			notifyListener_l(MEDIA_SET_VIDEO_SIZE, 0, 0);
 		}
 
 		return OK;
@@ -2650,9 +2688,11 @@ status_t FFPlayer::decode_l(AVPacket *packet)
 			// pull filtered frames from the filtergraph
 			while (1) {
 				ret = av_buffersink_get_frame(mBufferSinkCtx, mVideoFiltFrame);
-				if (ret == AVERROR(EAGAIN) || ret == AVERROR_EOF)
+				if (ret >= 0)
 					break;
-				if (ret < 0)
+				else if (ret == AVERROR(EAGAIN) || ret == AVERROR_EOF)
+					break;
+				else if (ret < 0)
 					break;
 			}
 		}

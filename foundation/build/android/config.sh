@@ -208,7 +208,7 @@ fi
 --disable-muxers \
 --disable-devices \
 --disable-filters \
---enable-filter=rotate,transpose,hflip,vflip,yadif \
+--enable-filter=rotate,transpose,hflip,vflip,yadif,showspectrum,showwaves,aresample,scale \
 --disable-vfp \
 $EXTRA_PARAMETERS
 
