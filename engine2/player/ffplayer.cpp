@@ -71,7 +71,11 @@ LogFunc pplog = NULL;
 #define AV_LATENCY_BACK_THR1 -10
 #define AV_LATENCY_BACK_THR2 -60000
 
-int autorotate = 1;
+int autorotate		= 1;
+
+int audio_visual	= 0;
+#define AUDIO_VISUAL_WIDTH	640
+#define AUDIO_VISUAL_HEIGHT	480
 
 enum NalUnitType
 {
@@ -562,6 +566,7 @@ int FFPlayer::onAudioFrame(AVFrame *frame, void * opaque) {
 int FFPlayer::onAudioFrameImpl(AVFrame *frame)
 {
 	int ret;
+
 	/* push the audio data from decoded frame into the filtergraph */
     if (av_buffersrc_add_frame_flags(mBufferSrcCtx, frame, 0) < 0) {
         LOGE("Error while feeding the audio filtergraph");
@@ -617,7 +622,7 @@ bool FFPlayer::init_filters_audio(const char **filters_descr)
              av_get_sample_fmt_name(dec_ctx->sample_fmt), dec_ctx->channel_layout);
 #else
 	snprintf(args, sizeof(args),
-            "time_base=%d/%d:sample_rate=%d:sample_fmt=%s:channel_layout=0x%"PRIx64,
+            "time_base=%d/%d:sample_rate=%d:sample_fmt=%s:channel_layout=0x%lld",
              time_base.num, time_base.den, dec_ctx->sample_rate,
              av_get_sample_fmt_name(dec_ctx->sample_fmt), dec_ctx->channel_layout);
 #endif
@@ -1006,8 +1011,7 @@ status_t FFPlayer::getVideoWidth(int32_t *w)
 
 status_t FFPlayer::getVideoHeight(int32_t *h)
 {
-    if(mVideoRenderer != NULL)
-    {
+    if(mVideoRenderer != NULL) {
         //Use optimized size from render
         uint32_t optHeight = 0;
         mVideoRenderer->height(optHeight);
@@ -2192,28 +2196,30 @@ status_t FFPlayer::prepareVideo_l()
 	if (mVideoStreamIndex == -1 || mVideoStream == NULL) {
         LOGI("No video stream");
 
-		if (mAudioPlayer) {
-			mAudioPlayer->setOnFrame(onAudioFrame, this);
-			LOGI("set auido Frame callback");
+		if (audio_visual) {
+			// "showwaves=s=640x480:mode=line:rate=5"
+			// "showwavespic=s=640x480"
+			// "showspectrum=mode=separate:color=intensity:slide=1:scale=cbrt:s=640x480"
+			mFilterDescr[0] = "showspectrum=mode=separate:color=intensity:slide=1:scale=cbrt:s=640x480"; 
+			if (init_filters_audio(mFilterDescr)) {
+				mAudioFiltFrame = av_frame_alloc();
+				notifyListener_l(MEDIA_SET_VIDEO_SIZE, AUDIO_VISUAL_WIDTH, AUDIO_VISUAL_HEIGHT);
+
+				mVideoRenderer = new FFRender(mSurface, AUDIO_VISUAL_WIDTH, AUDIO_VISUAL_HEIGHT, AV_PIX_FMT_YUV420P);
+				if (mVideoRenderer->init() != OK) {
+         			LOGE("Initing video render failed");
+					return ERROR;
+				}		
+
+				if (mAudioPlayer) {
+					mAudioPlayer->setOnFrame(onAudioFrame, this);
+					LOGI("set auido Frame callback");
+				}
+			}
+			else {
+				LOGW("failed to init audio filters");
+			}
 		}
-
-		// "showwaves=s=640x480:mode=line:rate=5"
-		// "showwavespic=s=640x480"
-		// "showspectrum=mode=separate:color=intensity:slide=1:scale=cbrt:s=640x480"
-		mFilterDescr[0] = "showspectrum=mode=separate:color=intensity:slide=1:scale=cbrt:s=640x480"; 
-		if (!init_filters_audio(mFilterDescr)) {
-			LOGE("failed to init audio filters");
-			return ERROR;
-		}
-
-		mAudioFiltFrame = av_frame_alloc();
-        notifyListener_l(MEDIA_SET_VIDEO_SIZE, 640, 480);
-
-		mVideoRenderer = new FFRender(mSurface, 640, 480, AV_PIX_FMT_YUV420P);
-        if (mVideoRenderer->init() != OK) {
-         	LOGE("Initing video render failed");
-            return ERROR;
-        }
 
 		return OK;
 	}
