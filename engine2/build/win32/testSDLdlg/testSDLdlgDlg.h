@@ -57,11 +57,11 @@ public:
 public:
 	CEdit mEditURL;
 	CButton mCheckLooping;
-	CProgressCtrl mProgClip;
 	CComboBox mComboURL;
 	CComboBox mComboEPGItem;
 	CComboBox mCBbwType;
 	CComboBox mCBft;
+	CSliderCtrl mProgress;
 private:
 	CString mUrl;
 
@@ -78,6 +78,7 @@ private:
 	bool mFinished;
 	bool mBuffering;
 	bool mPlayLive;
+	bool mSeeking;
 	int mBufferingOffset;
 
 	int32_t mWidth;
@@ -122,4 +123,6 @@ public:
 	afx_msg void OnBnClickedButtonResetEpg();
 	afx_msg void OnCbnSelchangeComboCatalog();
 	afx_msg void OnBnClickedButtonPlayEpg();
+	afx_msg void OnHScroll(UINT nSBCode, UINT nPos, CScrollBar* pScrollBar);
+	afx_msg void OnNMReleasedcaptureSliderProgress(NMHDR *pNMHDR, LRESULT *pResult);
 };

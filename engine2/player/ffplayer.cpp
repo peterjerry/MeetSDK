@@ -74,8 +74,8 @@ LogFunc pplog = NULL;
 int autorotate		= 1;
 
 int audio_visual	= 1;
-#define AUDIO_VISUAL_WIDTH	640
-#define AUDIO_VISUAL_HEIGHT	480
+#define AUDIO_VISUAL_WIDTH	600
+#define AUDIO_VISUAL_HEIGHT	240
 
 enum NalUnitType
 {
@@ -587,9 +587,9 @@ int FFPlayer::onAudioFrameImpl(AVFrame *frame)
 		ret = av_buffersink_get_frame(mBufferSinkCtx, mAudioFiltFrame);
         if (ret == AVERROR(EAGAIN) || ret == AVERROR_EOF)
 			break;
-		if (ret < 0)
+		else if (ret < 0)
 			break;
-
+		
 		// update ui
 #ifdef TEST_PERFORMANCE
 		int64_t begin_render = getNowMs();
@@ -2231,10 +2231,10 @@ status_t FFPlayer::prepareVideo_l()
         LOGI("No video stream");
 
 		if (audio_visual) {
-			// "showwaves=s=640x480:mode=line:rate=5"
-			// "showwavespic=s=640x480"
+			// "showwaves=s=600x240:mode=line:rate=10"
 			// "showspectrum=mode=separate:color=intensity:slide=1:scale=cbrt:s=640x480"
-			mFilterDescr[0] = "showwaves=s=640x480:mode=line:rate=10"; 
+			// "showvolume=rate=5:c=VOLUME:f=20"
+			mFilterDescr[0] = "showwaves=mode=line:rate=10"; 
 			if (init_filters_audio(mFilterDescr)) {
 				mAudioFiltFrame = av_frame_alloc();
 				notifyListener_l(MEDIA_SET_VIDEO_SIZE, AUDIO_VISUAL_WIDTH, AUDIO_VISUAL_HEIGHT);

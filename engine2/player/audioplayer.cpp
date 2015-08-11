@@ -315,7 +315,7 @@ int AudioPlayer::process_pkt(AVPacket *packet)
 					int64_t pos = get_time_msec();
 					pos += (mAudioFrame->nb_samples * 1000 / mAudioContext->codec->sample_rate);
 					set_time_msec(pos);
-					LOGI("update mAudioPlayingTimeMs %lld", pos);
+					LOGD("update mAudioPlayingTimeMs %lld", pos);
 
 					if (mOnFrame && mOpaque) {
 						mOnFrame(mAudioFrame, mOpaque);
