@@ -74,8 +74,8 @@ LogFunc pplog = NULL;
 int autorotate		= 1;
 
 int audio_visual	= 1;
-#define AUDIO_VISUAL_WIDTH	600
-#define AUDIO_VISUAL_HEIGHT	240
+#define AUDIO_VISUAL_WIDTH	640
+#define AUDIO_VISUAL_HEIGHT	480
 
 enum NalUnitType
 {
@@ -1067,7 +1067,7 @@ status_t FFPlayer::getCurrentPosition(int32_t* positionMs)
     }
     else
     {
-        if (mVideoStream != NULL) {
+		if (mVideoStream != NULL && mVideoStream->codec->codec_id != AV_CODEC_ID_MJPEG) {
             //get video time
             pos = mVideoTimeMs;
         }
@@ -2234,7 +2234,7 @@ status_t FFPlayer::prepareVideo_l()
 			// "showwaves=s=600x240:mode=line:rate=10"
 			// "showspectrum=mode=separate:color=intensity:slide=1:scale=cbrt:s=640x480"
 			// "showvolume=rate=5:c=VOLUME:f=20"
-			mFilterDescr[0] = "showwaves=mode=line:rate=10"; 
+			mFilterDescr[0] = "showwaves=s=640x480:mode=line:rate=10"; 
 			if (init_filters_audio(mFilterDescr)) {
 				mAudioFiltFrame = av_frame_alloc();
 				notifyListener_l(MEDIA_SET_VIDEO_SIZE, AUDIO_VISUAL_WIDTH, AUDIO_VISUAL_HEIGHT);

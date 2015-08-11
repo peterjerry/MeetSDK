@@ -801,8 +801,9 @@ status_t FFStream::getPacket(int32_t streamIndex, AVPacket** packet)
             }
             else { // queue is empty but not EOF
 		        LOGD("video queue empty");
-                if(!mIsBuffering) {
-                    mIsBuffering = true;
+                if (!mIsBuffering && mVideoStream->codec->codec_id != AV_CODEC_ID_MJPEG) {
+					mIsBuffering = true;
+
 					int64_t offset = (mMovieFile->pb ? avio_tell(mMovieFile->pb) : 0);
 #ifdef _MSC_VER	
 					LOGI("video MEDIA_INFO_BUFFERING_START, offset %I64d", offset);
@@ -881,7 +882,7 @@ void FFStream::thread_impl()
 				int stream_index= -1;
 				int64_t seek_target = mSeekTimeMs * AV_TIME_BASE / 1000;
 
-				if (mVideoStreamIndex >= 0)
+				if (mVideoStreamIndex >= 0 && mVideoStream->codec->codec_id != AV_CODEC_ID_MJPEG)
 					stream_index = mVideoStreamIndex;
 				else if (mAudioStreamIndex >= 0)
 					stream_index = mAudioStreamIndex;
@@ -952,6 +953,9 @@ void FFStream::thread_impl()
 			// but audio queue count NOT
             if (mIsBuffering) {
 				bool video_enough = ((mVideoStream != NULL) ? (mVideoQueue.count() > mMinPlayBufferCount) : true);
+				if (mVideoStream && mVideoStream->codec->codec_id == AV_CODEC_ID_MJPEG)
+					video_enough = true;
+
 				bool audio_enough = false;
 				if (mAudioStream == NULL)
 					audio_enough = true;
