@@ -24,6 +24,7 @@ import com.pplive.epg.baidu.BaiduPanel;
 import com.pplive.epg.boxcontroller.Code;
 import com.pplive.epg.boxcontroller.MyActionEvent;
 import com.pplive.epg.boxcontroller.MyBoxController;
+import com.pplive.epg.util.Util;
 
 public class TestEPG { 
 	private static MyBoxController con;
@@ -36,7 +37,7 @@ public class TestEPG {
 		JFrame frame = new JFrame("电视鸭");
 		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
-		boolean useController = true;
+		boolean useController = false;
 		
 		if (useController) {
 			initController(frame);
@@ -67,7 +68,7 @@ public class TestEPG {
 		lblInfo.setBounds(20, 300, 300, 40);
 		frame.add(lblInfo);
 		
-		String strCfg = readFileContent("config.txt");
+		String strCfg = Util.readFileContent("config.txt");
 		int pos = strCfg.indexOf(":");
 		if (pos == -1) {
 			lblInfo.setText(" 获取配置文件失败！");
@@ -146,39 +147,6 @@ public class TestEPG {
 			}
 			
 		});
-	}
-	
-	private static String readFileContent(String fileName) {
-		BufferedReader bf = null;
-		StringBuilder sb = new StringBuilder();
-		
-		try {
-			File file = new File(fileName);
-			bf = new BufferedReader(new FileReader(file));
-			String content = "";
-			while(content != null) {
-				content = bf.readLine();
-				if (content == null)
-					break;
-				
-				sb.append(content.trim());
-			}
-		}
-		catch (IOException e) {
-			e.printStackTrace();
-		}
-		finally {
-			if (bf != null) {
-				try {
-					bf.close();
-				} catch (IOException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
-				}
-			}
-		}
-		
-		return sb.toString(); 
 	}
 	
 }

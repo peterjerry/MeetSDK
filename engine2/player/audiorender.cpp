@@ -320,6 +320,19 @@ status_t AudioRender::render(AVFrame* audioFrame)//int16_t* buffer, uint32_t buf
 	void* audio_buffer = NULL;
 	uint32_t audio_buffer_size = 0;
 
+	// 2015.8.12 guoliangma added to fix some audio resample crash
+	// root cause: some audio frame prop changed from channel_layout 5.1(channels 6) to channel_layout 2(channels 2) 
+	if (audioFrame->channel_layout != mChannelLayout || audioFrame->channels != mChannels) {
+		char frame_layout_name[64] = {0};
+		char audio_layout_name[64] = {0};
+		av_get_channel_layout_string(frame_layout_name, 64, audioFrame->channels, audioFrame->channel_layout);
+		av_get_channel_layout_string(audio_layout_name, 64, mChannels, mChannelLayout);
+		LOGW("audio frame channel_layout NOT match %lld(%s) -> %lld(%s)", 
+			mChannelLayout, audio_layout_name, 
+			audioFrame->channel_layout, frame_layout_name);
+		return OK;
+	}
+
 	if (mConvertCtx != NULL) {
 #ifndef NDEBUG
 		int64_t begin_decode = getNowMs();

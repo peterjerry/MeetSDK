@@ -1,7 +1,10 @@
 package com.pplive.epg.util;
 
+import java.io.BufferedReader;
+import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
+import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.MalformedURLException;
@@ -49,4 +52,36 @@ public class Util {
         }
     }
 
+	public static String readFileContent(String fileName) {
+		BufferedReader bf = null;
+		StringBuilder sb = new StringBuilder();
+		
+		try {
+			File file = new File(fileName);
+			bf = new BufferedReader(new FileReader(file));
+			String content = "";
+			while(content != null) {
+				content = bf.readLine();
+				if (content == null)
+					break;
+				
+				sb.append(content.trim());
+			}
+		}
+		catch (IOException e) {
+			e.printStackTrace();
+		}
+		finally {
+			if (bf != null) {
+				try {
+					bf.close();
+				} catch (IOException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+			}
+		}
+		
+		return sb.toString(); 
+	}
 }

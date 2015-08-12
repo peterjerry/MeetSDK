@@ -36,6 +36,8 @@ static int insert_filter(const char *name, const char* arg, AVFilterContext **la
 static AVFormatContext *fmt_ctx = NULL;
 static AVCodecContext *audio_dec_ctx = NULL;
 static AVStream *audio_stream = NULL;
+static int64_t audio_channel_layout = 0;
+static int audio_channels = 0;
 
 static uint8_t *audio_dst_data = NULL;
 static int       audio_dst_linesize;
@@ -100,6 +102,10 @@ int _tmain(int argc, _TCHAR* argv[])
 			return 1;
 		}
 
+		// it may changed when decode
+		audio_channel_layout = audio_dec_ctx->channel_layout;
+		audio_channels = audio_dec_ctx->channels;
+
 		swr_ctx = swr_alloc_set_opts(swr_ctx,
 			AV_CH_LAYOUT_STEREO,
 			AV_SAMPLE_FMT_S16,
@@ -107,7 +113,12 @@ int _tmain(int argc, _TCHAR* argv[])
 			audio_dec_ctx->channel_layout,
 			audio_dec_ctx->sample_fmt,
 			audio_dec_ctx->sample_rate,
-			0, 0);                   
+			0, 0);
+		if (!swr_ctx) {
+			printf("failed to alloc swr_ctx\n");
+			return 1;
+		}
+
 		if (swr_init(swr_ctx) < 0 || swr_ctx == NULL) {
 			printf("swr_init failed\n");
 			goto end;
@@ -115,8 +126,8 @@ int _tmain(int argc, _TCHAR* argv[])
 
 		printf("swr_init done!\n");
 
-		if (init_filters(audio_stream, audio_stream_idx) < 0)
-			printf("failed to init_filters!\n");
+		//if (init_filters(audio_stream, audio_stream_idx) < 0)
+		//	printf("failed to init_filters!\n");
     }
 
 	/* dump input information to stderr */
@@ -219,26 +230,41 @@ static int decode_packet(int *got_frame, int cached)
                    audio_frame_count++, frame->nb_samples,
 				   pkt.pts * av_q2d(audio_stream->time_base));
 
-			// res
-			if (swr_ctx != NULL) {
-				int32_t sampleInCount = frame->nb_samples;
-				int sampleOutCount = (int)av_rescale_rnd(
-					swr_get_delay(swr_ctx, frame->sample_rate) + sampleInCount,
-					frame->sample_rate,
-					frame->sample_rate,
-					AV_ROUND_UP);
+			if (frame->channel_layout != audio_channel_layout || frame->channels != audio_channels) {
+				char frame_channel_layout_name[64] = {0};
+				char audio_channel_layout_name[64] = {0};
+				av_get_channel_layout_string(frame_channel_layout_name, 64, frame->channels, frame->channel_layout);
+				av_get_channel_layout_string(audio_channel_layout_name, 64, audio_channels, audio_channel_layout);
+				printf("frame NOT match prop %I64d(%s) %d -> %I64d(%s) %d\n",
+					audio_channel_layout, audio_channel_layout_name, audio_channels, 
+					frame->channel_layout, frame_channel_layout_name, frame->channels);
+			}
+			else {
+				// resample
+				if (swr_ctx != NULL) {
+					int32_t sampleInCount = frame->nb_samples;
+					int sampleOutCount = (int)av_rescale_rnd(
+						swr_get_delay(swr_ctx, frame->sample_rate) + sampleInCount,
+						frame->sample_rate,
+						frame->sample_rate,
+						AV_ROUND_UP);
 
-				int sampleCountOutput = swr_convert(swr_ctx,
-					(uint8_t**)(&audio_dst_data), sampleOutCount,
-					(const uint8_t**)(frame->extended_data), sampleInCount);
-				if (sampleCountOutput < 0) {
-					printf("Audio convert sampleformat failed, ret %d\n", sampleCountOutput);
-					return -1;
-				}
+					int sampleCountOutput = swr_convert(swr_ctx,
+						(uint8_t**)(&audio_dst_data), sampleOutCount,
+						(const uint8_t**)(frame->extended_data), sampleInCount);
+					if (sampleCountOutput < 0) {
+						printf("Audio convert sampleformat failed, ret %d\n", sampleCountOutput);
+						return -1;
+					}
 				
-				audio_buffer_size = sampleCountOutput * 2 * 2;
-				int written = audio_fifo.write((char *)audio_dst_data, audio_buffer_size); 
-				//printf("swr output: sample:%d, size:%d, written %d\n", sampleCountOutput, audio_buffer_size, written);
+					audio_buffer_size = sampleCountOutput * 2 * 2;
+					int written = audio_fifo.write((char *)audio_dst_data, audio_buffer_size);
+					//printf("swr output: sample:%d, size:%d, written %d\n", sampleCountOutput, audio_buffer_size, written);
+				}
+				else {
+					int written = audio_fifo.write((char *)frame->data, frame->linesize[0]);
+					//printf("swr output: sample:%d, size:%d, written %d\n", sampleCountOutput, audio_buffer_size, written);
+				}
 			}
         }
 
