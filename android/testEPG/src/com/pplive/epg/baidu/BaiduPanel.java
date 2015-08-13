@@ -48,6 +48,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.StringTokenizer;
 
 
 @SuppressWarnings("serial")
@@ -62,8 +63,8 @@ public class BaiduPanel extends JPanel {
 	private final static int ONE_MAGABYTE = (ONE_KILOBYTE * ONE_KILOBYTE);
 	private final static int ONE_GIGABYTE = (ONE_MAGABYTE * ONE_KILOBYTE);
 	
-	private final static String exe_filepath = "D:/software/vlc-3.0.0/vlc.exe";
-	private final static String exe_ffplay = "D:/software/ffmpeg/ffplay.exe";
+	private static String exe_vlc = "D:/Program Files/vlc-3.0.0/vlc.exe";
+	private static String exe_ffplay = "D:/Program Files/ffmpeg/ffplay.exe";
 	
 	private final String BAIDU_PCS_PREFIX = "https://pcs.baidu.com/rest/2.0/pcs/file";
 	private final String BAIDU_PCS_SERVICE_PREFIX = "https://pcs.baidu.com/rest/2.0/pcs/services/cloud_dl";
@@ -107,10 +108,37 @@ public class BaiduPanel extends JPanel {
 
 		this.setLayout(null);
 		
-		String strToken = Util.readFileContent("token.txt");
-		if (strToken != null) {
-			mbOauth = strToken;
-			System.out.println("Java: set token to " + mbOauth);
+		String strConfig = Util.readFileContent("config.txt");
+		StringTokenizer st = new StringTokenizer(strConfig, "\n", false);
+		while (st.hasMoreElements()) {
+			String strLine = (String) st.nextElement();
+			if (strLine.startsWith("#"))
+				continue;
+				
+			int pos = strLine.indexOf("=");
+			if (pos > 0 && pos != strLine.length() - 1) {
+				String key = strLine.substring(0, pos);
+				String value = strLine.substring(pos + 1);
+				System.out.println(String.format("Java: key %s, value %s", key ,value));
+				if (key.equals("listen")) {
+					
+				}
+				else if (key.equals("token")) {
+					mbOauth = value;
+					System.out.println("Java: set token to " + mbOauth);
+				}
+				else if (key.equals("ffplay_path")) {
+					exe_ffplay = value;
+					System.out.println("Java: set ffplay path to " + exe_ffplay);
+				}
+				else if (key.equals("vlc_path")) {
+					exe_vlc = value;
+					System.out.println("Java: set vlc path to " + exe_vlc);
+				}
+				else {
+					System.out.println("Java: unknown key" + key);
+				}
+			}
 		}
 		
 		BAIDU_PCS_AUTHORIZE = "https://openapi.baidu.com/oauth/2.0/" +
@@ -180,7 +208,7 @@ public class BaiduPanel extends JPanel {
 									System.out.println("ready to play url: " + url);
 									lblInfo.setText("ready to play url: " + url);
 									
-									String exe_path = exe_filepath;
+									String exe_path = exe_vlc;
 									if (!cbUseVLC.isSelected())
 										exe_path = exe_ffplay;
 									String[] cmd = new String[] {exe_path, url};

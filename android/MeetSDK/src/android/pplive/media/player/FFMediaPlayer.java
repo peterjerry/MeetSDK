@@ -436,6 +436,12 @@ public class FFMediaPlayer extends BaseMediaPlayer {
 		return null;
 	}
 	
+	@Override
+	public int getAudioSessionId() {
+		// TODO Auto-generated method stub
+		return 0;
+	}
+	
 	private native void _setDataSource(String path) throws IOException,
 			IllegalArgumentException, IllegalStateException;
 			
@@ -524,5 +530,5 @@ public class FFMediaPlayer extends BaseMediaPlayer {
 			boolean apply_filter, Parcel reply);
 	
 	private native int native_suspend_resume(boolean isSuspend);
-	
+
 }

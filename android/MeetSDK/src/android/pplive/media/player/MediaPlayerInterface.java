@@ -125,4 +125,6 @@ public interface MediaPlayerInterface {
 	public abstract void setOption(String option);
 	
 	public abstract MediaInfo getMediaInfo() throws IllegalStateException;
+	
+	public abstract int getAudioSessionId();
 }

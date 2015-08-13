@@ -952,6 +952,15 @@ public class MediaPlayer implements MediaPlayerInterface {
 		throw new IllegalStateException("MediaPlayer has't initialized!!!");
 	}
 	
+	@Override
+	public int getAudioSessionId() {
+		if (mPlayer != null) {
+			return mPlayer.getAudioSessionId();
+		}
+		
+		return 0;
+	}
+	
 	// event
     /* Do not change these values without updating their counterparts
      * in include/media/mediaplayer.h!

@@ -66,6 +66,7 @@ public class Util {
 					break;
 				
 				sb.append(content.trim());
+				sb.append("\n");
 			}
 		}
 		catch (IOException e) {

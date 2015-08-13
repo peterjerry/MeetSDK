@@ -13,6 +13,7 @@ import java.io.OutputStream;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.SocketTimeoutException;
+import java.util.StringTokenizer;
 
 import javax.swing.AbstractAction;
 import javax.swing.JButton;
@@ -68,19 +69,43 @@ public class TestEPG {
 		lblInfo.setBounds(20, 300, 300, 40);
 		frame.add(lblInfo);
 		
-		String strCfg = Util.readFileContent("config.txt");
-		int pos = strCfg.indexOf(":");
-		if (pos == -1) {
-			lblInfo.setText(" 获取配置文件失败！");
-		}
+		String ip_addr = "192.168.200.63";
+		int port = 46891;
 		
-		String ip_addr = strCfg.substring(0, pos); // "192.168.200.63"
-		int port = Integer.valueOf(strCfg.substring(pos + 1)); // 46891
+		String strConfig = Util.readFileContent("config.txt");
+		StringTokenizer st = new StringTokenizer(strConfig, "\n", false);
+		while (st.hasMoreElements()) {
+			String strLine = (String) st.nextElement();
+			if (strLine.startsWith("#"))
+				continue;
+				
+			int pos = strLine.indexOf("=");
+			if (pos > 0 && pos != strLine.length() - 1) {
+				String key = strLine.substring(0, pos);
+				String value = strLine.substring(pos + 1);
+				System.out.println(String.format("Java: key %s, value %s", key ,value));
+				if (key.equals("listen")) {
+					pos = value.indexOf(":");
+					if (pos == -1) {
+						lblInfo.setText(" 获取配置文件失败！");
+					}
+					
+					ip_addr = value.substring(0, pos); // "192.168.200.63"
+					port = Integer.valueOf(value.substring(pos + 1)); // 46891
+				}
+				else {
+					System.out.println("Java: unknown key" + key);
+				}
+			}
+		}
 		
 		con = new MyBoxController(ip_addr, port);
 		
 		if (!con.connect()) {
 			lblInfo.setText("连接失败！");
+		}
+		else {
+			lblInfo.setText(String.format("连接主机 %s:%d", ip_addr, port));
 		}
 		
 		frame.setBounds(400, 400, 400, 400);
