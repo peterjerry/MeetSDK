@@ -73,7 +73,7 @@ LogFunc pplog = NULL;
 
 int autorotate		= 1;
 
-int audio_visual	= 1;
+int audio_visual	= 0;
 #define AUDIO_VISUAL_WIDTH	640
 #define AUDIO_VISUAL_HEIGHT	480
 
