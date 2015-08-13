@@ -246,7 +246,7 @@ public class MeetVideoView extends SurfaceView implements MediaPlayerControl {
         	return;
         }
 
-		LogUtils.info("openVideo()");
+		LogUtils.info("openVideo() " + mUri.toString());
 		
         // Tell the music playback service to pause
         // TODO: these constants need to be published somewhere in the framework.
@@ -289,21 +289,21 @@ public class MeetVideoView extends SurfaceView implements MediaPlayerControl {
             mCurrentState = STATE_ERROR;
             mTargetState = STATE_ERROR;
             mErrorListener.onError(mMediaPlayer, MediaPlayer.MEDIA_ERROR_UNKNOWN, 0);
-            return;
+			return;
         } catch (IllegalArgumentException ex) {
 			LogUtils.error("Unable to open content(IllegalArgumentException): " + mUri);
             Log.e(TAG, "Unable to open content: " + mUri, ex);
             mCurrentState = STATE_ERROR;
             mTargetState = STATE_ERROR;
             mErrorListener.onError(mMediaPlayer, MediaPlayer.MEDIA_ERROR_UNKNOWN, 0);
-            return;
+			return;
         } catch (IllegalStateException ex) {
         	LogUtils.error("Unable to open content(IllegalStateException): " + mUri);
             Log.e(TAG, "Unable to open content: " + mUri, ex);
             mCurrentState = STATE_ERROR;
             mTargetState = STATE_ERROR;
             mErrorListener.onError(mMediaPlayer, MediaPlayer.MEDIA_ERROR_UNKNOWN, 0);
-            return;
+			return;
         }
     }
     

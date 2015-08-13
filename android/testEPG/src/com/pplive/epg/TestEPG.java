@@ -4,11 +4,16 @@ import java.awt.Font;
 import java.awt.event.ActionEvent;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.SocketTimeoutException;
+import java.util.StringTokenizer;
 
 import javax.swing.AbstractAction;
 import javax.swing.JButton;
@@ -18,7 +23,9 @@ import javax.swing.JTextPane;
 
 import com.pplive.epg.baidu.BaiduPanel;
 import com.pplive.epg.boxcontroller.Code;
+import com.pplive.epg.boxcontroller.MyActionEvent;
 import com.pplive.epg.boxcontroller.MyBoxController;
+import com.pplive.epg.util.Util;
 
 public class TestEPG { 
 	private static MyBoxController con;
@@ -31,12 +38,21 @@ public class TestEPG {
 		JFrame frame = new JFrame("电视鸭");
 		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
-		/*frame.add(new TabbedPaneDemo());
-		frame.pack();
-		frame.setBounds(400, 300, 750, 600);
+		boolean useController = false;
 		
-		frame.setVisible(true);*/
-		
+		if (useController) {
+			initController(frame);
+		}
+		else {
+			frame.add(new TabbedPaneDemo());
+			frame.pack();
+			frame.setBounds(400, 300, 750, 600);
+			
+			frame.setVisible(true);
+		}
+	}
+	
+	private static void initController(JFrame frame) {
 		frame.setLayout(null);
 		
 		Font f = new Font("宋体", 0, 18);
@@ -49,55 +65,47 @@ public class TestEPG {
 			frame.add(lblManual);
 		}
 		
-		/*
-		JLabel lblIpAddr = new JLabel("ip");
-		lblIpAddr.setBounds(20, 40, 30, 20);
-		frame.add(lblIpAddr);
-		
-		final JTextPane editIPAddr = new JTextPane();
-		editIPAddr.setText("192.168.200.63");
-		editIPAddr.setBounds(40, 40, 100, 20);
-		frame.add(editIPAddr);
-		
-		JLabel lblPort = new JLabel("port");
-		lblPort.setBounds(160, 40, 80, 20);
-		frame.add(lblPort);
-		
-		final JTextPane editPort = new JTextPane();
-		editPort.setText("50609");
-		editPort.setBounds(190, 40, 50, 20);
-		frame.add(editPort);*/
-		
-		/*final JButton btnRun = new JButton("连接");
-		btnRun.setFont(f);
-		btnRun.setBounds(260, 30, 80, 40);
-		btnRun.addActionListener(new AbstractAction() {
-			public void actionPerformed(ActionEvent e) {
-				final String ip_addr = "192.168.200.63"; // editIPAddr.getText();
-				final int port = 50609; //Integer.valueOf(editPort.getText());
-				con = new MyBoxController(ip_addr, port);
-				
-				if (!con.connect()) {
-					lblInfo.setText("连接失败！");
-					return;
-				}
-				
-				lblInfo.requestFocus();
-			}
-		});
-		frame.add(btnRun);*/
-		
 		final JLabel lblInfo = new JLabel("信息");
 		lblInfo.setBounds(20, 300, 300, 40);
 		frame.add(lblInfo);
 		
-		final String ip_addr = "192.168.200.63"; // editIPAddr.getText();
-		final int port = 41987; //Integer.valueOf(editPort.getText());
+		String ip_addr = "192.168.200.63";
+		int port = 46891;
+		
+		String strConfig = Util.readFileContent("config.txt");
+		StringTokenizer st = new StringTokenizer(strConfig, "\n", false);
+		while (st.hasMoreElements()) {
+			String strLine = (String) st.nextElement();
+			if (strLine.startsWith("#"))
+				continue;
+				
+			int pos = strLine.indexOf("=");
+			if (pos > 0 && pos != strLine.length() - 1) {
+				String key = strLine.substring(0, pos);
+				String value = strLine.substring(pos + 1);
+				System.out.println(String.format("Java: key %s, value %s", key ,value));
+				if (key.equals("listen")) {
+					pos = value.indexOf(":");
+					if (pos == -1) {
+						lblInfo.setText(" 获取配置文件失败！");
+					}
+					
+					ip_addr = value.substring(0, pos); // "192.168.200.63"
+					port = Integer.valueOf(value.substring(pos + 1)); // 46891
+				}
+				else {
+					System.out.println("Java: unknown key" + key);
+				}
+			}
+		}
+		
 		con = new MyBoxController(ip_addr, port);
 		
 		if (!con.connect()) {
 			lblInfo.setText("连接失败！");
-			return;
+		}
+		else {
+			lblInfo.setText(String.format("连接主机 %s:%d", ip_addr, port));
 		}
 		
 		frame.setBounds(400, 400, 400, 400);
@@ -114,6 +122,8 @@ public class TestEPG {
 					con.sendKeyEvent(Code.KEYCODE_A + keycode - KeyEvent.VK_A);
 				else if (keycode >= KeyEvent.VK_0 && keycode <= KeyEvent.VK_9)
 					con.sendKeyEvent(Code.KEYCODE_0 + keycode - KeyEvent.VK_0);
+				else if (keycode == KeyEvent.VK_SLASH)
+					con.sendKeyEvent(Code.KEYCODE_NUMPAD_DIVIDE);
 				else {
 					switch (keycode) {
 					case KeyEvent.VK_DOWN:
@@ -163,6 +173,5 @@ public class TestEPG {
 			
 		});
 	}
-	
 	
 }

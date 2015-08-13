@@ -450,31 +450,4 @@ public class PPTVVideoActivity extends ListActivity {
         protected void onProgressUpdate(Integer... progresses) {		
         }
 	}
-	
-	private class EPGTask2 extends AsyncTask<Integer, Integer, List<String>> {
-
-		@Override
-        protected void onPostExecute(List<String> result) {
-			if (result != null && result.size() > 0) {
-				if (mAdapter == null) {
-					mAdapter = new ArrayAdapter<String>(
-							PPTVVideoActivity.this, android.R.layout.simple_expandable_list_item_1, result);
-					PPTVVideoActivity.this.setListAdapter(mAdapter);
-				}
-				else {
-					mAdapter.clear();
-					mAdapter.addAll(result);
-					mAdapter.notifyDataSetChanged();
-				}
-			}
-        }
-		
-		@Override
-		protected List<String> doInBackground(Integer... params) {
-			// TODO Auto-generated method stub
-			return null;
-		}
-		
-	}
-
 }

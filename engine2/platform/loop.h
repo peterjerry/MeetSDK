@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2012 Roger Shen  rogershen@pptv.com
+ * Copyright (C) 2015 Guoliang Ma  guoliangma@pptv.com
  *
  */
 

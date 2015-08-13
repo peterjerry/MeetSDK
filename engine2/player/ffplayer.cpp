@@ -71,7 +71,11 @@ LogFunc pplog = NULL;
 #define AV_LATENCY_BACK_THR1 -10
 #define AV_LATENCY_BACK_THR2 -60000
 
-int autorotate = 1;
+int autorotate		= 1;
+
+int audio_visual	= 1;
+#define AUDIO_VISUAL_WIDTH	640
+#define AUDIO_VISUAL_HEIGHT	480
 
 enum NalUnitType
 {
@@ -208,8 +212,9 @@ extern "C" bool my_convert(uint8_t* flv_data, int flv_data_size, uint8_t* ts_dat
 
 FFPlayer::FFPlayer()
 {
-	LOGD("FFPlayer constructor");
-    mListener		= NULL;
+	LOGI("FFPlayer constructor[player op new()]");
+    
+	mListener		= NULL;
     mDurationMs		= 0;
     mVideoFrameRate = 0;
 	mVideoGapMs		= 0;
@@ -295,6 +300,7 @@ FFPlayer::FFPlayer()
 	mBufferSinkCtx	= NULL;  
     mBufferSrcCtx	= NULL;
 	mVideoFiltFrame	= NULL;
+	mAudioFiltFrame	= NULL;
 	mLastFilter		= NULL;
 	int i;
 	for(i=0;i<MAX_FILTER_CNT;i++)
@@ -322,7 +328,7 @@ FFPlayer::FFPlayer()
 
 FFPlayer::~FFPlayer()
 {
-	LOGI("FFPlayer destructor()");
+	LOGI("FFPlayer destructor()[player op release()]");
 
     reset_l();
 
@@ -348,8 +354,8 @@ bool FFPlayer::FixInterlace(AVStream *video_st)
 {
 #ifdef USE_AV_FILTER
 	mFilterDescr[0] = "yadif";
-	if (!init_filters(mFilterDescr)) {
-		LOGE("failed to init filters");
+	if (!init_filters_video(mFilterDescr)) {
+		LOGE("failed to init video filters");
 		return false;
 	}
 	mVideoFiltFrame = av_frame_alloc();
@@ -386,13 +392,13 @@ bool FFPlayer::FixRotateVideo(AVStream *video_st)
             }
 
 			int i = 0;
-			while(mFilterDescr[i]) {
+			while (mFilterDescr[i]) {
 				LOGI("set filter descr[%d]: %s", i, mFilterDescr[i]);
 				i++;
 			}
 
-			if (!init_filters(mFilterDescr)) {
-				LOGE("failed to init filters");
+			if (!init_filters_video(mFilterDescr)) {
+				LOGE("failed to init video filters");
 				return false;
 			}
 			mVideoFiltFrame = av_frame_alloc();
@@ -444,7 +450,7 @@ bool FFPlayer::insert_filter(const char *name, const char* arg, AVFilterContext 
 	return true;
 }
 
-bool FFPlayer::init_filters(const char **filters_descr)
+bool FFPlayer::init_filters_video(const char **filters_descr)
 {
 	char args[512] = {0};
     int ret = 0;
@@ -494,6 +500,185 @@ bool FFPlayer::init_filters(const char **filters_descr)
     }
 
     ret = av_opt_set_int_list(mBufferSinkCtx, "pix_fmts", pix_fmts,
+                              AV_PIX_FMT_NONE, AV_OPT_SEARCH_CHILDREN);
+    if (ret < 0) {
+        LOGE("Cannot set output pixel format");
+        goto end;
+    }
+
+	mLastFilter = mBufferSinkCtx;
+	index = 1;
+	while(filters_descr[index]) {
+		const char* name = NULL;
+		const char* arg = NULL;
+
+		char tmp[64] = {0};
+		char* pos = NULL;
+		strncpy(tmp, filters_descr[index], 64);
+		pos = strchr(tmp, '=');
+		if (pos != NULL) {
+			*pos = '\0';
+			name = tmp;
+			arg = pos + 1;
+		}
+		else {
+			name = filters_descr[index];
+			arg = NULL;
+		}
+		insert_filter(name, arg, &mLastFilter);
+		index++;
+	}
+
+    /* Endpoints for the filter graph. */
+    mFilterOutputs->name       = av_strdup("in");
+    mFilterOutputs->filter_ctx = mBufferSrcCtx;
+    mFilterOutputs->pad_idx    = 0;
+    mFilterOutputs->next       = NULL;
+
+    mFilterInputs->name       = av_strdup("out");
+    mFilterInputs->filter_ctx = mLastFilter;//mBufferSinkCtx;
+    mFilterInputs->pad_idx    = 0;
+    mFilterInputs->next       = NULL;
+
+    if ((ret = avfilter_graph_parse_ptr(mFilterGraph, filters_descr[0],
+                                    &mFilterInputs, &mFilterOutputs, NULL)) < 0) {
+		LOGE("Cannot avfilter_graph_parse_ptr");
+        goto end;
+	}
+
+    if ((ret = avfilter_graph_config(mFilterGraph, NULL)) < 0) {
+		LOGE("Cannot avfilter_graph_config");
+        goto end;
+	}
+
+end:
+    avfilter_inout_free(&mFilterInputs);
+    avfilter_inout_free(&mFilterOutputs);
+
+    return (ret == 0) ? true : false;
+}
+
+int FFPlayer::onAudioFrame(AVFrame *frame, void * opaque) {
+	FFPlayer *ins = (FFPlayer *)opaque;
+	return ins->onAudioFrameImpl(frame);
+}
+
+int FFPlayer::onAudioFrameImpl(AVFrame *frame)
+{
+	int ret;
+
+	/*AVFrame *new_frame = av_frame_alloc();
+	new_frame->channels			= frame->channels;
+	new_frame->channel_layout	= frame->channel_layout;
+	new_frame->sample_rate		= frame->sample_rate;
+	new_frame->format			= frame->format;
+	new_frame->nb_samples		= frame->nb_samples;
+	av_frame_get_buffer(new_frame, 1);
+	av_frame_copy(new_frame, frame);*/
+
+	/* push the audio data from decoded frame into the filtergraph */
+    if (av_buffersrc_add_frame_flags(mBufferSrcCtx, frame, 0) < 0) {
+        LOGE("Error while feeding the audio filtergraph");
+        return -1;
+    }
+
+    /* pull filtered audio from the filtergraph */
+    while (1) {
+		ret = av_buffersink_get_frame(mBufferSinkCtx, mAudioFiltFrame);
+        if (ret == AVERROR(EAGAIN) || ret == AVERROR_EOF)
+			break;
+		else if (ret < 0)
+			break;
+		
+		// update ui
+#ifdef TEST_PERFORMANCE
+		int64_t begin_render = getNowMs();
+#endif
+		if ( OK != mVideoRenderer->render(mAudioFiltFrame))
+			notifyListener_l(MEDIA_ERROR, MEDIA_ERROR_VIDEO_RENDER, 0);
+
+#ifdef TEST_PERFORMANCE
+		int64_t end_render, costTime;
+		end_render = getNowMs();
+		costTime = end_render - begin_render;
+
+		if (mAveRenderTimeMs == 0)
+			mAveRenderTimeMs = costTime;
+		else
+			mAveRenderTimeMs = (mAveRenderTimeMs * 4 + costTime) / 5;
+
+		notifyListener_l(MEDIA_INFO, MEDIA_INFO_TEST_RENDER_FRAME, (int)mRenderedFrames);
+
+		if (getNowMs() - mRenderGapStartTimeMs > 1000) {
+			notifyListener_l(MEDIA_INFO, MEDIA_INFO_TEST_RENDER_AVG_MSEC, (int)mAveRenderTimeMs);
+			int64_t duration = getNowMs() - mTotalStartTimeMs;
+			if (duration > 0)
+				notifyListener_l(MEDIA_INFO, MEDIA_INFO_TEST_RENDER_FPS, (int)(mRenderedFrames * 1000 / (double)duration + 0.3f));
+			mRenderGapStartTimeMs = getNowMs();
+		}	
+#endif
+
+		mRenderedFrames++;
+		av_frame_unref(mAudioFiltFrame);
+	}
+
+	return 0;
+}
+
+bool FFPlayer::init_filters_audio(const char **filters_descr)
+{
+	char args[512] = {0};
+    int ret = 0;
+	int index;
+    AVFilter *buffersrc  = avfilter_get_by_name("abuffer");
+    AVFilter *buffersink = avfilter_get_by_name("buffersink");
+
+	AVCodecContext *dec_ctx = mAudioStream->codec;
+	AVRational time_base = mAudioStream->time_base;
+
+	mFilterOutputs = avfilter_inout_alloc();
+    mFilterInputs  = avfilter_inout_alloc();
+	enum AVPixelFormat pix_fmts[] = { AV_PIX_FMT_YUV420P, AV_PIX_FMT_NONE };
+
+    mFilterGraph = avfilter_graph_alloc();
+    if (!mFilterOutputs || !mFilterInputs || !mFilterGraph) {
+        ret = AVERROR(ENOMEM);
+        goto end;
+    }
+
+	/* buffer audio source: the decoded frames from the decoder will be inserted here. */
+    if (!dec_ctx->channel_layout)
+        dec_ctx->channel_layout = av_get_default_channel_layout(dec_ctx->channels);
+
+#ifdef _MSC_VER
+	_snprintf(args, sizeof(args),
+            "time_base=%d/%d:sample_rate=%d:sample_fmt=%s:channel_layout=0x%I64d",
+             time_base.num, time_base.den, dec_ctx->sample_rate,
+             av_get_sample_fmt_name(dec_ctx->sample_fmt), dec_ctx->channel_layout);
+#else
+	snprintf(args, sizeof(args),
+            "time_base=%d/%d:sample_rate=%d:sample_fmt=%s:channel_layout=0x%lld",
+             time_base.num, time_base.den, dec_ctx->sample_rate,
+             av_get_sample_fmt_name(dec_ctx->sample_fmt), dec_ctx->channel_layout);
+#endif
+	LOGI("avfilter_graph_create_filter params: %s", args);
+
+    ret = avfilter_graph_create_filter(&mBufferSrcCtx, buffersrc, "in",
+                                       args, NULL, mFilterGraph);
+    if (ret < 0) {
+        LOGE("Cannot create buffer source");
+        goto end;
+    }
+
+    /* buffer video sink: to terminate the filter chain. */
+    ret = avfilter_graph_create_filter(&mBufferSinkCtx, buffersink, "out",
+                                       NULL, NULL, mFilterGraph);
+    if (ret < 0) {
+        LOGE("Cannot create buffer sink");
+        goto end;
+    }
+
+	ret = av_opt_set_int_list(mBufferSinkCtx, "pix_fmts", pix_fmts,
                               AV_PIX_FMT_NONE, AV_OPT_SEARCH_CHILDREN);
     if (ret < 0) {
         LOGE("Cannot set output pixel format");
@@ -733,9 +918,7 @@ status_t FFPlayer::reset()
 status_t FFPlayer::prepare()
 {
     LOGI("player op prepare()");
-#ifndef _MSC_VER // fixme guoliangma
 	AutoLock autolock(&mPlayerLock);
-#endif
 
     if (mPlayerStatus != MEDIA_PLAYER_INITIALIZED) {
 		LOGE("status to call prepare() is wrong: %d", mPlayerStatus);
@@ -748,9 +931,7 @@ status_t FFPlayer::prepare()
 status_t FFPlayer::prepareAsync()
 {
     LOGI("player op prepareAsync()");
-#ifndef _MSC_VER // fixme guoliangma
 	AutoLock autolock(&mPlayerLock);
-#endif
 
     if (mPlayerStatus != MEDIA_PLAYER_INITIALIZED) {
 		LOGE("status to call prepareAsync() is wrong: %d", mPlayerStatus);
@@ -763,10 +944,7 @@ status_t FFPlayer::prepareAsync()
 status_t FFPlayer::start()
 {
     LOGI("player op start()");
-	// 2015.6.15 guoliangma added
-#ifndef _MSC_VER // fixme guoliangma
 	AutoLock autolock(&mPlayerLock);
-#endif
 
 	// 20141124 guoliangma fix INVALID_OP(38) call start() twice when ad play finish
 	if (mPlayerStatus == MEDIA_PLAYER_STARTED)
@@ -820,6 +998,7 @@ status_t FFPlayer::pause()
 status_t FFPlayer::seekTo(int32_t msec)
 {
 	LOGI("player op seekTo()");
+	AutoLock autolock(&mPlayerLock);
 
     if (mPlayerStatus != MEDIA_PLAYER_PREPARED &&
         mPlayerStatus != MEDIA_PLAYER_STARTED &&
@@ -866,8 +1045,7 @@ status_t FFPlayer::getVideoWidth(int32_t *w)
 
 status_t FFPlayer::getVideoHeight(int32_t *h)
 {
-    if(mVideoRenderer != NULL)
-    {
+    if(mVideoRenderer != NULL) {
         //Use optimized size from render
         uint32_t optHeight = 0;
         mVideoRenderer->height(optHeight);
@@ -889,7 +1067,7 @@ status_t FFPlayer::getCurrentPosition(int32_t* positionMs)
     }
     else
     {
-        if (mVideoStream != NULL) {
+		if (mVideoStream != NULL && mVideoStream->codec->codec_id != AV_CODEC_ID_MJPEG) {
             //get video time
             pos = mVideoTimeMs;
         }
@@ -1031,8 +1209,8 @@ void FFPlayer::onPrepareImpl()
 			return;
 		}
 
-     	LOGE("open stream: %s failed", mUri);
-		abortPrepare_l(ERROR);
+     	LOGE("failed to open stream: %s", mUri);
+		abortPrepare_l(MEDIA_ERROR_DEMUXER);
 		return;
     }
 
@@ -1052,7 +1230,7 @@ void FFPlayer::onPrepareImpl()
 #ifndef NO_AUDIO_PLAY
     if (prepareAudio_l() != OK) {
      	LOGE("Initing audio decoder failed");
-        abortPrepare_l(ERROR);
+        abortPrepare_l(MEDIA_ERROR_UNSUPPORTED_AUDIO);
         return;
     }
 #endif
@@ -1064,7 +1242,7 @@ void FFPlayer::onPrepareImpl()
 
     if (prepareVideo_l() != OK) {
      	LOGE("Initing video decoder failed");
-        abortPrepare_l(ERROR);
+        abortPrepare_l(MEDIA_ERROR_UNSUPPORTED_VIDEO);
         return;
     }
 
@@ -1513,7 +1691,9 @@ void FFPlayer::FFBufferingUpdateEvent::action(void *opaque, int64_t now_us)
 
 void FFPlayer::onBufferingUpdateImpl()
 {
-	AutoLock autolock(&mPlayerLock);
+	// 2015.8.5 guoliangma comment out to fix "quick switch play stuck"
+	// because stop() also call autolock, will dead-lock
+	//AutoLock autolock(&mPlayerLock);
 
     if (!mBufferingUpdateEventPending)
         return;
@@ -1559,7 +1739,9 @@ void FFPlayer::FFSeekingEvent::action(void *opaque, int64_t now_us)
 void FFPlayer::onSeekingImpl()
 {
 	LOGD("onSeeking");
-	AutoLock autolock(&mPlayerLock);
+	// 2015.8.5 guoliangma comment out to fix "quick switch play stuck"
+	// because stop() also call autolock, will dead-lock
+	//AutoLock autolock(&mPlayerLock);
 
     if (!mSeekingEventPending) // more than 1 seek request in event loop
 		return;
@@ -1615,7 +1797,10 @@ void FFPlayer::FFStreamDoneEvent::action(void *opaque, int64_t now_us)
 void FFPlayer::onStreamDoneImpl()
 {
     LOGI("onStreamDone");
-	AutoLock autolock(&mPlayerLock);
+
+	// 2015.8.5 guoliangma comment out to fix "quick switch play stuck"
+	// because stop() also call autolock, will dead-lock
+	//AutoLock autolock(&mPlayerLock);
 
     if (!mStreamDoneEventPending)
         return;
@@ -1644,7 +1829,9 @@ void FFPlayer::FFCheckAudioStatusEvent::action(void *opaque, int64_t now_us)
 
 void FFPlayer::onCheckAudioStatusImpl()
 {
-	AutoLock autolock(&mPlayerLock);
+	// 2015.8.5 guoliangma comment out to fix "quick switch play stuck"
+	// because stop() also call autolock, will dead-lock
+	//AutoLock autolock(&mPlayerLock);
 
     if (!mAudioStatusEventPending)
         return;
@@ -1670,7 +1857,9 @@ void FFPlayer::FFBufferingStartEvent::action(void *opaque, int64_t now_us)
 void FFPlayer::onBufferingStartImpl()
 {
 	LOGD("onBufferingStart");
-	AutoLock autolock(&mPlayerLock);
+	// 2015.8.5 guoliangma comment out to fix "quick switch play stuck"
+	// because stop() also call autolock, will dead-lock
+	//AutoLock autolock(&mPlayerLock);
 
     if (!mBufferingStartEventPending)
         return;
@@ -1702,7 +1891,9 @@ void FFPlayer::FFBufferingEndEvent::action(void *opaque, int64_t now_us)
 void FFPlayer::onBufferingEndImpl()
 {
 	LOGD("onBufferingEnd");
-	AutoLock autolock(&mPlayerLock);
+	// 2015.8.5 guoliangma comment out to fix "quick switch play stuck"
+	// because stop() also call autolock, will dead-lock
+	//AutoLock autolock(&mPlayerLock);
 
     if (!mBufferingEndEventPending)
         return;
@@ -1739,7 +1930,9 @@ void FFPlayer::FFSeekingCompleteEvent::action(void *opaque, int64_t now_us)
 void FFPlayer::onSeekingCompleteImpl()
 {
 	LOGD("onSeekingComplete");
-	AutoLock autolock(&mPlayerLock);
+	// 2015.8.5 guoliangma comment out to fix "quick switch play stuck"
+	// because stop() also call autolock, will dead-lock
+	//AutoLock autolock(&mPlayerLock);
 
     if (!mSeekingCompleteEventPending)
         return;
@@ -1956,7 +2149,7 @@ void FFPlayer::abortPrepare_l(status_t err)
 {
     notifyListener_l(MEDIA_ERROR, MEDIA_ERROR_FAIL_TO_OPEN, err);
 
-    mPrepareResult = err;
+    mPrepareResult = ERROR;// err
     mPlayerStatus = MEDIA_PLAYER_STATE_ERROR;
 	AutoLock autolock(&mPreparedLock);
     pthread_cond_broadcast(&mPreparedCondition);
@@ -2022,7 +2215,7 @@ status_t FFPlayer::prepareAudio_l()
 
     mAudioPlayer->setListener(this);
     status_t ret = mAudioPlayer->prepare();
-    if(ret != OK){
+    if (ret != OK){
      	LOGE("failed to prepare audio player");
         return ret;
     }
@@ -2036,7 +2229,36 @@ status_t FFPlayer::prepareVideo_l()
 	mVideoStream = mDataStream->getVideoStream();
 	if (mVideoStreamIndex == -1 || mVideoStream == NULL) {
         LOGI("No video stream");
-        notifyListener_l(MEDIA_SET_VIDEO_SIZE, 0, 0);
+
+		if (audio_visual) {
+			// "showwaves=s=600x240:mode=line:rate=10"
+			// "showspectrum=mode=separate:color=intensity:slide=1:scale=cbrt:s=640x480"
+			// "showvolume=rate=5:c=VOLUME:f=20"
+			mFilterDescr[0] = "showwaves=s=640x480:mode=line:rate=10"; 
+			if (init_filters_audio(mFilterDescr)) {
+				mAudioFiltFrame = av_frame_alloc();
+				notifyListener_l(MEDIA_SET_VIDEO_SIZE, AUDIO_VISUAL_WIDTH, AUDIO_VISUAL_HEIGHT);
+
+				mVideoRenderer = new FFRender(mSurface, AUDIO_VISUAL_WIDTH, AUDIO_VISUAL_HEIGHT, AV_PIX_FMT_YUV420P);
+				if (mVideoRenderer->init() != OK) {
+         			LOGE("Initing video render failed");
+					return ERROR;
+				}		
+
+				if (mAudioPlayer) {
+					mAudioPlayer->setOnFrame(onAudioFrame, this);
+					LOGI("set auido Frame callback");
+				}
+			}
+			else {
+				notifyListener_l(MEDIA_SET_VIDEO_SIZE, 0, 0);
+				LOGW("failed to init audio filters");
+			}
+		}
+		else {
+			notifyListener_l(MEDIA_SET_VIDEO_SIZE, 0, 0);
+		}
+
 		return OK;
 	}
 
@@ -2299,10 +2521,13 @@ status_t FFPlayer::stop_l()
 	}
 
 #ifdef USE_AV_FILTER
-	if(mVideoFiltFrame != NULL) {
+	if (mVideoFiltFrame != NULL) {
 		av_frame_free(&mVideoFiltFrame);
     }
-    LOGI("after avcodec_free_frame mVideoFiltFrame");
+	if (mAudioFiltFrame != NULL) {
+		av_frame_free(&mAudioFiltFrame);
+    }
+    LOGI("after avcodec_free_frame Filter Frame");
 
 	for (int i=0;i<MAX_FILTER_CNT;i++)
 		mFilterDescr[i] = NULL;
@@ -2463,9 +2688,11 @@ status_t FFPlayer::decode_l(AVPacket *packet)
 			// pull filtered frames from the filtergraph
 			while (1) {
 				ret = av_buffersink_get_frame(mBufferSinkCtx, mVideoFiltFrame);
-				if (ret == AVERROR(EAGAIN) || ret == AVERROR_EOF)
+				if (ret >= 0)
 					break;
-				if (ret < 0)
+				else if (ret == AVERROR(EAGAIN) || ret == AVERROR_EOF)
+					break;
+				else if (ret < 0)
 					break;
 			}
 		}
@@ -3077,7 +3304,10 @@ status_t FFPlayer::getBufferingTime(int *msec)
 
 bool FFPlayer::getMediaInfo(const char* url, MediaInfo* info)
 {
-    if(url == NULL || info == NULL) return false;
+	LOGI("player op getMediaInfo() %s", url);
+
+    if(url == NULL || info == NULL)
+		return false;
 
     bool ret = false;
 
@@ -3093,17 +3323,17 @@ bool FFPlayer::getMediaInfo(const char* url, MediaInfo* info)
 
     AVFormatContext* movieFile = avformat_alloc_context();
     LOGD("check file %s", url);
-    if(!avformat_open_input(&movieFile, url, NULL, NULL))
+    if (!avformat_open_input(&movieFile, url, NULL, NULL))
     {
+		info->bitrate = movieFile->bit_rate;
+
         if(movieFile->duration <= 0)
         {
-        	if(avformat_find_stream_info(movieFile, NULL) >= 0)
-            {
+        	if(avformat_find_stream_info(movieFile, NULL) >= 0) {
                 ret = true;
                 info->duration_ms = (int32_t)(movieFile->duration * 1000 / AV_TIME_BASE);
         	}
-            else
-            {
+            else {
                 LOGE("failed to avformat_find_stream_info: %s", url);
             }
         }
@@ -3118,14 +3348,13 @@ bool FFPlayer::getMediaInfo(const char* url, MediaInfo* info)
         LOGE("failed to avformat_open_input: %s", url);
     }
 
-    if(movieFile != NULL)
-    {
+    if (movieFile != NULL) {
         // Close stream
-        LOGD("avformat_close_input");
+        LOGI("avformat_close_input()");
         avformat_close_input(&movieFile);
     }
-    LOGD("File duration:%d", info->duration_ms);
-    LOGD("File size:%lld", info->size_byte);
+
+    LOGI("File duration: %d msec, size: %lld", info->duration_ms, info->size_byte);
     return ret;
 }
 
@@ -3236,6 +3465,12 @@ bool getStreamLangTitle(char** langcode, char** langtitle, int index, AVStream* 
 	if (stream == NULL || stream->metadata == NULL)
 		return false;
 
+	const char *stream_type = "other";
+	if (stream->codec->codec_type == AVMEDIA_TYPE_AUDIO)
+		stream_type = "audio";
+	else if (stream->codec->codec_type == AVMEDIA_TYPE_SUBTITLE)
+		stream_type = "subtitle";
+
     AVDictionaryEntry* elem = NULL;
 
 	elem = av_dict_get(stream->metadata, "language", NULL, 0);
@@ -3257,12 +3492,13 @@ bool getStreamLangTitle(char** langcode, char** langtitle, int index, AVStream* 
     }
 
 	if (gotlanguage) {
-		LOGI("stream index: #%d(lang %s, title: %s)", index, 
+		LOGI("%s stream index: #%d(lang %s, title: %s)", 
+			stream_type, index, 
 			*langcode ? *langcode : "N/A", 
 			*langtitle ? *langcode : "N/A");
 	}
 	else {
-		LOGW("stream index: #d lang and title are both empty", index);
+		LOGW("%s stream index: #d lang and title are both empty", stream_type, index);
 	}
 
     return gotlanguage;
@@ -3270,13 +3506,16 @@ bool getStreamLangTitle(char** langcode, char** langtitle, int index, AVStream* 
 
 bool FFPlayer::getCurrentMediaInfo(MediaInfo *info)
 {
+	LOGI("player op getCurrentMediaInfo()");
+
 	if (info == NULL || mMediaFile == NULL)
 		return false;
 
-	info->size_byte = 0;
-	info->duration_ms = (int32_t)(mMediaFile->duration * 1000 / AV_TIME_BASE);
-	info->format_name = mMediaFile->iformat->name;
-	info->channels = (int32_t)mMediaFile->nb_streams;
+	info->size_byte		= 0;
+	info->duration_ms	= (int32_t)(mMediaFile->duration * 1000 / AV_TIME_BASE);
+	info->format_name	= mMediaFile->iformat->name;
+	info->channels		= (int32_t)mMediaFile->nb_streams;
+	info->bitrate		= mMediaFile->bit_rate;
 
 	info->audio_channels	= 0;
 	info->video_channels	= 0;
@@ -3287,6 +3526,7 @@ bool FFPlayer::getCurrentMediaInfo(MediaInfo *info)
 		return false;
 	}
 
+	info->frame_rate = av_q2d(mVideoStream->avg_frame_rate);
 	AVCodecContext* codec_ctx = mVideoStream->codec;
 	if(codec_ctx == NULL) {
 		LOGE("codec_ctx is NULL");
@@ -3351,6 +3591,8 @@ bool FFPlayer::getCurrentMediaInfo(MediaInfo *info)
 
 bool FFPlayer::getMediaDetailInfo(const char* url, MediaInfo* info)
 {
+	LOGI("player op getMediaDetailInfo() %s", url);
+
     if (url == NULL || info == NULL)
 		return false;
 
@@ -3365,7 +3607,7 @@ bool FFPlayer::getMediaDetailInfo(const char* url, MediaInfo* info)
 	}
 
     AVFormatContext* movieFile = avformat_alloc_context();
-    LOGD("check file %s", url);
+    LOGI("before avformat_open_input() %s", url);
     if (0 != avformat_open_input(&movieFile, url, NULL, NULL)) {
 		LOGE("failed to avformat_open_input: %s", url);
 		return false;
@@ -3376,11 +3618,12 @@ bool FFPlayer::getMediaDetailInfo(const char* url, MediaInfo* info)
 		return false;
 	}
 
-	info->duration_ms = (int32_t)(movieFile->duration * 1000 / AV_TIME_BASE);
-	info->format_name = movieFile->iformat->name;
+	info->duration_ms	= (int32_t)(movieFile->duration * 1000 / AV_TIME_BASE);
+	info->format_name	= movieFile->iformat->name;
+	info->bitrate		= movieFile->bit_rate;
 
 	uint32_t streamsCount = movieFile->nb_streams;
-	LOGD("streamsCount:%d", streamsCount);
+	LOGI("streamsCount: %d", streamsCount);
 
 	info->channels = streamsCount;
 
@@ -3392,19 +3635,18 @@ bool FFPlayer::getMediaDetailInfo(const char* url, MediaInfo* info)
 		if (movieFile->streams[i]->codec->codec_type == AVMEDIA_TYPE_VIDEO) {
 			info->video_channels++;
 			AVStream* stream = movieFile->streams[i];
-			if(stream == NULL)
-			{
+			if (stream == NULL) {
 				LOGE("stream is NULL");
 				continue;
 			}
 			AVCodecContext* codec_ctx = stream->codec;
-			if(codec_ctx == NULL)
-			{
+			if (codec_ctx == NULL) {
 				LOGE("codec_ctx is NULL");
 				continue;
 			}
-			info->width = codec_ctx->width;
-			info->height = codec_ctx->height;
+			info->width			= codec_ctx->width;
+			info->height		= codec_ctx->height;
+			info->frame_rate	= av_q2d(stream->avg_frame_rate);//stream->avg_frame_rate.num / mVideoStream->avg_frame_rate.den;
 
 			AVCodec* codec = avcodec_find_decoder(codec_ctx->codec_id);
 			if (codec == NULL)
@@ -3461,25 +3703,24 @@ bool FFPlayer::getMediaDetailInfo(const char* url, MediaInfo* info)
 
 	if (movieFile != NULL) {
         // Close stream
-        LOGD("avformat_close_input");
+        LOGD("avformat_close_input()");
         avformat_close_input(&movieFile);
     }
 
-    LOGD("File duration:%d", info->duration_ms);
-    LOGD("File size:%lld", info->size_byte);
-    LOGD("width:%d", info->width);
-    LOGD("height:%d", info->height);
-    LOGD("format name:%s", info->format_name!=NULL?info->format_name:"");
-    LOGD("audio name:%s", info->audio_name!=NULL?info->audio_name:"");
-    LOGD("video name:%s", info->video_name!=NULL?info->video_name:"");
-    LOGD("audio_channels:%d", info->audio_channels);
-    LOGD("video_channels:%d", info->video_channels);
+    LOGI("File duration: %d msec, size: %lld", info->duration_ms, info->size_byte);
+    LOGI("width: %d, height: %d", info->width, info->height);
+	LOGI("frame_rate:%.2f, bitrate: %d bps", info->frame_rate, info->bitrate);
+    LOGI("format_name:%s", info->format_name != NULL ? info->format_name : "N/A");
+	LOGI("videocodec_name:%s", info->videocodec_name != NULL ? info->videocodec_name : "N/A");
+    LOGI("video_channels:%d, audio_channels:%d, subtitle_channels:%d", 
+		info->video_channels, info->audio_channels, info->subtitle_channels);
     return true;
 }
 
+// deprecated
 bool FFPlayer::getThumbnail2(const char* url, MediaInfo* info)
 {
-	LOGD("getThumbnail()");
+	LOGI("player op getThumbnail2() %s", url);
 
 	if (url == NULL || info == NULL)
 		return false;
@@ -3656,7 +3897,7 @@ bool FFPlayer::getThumbnail2(const char* url, MediaInfo* info)
 
 bool FFPlayer::getThumbnail(const char* url, MediaInfo* info)
 {
-	LOGD("getThumbnail()");
+	LOGI("player op getThumbnail() %s", url);
 
 	if (url == NULL || info == NULL)
 		return false;
@@ -3793,7 +4034,7 @@ bool FFPlayer::getThumbnail(const char* url, MediaInfo* info)
                     info->thumbnail = (int*)malloc(info->thumbnail_width * info->thumbnail_height * 4);
                     if (generateThumbnail(frame, info->thumbnail, info->thumbnail_width, info->thumbnail_height)) {
 						got_thumbnail = 1;
-						LOGI("generateThumbnail");
+						LOGI("generateThumbnail done!");
 					}
 					av_frame_unref(frame);
 				}

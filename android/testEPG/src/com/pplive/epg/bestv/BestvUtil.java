@@ -306,6 +306,57 @@ public class BestvUtil {
 		return false;
 	}
 	
+	public void xxx() {
+		String session_url = "https://open.weixin.qq.com/connect/oauth2/authorize" +
+        		"?appid=wx31ccfaef728a7c34" +
+        		"&redirect_uri=http%3A%2F%2Fwechat.bestv.com.cn%2Fbackwatching%2Fbackwatching_list.jsp%3Ftype%3Dmenu" +
+        		"&response_type=code" +
+        		"&scope=snsapi_base" +
+        		"&state=123#wechat_redirect";
+		
+		try {  
+			// 创建HttpClientBuilder  
+            HttpClientBuilder httpClientBuilder = HttpClientBuilder.create();  
+            // HttpClient  
+            CloseableHttpClient closeableHttpClient = httpClientBuilder.build(); 
+            HttpHost target = new HttpHost(session_url, 443, "https");
+            // 依次是代理地址，代理端口号，协议类型  
+            HttpHost proxy = new HttpHost("127.0.0.1", 8888, "http");  
+            RequestConfig config = RequestConfig.custom().setProxy(proxy).build();   
+            
+            // step1 get sessionId
+            HttpGet httpGetSession = new HttpGet(session_url);
+            //httpGetSession.setConfig(config);
+            
+            httpGetSession.setHeader("User-Agent", "Mozilla/5.0 (Linux; U; " +
+    				"Android 4.4.4; zh-cn; MI 3W Build/KTU84P) " +
+    				"AppleWebKit/533.1 (KHTML, like Gecko)Version/4.0 " +
+    				"MQQBrowser/5.4 TBS/025411 Mobile Safari/533.1 " +
+    				"MicroMessenger/6.1.0.66_r1062275.542 NetType/WIFI");
+            
+            //HttpResponse response = closeableHttpClient.execute(target, httpGetSession);
+            HttpResponse response = HttpClients.createDefault().execute(httpGetSession);
+            int status = response.getStatusLine().getStatusCode();
+            System.out.println("status " + status);
+            if (status != 200){
+				System.out.println("Java: code not 200: " + 
+						response.getStatusLine().getStatusCode());
+				return;
+			}
+            Header [] headers = response.getAllHeaders();
+            for (int i=0;i<headers.length;i++) {
+            	System.out.println(String.format("name %s, value %s", 
+            			headers[i].getName(), headers[i].getValue()));
+            }
+			
+			String result = EntityUtils.toString(response.getEntity());
+			System.out.println("xxx " + result);
+		}
+		catch (Exception e) {  
+            e.printStackTrace();  
+        }
+	}
+	
 	public BestvKey getLiveKey() {
 		BestvKey key = null;
 		

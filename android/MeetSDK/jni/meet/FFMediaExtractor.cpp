@@ -108,15 +108,15 @@ void XOMediaPlayerListener::notify(int msg, int ext1, int ext2)
 static IExtractor* getMediaExtractor(JNIEnv* env, jobject thiz)
 {
 	AutoLock l(&sExtractorLock);
-	IExtractor* e = (IExtractor*)env->GetIntField(thiz, fields.context);
+	IExtractor* e = (IExtractor*)env->GetLongField(thiz, fields.context);
 	return e;
 }
 
 static IExtractor* setMediaExtractor(JNIEnv* env, jobject thiz, IExtractor* extractor)
 {
 	AutoLock l(&sExtractorLock);
-	IExtractor* old = (IExtractor*)env->GetIntField(thiz, fields.context);
-	env->SetIntField(thiz, fields.context, (int)extractor);
+	IExtractor* old = (IExtractor*)env->GetLongField(thiz, fields.context);
+	env->SetLongField(thiz, fields.context, (int64_t)extractor);
 	return old;
 }
 
@@ -617,7 +617,7 @@ jboolean android_media_MediaExtractor_init(JNIEnv *env, jobject thiz)
 		return false;
 	}
 
-	fields.context = env->GetFieldID(clazz, "mNativeContext", "I");
+	fields.context = env->GetFieldID(clazz, "mNativeContext", "J");
 	if (fields.context == NULL) {
 		PPLOGE("Can't find FFMediaExtractor.mNativeContext");
 		return false;

@@ -76,6 +76,9 @@ static bool loadPlayerLib();
 static
 const char* getCodecLibName(uint64_t cpuFeatures)
 {
+#if defined(__aarch64__)
+	return "libplayer_neon.so";
+#else
 	const char* codecLibName = NULL;
 	
 	PPLOGI("android_getCpuFamily %d", android_getCpuFamily());
@@ -122,6 +125,7 @@ const char* getCodecLibName(uint64_t cpuFeatures)
 	}
 
 	return codecLibName;
+#endif
 }
 
 int jniRegisterNativeMethodsPP(JNIEnv* env, const char* className, const JNINativeMethod* gMethods, int numMethods)
@@ -205,21 +209,21 @@ void JNIMediaPlayerListener::notify(int msg, int ext1, int ext2)
 
 static Surface* get_surface(JNIEnv* env, jobject clazz)
 {
-	return (Surface*)env->GetIntField(clazz, fields.surface_native);
+	return (Surface*)env->GetLongField(clazz, fields.surface_native);
 }
 
 static IPlayer* getMediaPlayer(JNIEnv* env, jobject thiz)
 {
 	AutoLock l(&sLock);
-	IPlayer* p = (IPlayer*)env->GetIntField(thiz, fields.context);
+	IPlayer* p = (IPlayer*)env->GetLongField(thiz, fields.context);
 	return p;
 }
 
 static IPlayer* setMediaPlayer(JNIEnv* env, jobject thiz, IPlayer* player)
 {
 	AutoLock l(&sLock);
-	IPlayer* old = (IPlayer*)env->GetIntField(thiz, fields.context);
-	env->SetIntField(thiz, fields.context, (int)player);
+	IPlayer* old = (IPlayer*)env->GetLongField(thiz, fields.context);
+	env->SetLongField(thiz, fields.context, (int64_t)player);
 	return old;
 }
 
@@ -603,11 +607,11 @@ void android_media_MediaPlayer_setSubtitleParser(JNIEnv *env, jobject thiz, jobj
 		return;
 	}
 	//fields.iSubtitle
-	jfieldID is = env->GetFieldID(clazzSubtitle, "mNativeContext", "I");
+	jfieldID is = env->GetFieldID(clazzSubtitle, "mNativeContext", "J");
 	PPLOGD("GetFieldID: mNativeContext");
 	ISubtitles* p = NULL;
 	if(paser)
-		p = (ISubtitles*)env->GetIntField(paser, is);
+		p = (ISubtitles*)env->GetLongField(paser, is);
 
 	IPlayer* mp = getMediaPlayer(env, thiz);
 	if (mp == NULL ) {
@@ -767,6 +771,7 @@ jboolean android_media_MediaPlayer_native_init(JNIEnv *env, jobject thiz)
 		free(lib_path);
 	}
 
+#ifndef __aarch64__
 	if (strlen(gPlatformInfo->model_name) == 0) {
 		__system_property_get("ro.product.model", gPlatformInfo->model_name);
 		__system_property_get("ro.board.platform", gPlatformInfo->board_name);
@@ -788,16 +793,17 @@ jboolean android_media_MediaPlayer_native_init(JNIEnv *env, jobject thiz)
 		PPLOGI("LIB_PATH: %s", gPlatformInfo->lib_path);
 		PPLOGI("PPBOX_LIB_NAME: %s", gPlatformInfo->ppbox_lib_name);
 	}
+#endif
 
 	jclass clazz = env->FindClass("android/pplive/media/player/FFMediaPlayer");
 	if (clazz == NULL)
 		jniThrowException(env, "java/lang/RuntimeException", "Can't find android/pplive/media/player/FFMediaPlayer");
 
-	fields.context = env->GetFieldID(clazz, "mNativeContext", "I");
+	fields.context = env->GetFieldID(clazz, "mNativeContext", "J");
 	if (fields.context == NULL)
 		jniThrowException(env, "java/lang/RuntimeException", "Can't find FFMediaPlayer.mNativeContext");
 
-	fields.listener = env->GetFieldID(clazz, "mListenerContext", "I");
+	fields.listener = env->GetFieldID(clazz, "mListenerContext", "J");
 	if (fields.listener == NULL)
 		jniThrowException(env, "java/lang/RuntimeException", "Can't find FFMediaPlayer.mListenerContext");
 
@@ -872,9 +878,9 @@ static bool loadPlayerLib()
 			//0. try to load from specified lib path
 			if (strcmp(gPlatformInfo->lib_path, "") != 0) {
 				libPath = vstrcat(gPlatformInfo->lib_path, libName);
-				PPLOGI("Load lib #1: %s", libPath);
+				PPLOGI("Load from specified lib path #0: %s", libPath);
 				*player_handle = loadLibrary(libPath);
-				if(!player_handle)
+				if (!player_handle)
 					PPLOGW("step0 loadLibrary failed: %s", libPath);
 				free(libPath);
 				if (*player_handle)
@@ -883,13 +889,20 @@ static bool loadPlayerLib()
 
 			//1. try to load from app lib path
 			libPath = vstrcat(gPlatformInfo->app_path, "lib/", libName);
-			PPLOGI("Load lib #1: %s", libPath);
+			PPLOGI("Load from app lib path #1: %s", libPath);
 			*player_handle = loadLibrary(libPath);
-			if(!player_handle)
+			if (!player_handle)
 				PPLOGW("step1 loadLibrary failed: %s", libPath);
 			free(libPath);
 			if (*player_handle)
 				break;
+
+			// 2015.6.9 guoliangma added to fix arm64 load error
+			//2. try to load system lib path
+			PPLOGI("Load from system lib path #2: %s", libName);
+			*player_handle = loadLibrary(libName);
+			if (!player_handle)
+				PPLOGW("step2 loadLibrary failed: %s", libPath);
 		}while(0);
 
 		if (NULL == *player_handle) {
@@ -951,7 +964,7 @@ void android_media_MediaPlayer_native_setup(JNIEnv *env, jobject thiz, jobject w
 	mp->setListener(player_listener);
 
 	// 2015.7.2 guoliang.ma add to support multi-session player
-	env->SetIntField(thiz, fields.listener, (int)player_listener);
+	env->SetLongField(thiz, fields.listener, (int64_t)player_listener);
 
 	// Stow our new C++ MediaPlayer in an opaque field in the Java object.
 	setMediaPlayer(env, thiz, mp);
@@ -973,12 +986,12 @@ void android_media_MediaPlayer_release(JNIEnv *env, jobject thiz)
 		}
     }
 
-	JNIMediaPlayerListener* player_listener = (JNIMediaPlayerListener *)env->GetIntField(thiz, fields.listener);
+	JNIMediaPlayerListener* player_listener = (JNIMediaPlayerListener *)env->GetLongField(thiz, fields.listener);
 	if (player_listener) {
 		delete player_listener;
 		player_listener = NULL;
 	}
-	env->SetIntField(thiz, fields.listener, 0);
+	env->SetLongField(thiz, fields.listener, 0);
 
 	PPLOGI("release done!");
 }
@@ -1149,12 +1162,14 @@ android_media_MediaPlayer_native_getMediaInfo(JNIEnv *env, jobject thiz, jstring
 		jfieldID f_path = env->GetFieldID(clazz, "mPath", "Ljava/lang/String;");
 		jfieldID f_duration = env->GetFieldID(clazz, "mDurationMS", "J");
 		jfieldID f_size = env->GetFieldID(clazz, "mSizeByte", "J");
+		jfieldID f_bitrate = env->GetFieldID(clazz, "mBitrate", "I");
 		//jfieldID f_audio_channels = env->GetFieldID(clazz, "mAudioChannels", "I");
 		//jfieldID f_video_channels = env->GetFieldID(clazz, "mVideoChannels", "I");
 
 		env->SetObjectField(info, f_path, js_media_file_path);
 		env->SetLongField(info, f_duration, native_info.duration_ms);
 		env->SetLongField(info, f_size, native_info.size_byte);
+		env->SetLongField(info, f_bitrate, native_info.bitrate);
 		//env->SetIntField(info, f_audio_channels, native_info.audio_channels);
 		//env->SetIntField(info, f_video_channels, native_info.video_channels);
 	}
@@ -1170,6 +1185,8 @@ static void fill_media_info(JNIEnv *env, jobject thiz, jobject info, jstring fil
 	jfieldID f_path = env->GetFieldID(clazz, "mPath", "Ljava/lang/String;");
 	jfieldID f_duration = env->GetFieldID(clazz, "mDurationMS", "J");
 	jfieldID f_size = env->GetFieldID(clazz, "mSizeByte", "J");
+	jfieldID f_frame_rate = env->GetFieldID(clazz, "mFrameRate", "D");
+	jfieldID f_bitrate = env->GetFieldID(clazz, "mBitrate", "I");
 	jfieldID f_format = env->GetFieldID(clazz, "mFormatName", "Ljava/lang/String;");
 
 	jfieldID f_videocodec_name = env->GetFieldID(clazz, "mVideoCodecName", "Ljava/lang/String;");
@@ -1215,6 +1232,8 @@ static void fill_media_info(JNIEnv *env, jobject thiz, jobject info, jstring fil
 		env->SetObjectField(info, f_path, env->NewStringUTF("N/A"));
 	env->SetLongField(info, f_duration, native_info->duration_ms);
 	env->SetLongField(info, f_size, native_info->size_byte);
+	env->SetDoubleField(info, f_frame_rate, native_info->frame_rate);
+	env->SetIntField(info, f_bitrate, native_info->bitrate);
 		
 	env->SetObjectField(info, f_format, env->NewStringUTF(native_info->format_name));
 	env->SetIntField(info, f_video_channels, native_info->video_channels);
@@ -1411,6 +1430,9 @@ jstring android_media_MediaPlayer_native_getVersion(JNIEnv *env, jobject thiz)
 static
 jboolean android_media_MediaPlayer_native_supportSoftDecode()
 {
+#if defined(__aarch64__)
+	return true;
+#else
 	char value[PROP_VALUE_MAX];
 	__system_property_get("ro.product.cpu.abi", value);
 	char* occ = strcasestr(value,"x86");
@@ -1425,6 +1447,7 @@ jboolean android_media_MediaPlayer_native_supportSoftDecode()
 		return true;
 
 	return false;
+#endif
 }
 
 static

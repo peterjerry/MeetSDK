@@ -66,7 +66,7 @@ public class SimpleSubTitleParser implements Handler.Callback, SubTitleParser {
 	
 	private SubTitleSegment mSegment;
 	
-	private int mNativeContext;
+	private long mNativeContext;
 	private Handler mInnerHandler;
 	
 	public SimpleSubTitleParser() {

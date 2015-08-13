@@ -1723,4 +1723,10 @@ public class XOMediaPlayer extends BaseMediaPlayer {
 		return null;
 	}
 
+	@Override
+	public int getAudioSessionId() {
+		// TODO Auto-generated method stub
+		return 0;
+	}
+
 }

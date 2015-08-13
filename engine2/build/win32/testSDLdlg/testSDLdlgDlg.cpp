@@ -44,6 +44,9 @@
 #define HOST "127.0.0.1"
 //#define HTTP_PORT 8080
 
+#define PROGRESS_RANGE		1000
+#define LIVE_DURATION_SEC	1800
+
 const char* url_desc[PROG_MAX_NUM] = {
 	_T("变形金刚2 720p"),
 	_T("因为爱情 hls"),
@@ -88,8 +91,9 @@ const char* url_list[PROG_MAX_NUM] = {
 	_T("http://172.16.204.106/test/hls/600000/index.m3u8"),
 	_T("http://172.16.204.106/test/hls/600000/noend.m3u8"),
 	//_T("D:\\Archive\\media\\[圣斗士星矢Ω].[hysub]Saint.Seiya.Omega_11_[GB_mp4][480p].mp4"),
-	//_T("D:\\Archive\\media\\test\\subtitle\\Manhattan.S01E08.HDTVrip.1024X576_sub.mkv"),
-	_T("E:\\BaiduYunDownload\\红猪.Porco.Rosso.1992.D9.3Audio.MiniSD-TLF.mkv"),
+	//_T("E:\\BaiduYunDownload\\第三季第八集.mkv"),
+	_T("D:\\Archive\\media\\audio\\因为爱情.mp3"),
+	//_T("E:\\BaiduYunDownload\\红猪.Porco.Rosso.1992.D9.3Audio.MiniSD-TLF.mkv"),
 	_T("D:\\Archive\\media\\mv\\G.NA_Secret.mp4"),
 
 	_T("http://zb.v.qq.com:1863/?progid=1975434150"),
@@ -156,7 +160,7 @@ END_MESSAGE_MAP()
 CtestSDLdlgDlg::CtestSDLdlgDlg(CWnd* pParent /*=NULL*/)
 	: CDialogEx(CtestSDLdlgDlg::IDD, pParent), 
 	mPlayer(NULL), mSurface2(NULL), mrtspPort(0), mhttpPort(0), 
-	mFinished(false), mPaused(false), mPlayLive(false), mBuffering(false),
+	mFinished(false), mPaused(false), mPlayLive(false), mBuffering(false), mSeeking(false),
 	mBufferingOffset(0),
 	mWidth(0), mHeight(0), mDuration(0), mUsedAudioChannel(1),
 	mDecFPS(0), mRenderFPS(0), mDecAvgMsec(0), mRenderAvgMsec(0), 
@@ -174,11 +178,11 @@ void CtestSDLdlgDlg::DoDataExchange(CDataExchange* pDX)
 {
 	CDialogEx::DoDataExchange(pDX);
 	DDX_Control(pDX, IDC_CHECK_LOOP, mCheckLooping);
-	DDX_Control(pDX, IDC_PROGRESS_CLIP, mProgClip);
 	DDX_Control(pDX, IDC_COMBO_URL, mComboURL);
 	DDX_Control(pDX, IDC_COMBO_CATALOG, mComboEPGItem);
 	DDX_Control(pDX, IDC_COMBO_BWTYPE, mCBbwType);
 	DDX_Control(pDX, IDC_COMBO_FT, mCBft);
+	DDX_Control(pDX, IDC_SLIDER_PROGRESS, mProgress);
 }
 
 BEGIN_MESSAGE_MAP(CtestSDLdlgDlg, CDialogEx)
@@ -197,6 +201,8 @@ BEGIN_MESSAGE_MAP(CtestSDLdlgDlg, CDialogEx)
 	ON_BN_CLICKED(IDC_BUTTON_RESET_EPG, &CtestSDLdlgDlg::OnBnClickedButtonResetEpg)
 	ON_CBN_SELCHANGE(IDC_COMBO_CATALOG, &CtestSDLdlgDlg::OnCbnSelchangeComboCatalog)
 	ON_BN_CLICKED(IDC_BUTTON_PLAY_EPG, &CtestSDLdlgDlg::OnBnClickedButtonPlayEpg)
+	ON_WM_HSCROLL()
+	ON_NOTIFY(NM_RELEASEDCAPTURE, IDC_SLIDER_PROGRESS, &CtestSDLdlgDlg::OnNMReleasedcaptureSliderProgress)
 END_MESSAGE_MAP()
 
 // CtestSDLdlgDlg 消息处理程序
@@ -289,6 +295,7 @@ BOOL CtestSDLdlgDlg::OnInitDialog()
 	}
 
 	mComboURL.SetCurSel(3/*PPTV_HLS_URL_OFFSET + 3*/);
+	mProgress.SetRange(0, PROGRESS_RANGE);
 
 	//mCheckLooping.SetCheck(TRUE);
 
@@ -434,15 +441,17 @@ void CtestSDLdlgDlg::OnTimer(UINT_PTR nIDEvent)
 			mDecFPS, mDecAvgMsec, mRenderFPS, mRenderAvgMsec, mIOBitrate, mBitrate, 
 			mBufferingTimeMsec, mBufferPercentage, cache_msec);
 		SetWindowText(title);
-		if (mPlayLive) {
-			int32_t new_duration;
-			mPlayer->getDuration(&new_duration);
-			int32_t offset = new_duration - 1800 * 1000;
-			int32_t correct_pos = curr_pos - offset;
-			mProgClip.SetPos(correct_pos / 1000);
-		}
-		else {
-			mProgClip.SetPos(curr_pos / 1000);
+		if (!mSeeking) {
+			if (mPlayLive) {
+				int32_t new_duration;
+				mPlayer->getDuration(&new_duration);
+				int32_t offset = new_duration - LIVE_DURATION_SEC * 1000;
+				int32_t correct_pos = curr_pos - offset;
+				mProgress.SetPos((int)((double)curr_pos / (LIVE_DURATION_SEC * 1000 ) * PROGRESS_RANGE));
+			}
+			else {
+				mProgress.SetPos((int)((double)curr_pos / duration * PROGRESS_RANGE));
+			}
 		}
 
 		// pos and duration
@@ -735,7 +744,7 @@ void CtestSDLdlgDlg::OnLButtonUp(UINT nFlags, CPoint point)
 		if (mPlayLive) {
 			int32_t new_duration;
 			mPlayer->getDuration(&new_duration);
-			new_pos = new_duration - 1800 * 1000;
+			new_pos = new_duration - 1800 * 1000; // get available earliest time
 			new_pos += point.x * (int64_t)(1800 * 1000) / width;
 		}
 		else {
@@ -839,12 +848,23 @@ BOOL CtestSDLdlgDlg::PreTranslateMessage(MSG* pMsg)
 
 void CtestSDLdlgDlg::Seek(int msec)
 {
-	if (msec >= 0 && msec <= mDuration) {
+	if (mPlayLive) {
 		mPlayer->seekTo(msec);
-		mProgClip.SetPos(msec / 1000);
 
-		if (mSubtitleParser) {
-			mSubtitleParser->seekTo(msec);
+		int32_t new_duration;
+		mPlayer->getDuration(&new_duration);
+		int32_t offset = new_duration - LIVE_DURATION_SEC * 1000;
+		int32_t correct_pos = msec - offset;
+		mProgress.SetPos((int)((double)correct_pos / (LIVE_DURATION_SEC * 1000) * PROGRESS_RANGE));
+	}
+	else {
+		if (msec >= 0 && msec <= mDuration) {
+			mPlayer->seekTo(msec);
+			mProgress.SetPos((int)((double)msec / mDuration * PROGRESS_RANGE));
+
+			if (mSubtitleParser) {
+				mSubtitleParser->seekTo(msec);
+			}
 		}
 	}
 }
@@ -891,6 +911,9 @@ LRESULT CtestSDLdlgDlg::OnNotify(WPARAM wParam, LPARAM lParam)
 
 	if (MEDIA_PREPARED == msg) {
 		OnPrepared();
+	}
+	else if (MEDIA_SET_VIDEO_SIZE == msg) {
+		// todo
 	}
 	else if (MEDIA_BUFFERING_UPDATE == msg) {
 		mBufferPercentage = ext1;
@@ -978,8 +1001,7 @@ bool CtestSDLdlgDlg::OnPrepared()
 	mPlayer->getVideoHeight(&mHeight);
 	LOGI("duration %d sec, %dx%d", mDuration / 1000, mWidth, mHeight);
 
-	mProgClip.SetRange(0, mDuration / 1000);
-	mProgClip.SetPos(0);
+	mProgress.SetPos(0);
 
 	char variable[256];
 	CWnd* pWnd = this->GetDlgItem(IDC_STATIC_RENDER);
@@ -1053,6 +1075,7 @@ bool CtestSDLdlgDlg::OnPrepared()
 	mPlayer->start();
 	mDropFrames = 0;
 	mPaused = false;
+	mSeeking = false;
 	SetTimer(0, 100, NULL);
 
 	Invalidate();
@@ -1333,4 +1356,62 @@ void CtestSDLdlgDlg::OnBnClickedButtonPlayEpg()
 	LOGI("final vod url: %s", str_url);
 	
 	start_player(str_url);
+}
+
+
+void CtestSDLdlgDlg::OnHScroll(UINT nSBCode, UINT nPos, CScrollBar* pScrollBar)
+{
+	// TODO: 在此添加消息处理程序代码和/或调用默认值
+
+	if (pScrollBar->GetSafeHwnd() == mProgress.GetSafeHwnd()){
+		if (nSBCode == SB_THUMBPOSITION){
+			if (mPlayer) {
+				int32_t duration;
+				mPlayer->getDuration(&duration);
+				int32_t msec;
+				if (mPlayLive) {
+					msec = duration - LIVE_DURATION_SEC * 1000; // get available earliest time
+					msec += (int)((double)nPos / PROGRESS_RANGE * LIVE_DURATION_SEC * 1000);
+				}
+				else {
+					msec = (int)((double)nPos / PROGRESS_RANGE * duration);
+				}
+
+				Seek(msec);
+			}
+			
+		}
+		else if (nSBCode == SB_THUMBTRACK) {
+			if (mPlayer) {
+				if (!mSeeking)
+					mSeeking = true;
+
+				int32_t duration;
+				mPlayer->getDuration(&duration);
+				int32_t seek_msec = nPos * duration / PROGRESS_RANGE;
+				int hour, minute, sec, msec;
+				genHMSM(seek_msec, &hour, &minute, &sec, &msec);
+
+				int du_hour, du_minute, du_sec, du_msec;
+				genHMSM(duration, &du_hour, &du_minute, &du_sec, &du_msec);
+		
+				CString timeInfo;
+				timeInfo.Format("%02d:%02d:%02d:%03d/%02d:%02d:%02d:%03d", 
+					hour, minute, sec, msec,
+					du_hour, du_minute, du_sec, du_msec);
+				SetDlgItemText(IDC_STATIC_TIMEINFO, timeInfo);
+			}
+		}
+	}
+
+	CDialogEx::OnHScroll(nSBCode, nPos, pScrollBar);
+}
+
+
+void CtestSDLdlgDlg::OnNMReleasedcaptureSliderProgress(NMHDR *pNMHDR, LRESULT *pResult)
+{
+	// TODO: 在此添加控件通知处理程序代码
+	mSeeking = false;
+
+	*pResult = 0;
 }

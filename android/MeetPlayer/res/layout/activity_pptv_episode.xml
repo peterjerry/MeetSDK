@@ -23,6 +23,20 @@
 			android:layout_width="wrap_content"
 			android:layout_height="wrap_content"
 			android:text="最近更新"/>
+		<TextView
+			android:layout_width="wrap_content"
+			android:layout_height="wrap_content"
+			android:text="ft" />
+		<Button
+			android:id="@+id/btn_ft"
+			android:layout_width="wrap_content"
+			android:layout_height="wrap_content"
+			android:text="0"/>
+		<CheckBox
+			android:id="@+id/cb_is_catalog"
+			android:layout_width="wrap_content"
+			android:layout_height="wrap_content"
+			android:text="合集"/>
 	</LinearLayout>
 	
     <GridView

@@ -19,7 +19,9 @@ import org.json.JSONObject;
 import org.json.JSONTokener;
 
 import com.pplive.epg.boxcontroller.Code;
+import com.pplive.epg.util.Util;
 
+import java.awt.Desktop;
 import java.awt.FileDialog;
 import java.awt.Font;
 import java.awt.Frame;
@@ -38,6 +40,7 @@ import java.net.InetSocketAddress;
 import java.net.MalformedURLException;
 import java.net.Socket;
 import java.net.SocketTimeoutException;
+import java.net.URI;
 import java.net.URL;
 import java.net.URLConnection;
 import java.net.URLEncoder;
@@ -45,12 +48,13 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.StringTokenizer;
 
 
 @SuppressWarnings("serial")
 public class BaiduPanel extends JPanel {
 	
-	private String mbOauth 		= "23.7a098be1ccff9b906f8dc09a4811f2f2.2592000.1438324151.184740130-266719";
+	private String mbOauth 		= "23.48f0a3ad0fe8b41428000bb0509f1fb2.2592000.1441874259.184740130-266719";
 	private String mbRootPath 	=  "/我的视频";
 	private String list_by 		= "time"; // "name" "size"
 	private String list_order 	= "desc"; // "asc"
@@ -59,36 +63,26 @@ public class BaiduPanel extends JPanel {
 	private final static int ONE_MAGABYTE = (ONE_KILOBYTE * ONE_KILOBYTE);
 	private final static int ONE_GIGABYTE = (ONE_MAGABYTE * ONE_KILOBYTE);
 	
-	private final static String exe_filepath = "D:/software/vlc-3.0.0/vlc.exe";
-	private final static String exe_ffplay = "D:/software/ffmpeg/ffplay.exe";
+	private static String exe_vlc = "D:/Program Files/vlc-3.0.0/vlc.exe";
+	private static String exe_ffplay = "D:/Program Files/ffmpeg/ffplay.exe";
 	
-	private String BAIDU_PCS_PREFIX = "https://pcs.baidu.com/rest/2.0/pcs/file";
-	private String BAIDU_PCS_SERVICE_PREFIX = "https://pcs.baidu.com/rest/2.0/pcs/services/cloud_dl";
+	private final String BAIDU_PCS_PREFIX = "https://pcs.baidu.com/rest/2.0/pcs/file";
+	private final String BAIDU_PCS_SERVICE_PREFIX = "https://pcs.baidu.com/rest/2.0/pcs/services/cloud_dl";
 	
-	private String BAIDU_PCS_LIST = BAIDU_PCS_PREFIX + 
-			"?method=list" +
-			"&access_token=" + mbOauth + 
-			"&path=";
-	private String BAIDU_PCS_META = BAIDU_PCS_PREFIX + 
-			"?method=meta" +
-			"&access_token=" + mbOauth + 
-			"&path=";
-	private String BAIDU_PCS_DOWNLOAD = BAIDU_PCS_PREFIX + 
-			"?method=download" +
-			"&access_token=" + mbOauth + 
-			"&path=";
-	private String BAIDU_PCS_STREAMING = BAIDU_PCS_PREFIX + 
-			"?method=streaming" +
-			"&access_token=" + mbOauth + 
-			"&path=";
-	private String BAIDU_PCS_CLOUD_DL = BAIDU_PCS_SERVICE_PREFIX + 
-			"?method=add_task" +
-			"&access_token=" + mbOauth;
+	private final static String ApiKey = "4YchBAkgxfWug3KRYCGOv8EK"; // from es explorer
+	
+	private final String BAIDU_PCS_AUTHORIZE;
+	private final String BAIDU_PCS_LIST;
+	private final String BAIDU_PCS_META;
+	private final String BAIDU_PCS_DOWNLOAD;
+	private final String BAIDU_PCS_STREAMING;
+	private final String BAIDU_PCS_CLOUD_DL;
 	
 	private List<Map<String, Object>> mFileList;
 
-	JButton btnUp	 	= new JButton("上一级");
+	JButton btnUp	 	= new JButton("...");
 	JButton btnReset 	= new JButton("重置");
+	JButton btnAuth 	= new JButton("认证");
 	
 	JLabel lblRootPath = new JLabel("info");
 	
@@ -113,6 +107,64 @@ public class BaiduPanel extends JPanel {
 		super();
 
 		this.setLayout(null);
+		
+		String strConfig = Util.readFileContent("config.txt");
+		StringTokenizer st = new StringTokenizer(strConfig, "\n", false);
+		while (st.hasMoreElements()) {
+			String strLine = (String) st.nextElement();
+			if (strLine.startsWith("#"))
+				continue;
+				
+			int pos = strLine.indexOf("=");
+			if (pos > 0 && pos != strLine.length() - 1) {
+				String key = strLine.substring(0, pos);
+				String value = strLine.substring(pos + 1);
+				System.out.println(String.format("Java: key %s, value %s", key ,value));
+				if (key.equals("listen")) {
+					
+				}
+				else if (key.equals("token")) {
+					mbOauth = value;
+					System.out.println("Java: set token to " + mbOauth);
+				}
+				else if (key.equals("ffplay_path")) {
+					exe_ffplay = value;
+					System.out.println("Java: set ffplay path to " + exe_ffplay);
+				}
+				else if (key.equals("vlc_path")) {
+					exe_vlc = value;
+					System.out.println("Java: set vlc path to " + exe_vlc);
+				}
+				else {
+					System.out.println("Java: unknown key" + key);
+				}
+			}
+		}
+		
+		BAIDU_PCS_AUTHORIZE = "https://openapi.baidu.com/oauth/2.0/" +
+				"authorize?response_type=token" + 
+				"&client_id=" + ApiKey + 
+				"&redirect_uri=oob&scope=netdisk";
+		
+		BAIDU_PCS_LIST = BAIDU_PCS_PREFIX + 
+				"?method=list" +
+				"&access_token=" + mbOauth + 
+				"&path=";
+		BAIDU_PCS_META = BAIDU_PCS_PREFIX + 
+				"?method=meta" +
+				"&access_token=" + mbOauth + 
+				"&path=";
+		BAIDU_PCS_DOWNLOAD = BAIDU_PCS_PREFIX + 
+				"?method=download" +
+				"&access_token=" + mbOauth + 
+				"&path=";
+		BAIDU_PCS_STREAMING = BAIDU_PCS_PREFIX + 
+				"?method=streaming" +
+				"&access_token=" + mbOauth + 
+				"&path=";
+		BAIDU_PCS_CLOUD_DL = BAIDU_PCS_SERVICE_PREFIX + 
+				"?method=add_task" +
+				"&access_token=" + mbOauth;
 		
 		// Action
 		lblRootPath.setFont(f);
@@ -156,7 +208,7 @@ public class BaiduPanel extends JPanel {
 									System.out.println("ready to play url: " + url);
 									lblInfo.setText("ready to play url: " + url);
 									
-									String exe_path = exe_filepath;
+									String exe_path = exe_vlc;
 									if (!cbUseVLC.isSelected())
 										exe_path = exe_ffplay;
 									String[] cmd = new String[] {exe_path, url};
@@ -189,7 +241,7 @@ public class BaiduPanel extends JPanel {
 		scrollPane.setBounds(20, 80, 450, 350);
 		this.add(scrollPane);
 		
-		btnUp.setBounds(400, 30, 100, 40);
+		btnUp.setBounds(410, 30, 70, 40);
 		btnUp.setFont(f);
 		this.add(btnUp);
 
@@ -210,10 +262,10 @@ public class BaiduPanel extends JPanel {
 			}
 		});
 		
-		btnReset.setBounds(510, 30, 70, 40);
+		btnReset.setBounds(490, 30, 70, 40);
 		btnReset.setFont(f);
 		this.add(btnReset);
-
+		
 		btnReset.addActionListener(new AbstractAction() {
 			public void actionPerformed(ActionEvent e) {
 				mbRootPath = "/我的视频";
@@ -221,6 +273,16 @@ public class BaiduPanel extends JPanel {
 			}
 		});
 		
+		btnAuth.setBounds(570, 30, 70, 40);
+		btnAuth.setFont(f);
+		this.add(btnAuth);
+		
+		btnAuth.addActionListener(new AbstractAction() {
+			public void actionPerformed(ActionEvent e) {
+				authorize();
+			}
+		});
+
 		editPath.setFont(f);
 		editPath.setBounds(20, 450, 200, 40);
 		editPath.setText("新建文件夹");
@@ -286,6 +348,26 @@ public class BaiduPanel extends JPanel {
 		this.add(lblInfo);
 		
 		init_combobox();
+	}
+	
+	private void authorize() {
+		if (Desktop.isDesktopSupported()){
+            try {
+                //创建一个URI实例
+                URI uri = URI.create(BAIDU_PCS_AUTHORIZE); 
+                //获取当前系统桌面扩展
+                Desktop dp = Desktop.getDesktop();
+                //判断系统桌面是否支持要执行的功能
+                if(dp.isSupported(Desktop.Action.BROWSE)){
+                    //获取系统默认浏览器打开链接
+                    dp.browse(uri);    
+                }
+            } catch(java.lang.NullPointerException e){
+                //此为uri为空时抛出异常
+            } catch (java.io.IOException e) {
+                //此为无法获取系统默认浏览器
+            }             
+        }
 	}
 	
 	private void downloadFile(String path, String filename) {
@@ -478,6 +560,7 @@ public class BaiduPanel extends JPanel {
 		try {
 			response = HttpClients.createDefault().execute(request);
 			if (response.getStatusLine().getStatusCode() != 200){
+				System.out.println("Java: failed to list(): code " + response.getStatusLine().getStatusCode());
 				return null;
 			}
 			

@@ -79,7 +79,7 @@ public class TabbedPaneDemo extends JPanel {
        tp.setTabLayoutPolicy(JTabbedPane.SCROLL_TAB_LAYOUT);
        //设置标签停放的位置，这里设置为左侧停放
        tp.setTabPlacement(JTabbedPane.LEFT);
-       tp.setSelectedIndex(3);
+       tp.setSelectedIndex(1);
     }
 	
 	private JPanel createPanel(String string) {

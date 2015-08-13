@@ -50,6 +50,7 @@ ASM_OBJ="libavutil/$ARCH/*.o libavcodec/$ARCH/*.o"
 USER_ROOT=`pwd`
 FDK_AAC_HOME=$USER_ROOT/thirdparty/fdk-aac
 RTMPDUMP_HOME=$USER_ROOT/thirdparty/rtmpdump
+X264_HOME=$USER_ROOT/thirdparty/x264
 
 if [ $ARCH == 'arm' ]
 then
@@ -57,8 +58,9 @@ then
 	PREBUILT=$NDK/toolchains/arm-linux-androideabi-4.8/prebuilt/$HOST
 	CROSS_PREFIX=$PREBUILT/bin/arm-linux-androideabi-
 	EXTRA_CFLAGS="$EXTRA_CFLAGS -fstack-protector -fstrict-aliasing"
-	FDK_AAC_LIB=$FDK_AAC_HOME/lib/armeabi-v7a
-	RTMPDUMP_LIB=$USER_ROOT/thirdparty/rtmpdump/lib/armeabi
+	FDK_AAC_LIB=$FDK_AAC_HOME/lib/android/armeabi-v7a
+	RTMPDUMP_LIB=$RTMPDUMP_HOME/lib/android/armeabi
+	X264_LIB=$X264_HOME/lib/android/armeabi
 	OPTFLAGS="-O2"
 	ASM_OBJ="$ASM_OBJ libswresample/$ARCH/*.o"
 elif [ $ARCH == 'aarch64' ]
@@ -67,7 +69,8 @@ then
 	PREBUILT=$NDK/toolchains/aarch64-linux-android-4.9/prebuilt/$HOST
 	CROSS_PREFIX=$PREBUILT/bin/aarch64-linux-android-
 	EXTRA_CFLAGS="$EXTRA_CFLAGS -fstrict-aliasing"
-	RTMPDUMP_LIB=$USER_ROOT/thirdparty/rtmpdump/lib/arm64-v8a
+	RTMPDUMP_LIB=$RTMPDUMP_HOME/lib/android/arm64-v8a
+	X264_LIB=$X264_HOME/lib/android/arm64-v8a
 	OPTFLAGS="-O2 -fno-pic"
 elif [ $ARCH == 'x86' ]
 then
@@ -76,8 +79,9 @@ then
 	CROSS_PREFIX=$PREBUILT/bin/i686-linux-android-
 	EXTRA_CFLAGS="$EXTRA_CFLAGS -fstrict-aliasing"
 	OPTFLAGS="-O2 -fno-pic"
-	FDK_AAC_LIB=$FDK_AAC_HOME/lib/x86
-	RTMPDUMP_LIB=$USER_ROOT/thirdparty/rtmpdump/lib/x86
+	FDK_AAC_LIB=$FDK_AAC_HOME/lib/android/x86
+	RTMPDUMP_LIB=$RTMPDUMP_HOME/lib/android/x86
+	X264_LIB=$X264_HOME/lib/android/x86
 	ASM_OBJ="$ASM_OBJ libswresample/$ARCH/*.o libswscale/x86/*.o libavfilter/x86/*.o"
 elif [ $ARCH == 'mips' ]
 then
@@ -91,6 +95,7 @@ fi
 if [ ${3}x == 'enc'x ]; then
 	EXTRA_LIB="$FDK_AAC_LIB/libfdk-aac.a"
 	EXTRA_LIB="$EXTRA_LIB $RTMPDUMP_LIB/libssl.a $RTMPDUMP_LIB/libcrypto.a"
+	EXTRA_LIB="$EXTRA_LIB $X264_LIB/libx264.a"
 #	EXTRA_LIB="$EXTRA_LIB $RTMPDUMP_LIB/librtmp.a $RTMPDUMP_LIB/libssl.a $RTMPDUMP_LIB/libcrypto.a"
 fi
 

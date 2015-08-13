@@ -54,6 +54,11 @@
 				<filename name="**/*.so" />
 			</fileset>
 		</copy>
+		<copy todir="${symbol.dir}/arm64-v8a" overwrite="true" verbose="true">
+			<fileset dir="${obj.dir}/local/arm64-v8a">
+				<filename name="**/*.so" />
+			</fileset>
+		</copy>
 		<zip destfile="${dist.dir}/${SdkName}_symbol_${sdk.version}.zip" basedir="${symbol.dir}"/>
 	</target>
 	
@@ -115,6 +120,7 @@
 		<delete dir="${obj.dir}" />
 		<delete dir="${libs.dir}/armeabi" />
 		<delete dir="${libs.dir}/x86" />
+		<delete dir="${libs.dir}/arm64-v8a" />
 		<delete dir="${output.dir}" />
 		<delete dir="${symbol.dir}" />
 	</target>

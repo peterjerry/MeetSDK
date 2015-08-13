@@ -21,9 +21,10 @@ typedef struct MediaInfo {
 	long long size_byte; //in byte
 	int32_t width;
 	int32_t height;
+	double frame_rate;
+	int32_t	bitrate;
 
 	const char* format_name;
-	//const char* audio_name;
 	const char* videocodec_name;
 	int32_t thumbnail_width;
 	int32_t thumbnail_height;
@@ -58,6 +59,8 @@ typedef struct MediaInfo {
         size_byte(0),
         width(0),
         height(0),
+		frame_rate(0),
+		bitrate(0),
 
         format_name(NULL),
         videocodec_name(NULL),
@@ -185,6 +188,8 @@ enum media_error_type {
 
 	MEDIA_ERROR_AUDIO_DECODER						= 321,
 	MEDIA_ERROR_VIDEO_DECODER						= 322,
+	MEDIA_ERROR_UNSUPPORTED_AUDIO					= 331,
+	MEDIA_ERROR_UNSUPPORTED_VIDEO					= 332,
 
 	MEDIA_ERROR_TIMED_OUT							= -110,
 	MEDIA_ERROR_IO									= -1004,

@@ -15,9 +15,11 @@ import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
+import java.util.StringTokenizer;
 
 import com.pplive.epg.sohu.PlaylinkSohu;
 import com.pplive.epg.sohu.SohuUtil;
+import com.pplive.epg.util.Util;
 
 @SuppressWarnings("serial")
 public class PPTVPanel extends JPanel {
@@ -32,6 +34,8 @@ public class PPTVPanel extends JPanel {
 	private List<Episode> mVirtualLinkList;
 	private String mContentType;
 	private boolean mVirtualChannel = false;
+	
+	private String player_path = "E:/git/PPTV/MeetSDK/engine2/build/win32/bin/Release/player_vc.exe";
 	
 	private int start_page = 1;
 	private int last_live_type = 0;
@@ -92,6 +96,29 @@ public class PPTVPanel extends JPanel {
 		super();
 		
 		this.setLayout(null);
+		
+		String strConfig = Util.readFileContent("config.txt");
+		StringTokenizer st = new StringTokenizer(strConfig, "\n", false);
+		while (st.hasMoreElements()) {
+			String strLine = (String) st.nextElement();
+			if (strLine.startsWith("#"))
+				continue;
+				
+			int pos = strLine.indexOf("=");
+			if (pos > 0 && pos != strLine.length() - 1) {
+				String key = strLine.substring(0, pos);
+				String value = strLine.substring(pos + 1);
+				System.out.println(String.format("Java: key %s, value %s", key ,value));
+
+				if (key.equals("vlc_path")) {
+					player_path = value;
+					System.out.println("Java: set player path to " + player_path);
+				}
+				else {
+					System.out.println("Java: unknown key" + key);
+				}
+			}
+		}
 		
 		mEPG = new EPGUtil();
 
@@ -281,7 +308,7 @@ public class PPTVPanel extends JPanel {
 		
 		editorPlayExe.setFont(f);
 		editorPlayExe.setBounds(10, 400, 450, 40);
-		editorPlayExe.setText("E:/git/PPTV/MeetSDK/engine2/build/win32/bin/Release/player_vc.exe");
+		editorPlayExe.setText(player_path);
 	    this.add(editorPlayExe);
 	}
 	
@@ -385,7 +412,7 @@ public class PPTVPanel extends JPanel {
 		
 		String exe_filepath = editorPlayExe.getText();
 		if (exe_filepath == null || exe_filepath.equals(""))
-			exe_filepath  = "E:/git/PPTV/MeetSDK/engine2/build/win32/bin/Release/player_vc.exe";
+			exe_filepath  = player_path;
 		String[] cmd = new String[] {exe_filepath, url};
 		openExe(cmd);
 	}
