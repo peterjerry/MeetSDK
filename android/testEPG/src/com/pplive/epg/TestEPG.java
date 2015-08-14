@@ -94,7 +94,7 @@ public class TestEPG {
 					port = Integer.valueOf(value.substring(pos + 1)); // 46891
 				}
 				else {
-					System.out.println("Java: unknown key" + key);
+					System.out.println("Java: unknown key " + key);
 				}
 			}
 		}

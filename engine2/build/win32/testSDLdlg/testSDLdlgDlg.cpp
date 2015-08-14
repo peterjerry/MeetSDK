@@ -42,7 +42,8 @@
 #define USER_LIST_OFFSET (PPTV_HLS_URL_OFFSET + 12)
 
 #define HOST "127.0.0.1"
-//#define HTTP_PORT 8080
+//#define HTTP_PORT 9106
+//#define RTSP_PORT 5154
 
 #define PROGRESS_RANGE		1000
 #define LIVE_DURATION_SEC	1800
@@ -92,7 +93,7 @@ const char* url_list[PROG_MAX_NUM] = {
 	_T("http://172.16.204.106/test/hls/600000/noend.m3u8"),
 	//_T("D:\\Archive\\media\\[圣斗士星矢Ω].[hysub]Saint.Seiya.Omega_11_[GB_mp4][480p].mp4"),
 	//_T("E:\\BaiduYunDownload\\第三季第八集.mkv"),
-	_T("D:\\Archive\\media\\audio\\因为爱情.mp3"),
+	_T("D:\\Archive\\media\\test\\[任贤齐]-给你幸福.avi"),
 	//_T("E:\\BaiduYunDownload\\红猪.Porco.Rosso.1992.D9.3Audio.MiniSD-TLF.mkv"),
 	_T("D:\\Archive\\media\\mv\\G.NA_Secret.mp4"),
 
@@ -931,6 +932,8 @@ LRESULT CtestSDLdlgDlg::OnNotify(WPARAM wParam, LPARAM lParam)
 		
 		mFinished = true;
 		if (mPlayer) {
+			KillTimer(0);
+
 			mPlayer->stop();
 			delete mPlayer;
 			mPlayer = NULL;
@@ -1221,6 +1224,11 @@ bool CtestSDLdlgDlg::startP2P()
 #ifdef HTTP_PORT
 	mhttpPort = HTTP_PORT;
 	LOGI("use http port %d", mhttpPort);
+#endif
+
+#ifdef RTSP_PORT
+	mrtspPort = RTSP_PORT;
+	LOGI("use rtsp port %d", mrtspPort);
 #endif
 
 	return true;

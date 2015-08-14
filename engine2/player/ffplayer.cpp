@@ -73,7 +73,7 @@ LogFunc pplog = NULL;
 
 int autorotate		= 1;
 
-int audio_visual	= 1;
+int audio_visual	= 0;
 #define AUDIO_VISUAL_WIDTH	640
 #define AUDIO_VISUAL_HEIGHT	480
 
@@ -653,6 +653,11 @@ bool FFPlayer::init_filters_audio(const char **filters_descr)
 #ifdef _MSC_VER
 	_snprintf(args, sizeof(args),
             "time_base=%d/%d:sample_rate=%d:sample_fmt=%s:channel_layout=0x%I64d",
+             time_base.num, time_base.den, dec_ctx->sample_rate,
+             av_get_sample_fmt_name(dec_ctx->sample_fmt), dec_ctx->channel_layout);
+#elif defined(__aarch64__)
+	snprintf(args, sizeof(args),
+            "time_base=%d/%d:sample_rate=%d:sample_fmt=%s:channel_layout=0x%ld",
              time_base.num, time_base.den, dec_ctx->sample_rate,
              av_get_sample_fmt_name(dec_ctx->sample_fmt), dec_ctx->channel_layout);
 #else

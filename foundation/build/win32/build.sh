@@ -16,8 +16,8 @@ fi
 
 rm -rf $PREFIX
 
-cp config/config.h $FFMPEG_HOME
-cp config/config.mak $FFMPEG_HOME
+#cp config/config.h $FFMPEG_HOME
+#cp config/config.mak $FFMPEG_HOME
 
 cd $FFMPEG_HOME
 
