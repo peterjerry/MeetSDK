@@ -3560,20 +3560,25 @@ bool FFPlayer::getCurrentMediaInfo(MediaInfo *info)
 		info->width = codec_ctx->width;
 		info->height = codec_ctx->height;
 
-		AVCodec* codec = avcodec_find_decoder(codec_ctx->codec_id);
-		if (codec == NULL) {
-			LOGE("avcodec_find_decoder() video %d(%s) failed",
-				codec_ctx->codec_id, avcodec_get_name(codec_ctx->codec_id));
-			return false;
-		}
-
 		if (FF_PROFILE_UNKNOWN != codec_ctx->profile) {
 			LOGI("videocodec_profile(profile) %d", codec_ctx->profile);
 
-			const char* profile_name = av_get_profile_name(codec, codec_ctx->profile);
-			if (profile_name) {
-				info->videocodec_profile = my_strdup(profile_name);
-				LOGI("videocodec_profile(profile) %d(%s)", codec_ctx->profile, info->videocodec_profile);
+			const AVCodec* codec = NULL;
+			if (codec_ctx->codec)
+				codec = codec_ctx->codec;
+			else
+				codec = avcodec_find_decoder(codec_ctx->codec_id);
+
+			if (codec) {
+				const char* profile_name = av_get_profile_name(codec, codec_ctx->profile);
+				if (profile_name) {
+					info->videocodec_profile = my_strdup(profile_name);
+					LOGI("videocodec_profile(profile) %d(%s)", codec_ctx->profile, info->videocodec_profile);
+				}
+			}
+			else {
+				LOGW("avcodec_find_decoder video %d(%s) failed",
+					codec_ctx->codec_id, avcodec_get_name(codec_ctx->codec_id));
 			}
 		}
 		if (info->videocodec_profile == NULL && codec_ctx->codec_tag) {
@@ -3592,24 +3597,29 @@ bool FFPlayer::getCurrentMediaInfo(MediaInfo *info)
 	for (unsigned int i=0;i<mMediaFile->nb_streams;i++) {
 		if (mMediaFile->streams[i]->codec->codec_type == AVMEDIA_TYPE_AUDIO) {
 			AVStream *stream = mMediaFile->streams[i];
-			AVCodec* codec = avcodec_find_decoder(stream->codec->codec_id);
-			if (codec == NULL) {
-				LOGW("avcodec_find_decoder audio %d(%s) failed", 
-					stream->codec->codec_id, avcodec_get_name(stream->codec->codec_id));
-				continue;
-			}
-
+			AVCodecContext *codec_ctx = stream->codec;
 			int audio_index = info->audio_channels;
 
-			AVCodecContext *codec_ctx = stream->codec;
 			if (FF_PROFILE_UNKNOWN != codec_ctx->profile) {
 				LOGI("audio stream #%d:%d audiocodec_profile(profile) %d", i, audio_index, codec_ctx->profile);
 
-				const char* profile_name = av_get_profile_name(codec, codec_ctx->profile);
-				if (profile_name) {
-					info->audiocodec_profiles[audio_index] = my_strdup(profile_name);
-					LOGI("audio stream #%d:%d audiocodec_profile(profile) %d(%s)",
-						i, audio_index, codec_ctx->profile, info->audiocodec_profiles[audio_index]);
+				const AVCodec* codec = NULL;
+				if (codec_ctx->codec)
+					codec = codec_ctx->codec;
+				else
+					codec = avcodec_find_decoder(codec_ctx->codec_id);
+
+				if (codec) {
+					const char* profile_name = av_get_profile_name(codec, codec_ctx->profile);
+					if (profile_name) {
+						info->audiocodec_profiles[audio_index] = my_strdup(profile_name);
+						LOGI("audio stream #%d:%d audiocodec_profile(profile) %d(%s)",
+							i, audio_index, codec_ctx->profile, info->audiocodec_profiles[audio_index]);
+					}
+				}
+				else {
+					LOGW("avcodec_find_decoder audio %d(%s) failed",
+						codec_ctx->codec_id, avcodec_get_name(codec_ctx->codec_id));
 				}
 			}
 			if (info->audiocodec_profiles[audio_index] == NULL && codec_ctx->codec_tag) {
@@ -3627,13 +3637,6 @@ bool FFPlayer::getCurrentMediaInfo(MediaInfo *info)
 		}
 		else if(mMediaFile->streams[i]->codec->codec_type == AVMEDIA_TYPE_SUBTITLE) {
 			AVStream* stream = mMediaFile->streams[i];
-			AVCodec* codec = avcodec_find_decoder(stream->codec->codec_id);
-			if (codec == NULL) {
-				LOGW("avcodec_find_decoder subtitle %d(%s) failed",
-					stream->codec->codec_id, avcodec_get_name(stream->codec->codec_id));
-				continue;
-			}
-
 			int subtitle_index = info->subtitle_channels;
 			info->subtitle_streamIndexs[subtitle_index] = i;
 			info->subtitlecodec_names[subtitle_index] = my_strdup(avcodec_get_name(stream->codec->codec_id));
@@ -3756,25 +3759,30 @@ bool FFPlayer::getMediaDetailInfo(const char* url, MediaInfo* info)
 		}
 		else if (movieFile->streams[i]->codec->codec_type == AVMEDIA_TYPE_AUDIO) {
 			AVStream* stream = movieFile->streams[i];
-			AVCodec* codec = avcodec_find_decoder(stream->codec->codec_id);
-
-			if (codec == NULL) {
-				LOGE("avcodec_find_decoder audio %d(%s) failed",
-					stream->codec->codec_id, avcodec_get_name(stream->codec->codec_id));
-				notifyListener_l(MEDIA_ERROR, MEDIA_ERROR_UNSUPPORTED, 0);
-				continue;
-			}
+			AVCodecContext *codec_ctx = stream->codec;
 
 			int audio_index = info->audio_channels;
 
-			AVCodecContext *codec_ctx = stream->codec;
 			if (FF_PROFILE_UNKNOWN != codec_ctx->profile) {
 				LOGI("audio stream #%d:%d audiocodec_profile(profile) %d", i, audio_index, codec_ctx->profile);
-				const char* profile_name = av_get_profile_name(codec, codec_ctx->profile);
-				if (profile_name) {
-					info->audiocodec_profiles[audio_index] = my_strdup(profile_name);
-					LOGI("audio stream #%d:%d audiocodec_profile(profile) %d(%s)",
-						i, audio_index, codec_ctx->profile, info->audiocodec_profiles[audio_index]);
+
+				const AVCodec* codec = NULL;
+				if (codec_ctx->codec)
+					codec = codec_ctx->codec;
+				else
+					codec = avcodec_find_decoder(codec_ctx->codec_id);
+
+				if (codec) {
+					const char* profile_name = av_get_profile_name(codec, codec_ctx->profile);
+					if (profile_name) {
+						info->audiocodec_profiles[audio_index] = my_strdup(profile_name);
+						LOGI("audio stream #%d:%d audiocodec_profile(profile) %d(%s)",
+							i, audio_index, codec_ctx->profile, info->audiocodec_profiles[audio_index]);
+					}
+				}
+				else {
+					LOGW("avcodec_find_decoder audio %d(%s) failed",
+						codec_ctx->codec_id, avcodec_get_name(codec_ctx->codec_id));
 				}
 			}
 			if (info->audiocodec_profiles[audio_index] == NULL && codec_ctx->codec_tag) {
@@ -3792,14 +3800,6 @@ bool FFPlayer::getMediaDetailInfo(const char* url, MediaInfo* info)
 		}
 		else if(movieFile->streams[i]->codec->codec_type == AVMEDIA_TYPE_SUBTITLE) {
 			AVStream* stream = movieFile->streams[i];
-			AVCodec* codec = avcodec_find_decoder(stream->codec->codec_id);
-
-			if (codec == NULL) {
-				LOGW("avcodec_find_decoder subtitle %d(%s) failed",
-					stream->codec->codec_id, avcodec_get_name(stream->codec->codec_id));
-				continue;
-			}
-
 			int subtitle_index = info->subtitle_channels;
 			info->subtitle_streamIndexs[subtitle_index] = i;
 			info->subtitlecodec_names[subtitle_index] = my_strdup(avcodec_get_name(stream->codec->codec_id));

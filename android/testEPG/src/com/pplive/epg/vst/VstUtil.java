@@ -1,6 +1,8 @@
 package com.pplive.epg.vst;
 
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
+import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.StringTokenizer;
@@ -16,16 +18,91 @@ import org.json.JSONObject;
 import org.json.JSONTokener;
 
 public class VstUtil {
-	String tvlist_url = "http://live.91vst.com/tvlist";
+	private final static String tvlist_url = "http://live.91vst.com/tvlist";
+	private final static String hotsearch_fmt = "http://api3.91vst.com" +
+			"/api3.0/hotsearch.action?type=1&key=%s&version=3030&reg=0";
 	
 	private List<ProgramVst> mProgramList;
+	private List<ClipVst> mClipList;
 
 	public VstUtil() {
 		mProgramList = new ArrayList<ProgramVst>();
+		mClipList = new ArrayList<ClipVst>();
 	}
 	
 	public List<ProgramVst> getProgramList() {
 		return mProgramList;
+	}
+	
+	public List<ClipVst> hotsearch(String key) {
+		String url = null;
+		try {
+			url = String.format(hotsearch_fmt, URLEncoder.encode(key, "utf-8"));
+			System.out.println("Java: hotsearch() " + url);
+		} catch (UnsupportedEncodingException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+			return null;
+		}
+		
+		HttpGet request = new HttpGet(url);
+		
+		HttpResponse response;
+		try {
+			response = HttpClients.createDefault().execute(request);
+			if (response.getStatusLine().getStatusCode() != 200){
+				return null;
+			}
+			
+			String result = EntityUtils.toString(response.getEntity());
+			
+			JSONTokener jsonParser = new JSONTokener(result);
+			JSONObject root = (JSONObject) jsonParser.nextValue();
+			
+			JSONObject data = root.getJSONObject("data");
+			int count = data.getInt("count");
+			String input_key = data.getString("input-key");
+			if (count == 0)
+				return null;
+			
+			JSONArray list = data.getJSONArray("list");
+			int c = list.length();
+			mClipList.clear();
+			for (int i=0;i<c;i++) {
+				JSONObject item = list.getJSONObject(i);
+				
+/*				{
+					"name":"越光宝盒",
+					"action":"myvst.intent.action.MediaDetail",
+					"bh":"1212134155342431354451121434125125221",
+					"uuid":"6279627362454C3D82A9BB",
+					"childrenSong":1,
+					"light":"越光宝盒",
+					"topid":1,
+					"key":"ygbh",
+					"keynum":"9424",
+					"pinyin":"yueguangbaohe",
+					"topname":"电影"
+				},*/
+				
+				String name = item.getString("name");
+				String uuid = item.getString("uuid");
+				mClipList.add(new ClipVst(name, uuid));
+			}
+			
+			return mClipList;
+		} catch (ClientProtocolException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (JSONException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+		return null;
 	}
 	
 	public boolean program_list() {
