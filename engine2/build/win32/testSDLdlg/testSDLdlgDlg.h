@@ -112,6 +112,7 @@ private:
 	int64_t getSec();
 	void drawBuffering();
 	bool OnPrepared();
+	void FillMediaInfo(MediaInfo *info);
 	void Cleanup();
 public:
 	afx_msg void OnLButtonUp(UINT nFlags, CPoint point);
@@ -125,4 +126,5 @@ public:
 	afx_msg void OnBnClickedButtonPlayEpg();
 	afx_msg void OnHScroll(UINT nSBCode, UINT nPos, CScrollBar* pScrollBar);
 	afx_msg void OnNMReleasedcaptureSliderProgress(NMHDR *pNMHDR, LRESULT *pResult);
+	afx_msg void OnBnClickedButtonGetMediainfo();
 };

@@ -1185,6 +1185,7 @@ static void fill_media_info(JNIEnv *env, jobject thiz, jobject info, jstring fil
 	jfieldID f_format = env->GetFieldID(clazz, "mFormatName", "Ljava/lang/String;");
 
 	jfieldID f_videocodec_name = env->GetFieldID(clazz, "mVideoCodecName", "Ljava/lang/String;");
+	jfieldID f_videocodec_profile = env->GetFieldID(clazz, "mVideoCodecProfile", "Ljava/lang/String;");
 	jfieldID f_width = env->GetFieldID(clazz, "mWidth", "I");
 	jfieldID f_height = env->GetFieldID(clazz, "mHeight", "I");
 		
@@ -1194,26 +1195,40 @@ static void fill_media_info(JNIEnv *env, jobject thiz, jobject info, jstring fil
 
 	// 2015.1.9 guoliangma added
 	jmethodID midSetAudioChannelInfo = env->GetMethodID(clazz, 
-		"setAudioChannelsInfo", "(IILjava/lang/String;Ljava/lang/String;Ljava/lang/String;)V");
+		"setAudioChannelsInfo", "(IILjava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V");
 	jmethodID midSetSubtitleChannelInfo = env->GetMethodID(clazz, 
 		"setSubtitleChannelsInfo", "(IILjava/lang/String;Ljava/lang/String;Ljava/lang/String;)V");
-			
+
+	jmethodID midAddMetadataEntry = env->GetMethodID(clazz, "addMetadataEntry", "(Ljava/lang/String;Ljava/lang/String;)V");
+
 	//jmethodID midSetChnnels = env->GetMethodID(clazz,"setChannels","(Ljava/lang/String;I)V");
-	jmethodID construction_id = env->GetMethodID(clazz, "<init>", "()V");
-	jobject obj = env->NewObject(clazz, construction_id);
-		
+	//jmethodID construction_id = env->GetMethodID(clazz, "<init>", "()V");
+	//jobject obj = env->NewObject(clazz, construction_id);
+	
+	if (native_info->meta_data) {
+		DictEntry *p = native_info->meta_data;
+		while (p) {
+			env->CallVoidMethod(info, midAddMetadataEntry,
+				env->NewStringUTF(p->key), 
+				env->NewStringUTF(p->value));
+
+			p = p->next;
+		}
+	}
+
 	// 2015.1.9 guoliangma added
 	env->SetIntField(info, f_audio_channels, native_info->audio_channels);
-	for(int i=0;i<native_info->audio_channels;i++) {
+	for (int i=0;i<native_info->audio_channels;i++) {
 		env->CallVoidMethod(info, midSetAudioChannelInfo, i, 
 			native_info->audio_streamIndexs[i], 
 			env->NewStringUTF(native_info->audiocodec_names[i]), 
+			env->NewStringUTF(native_info->audiocodec_profiles[i]),
 			env->NewStringUTF(native_info->audio_languages[i]), 
 			env->NewStringUTF(native_info->audio_titles[i]));
 	}
 
 	env->SetIntField(info, f_subtitle_channels, native_info->subtitle_channels);
-	for(int i=0;i<native_info->subtitle_channels;i++) {
+	for (int i=0;i<native_info->subtitle_channels;i++) {
 		env->CallVoidMethod(info, midSetSubtitleChannelInfo, i, 
 			native_info->subtitle_streamIndexs[i], 
 			env->NewStringUTF(native_info->subtitlecodec_names[i]), 
@@ -1233,6 +1248,8 @@ static void fill_media_info(JNIEnv *env, jobject thiz, jobject info, jstring fil
 	env->SetObjectField(info, f_format, env->NewStringUTF(native_info->format_name));
 	env->SetIntField(info, f_video_channels, native_info->video_channels);
 	env->SetObjectField(info, f_videocodec_name, env->NewStringUTF(native_info->videocodec_name));
+	if (native_info->videocodec_profile)
+		env->SetObjectField(info, f_videocodec_profile, env->NewStringUTF(native_info->videocodec_profile));
 	env->SetIntField(info, f_width, native_info->width);
 	env->SetIntField(info, f_height, native_info->height);
 }
@@ -1266,22 +1283,19 @@ android_media_MediaPlayer_native_getMediaDetailInfo(JNIEnv *env, jobject thiz, j
 	
 	//use ffmpeg to get media info
 	IPlayer* mp = getPlayerFun((void*)gPlatformInfo);
-	if (mp == NULL)
-	{
+	if (mp == NULL) {
 		PPLOGE("Player init failed.");
 		return false;
 	}
 	
 	const char* url = jstr2cstr(env, js_media_file_path);
 	MediaInfo native_info;
-	if (mp->getMediaDetailInfo(url, &native_info))
-	{
+	if (mp->getMediaDetailInfo(url, &native_info)) {
 		fill_media_info(env, thiz, info, js_media_file_path, &native_info);
 		ret = true;
 		PPLOGD("Get MediaDetailInfo succeed.");
 	}
-	else
-	{
+	else {
 		PPLOGE("Get MediaDetailInfo failed.");
 	}
 

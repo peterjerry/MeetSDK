@@ -2,6 +2,8 @@ package com.pplive.epg.letv;
 
 import javax.swing.*; 
 
+import com.pplive.epg.util.Util;
+
 import java.awt.Font;
 import java.awt.event.*; 
 import java.io.BufferedReader;
@@ -12,6 +14,7 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
+import java.util.StringTokenizer;
 
 @SuppressWarnings("serial")
 public class LeTVPanel extends JPanel {
@@ -29,10 +32,13 @@ public class LeTVPanel extends JPanel {
 		LETV_EPG_STATE_LIST,
 	}
 	
-	LetvUtil mEPG;
-	List<Programlb> mProgramList;
-	List<PlayLinkLb> mPlayLinkList;
-	List<StreamIdLb> mStrmList;
+	private LetvUtil mEPG;
+	private LeVideoUtil mVideoUtil = new LeVideoUtil();
+	private List<Programlb> mProgramList;
+	private List<PlayLinkLb> mPlayLinkList;
+	private List<StreamIdLb> mStrmList;
+	
+	private String exe_ffplay;
 	
 	JButton btnReset 	= new JButton("重置");
 	JButton btnGo 		= new JButton("进入");
@@ -40,6 +46,9 @@ public class LeTVPanel extends JPanel {
 	JLabel lblInfo = new JLabel("info");
 	JLabel lblNowPlayInfo = new JLabel("当前:");
 	JLabel lblWillPlayInfo = new JLabel("即将:");
+	
+	JTextPane editorSearch = new JTextPane();
+	JButton btnSearch = new JButton("搜索");
 	
 	JComboBox<String> comboItem 	= null;
 	JComboBox<String> comboStream 	= null;
@@ -51,7 +60,30 @@ public class LeTVPanel extends JPanel {
 		
 		this.setLayout(null);
 		
+		String strConfig = Util.readFileContent("config.txt");
+		StringTokenizer st = new StringTokenizer(strConfig, "\n", false);
+		while (st.hasMoreElements()) {
+			String strLine = (String) st.nextElement();
+			if (strLine.startsWith("#"))
+				continue;
+				
+			int pos = strLine.indexOf("=");
+			if (pos > 0 && pos != strLine.length() - 1) {
+				String key = strLine.substring(0, pos);
+				String value = strLine.substring(pos + 1);
+				System.out.println(String.format("Java: key %s, value %s", key ,value));
+				if (key.equals("ffplay_path")) {
+					exe_ffplay = value;
+					System.out.println("Java: set ffplay path to " + exe_ffplay);
+				}
+				else {
+					System.out.println("Java: unknown key:" + key);
+				}
+			}
+		}
+		
 		mEPG = new LetvUtil();
+		mVideoUtil = new LeVideoUtil();
 		
 		// Action
 		lblInfo.setBounds(5, 40, 300, 30);
@@ -118,6 +150,49 @@ public class LeTVPanel extends JPanel {
 				default:
 					break;
 				}
+			}
+		});
+		
+		editorSearch.setFont(f);
+		editorSearch.setBounds(20, 350, 200, 40);
+		editorSearch.setText("越光宝盒");
+	    this.add(editorSearch);
+	    
+	    btnSearch.setFont(f);
+	    btnSearch.setBounds(230, 350, 80, 40);
+	    editorSearch.setFont(f);
+		this.add(btnSearch);
+		btnSearch.addActionListener(new AbstractAction() {
+			public void actionPerformed(ActionEvent e) {
+				String key = editorSearch.getText();//"沈震轩PPTV独家专访";
+				
+				int vid = mVideoUtil.search(key);
+				if (vid == -1)
+					return;
+				
+				VideoInfo vInfo = mVideoUtil.detail(vid);
+				String streamDesc = "mp4_1300";
+				if (vInfo != null) {
+					List<String> brList = vInfo.getBrList();
+					if (brList != null) {
+						int count = brList.size();
+						streamDesc = brList.get(count - 1);
+						for (int i=0;i<count;i++) {
+							System.out.println(String.format("br #%d %s", i, brList.get(i)));
+						}
+					}
+				}
+				String cdn_url = mVideoUtil.cdn_url(vid, streamDesc);
+				if (cdn_url == null)
+					return;
+				
+				String play_url = mVideoUtil.play_url(cdn_url);
+				if (play_url == null)
+					return;
+				
+				System.out.println("ready to play url: " + play_url);
+				String[] cmd = new String[] {exe_ffplay, play_url};
+				openExe(cmd);
 			}
 		});
 		
@@ -201,15 +276,14 @@ public class LeTVPanel extends JPanel {
 			System.out.println(String.format("Java: select %s %s", 
 					lb.getName(), url));
 			
-			String exe_filepath  = "E:/git/PPTV/MeetSDK/engine2/build/win32/bin/Release/player_vc.exe";
-			// "D:/software/ffmpeg/ffplay.exe";
+			String exe_filepath  = "D:/Program files/ffmpeg/ffplay.exe";
 			String[] cmd = new String[] {exe_filepath, url};
 			openExe(cmd);
 		}
 	}
 	
 	private void init_combobox() {
-		if (!mEPG.context()) {
+		/*if (!mEPG.context()) {
 			System.out.println("failed to get context");
 			return;
 		}
@@ -219,7 +293,7 @@ public class LeTVPanel extends JPanel {
 		mProgramList = mEPG.getProgramList();
 		for (int i=0;i<mProgramList.size();i++) {
 			comboItem.addItem(mProgramList.get(i).getName());
-		}
+		}*/
 		
 		mState = LETV_EPG_STATE.LETV_EPG_STATE_CONTENT;
 	}

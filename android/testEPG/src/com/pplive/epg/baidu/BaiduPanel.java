@@ -136,7 +136,7 @@ public class BaiduPanel extends JPanel {
 					System.out.println("Java: set vlc path to " + exe_vlc);
 				}
 				else {
-					System.out.println("Java: unknown key" + key);
+					System.out.println("Java: unknown key " + key);
 				}
 			}
 		}

@@ -534,10 +534,6 @@ AVFormatContext* FFStream::open(char* uri)
 		LOGI("audio stream time_base %d/%d, codec time_base %d/%d", 
 			mAudioStream->time_base.num, mAudioStream->time_base.den,
 			mAudioStream->codec->time_base.num, mAudioStream->codec->time_base.den);
-
-		AVCodecContext *audio_codec = mAudioStream->codec;
-		if (CODEC_ID_AAC == audio_codec->codec_id)
-			LOGI("aac profile %d", audio_codec->profile);
 	}
 	
     //check url type
@@ -587,12 +583,6 @@ AVFormatContext* FFStream::open(char* uri)
     }
 
 	av_dump_format(mMovieFile, 0, uri, 0);
-
-	/*AVDictionaryEntry *t = NULL;
-	while (t = av_dict_get(mMovieFile->metadata, "", t, AV_DICT_IGNORE_SUFFIX)) {
-		// iterate over all entries in d
-		LOGI("Metadata key: %s, value: %s", t->key, t->value);
-	}*/
 
     if (mStatus == FFSTREAM_STOPPED ||
         mStatus == FFSTREAM_STOPPING)

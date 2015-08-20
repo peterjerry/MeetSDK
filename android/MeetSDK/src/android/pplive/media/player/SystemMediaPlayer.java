@@ -440,7 +440,7 @@ public class SystemMediaPlayer extends android.media.MediaPlayer implements
 						int sample_rate = format.getInteger(MediaFormat.KEY_SAMPLE_RATE);
 						sb.append(", sample_rate: " + sample_rate);
 						retMediaInfo.setAudioChannelsInfo(audioId++, i, 
-								mime, lang, title);
+								mime, null, lang, title);
 						
 					}
 					else if (TrackInfo.MEDIA_TRACK_TYPE_TIMEDTEXT == type) {
@@ -459,7 +459,7 @@ public class SystemMediaPlayer extends android.media.MediaPlayer implements
 				}
 				else if (TrackInfo.MEDIA_TRACK_TYPE_AUDIO == type) {
 					retMediaInfo.setAudioChannelsInfo(audioId++, i, 
-							"N/A", lang, "");
+							"N/A", null, lang, "");
 					
 				}
 				else if (TrackInfo.MEDIA_TRACK_TYPE_TIMEDTEXT == type) {
