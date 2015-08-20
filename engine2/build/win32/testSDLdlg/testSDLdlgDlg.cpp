@@ -42,7 +42,8 @@
 #define USER_LIST_OFFSET (PPTV_HLS_URL_OFFSET + 12)
 
 #define HOST "127.0.0.1"
-//#define HTTP_PORT 8080
+//#define HTTP_PORT 9106
+//#define RTSP_PORT 5154
 
 #define PROGRESS_RANGE		1000
 #define LIVE_DURATION_SEC	1800
@@ -92,7 +93,7 @@ const char* url_list[PROG_MAX_NUM] = {
 	_T("http://172.16.204.106/test/hls/600000/noend.m3u8"),
 	//_T("D:\\Archive\\media\\[圣斗士星矢Ω].[hysub]Saint.Seiya.Omega_11_[GB_mp4][480p].mp4"),
 	//_T("E:\\BaiduYunDownload\\第三季第八集.mkv"),
-	_T("D:\\Archive\\media\\audio\\因为爱情.mp3"),
+	_T("D:\\Archive\\media\\test\\[任贤齐]-给你幸福.avi"),
 	//_T("E:\\BaiduYunDownload\\红猪.Porco.Rosso.1992.D9.3Audio.MiniSD-TLF.mkv"),
 	_T("D:\\Archive\\media\\mv\\G.NA_Secret.mp4"),
 
@@ -122,7 +123,7 @@ const char *pptv_http_playlink_fmt = "http://%s:%d/play.m3u8?type=pplive3&playli
 const char *pptv_playlink_surfix = "%3Fft%3D1%26bwtype%3D0%26platform%3Dandroid3%26type%3Dphone.android.vip";
 const char *pptv_playlink_ppvod2_fmt = "http://%s:%d/record.m3u8?type=ppvod2&playlink=%s";
 
-void genHMSM(int pos_msec, int *hour, int *minute, int *sec, int *msec);
+void genHMSM(int total_msec, int *hour, int *minute, int *sec, int *msec);
 
 // 用于应用程序“关于”菜单项的 CAboutDlg 对话框
 
@@ -203,6 +204,7 @@ BEGIN_MESSAGE_MAP(CtestSDLdlgDlg, CDialogEx)
 	ON_BN_CLICKED(IDC_BUTTON_PLAY_EPG, &CtestSDLdlgDlg::OnBnClickedButtonPlayEpg)
 	ON_WM_HSCROLL()
 	ON_NOTIFY(NM_RELEASEDCAPTURE, IDC_SLIDER_PROGRESS, &CtestSDLdlgDlg::OnNMReleasedcaptureSliderProgress)
+	ON_BN_CLICKED(IDC_BUTTON_GET_MEDIAINFO, &CtestSDLdlgDlg::OnBnClickedButtonGetMediainfo)
 END_MESSAGE_MAP()
 
 // CtestSDLdlgDlg 消息处理程序
@@ -931,6 +933,8 @@ LRESULT CtestSDLdlgDlg::OnNotify(WPARAM wParam, LPARAM lParam)
 		
 		mFinished = true;
 		if (mPlayer) {
+			KillTimer(0);
+
 			mPlayer->stop();
 			delete mPlayer;
 			mPlayer = NULL;
@@ -1083,9 +1087,9 @@ bool CtestSDLdlgDlg::OnPrepared()
 	return true;
 }
 
-void genHMSM(int pos_msec, int *hour, int *minute, int *sec, int *msec)
+void genHMSM(int total_msec, int *hour, int *minute, int *sec, int *msec)
 {
-	int tmp = pos_msec;
+	int tmp = total_msec;
 
 	*msec	= tmp % 1000;
 	tmp		= tmp / 1000; //around to sec
@@ -1221,6 +1225,11 @@ bool CtestSDLdlgDlg::startP2P()
 #ifdef HTTP_PORT
 	mhttpPort = HTTP_PORT;
 	LOGI("use http port %d", mhttpPort);
+#endif
+
+#ifdef RTSP_PORT
+	mrtspPort = RTSP_PORT;
+	LOGI("use rtsp port %d", mrtspPort);
 #endif
 
 	return true;
@@ -1414,4 +1423,88 @@ void CtestSDLdlgDlg::OnNMReleasedcaptureSliderProgress(NMHDR *pNMHDR, LRESULT *p
 	mSeeking = false;
 
 	*pResult = 0;
+}
+
+void CtestSDLdlgDlg::FillMediaInfo(MediaInfo *info)
+{
+	CString str, tmp;
+
+	int msec, sec, min, hour;
+	genHMSM(info->duration_ms, &hour, &min, &sec, &msec);
+	str.Format("文件名 %s\n分辨率 %d x %d\n时长 %02d:%02d:%02d:%03d\n帧率 %.2f\n码率 %d kbps", 
+		mUrl.GetBuffer(),
+		info->width, info->height,
+		hour, min, sec, msec,
+		info->frame_rate,
+		info->bitrate / 1024);
+	if (info->videocodec_name) {
+		str.Append("\n视频编码 ");
+		str.Append(info->videocodec_name);
+		if (info->videocodec_profile) {
+			str.Append("(profile ");
+			str.Append(info->videocodec_profile);
+			str.Append(")");
+		}
+	}
+
+	tmp.Format("\n音轨数 %d", info->audio_channels);
+	str.Append(tmp);
+	if (info->audio_channels > 0) {
+		str.Append("\n音频编码 ");
+
+		for (int i=0;i < info->audio_channels;i++) {
+			if (i > 0)
+				str.Append(" | ");
+
+			str.Append(info->audiocodec_names[i]);
+			if (info->audiocodec_profiles[i]) {
+				str.Append("(profile ");
+				str.Append(info->audiocodec_profiles[i]);
+				str.Append(")");
+			}
+		}
+	}
+
+	tmp.Format("\n内嵌字幕数 %d", info->subtitle_channels);
+	str.Append(tmp);
+	if (info->subtitle_channels > 0) {
+		str.Append("\n字幕编码 ");
+
+		for (int i=0;i < info->subtitle_channels;i++) {
+			if (i > 0)
+				str.Append(" | ");
+
+			str.Append(info->subtitlecodec_names[i]);
+		}
+	}
+
+	AfxMessageBox(str.GetBuffer());
+}
+
+void CtestSDLdlgDlg::OnBnClickedButtonGetMediainfo()
+{
+	// TODO: 在此添加控件通知处理程序代码
+	MediaInfo info;
+	if (mPlayer) {
+		mPlayer->getCurrentMediaInfo(&info);
+	}
+	else {
+		int sel = mComboURL.GetCurSel();
+		if (sel < 0) {
+			AfxMessageBox("not select item");
+			return;
+		}
+
+		if (sel < USER_LIST_OFFSET + mUserAddChnNum) {
+			mUrl = url_list[sel];
+		}
+		else {
+			mComboURL.GetLBText(sel, mUrl);
+		}
+
+		FFPlayer player;
+		player.getMediaDetailInfo(mUrl.GetBuffer(), &info);
+	}
+
+	FillMediaInfo(&info);
 }

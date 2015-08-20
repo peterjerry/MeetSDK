@@ -32,6 +32,12 @@
 #endif
 
 #ifdef _MSC_VER
+#define my_strdup _strdup
+#else
+#define my_strdup strdup
+#endif
+
+#ifdef _MSC_VER
 #ifndef INT64_MIN
 #define INT64_MIN        (INT64_C(-9223372036854775807)-1)
 #define INT64_MAX        (INT64_C(9223372036854775807))
@@ -2185,6 +2191,18 @@ status_t FFPlayer::prepareAudio_l()
 		return ERROR;
 	}
 
+	const char *profile_name = NULL;
+	if (FF_PROFILE_UNKNOWN != codec_ctx->profile) {
+		profile_name = av_get_profile_name(codec, codec_ctx->profile);
+		LOGI("audio codec_profile %d(%s)", codec_ctx->profile, profile_name);
+	}
+
+	if (profile_name == NULL && codec_ctx->codec_tag) {
+		char tag_buf[32] = {0};
+        av_get_codec_tag_string(tag_buf, sizeof(tag_buf), codec_ctx->codec_tag);
+		LOGI("audio codec_tag %s", tag_buf);
+    }
+
 	LOGI("audio codec_ctx fmt %d", codec_ctx->sample_fmt);
 
     // Open codec
@@ -2305,6 +2323,18 @@ status_t FFPlayer::prepareVideo_l()
     if (codec == NULL) {
 		LOGE("failed to find video codec: id: %d, name: %s", codec_ctx->codec_id, avcodec_get_name(codec_ctx->codec_id));
     	return ERROR;
+    }
+
+	const char* profile_name = NULL;
+	if (FF_PROFILE_UNKNOWN != codec_ctx->profile) {
+		profile_name = av_get_profile_name(codec, codec_ctx->profile);
+		LOGI("video codec_profile %d(%s)", codec_ctx->profile, profile_name);
+	}
+
+	if (profile_name == NULL && codec_ctx->codec_tag) {
+		char tag_buf[32] = {0};
+        av_get_codec_tag_string(tag_buf, sizeof(tag_buf), codec_ctx->codec_tag);
+		LOGI("video codec_tag %s", tag_buf);
     }
 
     // Open codec
@@ -3480,19 +3510,13 @@ bool getStreamLangTitle(char** langcode, char** langtitle, int index, AVStream* 
 
 	elem = av_dict_get(stream->metadata, "language", NULL, 0);
     if (elem && elem->value != NULL) {
-		int len = strlen(elem->value) + 1;
-		*langcode = new char[len];
-		memset(*langcode, 0, len);
-        strcpy(*langcode, elem->value);
+		*langcode = my_strdup(elem->value);
         gotlanguage = true;
     }
 
     elem = av_dict_get(stream->metadata, "title", NULL, 0);
     if (elem && elem->value != NULL) {
-		int len = strlen(elem->value) + 1;
-		*langtitle = new char[len];
-		memset(*langtitle, 0, len);
-        strcpy(*langtitle, elem->value);
+		*langtitle = my_strdup(elem->value);
         gotlanguage = true;
     }
 
@@ -3505,7 +3529,6 @@ bool getStreamLangTitle(char** langcode, char** langtitle, int index, AVStream* 
 	else {
 		LOGW("%s stream index: #d lang and title are both empty", stream_type, index);
 	}
-
     return gotlanguage;
 }
 
@@ -3518,7 +3541,7 @@ bool FFPlayer::getCurrentMediaInfo(MediaInfo *info)
 
 	info->size_byte		= 0;
 	info->duration_ms	= (int32_t)(mMediaFile->duration * 1000 / AV_TIME_BASE);
-	info->format_name	= mMediaFile->iformat->name;
+	info->format_name	= my_strdup(mMediaFile->iformat->name);
 	info->channels		= (int32_t)mMediaFile->nb_streams;
 	info->bitrate		= mMediaFile->bit_rate;
 
@@ -3526,30 +3549,46 @@ bool FFPlayer::getCurrentMediaInfo(MediaInfo *info)
 	info->video_channels	= 0;
 	info->subtitle_channels = 0;
 
-	if (mVideoStream == NULL) {
-		LOGE("video stream is NULL");
-		return false;
-	}
+	if (mVideoStream != NULL) {
+		info->frame_rate = av_q2d(mVideoStream->avg_frame_rate);
+		AVCodecContext* codec_ctx = mVideoStream->codec;
+		if(codec_ctx == NULL) {
+			LOGE("codec_ctx is NULL");
+			return false;
+		}
 
-	info->frame_rate = av_q2d(mVideoStream->avg_frame_rate);
-	AVCodecContext* codec_ctx = mVideoStream->codec;
-	if(codec_ctx == NULL) {
-		LOGE("codec_ctx is NULL");
-		return false;
-	}
+		info->width = codec_ctx->width;
+		info->height = codec_ctx->height;
 
-	info->width = codec_ctx->width;
-	info->height = codec_ctx->height;
+		AVCodec* codec = avcodec_find_decoder(codec_ctx->codec_id);
+		if (codec == NULL) {
+			LOGE("avcodec_find_decoder() video %d(%s) failed",
+				codec_ctx->codec_id, avcodec_get_name(codec_ctx->codec_id));
+			return false;
+		}
 
-	AVCodec* codec = avcodec_find_decoder(codec_ctx->codec_id);
-	if (codec == NULL) {
-		LOGE("avcodec_find_decoder() video %d(%s) failed",
-			codec_ctx->codec_id, avcodec_get_name(codec_ctx->codec_id));
-		return false;
-	}
+		if (FF_PROFILE_UNKNOWN != codec_ctx->profile) {
+			LOGI("videocodec_profile(profile) %d", codec_ctx->profile);
+
+			const char* profile_name = av_get_profile_name(codec, codec_ctx->profile);
+			if (profile_name) {
+				info->videocodec_profile = my_strdup(profile_name);
+				LOGI("videocodec_profile(profile) %d(%s)", codec_ctx->profile, info->videocodec_profile);
+			}
+		}
+		if (info->videocodec_profile == NULL && codec_ctx->codec_tag) {
+			char tag_buf[32] = {0};
+			av_get_codec_tag_string(tag_buf, sizeof(tag_buf), codec_ctx->codec_tag);
+			info->videocodec_profile = my_strdup(tag_buf);
+			LOGI("videocodec_profile(tag) %s", info->videocodec_profile);
+		}
 	
-	info->videocodec_name = codec->name;
-		
+		info->videocodec_name = my_strdup(avcodec_get_name(codec_ctx->codec_id));
+	}
+	else {
+		LOGI("video stream is NULL");
+	}
+
 	for (unsigned int i=0;i<mMediaFile->nb_streams;i++) {
 		if (mMediaFile->streams[i]->codec->codec_type == AVMEDIA_TYPE_AUDIO) {
 			AVStream *stream = mMediaFile->streams[i];
@@ -3561,11 +3600,27 @@ bool FFPlayer::getCurrentMediaInfo(MediaInfo *info)
 			}
 
 			int audio_index = info->audio_channels;
-			info->audio_streamIndexs[audio_index] = i;
 
-			int len = strlen(codec->name) + 1;
-			info->audiocodec_names[audio_index] = new char[len];
-			strcpy(info->audiocodec_names[audio_index], codec->name);
+			AVCodecContext *codec_ctx = stream->codec;
+			if (FF_PROFILE_UNKNOWN != codec_ctx->profile) {
+				LOGI("audio stream #%d:%d audiocodec_profile(profile) %d", i, audio_index, codec_ctx->profile);
+
+				const char* profile_name = av_get_profile_name(codec, codec_ctx->profile);
+				if (profile_name) {
+					info->audiocodec_profiles[audio_index] = my_strdup(profile_name);
+					LOGI("audio stream #%d:%d audiocodec_profile(profile) %d(%s)",
+						i, audio_index, codec_ctx->profile, info->audiocodec_profiles[audio_index]);
+				}
+			}
+			if (info->audiocodec_profiles[audio_index] == NULL && codec_ctx->codec_tag) {
+				char tag_buf[32] = {0};
+				av_get_codec_tag_string(tag_buf, sizeof(tag_buf), codec_ctx->codec_tag);
+				info->audiocodec_profiles[audio_index] = my_strdup(tag_buf);
+				LOGI("audio stream #%d:%d audiocodec_profile(tag) %s", i, audio_index, info->audiocodec_profiles[audio_index]);
+			}
+
+			info->audio_streamIndexs[audio_index] = i;
+			info->audiocodec_names[audio_index] = my_strdup(avcodec_get_name(codec_ctx->codec_id));
 			getStreamLangTitle(&(info->audio_languages[audio_index]), &(info->audio_titles[audio_index]), i, stream);
 
 			info->audio_channels++;
@@ -3581,10 +3636,7 @@ bool FFPlayer::getCurrentMediaInfo(MediaInfo *info)
 
 			int subtitle_index = info->subtitle_channels;
 			info->subtitle_streamIndexs[subtitle_index] = i;
-
-			int len = strlen(codec->name) + 1;
-			info->subtitlecodec_names[subtitle_index] = new char[len];
-			strcpy(info->subtitlecodec_names[subtitle_index], codec->name);
+			info->subtitlecodec_names[subtitle_index] = my_strdup(avcodec_get_name(stream->codec->codec_id));
 			getStreamLangTitle(&(info->subtitle_languages[subtitle_index]), &(info->subtitle_titles[subtitle_index]), i, stream);
 
 			info->subtitle_channels++;
@@ -3624,11 +3676,35 @@ bool FFPlayer::getMediaDetailInfo(const char* url, MediaInfo* info)
 	}
 
 	info->duration_ms	= (int32_t)(movieFile->duration * 1000 / AV_TIME_BASE);
-	info->format_name	= movieFile->iformat->name;
+	info->format_name	= my_strdup(movieFile->iformat->name);
 	info->bitrate		= movieFile->bit_rate;
 
+	if (movieFile->metadata) {
+		AVDictionaryEntry *t = NULL;
+		DictEntry *cur = info->meta_data;
+
+		while ((t = av_dict_get(movieFile->metadata, "", t, AV_DICT_IGNORE_SUFFIX))) {
+			// iterate over all entries in d
+			LOGI("Metadata key: %s, value: %s", t->key, t->value);
+
+			DictEntry *entry = new DictEntry();
+			entry->key		= my_strdup(t->key);
+			entry->value	= my_strdup(t->value);
+			entry->next		= NULL;
+			
+			if (info->meta_data == NULL) {
+				info->meta_data = entry;
+			}
+			else {
+				cur->next = entry;
+			}
+
+			cur = entry;
+		}
+	}
+
 	uint32_t streamsCount = movieFile->nb_streams;
-	LOGI("streamsCount: %d", streamsCount);
+	LOGI("stream count: %d", streamsCount);
 
 	info->channels = streamsCount;
 
@@ -3654,14 +3730,29 @@ bool FFPlayer::getMediaDetailInfo(const char* url, MediaInfo* info)
 			info->frame_rate	= av_q2d(stream->avg_frame_rate);//stream->avg_frame_rate.num / mVideoStream->avg_frame_rate.den;
 
 			AVCodec* codec = avcodec_find_decoder(codec_ctx->codec_id);
-			if (codec == NULL)
-			{
+			if (codec == NULL) {
 				LOGE("avcodec_find_decoder() video %d(%s) failed",
 					codec_ctx->codec_id, avcodec_get_name(codec_ctx->codec_id));
 				continue;
 			}
 
-			info->videocodec_name = codec->name;
+			if (FF_PROFILE_UNKNOWN != codec_ctx->profile) {
+				LOGI("video stream #%d videocodec_profile(profile) %d", i, codec_ctx->profile);
+
+				const char* profile_name = av_get_profile_name(codec, codec_ctx->profile);
+				if (profile_name) {
+					info->videocodec_profile = my_strdup(profile_name);
+					LOGI("video stream #%d videocodec_profile(profile) %d(%s)", i, codec_ctx->profile, info->videocodec_profile);
+				}
+			}
+			if (info->videocodec_profile == NULL && codec_ctx->codec_tag) {
+				char tag_buf[32] = {0};
+				av_get_codec_tag_string(tag_buf, sizeof(tag_buf), codec_ctx->codec_tag);
+				info->videocodec_profile = my_strdup(tag_buf);
+				LOGI("video stream #%d videocodec_profile(tag) %s", i, info->videocodec_profile);
+			}
+
+			info->videocodec_name = my_strdup(avcodec_get_name(codec_ctx->codec_id));
 		}
 		else if (movieFile->streams[i]->codec->codec_type == AVMEDIA_TYPE_AUDIO) {
 			AVStream* stream = movieFile->streams[i];
@@ -3675,11 +3766,26 @@ bool FFPlayer::getMediaDetailInfo(const char* url, MediaInfo* info)
 			}
 
 			int audio_index = info->audio_channels;
-			info->audio_streamIndexs[audio_index] = i;
 
-			int len = strlen(codec->name) + 1;
-			info->audiocodec_names[audio_index] = new char[len];
-			strcpy(info->audiocodec_names[audio_index], codec->name);
+			AVCodecContext *codec_ctx = stream->codec;
+			if (FF_PROFILE_UNKNOWN != codec_ctx->profile) {
+				LOGI("audio stream #%d:%d audiocodec_profile(profile) %d", i, audio_index, codec_ctx->profile);
+				const char* profile_name = av_get_profile_name(codec, codec_ctx->profile);
+				if (profile_name) {
+					info->audiocodec_profiles[audio_index] = my_strdup(profile_name);
+					LOGI("audio stream #%d:%d audiocodec_profile(profile) %d(%s)",
+						i, audio_index, codec_ctx->profile, info->audiocodec_profiles[audio_index]);
+				}
+			}
+			if (info->audiocodec_profiles[audio_index] == NULL && codec_ctx->codec_tag) {
+				char tag_buf[32] = {0};
+				av_get_codec_tag_string(tag_buf, sizeof(tag_buf), codec_ctx->codec_tag);
+				info->audiocodec_profiles[audio_index] = my_strdup(tag_buf);
+				LOGI("audio stream #%d:%d audiocodec_profile(tag) %s", i, audio_index, info->audiocodec_profiles[audio_index]);
+			}
+
+			info->audio_streamIndexs[audio_index] = i;
+			info->audiocodec_names[audio_index] = my_strdup(avcodec_get_name(codec_ctx->codec_id));
 			getStreamLangTitle(&(info->audio_languages[audio_index]), &(info->audio_titles[audio_index]), i, stream);
 
 			info->audio_channels++;
@@ -3696,10 +3802,7 @@ bool FFPlayer::getMediaDetailInfo(const char* url, MediaInfo* info)
 
 			int subtitle_index = info->subtitle_channels;
 			info->subtitle_streamIndexs[subtitle_index] = i;
-
-			int len = strlen(codec->name) + 1;
-			info->subtitlecodec_names[subtitle_index] = new char[len];
-			strcpy(info->subtitlecodec_names[subtitle_index], codec->name);
+			info->subtitlecodec_names[subtitle_index] = my_strdup(avcodec_get_name(stream->codec->codec_id));
 			getStreamLangTitle(&(info->subtitle_languages[subtitle_index]), &(info->subtitle_titles[subtitle_index]), i, stream);
 
 			info->subtitle_channels++;
@@ -3714,10 +3817,10 @@ bool FFPlayer::getMediaDetailInfo(const char* url, MediaInfo* info)
 
     LOGI("File duration: %d msec, size: %lld", info->duration_ms, info->size_byte);
     LOGI("width: %d, height: %d", info->width, info->height);
-	LOGI("frame_rate:%.2f, bitrate: %d bps", info->frame_rate, info->bitrate);
-    LOGI("format_name:%s", info->format_name != NULL ? info->format_name : "N/A");
-	LOGI("videocodec_name:%s", info->videocodec_name != NULL ? info->videocodec_name : "N/A");
-    LOGI("video_channels:%d, audio_channels:%d, subtitle_channels:%d", 
+	LOGI("frame_rate: %.2f, bitrate: %d bps", info->frame_rate, info->bitrate);
+    LOGI("format_name: %s", info->format_name != NULL ? info->format_name : "N/A");
+	LOGI("videocodec_name: %s", info->videocodec_name != NULL ? info->videocodec_name : "N/A");
+    LOGI("video_channels: %d, audio_channels:%d, subtitle_channels:%d", 
 		info->video_channels, info->audio_channels, info->subtitle_channels);
     return true;
 }
@@ -3749,7 +3852,7 @@ bool FFPlayer::getThumbnail2(const char* url, MediaInfo* info)
     	if(avformat_find_stream_info(movieFile, NULL) >= 0)
         {
             info->duration_ms = (int32_t)movieFile->duration * 1000 / AV_TIME_BASE;
-            info->format_name = movieFile->iformat->name;
+            info->format_name = my_strdup(movieFile->iformat->name);
 
             uint32_t streamsCount = movieFile->nb_streams;
             LOGD("streamsCount:%d", streamsCount);
@@ -3760,13 +3863,7 @@ bool FFPlayer::getThumbnail2(const char* url, MediaInfo* info)
         		if (movieFile->streams[i]->codec->codec_type == AVMEDIA_TYPE_AUDIO)
                 {
                     AVStream* stream = movieFile->streams[i];
-					AVCodec* codec = avcodec_find_decoder(stream->codec->codec_id);
-                    if (codec != NULL) {
-						int len = strlen(codec->name) + 1;
-						info->audiocodec_names[info->audio_channels] = new char[len];
-                        strcpy(info->audiocodec_names[info->audio_channels], codec->name);
-					}
-
+					info->audiocodec_names[info->audio_channels] = my_strdup(avcodec_get_name(stream->codec->codec_id));
 					info->audio_channels++;
         		}
                 else if(movieFile->streams[i]->codec->codec_type == AVMEDIA_TYPE_VIDEO
@@ -3795,7 +3892,7 @@ bool FFPlayer::getThumbnail2(const char* url, MediaInfo* info)
                         continue;
                     }
 
-                    info->videocodec_name = codec->name;
+                    info->videocodec_name = my_strdup(avcodec_get_name(codec_ctx->codec_id));
                 	if (avcodec_open2(codec_ctx, codec, NULL) >= 0)
                     {
                         int32_t seekPosition = 15;
@@ -3882,21 +3979,15 @@ bool FFPlayer::getThumbnail2(const char* url, MediaInfo* info)
         LOGE("failed to avformat_open_input: %s", url);
     }
 
-    if(movieFile != NULL)
-    {
+    if (movieFile != NULL) {
         // Close stream
         LOGD("avformat_close_input");
         avformat_close_input(&movieFile);
     }
-    LOGD("File duration:%d", info->duration_ms);
-    LOGD("File size:%lld", info->size_byte);
     LOGI("File width %d, height %d", info->width, info->height);
-    LOGD("format name:%s", info->format_name!=NULL ? info->format_name : "");
-    LOGD("audio name:%s", info->audio_name!=NULL ? info->audio_name : "");
-    LOGD("video name:%s", info->video_name!=NULL ? info->video_name : "");
-    LOGI("thumbnail: width %d, height %d", info->thumbnail_width, info->thumbnail_height);
-    LOGI("thumbnail:%d", (info->thumbnail!=NULL));
-    LOGD("video_channels:%d, audio_channels:%d", info->video_channels, info->audio_channels);
+    LOGI("format name: %s", info->format_name != NULL ? info->format_name : "");
+    LOGI("video name: %s", info->videocodec_name != NULL ? info->videocodec_name : "");
+    LOGI("thumbnail: width %d, height %d, data %p", info->thumbnail_width, info->thumbnail_height, info->thumbnail);
     return ret;
 }
 
@@ -3952,7 +4043,7 @@ bool FFPlayer::getThumbnail(const char* url, MediaInfo* info)
         video_dec_ctx = video_stream->codec;
 		info->width = video_dec_ctx->width;
         info->height = video_dec_ctx->height;
-		info->videocodec_name = video_dec_ctx->codec->name;
+		info->videocodec_name = my_strdup(avcodec_get_name(video_dec_ctx->codec_id));
 
         /* allocate image where the decoded image will be put */
         //alloc_picture(video_dec_ctx->pix_fmt, video_dec_ctx->width, video_dec_ctx->height);
@@ -3961,9 +4052,7 @@ bool FFPlayer::getThumbnail(const char* url, MediaInfo* info)
     if (open_codec_context(&audio_stream_idx, movieFile, AVMEDIA_TYPE_AUDIO) >= 0) {
         audio_stream = movieFile->streams[audio_stream_idx];
         audio_dec_ctx = audio_stream->codec;
-		int len = strlen(audio_dec_ctx->codec->name) + 1;
-		info->audiocodec_names[0] = new char[len];
-		strcpy(info->audiocodec_names[0], audio_dec_ctx->codec->name);
+		info->audiocodec_names[0] = my_strdup(avcodec_get_name(audio_dec_ctx->codec_id));
     }
 
 	/* dump input information to stderr */
@@ -3976,7 +4065,7 @@ bool FFPlayer::getThumbnail(const char* url, MediaInfo* info)
     }
 
 	info->duration_ms = (int32_t)movieFile->duration * 1000 / AV_TIME_BASE;
-	info->format_name = movieFile->iformat->name;
+	info->format_name = my_strdup(movieFile->iformat->name);
 
 	frame = av_frame_alloc();
     if (!frame) {

@@ -12,20 +12,31 @@ class ISubtitles;
 #ifdef __APPLE__
 #include <stdint.h> // fix ios uint8_t undefined error
 #endif
+#include <stdlib.h> // for free
 
 #define MAX_CHANNEL_CNT 16
 #define SAFE_DELETE(p)       { if(p) { delete (p);     (p)=NULL; } }
+#define SAFE_FREE(p)       { if(p) { free (p);     (p)=NULL; } }
+
+typedef struct DictEntry {
+    char *key;
+    char *value;
+	DictEntry *next;
+} DictEntry;
 
 typedef struct MediaInfo {
+	char* format_name;
 	int32_t duration_ms; //in millisecond 
 	long long size_byte; //in byte
 	int32_t width;
 	int32_t height;
 	double frame_rate;
 	int32_t	bitrate;
+	DictEntry *meta_data;
 
-	const char* format_name;
-	const char* videocodec_name;
+	char* videocodec_name;
+	char* videocodec_profile;
+	DictEntry *video_meta_data;
 	int32_t thumbnail_width;
 	int32_t thumbnail_height;
 	int32_t* thumbnail;
@@ -43,6 +54,7 @@ typedef struct MediaInfo {
 	//	cht:tranditional chinese
 	int audio_streamIndexs[MAX_CHANNEL_CNT];
 	char* audiocodec_names[MAX_CHANNEL_CNT];
+	char* audiocodec_profiles[MAX_CHANNEL_CNT];
 	char* audio_languages[MAX_CHANNEL_CNT];
 	char* audio_titles[MAX_CHANNEL_CNT];
 	
@@ -55,15 +67,18 @@ typedef struct MediaInfo {
 	int32_t channels;
 
     MediaInfo() :
+		format_name(NULL),
         duration_ms(0),
         size_byte(0),
         width(0),
         height(0),
-		frame_rate(0),
+		frame_rate(0.0),
 		bitrate(0),
+		meta_data(NULL),
 
-        format_name(NULL),
         videocodec_name(NULL),
+		videocodec_profile(NULL),
+		video_meta_data(NULL),
 
         thumbnail_width(0),
         thumbnail_height(0),
@@ -74,9 +89,10 @@ typedef struct MediaInfo {
 		subtitle_channels(0),
 
         channels(0) {
-			for(int i=0 ; i<MAX_CHANNEL_CNT ; i++) {
+			for (int i=0 ; i<MAX_CHANNEL_CNT ; i++) {
 				audio_streamIndexs[i]		= -1;
 				audiocodec_names[i]			= NULL;
+				audiocodec_profiles[i]		= NULL;
 				audio_languages[i]			= NULL;
 				audio_titles[i]				= NULL;
 
@@ -85,18 +101,43 @@ typedef struct MediaInfo {
 				subtitle_languages[i]		= NULL;
 				subtitle_titles[i]			= NULL;
 			}
-
 	}
 
 	~MediaInfo() {
-		for (int i=0 ; i<MAX_CHANNEL_CNT ; i++) {
-			SAFE_DELETE(audiocodec_names[i]);
-			SAFE_DELETE(audio_languages[i]);
-			SAFE_DELETE(audio_titles[i]);
+		SAFE_FREE(format_name);
+		free_entry_list(meta_data);
+		meta_data = NULL;
 
-			SAFE_DELETE(subtitlecodec_names[i]);
-			SAFE_DELETE(subtitle_languages[i]);
-			SAFE_DELETE(subtitle_titles[i]);
+		SAFE_FREE(videocodec_name);
+		SAFE_FREE(videocodec_profile);
+		free_entry_list(video_meta_data);
+		video_meta_data = NULL;
+
+		for (int i=0 ; i<MAX_CHANNEL_CNT ; i++) {
+			SAFE_FREE(audiocodec_names[i]);
+			SAFE_FREE(audiocodec_profiles[i]);
+			SAFE_FREE(audio_languages[i]);
+			SAFE_FREE(audio_titles[i]);
+
+			SAFE_FREE(subtitlecodec_names[i]);
+			SAFE_FREE(subtitle_languages[i]);
+			SAFE_FREE(subtitle_titles[i]);
+		}
+	}
+
+	void free_entry_list(DictEntry *list) {
+		if (!list)
+			return;
+
+		DictEntry *p = list;
+		while (p) {
+			DictEntry *temp = p->next;
+			if (p->key)
+				free(p->key);
+			if (p->value)
+				free(p->value);
+			delete p;
+			p = temp;
 		}
 	}
     

@@ -3,6 +3,7 @@ package android.pplive.media.player;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Map;
 
 public class MediaInfo {
 
@@ -20,6 +21,7 @@ public class MediaInfo {
 	private HashMap<Integer, String> mChannels;
 	
 	private String mVideoCodecName;
+	private String mVideoCodecProfile;
 	private int mWidth;
 	private int mHeight;
 	
@@ -36,6 +38,9 @@ public class MediaInfo {
 	// subtitle
 	private int mSubTitleChannels;
 	private ArrayList<TrackInfo> subtitleTrackInfos;
+	
+	private Map<String, String> mMetadata;
+	private Map<String, String> mVideoMetadata;
 
 	MediaInfo() {
 		this("");
@@ -153,6 +158,10 @@ public class MediaInfo {
 		return mVideoCodecName;
 	}
 	
+	public String getVideoCodecProfile() {
+		return mVideoCodecProfile;
+	}
+	
 	public int getWidth() {
 		return mWidth;
 	}
@@ -189,11 +198,13 @@ public class MediaInfo {
 	 * @param lang: language meta data
 	 * @param title: title meta data
 	 */
-	public void setAudioChannelsInfo(int id, int streamIndex, String codecName, String lang, String title) {
+	public void setAudioChannelsInfo(int id, int streamIndex, 
+			String codecName, String profile, String lang, String title) {
 		TrackInfo audiotrackinfo = new TrackInfo();
 		audiotrackinfo.setId(id);
 		audiotrackinfo.setStreamIndex(streamIndex);
 		audiotrackinfo.setCodecName(codecName);
+		audiotrackinfo.setCodecProfile(profile);
 		audiotrackinfo.setLanguage(lang);
 		audiotrackinfo.setTitle(title);
 		audioTrackInfos.add(audiotrackinfo);
@@ -241,6 +252,24 @@ public class MediaInfo {
 	
 	public int getSubtitleChannels() {
 		return mSubTitleChannels;
+	}
+	
+	public void addMetadataEntry(String key, String value) {
+		if (mMetadata == null)
+			mMetadata = new HashMap<String, String>();
+		
+		mMetadata.put(key, value);
+	}
+	
+	public void addVideoMetadataEntry(String key, String value) {
+		if (mVideoMetadata == null)
+			mVideoMetadata = new HashMap<String, String>();
+		
+		mVideoMetadata.put(key, value);
+	}
+	
+	public Map<String, String> getMetaData() {
+		return mMetadata;
 	}
 	
 	@Override

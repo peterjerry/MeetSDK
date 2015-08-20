@@ -12,11 +12,11 @@ then
 echo "lite build"
 EXTRA_FF_BUILD_OPTION="\
 	--disable-decoders \
-	--enable-decoder=h263,h264,hevc,vp8,vp9,mjpeg,flv,mpeg1video,mpeg2video,mpeg4,ac3,aac,mp1,mp2,mp3,rv30,rv40,cook,wmv1,wmv2,wmv3,wmv3image,vorbis,ape,flac,wmav1,wmav2,wmapro,amrnb,amrwb,pcm_s16be,pcm_s16be_planar,pcm_s16le,pcm_s16le_planar,ass,dvbsub,dvdsub,mov_text,sami,srt,ssa,subrip,text \
+	--enable-decoder=h263,h264,hevc,vp8,vp9,flv,mpeg1video,mpeg2video,mpeg4,ac3,aac,dca,mp1,mp2,mp3,rv30,rv40,cook,wmv1,wmv2,wmv3,wmv3image,vorbis,ape,flac,wmav1,wmav2,wmapro,mjpeg,msmpeg4v1,msmpeg4v2,msmpeg4v3,amrnb,amrwb,pcm_s16be,pcm_s16be_planar,pcm_s16le,pcm_s16le_planar,ass,dvbsub,dvdsub,mov_text,sami,srt,ssa,subrip,text \
 	--disable-demuxers \
-	--enable-demuxer=rm,mpegvideo,avi,h263,h264,mjpeg,hevc,matroska,aac,flv,mpegts,mp4,m4v,mov,ape,hls,flac,rawvideo,realtext,rtsp,vc1,mp3,wav,asf \
+	--enable-demuxer=rm,mpegvideo,mjpeg,avi,h263,h264,hevc,matroska,dts,dtshd,aac,flv,mpegts,mpegps,mp4,m4v,mov,ape,hls,flac,rawvideo,realtext,rtsp,vc1,mp3,wav,asf \
 	--disable-parsers \
-	--enable-parser=h263,h264,hevc,vp8,mpegaudio,mpegvideo,aac_latm,mpeg4video,aac,ac3,flac,png,bmp,rv30,rv40,cavsvideo,vc1,vorbis,mjpeg,vp8,vp9,cook "
+	--enable-parser=h263,h264,hevc,mpegaudio,mpegvideo,aac_latm,mpeg4video,dca,aac,ac3,flac,png,bmp,rv30,rv40,cavsvideo,vc1,vorbis,mjpeg,vp8,vp9,cook "
 PREFIX=$PREFIX/lite
 else
 echo "full build"
@@ -39,9 +39,12 @@ echo "run configure"
 	--extra-ldflags="-DEBUG" \
 	--optflags="-O2" \
 	--disable-doc \
-	--disable-programs \
 	--disable-avdevice \
+	--disable-dxva2 \
 	--disable-swscale-alpha \
+	--disable-encoders \
+	--disable-muxers \
+	--disable-devices \
 	--disable-asm \
 	--disable-symver $EXTRA_FF_BUILD_OPTION
 

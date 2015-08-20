@@ -5,15 +5,13 @@ public class TrackInfo {
 	private int mId;
 	private int mStreamIndex;
 	private String mCodecName;
+	private String mCodecProfile;
 	private String mLanguage;
 	private String mTitle;
 
 	public TrackInfo() {
 		mId = -1;
 		mStreamIndex = -1;
-		mCodecName = "N/A";
-		mLanguage = "N/A";
-		mTitle = "N/A";
 	}
 
 	public void setId(int id) {
@@ -38,6 +36,14 @@ public class TrackInfo {
 
 	public String getCodecName() {
 		return mCodecName;
+	}
+	
+	public void setCodecProfile(String profile) {
+		mCodecProfile = profile;
+	}
+
+	public String getCodecProfile() {
+		return mCodecProfile;
 	}
 
 	public void setLanguage(String lang) {

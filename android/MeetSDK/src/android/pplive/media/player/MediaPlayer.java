@@ -215,11 +215,6 @@ public class MediaPlayer implements MediaPlayerInterface {
 	}
 	
 	private void setupMediaPlayer() throws IllegalStateException {
-		if (mPlayer != null) {
-		    LogUtils.error("MediaPlayer is already setup.");
-		    throw new IllegalStateException("MediaPlayer is already setup.");
-		}
-		
 		if (mPath == null) {
 		    LogUtils.error("Media Path is not set.");
 		    throw new IllegalStateException("Media Path is not set.");
@@ -230,14 +225,19 @@ public class MediaPlayer implements MediaPlayerInterface {
 		    throw new IllegalStateException("invalid DecodeMode");
 		}
 		
-		mPlayer = mDecodeMode.newInstance(this);
+		if (mPlayer == null) {
+			mPlayer = mDecodeMode.newInstance(this);
+		}
+		else {
+		    LogUtils.info("MediaPlayer is already setup.");
+		}
+		
+		if (null == mPlayer)
+			throw new IllegalStateException("failed to create new instance of MediaPlayer");
 		
 		// 2015.3.23 guoliangma move here to fix s39h cannot play pptv url problem
 		// setLooping called after setDataSource will throw (-38, 0) when using SystemPlayer
 		setLooping();
-		
-		if (null == mPlayer)
-			throw new IllegalStateException("failed to create new instance of MediaPlayer");
 		
 		try {
 			mPlayer.setDataSource(mPath);
@@ -959,6 +959,13 @@ public class MediaPlayer implements MediaPlayerInterface {
 		}
 		
 		return 0;
+	}
+	
+	public SystemMediaPlayer getSystemMediaPlayer() {
+		if (mPlayer != null && mPlayer instanceof SystemMediaPlayer)
+			return (SystemMediaPlayer) mPlayer;
+		
+		return null;
 	}
 	
 	// event
