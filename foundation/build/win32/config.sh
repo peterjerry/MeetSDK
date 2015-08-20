@@ -12,7 +12,7 @@ then
 echo "lite build"
 EXTRA_FF_BUILD_OPTION="\
 	--disable-decoders \
-	--enable-decoder=h263,h264,hevc,vp8,vp9,flv,mpeg1video,mpeg2video,mpeg4,ac3,aac,dca,mp1,mp2,mp3,rv30,rv40,cook,wmv1,wmv2,wmv3,wmv3image,vorbis,ape,flac,wmav1,wmav2,wmapro,mjpeg,msmpeg4v1,msmpeg4v2,msmpeg4v3,amrnb,amrwb,pcm_s16be,pcm_s16be_planar,pcm_s16le,pcm_s16le_planar,ass,dvbsub,dvdsub,mov_text,sami,srt,ssa,subrip,text \
+	--enable-decoder=h263,h264,hevc,vp8,vp9,flv,mpegvideo,mpeg1video,mpeg2video,mpeg4,ac3,aac,dca,mp1,mp2,mp3,rv30,rv40,cook,wmv1,wmv2,wmv3,wmv3image,vorbis,ape,flac,wmav1,wmav2,wmapro,mjpeg,msmpeg4v1,msmpeg4v2,msmpeg4v3,amrnb,amrwb,pcm_s16be,pcm_s16be_planar,pcm_s16le,pcm_s16le_planar,ass,dvbsub,dvdsub,mov_text,sami,srt,ssa,subrip,text \
 	--disable-demuxers \
 	--enable-demuxer=rm,mpegvideo,mjpeg,avi,h263,h264,hevc,matroska,dts,dtshd,aac,flv,mpegts,mpegps,mp4,m4v,mov,ape,hls,flac,rawvideo,realtext,rtsp,vc1,mp3,wav,asf \
 	--disable-parsers \
