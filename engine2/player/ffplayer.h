@@ -212,6 +212,7 @@ private:
 	int64_t get_external_clock();
 
 	void ResetStatics();
+	void ResetPendingState();
 	static int onAudioFrame(AVFrame *frame, void* opaque);
 	int onAudioFrameImpl(AVFrame *frame);
 private:

@@ -652,8 +652,12 @@ bool CtestSDLdlgDlg::start_player(const char *url)
 {
 	status_t status;
 
-	mPlayer = new FFPlayer;
-	mPlayer->setListener(this);
+	if (mPlayer == NULL) {
+		mPlayer = new FFPlayer;
+		mPlayer->setListener(this);
+	}
+	
+	mPlayer->reset();
 
 	char   name[128]  ={0};  
 	hostent*   pHost;  
@@ -705,8 +709,8 @@ void CtestSDLdlgDlg::stop_player()
 		LOGI("before call player stop");
 		mPlayer->stop();
 		LOGI("after call player stop");
-		delete mPlayer;
-		mPlayer = NULL;
+		//delete mPlayer;
+		//mPlayer = NULL;
 
 		if (mSurface2) {
 			SDL_FreeSurface(mSurface2);
@@ -1014,7 +1018,7 @@ bool CtestSDLdlgDlg::OnPrepared()
 	SDL_putenv(variable);
 #endif
 
-	if( SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_TIMER)) {
+	if ( SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_TIMER)) {
 		TCHAR msg[256] = {0};
 		wsprintf(msg, _T("Could not initialize SDL - %s\n"), SDL_GetError());
 		AfxMessageBox(msg);

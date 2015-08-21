@@ -266,15 +266,7 @@ FFPlayer::FFPlayer()
 	mSubtitleStreamIndex	= -1;
 	mSubtitles				= NULL;
 
-    mPrepareEventPending			= false;
-    mVideoEventPending				= false;
-    mStreamDoneEventPending			= false;
-	mBufferingUpdateEventPending	= false;
-    mSeekingEventPending			= false;
-    mAudioStatusEventPending		= false;
-    mBufferingStartEventPending		= false;
-    mBufferingEndEventPending		= false;
-    mSeekingCompleteEventPending	= false;
+	ResetPendingState();
 
 	mTotalStartTimeMs		= 0;
 	mGapStartTimeMs			= 0;
@@ -346,6 +338,19 @@ FFPlayer::~FFPlayer()
 	
     avformat_network_deinit();
 	LOGI("FFPlayer destructor finished");
+}
+
+void FFPlayer::ResetPendingState()
+{
+	mPrepareEventPending			= false;
+    mVideoEventPending				= false;
+    mStreamDoneEventPending			= false;
+	mBufferingUpdateEventPending	= false;
+    mSeekingEventPending			= false;
+    mAudioStatusEventPending		= false;
+    mBufferingStartEventPending		= false;
+    mBufferingEndEventPending		= false;
+    mSeekingCompleteEventPending	= false;
 }
 
 void FFPlayer::SwapResolution(int32_t *width, int32_t *height)
@@ -2484,16 +2489,17 @@ status_t FFPlayer::reset_l()
 {
 	LOGI("reset_l()");
 
-	if(stop_l() != OK)
+	if (stop_l() != OK)
         return ERROR;
 
-    if(mUri != NULL) {
+    if (mUri != NULL) {
         delete mUri;
         mUri = NULL;
     }
 
     mSurface = NULL;
     mPlayerStatus = MEDIA_PLAYER_IDLE;
+	ResetPendingState();
     return OK;
 }
 
