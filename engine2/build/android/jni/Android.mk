@@ -3,7 +3,7 @@ LOCAL_PATH := $(call my-dir)
 BUILD_OSLES				:= 1
 BUILD_NATIVEWINDOOW		:= 1
 #BUILD_RENDER_RGB565	:= 1
-#BUILD_PCM_DUMP			:= 1
+BUILD_PCM_DUMP			:= 1
 #BUILD_ONE_LIB			:= 1
 
 ifeq ($(TARGET_ARCH_ABI),armeabi)
@@ -74,8 +74,8 @@ ifeq ($(TARGET_ARCH_ABI),arm64-v8a)
 LOCAL_C_INCLUDES		+= $(LOCAL_PATH)/$(PLATFORMPATH)/libyuv/jni/include
 endif	
 	
-LOCAL_CFLAGS    		:= -Wall -DNDK_BUILD=1 -DUSE_NDK_SURFACE_REF -DUSE_AV_FILTER #-DTEST_PERFORMANCE -DTEST_PERFORMANCE_BITRATE -DUSE_TS_CONVERT -DNO_AUDIO_PLAY 
-MY_SRC_PLAYER_FILES 	:= ffstream.cpp audioplayer.cpp audiorender.cpp ffplayer.cpp ffrender.cpp filesource.cpp ffextractor.cpp #apFormatConverter.cpp
+LOCAL_CFLAGS    		:= -Wall -DNDK_BUILD=1 -DUSE_NDK_SURFACE_REF -DUSE_AV_FILTER -DTEST_PERFORMANCE -DTEST_PERFORMANCE_BITRATE -DUSE_TS_CONVERT #-DNO_AUDIO_PLAY 
+MY_SRC_PLAYER_FILES 	:= ffstream.cpp audioplayer.cpp audiorender.cpp ffplayer.cpp ffrender.cpp omxplayer.cpp filesource.cpp ffextractor.cpp apFormatConverter.cpp
 MY_SRC_PLATFORM_FILES	:= surface_android.cpp \
 	log_android.c packetqueue.cpp list.cpp loop.cpp utils.cpp
 MY_SRC_SOCKET_FILES		:= SimpleSocket.cpp ActiveSocket.cpp
@@ -120,7 +120,7 @@ LOCAL_STATIC_LIBRARIES 	:= ffmpeg cpufeatures
 ifdef BUILD_ONE_LIB
 LOCAL_CFLAGS			+= -DBUILD_ONE_LIB
 else
-LOCAL_LDLIBS 			:= -llog -lz -landroid -L$(FFMPEG_PATH)/lib
+LOCAL_LDLIBS 			:= -llog -lz -landroid -lOpenMAXAL -L$(FFMPEG_PATH)/lib
 ifdef BUILD_OSLES
 LOCAL_LDLIBS			+= -lOpenSLES
 endif

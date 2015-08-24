@@ -113,6 +113,9 @@
     <ClCompile Include="..\..\..\player\ffextractor.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\..\player\omxplayer.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="..\..\..\platform\nv12_rgb.S">

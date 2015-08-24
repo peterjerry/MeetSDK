@@ -19,6 +19,7 @@
 #include "subtitle.h"
 #include "cpuext.h" // for get_cpu_freq()
 #include "FFMediaExtractor.h" // for extractor
+#include "OMXMediaPlayer.h"
 #include "jniUtils.h"
 
 #define USE_NDK_SURFACE_REF
@@ -54,7 +55,7 @@ extern pthread_mutex_t sLock;
 
 static fields_t fields;
 static bool sInited = false;
-static PlatformInfo* gPlatformInfo = NULL;
+PlatformInfo* gPlatformInfo = NULL;
 static void* player_handle_software = NULL;
 
 // new
@@ -812,6 +813,8 @@ jboolean android_media_MediaPlayer_native_init(JNIEnv *env, jobject thiz)
 	if (fields.post_event == NULL)
 		jniThrowException(env, "java/lang/RuntimeException", "Can't find FFMediaPlayer.postEventFromNative");
 
+	init_omxplayer(env);
+
 #ifdef BUILD_ONE_LIB
 	getPlayerFun		= getPlayer;
 	releasePlayerFun	= releasePlayer;
@@ -934,6 +937,9 @@ static bool loadPlayerLib()
 #endif
 
 	if (!setup_extractor(*player_handle))
+		return false;
+
+	if (!setup_omxplayer(*player_handle))
 		return false;
 
 	PPLOGD("After init getPlayer()");

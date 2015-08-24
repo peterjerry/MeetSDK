@@ -100,6 +100,7 @@
     <ClCompile Include="..\meet\FFMediaPlayer.cpp" />
     <ClCompile Include="..\meet\jniUtils.cpp" />
     <ClCompile Include="..\meet\native_convert.cpp" />
+    <ClCompile Include="..\meet\OMXMediaPlayer.cpp" />
     <ClCompile Include="..\meet\pplog.cpp" />
     <ClCompile Include="..\meet\SimpleSubTitleParser.cpp" />
   </ItemGroup>

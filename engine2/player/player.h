@@ -351,6 +351,8 @@ extern "C" IPlayer* getPlayer(void* context);
 
 extern "C" void releasePlayer(IPlayer *player);
 
+extern "C" IPlayer* getOMXPlayer(void* context);
+
 extern "C" bool my_convert(uint8_t* flv_data, int flv_data_size, uint8_t* ts_data, int *out_size, int process_timestamp, int first_seg);
 
 #endif

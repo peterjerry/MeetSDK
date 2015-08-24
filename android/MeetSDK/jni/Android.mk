@@ -79,9 +79,9 @@ LOCAL_C_INCLUDES 		:= meet $(ENGINE_BASE) $(SUBTITLE_BASE)/output/android/includ
 ifdef BUILD_ONE_LIB
 LOCAL_CFLAGS    		+= -DBUILD_ONE_LIB
 endif
-#LOCAL_CFLAGS    		+= -DUSE_TS_CONVERT
-MY_SRC_FILES 			:= cpuext.cpp jniUtils.cpp FFMediaExtractor.cpp FFMediaPlayer.cpp
-#MY_SRC_FILES			+= native_convert.cpp
+LOCAL_CFLAGS    		+= -DUSE_TS_CONVERT
+MY_SRC_FILES 			:= cpuext.cpp jniUtils.cpp FFMediaExtractor.cpp FFMediaPlayer.cpp OMXMediaPlayer.cpp
+MY_SRC_FILES			+= native_convert.cpp
 LOCAL_SRC_FILES 		:= $(addprefix $(JNI_BASE)/, $(MY_SRC_FILES))
 LOCAL_STATIC_LIBRARIES 	:= pplog cpufeatures
 LOCAL_LDLIBS 			:= -llog

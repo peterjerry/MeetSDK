@@ -100,6 +100,18 @@ public class MediaPlayer implements MediaPlayerInterface {
                 holder.setFormat(PixelFormat.RGBA_8888);
             }
         },
+        HW_OMX {
+        	@Override
+            public MediaPlayerInterface newInstance(MediaPlayer mp) {
+            	LogUtils.info("player_select omxplayer");
+                return new OMXMediaPlayer(mp);
+            }
+        	
+            @Override
+            public void setSurfaceType(SurfaceHolder holder) {
+                holder.setType(SurfaceHolder.SURFACE_TYPE_PUSH_BUFFERS);
+            }
+        },
         AUTO, UNKNOWN;
 
         public MediaPlayerInterface newInstance(MediaPlayer mp) {
