@@ -10,14 +10,14 @@ int register_android_media_MediaPlayer(JNIEnv *env);
 
 void unload_player();
 
-class JNIMediaPlayerListener: public MediaPlayerListener
+class FFMediaPlayerListener: public MediaPlayerListener
 {
 	public:
-		JNIMediaPlayerListener(JNIEnv* env, jobject thiz, jobject weak_thiz);
-		~JNIMediaPlayerListener();
+		FFMediaPlayerListener(JNIEnv* env, jobject thiz, jobject weak_thiz);
+		~FFMediaPlayerListener();
 		void notify(int msg, int ext1, int ext2);
 	private:
-		JNIMediaPlayerListener();
+		FFMediaPlayerListener();
 		jclass      mClass;     // Reference to MediaPlayer class
 		jobject     mObject;    // Weak ref to MediaPlayer Java object to call on
 };

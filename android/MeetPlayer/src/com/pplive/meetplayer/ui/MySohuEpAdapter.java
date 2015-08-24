@@ -67,7 +67,6 @@ public class MySohuEpAdapter extends BaseAdapter {
 		private TextView title			= null;
 		private ImageView img			= null;
 		private TextView tip			= null;
-		private boolean imgDownloaded	= false;
 
 		public TextView getTitle() {
 			return title;
@@ -92,14 +91,6 @@ public class MySohuEpAdapter extends BaseAdapter {
 		public ImageView getImg() {
 			return img;
 		}
-
-		public void setDownloaded(boolean isDownloaded) {
-			this.imgDownloaded = isDownloaded;
-		}
-		
-		public boolean isDownloaded() {
-			return imgDownloaded;
-		}
 	}
 
 	@Override
@@ -112,15 +103,19 @@ public class MySohuEpAdapter extends BaseAdapter {
 		if (convertView == null) {
 			holder = new ViewHolder();
 			convertView = inflater.inflate(R.layout.gridview_item, null);
-			
-			holder.setTitle((TextView) convertView.findViewById(R.id.gridview_title));
-			holder.setTip((TextView) convertView.findViewById(R.id.gridview_tip));
-			holder.setImg((ImageView) convertView.findViewById(R.id.gridview_img));
-			
-			 RelativeLayout.LayoutParams params = (LayoutParams) holder.getImg().getLayoutParams();
-			 params.height	= dip2px(context, 200/*dip*/);
-			 holder.getImg().setLayoutParams(params);  
-			
+
+			holder.setTitle((TextView) convertView
+					.findViewById(R.id.gridview_title));
+			holder.setTip((TextView) convertView
+					.findViewById(R.id.gridview_tip));
+			holder.setImg((ImageView) convertView
+					.findViewById(R.id.gridview_img));
+
+			RelativeLayout.LayoutParams params = (LayoutParams) holder.getImg()
+					.getLayoutParams();
+			params.height = dip2px(context, 200/* dip */);
+			holder.getImg().setLayoutParams(params);
+
 			convertView.setTag(holder);
 		} else {
 			holder = (ViewHolder) convertView.getTag();
@@ -181,7 +176,6 @@ public class MySohuEpAdapter extends BaseAdapter {
 				}
 				
 				PicCacheUtil.addThumbnailToDiskCache(key, bmp);
-				mHolder.setDownloaded(true);
 			}
 			
 			return bmp;

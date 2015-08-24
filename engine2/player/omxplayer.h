@@ -9,6 +9,10 @@
 #include "player.h"
 #include "loop.h"
 
+// for native media
+#include <OMXAL/OpenMAXAL.h>
+#include <OMXAL/OpenMAXAL_Android.h>
+
 class OMXPlayer : public IPlayer, MediaPlayerListener
 {
 public:
@@ -65,6 +69,12 @@ private:
 		SEEKING_COMPLETE_EVENT,
 	};
 
+	static void StreamChangeCallback(XAStreamInformationItf caller,
+        XAuint32 eventId,
+        XAuint32 streamIndex,
+        void * pEventData,
+        void * pContext );
+
 	// event
 	class OMXPrepareEvent:public Event {
 	public:
@@ -88,6 +98,8 @@ private:
 	char *m_url;
 	MediaPlayerListener*	mListener;
 	EventLoop mMsgLoop;
+	int m_width;
+	int m_height;
 
 	bool mPrepareEventPending;
 };

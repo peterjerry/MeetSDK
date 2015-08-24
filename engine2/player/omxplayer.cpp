@@ -27,10 +27,6 @@ extern PlatformInfo* platformInfo;
 extern LogFunc pplog;
 #endif
 
-// for native media
-#include <OMXAL/OpenMAXAL.h>
-#include <OMXAL/OpenMAXAL_Android.h>
-
 // for native window JNI
 #include <android/native_window_jni.h>
 
@@ -159,14 +155,24 @@ status_t OMXPlayer::setVideoSurface(void* surface)
 {
 	LOGI("omxpalayer op setVideoSurface %p", surface);
 
+	if (surface == NULL)
+        return ERROR;
+
 	JNIEnv* env = NULL;
-    if (gs_jvm->GetEnv((void**) &env, JNI_VERSION_1_4) != JNI_OK) {
-		LOGE("GetEnv failed");
+    jint status;
+	status = gs_jvm->GetEnv((void**) &env, JNI_VERSION_1_4);
+	if (JNI_OK != status){
+		LOGE("GetEnv failed %d", status);
+		return ERROR;
+	}
+	
+	// obtain a native window from a Java surface
+    theNativeWindow = ANativeWindow_fromSurface(env, (jobject)surface);
+	if (!theNativeWindow) {
+		LOGE("failed to get window");
 		return ERROR;
 	}
 
-	// obtain a native window from a Java surface
-    theNativeWindow = ANativeWindow_fromSurface(env, (jobject)surface);
 	LOGI("get native window %p", theNativeWindow);
 	return OK;
 }
@@ -197,14 +203,24 @@ void OMXPlayer::postPrepareEvent_l()
 
 void OMXPlayer::onPrepare(void *opaque)
 {
-	OMXPlayer *ins= (OMXPlayer *)opaque;
+	OMXPlayer *ins = (OMXPlayer *)opaque;
 	if (ins)
 		ins->onPrepareImpl();
 }
 
 void OMXPlayer::onPrepareImpl()
 {
+	LOGI("onPrepareImpl()");
+
 	XAresult res;
+
+	// open the file to play
+    file = fopen(m_url, "rb");
+    if (file == NULL) {
+		LOGE("failed to open file %s", m_url);
+		notifyListener_l(MEDIA_ERROR, MEDIA_ERROR_FAIL_TO_OPEN);
+        return;
+    }
 
 	// configure data source
     XADataLocator_AndroidBufferQueue loc_abq = { XA_DATALOCATOR_ANDROIDBUFFERQUEUE, NB_BUFFERS };
@@ -233,6 +249,7 @@ void OMXPlayer::onPrepareImpl()
                            = {XA_IID_PLAY,     XA_IID_ANDROIDBUFFERQUEUESOURCE,
                                                XA_IID_STREAMINFORMATION};
 
+	LOGI("before create mediaplayer");
     // create media player
     res = (*engineEngine)->CreateMediaPlayer(engineEngine, &playerObj, &dataSrc,
             NULL, &audioSnk, &imageVideoSink, NULL, NULL,
@@ -245,6 +262,7 @@ void OMXPlayer::onPrepareImpl()
     res = (*playerObj)->Realize(playerObj, XA_BOOLEAN_FALSE);
     assert(XA_RESULT_SUCCESS == res);
 
+	LOGI("before get interface");
     // get the play interface
     res = (*playerObj)->GetInterface(playerObj, XA_IID_PLAY, &playerPlayItf);
     assert(XA_RESULT_SUCCESS == res);
@@ -271,11 +289,13 @@ void OMXPlayer::onPrepareImpl()
 
     // we want to be notified of the video size once it's found, so we register a callback for that
     res = (*playerStreamInfoItf)->RegisterStreamChangeCallback(playerStreamInfoItf,
-            StreamChangeCallback, NULL);
+            OMXPlayer::StreamChangeCallback, this);
     assert(XA_RESULT_SUCCESS == res);
 
+	LOGI("before enqueueInitialBuffers");
     // enqueue the initial buffers
     if (!enqueueInitialBuffers(JNI_FALSE)) {
+		notifyListener_l(MEDIA_ERROR, MEDIA_ERROR_FAIL_TO_OPEN);
         return;
     }
 
@@ -287,17 +307,18 @@ void OMXPlayer::onPrepareImpl()
     res = (*playerVolItf)->SetVolumeLevel(playerVolItf, 0);
     assert(XA_RESULT_SUCCESS == res);
 
-    // start the playback
+	// start the playback
+	LOGI("before start playback()");
     res = (*playerPlayItf)->SetPlayState(playerPlayItf, XA_PLAYSTATE_PLAYING);
         assert(XA_RESULT_SUCCESS == res);
 
+	LOGI("before notifyListener_l()");
 	notifyListener_l(MEDIA_INFO, MEDIA_INFO_TEST_PLAYER_TYPE, FF_PLAYER);
-
-	notifyListener_l(MEDIA_PREPARED);
 }
 
 void OMXPlayer::notifyListener_l(int msg, int ext1, int ext2)
 {
+	LOGI("notifyListener_l() %d %d %d", msg, ext1, ext2);
     if (mListener != NULL)
         mListener->notify(msg, ext1, ext2);
     else
@@ -368,11 +389,13 @@ status_t OMXPlayer::seekTo(int32_t msec)
 
 status_t OMXPlayer::getVideoWidth(int32_t* w)
 {
+	*w = m_width;
 	return OK;
 }
 
 status_t OMXPlayer::getVideoHeight(int32_t* h)
 {
+	*h = m_height;
 	return OK;
 }
 
@@ -440,6 +463,71 @@ status_t OMXPlayer::suspend()
 status_t OMXPlayer::resume()
 {
 	return OK;
+}
+
+// callback invoked whenever there is new or changed stream information
+void OMXPlayer::StreamChangeCallback(XAStreamInformationItf caller,
+        XAuint32 eventId,
+        XAuint32 streamIndex,
+        void * pEventData,
+        void * pContext )
+{
+    LOGI("StreamChangeCallback called for stream %u", streamIndex);
+    // pContext was specified as NULL at RegisterStreamChangeCallback and is unused here
+    assert(NULL == pContext);
+    switch (eventId) {
+      case XA_STREAMCBEVENT_PROPERTYCHANGE: {
+        /** From spec 1.0.1:
+            "This event indicates that stream property change has occurred.
+            The streamIndex parameter identifies the stream with the property change.
+            The pEventData parameter for this event is not used and shall be ignored."
+         */
+
+        XAresult res;
+        XAuint32 domain;
+        res = (*caller)->QueryStreamType(caller, streamIndex, &domain);
+        assert(XA_RESULT_SUCCESS == res);
+        switch (domain) {
+          case XA_DOMAINTYPE_VIDEO: {
+            XAVideoStreamInformation videoInfo;
+            res = (*caller)->QueryStreamInformation(caller, streamIndex, &videoInfo);
+            assert(XA_RESULT_SUCCESS == res);
+            LOGI("Found video size %u x %u, codec ID=%u, frameRate=%u, bitRate=%u, duration=%u ms",
+                        videoInfo.width, videoInfo.height, videoInfo.codecId, videoInfo.frameRate,
+                        videoInfo.bitRate, videoInfo.duration);
+			OMXPlayer *ins	= (OMXPlayer *)pContext;
+			ins->m_width	= videoInfo.width;
+			ins->m_height	= videoInfo.height;
+
+			ins->notifyListener_l(MEDIA_SET_VIDEO_SIZE, videoInfo.width, videoInfo.height);
+			ins->notifyListener_l(MEDIA_PREPARED);
+          } break;
+		  case XA_DOMAINTYPE_AUDIO: {
+			XAAudioStreamInformation audioInfo;
+            res = (*caller)->QueryStreamInformation(caller, streamIndex, &audioInfo);
+            assert(XA_RESULT_SUCCESS == res);
+            LOGI("Found audio codec ID=%u, channels=%u, sampleRate=%u, bitRate=%u, lang=%s, duration=%u ms",
+				audioInfo.codecId, audioInfo.channels,
+				audioInfo.sampleRate, audioInfo.bitRate, 
+				audioInfo.langCountry, audioInfo.duration);
+          } break;
+		  case XA_DOMAINTYPE_TIMEDTEXT: {
+			XATimedTextStreamInformation subtitleInfo;
+            res = (*caller)->QueryStreamInformation(caller, streamIndex, &subtitleInfo);
+            assert(XA_RESULT_SUCCESS == res);
+            LOGI("Found subtitle size %u x %u, codec ID=%u, lang=%s, duration=%u ms",
+				subtitleInfo.width, subtitleInfo.height,
+				subtitleInfo.langCountry, subtitleInfo.duration);
+          } break;
+          default:
+            fprintf(stderr, "Unexpected domain %u\n", domain);
+            break;
+        }
+      } break;
+      default:
+        fprintf(stderr, "Unexpected stream event ID %u\n", eventId);
+        break;
+    }
 }
 
 //////////////////////////////////////////////////////////////////
@@ -574,49 +662,6 @@ exit:
     ok = pthread_mutex_unlock(&mutex);
     assert(0 == ok);
     return XA_RESULT_SUCCESS;
-}
-
-
-// callback invoked whenever there is new or changed stream information
-static void StreamChangeCallback(XAStreamInformationItf caller,
-        XAuint32 eventId,
-        XAuint32 streamIndex,
-        void * pEventData,
-        void * pContext )
-{
-    LOGV("StreamChangeCallback called for stream %u", streamIndex);
-    // pContext was specified as NULL at RegisterStreamChangeCallback and is unused here
-    assert(NULL == pContext);
-    switch (eventId) {
-      case XA_STREAMCBEVENT_PROPERTYCHANGE: {
-        /** From spec 1.0.1:
-            "This event indicates that stream property change has occurred.
-            The streamIndex parameter identifies the stream with the property change.
-            The pEventData parameter for this event is not used and shall be ignored."
-         */
-
-        XAresult res;
-        XAuint32 domain;
-        res = (*caller)->QueryStreamType(caller, streamIndex, &domain);
-        assert(XA_RESULT_SUCCESS == res);
-        switch (domain) {
-          case XA_DOMAINTYPE_VIDEO: {
-            XAVideoStreamInformation videoInfo;
-            res = (*caller)->QueryStreamInformation(caller, streamIndex, &videoInfo);
-            assert(XA_RESULT_SUCCESS == res);
-            LOGV("Found video size %u x %u, codec ID=%u, frameRate=%u, bitRate=%u, duration=%u ms",
-                        videoInfo.width, videoInfo.height, videoInfo.codecId, videoInfo.frameRate,
-                        videoInfo.bitRate, videoInfo.duration);
-          } break;
-          default:
-            fprintf(stderr, "Unexpected domain %u\n", domain);
-            break;
-        }
-      } break;
-      default:
-        fprintf(stderr, "Unexpected stream event ID %u\n", eventId);
-        break;
-    }
 }
 
 // Enqueue the initial buffers, and optionally signal a discontinuity in the first buffer

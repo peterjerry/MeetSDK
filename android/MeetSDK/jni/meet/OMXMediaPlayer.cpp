@@ -64,6 +64,52 @@ bool init_omxplayer(JNIEnv *env)
 		jniThrowException(env, "java/lang/RuntimeException", "Can't find OMXMediaPlayer.postEventFromNative");
 }
 
+OMXMediaPlayerListener::OMXMediaPlayerListener(JNIEnv* env, jobject thiz, jobject weak_thiz)
+{
+	PPLOGD("OMXMediaPlayerListener constructor");
+
+	// Hold onto the MediaPlayer class for use in calling the static method
+	// that posts events to the application thread.
+	jclass clazz = env->GetObjectClass(thiz);
+	if (clazz == NULL) {
+		PPLOGE("Can't find android/pplive/media/player/OMXMediaPlayer");
+		jniThrowException(env, "java/lang/Exception", NULL);
+		return;
+	}
+	mClass = (jclass)env->NewGlobalRef(clazz);
+
+	// We use a weak reference so the MediaPlayer object can be garbage collected.
+	// The reference is only used as a proxy for callbacks.
+	mObject  = env->NewGlobalRef(weak_thiz);
+}
+
+OMXMediaPlayerListener::~OMXMediaPlayerListener()
+{
+	PPLOGD("OMXMediaPlayerListener destructor");
+	// remove global references
+	//JNIEnv *env = AndroidRuntime::getJNIEnv();
+	JNIEnv *env = getJNIEnvPP();
+	if (env) {
+		env->DeleteGlobalRef(mObject);
+		env->DeleteGlobalRef(mClass);
+	}
+	else {
+		PPLOGE("~OMXMediaPlayerListener() env is null");
+	}
+}
+
+void OMXMediaPlayerListener::notify(int msg, int ext1, int ext2)
+{
+	PPLOGI("notify() %d %d %d", msg, ext1, ext2);
+	JNIEnv *env = getAttachedJNIEnv();
+	if (env) {
+		env->CallStaticVoidMethod(mClass, fields.post_event, mObject, msg, ext1, ext2, 0);
+	}
+	else {
+		PPLOGE("notify() env is null");
+	}
+}
+
 /* Header for class android_pplive_media_player_OMXPlayer */
 
 #ifndef _Included_android_pplive_media_player_OMXPlayer
@@ -85,7 +131,7 @@ JNIEXPORT void JNICALL android_media_omxmediaplayer_setup
 	}
 
 	// create new listener and give it to MediaPlayer
-	JNIMediaPlayerListener * player_listener = new JNIMediaPlayerListener(env, thiz, weak_this);
+	OMXMediaPlayerListener * player_listener = new OMXMediaPlayerListener(env, thiz, weak_this);
 	//IPlayer takes responsibility to release listener.
 	mp->setListener(player_listener);
 
@@ -101,10 +147,22 @@ JNIEXPORT void JNICALL android_media_omxmediaplayer_setup
  * Method:    getVideoWidth
  * Signature: ()I
  */
-JNIEXPORT jint JNICALL Java_android_pplive_media_player_OMXPlayer_getVideoWidth
+//JNIEXPORT jint JNICALL Java_android_pplive_media_player_OMXPlayer_getVideoWidth
+JNIEXPORT jint JNICALL android_media_omxmediaplayer_getVideoWidth
   (JNIEnv *env, jobject thiz)
 {
-	return 0;
+	IPlayer* mp = getOMXMediaPlayer(env, thiz);
+	if (mp == NULL ) {
+		PPLOGE("player is null, getVideoWidth failed");
+		return 0;
+	}
+	int w;
+	if (0 != mp->getVideoWidth(&w)) {
+		PPLOGE("getVideoWidth failed");
+		w = 0;
+	}
+	PPLOGI("getVideoWidth: %d", w);
+	return w;
 }
 
 /*
@@ -112,10 +170,73 @@ JNIEXPORT jint JNICALL Java_android_pplive_media_player_OMXPlayer_getVideoWidth
  * Method:    getVideoHeight
  * Signature: ()I
  */
-JNIEXPORT jint JNICALL Java_android_pplive_media_player_OMXPlayer_getVideoHeight
+JNIEXPORT jint JNICALL android_media_omxmediaplayer_getVideoHeight
   (JNIEnv *env, jobject thiz)
 {
-	return 0;
+	IPlayer* mp = getOMXMediaPlayer(env, thiz);
+	if (mp == NULL ) {
+		PPLOGE("player is null, getVideoHeight failed");
+		return 0;
+	}
+	int h;
+	if (0 != mp->getVideoHeight(&h)) {
+		PPLOGE("getVideoHeight failed");
+		h = 0;
+	}
+	PPLOGI("getVideoHeight: %d", h);
+	return h;
+}
+
+JNIEXPORT jint JNICALL android_media_omxmediaplayer_getCurrentPosition
+	(JNIEnv *env, jobject thiz)
+{
+	IPlayer* mp = getOMXMediaPlayer(env, thiz);
+	if (mp == NULL ) {
+		PPLOGE("player is null, getVideoHeight failed");
+		return 0;
+	}
+	int msec;
+	if (0 != mp->getCurrentPosition(&msec)) {
+		PPLOGE("getCurrentPosition failed");
+		msec = 0;
+	}
+	PPLOGI("getCurrentPosition: %d", msec);
+	return msec;
+}
+
+JNIEXPORT jint JNICALL android_media_omxmediaplayer_getDuration
+	(JNIEnv *env, jobject thiz)
+{
+	IPlayer* mp = getOMXMediaPlayer(env, thiz);
+	if (mp == NULL ) {
+		PPLOGE("player is null, getDuration failed");
+		return 0;
+	}
+	int msec;
+	if (0 != mp->getDuration(&msec)) {
+		PPLOGE("getDuration failed");
+		msec = 0;
+	}
+	PPLOGI("getDuration: %d", msec);
+	return msec;
+}
+
+JNIEXPORT jint JNICALL android_media_omxmediaplayer_getBufferingTime
+	(JNIEnv *env, jobject thiz)
+{
+	IPlayer* mp = getOMXMediaPlayer(env, thiz);
+	if (mp == NULL ) {
+		PPLOGE("player is null, getBufferingTime failed");
+		return 0;
+	}
+	int msec;
+	if (0 != mp->getBufferingTime(&msec)) {
+		PPLOGE("getBufferingTime failed");
+		msec = 0;
+	}
+	PPLOGI("getBufferingTime: %d", msec);
+	return msec;
+
 }
 
 /*
@@ -243,6 +364,13 @@ static JNINativeMethod gOMXplayerMethods[] = {
 	{"_setVideoSurface",    "(Landroid/view/Surface;)V",					(void *)android_media_omxmediaplayer_setVideoSurface},
 	{"prepareAsync",        "()V",					(void *)android_media_omxmediaplayer_prepareAsync},
 	{"setOption",	"(Ljava/lang/String;)V",(void *)android_media_omxmediaplayer_setOption},
+
+	// get info
+	{"getVideoWidth",       "()I",					(void *)android_media_omxmediaplayer_getVideoWidth},
+	{"getVideoHeight",      "()I",					(void *)android_media_omxmediaplayer_getVideoHeight},
+	{"getCurrentPosition",  "()I",					(void *)android_media_omxmediaplayer_getCurrentPosition},
+	{"getDuration",         "()I",					(void *)android_media_omxmediaplayer_getDuration},
+	{"getBufferingTime", 	"()I",					(void *)android_media_omxmediaplayer_getBufferingTime},
 };
 
 static int register_android_media_omxplayer(JNIEnv *env)

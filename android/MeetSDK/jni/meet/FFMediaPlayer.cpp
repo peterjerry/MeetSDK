@@ -161,9 +161,9 @@ int getParcelFileDescriptorFDPP(JNIEnv* env, jobject object)
 	return env->GetIntField(object, descriptor);
 }
 
-JNIMediaPlayerListener::JNIMediaPlayerListener(JNIEnv* env, jobject thiz, jobject weak_thiz)
+FFMediaPlayerListener::FFMediaPlayerListener(JNIEnv* env, jobject thiz, jobject weak_thiz)
 {
-	PPLOGD("JNIMediaPlayerListener constructor");
+	PPLOGD("FFMediaPlayerListener constructor");
 
 	// Hold onto the MediaPlayer class for use in calling the static method
 	// that posts events to the application thread.
@@ -180,9 +180,9 @@ JNIMediaPlayerListener::JNIMediaPlayerListener(JNIEnv* env, jobject thiz, jobjec
 	mObject  = env->NewGlobalRef(weak_thiz);
 }
 
-JNIMediaPlayerListener::~JNIMediaPlayerListener()
+FFMediaPlayerListener::~FFMediaPlayerListener()
 {
-	PPLOGD("JNIMediaPlayerListener destructor");
+	PPLOGD("FFMediaPlayerListener destructor");
 	// remove global references
 	//JNIEnv *env = AndroidRuntime::getJNIEnv();
 	JNIEnv *env = getJNIEnvPP();
@@ -191,11 +191,11 @@ JNIMediaPlayerListener::~JNIMediaPlayerListener()
 		env->DeleteGlobalRef(mClass);
 	}
 	else {
-		PPLOGE("~JNIMediaPlayerListener() env is null");
+		PPLOGE("~FFMediaPlayerListener() env is null");
 	}
 }
 
-void JNIMediaPlayerListener::notify(int msg, int ext1, int ext2)
+void FFMediaPlayerListener::notify(int msg, int ext1, int ext2)
 {
 	JNIEnv *env = getJNIEnvPP();
 	if (env) {
@@ -494,7 +494,6 @@ int android_media_MediaPlayer_getVideoHeight(JNIEnv *env, jobject thiz)
 	PPLOGV("getVideoHeight: %d", h);
 	return h;
 }
-
 
 static
 int android_media_MediaPlayer_getCurrentPosition(JNIEnv *env, jobject thiz)
@@ -960,7 +959,7 @@ void android_media_MediaPlayer_native_setup(JNIEnv *env, jobject thiz, jobject w
 	}
 
 	// create new listener and give it to MediaPlayer
-	JNIMediaPlayerListener * player_listener = new JNIMediaPlayerListener(env, thiz, weak_this);
+	FFMediaPlayerListener * player_listener = new FFMediaPlayerListener(env, thiz, weak_this);
 	//IPlayer takes responsibility to release listener.
 	mp->setListener(player_listener);
 
@@ -987,7 +986,7 @@ void android_media_MediaPlayer_release(JNIEnv *env, jobject thiz)
 		}
     }
 
-	JNIMediaPlayerListener* player_listener = (JNIMediaPlayerListener *)env->GetLongField(thiz, fields.listener);
+	FFMediaPlayerListener* player_listener = (FFMediaPlayerListener *)env->GetLongField(thiz, fields.listener);
 	if (player_listener) {
 		delete player_listener;
 		player_listener = NULL;
