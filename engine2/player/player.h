@@ -14,7 +14,7 @@ class ISubtitles;
 #endif
 #include <stdlib.h> // for free
 
-#define MAX_CHANNEL_CNT 16
+#define MAX_CHANNEL_CNT 64
 #define SAFE_DELETE(p)       { if(p) { delete (p);     (p)=NULL; } }
 #define SAFE_FREE(p)       { if(p) { free (p);     (p)=NULL; } }
 
