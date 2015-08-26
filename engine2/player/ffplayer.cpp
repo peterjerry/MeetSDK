@@ -2252,12 +2252,12 @@ status_t FFPlayer::prepareVideo_l()
 	mVideoStream = mDataStream->getVideoStream();
 	if (mVideoStreamIndex == -1 || mVideoStream == NULL) {
         LOGI("No video stream");
-
+#ifdef USE_AVFILTER
 		if (audio_visual) {
 			// "showwaves=s=600x240:mode=line:rate=10"
 			// "showspectrum=mode=separate:color=intensity:slide=1:scale=cbrt:s=640x480"
 			// "showvolume=rate=5:c=VOLUME:f=20"
-			mFilterDescr[0] = "showwaves=s=640x480:mode=line:rate=10"; 
+            mFilterDescr[0] = "showwaves=s=640x480:mode=line:rate=10";
 			if (init_filters_audio(mFilterDescr)) {
 				mAudioFiltFrame = av_frame_alloc();
 				notifyListener_l(MEDIA_SET_VIDEO_SIZE, AUDIO_VISUAL_WIDTH, AUDIO_VISUAL_HEIGHT);
@@ -2281,6 +2281,9 @@ status_t FFPlayer::prepareVideo_l()
 		else {
 			notifyListener_l(MEDIA_SET_VIDEO_SIZE, 0, 0);
 		}
+#else
+        notifyListener_l(MEDIA_SET_VIDEO_SIZE, 0, 0);
+#endif
 
 		return OK;
 	}
