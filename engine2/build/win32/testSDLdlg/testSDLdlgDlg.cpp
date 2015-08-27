@@ -24,7 +24,11 @@
 
 #define SUB_FILE_PATH "E:\\QQDownload\\Manhattan.S01E08.720p.HDTV.x264-KILLERS\\1.ass"
 
+#ifdef USE_SDL2
+#pragma comment(lib, "sdl2")
+#else
 #pragma comment(lib, "sdl")
+#endif
 #pragma comment(lib, "libppbox")
 #pragma comment(lib, "libass")
 
@@ -93,8 +97,7 @@ const char* url_list[PROG_MAX_NUM] = {
 	_T("http://172.16.204.106/test/hls/600000/noend.m3u8"),
 	//_T("D:\\Archive\\media\\[圣斗士星矢Ω].[hysub]Saint.Seiya.Omega_11_[GB_mp4][480p].mp4"),
 	//_T("E:\\BaiduYunDownload\\第三季第八集.mkv"),
-	_T("D:\\Archive\\media\\test\\[任贤齐]-给你幸福.avi"),
-	//_T("E:\\BaiduYunDownload\\红猪.Porco.Rosso.1992.D9.3Audio.MiniSD-TLF.mkv"),
+	_T("E:\\BaiduYunDownload\\红猪.Porco.Rosso.1992.D9.3Audio.MiniSD-TLF.mkv"),
 	_T("D:\\Archive\\media\\mv\\G.NA_Secret.mp4"),
 
 	_T("http://zb.v.qq.com:1863/?progid=1975434150"),
@@ -123,7 +126,11 @@ const char *pptv_http_playlink_fmt = "http://%s:%d/play.m3u8?type=pplive3&playli
 const char *pptv_playlink_surfix = "%3Fft%3D1%26bwtype%3D0%26platform%3Dandroid3%26type%3Dphone.android.vip";
 const char *pptv_playlink_ppvod2_fmt = "http://%s:%d/record.m3u8?type=ppvod2&playlink=%s";
 
-void genHMSM(int total_msec, int *hour, int *minute, int *sec, int *msec);
+static void genHMSM(int total_msec, int *hour, int *minute, int *sec, int *msec);
+
+static char *localeToUTF8(char *src);
+static wchar_t* cstringToUnicode(char * aSrc);
+static CString ConvertUTF8toGB2312(const char *pData, size_t size);
 
 // 用于应用程序“关于”菜单项的 CAboutDlg 对话框
 
@@ -160,7 +167,7 @@ END_MESSAGE_MAP()
 
 CtestSDLdlgDlg::CtestSDLdlgDlg(CWnd* pParent /*=NULL*/)
 	: CDialogEx(CtestSDLdlgDlg::IDD, pParent), 
-	mPlayer(NULL), mSurface2(NULL), mrtspPort(0), mhttpPort(0), 
+	mPlayer(NULL), mrtspPort(0), mhttpPort(0), 
 	mFinished(false), mPaused(false), mPlayLive(false), mBuffering(false), mSeeking(false),
 	mBufferingOffset(0),
 	mWidth(0), mHeight(0), mDuration(0), mUsedAudioChannel(1),
@@ -170,7 +177,12 @@ CtestSDLdlgDlg::CtestSDLdlgDlg(CWnd* pParent /*=NULL*/)
 	mUserAddChnNum(0), 
 	mEPGQueryType(EPG_QUERY_CATALOG), mEPGValue(-1),
 	mSubtitleParser(NULL), 
-	mSubtitleStartTime(0), mSubtitleStopTime(0)
+	mSubtitleStartTime(0), mSubtitleStopTime(0), mSubtitleTextUtf8(NULL), mSubtitleUpdated(false), mGotSub(false),
+#ifdef USE_SDL2
+	mWindow(NULL), mRenderer(NULL)
+#else
+	mSurface2(NULL)
+#endif
 {
 	m_hIcon = AfxGetApp()->LoadIcon(IDR_MAINFRAME);
 }
@@ -479,18 +491,21 @@ void CtestSDLdlgDlg::OnTimer(UINT_PTR nIDEvent)
 
 	drawBuffering();
 
+#ifdef ENABLE_SUBTITLE
 	if (mSubtitleParser) {
 		STSSegment* segment = NULL;
-		char subtitleText[1024] = {0};
 
-		if (curr_pos > mSubtitleStopTime) {
+		if (curr_pos > mSubtitleStopTime && mSubtitleUpdated) {
+			mSubtitleUpdated = false;
+			Surface_setText(NULL);
+
+			mGotSub = false;
 			bool ret = mSubtitleParser->getNextSubtitleSegment(&segment);
-			
 			if (ret) {
-
+				mGotSub = true;
 				mSubtitleStartTime = segment->getStartTime();
 				mSubtitleStopTime = segment->getStopTime();
-				segment->getSubtitleText(subtitleText, 1024);
+				int len = segment->getSubtitleText(mSubtitleTextUtf8, 1024);
 				LOGI("%01d:%02d:%02d.%02d(%I64d)  --> %01d:%02d:%02d.%02d(%I64d)  %s",
 					int(mSubtitleStartTime/1000/3600), int(mSubtitleStartTime/1000%3600/60), 
 					int(mSubtitleStartTime/1000%60), int(mSubtitleStartTime%1000)/10,
@@ -498,16 +513,23 @@ void CtestSDLdlgDlg::OnTimer(UINT_PTR nIDEvent)
 					int(mSubtitleStopTime/1000/3600), int(mSubtitleStopTime/1000%3600/60), 
 					int(mSubtitleStopTime/1000%60), int(mSubtitleStopTime%1000)/10,
 					mSubtitleStopTime,
-					CW2A(CA2W(subtitleText, CP_UTF8)));
+					CW2A(CA2W(mSubtitleTextUtf8, CP_UTF8)));
 
-				mSubtitleText = CW2A(CA2W(subtitleText, CP_UTF8));
-				RECT rect;
-				GetClientRect(&rect);
-				rect.top = rect.bottom - 20;
-				InvalidateRect(&rect);
+				mSubtitleText = CW2A(CA2W(mSubtitleTextUtf8, CP_UTF8));
 			}
 		}
+
+		if (mGotSub && curr_pos >= mSubtitleStartTime && !mSubtitleUpdated) {
+			RECT rect;
+			GetClientRect(&rect);
+			rect.top = rect.bottom - 20;
+			//InvalidateRect(&rect);
+
+			Surface_setText(mSubtitleTextUtf8);
+			mSubtitleUpdated = true;
+		}
 	}
+#endif
 
 	CDialogEx::OnTimer(nIDEvent);
 }
@@ -657,7 +679,7 @@ bool CtestSDLdlgDlg::start_player(const char *url)
 		mPlayer->setListener(this);
 	}
 	
-	mPlayer->reset();
+	//mPlayer->reset();
 
 	char   name[128]  ={0};  
 	hostent*   pHost;  
@@ -684,6 +706,7 @@ bool CtestSDLdlgDlg::start_player(const char *url)
 	}
 #else
 	mPlayer->setISubtitle(mSubtitleParser);
+	mSubtitleTextUtf8 = new char[2048];
 #endif
 #endif
 
@@ -709,13 +732,8 @@ void CtestSDLdlgDlg::stop_player()
 		LOGI("before call player stop");
 		mPlayer->stop();
 		LOGI("after call player stop");
-		//delete mPlayer;
-		//mPlayer = NULL;
-
-		if (mSurface2) {
-			SDL_FreeSurface(mSurface2);
-			mSurface2 = NULL;
-		}
+		delete mPlayer;
+		mPlayer = NULL;
 	}
 
 	if (mSubtitleParser) {
@@ -724,6 +742,24 @@ void CtestSDLdlgDlg::stop_player()
 
 		mSubtitleStartTime = mSubtitleStopTime = 0;
 	}
+
+#ifdef USE_SDL2
+	/*if (mWindow)
+		SDL_DestroyWindow(mWindow);
+	if (mRenderer)
+		SDL_DestroyRenderer(mRenderer);
+	if (mTexture)
+		SDL_DestroyTexture(mTexture);*/
+#else
+	if (mSurface2) {
+		LOGI("free sdl surface");
+		SDL_FreeSurface(mSurface2);
+		mSurface2 = NULL;
+	}
+#endif
+
+	LOGI("SDL_Quit()");
+	SDL_Quit();
 }
 
 void CtestSDLdlgDlg::notify(int msg, int ext1, int ext2)
@@ -870,6 +906,8 @@ void CtestSDLdlgDlg::Seek(int msec)
 
 			if (mSubtitleParser) {
 				mSubtitleParser->seekTo(msec);
+
+				mSubtitleStopTime = 0;
 			}
 		}
 	}
@@ -997,6 +1035,8 @@ LRESULT CtestSDLdlgDlg::OnNotify(WPARAM wParam, LPARAM lParam)
 	return 0;
 }
 
+static bool g_inited = false;
+
 bool CtestSDLdlgDlg::OnPrepared()
 {
 	mBuffering = false;
@@ -1011,20 +1051,26 @@ bool CtestSDLdlgDlg::OnPrepared()
 
 	mProgress.SetPos(0);
 
+#ifndef USE_SDL2
 	char variable[256];
 	CWnd* pWnd = this->GetDlgItem(IDC_STATIC_RENDER);
 	sprintf_s(variable,"SDL_WINDOWID=0x%1x", pWnd->GetSafeHwnd());
 #ifdef SDL_EMBEDDED_WINDOW
 	SDL_putenv(variable);
 #endif
+#endif
 
-	if ( SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_TIMER)) {
+	if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_TIMER)) {
 		TCHAR msg[256] = {0};
 		wsprintf(msg, _T("Could not initialize SDL - %s\n"), SDL_GetError());
 		AfxMessageBox(msg);
 		LOGE(msg);
 		return false;
 	}
+
+#ifdef USE_SDL2
+	mWindow = SDL_CreateWindowFrom((void *)(GetDlgItem(IDC_STATIC_RENDER)->GetSafeHwnd()));
+#endif
 
 	// fix too big resolution
 	if (mWidth > MAX_DISPLAY_WIDTH) {
@@ -1069,6 +1115,21 @@ bool CtestSDLdlgDlg::OnPrepared()
 	new_h = rc.bottom - rc.top;
 	MoveWindow(rc.left, rc.top, new_w, new_h);
 
+#ifdef USE_SDL2
+	SDL_SetWindowSize(mWindow, mWidth, mHeight);
+	mRenderer = SDL_CreateRenderer(mWindow, -1, SDL_RENDERER_ACCELERATED );
+	mTexture = SDL_CreateTexture(mRenderer, SDL_PIXELFORMAT_ARGB8888, 
+		SDL_TEXTUREACCESS_STREAMING, mWidth, mHeight);
+
+	if (!mTexture) {
+		LOGE("Couldn't set create texture: %s", SDL_GetError());
+		return false;
+	}
+
+	SDL_SetRenderTarget(mRenderer, mTexture);
+
+	Surface_open3((void *)mWindow, (void *)mRenderer, (void *)mTexture);
+#else
 	mSurface2 = SDL_SetVideoMode(rect.w, rect.h, 32, 
 		SDL_HWSURFACE | SDL_DOUBLEBUF /*| SDL_RESIZABLE*/);
 	if (!mSurface2) {
@@ -1079,6 +1140,7 @@ bool CtestSDLdlgDlg::OnPrepared()
 	// way2
 	//SDL_Window * pWindow = SDL_CreateWindowFrom( (void *)( GetDlgItem(IDC_STATIC1)->GetSafeHwnd() ) );
 	Surface_open2((void *)mSurface2);
+#endif
 
 	mPlayer->start();
 	mDropFrames = 0;
@@ -1089,18 +1151,6 @@ bool CtestSDLdlgDlg::OnPrepared()
 	Invalidate();
 
 	return true;
-}
-
-void genHMSM(int total_msec, int *hour, int *minute, int *sec, int *msec)
-{
-	int tmp = total_msec;
-
-	*msec	= tmp % 1000;
-	tmp		= tmp / 1000; //around to sec
-	*hour	= tmp / 3600;
-	tmp		= tmp - 3600 * (*hour);
-	*minute	= tmp / 60;
-	*sec = tmp % 60;
 }
 
 void CtestSDLdlgDlg::thread_proc()
@@ -1252,14 +1302,8 @@ void CtestSDLdlgDlg::Cleanup()
 		mPlayer = NULL;
 	}
 
-	if (mSurface2) {
-		LOGI("free sdl surface");
-		SDL_FreeSurface(mSurface2);
-		mSurface2 = NULL;
-	}
-
-	LOGI("SDL_Quit()");
-	SDL_Quit();
+	if (mSubtitleTextUtf8)
+		delete(mSubtitleTextUtf8);
 
 	LOGI("PPBOX_StopP2PEngine()");
 	// fix me. would stuck
@@ -1511,4 +1555,83 @@ void CtestSDLdlgDlg::OnBnClickedButtonGetMediainfo()
 	}
 
 	FillMediaInfo(&info);
+}
+
+static void genHMSM(int total_msec, int *hour, int *minute, int *sec, int *msec)
+{
+	int tmp = total_msec;
+
+	*msec	= tmp % 1000;
+	tmp		= tmp / 1000; //around to sec
+	*hour	= tmp / 3600;
+	tmp		= tmp - 3600 * (*hour);
+	*minute	= tmp / 60;
+	*sec = tmp % 60;
+}
+
+static CString ConvertUTF8toGB2312(const char *pData, size_t size)
+{
+    size_t n = MultiByteToWideChar(CP_UTF8, 0, pData, (int)size, NULL, 0);
+    WCHAR *pChar = new WCHAR[n+1];
+
+    n = MultiByteToWideChar(CP_UTF8, 0, pData, (int)size, pChar, n);
+    pChar[n]=0;
+
+    n = WideCharToMultiByte(936, 0, pChar, -1, 0, 0, 0, 0);
+    char *p = new char[n+1];
+
+    n = WideCharToMultiByte(936, 0, pChar, -1, p, (int)n, 0, 0);
+    CString result(p);
+
+    delete []pChar;
+    delete []p;
+    return result;
+} 
+
+/*--------------------------------------------------------------------
+    函数名:    localeToUTF8
+    参  数:    char *src  C语言字符串
+    返回值: char * UTF8字符串
+    功  能:    将C语言字符串转换成UTF8字符串
+    备  注:
+----------------------------------------------------------------------*/
+static char *localeToUTF8(char *src)
+{
+    static char *buf = NULL;
+    wchar_t *unicode_buf;
+    int nRetLen;
+
+    if(buf){
+        free(buf);
+        buf = NULL;
+    }
+    nRetLen = MultiByteToWideChar(CP_ACP,0,src,-1,NULL,0);
+    unicode_buf = (wchar_t*)malloc((nRetLen+1)*sizeof(wchar_t));
+    MultiByteToWideChar(CP_ACP,0,src,-1,unicode_buf,nRetLen);
+    nRetLen = WideCharToMultiByte(CP_UTF8,0,unicode_buf,-1,NULL,0,NULL,NULL);
+    buf = (char*)malloc(nRetLen+1);
+    WideCharToMultiByte(CP_UTF8,0,unicode_buf,-1,buf,nRetLen,NULL,NULL);
+    free(unicode_buf);
+    return buf;
+}
+
+/*--------------------------------------------------------------------
+    函数名:    cstringToUnicode
+    参  数:    char *src  C语言字符串
+    返回值: wchar_t * Unicode字符串
+    功  能:    将c语言字符串转换成unicode字符串
+    备  注:
+----------------------------------------------------------------------*/
+static wchar_t* cstringToUnicode(char * aSrc)
+{
+    int size;
+    wchar_t *unicodestr = NULL;
+    if(!aSrc)
+    {
+        return NULL;
+    }
+    size=MultiByteToWideChar(CP_ACP,0,aSrc,-1,NULL,0);
+    unicodestr = (wchar_t *)malloc((size+1)*sizeof(wchar_t));
+    MultiByteToWideChar(CP_ACP,0,aSrc,-1,unicodestr,size);
+    return unicodestr;
 }

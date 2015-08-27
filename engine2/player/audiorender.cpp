@@ -265,7 +265,7 @@ status_t AudioRender::open(int sampleRate,
 	wanted_spec.userdata = this;
 
 	if (SDL_OpenAudio(&wanted_spec, &spec) < 0) {
-		LOGE("SDL_OpenAudio: %s", SDL_GetError());
+		LOGE("failed to SDL_OpenAudio(): %s", SDL_GetError());
 		return ERROR;
 	}
 
