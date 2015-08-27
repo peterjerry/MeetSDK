@@ -2258,6 +2258,7 @@ status_t FFPlayer::prepareVideo_l()
 	if (mVideoStreamIndex == -1 || mVideoStream == NULL) {
         LOGI("No video stream");
 
+#ifdef USE_AVFILTER
 		if (audio_visual) {
 			// "showwaves=s=600x240:mode=line:rate=10"
 			// "showspectrum=mode=separate:color=intensity:slide=1:scale=cbrt:s=640x480"
@@ -2286,7 +2287,9 @@ status_t FFPlayer::prepareVideo_l()
 		else {
 			notifyListener_l(MEDIA_SET_VIDEO_SIZE, 0, 0);
 		}
-
+#else
+		notifyListener_l(MEDIA_SET_VIDEO_SIZE, 0, 0);
+#endif
 		return OK;
 	}
 
@@ -3605,6 +3608,10 @@ bool FFPlayer::getCurrentMediaInfo(MediaInfo *info)
 			AVStream *stream = mMediaFile->streams[i];
 			AVCodecContext *codec_ctx = stream->codec;
 			int audio_index = info->audio_channels;
+			if (audio_index >= MAX_CHANNEL_CNT) {
+				LOGW("audio channel count exceed MAX_CHANNEL_CNT: %d", audio_index);
+				continue;
+			}
 
 			if (FF_PROFILE_UNKNOWN != codec_ctx->profile) {
 				LOGI("audio stream #%d:%d audiocodec_profile(profile) %d", i, audio_index, codec_ctx->profile);
@@ -3644,6 +3651,11 @@ bool FFPlayer::getCurrentMediaInfo(MediaInfo *info)
 		else if(mMediaFile->streams[i]->codec->codec_type == AVMEDIA_TYPE_SUBTITLE) {
 			AVStream* stream = mMediaFile->streams[i];
 			int subtitle_index = info->subtitle_channels;
+			if (subtitle_index >= MAX_CHANNEL_CNT) {
+				LOGW("subtitle channel count exceed MAX_CHANNEL_CNT: %d", subtitle_index);
+				continue;
+			}
+
 			info->subtitle_streamIndexs[subtitle_index] = i;
 			info->subtitlecodec_names[subtitle_index] = my_strdup(avcodec_get_name(stream->codec->codec_id));
 			getStreamLangTitle(&(info->subtitle_languages[subtitle_index]), &(info->subtitle_titles[subtitle_index]), i, stream);
@@ -3768,6 +3780,10 @@ bool FFPlayer::getMediaDetailInfo(const char* url, MediaInfo* info)
 			AVCodecContext *codec_ctx = stream->codec;
 
 			int audio_index = info->audio_channels;
+			if (audio_index >= MAX_CHANNEL_CNT) {
+				LOGW("audio channel count exceed MAX_CHANNEL_CNT: %d", audio_index);
+				continue;
+			}
 
 			if (FF_PROFILE_UNKNOWN != codec_ctx->profile) {
 				LOGI("audio stream #%d:%d audiocodec_profile(profile) %d", i, audio_index, codec_ctx->profile);
@@ -3807,6 +3823,11 @@ bool FFPlayer::getMediaDetailInfo(const char* url, MediaInfo* info)
 		else if(movieFile->streams[i]->codec->codec_type == AVMEDIA_TYPE_SUBTITLE) {
 			AVStream* stream = movieFile->streams[i];
 			int subtitle_index = info->subtitle_channels;
+			if (subtitle_index >= MAX_CHANNEL_CNT) {
+				LOGW("subtitle channel count exceed MAX_CHANNEL_CNT: %d", subtitle_index);
+				continue;
+			}
+
 			info->subtitle_streamIndexs[subtitle_index] = i;
 			info->subtitlecodec_names[subtitle_index] = my_strdup(avcodec_get_name(stream->codec->codec_id));
 			getStreamLangTitle(&(info->subtitle_languages[subtitle_index]), &(info->subtitle_titles[subtitle_index]), i, stream);
@@ -4003,15 +4024,6 @@ bool FFPlayer::getThumbnail(const char* url, MediaInfo* info)
 
 	if (url == NULL || info == NULL)
 		return false;
-
-    struct stat buf;
-    int32_t iresult = stat(url, &buf);
-    if (iresult == 0)
-        info->size_byte = buf.st_size;
-    else {
-		LOGE("failed to stat: %s", url);
-        return false;
-	}
 
 	int ret = 0;
 	int got_thumbnail = 0;

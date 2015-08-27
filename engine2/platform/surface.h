@@ -26,6 +26,7 @@ status_t Surface_open(void* surface, uint32_t frameWidth, uint32_t frameHeight, 
 status_t Surface_open3(void* window, void *renderer, void* texture);
 #else
 status_t Surface_open2(void* surf);
+status_t Surface_setText(char *text);
 #endif
 #endif
 

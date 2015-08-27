@@ -1070,7 +1070,7 @@ public class ClipListActivity extends Activity implements
 			mDecMode = DecodeMode.SW;
 		}
 		else if (4 == mPlayerImpl) {
-			mDecMode = DecodeMode.HW_OMX;
+			//mDecMode = DecodeMode.HW_OMX;
 		}
 		else {
 			Toast.makeText(ClipListActivity.this, "invalid player implement: " + Integer.toString(mPlayerImpl), 

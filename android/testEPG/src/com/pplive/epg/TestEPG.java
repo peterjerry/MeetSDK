@@ -38,6 +38,8 @@ public class TestEPG {
 		JFrame frame = new JFrame("电视鸭");
 		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
+		System.out.println("tm: " + System.currentTimeMillis());
+		
 		boolean useController = false;
 		
 		if (useController) {

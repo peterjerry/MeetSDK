@@ -360,7 +360,7 @@ AVFormatContext* FFStream::open(char* uri)
     }
 
 	if (strstr(uri, "appid%3DPPTVIBOBO") != NULL) {
-#if defined(_MSC_VER) && !defined(_DEBUG)
+#if defined(_MSC_VER) && !defined(_DEBUG) || defined(_DEBUG_FF)
 		mMovieFile->max_analyze_duration2 = AV_TIME_BASE * 10; // 10 sec for wrong header ts(more than 10 sec)
 #else
 		mMovieFile->max_analyze_duration = AV_TIME_BASE * 10; // 10 sec for wrong header ts(more than 10 sec)
