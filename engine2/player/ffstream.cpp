@@ -307,6 +307,13 @@ void FFStream::setISubtitle(ISubtitles* subtitle)
     mISubtitle = subtitle;
 }
 
+void FFStream::setBufferingSec(int sec) {
+	if (mUrlType != TYPE_LOCAL_FILE) {
+		mMinPlayBufferCount = sec * mFrameRate;
+		LOGI("set mMinPlayBufferCount to %d(frame_rate %d)", mMinPlayBufferCount, mFrameRate);
+	}
+}
+
 AVFormatContext* FFStream::open(char* uri)
 {
     AutoLock autoLock(&mLock);

@@ -94,7 +94,7 @@ LOCAL_MODULE 			:= meet
 include $(BUILD_SHARED_LIBRARY)
 
 #######################[libsubtitle-jni]#######################
-MY_PLATFORM_LIBPATH	= ../$(SUBTITLE_BASE)/output/android/libs/$(TARGET_ARCH_ABI)
+MY_PLATFORM_LIBPATH	= ../$(SUBTITLE_BASE)/output/android/lib/$(TARGET_ARCH_ABI)
 
 include $(CLEAR_VARS)
 LOCAL_SRC_FILES := $(MY_PLATFORM_LIBPATH)/libsubtitle.a

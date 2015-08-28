@@ -495,8 +495,7 @@ void CtestSDLdlgDlg::OnTimer(UINT_PTR nIDEvent)
 	if (mSubtitleParser) {
 		STSSegment* segment = NULL;
 
-		if (curr_pos > mSubtitleStopTime && mSubtitleUpdated) {
-			mSubtitleUpdated = false;
+		if (curr_pos > mSubtitleStopTime) {
 			Surface_setText(NULL);
 
 			mGotSub = false;
@@ -515,18 +514,17 @@ void CtestSDLdlgDlg::OnTimer(UINT_PTR nIDEvent)
 					mSubtitleStopTime,
 					CW2A(CA2W(mSubtitleTextUtf8, CP_UTF8)));
 
-				mSubtitleText = CW2A(CA2W(mSubtitleTextUtf8, CP_UTF8));
+				//mSubtitleText = CW2A(CA2W(mSubtitleTextUtf8, CP_UTF8));
 			}
 		}
 
-		if (mGotSub && curr_pos >= mSubtitleStartTime && !mSubtitleUpdated) {
+		if (mGotSub && curr_pos >= mSubtitleStartTime) {
 			RECT rect;
 			GetClientRect(&rect);
 			rect.top = rect.bottom - 20;
 			//InvalidateRect(&rect);
 
 			Surface_setText(mSubtitleTextUtf8);
-			mSubtitleUpdated = true;
 		}
 	}
 #endif
@@ -689,7 +687,7 @@ bool CtestSDLdlgDlg::start_player(const char *url)
 	LOGI("host_name %s, ip address %s", name, ip_addr);
 
 	char opt[128]  ={0};
-	sprintf(opt, "%s/9891", ip_addr);
+	sprintf(opt, "-dump_url %s/9891\nbuffer_sec 30\n-test2 bb", ip_addr);
 	LOGI("player option %s", opt);
 	mPlayer->set_opt(opt);
 
@@ -744,12 +742,12 @@ void CtestSDLdlgDlg::stop_player()
 	}
 
 #ifdef USE_SDL2
-	/*if (mWindow)
+	if (mWindow)
 		SDL_DestroyWindow(mWindow);
 	if (mRenderer)
 		SDL_DestroyRenderer(mRenderer);
 	if (mTexture)
-		SDL_DestroyTexture(mTexture);*/
+		SDL_DestroyTexture(mTexture);
 #else
 	if (mSurface2) {
 		LOGI("free sdl surface");
@@ -1068,10 +1066,6 @@ bool CtestSDLdlgDlg::OnPrepared()
 		return false;
 	}
 
-#ifdef USE_SDL2
-	mWindow = SDL_CreateWindowFrom((void *)(GetDlgItem(IDC_STATIC_RENDER)->GetSafeHwnd()));
-#endif
-
 	// fix too big resolution
 	if (mWidth > MAX_DISPLAY_WIDTH) {
 		mWidth	= MAX_DISPLAY_WIDTH;
@@ -1084,6 +1078,15 @@ bool CtestSDLdlgDlg::OnPrepared()
 		double ratio = (double)mHeight / MAX_DISPLAY_HEIGHT;
 		mWidth	= (int32_t)(mWidth / ratio);
 	}
+
+#ifdef USE_SDL2
+	CWnd *renderWnd = GetDlgItem(IDC_STATIC_RENDER);
+	RECT rcRender, rcMain;
+	GetWindowRect(&rcMain);
+	renderWnd->GetWindowRect(&rcRender);
+	renderWnd->MoveWindow(rcMain.left - rcRender.left + 50, rcRender.top - rcMain.top, mWidth, mHeight);
+	mWindow = SDL_CreateWindowFrom((void *)(renderWnd->GetSafeHwnd()));
+#endif
 
 	SDL_Rect rect;
 	rect.x = 0;
@@ -1113,10 +1116,10 @@ bool CtestSDLdlgDlg::OnPrepared()
 	int new_w, new_h;
 	new_w = rc.right - rc.left;
 	new_h = rc.bottom - rc.top;
-	MoveWindow(rc.left, rc.top, new_w, new_h);
+	MoveWindow(rc.left, rc.top, new_w, new_h + 50);
 
 #ifdef USE_SDL2
-	SDL_SetWindowSize(mWindow, mWidth, mHeight);
+	//SDL_SetWindowSize(mWindow, mWidth, mHeight);
 	mRenderer = SDL_CreateRenderer(mWindow, -1, SDL_RENDERER_ACCELERATED );
 	mTexture = SDL_CreateTexture(mRenderer, SDL_PIXELFORMAT_ARGB8888, 
 		SDL_TEXTUREACCESS_STREAMING, mWidth, mHeight);

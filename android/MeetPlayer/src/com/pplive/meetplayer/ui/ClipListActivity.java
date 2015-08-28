@@ -1126,7 +1126,7 @@ public class ClipListActivity extends Activity implements
 			
 			if (mAudioDst != null && !mAudioDst.isEmpty()) {
 				Log.i(TAG, "Java: set player option: " + mAudioDst);
-				mPlayer.setOption(mAudioDst);
+				mPlayer.setOption("-dump_url " + mAudioDst);
 			}
 			
 			if (path.startsWith("http://")) {

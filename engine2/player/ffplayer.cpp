@@ -287,8 +287,8 @@ FFPlayer::FFPlayer()
 	mSwsCtx			= NULL;
 
 #ifdef PCM_DUMP
-	mIpAddr			= NULL;
-	mPort			= 0;
+	mDumpUrl		= NULL;
+	mBufferingSec	= 0;
 #endif
 
 #ifdef USE_AV_FILTER
@@ -1669,20 +1669,46 @@ void FFPlayer::set_opt(const char *opt)
 {
 	LOGI("set_opt %s", opt);
 
+	const char *delim = "\n";
+    char *p = strtok((char *)opt, delim);
+    if (p) {
+		process_opt(p);
+	}
+
+    while((p = strtok(NULL, delim))) {
+        process_opt(p);
+	}
+}
+
+void FFPlayer::process_opt(char *opt)
+{
+	char *sep = strchr(opt, ' ');
+	if (sep) {
+		*sep = '\0';
+
+		char *key = opt;
+		char *value = sep + 1;
+		LOGI("one option %s = %s", key, value);
+		
 #ifdef PCM_DUMP
-	const char *p = strchr(opt, '/');
+		if (strcmp(key, "-dump_url") == 0) {
+			if (mDumpUrl)
+				free(mDumpUrl);
 
-	if (mIpAddr)
-		delete mIpAddr;
+			mDumpUrl = my_strdup(value);
+			LOGI("set_opt dump_url udp://%s", mDumpUrl);
 
-	int len = p - opt + 1;
-	mIpAddr = new char[len];
-	strncpy(mIpAddr, opt, len - 1);
-	mIpAddr[len-1] = '\0';
+		}
+		else if (strcmp(key, "-buffering_sec") == 0) {
+			mBufferingSec = atoi(value);
+			LOGI("set_opt buffering_sec %d", mBufferingSec);
 
-	mPort = atoi(p + 1);
-	LOGI("set_opt udp://%s:%d", mIpAddr, mPort);
+			if (mDataStream) {
+				mDataStream->setBufferingSec(mBufferingSec);
+			}
+		}
 #endif
+	}
 }
 
 bool FFPlayer::broadcast_refresh()
@@ -2218,7 +2244,7 @@ status_t FFPlayer::prepareAudio_l()
         if(codec_ctx->sample_rate > 0 && codec_ctx->channels > 0) {
             mAudioPlayer = new AudioPlayer(mDataStream, mAudioStream, mAudioStreamIndex);
 #ifdef PCM_DUMP
-			mAudioPlayer->set_dump(mIpAddr, mPort);
+			mAudioPlayer->set_dump(mDumpUrl);
 #endif
             LOGD("audio codec name:%s", codec->long_name);
         }

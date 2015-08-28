@@ -384,7 +384,7 @@ public class VideoPlayerActivity extends Activity implements Callback {
 		
 		String audio_opt = Util.readSettings(this, "last_audio_ip_port");
 		if (audio_opt != null && !audio_opt.isEmpty())
-			mVideoView.setOption(audio_opt);
+			mVideoView.setOption("-dump_url " + audio_opt);
 		
 		String schema = mUri.getScheme();
 		String path = null;

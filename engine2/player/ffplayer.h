@@ -215,6 +215,7 @@ private:
 	void ResetPendingState();
 	static int onAudioFrame(AVFrame *frame, void* opaque);
 	int onAudioFrameImpl(AVFrame *frame);
+	void process_opt(char *opt);
 private:
     char*				mUri;
 	FFSourceBase*		mSource;
@@ -389,8 +390,8 @@ private:
 	int64_t				mAVDiffMs;
 
 #ifdef PCM_DUMP
-	char*				mIpAddr;
-	int					mPort;
+	char*				mDumpUrl;
+	int					mBufferingSec;
 #endif
 
 #if USE_AV_FILTER

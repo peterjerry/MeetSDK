@@ -217,10 +217,14 @@ public class PPTVEpisodeActivity extends Activity {
 		.setItems(action, new DialogInterface.OnClickListener(){
 				public void onClick(DialogInterface dialog, int whichButton){
 					if (whichButton == 0) {
+						String title = (String)item.get("title");
 						String description = (String)item.get("desc");
+						String info = description;
+						if (info == null)
+							info = title;
 						new AlertDialog.Builder(PPTVEpisodeActivity.this)
 							.setTitle("专辑介绍")
-							.setMessage(description)
+							.setMessage(info)
 							.setPositiveButton("确定", null)
 							.show();
 					}

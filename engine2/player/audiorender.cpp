@@ -41,8 +41,7 @@ AudioRender::AudioRender()
 
 #ifdef PCM_DUMP
 	mEncoder	= NULL;
-	mIpAddr		= NULL;
-	mPort		= 0;
+	mDumpUrl	= NULL;
 #endif
 }
 
@@ -275,9 +274,9 @@ status_t AudioRender::open(int sampleRate,
 	mFifo.create(FIFO_BUFFER_SIZE);
 
 #ifdef PCM_DUMP
-	if (mIpAddr != NULL && mPort != 0) {
+	if (mDumpUrl != NULL) {
 		mEncoder = new apAudioEncoder();
-		if (!mEncoder->init(mIpAddr, mPort, mChannelsOutput, mSampleRateOutput, mSampleFormatOutput, 64000)) {
+		if (!mEncoder->init(mDumpUrl, mChannelsOutput, mSampleRateOutput, mSampleFormatOutput, 64000)) {
 			LOGW("failed to init audio encoder");
 			delete mEncoder;
 			mEncoder = NULL;
@@ -298,9 +297,9 @@ status_t AudioRender::open(int sampleRate,
 		return ERROR;
 
 #ifdef PCM_DUMP
-	if (mIpAddr != NULL && mPort != 0) {
+	if (mDumpUrl != NULL) {
 		mEncoder = new apAudioEncoder();
-		if (!mEncoder->init(mIpAddr, mPort, mChannelsOutput, mSampleRateOutput, mSampleFormatOutput, 64000)) {
+		if (!mEncoder->init(mDumpUrl, mChannelsOutput, mSampleRateOutput, mSampleFormatOutput, 64000)) {
 			LOGW("failed to init audio encoder");
 			delete mEncoder;
 			mEncoder = NULL;

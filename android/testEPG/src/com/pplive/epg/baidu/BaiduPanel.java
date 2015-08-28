@@ -83,7 +83,11 @@ public class BaiduPanel extends JPanel {
 	
 	private final static String ApiKey = "4YchBAkgxfWug3KRYCGOv8EK"; // from es explorer
 	
-	private final String BAIDU_PCS_AUTHORIZE;
+	private final String BAIDU_PCS_AUTHORIZE = "https://openapi.baidu.com/oauth/2.0" + 
+		"/authorize?response_type=token" + 
+		"&client_id=" + ApiKey + 
+		"&redirect_uri=oob&scope=netdisk";
+	
 	private final String BAIDU_PCS_LIST;
 	private final String BAIDU_PCS_META;
 	private final String BAIDU_PCS_DOWNLOAD;
@@ -111,6 +115,7 @@ public class BaiduPanel extends JPanel {
 	JTextPane editPath = new JTextPane();
 	JButton btnCreateFolder = new JButton("添加");
 	JButton btnDownload = new JButton("下载");
+	JButton btnYunDownload = new JButton("云存");
 	
 	boolean bDownloading = false;
 	boolean bInterrupt = false;
@@ -159,12 +164,7 @@ public class BaiduPanel extends JPanel {
 				}
 			}
 		}
-		
-		BAIDU_PCS_AUTHORIZE = BAIDU_PCS_PREFIX +
-				"authorize?response_type=token" + 
-				"&client_id=" + ApiKey + 
-				"&redirect_uri=oob&scope=netdisk";
-		
+
 		BAIDU_PCS_LIST = BAIDU_PCS_FILE_PREFIX + 
 				"?method=list" +
 				"&access_token=" + mbOauth + 
@@ -344,7 +344,6 @@ public class BaiduPanel extends JPanel {
 
 		});
 
-		editPath.setFont(f);
 		editPath.setBounds(20, 450, 200, 40);
 		editPath.setText("新建文件夹");
 	    this.add(editPath);
@@ -395,6 +394,18 @@ public class BaiduPanel extends JPanel {
 						e1.printStackTrace();
 					}
 				}
+			}
+		});
+		
+		btnYunDownload.setFont(f);
+		btnYunDownload.setBounds(410, 450, 80, 40);
+		btnYunDownload.setFont(f);
+		this.add(btnYunDownload);
+		btnYunDownload.addActionListener(new AbstractAction() {
+			public void actionPerformed(ActionEvent e) {
+				//"http://dlsw.baidu.com/sw-search-sp/soft/cc/13478/npp_V6.8.2_Installer.1440141668.exe"
+				String download_url = editPath.getText();
+				add_cloud_dl(download_url);
 			}
 		});
 		
@@ -855,63 +866,67 @@ public class BaiduPanel extends JPanel {
 		return null;
 	}
 	
-	private boolean add_cloud_dl(String source_url, String save_path) {
-		String encoded_path = null;
-		try {
-			encoded_path = URLEncoder.encode(save_path, "utf-8");
-		}
-		catch (UnsupportedEncodingException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-			return false;
-		}
-		
+	private boolean add_cloud_dl(String source_url) {	
 		List<BasicNameValuePair> params = new ArrayList<BasicNameValuePair>();
 		params.add(new BasicNameValuePair("method", "add_task"));
 		params.add(new BasicNameValuePair("access_token", mbOauth));
 		params.add(new BasicNameValuePair("source_url", source_url));
-		params.add(new BasicNameValuePair("save_path", "/"));
+		
+		// ed2k://|file|[www.ed2kers.com]TLF-VIDEO-04.12.14.The.Maze.Runner.(2014).iNT
+		// .BDRip.720p.AC3.X264-TLF.mkv|2094704851|E30B41BAFE4D3056AF027232A7FEF3A6
+		// |h=JD2TWIEK2PLEMO3ENWF3FCS5RF6W5MBF|/
+		String save_path = "/apps/pcstest_oauth/";
+		if (source_url.startsWith("ed2k://")) {
+			int pos = source_url.indexOf("|file|");
+			int pos2 = source_url.indexOf("|", pos + "|file|".length());
+			save_path += source_url.substring(pos + "|file|".length(), pos2);
+		}
+		else {
+			save_path += "123.exe";
+		}
+		
+		System.out.println("save_path: " + save_path);
+		
+		params.add(new BasicNameValuePair("save_path", save_path));
 		params.add(new BasicNameValuePair("type", "0"));
-		/*params.add(new BasicNameValuePair("v", "1"));
-		params.add(new BasicNameValuePair("rate_limit", "100"));
+		params.add(new BasicNameValuePair("v", "1"));
+		/*params.add(new BasicNameValuePair("rate_limit", "100"));
 		params.add(new BasicNameValuePair("timeout", "100"));
 		params.add(new BasicNameValuePair("callback", "www.baidu.com"));*/
 		
-		//String url = "https://pcs.baidu.com/rest/2.0/pcs/services/cloud_dl?" + 
-		//		buildParams(params);
 		String url = "https://pcs.baidu.com/rest/2.0/pcs/services/cloud_dl?" + 
+				buildParams(params);
+		/*String url = "https://pcs.baidu.com/rest/2.0/pcs/services/cloud_dl?" + 
 				"method=add_task" + "&access_token=" + mbOauth +
 				"&source_url=" + "http://6.jsdx3.crsky.com/201107/winzip150zh.exe" + 
 				"&save_path=" + encoded_path + 
-				"&type=0";
+				"&type=0";*/
 
 		System.out.println("Java: add_cloud_dl() " + url);
 
 		// 把请求的数据，添加到NameValuePair中
-		NameValuePair nameValuePair1 = new BasicNameValuePair("method",
+		/*NameValuePair nameValuePair1 = new BasicNameValuePair("method",
 				"add_task");
 		NameValuePair nameValuePair2 = new BasicNameValuePair("source_url",
 				"http://dlsw.baidu.com/sw-search-sp/soft/da/17519/BaiduYunGuanjia_5.2.7_setup.1430884921.exe");
-		NameValuePair nameValuePair3 = new BasicNameValuePair("save_path", "/");
+		NameValuePair nameValuePair3 = new BasicNameValuePair("save_path", "/apps/pcstest_oauth/123.exe");
 		NameValuePair nameValuePair4 = new BasicNameValuePair("type", "0");
 		NameValuePair nameValuePair5 = new BasicNameValuePair("access_token", mbOauth);
-		
 
 		List<NameValuePair> list = new ArrayList<NameValuePair>();
 		list.add(nameValuePair1);
 		list.add(nameValuePair2);
 		list.add(nameValuePair3);
 		list.add(nameValuePair4);
-		list.add(nameValuePair5);
+		list.add(nameValuePair5);*/
 		
 		HttpResponse response;
 		
 		try {
-			HttpEntity requesthttpEntity = new UrlEncodedFormEntity(list);
+			//HttpEntity requesthttpEntity = new UrlEncodedFormEntity(list);
 			
-			HttpPost httppost = new HttpPost(
-					"https://pcs.baidu.com/rest/2.0/pcs/services/cloud_dl");
-			httppost.setEntity(requesthttpEntity);
+			HttpPost httppost = new HttpPost(url);
+			//httppost.setEntity(requesthttpEntity);
 			
 			response = HttpClients.createDefault().execute(httppost);
 			if (response.getStatusLine().getStatusCode() != 200){

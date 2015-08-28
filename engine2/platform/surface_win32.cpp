@@ -36,6 +36,7 @@ SDL_Surface*	g_surface	= NULL;
 #ifdef ENABLE_SUBTITLE
 TTF_Font*		g_font		= NULL;
 char*			g_text		= NULL;
+SDL_mutex*		g_mutex		= NULL;
 #endif
 
 char*			g_pData		= NULL;
@@ -82,6 +83,8 @@ status_t Surface_open3(void* window, void *renderer, void* texture)
     }    
 
 	TTF_SetFontStyle(g_font, TTF_STYLE_BOLD); 
+
+	g_mutex = SDL_CreateMutex();
 #endif
 
 	return OK;
@@ -101,6 +104,7 @@ status_t Surface_open2(void* surf)
 #ifdef ENABLE_SUBTITLE
 status_t Surface_setText(char *text)
 {
+	SDL_LockMutex(g_mutex);
 	if (g_text) {
 		free(g_text);
 		g_text = NULL;
@@ -108,6 +112,7 @@ status_t Surface_setText(char *text)
 
 	if (text)
 		g_text = _strdup(text);
+	SDL_UnlockMutex(g_mutex);
 	return OK;
 }
 #endif
@@ -153,8 +158,9 @@ status_t Surface_updateSurface()
 #endif
 
 #ifdef ENABLE_SUBTITLE
+	SDL_LockMutex(g_mutex);
 	if (g_text) {
-		int offset = 50;
+		int offset = 10;
 		for (unsigned int i = 0;i<strlen(g_text);i++) {
 			if (g_text[i] == '\n')
 				offset += TTF_FontHeight(g_font);
@@ -201,6 +207,7 @@ status_t Surface_updateSurface()
 			}
 		}
 	}
+	SDL_UnlockMutex(g_mutex);
 #endif
 
 	SDL_RenderPresent(g_renderer);
@@ -227,6 +234,8 @@ status_t Surface_close()
 
 #if defined(USE_SDL2) && defined(ENABLE_SUBTITLE)
 	TTF_Quit();
+
+	SDL_DestroyMutex(g_mutex);
 #endif
 
     return OK;
