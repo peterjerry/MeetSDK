@@ -36,7 +36,7 @@ case $1 in
 		EXTRA_LDFLAGS="-Wl,--fix-cortex-a8 -Lthirdparty/lenthevcdec/lib/armeabi-v7a"
 		EXTRA_PARAMETERS="--cpu=$CPU --disable-debug --disable-fast-unaligned --disable-armv6 --disable-armv6t2"
 		;;
-	arm64)
+	arm64-v8a)
 		ARCH=arm64
 		EXTRA_PARAMETERS="--disable-debug --disable-fast-unaligned --disable-armv6 --disable-armv6t2"
 		;;
