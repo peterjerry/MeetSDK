@@ -74,6 +74,7 @@ public class BaiduPanel extends JPanel {
 	private final static int ONE_GIGABYTE = (ONE_MAGABYTE * ONE_KILOBYTE);
 	
 	private static String exe_vlc = "D:/Program Files/vlc-3.0.0/vlc.exe";
+	private static String exe_foobar = "D:/Program Files/Foobar2000/foobar2000.exe";
 	private static String exe_ffplay = "D:/Program Files/ffmpeg/ffplay.exe";
 	
 	private final String BAIDU_PCS_PREFIX = "https://pcs.baidu.com/rest/2.0/pcs";
@@ -102,8 +103,9 @@ public class BaiduPanel extends JPanel {
 	JButton btnUp	 	= new JButton("...");
 	JButton btnReset 	= new JButton("重置");
 	JButton btnAuth 	= new JButton("认证");
+	JButton btnPlay		= new JButton("播放");
 	
-	JLabel lblRootPath = new JLabel("info");
+	JLabel lblRootPath	= new JLabel("info");
 	JComboBox<String> comboListBy 		= null;
 	
 	JList<String> listItem 				= null;
@@ -159,6 +161,10 @@ public class BaiduPanel extends JPanel {
 					exe_vlc = value;
 					System.out.println("Java: set vlc path to " + exe_vlc);
 				}
+				else if (key.equals("foobar_path")) {
+					exe_foobar = value;
+					System.out.println("Java: set foobar path to " + exe_foobar);
+				}
 				else {
 					System.out.println("Java: unknown key " + key);
 				}
@@ -201,7 +207,7 @@ public class BaiduPanel extends JPanel {
 		listItem.setFont(f);
 		listModel = new DefaultListModel<String>();
 		listItem.setModel(listModel);
-		listItem.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+		listItem.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
 		listItem.addMouseListener(new MouseAdapter(){
 			@Override
 			public void mouseClicked(MouseEvent event) {
@@ -227,28 +233,15 @@ public class BaiduPanel extends JPanel {
 								return;
 							}
 							else {
-								try {
-									String encoded_path = URLEncoder.encode(path, "utf-8");
-
-									String url = BAIDU_PCS_DOWNLOAD + encoded_path;
-									System.out.println("ready to play url: " + url);
-									lblInfo.setText("ready to play url: " + url);
-									
-									String exe_path = exe_vlc;
-									if (!cbUseVLC.isSelected())
-										exe_path = exe_ffplay;
-									String[] cmd = new String[] {exe_path, url};
-									openExe(cmd);
-								} catch (UnsupportedEncodingException e) {
-									// TODO Auto-generated catch block
-									e.printStackTrace();
-								}
+								play_url(path);
 							}
 						}
 					}
 				}
 				else if (event.getClickCount() == 1) {
-					showInfo(index);
+					FileInfoThread myThread = new FileInfoThread(index);
+					Thread t = new Thread(myThread);
+					t.start();
 				}
 			}
 		});
@@ -300,12 +293,88 @@ public class BaiduPanel extends JPanel {
 			}
 		});
 		
+		btnPlay.setBounds(520, 80, 80, 40);
+		btnPlay.setFont(f);
+		this.add(btnPlay);
+		
+		btnPlay.addActionListener(new AbstractAction() {
+			public void actionPerformed(ActionEvent e) {
+				int[] indices = listItem.getSelectedIndices();
+				if (indices == null)
+					return;
+				
+				System.out.println("Java selected indices length " + indices.length);
+				
+				if (indices.length == 1) {
+					Map<String, Object> fileinfo = mFileList.get(indices[0]);
+					boolean isdir = (Boolean) fileinfo.get("isdir");
+					String path = (String) fileinfo.get("path");
+					if (!isdir)
+						play_url(path);
+				}
+				else if (indices.length > 1) {
+					String first_filename = "";
+					
+					try {
+						File file=new File("playlist.m3u");
+				        if (!file.exists())
+				        	file.createNewFile();
+				        FileOutputStream out = new FileOutputStream(file,false); //如果追加方式用true
+				        out.write("#EXTM3U\n".getBytes("utf-8"));
+				        
+				        for (int i=0;i<indices.length;i++) {
+							int index = indices[i];
+							Map<String, Object> fileinfo = mFileList.get(index);
+							boolean isdir = (Boolean) fileinfo.get("isdir");
+							String path = (String) fileinfo.get("path");
+							
+							if (i == 0)
+								first_filename = path.toLowerCase();
+							
+							if (!isdir) {
+								StringBuffer sb = new StringBuffer();
+								sb.append("#EXTINF:song #");
+								sb.append(i);
+								sb.append(", ");
+								sb.append(path);
+								sb.append("\n");
+								
+								String encoded_path = URLEncoder.encode(path, "utf-8");
+								String url = BAIDU_PCS_DOWNLOAD + encoded_path;
+								sb.append(url);
+								sb.append("\n");
+								
+						        out.write(sb.toString().getBytes("utf-8"));//注意需要转换对应的字符集
+							}
+						}
+				        
+				        out.close();
+					} catch (IOException e1) {
+						// TODO Auto-generated catch block
+						e1.printStackTrace();
+						return;
+					}
+					
+					String exe_path = exe_vlc;
+					if (first_filename.endsWith(".mp3") || 
+							first_filename.endsWith(".flac") ||
+							first_filename.endsWith(".ape") ||
+							first_filename.endsWith(".ogg") ||
+							first_filename.endsWith(".wav")) {
+						exe_path = exe_foobar;
+					}
+					String[] cmd = new String[] {exe_path, "playlist.m3u"};
+					openExe(cmd);
+				}
+			}
+		});
+		
 		lblImage.setBounds(430, 200, 192, 192);
 		this.add(lblImage);
 		
 		comboListBy = new JComboBox<String>(list_by_desc);
 		comboListBy.setFont(f);
-		comboListBy.setBounds(430, 150, 80, 40);
+		comboListBy.setBounds(430, 80, 80, 40);
 		comboListBy.setSelectedIndex(0);
 		this.add(comboListBy);
 		
@@ -438,6 +507,32 @@ public class BaiduPanel extends JPanel {
 		this.add(lblInfo);
 		
 		init_combobox();
+	}
+	
+	private void play_url(String path) {
+		try {
+			String encoded_path = URLEncoder.encode(path, "utf-8");
+
+			String url = BAIDU_PCS_DOWNLOAD + encoded_path;
+			System.out.println("ready to play url: " + url);
+			lblInfo.setText("ready to play url: " + url);
+			
+			String exe_path = exe_vlc;
+			if (!cbUseVLC.isSelected())
+				exe_path = exe_ffplay;
+			if (path.toLowerCase().endsWith(".mp3") || 
+					path.toLowerCase().endsWith(".flac") ||
+					path.toLowerCase().endsWith(".ape") ||
+					path.toLowerCase().endsWith(".ogg") ||
+					path.toLowerCase().endsWith(".wav")) {
+				exe_path = exe_foobar;
+			}
+			String[] cmd = new String[] {exe_path, url};
+			openExe(cmd);
+		} catch (UnsupportedEncodingException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 	}
 	
 	private class MyRender extends JLabel implements ListCellRenderer<String> {
@@ -1004,6 +1099,21 @@ public class BaiduPanel extends JPanel {
 			strSize = String.format("%d Byte", size);
 		return strSize;
     }
+	
+	private class FileInfoThread implements Runnable {
+		private int mIndex;
+		
+		FileInfoThread(int index) {
+			mIndex = index;
+		}
+		
+		@Override
+		public void run() {
+			// TODO Auto-generated method stub
+			showInfo(mIndex);
+		}
+		
+	};
 	
 	private void openExe(String... params) {
 		Runtime rn = Runtime.getRuntime();

@@ -1133,6 +1133,7 @@ bool CtestSDLdlgDlg::OnPrepared()
 
 	Surface_open3((void *)mWindow, (void *)mRenderer, (void *)mTexture);
 #else
+	// sdl1 use rect's resolution as width and height
 	mSurface2 = SDL_SetVideoMode(rect.w, rect.h, 32, 
 		SDL_HWSURFACE | SDL_DOUBLEBUF /*| SDL_RESIZABLE*/);
 	if (!mSurface2) {
