@@ -39,7 +39,7 @@ public class TabbedPaneDemo extends JPanel {
        PPTVPanel pptvPanel = new PPTVPanel();
        //LeTVPanel letvPanel = new LeTVPanel();
        //VstPanel vstPanel = new VstPanel();
-       BestvPanel bestvPanel = new BestvPanel();
+       //BestvPanel bestvPanel = new BestvPanel();
        SohuPanel sohuPanel = new SohuPanel();
        BaiduPanel baiduPanel = new BaiduPanel();
        

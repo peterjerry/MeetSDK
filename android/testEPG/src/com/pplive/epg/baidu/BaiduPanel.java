@@ -1,7 +1,21 @@
 package com.pplive.epg.baidu;
 
 import javax.imageio.ImageIO;
-import javax.swing.*;
+import javax.swing.AbstractAction;
+import javax.swing.DefaultListModel;
+import javax.swing.ImageIcon;
+import javax.swing.JButton;
+import javax.swing.JCheckBox;
+import javax.swing.JComboBox;
+import javax.swing.JLabel;
+import javax.swing.JList;
+import javax.swing.JMenuItem;
+import javax.swing.JPanel;
+import javax.swing.JPopupMenu;
+import javax.swing.JScrollPane;
+import javax.swing.JTextPane;
+import javax.swing.ListCellRenderer;
+import javax.swing.ListSelectionModel;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 import javax.swing.event.ListSelectionEvent;
@@ -23,7 +37,6 @@ import org.json.JSONException;
 import org.json.JSONObject;
 import org.json.JSONTokener;
 
-import com.pplive.epg.boxcontroller.Code;
 import com.pplive.epg.util.Util;
 
 import java.awt.Color;
@@ -42,12 +55,7 @@ import java.io.FilenameFilter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.io.OutputStream;
 import java.io.UnsupportedEncodingException;
-import java.net.InetSocketAddress;
-import java.net.MalformedURLException;
-import java.net.Socket;
-import java.net.SocketTimeoutException;
 import java.net.URI;
 import java.net.URL;
 import java.net.URLConnection;
@@ -66,6 +74,9 @@ public class BaiduPanel extends JPanel {
 	
 	private String mbOauth 		= "23.48f0a3ad0fe8b41428000bb0509f1fb2.2592000.1441874259.184740130-266719";
 	private String mbRootPath 	=  "/我的视频";
+	private String mChildPath;
+	private String mOperatePath;
+	private boolean mIsCopy	= false;
 	private String list_by 		= "time"; // "name" "size"
 	private String list_order 	= "desc"; // "asc"
 	
@@ -94,6 +105,10 @@ public class BaiduPanel extends JPanel {
 	private final String BAIDU_PCS_DOWNLOAD;
 	private final String BAIDU_PCS_STREAMING;
 	private final String BAIDU_PCS_THUMBNAIL;
+	private final String BAIDU_PCS_MOVE;
+	private final String BAIDU_PCS_COPY;
+	private final String BAIDU_PCS_MKDIR;
+	private final String BAIDU_PCS_DELETE;
 	private final String BAIDU_PCS_CLOUD_DL;
 
 	private final static String[] list_by_desc = {"按时间", "按名称", "按大小"}; //time" "name" "size"
@@ -104,6 +119,8 @@ public class BaiduPanel extends JPanel {
 	JButton btnReset 	= new JButton("重置");
 	JButton btnAuth 	= new JButton("认证");
 	JButton btnPlay		= new JButton("播放");
+	JButton btnPaste	= new JButton("粘贴");
+	JButton btnDelete	= new JButton("删除");
 	
 	JLabel lblRootPath	= new JLabel("info");
 	JComboBox<String> comboListBy 		= null;
@@ -111,6 +128,10 @@ public class BaiduPanel extends JPanel {
 	JList<String> listItem 				= null;
 	DefaultListModel<String> listModel 	= null;
 	JScrollPane scrollPane				= null;
+	
+	JPopupMenu jPopupMenu				= null;
+	JMenuItem menuItemCut				= null;
+	JMenuItem menuItemCopy				= null;
 	
 	JLabel lblImage = new JLabel();
 	
@@ -194,6 +215,24 @@ public class BaiduPanel extends JPanel {
 				"&quality=100" +
 				"&width=%d" +
 				"&height=%d";
+		BAIDU_PCS_MOVE = BAIDU_PCS_FILE_PREFIX +
+				"?method=move" + 
+				"&access_token=" + mbOauth +
+				"&from=%s" +
+				"&to=%s";
+		BAIDU_PCS_COPY = BAIDU_PCS_FILE_PREFIX +
+				"?method=copy" + 
+				"&access_token=" + mbOauth +
+				"&from=%s" +
+				"&to=%s";
+		BAIDU_PCS_MKDIR = BAIDU_PCS_FILE_PREFIX +
+				"?method=mkdir" + 
+				"&access_token=" + mbOauth +
+				"&path=";
+		BAIDU_PCS_DELETE = BAIDU_PCS_FILE_PREFIX +
+				"?method=delete" + 
+				"&access_token=" + mbOauth +
+				"&path=";
 		BAIDU_PCS_CLOUD_DL = BAIDU_PCS_SERVICE_PREFIX + 
 				"?method=add_task" +
 				"&access_token=" + mbOauth;
@@ -202,6 +241,29 @@ public class BaiduPanel extends JPanel {
 		lblRootPath.setFont(f);
 		lblRootPath.setBounds(20, 40, 300, 30);
 		this.add(lblRootPath);
+		
+		jPopupMenu = new JPopupMenu();
+		menuItemCut = new JMenuItem("剪切");
+		menuItemCut.setFont(f);
+		menuItemCut.addMouseListener(new MouseAdapter() {
+			public void mouseReleased(MouseEvent e) {
+				mOperatePath = getOperatePath();
+				mIsCopy = false;
+				System.out.println("cut");
+			}
+		});
+		jPopupMenu.add(menuItemCut);
+		
+		menuItemCopy = new JMenuItem("复制");
+		menuItemCopy.setFont(f);
+		menuItemCopy.addMouseListener(new MouseAdapter() {
+			public void mouseReleased(MouseEvent e) {
+				mOperatePath = getOperatePath();
+				mIsCopy = true;
+				System.out.println("copy");
+			}
+		});
+		jPopupMenu.add(menuItemCopy);
 		
 		listItem = new JList<String>();
 		listItem.setFont(f);
@@ -216,36 +278,44 @@ public class BaiduPanel extends JPanel {
 				if (index == -1)
 					return;
 				
-				if (event.getClickCount() == 2) {
-					if (mFileList != null) {
-						Map<String, Object> fileinfo = mFileList.get(index);
-						boolean isdir = (Boolean) fileinfo.get("isdir");
-						if (isdir) {
-							mbRootPath = (String) fileinfo.get("path");
-							System.out.println("go into folder: " + mbRootPath);
-							init_combobox();
-						}
-						else {
-							String path = (String) fileinfo.get("path");
-							if (cbTranscode.isSelected() && streaming(path, "M3U8_640_480")) {
-								String[] cmd = new String[] {exe_ffplay, "index.m3u8"};
-								openExe(cmd);
-								return;
+				int button = event.getButton();
+				if (button == 1) { // left
+					if (event.getClickCount() == 2) {
+						if (mFileList != null) {
+							Map<String, Object> fileinfo = mFileList.get(index);
+							boolean isdir = (Boolean) fileinfo.get("isdir");
+							if (isdir) {
+								mbRootPath = (String) fileinfo.get("path");
+								System.out.println("go into folder: " + mbRootPath);
+								init_combobox();
 							}
 							else {
-								play_url(path);
+								String path = (String) fileinfo.get("path");
+								if (cbTranscode.isSelected() && streaming(path, "M3U8_640_480")) {
+									String[] cmd = new String[] {exe_ffplay, "index.m3u8"};
+									openExe(cmd);
+									return;
+								}
+								else {
+									play_url(path);
+								}
 							}
 						}
 					}
+					else if (event.getClickCount() == 1) {
+						FileInfoThread myThread = new FileInfoThread(index);
+						Thread t = new Thread(myThread);
+						t.start();
+					}
 				}
-				else if (event.getClickCount() == 1) {
-					FileInfoThread myThread = new FileInfoThread(index);
-					Thread t = new Thread(myThread);
-					t.start();
+				else if (button == 3) { // right
+					 jPopupMenu.show(listItem, event.getX(), event.getY());
 				}
+				
 			}
 		});
 		listItem.setCellRenderer(new MyRender());
+		listItem.add(jPopupMenu);
 
 		scrollPane = new JScrollPane(listItem);
 		scrollPane.setBounds(20, 80, 400, 350);
@@ -264,6 +334,7 @@ public class BaiduPanel extends JPanel {
 				if (pos < 0)
 					return;
 				
+				mChildPath = mbRootPath;
 				if (pos > 0)
 					mbRootPath = mbRootPath.substring(0, pos);
 				else 
@@ -369,7 +440,45 @@ public class BaiduPanel extends JPanel {
 			}
 		});
 		
-		lblImage.setBounds(430, 200, 192, 192);
+		btnPaste.setBounds(520, 130, 80, 40);
+		btnPaste.setFont(f);
+		this.add(btnPaste);
+		btnPaste.addActionListener(new AbstractAction() {
+			public void actionPerformed(ActionEvent e) {
+				int pos = mOperatePath.lastIndexOf("/");
+				if (pos > -1) {
+					String to = mbRootPath + mOperatePath.substring(pos + 1);
+					if (move_copy(mOperatePath, to, mIsCopy)) {
+						init_combobox();
+						
+						lblInfo.setText(String.format("%s 成功 %s至 %s", 
+										mOperatePath, mIsCopy?"复制":"移动", to));
+					}
+				}
+			}
+		});
+		
+		btnDelete.setBounds(520, 180, 80, 40);
+		btnDelete.setFont(f);
+		this.add(btnDelete);
+		btnDelete.addActionListener(new AbstractAction() {
+			public void actionPerformed(ActionEvent e) {
+				mOperatePath = getOperatePath();
+				if(delete(mOperatePath)) {
+					try {
+						Thread.sleep(200);
+					} catch (InterruptedException e1) {
+						// TODO Auto-generated catch block
+						e1.printStackTrace();
+					}
+					
+					init_combobox();
+					lblInfo.setText(mOperatePath + " 已删除");
+				}
+			}
+		});
+		
+		lblImage.setBounds(430, 240, 192, 192);
 		this.add(lblImage);
 		
 		comboListBy = new JComboBox<String>(list_by_desc);
@@ -423,7 +532,19 @@ public class BaiduPanel extends JPanel {
 		this.add(btnCreateFolder);
 		btnCreateFolder.addActionListener(new AbstractAction() {
 			public void actionPerformed(ActionEvent e) {
-				String src_url = editPath.getText();
+				String folder_path = mbRootPath + "/" + editPath.getText();
+				if (mkdir(folder_path)) {
+					try {
+						Thread.sleep(200);
+					} catch (InterruptedException e1) {
+						// TODO Auto-generated catch block
+						e1.printStackTrace();
+					}
+					
+					init_combobox();
+					
+					lblInfo.setText(String.format("文件夹 %s 已成功创建!", folder_path));
+				}
 			}
 		});
 		
@@ -507,6 +628,15 @@ public class BaiduPanel extends JPanel {
 		this.add(lblInfo);
 		
 		init_combobox();
+	}
+	
+	private String getOperatePath() {
+		int index = listItem.getSelectedIndex();
+		if (index == -1)
+			return null;
+		
+		Map<String, Object> fileinfo = mFileList.get(index);
+		return (String) fileinfo.get("path");
 	}
 	
 	private void play_url(String path) {
@@ -710,11 +840,19 @@ public class BaiduPanel extends JPanel {
 		listModel.clear();
 		
 		int size = mFileList.size();
+		int child_index = 0;
 		for (int i=0;i<size;i++) {
 			Map<String, Object> fileinfo = mFileList.get(i);
+			String path = (String) fileinfo.get("path");
 			String filename = (String) fileinfo.get("filename");
+			
+			if (path.equals(mChildPath))
+				child_index = i;
+			
 			listModel.addElement(filename);
 		}
+		
+		listItem.setSelectedIndex(child_index);
 	}
 	
 	private boolean streaming(String path, String type) {
@@ -1047,6 +1185,157 @@ public class BaiduPanel extends JPanel {
 			int request_id = root.getInt("request_id");
 			System.out.println(String.format("Java: new cloud job added: taskid: %d, request_id: %d",
 					task_id, request_id));
+		}
+		catch (ClientProtocolException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (JSONException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+		return false;
+	}
+	
+	private boolean delete(String path) {
+		String encoded_path = null;
+		try {
+			encoded_path = URLEncoder.encode(path, "utf-8");
+		}
+		catch (UnsupportedEncodingException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+			return false;
+		}
+		
+		String url = BAIDU_PCS_DELETE + encoded_path;
+		
+		System.out.println("Java: delete() " + url);
+		HttpPost request = new HttpPost(url);
+		HttpResponse response;
+		try {
+			response = HttpClients.createDefault().execute(request);
+			if (response.getStatusLine().getStatusCode() != 200){
+				return false;
+			}
+
+			String result = EntityUtils.toString(response.getEntity());
+			JSONTokener jsonParser = new JSONTokener(result);
+			JSONObject root = (JSONObject) jsonParser.nextValue();
+			
+			//"request_id":4043312866
+			int request_id = root.getInt("request_id");
+			System.out.println(String.format("Java: %s deleted", path));
+			return true;
+		}
+		catch (ClientProtocolException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (JSONException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+		return false;
+	}
+	
+	private boolean mkdir(String path) {
+		String encoded_path = null;
+		try {
+			encoded_path = URLEncoder.encode(path, "utf-8");
+		}
+		catch (UnsupportedEncodingException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+			return false;
+		}
+		
+		String url = BAIDU_PCS_MKDIR + encoded_path;
+		
+		System.out.println("Java: mkdir() " + url);
+		HttpPost request = new HttpPost(url);
+		HttpResponse response;
+		try {
+			response = HttpClients.createDefault().execute(request);
+			if (response.getStatusLine().getStatusCode() != 200){
+				return false;
+			}
+
+			String result = EntityUtils.toString(response.getEntity());
+			JSONTokener jsonParser = new JSONTokener(result);
+			JSONObject root = (JSONObject) jsonParser.nextValue();
+			
+			//"path":"/apps/yunfom/music",
+			//"ctime":1331183814,
+			//"mtime":1331183814,
+			int fs_id = root.getInt("fs_id");
+			String item_path = root.getString("path");
+			System.out.println(String.format("Java: folder %s created", item_path));
+			return true;
+		}
+		catch (ClientProtocolException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (JSONException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+		return false;
+	}
+	
+	private boolean move_copy(String from, String to, boolean isCopy) {
+		String encoded_from = null;
+		String encoded_to = null;
+		try {
+			encoded_from = URLEncoder.encode(from, "utf-8");
+			encoded_to = URLEncoder.encode(to, "utf-8");
+		}
+		catch (UnsupportedEncodingException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+			return false;
+		}
+		
+		String url = null;
+		if (isCopy)
+			url = String.format(BAIDU_PCS_COPY, encoded_from, encoded_to);
+		else
+			url = String.format(BAIDU_PCS_MOVE, encoded_from, encoded_to);
+		
+		System.out.println("Java: move() " + url);
+		HttpPost request = new HttpPost(url);
+		HttpResponse response;
+		try {
+			response = HttpClients.createDefault().execute(request);
+			if (response.getStatusLine().getStatusCode() != 200){
+				return false;
+			}
+
+			String result = EntityUtils.toString(response.getEntity());
+			JSONTokener jsonParser = new JSONTokener(result);
+			JSONObject root = (JSONObject) jsonParser.nextValue();
+			
+			JSONObject extra = root.getJSONObject("extra");
+			JSONArray list = extra.getJSONArray("list");
+			for (int i=0;i<list.length();i++) {
+				JSONObject item = list.getJSONObject(i);
+				String item_from = item.getString("from");
+				String item_to = item.getString("to");
+				System.out.println(String.format("Java: %s %s to %s successfully",
+						item_from, isCopy?"copy":"move", item_to));
+			}
+			
+			return true;
 		}
 		catch (ClientProtocolException e) {
 			// TODO Auto-generated catch block
