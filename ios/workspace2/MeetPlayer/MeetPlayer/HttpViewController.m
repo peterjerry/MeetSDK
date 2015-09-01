@@ -27,7 +27,7 @@
 
 - (void)loadWeb
 {
-    NSURL *url = [[NSURL alloc]initWithString:@"http://172.16.204.104"];
+    NSURL *url = [[NSURL alloc]initWithString:@"http://172.16.204.106/test/testcase"];
     [self.webView_ loadRequest:[NSURLRequest requestWithURL:url]];
 }
 
