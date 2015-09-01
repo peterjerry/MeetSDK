@@ -117,6 +117,8 @@ public:
 	status_t refresh();
 
 	status_t disableStream(int32_t streamIndex);
+
+	void setBufferingSec(int sec);
 	
 private:
 	status_t flush_l();

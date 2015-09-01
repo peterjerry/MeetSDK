@@ -15,6 +15,35 @@ MeetSDK 使用说明
 	使用 MediaPlayer, 不支持设置auto模式，请使用MeetSDK.getPlayerType(mPlayUrl) 获取 播放模式
 
 
+3 GLSurfaceView 集成
+参见 MyGLSurfaceView.java
+/////////////////use GLSurfaceView as render/////////////////
+	mSurfaceTexture = mGlView.getSurfaceTexture();
+	Surface s = new Surface(mSurfaceTexture);
+	mPlayer.setSurface(s);	
+	
+	@Override
+    protected void onResume() {
+    	// TODO Auto-generated method stub
+    	super.onResume();
+    	
+    	mGlView.onResume();
+    }
+    
+    @Override
+    protected void onPause() {
+    	// TODO Auto-generated method stub
+    	super.onPause();
+    	
+    	if (mPlayer != null) {
+    		mPlayer.stop();
+    		mPlayer.release();
+    	}
+    	
+    	mGlView.onPause();
+    }
+/////////////////use GLSurfaceView as render/////////////////
+	
 ////////////////////init MeetSDK///////////////////
 public static boolean initMeetSDK(Context ctx) {
 	// upload util will upload /data/data/pacake_name/Cache/xxx

@@ -42,8 +42,7 @@ AudioRender::AudioRender()
 
 #ifdef PCM_DUMP
 	mEncoder	= NULL;
-	mIpAddr		= NULL;
-	mPort		= 0;
+	mDumpUrl	= NULL;
 #endif
 }
 
@@ -266,7 +265,7 @@ status_t AudioRender::open(int sampleRate,
 	wanted_spec.userdata = this;
 
 	if (SDL_OpenAudio(&wanted_spec, &spec) < 0) {
-		LOGE("SDL_OpenAudio: %s", SDL_GetError());
+		LOGE("failed to SDL_OpenAudio(): %s", SDL_GetError());
 		return ERROR;
 	}
 
@@ -276,9 +275,9 @@ status_t AudioRender::open(int sampleRate,
 	mFifo.create(FIFO_BUFFER_SIZE);
 
 #ifdef PCM_DUMP
-	if (mIpAddr != NULL && mPort != 0) {
+	if (mDumpUrl != NULL) {
 		mEncoder = new apAudioEncoder();
-		if (!mEncoder->init(mIpAddr, mPort, mChannelsOutput, mSampleRateOutput, mSampleFormatOutput, 64000)) {
+		if (!mEncoder->init(mDumpUrl, mChannelsOutput, mSampleRateOutput, mSampleFormatOutput, 64000)) {
 			LOGW("failed to init audio encoder");
 			delete mEncoder;
 			mEncoder = NULL;
@@ -299,9 +298,9 @@ status_t AudioRender::open(int sampleRate,
 		return ERROR;
 
 #ifdef PCM_DUMP
-	if (mIpAddr != NULL && mPort != 0) {
+	if (mDumpUrl != NULL) {
 		mEncoder = new apAudioEncoder();
-		if (!mEncoder->init(mIpAddr, mPort, mChannelsOutput, mSampleRateOutput, mSampleFormatOutput, 64000)) {
+		if (!mEncoder->init(mDumpUrl, mChannelsOutput, mSampleRateOutput, mSampleFormatOutput, 64000)) {
 			LOGW("failed to init audio encoder");
 			delete mEncoder;
 			mEncoder = NULL;
@@ -323,7 +322,9 @@ status_t AudioRender::render(AVFrame* audioFrame)//int16_t* buffer, uint32_t buf
 
 	// 2015.8.12 guoliangma added to fix some audio resample crash
 	// root cause: some audio frame prop changed from channel_layout 5.1(channels 6) to channel_layout 2(channels 2) 
-	if (audioFrame->channel_layout != mChannelLayout || audioFrame->channels != mChannels) {
+	// 2015.8.27 guoliangma added "NOT zero" because some audio file has no channel_layout attribute(e.g. wma)
+	if (audioFrame->channel_layout != 0 &&
+		(audioFrame->channel_layout != mChannelLayout || audioFrame->channels != mChannels)) {
 		char frame_layout_name[64] = {0};
 		char audio_layout_name[64] = {0};
 		av_get_channel_layout_string(frame_layout_name, 64, audioFrame->channels, audioFrame->channel_layout);

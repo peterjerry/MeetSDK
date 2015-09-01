@@ -638,7 +638,7 @@ public class ClipListActivity extends Activity implements
 			public void onClick(View view) {
 				//Log.i(TAG, "Java: getCount " + binder.getCount());
 				
-				final String[] PlayerImpl = {"Auto", "System", "XOPlayer", "FFPlayer"};
+				final String[] PlayerImpl = {"Auto", "System", "XOPlayer", "FFPlayer", "OMXPlayer"};
 				
 				Dialog choose_player_impl_dlg = new AlertDialog.Builder(ClipListActivity.this)
 				.setTitle("select player impl")
@@ -1070,7 +1070,7 @@ public class ClipListActivity extends Activity implements
 			mDecMode = DecodeMode.SW;
 		}
 		else if (4 == mPlayerImpl) {
-			mDecMode = DecodeMode.SW;
+			//mDecMode = DecodeMode.HW_OMX;
 		}
 		else {
 			Toast.makeText(ClipListActivity.this, "invalid player implement: " + Integer.toString(mPlayerImpl), 
@@ -1126,7 +1126,7 @@ public class ClipListActivity extends Activity implements
 			
 			if (mAudioDst != null && !mAudioDst.isEmpty()) {
 				Log.i(TAG, "Java: set player option: " + mAudioDst);
-				mPlayer.setOption(mAudioDst);
+				mPlayer.setOption("-dump_url " + mAudioDst);
 			}
 			
 			if (path.startsWith("http://")) {

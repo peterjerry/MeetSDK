@@ -24,6 +24,9 @@ status_t Surface_open(void* surface, uint32_t frameWidth, uint32_t frameHeight, 
 #else //if defined(__CYGWIN__) || defined(_MSC_VER)
 #ifdef USE_SDL2
 status_t Surface_open3(void* window, void *renderer, void* texture);
+#ifdef ENABLE_SUBTITLE
+status_t Surface_setText(char *text);
+#endif
 #else
 status_t Surface_open2(void* surf);
 #endif

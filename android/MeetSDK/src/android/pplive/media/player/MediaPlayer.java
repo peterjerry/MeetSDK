@@ -934,6 +934,7 @@ public class MediaPlayer implements MediaPlayerInterface {
 	
 	public void setOption(String opt) {
 		mOption = opt;
+		setOption();
 	}
 	
 	private void setOption() {

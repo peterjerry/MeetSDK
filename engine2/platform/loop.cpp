@@ -125,6 +125,7 @@ void EventLoop::SetRunning(bool isRunning)
 {
 	AutoLock autoLock(&mLockState);
 	mRunning = isRunning;
+	mStopped = !isRunning;
 }
 
 

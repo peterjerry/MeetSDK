@@ -5,6 +5,11 @@ FFMPEG_HOME=$USER_ROOT/../../foundation_rext
 MS_INT_TYPES_HOME=$USER_ROOT/msinttypes
 PREFIX=$USER_ROOT/../../output/win32
 
+if [ ! -n "$1" ] ; then
+	echo "Usage: ${0} full/lite"
+	exit
+fi
+
 cd $FFMPEG_HOME
 
 if [ ${1}x == 'lite'x ]

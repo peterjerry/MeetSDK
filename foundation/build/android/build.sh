@@ -11,9 +11,9 @@ case $1 in
 		CONFIG_SRC=../build/android/config_neon
 		TARGET1=../output/android/neon
 		;;
-	arm64)
-		CONFIG_SRC=../build/android/config_arm64
-		TARGET1=../output/android/arm64
+	arm64-v8a)
+		CONFIG_SRC=../build/android/config_arm64-v8a
+		TARGET1=../output/android/arm64-v8a
 		;;
 	tegra2)
 		CONFIG_SRC=../build/android/config_tegra2

@@ -1,6 +1,11 @@
 package com.pplive.epg.baidu;
 
+import javax.imageio.ImageIO;
 import javax.swing.*;
+import javax.swing.event.ChangeEvent;
+import javax.swing.event.ChangeListener;
+import javax.swing.event.ListSelectionEvent;
+import javax.swing.event.ListSelectionListener;
 
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
@@ -21,11 +26,14 @@ import org.json.JSONTokener;
 import com.pplive.epg.boxcontroller.Code;
 import com.pplive.epg.util.Util;
 
+import java.awt.Color;
+import java.awt.Component;
 import java.awt.Desktop;
 import java.awt.FileDialog;
 import java.awt.Font;
 import java.awt.Frame;
 import java.awt.event.*; 
+import java.awt.image.BufferedImage;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileOutputStream;
@@ -44,7 +52,9 @@ import java.net.URI;
 import java.net.URL;
 import java.net.URLConnection;
 import java.net.URLEncoder;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -64,41 +74,57 @@ public class BaiduPanel extends JPanel {
 	private final static int ONE_GIGABYTE = (ONE_MAGABYTE * ONE_KILOBYTE);
 	
 	private static String exe_vlc = "D:/Program Files/vlc-3.0.0/vlc.exe";
+	private static String exe_foobar = "D:/Program Files/Foobar2000/foobar2000.exe";
 	private static String exe_ffplay = "D:/Program Files/ffmpeg/ffplay.exe";
 	
-	private final String BAIDU_PCS_PREFIX = "https://pcs.baidu.com/rest/2.0/pcs/file";
-	private final String BAIDU_PCS_SERVICE_PREFIX = "https://pcs.baidu.com/rest/2.0/pcs/services/cloud_dl";
+	private final String BAIDU_PCS_PREFIX = "https://pcs.baidu.com/rest/2.0/pcs";
+	private final String BAIDU_PCS_FILE_PREFIX = BAIDU_PCS_PREFIX + "/file";
+	private final String BAIDU_PCS_THUMBNAIL_PREFIX = BAIDU_PCS_PREFIX + "/thumbnail";
+	private final String BAIDU_PCS_SERVICE_PREFIX = BAIDU_PCS_PREFIX + "/services/cloud_dl";
 	
 	private final static String ApiKey = "4YchBAkgxfWug3KRYCGOv8EK"; // from es explorer
 	
-	private final String BAIDU_PCS_AUTHORIZE;
+	private final String BAIDU_PCS_AUTHORIZE = "https://openapi.baidu.com/oauth/2.0" + 
+		"/authorize?response_type=token" + 
+		"&client_id=" + ApiKey + 
+		"&redirect_uri=oob&scope=netdisk";
+	
 	private final String BAIDU_PCS_LIST;
 	private final String BAIDU_PCS_META;
 	private final String BAIDU_PCS_DOWNLOAD;
 	private final String BAIDU_PCS_STREAMING;
+	private final String BAIDU_PCS_THUMBNAIL;
 	private final String BAIDU_PCS_CLOUD_DL;
+
+	private final static String[] list_by_desc = {"按时间", "按名称", "按大小"}; //time" "name" "size"
 	
 	private List<Map<String, Object>> mFileList;
 
 	JButton btnUp	 	= new JButton("...");
 	JButton btnReset 	= new JButton("重置");
 	JButton btnAuth 	= new JButton("认证");
+	JButton btnPlay		= new JButton("播放");
 	
-	JLabel lblRootPath = new JLabel("info");
+	JLabel lblRootPath	= new JLabel("info");
+	JComboBox<String> comboListBy 		= null;
 	
 	JList<String> listItem 				= null;
 	DefaultListModel<String> listModel 	= null;
 	JScrollPane scrollPane				= null;
 	
+	JLabel lblImage = new JLabel();
+	
 	JTextPane editPath = new JTextPane();
 	JButton btnCreateFolder = new JButton("添加");
 	JButton btnDownload = new JButton("下载");
+	JButton btnYunDownload = new JButton("云存");
 	
 	boolean bDownloading = false;
 	boolean bInterrupt = false;
 	
 	JCheckBox cbTranscode = new JCheckBox("转码");
 	JCheckBox cbUseVLC = new JCheckBox("vlc");
+	JCheckBox cbOrder = new JCheckBox("降序");
 	JLabel lblInfo = new JLabel("信息");
 	
 	Font f = new Font("宋体", 0, 18);
@@ -135,33 +161,39 @@ public class BaiduPanel extends JPanel {
 					exe_vlc = value;
 					System.out.println("Java: set vlc path to " + exe_vlc);
 				}
+				else if (key.equals("foobar_path")) {
+					exe_foobar = value;
+					System.out.println("Java: set foobar path to " + exe_foobar);
+				}
 				else {
 					System.out.println("Java: unknown key " + key);
 				}
 			}
 		}
-		
-		BAIDU_PCS_AUTHORIZE = "https://openapi.baidu.com/oauth/2.0/" +
-				"authorize?response_type=token" + 
-				"&client_id=" + ApiKey + 
-				"&redirect_uri=oob&scope=netdisk";
-		
-		BAIDU_PCS_LIST = BAIDU_PCS_PREFIX + 
+
+		BAIDU_PCS_LIST = BAIDU_PCS_FILE_PREFIX + 
 				"?method=list" +
 				"&access_token=" + mbOauth + 
 				"&path=";
-		BAIDU_PCS_META = BAIDU_PCS_PREFIX + 
+		BAIDU_PCS_META = BAIDU_PCS_FILE_PREFIX + 
 				"?method=meta" +
 				"&access_token=" + mbOauth + 
 				"&path=";
-		BAIDU_PCS_DOWNLOAD = BAIDU_PCS_PREFIX + 
+		BAIDU_PCS_DOWNLOAD = BAIDU_PCS_FILE_PREFIX + 
 				"?method=download" +
 				"&access_token=" + mbOauth + 
 				"&path=";
-		BAIDU_PCS_STREAMING = BAIDU_PCS_PREFIX + 
+		BAIDU_PCS_STREAMING = BAIDU_PCS_FILE_PREFIX + 
 				"?method=streaming" +
 				"&access_token=" + mbOauth + 
 				"&path=";
+		BAIDU_PCS_THUMBNAIL = BAIDU_PCS_THUMBNAIL_PREFIX +
+				"?method=generate" +
+				"&access_token=" + mbOauth +
+				"&path=%s" +
+				"&quality=100" +
+				"&width=%d" +
+				"&height=%d";
 		BAIDU_PCS_CLOUD_DL = BAIDU_PCS_SERVICE_PREFIX + 
 				"?method=add_task" +
 				"&access_token=" + mbOauth;
@@ -175,7 +207,7 @@ public class BaiduPanel extends JPanel {
 		listItem.setFont(f);
 		listModel = new DefaultListModel<String>();
 		listItem.setModel(listModel);
-		listItem.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+		listItem.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
 		listItem.addMouseListener(new MouseAdapter(){
 			@Override
 			public void mouseClicked(MouseEvent event) {
@@ -201,44 +233,22 @@ public class BaiduPanel extends JPanel {
 								return;
 							}
 							else {
-								try {
-									String encoded_path = URLEncoder.encode(path, "utf-8");
-
-									String url = BAIDU_PCS_DOWNLOAD + encoded_path;
-									System.out.println("ready to play url: " + url);
-									lblInfo.setText("ready to play url: " + url);
-									
-									String exe_path = exe_vlc;
-									if (!cbUseVLC.isSelected())
-										exe_path = exe_ffplay;
-									String[] cmd = new String[] {exe_path, url};
-									openExe(cmd);
-								} catch (UnsupportedEncodingException e) {
-									// TODO Auto-generated catch block
-									e.printStackTrace();
-								}
+								play_url(path);
 							}
 						}
 					}
 				}
 				else if (event.getClickCount() == 1) {
-					Map<String, Object> fileinfo = mFileList.get(index);
-					boolean isdir = (Boolean) fileinfo.get("isdir");
-					if (!isdir) {
-						String path = (String) fileinfo.get("path");
-						List<Map<String, Object>> metaList = meta(path);
-						if (metaList != null && metaList.size() > 0) {
-							Map<String, Object> metainfo = metaList.get(0);
-							long size = (Long) metainfo.get("filesize");
-							lblInfo.setText("文件大小: " + getFileSize(size));
-						}
-					}
+					FileInfoThread myThread = new FileInfoThread(index);
+					Thread t = new Thread(myThread);
+					t.start();
 				}
 			}
 		});
-		
+		listItem.setCellRenderer(new MyRender());
+
 		scrollPane = new JScrollPane(listItem);
-		scrollPane.setBounds(20, 80, 450, 350);
+		scrollPane.setBounds(20, 80, 400, 350);
 		this.add(scrollPane);
 		
 		btnUp.setBounds(410, 30, 70, 40);
@@ -282,8 +292,127 @@ public class BaiduPanel extends JPanel {
 				authorize();
 			}
 		});
+		
+		btnPlay.setBounds(520, 80, 80, 40);
+		btnPlay.setFont(f);
+		this.add(btnPlay);
+		
+		btnPlay.addActionListener(new AbstractAction() {
+			public void actionPerformed(ActionEvent e) {
+				int[] indices = listItem.getSelectedIndices();
+				if (indices == null)
+					return;
+				
+				System.out.println("Java selected indices length " + indices.length);
+				
+				if (indices.length == 1) {
+					Map<String, Object> fileinfo = mFileList.get(indices[0]);
+					boolean isdir = (Boolean) fileinfo.get("isdir");
+					String path = (String) fileinfo.get("path");
+					if (!isdir)
+						play_url(path);
+				}
+				else if (indices.length > 1) {
+					String first_filename = "";
+					
+					try {
+						File file=new File("playlist.m3u");
+				        if (!file.exists())
+				        	file.createNewFile();
+				        FileOutputStream out = new FileOutputStream(file,false); //如果追加方式用true
+				        out.write("#EXTM3U\n".getBytes("utf-8"));
+				        
+				        for (int i=0;i<indices.length;i++) {
+							int index = indices[i];
+							Map<String, Object> fileinfo = mFileList.get(index);
+							boolean isdir = (Boolean) fileinfo.get("isdir");
+							String path = (String) fileinfo.get("path");
+							
+							if (i == 0)
+								first_filename = path.toLowerCase();
+							
+							if (!isdir) {
+								StringBuffer sb = new StringBuffer();
+								sb.append("#EXTINF:song #");
+								sb.append(i);
+								sb.append(", ");
+								sb.append(path);
+								sb.append("\n");
+								
+								String encoded_path = URLEncoder.encode(path, "utf-8");
+								String url = BAIDU_PCS_DOWNLOAD + encoded_path;
+								sb.append(url);
+								sb.append("\n");
+								
+						        out.write(sb.toString().getBytes("utf-8"));//注意需要转换对应的字符集
+							}
+						}
+				        
+				        out.close();
+					} catch (IOException e1) {
+						// TODO Auto-generated catch block
+						e1.printStackTrace();
+						return;
+					}
+					
+					String exe_path = exe_vlc;
+					if (first_filename.endsWith(".mp3") || 
+							first_filename.endsWith(".flac") ||
+							first_filename.endsWith(".ape") ||
+							first_filename.endsWith(".ogg") ||
+							first_filename.endsWith(".wav")) {
+						exe_path = exe_foobar;
+					}
+					String[] cmd = new String[] {exe_path, "playlist.m3u"};
+					openExe(cmd);
+				}
+			}
+		});
+		
+		lblImage.setBounds(430, 200, 192, 192);
+		this.add(lblImage);
+		
+		comboListBy = new JComboBox<String>(list_by_desc);
+		comboListBy.setFont(f);
+		comboListBy.setBounds(430, 80, 80, 40);
+		comboListBy.setSelectedIndex(0);
+		this.add(comboListBy);
+		
+		comboListBy.addItemListener(new ItemListener(){
 
-		editPath.setFont(f);
+			@Override
+			public void itemStateChanged(ItemEvent e) {
+				// TODO Auto-generated method stub
+				if (e.getStateChange() == ItemEvent.SELECTED){
+					int index = comboListBy.getSelectedIndex();
+					String new_list_by;
+					switch (index) {
+					case 0:
+						new_list_by = "time";
+						break;
+					case 1:
+						new_list_by = "name";
+						break;
+					case 2:
+						new_list_by = "size";
+						break;
+					default:
+						index = 0;
+						System.out.println("Java: unknown list_by " + index);
+						new_list_by = "time";
+						break;
+					}
+					
+					if (!list_by.equals(new_list_by)) {
+						list_by = new_list_by;
+						init_combobox();
+						System.out.println("Java: list_by changed to " + list_by_desc[index]);
+					}
+				}
+			}
+
+		});
+
 		editPath.setBounds(20, 450, 200, 40);
 		editPath.setText("新建文件夹");
 	    this.add(editPath);
@@ -337,17 +466,130 @@ public class BaiduPanel extends JPanel {
 			}
 		});
 		
+		btnYunDownload.setFont(f);
+		btnYunDownload.setBounds(410, 450, 80, 40);
+		btnYunDownload.setFont(f);
+		this.add(btnYunDownload);
+		btnYunDownload.addActionListener(new AbstractAction() {
+			public void actionPerformed(ActionEvent e) {
+				//"http://dlsw.baidu.com/sw-search-sp/soft/cc/13478/npp_V6.8.2_Installer.1440141668.exe"
+				String download_url = editPath.getText();
+				add_cloud_dl(download_url);
+			}
+		});
+		
 		cbTranscode.setBounds(20, 500, 80, 20);
 		this.add(cbTranscode);
 		
-		cbUseVLC.setBounds(20, 520, 80, 20);
+		cbUseVLC.setBounds(20, 520, 60, 20);
 		cbUseVLC.setSelected(true);
 		this.add(cbUseVLC);
+		
+		cbOrder.setBounds(80, 520, 80, 20);
+		cbOrder.setSelected(true);
+		cbOrder.addItemListener(new ItemListener() {
+			
+			@Override
+			public void itemStateChanged(ItemEvent e) {
+				// TODO Auto-generated method stub
+				if (e.getStateChange() == ItemEvent.SELECTED)
+					list_order = "desc";
+				else
+					list_order = "asc";
+				
+				System.out.println("Java: list_order changed to " + list_order);
+				init_combobox();
+			}
+		});
+		this.add(cbOrder);
 		
 		lblInfo.setBounds(100, 500, 500, 20);
 		this.add(lblInfo);
 		
 		init_combobox();
+	}
+	
+	private void play_url(String path) {
+		try {
+			String encoded_path = URLEncoder.encode(path, "utf-8");
+
+			String url = BAIDU_PCS_DOWNLOAD + encoded_path;
+			System.out.println("ready to play url: " + url);
+			lblInfo.setText("ready to play url: " + url);
+			
+			String exe_path = exe_vlc;
+			if (!cbUseVLC.isSelected())
+				exe_path = exe_ffplay;
+			if (path.toLowerCase().endsWith(".mp3") || 
+					path.toLowerCase().endsWith(".flac") ||
+					path.toLowerCase().endsWith(".ape") ||
+					path.toLowerCase().endsWith(".ogg") ||
+					path.toLowerCase().endsWith(".wav")) {
+				exe_path = exe_foobar;
+			}
+			String[] cmd = new String[] {exe_path, url};
+			openExe(cmd);
+		} catch (UnsupportedEncodingException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
+	
+	private class MyRender extends JLabel implements ListCellRenderer<String> {
+		public MyRender() {
+            this.setOpaque(true);
+        }
+		
+		@Override
+		public Component getListCellRendererComponent(
+				JList<? extends String> list, String value, 
+				int index, boolean isSelected, boolean cellHasFocus) {
+			// TODO Auto-generated method stub
+			this.setText(value);
+			this.setFont(f);
+			
+			Color background = Color.WHITE;
+            Color foreground = Color.BLACK;
+ 
+            Map<String, Object> fileinfo = mFileList.get(index);
+			boolean isdir = (Boolean) fileinfo.get("isdir");
+			
+            if (isdir) {
+                foreground = Color.BLUE;
+            }
+            
+            if (isSelected) {
+            	background = new Color(170, 170, 255);
+            }
+ 
+            setBackground(background);
+            setForeground(foreground);
+            
+			return this;
+		}
+	};
+		
+	private void showInfo(int index) {
+		Map<String, Object> fileinfo = mFileList.get(index);
+		boolean isdir = (Boolean) fileinfo.get("isdir");
+		if (!isdir) {
+			String path = (String) fileinfo.get("path");
+			List<Map<String, Object>> metaList = meta(path);
+			if (metaList != null && metaList.size() > 0) {
+				Map<String, Object> metainfo = metaList.get(0);
+				long size = (Long) metainfo.get("filesize");
+				int mtime = (Integer)metainfo.get("mtime");
+				SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+				Date date = new Date(mtime/*unit is sec*/ * 1000L);
+				
+				lblInfo.setText("文件大小: " + getFileSize(size) + 
+						"   修改时间 " + sdf.format(date));
+			}
+			
+			BufferedImage image = thumbnail(path, 320, 240);
+			if (image != null)
+				lblImage.setIcon(new ImageIcon(image));
+		}
 	}
 	
 	private void authorize() {
@@ -645,6 +887,8 @@ public class BaiduPanel extends JPanel {
 				String path = item.getString("path");
 				long filesize = item.getLong("size");
 				int isdir = item.getInt("isdir");
+				int mtime = item.getInt("mtime");
+				int ctime = item.getInt("ctime");
 				
 				String filename = path;
 				int pos = filename.lastIndexOf("/");
@@ -657,6 +901,8 @@ public class BaiduPanel extends JPanel {
 				fileinfo.put("filename", filename);
 				fileinfo.put("filesize", filesize);
 				fileinfo.put("isdir", isdir == 1 ? true : false);
+				fileinfo.put("mtime", mtime);
+				fileinfo.put("ctime", ctime);
 				
 				fileList.add(fileinfo);
 			}
@@ -677,63 +923,105 @@ public class BaiduPanel extends JPanel {
 		return null;
 	}
 	
-	private boolean add_cloud_dl(String source_url, String save_path) {
+	private BufferedImage thumbnail(String filepath, int width, int height) {
 		String encoded_path = null;
 		try {
-			encoded_path = URLEncoder.encode(save_path, "utf-8");
+			encoded_path = URLEncoder.encode(filepath, "utf-8");
 		}
 		catch (UnsupportedEncodingException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
-			return false;
+			return null;
 		}
 		
+		String url = String.format(BAIDU_PCS_THUMBNAIL,
+				encoded_path, width, height);
+		
+		System.out.println("Java: thumbnail() " + url);
+		HttpGet request = new HttpGet(url);
+		
+		HttpResponse response;
+		try {
+			response = HttpClients.createDefault().execute(request);
+			if (response.getStatusLine().getStatusCode() != 200){
+				return null;
+			}
+
+			InputStream is = response.getEntity().getContent();
+			return ImageIO.read(is);
+		}
+		catch (ClientProtocolException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+		return null;
+	}
+	
+	private boolean add_cloud_dl(String source_url) {	
 		List<BasicNameValuePair> params = new ArrayList<BasicNameValuePair>();
 		params.add(new BasicNameValuePair("method", "add_task"));
 		params.add(new BasicNameValuePair("access_token", mbOauth));
 		params.add(new BasicNameValuePair("source_url", source_url));
-		params.add(new BasicNameValuePair("save_path", "/"));
+		
+		// ed2k://|file|[www.ed2kers.com]TLF-VIDEO-04.12.14.The.Maze.Runner.(2014).iNT
+		// .BDRip.720p.AC3.X264-TLF.mkv|2094704851|E30B41BAFE4D3056AF027232A7FEF3A6
+		// |h=JD2TWIEK2PLEMO3ENWF3FCS5RF6W5MBF|/
+		String save_path = "/apps/pcstest_oauth/";
+		if (source_url.startsWith("ed2k://")) {
+			int pos = source_url.indexOf("|file|");
+			int pos2 = source_url.indexOf("|", pos + "|file|".length());
+			save_path += source_url.substring(pos + "|file|".length(), pos2);
+		}
+		else {
+			save_path += "123.exe";
+		}
+		
+		System.out.println("save_path: " + save_path);
+		
+		params.add(new BasicNameValuePair("save_path", save_path));
 		params.add(new BasicNameValuePair("type", "0"));
-		/*params.add(new BasicNameValuePair("v", "1"));
-		params.add(new BasicNameValuePair("rate_limit", "100"));
+		params.add(new BasicNameValuePair("v", "1"));
+		/*params.add(new BasicNameValuePair("rate_limit", "100"));
 		params.add(new BasicNameValuePair("timeout", "100"));
 		params.add(new BasicNameValuePair("callback", "www.baidu.com"));*/
 		
-		//String url = "https://pcs.baidu.com/rest/2.0/pcs/services/cloud_dl?" + 
-		//		buildParams(params);
 		String url = "https://pcs.baidu.com/rest/2.0/pcs/services/cloud_dl?" + 
+				buildParams(params);
+		/*String url = "https://pcs.baidu.com/rest/2.0/pcs/services/cloud_dl?" + 
 				"method=add_task" + "&access_token=" + mbOauth +
 				"&source_url=" + "http://6.jsdx3.crsky.com/201107/winzip150zh.exe" + 
 				"&save_path=" + encoded_path + 
-				"&type=0";
+				"&type=0";*/
 
 		System.out.println("Java: add_cloud_dl() " + url);
 
 		// 把请求的数据，添加到NameValuePair中
-		NameValuePair nameValuePair1 = new BasicNameValuePair("method",
+		/*NameValuePair nameValuePair1 = new BasicNameValuePair("method",
 				"add_task");
 		NameValuePair nameValuePair2 = new BasicNameValuePair("source_url",
 				"http://dlsw.baidu.com/sw-search-sp/soft/da/17519/BaiduYunGuanjia_5.2.7_setup.1430884921.exe");
-		NameValuePair nameValuePair3 = new BasicNameValuePair("save_path", "/");
+		NameValuePair nameValuePair3 = new BasicNameValuePair("save_path", "/apps/pcstest_oauth/123.exe");
 		NameValuePair nameValuePair4 = new BasicNameValuePair("type", "0");
 		NameValuePair nameValuePair5 = new BasicNameValuePair("access_token", mbOauth);
-		
 
 		List<NameValuePair> list = new ArrayList<NameValuePair>();
 		list.add(nameValuePair1);
 		list.add(nameValuePair2);
 		list.add(nameValuePair3);
 		list.add(nameValuePair4);
-		list.add(nameValuePair5);
+		list.add(nameValuePair5);*/
 		
 		HttpResponse response;
 		
 		try {
-			HttpEntity requesthttpEntity = new UrlEncodedFormEntity(list);
+			//HttpEntity requesthttpEntity = new UrlEncodedFormEntity(list);
 			
-			HttpPost httppost = new HttpPost(
-					"https://pcs.baidu.com/rest/2.0/pcs/services/cloud_dl");
-			httppost.setEntity(requesthttpEntity);
+			HttpPost httppost = new HttpPost(url);
+			//httppost.setEntity(requesthttpEntity);
 			
 			response = HttpClients.createDefault().execute(httppost);
 			if (response.getStatusLine().getStatusCode() != 200){
@@ -811,6 +1099,21 @@ public class BaiduPanel extends JPanel {
 			strSize = String.format("%d Byte", size);
 		return strSize;
     }
+	
+	private class FileInfoThread implements Runnable {
+		private int mIndex;
+		
+		FileInfoThread(int index) {
+			mIndex = index;
+		}
+		
+		@Override
+		public void run() {
+			// TODO Auto-generated method stub
+			showInfo(mIndex);
+		}
+		
+	};
 	
 	private void openExe(String... params) {
 		Runtime rn = Runtime.getRuntime();

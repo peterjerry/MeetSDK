@@ -10,6 +10,9 @@
 #include "apEPG.h"
 
 class FFPlayer;
+struct SDL_Window;
+struct SDL_Renderer;
+struct SDL_Texture;
 struct SDL_Surface;
 
 enum EPG_QUERY_TYPE {
@@ -71,7 +74,6 @@ private:
 	int mEPGValue;
 
 	FFPlayer *mPlayer;
-	SDL_Surface *mSurface2;
 	int mhttpPort;
 	int mrtspPort;
 	bool mPaused;
@@ -104,6 +106,17 @@ private:
 	int64_t mSubtitleStartTime;
 	int64_t mSubtitleStopTime;
 	CString mSubtitleText;
+	char *mSubtitleTextUtf8;
+	bool mSubtitleUpdated;
+	bool mGotSub;
+
+#ifdef USE_SDL2
+	SDL_Window *mWindow;
+	SDL_Renderer *mRenderer;
+	SDL_Texture *mTexture;
+#else
+	SDL_Surface *mSurface2;
+#endif
 private:
 	bool startP2P();
 	bool play_url(const char *url);

@@ -89,9 +89,6 @@
     <ClCompile Include="..\..\..\platform\cpu-features.c">
       <Filter>源文件\platform</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\cygwin\test\test_main.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\..\platform\fifobuffer.cpp">
       <Filter>源文件\platform</Filter>
     </ClCompile>

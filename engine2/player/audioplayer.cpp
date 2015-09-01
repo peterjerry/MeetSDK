@@ -44,8 +44,7 @@ AudioPlayer::AudioPlayer(FFStream* dataStream, AVStream* context, int32_t stream
 	mOpaque = NULL;
 
 #ifdef PCM_DUMP
-	mIpAddr		= NULL;
-	mPort		= 0;
+	mDumpUrl = NULL;
 #endif
 
     pthread_mutex_init(&mLock, NULL);
@@ -122,7 +121,7 @@ status_t AudioPlayer::setup_render()
 
 	mRender = new AudioRender();
 #ifdef PCM_DUMP
-	mRender->set_dump(mIpAddr, mPort);
+	mRender->set_dump(mDumpUrl);
 #endif
 	uint64_t channelLayout = get_channel_layout(CodecCtx->channel_layout, CodecCtx->channels);
 

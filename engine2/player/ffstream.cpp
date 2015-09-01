@@ -307,6 +307,13 @@ void FFStream::setISubtitle(ISubtitles* subtitle)
     mISubtitle = subtitle;
 }
 
+void FFStream::setBufferingSec(int sec) {
+	if (mUrlType != TYPE_LOCAL_FILE) {
+		mMinPlayBufferCount = sec * mFrameRate;
+		LOGI("set mMinPlayBufferCount to %d(frame_rate %d)", mMinPlayBufferCount, mFrameRate);
+	}
+}
+
 AVFormatContext* FFStream::open(char* uri)
 {
     AutoLock autoLock(&mLock);
@@ -360,7 +367,7 @@ AVFormatContext* FFStream::open(char* uri)
     }
 
 	if (strstr(uri, "appid%3DPPTVIBOBO") != NULL) {
-#if defined(_MSC_VER) && !defined(_DEBUG)
+#if defined(_MSC_VER) && !defined(_DEBUG) || defined(_DEBUG_FF)
 		mMovieFile->max_analyze_duration2 = AV_TIME_BASE * 10; // 10 sec for wrong header ts(more than 10 sec)
 #else
 		mMovieFile->max_analyze_duration = AV_TIME_BASE * 10; // 10 sec for wrong header ts(more than 10 sec)

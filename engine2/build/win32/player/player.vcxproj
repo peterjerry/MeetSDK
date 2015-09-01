@@ -112,7 +112,6 @@
     <ClCompile Include="..\..\..\player\ffrender.cpp" />
     <ClCompile Include="..\..\..\player\ffstream.cpp" />
     <ClCompile Include="..\..\..\player\ppHttpd.cpp" />
-    <ClCompile Include="..\..\cygwin\test\test_main.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="..\..\..\platform\i420_rgb.S" />

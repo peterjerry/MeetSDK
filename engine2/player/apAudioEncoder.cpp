@@ -80,10 +80,10 @@ int apAudioEncoder::encode_interrupt_cb(void *opaque)
 	return 0;
 }
 
-bool apAudioEncoder::init(const char *ip_addr, int port, int channels, int sample_rate, int sample_fmt, int bitrate)
+bool apAudioEncoder::init(const char *output_url, int channels, int sample_rate, int sample_fmt, int bitrate)
 {
-	LOGI("audio encoder init: channels %d, sample_rate %d, sample_fmt %d, bitrate %d",
-		channels, sample_rate, sample_fmt, bitrate);
+	LOGI("audio encoder init: url %s, channels %d, sample_rate %d, sample_fmt %d, bitrate %d",
+		output_url, channels, sample_rate, sample_fmt, bitrate);
 
 	int ret;
 

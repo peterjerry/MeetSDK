@@ -18,7 +18,7 @@ public:
 	apAudioEncoder(void);
 	~apAudioEncoder(void);
 
-	bool init(const char *ip_addr, int port, int channels, int sample_rate, int sample_fmt, int bitrate);
+	bool init(const char *output_url, int channels, int sample_rate, int sample_fmt, int bitrate);
 
 	AVStream * add_audiostream(int channels, int sample_rate, int sample_fmt, int bitrate);
 

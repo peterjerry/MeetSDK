@@ -52,9 +52,8 @@ public:
 	}
 
 #ifdef PCM_DUMP
-	void set_dump(const char *ip_addr, int port) {
-		mIpAddr = ip_addr;
-		mPort	= port;
+	void set_dump(const char *url) {
+		mDumpUrl = url;
 	}
 #endif
 
@@ -113,8 +112,7 @@ private:
 	void* mOpaque;
 
 #ifdef PCM_DUMP
-	const char*		mIpAddr;
-	int				mPort;
+	const char*		mDumpUrl;
 #endif
 
 };

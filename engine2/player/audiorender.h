@@ -40,9 +40,8 @@ public:
 	int get_one_sec_size();
 
 #ifdef PCM_DUMP
-	void set_dump(const char *ip_addr, int port) {
-		mIpAddr = ip_addr;
-		mPort = port;
+	void set_dump(const char *url) {
+		mDumpUrl = url;
 	}
 #endif
 
@@ -89,8 +88,7 @@ private:
 
 #ifdef PCM_DUMP
 	apAudioEncoder* mEncoder;
-	const char*		mIpAddr;
-	int				mPort;
+	const char*		mDumpUrl;
 #endif
 };
 
