@@ -277,7 +277,8 @@ void correctUtfBytes(char* bytes)
 			utf8 = *(bytes++);
 			if ((utf8 & 0xc0) != 0x80) {
 				--bytes;
-				if(three)--bytes;
+				if(three)
+					--bytes;
 				*(bytes-1)='?';
 			}
 			break;
