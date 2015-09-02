@@ -3690,6 +3690,30 @@ bool FFPlayer::getCurrentMediaInfo(MediaInfo *info)
 		}
 	} // end of for() get stream info
 
+	if (mMediaFile->metadata) {
+		AVDictionaryEntry *t = NULL;
+		DictEntry *cur = info->meta_data;
+
+		while ((t = av_dict_get(mMediaFile->metadata, "", t, AV_DICT_IGNORE_SUFFIX))) {
+			// iterate over all entries in d
+			LOGI("Metadata key: %s, value: %s", t->key, t->value);
+
+			DictEntry *entry = new DictEntry();
+			entry->key		= my_strdup(t->key);
+			entry->value	= my_strdup(t->value);
+			entry->next		= NULL;
+			
+			if (info->meta_data == NULL) {
+				info->meta_data = entry;
+			}
+			else {
+				cur->next = entry;
+			}
+
+			cur = entry;
+		}
+	}
+
 	return true;
 }
 

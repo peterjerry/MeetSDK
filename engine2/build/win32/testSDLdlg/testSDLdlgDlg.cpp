@@ -1639,3 +1639,4 @@ static wchar_t* cstringToUnicode(char * aSrc)
     MultiByteToWideChar(CP_ACP,0,aSrc,-1,unicodestr,size);
     return unicodestr;
 }
+

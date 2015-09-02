@@ -20,4 +20,8 @@ JNIEnv* getAttachedJNIEnv();
 
 void detachJNIEnv();
 
+bool IsUTF8(const void* pBuffer, long size);
+
+bool isValidUtfBytes(const char* bytes);
+
 #endif // _JNI_UTILS_H_

@@ -1208,9 +1208,14 @@ static void fill_media_info(JNIEnv *env, jobject thiz, jobject info, jstring fil
 	if (native_info->meta_data) {
 		DictEntry *p = native_info->meta_data;
 		while (p) {
-			env->CallVoidMethod(info, midAddMetadataEntry,
-				env->NewStringUTF(p->key), 
-				env->NewStringUTF(p->value));
+			if (IsUTF8(p->value, strlen(p->value))) {
+				env->CallVoidMethod(info, midAddMetadataEntry,
+					env->NewStringUTF(p->key), 
+					env->NewStringUTF(p->value));
+			}
+			else {
+				AND_LOGE("string is not utf-8(meta_data value): %s %s", p->key, p->value);
+			}
 
 			p = p->next;
 		}

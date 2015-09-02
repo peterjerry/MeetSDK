@@ -1,6 +1,7 @@
 #include "pplog.h"
+#include "jniUtils.h"
 #include <stdio.h>
-#include <jni.h>
+#include <string.h>
 
 #define LOG_BUF_SIZE	2048
 
@@ -91,6 +92,11 @@ int java_log(int level, const char* tag, const char* msg)
 	if (!env)
 		return -1;
 
+	if (!IsUTF8(msg, strlen(msg))) {
+		AND_LOGE("string is not utf-8(java_log): %s", msg);
+		return -1;
+	}
+
 	jstring jtag = env->NewStringUTF(tag);
 	jstring jmsg = env->NewStringUTF(msg);
 
@@ -99,3 +105,4 @@ int java_log(int level, const char* tag, const char* msg)
 	env->DeleteLocalRef(jmsg);
 	return 0;
 }
+
