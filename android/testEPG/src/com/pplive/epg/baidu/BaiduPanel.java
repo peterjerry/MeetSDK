@@ -30,6 +30,7 @@ import org.apache.http.client.entity.UrlEncodedFormEntity;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.entity.mime.MultipartEntity;
+import org.apache.http.entity.mime.MultipartEntityBuilder;
 import org.apache.http.entity.mime.content.ByteArrayBody;
 import org.apache.http.entity.mime.content.ContentBody;
 import org.apache.http.impl.client.HttpClients;
@@ -216,13 +217,15 @@ public class BaiduPanel extends JPanel {
 				"&path=";
 		BAIDU_PCS_UPLOAD = BAIDU_PCS_FILE_PREFIX + 
 				"?method=upload" +
-				"&access_token=" + mbOauth;
+				"&access_token=" + mbOauth + 
+				"&ondup=newcopy";
 				//"&path=";
 				//"&type=tmpfile";
 				//"&ondup=newcopy"; // overwrite
 		BAIDU_PCS_CREATE_SUPER_FILE = BAIDU_PCS_FILE_PREFIX + 
 				"?method=createsuperfile" +
-				"&access_token=" + mbOauth;
+				"&access_token=" + mbOauth + 
+				"&ondup=newcopy";
 		BAIDU_PCS_STREAMING = BAIDU_PCS_FILE_PREFIX + 
 				"?method=streaming" +
 				"&access_token=" + mbOauth + 
@@ -482,18 +485,32 @@ public class BaiduPanel extends JPanel {
 		this.add(btnDelete);
 		btnDelete.addActionListener(new AbstractAction() {
 			public void actionPerformed(ActionEvent e) {
-				mOperatePath = getOperatePath();
-				if(delete(mOperatePath)) {
-					try {
-						Thread.sleep(200);
-					} catch (InterruptedException e1) {
-						// TODO Auto-generated catch block
-						e1.printStackTrace();
+				int []indices = listItem.getSelectedIndices();
+				int count = indices.length;
+				if (count == 0)
+					return;
+				
+				for (int i=0;i<count;i++) {
+					Map<String, Object> fileinfo = mFileList.get(indices[i]);
+					mOperatePath = (String) fileinfo.get("path");
+					if (!delete(mOperatePath)) {
+						lblInfo.setText(mOperatePath + " 删除失败");
 					}
-					
-					init_combobox();
-					lblInfo.setText(mOperatePath + " 已删除");
 				}
+				
+				try {
+					Thread.sleep(200);
+				} catch (InterruptedException e1) {
+					// TODO Auto-generated catch block
+					e1.printStackTrace();
+				}
+				
+				init_combobox();
+				
+				if (count == 1)
+					lblInfo.setText(mOperatePath + " 已删除");
+				else
+					lblInfo.setText("文件已删除");
 			}
 		});
 		
@@ -943,12 +960,18 @@ public class BaiduPanel extends JPanel {
 						md5, total_left));
 			}
 			
-			create_superfile(md5s, encoded_path);
+			if (!create_superfile(md5s, encoded_path)) {
+				lblInfo.setText("创建大文件失败 " + dst_path);
+				return false;
+			}
 			
 			System.out.println(String.format("Java: file %s uploaded to %s, size %s", 
 					src_path, dst_path, getFileSize(len)));
-			lblInfo.setText(String.format("%s 上传至 %s, 大小 %s", 
-					src_path, dst_path, getFileSize(len)));
+			
+			long elapsed_msec = System.currentTimeMillis() - start_msec;
+			double total_speed = len / (double)elapsed_msec;
+			lblInfo.setText(String.format("%s 上传至\n %s, 大小 %s, 速度 %.3f kB/s", 
+					/*src_path*/file.getName(), dst_path, getFileSize(len), total_speed));
 			init_combobox();
 			
 			return true;
@@ -974,9 +997,13 @@ public class BaiduPanel extends JPanel {
 			System.out.println("Java: uploadPiece() " + url_path);
 
 			HttpPost httppost = new HttpPost(url_path);
-			MultipartEntity entity = new MultipartEntity();
+			/*MultipartEntity entity = new MultipartEntity();
 			entity.addPart("file", bsData);
-			httppost.setEntity(entity);
+			httppost.setEntity(entity);*/
+			
+			MultipartEntityBuilder builder = MultipartEntityBuilder.create();
+			builder.addPart("file", bsData);
+			httppost.setEntity(builder.build());
 
 			HttpResponse response = HttpClients.createDefault().execute(httppost);
 			if (response.getStatusLine().getStatusCode() != 200) {
@@ -990,10 +1017,18 @@ public class BaiduPanel extends JPanel {
 			String result = EntityUtils.toString(response.getEntity());
 			JSONTokener jsonParser = new JSONTokener(result);
 			JSONObject root = (JSONObject) jsonParser.nextValue();
-			//String res_path = root.getString("path");
-			// int size = root.getInt("size");
+			
 			String md5 = root.getString("md5");
-			System.out.println("Java: piece file md5 " + md5);
+			
+			if (isPiece) {
+				System.out.println("Java: piece file md5 " + md5);
+			}
+			else {
+				String res_path = root.getString("path");
+				int size = root.getInt("size");
+				System.out.println(String.format("Java: whole file path: %s, size %d, md5 %d",
+						res_path, size, md5));
+			}
 
 			return md5;
 		} catch (IOException e) {

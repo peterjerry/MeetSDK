@@ -21,6 +21,7 @@ import java.util.List;
 import java.util.StringTokenizer;
 
 import com.pplive.epg.sohu.PlaylinkSohu.SOHU_FT;
+import com.pplive.epg.util.Util;
 
 @SuppressWarnings("serial")
 public class SohuPanel extends JPanel {
@@ -42,6 +43,8 @@ public class SohuPanel extends JPanel {
 		
 		SOHUVIDEO_EPG_STATE_FOUND_PLAYLINK,
 	}
+	
+	private static String exe_vlc = "D:/Program Files/vlc-3.0.0/vlc.exe";
 	
 	private SohuUtil			mEPG;
 	private List<ChannelSohu>	mChannelList;
@@ -83,6 +86,28 @@ public class SohuPanel extends JPanel {
 		super();
 		
 		this.setLayout(null);
+		
+		String strConfig = Util.readFileContent("config.txt");
+		StringTokenizer st = new StringTokenizer(strConfig, "\n", false);
+		while (st.hasMoreElements()) {
+			String strLine = (String) st.nextElement();
+			if (strLine.startsWith("#"))
+				continue;
+				
+			int pos = strLine.indexOf("=");
+			if (pos > 0 && pos != strLine.length() - 1) {
+				String key = strLine.substring(0, pos);
+				String value = strLine.substring(pos + 1);
+				System.out.println(String.format("Java: key %s, value %s", key ,value));
+				if (key.equals("vlc_path")) {
+					exe_vlc = value;
+					System.out.println("Java: set vlc path to " + exe_vlc);
+				}
+				else {
+					System.out.println("Java: unknown key " + key);
+				}
+			}
+		}
 		
 		mEPG = new SohuUtil();
 
@@ -483,8 +508,7 @@ public class SohuPanel extends JPanel {
 
 		System.out.println("final play link " + url);
 		
-		String exe_filepath  = "E:/git/PPTV/MeetSDK/engine2/build/win32/bin/Release/player_vc.exe";
-		String[] cmd = new String[] {exe_filepath, url};
+		String[] cmd = new String[] {exe_vlc, url};
 		openExe(cmd);
 	}
 	

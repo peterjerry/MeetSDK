@@ -657,7 +657,8 @@ public class SohuUtil {
 					desc = video.getString("tv_desc");
 				
 				long aid = video.getLong("aid");
-				int vid = video.getInt("vid");
+				// 2015.9.6 vid key is removed
+				int vid = getNodeInt(video, "vid");
 				int cid = video.getInt("cid");
 				String hori_pic_url = getNodeString(video, "hor_high_pic");
 				String vert_pic_url = getNodeString(video, "ver_high_pic");
@@ -676,7 +677,7 @@ public class SohuUtil {
 				if (video.has("director"))
 					video.getString("director");
 				
-				String tip = video.getString("tip");
+				String tip = getNodeString(video, "tip");
 				String score_tip = getNodeString(video, "score_tip");
 				int duration_sec = 0;
 				if (video.has("time_length"))
@@ -1581,4 +1582,19 @@ public class SohuUtil {
 		
 		return strRet;
 	}
+	
+	private int getNodeInt(JSONObject node, String key) {
+		int retVal = 0;
+		if (node.has(key)) {
+			try {
+				retVal = node.getInt(key);
+			} catch (JSONException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		}
+		
+		return retVal;
+	}
+	
 }
