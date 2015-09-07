@@ -7,5 +7,6 @@
 	<classpathentry kind="lib" path="lib/httpcomponents-client-4.4/httpcore-4.4.jar"/>
 	<classpathentry kind="lib" path="lib/jdom-2.0.5/jdom-2.0.5.jar"/>
 	<classpathentry kind="lib" path="lib/org.json.jar"/>
+	<classpathentry kind="lib" path="lib/httpcomponents-client-4.4/httpmime-4.4.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>

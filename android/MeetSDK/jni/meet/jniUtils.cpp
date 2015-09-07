@@ -183,3 +183,105 @@ void detachJNIEnv()
 	
 	PPLOGI("CurrentThread Detached");
 }
+
+bool IsUTF8(const void* pBuffer, long size)  
+{
+	bool IsUTF8 = true;  
+    unsigned char* start = (unsigned char*)pBuffer;  
+    unsigned char* end = (unsigned char*)pBuffer + size;  
+    while (start < end) {  
+        if (*start < 0x80) // (10000000): 值小于0×80的为ASCII字符  
+        {  
+            start++;  
+        }  
+        else if (*start < (0xC0)) // (11000000): 值介于0×80与0xC0之间的为无效UTF-8字符  
+        {  
+            IsUTF8 = false;  
+            break;  
+        }  
+        else if (*start < (0xE0)) // (11100000): 此范围内为2字节UTF-8字符  
+        {  
+            if (start >= end - 1)   
+                break;  
+            if ((start[1] & (0xC0)) != 0x80)  
+            {  
+                IsUTF8 = false;  
+                break;  
+            }  
+            start += 2;  
+        }   
+        else if (*start < (0xF0)) // (11110000): 此范围内为3字节UTF-8字符  
+        {  
+            if (start >= end - 2)   
+                break;  
+            if ((start[1] & (0xC0)) != 0x80 || (start[2] & (0xC0)) != 0x80)  
+            {  
+                IsUTF8 = false;  
+                break;  
+            }  
+            start += 3;  
+        }   
+        else  
+        {  
+            IsUTF8 = false;  
+            break;  
+        }  
+    }  
+
+    return IsUTF8;  
+}
+
+void correctUtfBytes(char* bytes)
+{
+	char three = 0;
+	while (*bytes != '\0') {
+		unsigned char utf8 = *(bytes++);
+		three = 0;
+		// Switch on the high four bits.
+		switch (utf8 >> 4) {
+		case 0x00:
+		case 0x01:
+		case 0x02:
+		case 0x03:
+		case 0x04:
+		case 0x05:
+		case 0x06:
+		case 0x07:
+			// Bit pattern 0xxx. No need for any extra bytes.
+			break;
+		case 0x08:
+		case 0x09:
+		case 0x0a:
+		case 0x0b:
+		case 0x0f:
+			/*
+			* Bit pattern 10xx or 1111, which are illegal start bytes.
+			* Note: 1111 is valid for normal UTF-8, but not the
+			* modified UTF-8 used here.
+			*/
+			*(bytes-1) = '?';
+			break;
+		case 0x0e:
+			// Bit pattern 1110, so there are two additional bytes.
+			utf8 = *(bytes++);
+			if ((utf8 & 0xc0) != 0x80) {
+				--bytes;
+				*(bytes-1) = '?';
+				break;
+			}
+			three = 1;
+			// Fall through to take care of the final byte.
+		case 0x0c:
+		case 0x0d:
+			// Bit pattern 110x, so there is one additional byte.
+			utf8 = *(bytes++);
+			if ((utf8 & 0xc0) != 0x80) {
+				--bytes;
+				if(three)
+					--bytes;
+				*(bytes-1)='?';
+			}
+			break;
+		}
+	}
+}

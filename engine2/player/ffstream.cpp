@@ -404,9 +404,10 @@ AVFormatContext* FFStream::open(char* uri)
 
     //Some audio file includes video stream as album. we need to skip it.
     //Todo: support displaying album picture when playing audio file
+	// 2015.9.1 guoliangma added to fix bug OTT-43P SSP-237 some ogg clip has BLACK screen problem
     if (mMovieFile->iformat->name != NULL
-        && strcmp(mMovieFile->iformat->name, "mp3") != 0
-        && strcmp(mMovieFile->iformat->name, "ogg") != 0
+        //&& strcmp(mMovieFile->iformat->name, "mp3") != 0
+        //&& strcmp(mMovieFile->iformat->name, "ogg") != 0
         && strcmp(mMovieFile->iformat->name, "wmav1") != 0
         && strcmp(mMovieFile->iformat->name, "wmav2") != 0)
     {

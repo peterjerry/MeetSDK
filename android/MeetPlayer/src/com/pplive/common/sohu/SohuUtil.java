@@ -456,6 +456,20 @@ public class SohuUtil {
 		return strRet;
 	}
 	
+	private int getNodeInt(JSONObject node, String key) {
+		int retVal = 0;
+		if (node.has(key)) {
+			try {
+				retVal = node.getInt(key);
+			} catch (JSONException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		}
+		
+		return retVal;
+	}
+	
 	public PlaylinkSohu video_info(int site, int vid, long aid) {
 		String url = String.format(VIDEO_INFO_URL_FMT, vid, site, aid);
 		Log.i(TAG, "Java: SohuUtil video_info() " + url);
@@ -563,10 +577,11 @@ public class SohuUtil {
 					desc = video.getString("tv_desc");
 				
 				long aid = video.getLong("aid");
-				int vid = video.getInt("vid");
+				// 2015.9.6 vid key is removed
+				int vid = getNodeInt(video, "vid");
 				int cid = video.getInt("cid");
-				String hori_pic_url = video.getString("hor_high_pic");
-				String vert_pic_url = video.getString("ver_high_pic");
+				String hori_pic_url = getNodeString(video, "hor_high_pic");
+				String vert_pic_url = getNodeString(video, "ver_high_pic");
 				String area = "N/A";
 				if (video.has("area"))
 					area = video.getString("area");
