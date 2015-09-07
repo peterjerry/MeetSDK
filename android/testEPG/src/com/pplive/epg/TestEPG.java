@@ -48,7 +48,7 @@ public class TestEPG {
 		else {
 			frame.add(new TabbedPaneDemo());
 			frame.pack();
-			frame.setBounds(400, 300, 750, 600);
+			frame.setBounds(400, 300, 800, 600);
 			
 			frame.setVisible(true);
 		}

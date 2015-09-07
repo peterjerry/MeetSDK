@@ -28,6 +28,7 @@ public class MyMediaController extends MediaController {
 	
 	private AudioManager mAudioManager;
 	
+	private Context mContext;
 	private View mControllerView;
 	private SeekBar mProgressBar;
 	private VerticalSeekBar mVolumeBar;
@@ -51,11 +52,14 @@ public class MyMediaController extends MediaController {
 
     public MyMediaController(Context context) {
     	super(context);
+    	
+    	mContext = context;
 	}
     
 	public MyMediaController(Context context, AttributeSet attr) {
 		super(context, attr);
 		
+		mContext = context;
 		mControllerView = makeControllerView();
 	}
 	
@@ -112,7 +116,7 @@ public class MyMediaController extends MediaController {
         
         mFileName = (TextView) v.findViewById(R.id.textview_filename);
   
-        this.setOnTouchListener(mTouchListener);
+        //this.setOnTouchListener(mTouchListener);
 	}
 	
 	private String stringForTime(int timeMs) {
@@ -297,10 +301,11 @@ public class MyMediaController extends MediaController {
         }
     };
     
-    private GestureDetector mGestureDetector = new GestureDetector(new GestureDetector.SimpleOnGestureListener(){
+    /*private GestureDetector mGestureDetector = new GestureDetector(
+    		mContext, new GestureDetector.SimpleOnGestureListener(){
     	
     	public boolean onDoubleTap(MotionEvent e) {
-//    		Log.d(TAG, "onDoubleTap!!!");
+    		Log.i(TAG, "onDoubleTap!!!");
     		
     		if (mPlayer instanceof MediaPlayerControl) {
     			((MediaPlayerControl) mPlayer).switchDisplayMode();
@@ -310,7 +315,7 @@ public class MyMediaController extends MediaController {
     	};
     	
     	public boolean onSingleTapConfirmed(MotionEvent e) {
-//    		Log.d(TAG, "onSingleTapConfirmed!!!");
+    		Log.i(TAG, "onSingleTapConfirmed!!!");
     		
     		
     		return false;
@@ -321,10 +326,11 @@ public class MyMediaController extends MediaController {
 		
 		@Override
 		public boolean onTouch(View v, MotionEvent event) {
+			Log.i(TAG, "onTouch(): " + event.toString());
 			
 			return mGestureDetector.onTouchEvent(event);
 		}
-	};
+	};*/
 	
 	private SeekBar.OnSeekBarChangeListener mProgressChangeListener = new SeekBar.OnSeekBarChangeListener() {
 		

@@ -561,7 +561,7 @@ public class VideoPlayerActivity extends Activity implements Callback {
 	};
 	
 	// UI
-	private GestureDetector mDoubleTapListener = 
+	private GestureDetector mGestureDetector = 
 			new GestureDetector(getApplication(), new GestureDetector.SimpleOnGestureListener() {
 				
 		public boolean onSingleTapConfirmed(MotionEvent e) {
@@ -569,7 +569,7 @@ public class VideoPlayerActivity extends Activity implements Callback {
 			Log.i(TAG, "onSingleTapConfirmed!!!");
 			toggleMediaControlsVisiblity();
 			
-			return false;
+			return true;
 		};
 		
 		@Override
@@ -582,12 +582,6 @@ public class VideoPlayerActivity extends Activity implements Callback {
 		@Override
 		public void onLongPress(MotionEvent e) {
 			Log.i(TAG, "onLongPress!!!");
-			if (mVideoView != null) {
-				mVideoView.stopPlayback();
-				
-				mVideoView.setVideoURI(mUri);
-				mVideoView.start();
-			}
 		}
 	});
 	
@@ -606,9 +600,9 @@ public class VideoPlayerActivity extends Activity implements Callback {
 	
 	@Override
 	public boolean onTouchEvent(MotionEvent event) {
-		Log.i(TAG, "onTouchEvent()" + event.toString());
+		Log.i(TAG, "onTouchEvent(): " + event.toString());
 		
-		return mDoubleTapListener.onTouchEvent(event);
+		return mGestureDetector.onTouchEvent(event);
 	}
 	
 	@Override

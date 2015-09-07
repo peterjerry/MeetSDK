@@ -386,7 +386,7 @@ public class BaiduPanel extends JPanel {
 			}
 		});
 		
-		btnPlay.setBounds(520, 80, 80, 40);
+		btnPlay.setBounds(570, 80, 80, 40);
 		btnPlay.setFont(f);
 		this.add(btnPlay);
 		
@@ -448,6 +448,8 @@ public class BaiduPanel extends JPanel {
 						return;
 					}
 					
+					String url = "playlist.m3u";
+					
 					String exe_path = exe_vlc;
 					if (first_filename.endsWith(".mp3") || 
 							first_filename.endsWith(".flac") ||
@@ -456,13 +458,13 @@ public class BaiduPanel extends JPanel {
 							first_filename.endsWith(".wav")) {
 						exe_path = exe_foobar;
 					}
-					String[] cmd = new String[] {exe_path, "playlist.m3u"};
+					String[] cmd = new String[] {exe_path, url};
 					openExe(cmd);
 				}
 			}
 		});
 		
-		btnPaste.setBounds(520, 130, 80, 40);
+		btnPaste.setBounds(570, 130, 80, 40);
 		btnPaste.setFont(f);
 		this.add(btnPaste);
 		btnPaste.addActionListener(new AbstractAction() {
@@ -480,7 +482,7 @@ public class BaiduPanel extends JPanel {
 			}
 		});
 		
-		btnDelete.setBounds(520, 180, 80, 40);
+		btnDelete.setBounds(570, 180, 80, 40);
 		btnDelete.setFont(f);
 		this.add(btnDelete);
 		btnDelete.addActionListener(new AbstractAction() {
@@ -519,7 +521,7 @@ public class BaiduPanel extends JPanel {
 		
 		comboListBy = new JComboBox<String>(list_by_desc);
 		comboListBy.setFont(f);
-		comboListBy.setBounds(430, 80, 80, 40);
+		comboListBy.setBounds(430, 80, 120, 40);
 		comboListBy.setSelectedIndex(0);
 		this.add(comboListBy);
 		
@@ -711,11 +713,14 @@ public class BaiduPanel extends JPanel {
 			if (path.toLowerCase().endsWith(".mp3") || 
 					path.toLowerCase().endsWith(".flac") ||
 					path.toLowerCase().endsWith(".ape") ||
-					path.toLowerCase().endsWith(".ogg") ||
+					path.toLowerCase().endsWith("open.ogg") ||
 					path.toLowerCase().endsWith(".wav")) {
 				exe_path = exe_foobar;
 			}
 			String[] cmd = new String[] {exe_path, url};
+			/*String[] cmd = new String[] {"open",
+					"-a", "/Applications/MPlayerX.app", "--args",
+					"-url", url};*/
 			openExe(cmd);
 		} catch (UnsupportedEncodingException e) {
 			// TODO Auto-generated catch block

@@ -63,8 +63,8 @@ public class PPTVPanel extends JPanel {
 	
 	private final static String[] ft_desc = {"流畅","高清","超清","蓝光"};
 	
-	JButton btnReset 	= new JButton("重置");
 	JButton btnGo 		= new JButton("选择");
+	JButton btnReset 	= new JButton("重置");
 	JButton btnNext 	= new JButton("翻页");
 	
 	JLabel lblInfo = new JLabel("信息");
@@ -130,13 +130,13 @@ public class PPTVPanel extends JPanel {
 		this.add(lblInfo);
 		
 		btnGo.setFont(f);
-		btnGo.setBounds(180, 110, 80, 40);
+		btnGo.setBounds(200, 110, 80, 40);
 		this.add(btnGo);
 		btnReset.setFont(f);
-		btnReset.setBounds(260, 110, 80, 40);
+		btnReset.setBounds(290, 110, 80, 40);
 		this.add(btnReset);
 		btnNext.setFont(f);
-		btnNext.setBounds(330, 110, 80, 40);
+		btnNext.setBounds(380, 110, 80, 40);
 		this.add(btnNext);
 		
 		lbl_link.setFont(f);
@@ -144,23 +144,10 @@ public class PPTVPanel extends JPanel {
 		this.add(lbl_link);
 		
 		editorPlayLink.setFont(f);
-		editorPlayLink.setBounds(60, 110, 100, 40);
+		editorPlayLink.setBounds(60, 110, 120, 40);
 		editorPlayLink.setText("20986187");
 	    this.add(editorPlayLink);
 
-		btnReset.addActionListener(new AbstractAction() {
-			public void actionPerformed(ActionEvent e) {
-				init_combobox();
-			}
-		});
-		
-		btnNext.addActionListener(new AbstractAction() {
-			public void actionPerformed(ActionEvent e) {
-				start_page++;
-				selectList();
-			}
-		});
-		
 		btnGo.addActionListener(new AbstractAction() {
 			public void actionPerformed(ActionEvent e) {
 				switch (mState) {
@@ -194,6 +181,19 @@ public class PPTVPanel extends JPanel {
 			}
 		});
 		
+		btnReset.addActionListener(new AbstractAction() {
+			public void actionPerformed(ActionEvent e) {
+				init_combobox();
+			}
+		});
+		
+		btnNext.addActionListener(new AbstractAction() {
+			public void actionPerformed(ActionEvent e) {
+				start_page++;
+				selectList();
+			}
+		});
+		
 		comboItem = new JComboBox<String>();
 		comboItem.setFont(f);
 		comboItem.setBounds(20, 60, 450, 40);
@@ -219,24 +219,20 @@ public class PPTVPanel extends JPanel {
 		
 		comboFt = new JComboBox<String>(ft_desc);
 		comboFt.setFont(f);
-		comboFt.setBounds(20, 170, 80, 40);
+		comboFt.setBounds(20, 170, 100, 40);
 		comboFt.setSelectedIndex(1);
 		this.add(comboFt);
 		
 		String[] bw_type = {"P2P", "CDNP2P", "CDN", "PPTV", "DLNA"};
 		comboBwType = new JComboBox<String>(bw_type);
 		comboBwType.setFont(f);
-		comboBwType.setBounds(120, 170, 80, 40);
+		comboBwType.setBounds(130, 170, 100, 40);
 		comboBwType.setSelectedIndex(3);
 		this.add(comboBwType);
 
-		cbNoVideo.setBounds(220, 170, 120, 40);
+		cbNoVideo.setBounds(250, 170, 120, 40);
 		cbNoVideo.setFont(f);
 		this.add(cbNoVideo);
-		
-		/*String exe_filepath  = "D:/Software/ppbox/ppbox_test-win32-msvc90-mt-gd-1.1.0.exe";
-		String[] cmd = new String[] {exe_filepath, ""};
-		openExe(cmd);*/
 		
 		editorSearch.setFont(f);
 		editorSearch.setBounds(20, 350, 200, 40);
@@ -273,11 +269,11 @@ public class PPTVPanel extends JPanel {
 		DayList.toArray(day_desc);
 		comboDay = new JComboBox<String>(day_desc);
 		comboDay.setFont(f);
-		comboDay.setBounds(60, 250, 140, 40);
+		comboDay.setBounds(60, 250, 200, 40);
 		comboDay.setSelectedIndex(0);
 		this.add(comboDay);
 		
-		lbl_start_time.setBounds(210, 250, 50, 40);
+		lbl_start_time.setBounds(280, 250, 50, 40);
 		lbl_start_time.setFont(f);
 		this.add(lbl_start_time);
 		
@@ -290,11 +286,11 @@ public class PPTVPanel extends JPanel {
 		HourList.toArray(hour_desc);
 		comboHour = new JComboBox<String>(hour_desc);
 		comboHour.setFont(f);
-		comboHour.setBounds(260, 250, 80, 40);
+		comboHour.setBounds(330, 250, 120, 40);
 		comboHour.setSelectedIndex(16);
 		this.add(comboHour);
 		
-		lbl_duration.setBounds(10, 300, 50, 40);
+		lbl_duration.setBounds(10, 300, 80, 40);
 		lbl_duration.setFont(f);
 		this.add(lbl_duration);
 		
@@ -302,7 +298,7 @@ public class PPTVPanel extends JPanel {
 				"1.5小时", "2小时", "2.5小时", "3小时"};
 		comboDuration = new JComboBox<String>(duration_desc);
 		comboDuration.setFont(f);
-		comboDuration.setBounds(80, 300, 80, 40);
+		comboDuration.setBounds(80, 300, 120, 40);
 		comboDuration.setSelectedIndex(0);
 		this.add(comboDuration);
 		
