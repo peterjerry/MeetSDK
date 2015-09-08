@@ -660,13 +660,25 @@ public class EPGUtil {
 		return true;
 	}
 	
+	private String getXMLNode(Element e, String key) {
+		Element node = e.getChild(key);
+		if (node == null)
+			return null;
+		
+		return node.getText();
+	}
+	
 	private boolean add_v(Element v) {
 		String link_title  = v.getChild("title").getText();
     	String link_id = v.getChild("vid").getText();
-    	String link_director = v.getChild("director").getText();
+    	String link_director = getXMLNode(v, "director");
+    	String link_act = getXMLNode(v, "act");
+    	String link_year = getXMLNode(v, "year");
+    	String link_area = getXMLNode(v, "area");
+    	/*String link_director = v.getChild("director").getText();
     	String link_act = v.getChild("act").getText();
     	String link_year = v.getChild("year").getText();
-    	String link_area = v.getChild("area").getText();
+    	String link_area = v.getChild("area").getText();*/
     	
     	String str_du;
     	int duration_sec;
@@ -676,9 +688,11 @@ public class EPGUtil {
     		duration_sec = Integer.valueOf(str_du);
     	}
     	else {
-    		du = v.getChild("duration");
-    		str_du = du.getText();
-    		duration_sec = Integer.valueOf(str_du) * 60;
+    		str_du = getXMLNode(v, "duration");
+    		if (str_du == null)
+    			duration_sec = 0;
+    		else
+    			duration_sec = Integer.valueOf(str_du) * 60;
     	}
     	
     	String link_resolution = v.getChild("resolution").getText();

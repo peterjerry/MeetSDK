@@ -285,8 +285,14 @@ public class PPTVEpisodeActivity extends Activity {
             	if (mEpisodeList.size() == 1) {
             		String vid = mEpisodeList.get(0).getId();
             		episode_title = mEpisodeList.get(0).getTitle();
-            		new PPTVEpgTask().execute(TASK_ITEM_FT, Integer.valueOf(vid));
-            		
+            		int playlink = Integer.valueOf(vid);
+            		if (playlink < 300000) { // vod
+            			new PPTVEpgTask().execute(TASK_ITEM_FT, playlink);
+            		}
+            		else { // live
+            			play_video(1, 1);
+            		}
+            			
 					return;
             	}
             	

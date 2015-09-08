@@ -41,6 +41,7 @@ import org.json.JSONException;
 import org.json.JSONObject;
 import org.json.JSONTokener;
 
+import com.pplive.epg.util.ProgressHttpEntityWrapper;
 import com.pplive.epg.util.Util;
 
 import java.awt.Color;
@@ -71,6 +72,7 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 import java.util.StringTokenizer;
 
 
@@ -118,8 +120,8 @@ public class BaiduPanel extends JPanel {
 	private final String BAIDU_PCS_DELETE;
 	private final String BAIDU_PCS_CLOUD_DL;
 	
-	private final int UPLOAD_CHUNKSIZE = 1048576 * 4;
-	private final int UPLOAD_READSIZE = 65536; // 64k
+	private final int UPLOAD_CHUNKSIZE = 1048576; // 1M
+	private final int UPLOAD_READSIZE = 4096; // 4k
 
 	private final static String[] list_by_desc = {"按时间", "按名称", "按大小"}; //time" "name" "size"
 	
@@ -407,11 +409,14 @@ public class BaiduPanel extends JPanel {
 				}
 				else if (indices.length > 1) {
 					String first_filename = "";
-					
+					String play_url = null;
+							
 					try {
-						File file=new File("playlist.m3u");
+						File file = new File("playlist.m3u");
 				        if (!file.exists())
 				        	file.createNewFile();
+				        play_url = file.getAbsolutePath();
+				        
 				        FileOutputStream out = new FileOutputStream(file,false); //如果追加方式用true
 				        out.write("#EXTM3U\n".getBytes("utf-8"));
 				        
@@ -448,8 +453,6 @@ public class BaiduPanel extends JPanel {
 						return;
 					}
 					
-					String url = "playlist.m3u";
-					
 					String exe_path = exe_vlc;
 					if (first_filename.endsWith(".mp3") || 
 							first_filename.endsWith(".flac") ||
@@ -458,7 +461,17 @@ public class BaiduPanel extends JPanel {
 							first_filename.endsWith(".wav")) {
 						exe_path = exe_foobar;
 					}
-					String[] cmd = new String[] {exe_path, url};
+					
+					String[] cmd = null;
+					if (isMac()) {
+						cmd = new String[] {"open",
+								"-a", "/Applications/VLC.app", "--args",
+								play_url};
+					}
+					else {
+						cmd = new String[] {exe_path, play_url};
+					}
+					
 					openExe(cmd);
 				}
 			}
@@ -717,15 +730,31 @@ public class BaiduPanel extends JPanel {
 					path.toLowerCase().endsWith(".wav")) {
 				exe_path = exe_foobar;
 			}
-			String[] cmd = new String[] {exe_path, url};
-			/*String[] cmd = new String[] {"open",
-					"-a", "/Applications/MPlayerX.app", "--args",
-					"-url", url};*/
+
+			String[] cmd = null;
+			if (isMac() && cbUseVLC.isSelected()) {
+				cmd = new String[] {"open",
+						"-a", "/Applications/VLC.app", "--args",
+						url};
+			}
+			else {
+				cmd = new String[] {exe_path, url};
+			}
+			
 			openExe(cmd);
 		} catch (UnsupportedEncodingException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
+	}
+	
+	private boolean isMac() {
+		Properties prop = System.getProperties();
+
+		String os = prop.getProperty("os.name");
+		System.out.println("Java: os.name " + os);
+
+		return os.toLowerCase().contains("mac");
 	}
 	
 	private class MyRender extends JLabel implements ListCellRenderer<String> {
@@ -763,19 +792,32 @@ public class BaiduPanel extends JPanel {
 	};
 		
 	private void showInfo(int index) {
+		SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 		Map<String, Object> fileinfo = mFileList.get(index);
 		boolean isdir = (Boolean) fileinfo.get("isdir");
-		if (!isdir) {
-			String path = (String) fileinfo.get("path");
+		String path = (String) fileinfo.get("path");
+		
+		if (isdir) {
+			lblInfo.setText("统计文件夹大小中");
+			System.out.println("Java: ready to calc folder size");
+			long size = getFolderSize(path);
+			
+			List<Map<String, Object>> metaList = meta(path);
+			Map<String, Object> metainfo = metaList.get(0);
+			int meta_mtime = (Integer)metainfo.get("mtime");
+			Date date = new Date(meta_mtime/*unit is sec*/ * 1000L);
+			
+			lblInfo.setText("总共大小: " + getFileSize(size) + 
+					"   修改时间 " + sdf.format(date));
+		}
+		else {
 			List<Map<String, Object>> metaList = meta(path);
 			if (metaList != null && metaList.size() > 0) {
 				Map<String, Object> metainfo = metaList.get(0);
-				long size = (Long) metainfo.get("filesize");
-				int mtime = (Integer)metainfo.get("mtime");
-				SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-				Date date = new Date(mtime/*unit is sec*/ * 1000L);
-				
-				lblInfo.setText("文件大小: " + getFileSize(size) + 
+				long meta_size = (Long) metainfo.get("filesize");
+				int meta_mtime = (Integer)metainfo.get("mtime");
+				Date date = new Date(meta_mtime/*unit is sec*/ * 1000L);
+				lblInfo.setText("文件大小: " + getFileSize(meta_size) + 
 						"   修改时间 " + sdf.format(date));
 			}
 			
@@ -959,7 +1001,7 @@ public class BaiduPanel extends JPanel {
 				long elapsed_msec = System.currentTimeMillis() - start_msec;
 				double speed = total_sent / (double)elapsed_msec;
 				lblInfo.setText(String.format("%s 已传 %s, 剩余 %s, 速度 %.3f kB/s", 
-						filename, getFileSize(total_sent), getFileSize(total_left), speed));
+						file.getName(), getFileSize(total_sent), getFileSize(total_left), speed));
 				
 				System.out.println(String.format("Java: add md5 to list %s, total_left %d",
 						md5, total_left));
@@ -1002,13 +1044,23 @@ public class BaiduPanel extends JPanel {
 			System.out.println("Java: uploadPiece() " + url_path);
 
 			HttpPost httppost = new HttpPost(url_path);
-			/*MultipartEntity entity = new MultipartEntity();
-			entity.addPart("file", bsData);
-			httppost.setEntity(entity);*/
-			
+
 			MultipartEntityBuilder builder = MultipartEntityBuilder.create();
 			builder.addPart("file", bsData);
 			httppost.setEntity(builder.build());
+			
+			/*ProgressHttpEntityWrapper.ProgressCallback progressCallback = 
+					new ProgressHttpEntityWrapper.ProgressCallback() {
+
+		        @Override
+		        public void progress(float progress) {
+		            //Use the progress
+		        	//System.out.println(String.format("Java: progress %.3f", progress));
+		        }
+
+		    };
+
+			httppost.setEntity(new ProgressHttpEntityWrapper(builder.build(), progressCallback));*/
 
 			HttpResponse response = HttpClients.createDefault().execute(httppost);
 			if (response.getStatusLine().getStatusCode() != 200) {
@@ -1051,11 +1103,11 @@ public class BaiduPanel extends JPanel {
 				&& (target.length() > 0)) {
 			String url = BAIDU_PCS_CREATE_SUPER_FILE + "&path=" + target;
 
-			List bodyParams = new ArrayList();
+			List<BasicNameValuePair> bodyParams = new ArrayList<BasicNameValuePair>();
 
 			if (md5s != null) {
 				JSONArray json = new JSONArray(md5s);
-				Map map = new HashMap();
+				Map<String, JSONArray> map = new HashMap<String, JSONArray>();
 				map.put("block_list", json);
 
 				JSONObject md5list = new JSONObject(map);
@@ -1187,6 +1239,28 @@ public class BaiduPanel extends JPanel {
 				ex.printStackTrace();
 			}
 		}
+	}
+	
+	private long getFolderSize(String path) {
+		List<Map<String, Object>> infoList = list(path);
+		if (infoList == null)
+			return 0;
+		
+		long total_size = 0;
+		int count = infoList.size();
+		for (int i=0;i<count;i++) {
+			Map<String, Object> fileinfo = infoList.get(i);
+			boolean item_isdir = (Boolean) fileinfo.get("isdir");
+			String item_path = (String) fileinfo.get("path");
+			long item_size = (Long) fileinfo.get("filesize");
+			if (item_isdir)
+				total_size += getFolderSize(item_path);
+			else
+				total_size += item_size;
+		}
+		
+		lblInfo.setText(lblInfo.getText() + ".");
+		return total_size;
 	}
 	
 	private List<Map<String, Object>> list(String listPath) {

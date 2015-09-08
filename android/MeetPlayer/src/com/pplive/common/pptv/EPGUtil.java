@@ -610,15 +610,23 @@ public class EPGUtil {
 		return true;
 	}
 	
+	private String getXMLNode(Element e, String key) {
+		Element node = e.getChild(key);
+		if (node == null)
+			return null;
+		
+		return node.getText();
+	}
+	
 	private boolean add_v(Element v) {
 		String link_title  = v.getChild("title").getText();
     	String link_id = v.getChild("vid").getText();
-    	String link_director = v.getChild("director").getText();
-    	String link_act = v.getChild("act").getText();
-    	String link_year = v.getChild("year").getText();
-    	String link_area = v.getChild("area").getText();
-    	String link_count = v.getChild("state").getText();
-    	String link_imgurl = v.getChild("imgurl").getText();
+    	String link_director = getXMLNode(v, "director");
+    	String link_act = getXMLNode(v, "act");
+    	String link_year = getXMLNode(v, "year");
+    	String link_area = getXMLNode(v, "area");
+    	String link_count = getXMLNode(v, "state");
+    	String link_imgurl = getXMLNode(v, "imgurl");
     	
     	String str_du;
     	int duration_sec;
@@ -628,9 +636,11 @@ public class EPGUtil {
     		duration_sec = Integer.valueOf(str_du);
     	}
     	else {
-    		du = v.getChild("duration");
-    		str_du = du.getText();
-    		duration_sec = Integer.valueOf(str_du) * 60;
+    		str_du = getXMLNode(v, "duration");
+    		if (str_du == null)
+    			duration_sec = 0;
+    		else
+    			duration_sec = Integer.valueOf(str_du) * 60;
     	}
 
     	String link_resolution = v.getChild("resolution").getText();
@@ -709,8 +719,11 @@ public class EPGUtil {
 	    	String src_res = source.getAttributeValue("resolution");
 	    	if(src_res != null && !src_res.isEmpty())
 	    		link_resolution = src_res; // overwrite
+	    	int video_count = 0;
+	    	if (link_count != null)
+	    		video_count = Integer.valueOf(link_count);
 	    	PlayLink2 l = new PlayLink2(link_title, ext_title, link_id, link_description, 
-	    			Integer.valueOf(link_count), link_imgurl,
+	    			video_count, link_imgurl,
 	    			src_mark, link_director, link_act,
 	    			link_year, link_area,
 	    			link_resolution, duration_sec);
