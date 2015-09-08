@@ -52,6 +52,9 @@
 #define PROGRESS_RANGE		1000
 #define LIVE_DURATION_SEC	1800
 
+#define PIC_WIDTH			320
+#define PIC_HEIGHT			240
+
 const char* url_desc[PROG_MAX_NUM] = {
 	_T("变形金刚2 720p"),
 	_T("因为爱情 hls"),
@@ -162,6 +165,78 @@ void CAboutDlg::DoDataExchange(CDataExchange* pDX)
 BEGIN_MESSAGE_MAP(CAboutDlg, CDialogEx)
 END_MESSAGE_MAP()
 
+// 媒体信息 对话框
+class CMediaInfoDlg : public CDialogEx
+{
+public:
+	CMediaInfoDlg(CString strInfo, int32_t *thumbnail = NULL, int width = 96, int height = 96);
+
+// 对话框数据
+	enum { IDD = IDD_MEDIAINFO_DIALOG };
+
+	protected:
+	virtual void DoDataExchange(CDataExchange* pDX);    // DDX/DDV 支持
+	virtual BOOL OnInitDialog();
+	afx_msg void OnPaint();
+
+// 实现
+protected:
+	DECLARE_MESSAGE_MAP()
+private:
+	CString		mStrInfo;
+	int32_t *	mThumbnail;
+	int			mWidth;
+	int			mHeight;
+};
+
+CMediaInfoDlg::CMediaInfoDlg(CString strInfo, int32_t *thumbnail, int width, int height) : CDialogEx(CMediaInfoDlg::IDD),
+	mThumbnail(NULL)
+{
+	mStrInfo	= strInfo;
+	mThumbnail	= thumbnail;
+	mWidth		= width;
+	mHeight		= height;
+}
+
+void CMediaInfoDlg::DoDataExchange(CDataExchange* pDX)
+{
+	CDialogEx::DoDataExchange(pDX);
+}
+
+BEGIN_MESSAGE_MAP(CMediaInfoDlg, CDialogEx)
+	ON_WM_PAINT()
+END_MESSAGE_MAP()
+
+BOOL CMediaInfoDlg::OnInitDialog()
+{
+	CDialogEx::OnInitDialog();
+
+	SetDlgItemText(IDC_STATIC_MEDIAINFO, mStrInfo);
+	return TRUE;
+}
+
+void CMediaInfoDlg::OnPaint()
+{
+	CDialogEx::OnPaint();
+
+	if (mThumbnail) {
+		CClientDC dc(this);
+		CDC memDC;		
+
+		CBitmap bmp;
+		bmp.CreateCompatibleBitmap(&dc, mWidth, mHeight);
+	
+		bmp.SetBitmapBits(mWidth * mHeight * 4, mThumbnail);
+
+		memDC.CreateCompatibleDC(&dc);
+		memDC.SelectObject(bmp);
+
+		dc.BitBlt(400, 70, mWidth, mHeight,
+			&memDC, 0, 0, SRCCOPY);
+
+		ReleaseDC(&memDC);
+	}
+}
 
 // CtestSDLdlgDlg 对话框
 
@@ -1477,7 +1552,7 @@ void CtestSDLdlgDlg::OnNMReleasedcaptureSliderProgress(NMHDR *pNMHDR, LRESULT *p
 	*pResult = 0;
 }
 
-void CtestSDLdlgDlg::FillMediaInfo(MediaInfo *info)
+void CtestSDLdlgDlg::FillMediaInfo(MediaInfo *info, int32_t *pic, int width, int height)
 {
 	CString str, tmp;
 
@@ -1530,7 +1605,20 @@ void CtestSDLdlgDlg::FillMediaInfo(MediaInfo *info)
 		}
 	}
 
-	AfxMessageBox(str.GetBuffer());
+	if (info->meta_data) {
+		str.Append("容器元数据:\n");
+		DictEntry *entry = info->meta_data;
+		while (entry) {
+			str.Append(entry->key);
+			str.Append(":  ");
+			str.Append(entry->value);
+			str.Append("\n");
+			entry = entry->next;
+		}
+	}
+
+	CMediaInfoDlg dlgMediaInfo(str, pic, width, height);
+	dlgMediaInfo.DoModal();
 }
 
 void CtestSDLdlgDlg::OnBnClickedButtonGetMediainfo()
@@ -1539,26 +1627,35 @@ void CtestSDLdlgDlg::OnBnClickedButtonGetMediainfo()
 	MediaInfo info;
 	if (mPlayer) {
 		mPlayer->getCurrentMediaInfo(&info);
+		SnapShot *snap = mPlayer->getSnapShot(PIC_WIDTH, PIC_HEIGHT, -1);
+		FillMediaInfo(&info, (int32_t *)snap->picture_data, PIC_WIDTH, PIC_HEIGHT);
+		return;
+	}
+
+	int sel = mComboURL.GetCurSel();
+	if (sel < 0) {
+		AfxMessageBox("not select item");
+		return;
+	}
+
+	if (sel < USER_LIST_OFFSET + mUserAddChnNum) {
+		mUrl = url_list[sel];
 	}
 	else {
-		int sel = mComboURL.GetCurSel();
-		if (sel < 0) {
-			AfxMessageBox("not select item");
-			return;
-		}
-
-		if (sel < USER_LIST_OFFSET + mUserAddChnNum) {
-			mUrl = url_list[sel];
-		}
-		else {
-			mComboURL.GetLBText(sel, mUrl);
-		}
-
-		FFPlayer player;
-		player.getMediaDetailInfo(mUrl.GetBuffer(), &info);
+		mComboURL.GetLBText(sel, mUrl);
 	}
 
-	FillMediaInfo(&info);
+	FFPlayer player;
+	player.getMediaDetailInfo(mUrl.GetBuffer(), &info);
+
+	MediaInfo infoThumbnail;
+	player.getThumbnail(mUrl.GetBuffer(), &infoThumbnail, PIC_WIDTH, PIC_HEIGHT);
+	LOGI("thumbnail %d x %d, %p", infoThumbnail.thumbnail_width, infoThumbnail.thumbnail_height, infoThumbnail.thumbnail);
+
+	int32_t *pic	= infoThumbnail.thumbnail;
+	int w			= infoThumbnail.thumbnail_width;
+	int h			= infoThumbnail.thumbnail_height;
+	FillMediaInfo(&info, pic, w, h);
 }
 
 static void genHMSM(int total_msec, int *hour, int *minute, int *sec, int *msec)

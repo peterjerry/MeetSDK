@@ -97,7 +97,8 @@ public:
 
 	bool getMediaDetailInfo(const char* url, MediaInfo* info);
 
-	bool getThumbnail(const char* url, MediaInfo* info);
+	bool getThumbnail(const char* url, MediaInfo* info, 
+		int width = DEFAULT_THUMBNAIL_WIDTH, int height = DEFAULT_THUMBNAIL_WIDTH);
 
 	// deprecated
 	bool getThumbnail2(const char* url, MediaInfo* info);

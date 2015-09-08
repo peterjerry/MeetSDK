@@ -14,7 +14,10 @@ class ISubtitles;
 #endif
 #include <stdlib.h> // for free
 
-#define MAX_CHANNEL_CNT 64
+#define MAX_CHANNEL_CNT				64
+#define DEFAULT_THUMBNAIL_WIDTH		96
+#define DEFAULT_THUMBNAIL_HEIGHT	96
+
 #define SAFE_DELETE(p)       { if(p) { delete (p);     (p)=NULL; } }
 #define SAFE_FREE(p)       { if(p) { free (p);     (p)=NULL; } }
 
@@ -123,6 +126,8 @@ typedef struct MediaInfo {
 			SAFE_FREE(subtitle_languages[i]);
 			SAFE_FREE(subtitle_titles[i]);
 		}
+
+		SAFE_FREE(thumbnail);
 	}
 
 	void free_entry_list(DictEntry *list) {
@@ -305,7 +310,8 @@ public:
 
 	virtual bool		getCurrentMediaInfo(MediaInfo* info){return false;}
 
-	virtual bool		getThumbnail(const char* url, MediaInfo* info){return false;}
+	virtual bool		getThumbnail(const char* url, MediaInfo* info, 
+		int width = DEFAULT_THUMBNAIL_WIDTH, int height = DEFAULT_THUMBNAIL_HEIGHT){return false;}
 
 	virtual SnapShot*	getSnapShot(int width, int height, int fmt, int msec = -1){return NULL;}
 

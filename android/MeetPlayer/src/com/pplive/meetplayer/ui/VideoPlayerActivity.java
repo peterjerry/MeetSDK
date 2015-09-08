@@ -564,6 +564,29 @@ public class VideoPlayerActivity extends Activity implements Callback {
 	private GestureDetector mGestureDetector = 
 			new GestureDetector(getApplication(), new GestureDetector.SimpleOnGestureListener() {
 				
+		@Override
+		public boolean onFling(MotionEvent e1, MotionEvent e2, float velocityX, float velocityY) {
+			int incr = 0;
+			if (velocityX > 10.0f)
+				incr = 1;
+			else if (velocityX < -10.0f)
+				incr = -1;
+			
+			if (incr != 0) {
+				int pos = mVideoView.getCurrentPosition();
+				pos += (3000 * incr);
+				if (pos > mVideoView.getDuration())
+					pos = mVideoView.getDuration();
+				else if (pos < 0)
+					pos = 0;
+				
+				mVideoView.seekTo(pos);
+			}
+			
+			return true;
+		};
+		
+		@Override
 		public boolean onSingleTapConfirmed(MotionEvent e) {
 			
 			Log.i(TAG, "onSingleTapConfirmed!!!");

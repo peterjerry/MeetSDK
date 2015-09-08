@@ -125,7 +125,7 @@ private:
 	int64_t getSec();
 	void drawBuffering();
 	bool OnPrepared();
-	void FillMediaInfo(MediaInfo *info);
+	void FillMediaInfo(MediaInfo *info, int32_t *pic = NULL, int width = DEFAULT_THUMBNAIL_WIDTH, int height = DEFAULT_THUMBNAIL_HEIGHT);
 	void Cleanup();
 public:
 	afx_msg void OnLButtonUp(UINT nFlags, CPoint point);

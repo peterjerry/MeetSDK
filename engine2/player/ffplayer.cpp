@@ -3438,7 +3438,7 @@ bool generateThumbnail(AVFrame* videoFrame,
 	int ret;
 	bool result = false;
 	enum AVPixelFormat out_fmt = AV_PIX_FMT_NONE;
-#ifdef __ANDROID__
+#if defined(__ANDROID__) || defined(_MSC_VER) || defined(__CYGWIN__)
 	out_fmt = AV_PIX_FMT_BGRA;
 #else
 	// for common case(including IOS)
@@ -4068,7 +4068,7 @@ bool FFPlayer::getThumbnail2(const char* url, MediaInfo* info)
     return ret;
 }
 
-bool FFPlayer::getThumbnail(const char* url, MediaInfo* info)
+bool FFPlayer::getThumbnail(const char* url, MediaInfo* info, int width, int height)
 {
 	LOGI("player op getThumbnail() %s", url);
 
@@ -4132,7 +4132,7 @@ bool FFPlayer::getThumbnail(const char* url, MediaInfo* info)
         goto end;
     }
 
-	info->duration_ms = (int32_t)movieFile->duration * 1000 / AV_TIME_BASE;
+	info->duration_ms = (int32_t)(movieFile->duration * 1000 / AV_TIME_BASE);
 	info->format_name = my_strdup(movieFile->iformat->name);
 
 	frame = av_frame_alloc();
@@ -4191,8 +4191,8 @@ bool FFPlayer::getThumbnail(const char* url, MediaInfo* info)
 				}
 
 				if (got_frame) {
-					info->thumbnail_width = 96;
-                    info->thumbnail_height = 96;
+					info->thumbnail_width = width;
+                    info->thumbnail_height = height;
                     info->thumbnail = (int*)malloc(info->thumbnail_width * info->thumbnail_height * 4);
                     if (generateThumbnail(frame, info->thumbnail, info->thumbnail_width, info->thumbnail_height)) {
 						got_thumbnail = 1;
