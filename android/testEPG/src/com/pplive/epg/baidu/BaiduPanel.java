@@ -875,6 +875,8 @@ public class BaiduPanel extends JPanel {
 			//fsave.setFilenameFilter(ff);
 			fsave.setFile(filename);
 			fsave.setVisible(true);
+			if (fsave.getFile() == null || fsave.getDirectory() == null)
+				return;
 			
 			final String save_path = fsave.getDirectory() + fsave.getFile();
 			System.out.println("file save path: " + save_path);
@@ -1165,7 +1167,7 @@ public class BaiduPanel extends JPanel {
 		listModel.clear();
 		
 		int size = mFileList.size();
-		int child_index = 0;
+		int child_index = -1;
 		for (int i=0;i<size;i++) {
 			Map<String, Object> fileinfo = mFileList.get(i);
 			String path = (String) fileinfo.get("path");
@@ -1177,7 +1179,8 @@ public class BaiduPanel extends JPanel {
 			listModel.addElement(filename);
 		}
 		
-		listItem.setSelectedIndex(child_index);
+		if (child_index != -1)
+			listItem.setSelectedIndex(child_index);
 	}
 	
 	private boolean streaming(String path, String type) {

@@ -365,7 +365,7 @@ bool FFPlayer::FixInterlace(AVStream *video_st)
 {
 #ifdef USE_AV_FILTER
 	mFilterDescr[0] = "yadif";
-	if (!init_filters_video(mFilterDescr)) {
+	if (!init_filters_video(mFilterDescr, mVideoStream->codec)) {
 		LOGE("failed to init video filters");
 		return false;
 	}
@@ -408,7 +408,7 @@ bool FFPlayer::FixRotateVideo(AVStream *video_st)
 				i++;
 			}
 
-			if (!init_filters_video(mFilterDescr)) {
+			if (!init_filters_video(mFilterDescr, mVideoStream->codec)) {
 				LOGE("failed to init video filters");
 				return false;
 			}
@@ -461,14 +461,14 @@ bool FFPlayer::insert_filter(const char *name, const char* arg, AVFilterContext 
 	return true;
 }
 
-bool FFPlayer::init_filters_video(const char **filters_descr)
+bool FFPlayer::init_filters_video(const char **filters_descr, AVCodecContext *dec_ctx)
 {
 	char args[512] = {0};
     int ret = 0;
 	int index;
     AVFilter *buffersrc  = avfilter_get_by_name("buffer");
     AVFilter *buffersink = avfilter_get_by_name("buffersink");
-	AVCodecContext *dec_ctx = mVideoStream->codec;
+	//AVCodecContext *dec_ctx = mVideoStream->codec;
 
 	mFilterOutputs = avfilter_inout_alloc();
     mFilterInputs  = avfilter_inout_alloc();
@@ -4172,6 +4172,15 @@ bool FFPlayer::getThumbnail(const char* url, MediaInfo* info, int width, int hei
 		}
     }
 
+#ifdef SCENE_DETECT
+	const char *filt_desc[2] = {"select='gt(scene,0.2)'", NULL};
+	if (!init_filters_video(filt_desc, video_dec_ctx)) {
+		LOGE("failed to init video filters");
+		goto end;
+	}
+	AVFrame *videoFiltFrame = av_frame_alloc();
+#endif
+
 	/* initialize packet, set data to NULL, let the demuxer fill it */
     av_init_packet(&pkt);
     pkt.data = NULL;
@@ -4180,7 +4189,7 @@ bool FFPlayer::getThumbnail(const char* url, MediaInfo* info, int width, int hei
 	/* read frames from the file */
     while (av_read_frame(movieFile, &pkt) >= 0) {
 		AVPacket orig_pkt = pkt;
-		if(pkt.stream_index == video_stream_idx) {
+		if (pkt.stream_index == video_stream_idx) {
 			int got_frame;
 			do {
 				/* decode video frame */
@@ -4191,6 +4200,35 @@ bool FFPlayer::getThumbnail(const char* url, MediaInfo* info, int width, int hei
 				}
 
 				if (got_frame) {
+#ifdef SCENE_DETECT
+					// push the decoded frame into the filtergraph
+					if (av_buffersrc_add_frame_flags(mBufferSrcCtx, frame, AV_BUFFERSRC_FLAG_KEEP_REF) < 0) {
+						LOGE("Error while feeding the filtergraph");
+						goto end;
+					}
+
+					// pull filtered frames from the filtergraph
+					int filt_ret;
+					while (1) {
+						filt_ret = av_buffersink_get_frame(mBufferSinkCtx, videoFiltFrame);
+						if (filt_ret >= 0) {
+							info->thumbnail_width = width;
+							info->thumbnail_height = height;
+							info->thumbnail = (int*)malloc(info->thumbnail_width * info->thumbnail_height * 4);
+							if (generateThumbnail(videoFiltFrame, info->thumbnail, info->thumbnail_width, info->thumbnail_height)) {
+								got_thumbnail = 1;
+								LOGI("generateThumbnail(select) done!");
+							}
+							av_frame_unref(videoFiltFrame);
+							av_frame_unref(frame);
+							break;
+						}
+						else if (filt_ret == AVERROR(EAGAIN) || filt_ret == AVERROR_EOF)
+							break;
+						else if (filt_ret < 0)
+							break;
+					}
+#else
 					info->thumbnail_width = width;
                     info->thumbnail_height = height;
                     info->thumbnail = (int*)malloc(info->thumbnail_width * info->thumbnail_height * 4);
@@ -4199,6 +4237,7 @@ bool FFPlayer::getThumbnail(const char* url, MediaInfo* info, int width, int hei
 						LOGI("generateThumbnail done!");
 					}
 					av_frame_unref(frame);
+#endif
 				}
 					
 				pkt.data += ret;

@@ -765,7 +765,7 @@ public class ClipListActivity extends Activity implements
 				short port = MediaSDK.getPort(PORT_HTTP);
 				Log.i(TAG, "Http port is: " + port);
 				
-				if (ppbox_playid >= 300000 && ppbox_playid < 300999 && 
+				if (ppbox_playid >= 300000 && ppbox_playid < 400000 && 
 						(mPlayerLinkSurfix == null || mPlayerLinkSurfix.equals(""))) {
 					mIsLivePlay = true;
 					Log.i(TAG, "Java: set mIsLivePlay to true");

@@ -30,6 +30,14 @@ public class PlayLink2 {
 				"", "",
 				"", 0);
 	}
+	
+	public PlayLink2(String title, String id, String desc, String imgUrl) {
+		this(title, "", id, desc, 
+				0, imgUrl,
+				"", "", "", 
+				"", "",
+				"", 0);
+	}
 
 	public PlayLink2(String title, String ext_title, String id, String desc, 
 			int video_count, String img_url, 

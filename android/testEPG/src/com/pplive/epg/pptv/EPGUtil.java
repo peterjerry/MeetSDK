@@ -108,6 +108,14 @@ public class EPGUtil {
 	private final static String getvchannel_fmt = "http://epg.api.pptv.com/getvchannel?" +
 			"platform=android3&pagesize=%d&infoid=%d&siteid=%d&nowpage=%d";
 	
+	private final static String live_center_fmt = "http://livecenter.pptv.com" +
+			"/api/v1/collection?" +
+			"auth=d410fafad87e7bbf6c6dd62434345818&platform=android3" +
+			"&id=%s" + // 44 -> sports, game -> game
+			"&start=%s" + // 2015-09-08
+			"&appid=com.pplive.androidphone" +
+			"&appver=5.2.1&appplt=aph&recommend=0";
+	
 	private List<Content> mContentList;
 	private List<Module> mModuleList;
 	private List<Catalog> mCatalogList;
@@ -1046,4 +1054,70 @@ public class EPGUtil {
 		return ret;
 	}
 	
+	/*@param start_time 20150902
+	 * 
+	 */
+	
+	public boolean live_center(String id, String start_time) {
+		String url = String.format(live_center_fmt, id, start_time);
+		
+		System.out.println("Java: epg live_center() " + url);
+
+		boolean ret = false;
+		
+		HttpGet request = new HttpGet(url);
+		HttpResponse response;
+		
+		try {
+			response = new DefaultHttpClient().execute(request);
+			if (response.getStatusLine().getStatusCode() != 200){
+				System.out.println("Java: failed to connect to epg server");
+				return false;
+			}
+			
+			String result = EntityUtils.toString(response.getEntity());
+			//System.out.println("Java: epg result " + result.replace("\n", ""));
+			
+			SAXBuilder builder = new SAXBuilder();
+			Reader returnQuote = new StringReader(result);  
+	        Document doc = builder.build(returnQuote);
+	        Element collections = doc.getRootElement();
+	        Element collection = collections.getChild("collection");
+	        
+	        Element sections = collection.getChild("sections");
+	        if (sections == null)
+	        	return false;
+	        
+	        List<Element> section = sections.getChildren("section");
+	        if (section == null || section.size() == 0)
+	        	return false;
+	        
+	        for (int i=0;i<section.size();i++) {
+	        	Element program = section.get(i);
+	        	String prog_title = program.getChildText("title");
+	        	String prog_id = program.getChildText("id");
+	        	String prog_start_time = program.getChildText("start_time");
+	        	String prog_end_time = program.getChildText("end_time");
+	        	
+	        	Element streams = program.getChild("streams");
+	        	Element stream = streams.getChild("stream");
+	        	String channel_id = stream.getChildText("channel_id");
+	        	
+	        	System.out.println(String.format("Java: title %s, id %s, start %s, end %s, channel_id %s",
+	        			prog_title, prog_id, prog_start_time, prog_end_time, channel_id));
+	        }
+
+		} catch (ClientProtocolException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (JDOMException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+		return ret;
+	}
 }

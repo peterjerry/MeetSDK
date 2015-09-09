@@ -1483,28 +1483,34 @@ void CtestSDLdlgDlg::OnBnClickedButtonPlayEpg()
 	ft		= mCBft.GetCurSel();
 	bw_type = mCBbwType.GetCurSel();
 
-	if (bw_type == 4) {
-		char *url = mEPG.get_cdn_url(link, ft, false, false);
-		if (url == NULL) {
-			LOGE("failed to get cdn url");
-			MessageBox("failed to get cdn url");
-			return;
-		}
-
-		strcpy(str_url, url);
-		free(url);
-		url = NULL;
+	if (link >= 300000 && link <= 400000) {
+		_snprintf(str_url, 512, pptv_http_playlink_fmt, HOST, mhttpPort, link);
+		strcat(str_url, pptv_playlink_surfix);
 	}
 	else {
-		_snprintf(str_playlink, 512, "%d?ft=%d&bwtype=%d&platform=android3&type=phone.android.vip&sv=4.0.1", // &param=userType%3D1
-			link, ft, bw_type);
-		LOGI("playlink before urlencode: %s", str_playlink);
-		int out_len = 0;
-		char *encoded_playlink = urlencode(str_playlink, strlen(str_playlink), &out_len);
-		LOGI("playlink after urlencode: %s", encoded_playlink);
+		if (bw_type == 4) {
+			char *url = mEPG.get_cdn_url(link, ft, false, false);
+			if (url == NULL) {
+				LOGE("failed to get cdn url");
+				MessageBox("failed to get cdn url");
+				return;
+			}
 
-		_snprintf(str_url, 1024, pptv_playlink_ppvod2_fmt, HOST, mhttpPort, encoded_playlink);
-		strcat(str_url, "%26param%3DuserType%253D1&mux.M3U8.segment_duration=5");// %26param%3DuserType%253D1
+			strcpy(str_url, url);
+			free(url);
+			url = NULL;
+		}
+		else {
+			_snprintf(str_playlink, 512, "%d?ft=%d&bwtype=%d&platform=android3&type=phone.android.vip&sv=4.0.1", // &param=userType%3D1
+				link, ft, bw_type);
+			LOGI("playlink before urlencode: %s", str_playlink);
+			int out_len = 0;
+			char *encoded_playlink = urlencode(str_playlink, strlen(str_playlink), &out_len);
+			LOGI("playlink after urlencode: %s", encoded_playlink);
+
+			_snprintf(str_url, 1024, pptv_playlink_ppvod2_fmt, HOST, mhttpPort, encoded_playlink);
+			strcat(str_url, "%26param%3DuserType%253D1&mux.M3U8.segment_duration=5");// %26param%3DuserType%253D1
+		}
 	}
 
 	LOGI("final vod url: %s", str_url);
@@ -1624,7 +1630,7 @@ void CtestSDLdlgDlg::FillMediaInfo(MediaInfo *info, int32_t *pic, int width, int
 	}
 
 	if (info->meta_data) {
-		str.Append("容器元数据:\n");
+		str.Append("\n容器元数据:\n");
 		DictEntry *entry = info->meta_data;
 		while (entry) {
 			str.Append(entry->key);

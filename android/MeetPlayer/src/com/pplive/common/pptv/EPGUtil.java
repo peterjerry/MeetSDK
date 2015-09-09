@@ -108,6 +108,14 @@ public class EPGUtil {
 	private final static String getvchannel_fmt = "http://epg.api.pptv.com/getvchannel?" +
 			"platform=android3&pagesize=%d&infoid=%d&siteid=%d&nowpage=%d";
 	
+	private final static String live_center_fmt = "http://livecenter.pptv.com" +
+			"/api/v1/collection?" +
+			"auth=d410fafad87e7bbf6c6dd62434345818&platform=android3" +
+			"&id=%s" + // 44 -> sports, game -> game
+			"&start=%s" + // 2015-09-08
+			"&appid=com.pplive.androidphone" +
+			"&appver=5.2.1&appplt=aph&recommend=0";
+	
 	private List<Content> mContentList;
 	private List<Module> mModuleList;
 	private List<Catalog> mCatalogList;
@@ -158,7 +166,7 @@ public class EPGUtil {
 	
 	public boolean live(int start_page, int count, int type) {
 		String url = String.format(live_url_fmt, start_page, count, type);
-		System.out.println(url);
+		Log.i(TAG, "Java: live() " + url);
 		
 		HttpGet request = new HttpGet(url);
 		
@@ -186,8 +194,17 @@ public class EPGUtil {
 	        	String title = v.getChild("title").getText();
 	        	String vid = v.getChild("vid").getText();
 	        	String nowplay = v.getChild("nowplay").getText();
-	        	System.out.println(String.format("title: %s, id: %s, nowplay: %s", title, vid, nowplay));
-	        	PlayLink2 l = new PlayLink2(title, vid, nowplay);
+	        	String willplay = v.getChild("willplay").getText();
+	        	String desc = nowplay + "|" + willplay;
+	        	
+	        	Element img = v.getChild("imgurl");
+		    	String imgUrl = "";
+		    	if (img != null)
+		    		imgUrl = img.getText();
+		    	
+	        	Log.i(TAG, String.format("Java: live prog title: %s, id: %s, nowplay: %s, willplay: %s", 
+	        			title, vid, nowplay, willplay));
+	        	PlayLink2 l = new PlayLink2(title, vid, desc, imgUrl);
 	        	mPlayLinkList.add(l);
 	        }
 		} catch (ClientProtocolException e) {
@@ -420,7 +437,6 @@ public class EPGUtil {
 			int start_page, String order, int count, boolean isCatalog) {
 		Log.i(TAG, String.format("Java: list() param %s, type %s, start_page %d, order %s, count %d",
 				param, type, start_page, order, count));
-		
 		String encoded_param;
 		int pos = param.indexOf('=');
 		if (pos == -1)
@@ -447,7 +463,6 @@ public class EPGUtil {
 		
 		if (isCatalog)
 			url += "&vt=21%2C22";
-		
 		url += "&";
 		url += encoded_param;
 		url += "&appid=com.pplive.androidphone&appplt=aph";
@@ -719,6 +734,7 @@ public class EPGUtil {
 	    	String src_res = source.getAttributeValue("resolution");
 	    	if(src_res != null && !src_res.isEmpty())
 	    		link_resolution = src_res; // overwrite
+	    	
 	    	int video_count = 0;
 	    	if (link_count != null)
 	    		video_count = Integer.valueOf(link_count);
@@ -1004,7 +1020,7 @@ public class EPGUtil {
 	
 	public boolean search(String s_key, int s_type, int s_contenttype, int s_start_page, int s_count) {
 		String url = String.format(search_url_fmt, s_key, s_type, s_contenttype, s_start_page, s_count);
-		Log.i(TAG, "Java: epg url " + url);
+		Log.i(TAG, "Java: epg search() " + url);
 
 		boolean ret = false;
 		
@@ -1069,5 +1085,79 @@ public class EPGUtil {
 		}
 		
 		return ret;
+	}
+	
+	/*@param start_time 20150902
+	 * 
+	 */
+	
+	public boolean live_center(String id, String start_time) {
+		String url = String.format(live_center_fmt, id, start_time);
+		
+		Log.i(TAG, "Java: epg live_center() " + url);
+
+		HttpGet request = new HttpGet(url);
+		HttpResponse response;
+		
+		try {
+			response = new DefaultHttpClient().execute(request);
+			if (response.getStatusLine().getStatusCode() != 200){
+				Log.e(TAG, "failed to connect to epg server");
+				return false;
+			}
+			
+			String result = EntityUtils.toString(response.getEntity());
+			Log.d(TAG, "Java: epg result " + result.replace("\n", ""));
+			
+			SAXBuilder builder = new SAXBuilder();
+			Reader returnQuote = new StringReader(result);  
+	        Document doc = builder.build(returnQuote);
+	        Element root = doc.getRootElement();
+	        
+	        // get nav info
+	        Element collections = root.getChild("collections");
+	        if (collections == null)
+	        	return false;
+	        
+	        Element collection = collections.getChild("collection");
+	        if (collection == null)
+	        	return false;
+	        
+	        Element sections = collection.getChild("sections");
+	        if (sections == null)
+	        	return false;
+	        
+	        List<Element> section = sections.getChildren("section");
+	        if (section == null || section.size() == 0)
+	        	return false;
+	        
+	        for (int i=0;i<section.size();i++) {
+	        	Element program = section.get(i);
+	        	String prog_title = program.getChildText("title");
+	        	String prog_id = program.getChildText("id");
+	        	String prog_start_time = program.getChildText("start_time");
+	        	String prog_end_time = program.getChildText("end_time");
+	        	
+	        	Element streams = program.getChild("streams");
+	        	Element stream = streams.getChild("stream");
+	        	String channel_id = stream.getChildText("channel_id");
+	        	
+	        	Log.i(TAG, String.format("Java: title %s, id %s, start %s, end %s, channel_id %s",
+	        			prog_title, prog_id, prog_start_time, prog_end_time, channel_id));
+	        }
+	        
+	        return true;
+		} catch (ClientProtocolException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (JDOMException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+		return false;
 	}
 }

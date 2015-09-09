@@ -5,6 +5,7 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.StringTokenizer;
 
 import android.os.Environment;
 import android.util.Log;
@@ -53,21 +54,23 @@ public class LoadPlayLinkUtil {
 	    	s = s.replace("\r\n", "\n");
 	    	Log.i(TAG, "Java: tvlist.txt file content " + s.replace("\n", ""));
 
-		    int pos = 0;
-		    while (true) {
-		    	int comma = s.indexOf(',', pos);
-		    	int newline = s.indexOf('\n', pos);
-		    	if (comma == -1)
-		    		break;
-		    	if (newline == -1)
-		    		newline = s.length();
+	    	StringTokenizer st = new StringTokenizer(s, "\n", false);
+		    while (st.hasMoreElements()) {
+		    	String line = st.nextToken();
+		    	if (line.startsWith("#") || line.startsWith(" "))
+		    		continue;
 		    	
-		    	String title = s.substring(pos, comma);
-		    	String url = s.substring(comma + 1, newline);
+		    	int delim = line.indexOf(',');
+		    	if (delim == -1)
+		    		delim = line.indexOf(' ');
+		    	if (delim == -1)
+		    		continue;
+		    	
+		    	String title = line.substring(0, delim);
+		    	String url = line.substring(delim + 1);
 		    	Log.i(TAG, String.format("Java: filecontext title: %s url: %s", title, url));
 		    	mTitleList.add(title);
 		    	mUrlList.add(url);
-		    	pos = newline + 1;
 		    }
 		    
 		    if (mTitleList.size() == 0)

@@ -18,6 +18,7 @@ class FFSourceBase;
 
 struct AVFormatContext;
 struct AVStream;
+struct AVCodecContext;
 struct AVPacket;
 struct AVFrame;
 struct SwsContext;
@@ -186,7 +187,7 @@ private:
 	void SwapResolution(int32_t *width, int32_t *height);
 
 #ifdef USE_AV_FILTER
-	bool init_filters_video(const char **filters_descr);
+	bool init_filters_video(const char **filters_descr, AVCodecContext *dec_ctx);
 	bool init_filters_audio(const char **filters_descr);
 	bool insert_filter(const char *name, const char* arg, AVFilterContext **last_filter);
 #endif

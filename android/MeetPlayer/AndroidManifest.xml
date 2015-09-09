@@ -72,6 +72,11 @@
             android:label="@string/title_activity_pptv_video" >
 		</activity>
 		<activity
+			android:name=".ui.PPTVLiveActivity" 
+			android:screenOrientation="portrait"
+            android:label="@string/title_activity_pptv_video" >
+		</activity>
+		<activity
 			android:name=".ui.PPTVPlayerActivity" 
 			android:label="@string/app_name"
 			android:screenOrientation="landscape"

@@ -43,6 +43,7 @@ public class Util {
 
 		String libPath = "/data/data/com.pplive.meetplayer/lib";
 		MediaSDK.libPath = libPath;
+		MediaSDK.libName = "ppbox_jni-armandroid-r4-gcc44-mt-1.1.0";
 		MediaSDK.logPath = "/data/data/com.pplive.meetplayer/cache";
 		MediaSDK.logOn = false;
 		MediaSDK.setConfig("", "HttpManager", "addr", "127.0.0.1:9106+");

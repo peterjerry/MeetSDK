@@ -85,6 +85,7 @@ public class PPTVVideoActivity extends ListActivity {
 	private String mContentType;
 	private String mEPGparam;
 	private String mEPGtype;
+	private boolean mListLive;
 	
 	private ArrayAdapter<String> mAdapter;
 	private boolean mContentSelected = false;
@@ -213,18 +214,43 @@ public class PPTVVideoActivity extends ListActivity {
 			String param = mEPGContentList.get(position).getParam();
 			if (param.startsWith("type="))
 				mContentType = "";
-			Intent intent = new Intent(PPTVVideoActivity.this, PPTVEpisodeActivity.class);
-    		intent.putExtra("epg_param", param);
-    		intent.putExtra("epg_type", mContentType);
-    		String info = String.format("Java: ready to start PPTVEpisodeActivity param: %s, type: %s",
-    				param, mContentType);
-    		Log.i(TAG, info);
-    		//Toast.makeText(this, info, Toast.LENGTH_SHORT).show();
-    		
+			Intent intent = null;
+			if (mListLive) {
+				intent = new Intent(PPTVVideoActivity.this, PPTVLiveActivity.class);
+				int live_type;
+				if (2 == position) // 卫视
+					live_type = 164;
+				else if (3 == position) // 地方台
+					live_type = 156;
+				else if (4 == position) // 电台
+					live_type = 210712;
+				else {
+					Toast.makeText(PPTVVideoActivity.this, "invalid live type", Toast.LENGTH_SHORT).show();
+					return;
+				}
+				
+				intent.putExtra("live_type", live_type);
+			}
+			else {
+				intent = new Intent(PPTVVideoActivity.this, PPTVEpisodeActivity.class);
+				
+				intent.putExtra("epg_param", param);
+	    		intent.putExtra("epg_type", mContentType);
+	    		String info = String.format("Java: ready to start PPTVEpisodeActivity param: %s, type: %s",
+	    				param, mContentType);
+	    		Log.i(TAG, info);
+			}
+
     		startActivity(intent);
 			return;
 		}
 		else {
+			String title = mEPGModuleList.get(position).getTitle();
+			if (title.equals("直播"))
+				mListLive = true;
+			else
+				mListLive = false;
+			
 			mLink = mEPGModuleList.get(position).getLink();
 			mContentType = "";
 			int pos = mLink.indexOf("type=");
