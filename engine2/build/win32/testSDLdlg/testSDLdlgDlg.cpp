@@ -357,10 +357,28 @@ BOOL CtestSDLdlgDlg::OnInitDialog()
 		data = new char[filesize + 1];
 		memset(data, 0, filesize + 1);
 		fread(data, 1, filesize, pFile);
-		char *p = NULL;
-		p = strtok(data, "\n");
+		char *p = strtok(data, "\n");
 		int i=0;
 		while (p) {
+			if (p[0] == '#' || p[0] == ' ')
+				continue;
+
+			char *delim = strchr(p, ',');
+			if (delim == NULL)
+				continue;
+
+			*delim = '\0';
+			char *desc = strdup(p);
+			char *url = strdup(delim + 1);
+
+			url_desc[USER_LIST_OFFSET + i] = desc;
+			url_list[USER_LIST_OFFSET + i] = url;
+
+			p = strtok(NULL, "\n");
+			i++;
+		}
+		mUserAddChnNum = i;
+		/*while (p) {
 			char *new_ptr = new char[strlen(p) + 1];
 			strcpy(new_ptr, p);
 			if (i%2 == 0)
@@ -370,7 +388,7 @@ BOOL CtestSDLdlgDlg::OnInitDialog()
 			p = strtok(NULL, "\n");
 			i++;
 		}
-		mUserAddChnNum = i / 2;
+		mUserAddChnNum = i / 2;*/
 
 		fclose(pFile);
 		delete data;

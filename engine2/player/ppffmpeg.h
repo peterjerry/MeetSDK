@@ -18,6 +18,10 @@ extern "C" {
 #define UINT64_C(val) val##ui64
 #define INT64_C(val)  val##i64
 #endif
+#ifndef INT64_MIN
+#define INT64_MIN        (INT64_C(-9223372036854775807)-1)
+#define INT64_MAX        (INT64_C(9223372036854775807))
+#endif
 #else
 #ifndef UINT64_C
 #define UINT64_C(value)__CONCAT(value,ULL)

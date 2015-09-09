@@ -1815,7 +1815,8 @@ void FFPlayer::onSeekingImpl()
     mSeekingEventPending = false;
 
     if (!mSeeking) {
-        mSeeking = true; //doing seek.
+		//do a seek op
+        mSeeking = true; //condition that is doing seek.
         seekTo_l();
         if (mVideoStream != NULL) {
             mRenderFirstFrame = true;
@@ -2177,9 +2178,8 @@ void FFPlayer::postBufferingEndEvent_l() {
 
 void FFPlayer::postSeekingCompleteEvent_l() {
 
-    if (mSeekingCompleteEventPending) {
+    if (mSeekingCompleteEventPending)
         return;
-    }
 
     mSeekingCompleteEventPending = true;
 	

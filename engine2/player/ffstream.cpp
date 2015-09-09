@@ -903,7 +903,11 @@ void FFStream::thread_impl()
 #else
 				seek_target= av_rescale_q(seek_target, AV_TIME_BASE_Q, mMovieFile->streams[stream_index]->time_base);
 #endif
-                if (av_seek_frame(mMovieFile, stream_index, seek_target, mSeekFlag) < 0) {
+                int64_t seek_min    = /*mSeekRel > 0 ? seek_target - mSeekRel + 2: */INT64_MIN;
+				int64_t seek_max    = /*mSeekRel < 0 ? seek_target - mSeekRel - 2: */INT64_MAX;
+                //if (av_seek_frame(mMovieFile, stream_index, seek_target, mSeekFlag) < 0) {
+				// 2015.9.9 guoliang change api to fix some clip cannot seek to the VERY end of file(5 sec)
+				if (avformat_seek_file(mMovieFile, stream_index, seek_min, seek_target, seek_max, mSeekFlag) < 0) {
 #ifdef _MSC_VER
 					LOGE("failed to seek to: %I64d(ms)", mSeekTimeMs);
 #else
