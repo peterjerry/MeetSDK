@@ -121,6 +121,7 @@ public class EPGUtil {
 	private List<Catalog> mCatalogList;
 	private List<PlayLink2> mPlayLinkList;
 	private List<Navigator> mNavList;
+	private List<LiveStream> mLiveStrmList;
 	
 	private List<Episode> mVirtualPlayLinkList;
 	private String mStrInfoId;
@@ -132,6 +133,7 @@ public class EPGUtil {
 		mPlayLinkList			= new ArrayList<PlayLink2>();
 		mVirtualPlayLinkList 	= new ArrayList<Episode>();
 		mNavList 				= new ArrayList<Navigator>();
+		mLiveStrmList			= new ArrayList<LiveStream>();
 	}
 	
 	public List<Content> getContent() {
@@ -156,6 +158,10 @@ public class EPGUtil {
 	
 	public List<Navigator> getNav() {
 		return mNavList;
+	}
+	
+	public List<LiveStream> getLiveStrm() {
+		return mLiveStrmList;
 	}
 	
 	public String getInfoId() {
@@ -1054,22 +1060,22 @@ public class EPGUtil {
 		return ret;
 	}
 	
-	/*@param start_time 20150902
-	 * 
-	 */
 	
+	/**
+	 * @param id
+	 * @param start_time format 2015-09-04
+	 * @return
+	 */
 	public boolean live_center(String id, String start_time) {
 		String url = String.format(live_center_fmt, id, start_time);
 		
 		System.out.println("Java: epg live_center() " + url);
 
-		boolean ret = false;
-		
 		HttpGet request = new HttpGet(url);
 		HttpResponse response;
 		
 		try {
-			response = new DefaultHttpClient().execute(request);
+			response = HttpClients.createDefault().execute(request);
 			if (response.getStatusLine().getStatusCode() != 200){
 				System.out.println("Java: failed to connect to epg server");
 				return false;
@@ -1092,6 +1098,8 @@ public class EPGUtil {
 	        if (section == null || section.size() == 0)
 	        	return false;
 	        
+	        mLiveStrmList.clear();
+	        
 	        for (int i=0;i<section.size();i++) {
 	        	Element program = section.get(i);
 	        	String prog_title = program.getChildText("title");
@@ -1103,10 +1111,14 @@ public class EPGUtil {
 	        	Element stream = streams.getChild("stream");
 	        	String channel_id = stream.getChildText("channel_id");
 	        	
+	        	mLiveStrmList.add(new LiveStream(prog_id, prog_title, channel_id, 
+	        			prog_start_time, prog_end_time, null));
+	        	
 	        	System.out.println(String.format("Java: title %s, id %s, start %s, end %s, channel_id %s",
 	        			prog_title, prog_id, prog_start_time, prog_end_time, channel_id));
 	        }
 
+	        return true;
 		} catch (ClientProtocolException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -1118,6 +1130,6 @@ public class EPGUtil {
 			e.printStackTrace();
 		}
 		
-		return ret;
+		return false;
 	}
 }

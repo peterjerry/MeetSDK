@@ -126,7 +126,8 @@ int pptv_channel_id[] = {
 
 const char *pptv_rtsp_playlink_fmt = "rtsp://%s:%d/play.es?type=pplive3&playlink=%d";
 const char *pptv_http_playlink_fmt = "http://%s:%d/play.m3u8?type=pplive3&playlink=%d";
-const char *pptv_playlink_surfix = "%3Fft%3D1%26bwtype%3D0%26platform%3Dandroid3%26type%3Dphone.android.vip";
+const char *pptv_live_playlink_surfix = "%3Fft%3D1%26bwtype%3D3%26platform%3Dandroid3%26type%3Dphone.android.vip";
+const char *pptv_live_fmt = "?ft=%d&bwtype=3&platform=android3&type=phone.android.vip";
 const char *pptv_playlink_ppvod2_fmt = "http://%s:%d/record.m3u8?type=ppvod2&playlink=%s";
 
 static void genHMSM(int total_msec, int *hour, int *minute, int *sec, int *msec);
@@ -336,14 +337,14 @@ BOOL CtestSDLdlgDlg::OnInitDialog()
 	for (int i=0;i<sizeof(pptv_channel_id) / sizeof(int);i++) {
 		char *new_item = (char *)malloc(256);
 		_snprintf(new_item, 256, pptv_rtsp_playlink_fmt, HOST, mrtspPort, pptv_channel_id[i]);
-		strcat(new_item, pptv_playlink_surfix);
+		strcat(new_item, pptv_live_playlink_surfix);
 		url_list[PPTV_RTSP_URL_OFFSET + i] = new_item;
 	}
 
 	for (int i=0;i<sizeof(pptv_channel_id) / sizeof(int);i++) {
 		char *new_item = (char *)malloc(256);
 		_snprintf(new_item, 256, pptv_http_playlink_fmt, HOST, mhttpPort, pptv_channel_id[i]);
-		strcat(new_item, pptv_playlink_surfix);
+		strcat(new_item, pptv_live_playlink_surfix);
 		url_list[PPTV_HLS_URL_OFFSET + i] = new_item;
 	}
 
@@ -378,17 +379,6 @@ BOOL CtestSDLdlgDlg::OnInitDialog()
 			i++;
 		}
 		mUserAddChnNum = i;
-		/*while (p) {
-			char *new_ptr = new char[strlen(p) + 1];
-			strcpy(new_ptr, p);
-			if (i%2 == 0)
-				url_desc[USER_LIST_OFFSET + i/2] = new_ptr;
-			else
-				url_list[USER_LIST_OFFSET + i/2] = new_ptr;
-			p = strtok(NULL, "\n");
-			i++;
-		}
-		mUserAddChnNum = i / 2;*/
 
 		fclose(pFile);
 		delete data;
@@ -1484,8 +1474,15 @@ void CtestSDLdlgDlg::OnBnClickedButtonPlayEpg()
 	bw_type = mCBbwType.GetCurSel();
 
 	if (link >= 300000 && link <= 400000) {
-		_snprintf(str_url, 512, pptv_http_playlink_fmt, HOST, mhttpPort, link);
-		strcat(str_url, pptv_playlink_surfix);
+		_snprintf(str_url, 1024, pptv_http_playlink_fmt, HOST, mhttpPort, link);
+
+		_snprintf(str_playlink, 512, pptv_live_fmt, ft);
+		int out_len;
+		char *encoded_playlink = urlencode(str_playlink, strlen(str_playlink), &out_len);
+
+		strcat(str_url, encoded_playlink);
+		strcat(str_url, "&m3u8seekback=true");
+		mPlayLive = true;
 	}
 	else {
 		if (bw_type == 4) {

@@ -216,20 +216,29 @@ public class PPTVVideoActivity extends ListActivity {
 				mContentType = "";
 			Intent intent = null;
 			if (mListLive) {
-				intent = new Intent(PPTVVideoActivity.this, PPTVLiveActivity.class);
+				if (1 == position) // 体育直播
+					intent = new Intent(PPTVVideoActivity.this, PPTVLiveCenterActivity.class);
+				else
+					intent = new Intent(PPTVVideoActivity.this, PPTVLiveActivity.class);
+				
 				int live_type;
-				if (2 == position) // 卫视
+				if (1 == position) // 体育直播
+					live_type = 44;
+				else if (2 == position) // 卫视
 					live_type = 164;
 				else if (3 == position) // 地方台
 					live_type = 156;
 				else if (4 == position) // 电台
 					live_type = 210712;
 				else {
-					Toast.makeText(PPTVVideoActivity.this, "invalid live type", Toast.LENGTH_SHORT).show();
+					Toast.makeText(PPTVVideoActivity.this, "invalid live type: " + position, Toast.LENGTH_SHORT).show();
 					return;
 				}
 				
-				intent.putExtra("live_type", live_type);
+				if (1 == position) // 体育直播
+					intent.putExtra("livecenter_id", "44");
+				else
+					intent.putExtra("live_type", live_type);
 			}
 			else {
 				intent = new Intent(PPTVVideoActivity.this, PPTVEpisodeActivity.class);

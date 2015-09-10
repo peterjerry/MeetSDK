@@ -31,6 +31,7 @@ public class PPTVPanel extends JPanel {
 	private List<Catalog> mCatalogList;
 	private List<PlayLink2> mPlayLinkList;
 	private List<Navigator> mNavList;
+	private List<LiveStream> mLiveStrmList;
 	private List<Episode> mVirtualLinkList;
 	private String mContentType;
 	private boolean mVirtualChannel = false;
@@ -59,6 +60,7 @@ public class PPTVPanel extends JPanel {
 		EPG_STATE_FOUND_PLAYLINK,
 		EPG_STATE_LIST,
 		EPG_STATE_SEARCH,
+		EPG_STATE_LIVECENTER,
 	}
 	
 	private final static String[] ft_desc = {"流畅","高清","超清","蓝光"};
@@ -172,6 +174,9 @@ public class PPTVPanel extends JPanel {
 					break;
 				case EPG_STATE_CONTENT:
 					selectList();
+					break;
+				case EPG_STATE_LIVECENTER:
+					selectLiveStrm();
 					break;
 				default:
 					System.out.println("invalid state: " + mState.toString());
@@ -510,7 +515,7 @@ public class PPTVPanel extends JPanel {
 						"%d.block?ft=1&platform=android3" +
 						"&type=phone.android.vip&sdk=1" +
 						"&channel=162&vvid=41&k=%s";
-				String m3u8_url_fmt = "http://%s/live/interval/delay/" +
+				String m3u8_url_fmt = "http://%s/live/%d/%d/" + // interval/delay/
 						"074094e6c24c4ebbb4bf6a82f4ceabda.m3u8" +
 						"?type=phone.android.vip&sdk=1" +
 						"&k=%s";
@@ -527,7 +532,10 @@ public class PPTVPanel extends JPanel {
 				String httpUrl = String.format(block_url_fmt, liveitem.getHost(), start_time, liveitem.getK());
 				System.out.println("Java: live flv block: " + httpUrl);
 				
-				String m3u8Url = String.format(m3u8_url_fmt, liveitem.getHost(), liveitem.getK());
+				int interval = 5;
+				int delay = 60;
+				String m3u8Url = String.format(m3u8_url_fmt, liveitem.getHost(), 
+						interval, delay, liveitem.getK());
 				System.out.println("Java: live m3u8: " + m3u8Url);
 				
 				String tsUrl = String.format(ts_url_fmt, liveitem.getHost(), start_time, liveitem.getK());
@@ -719,6 +727,16 @@ public class PPTVPanel extends JPanel {
 		mState = EPG_STATE.EPG_STATE_CONTENT;
 	}
 	
+	private void selectLiveStrm() {
+		int n = comboItem.getSelectedIndex();
+		
+		String playlink = mLiveStrmList.get(n).channelID;
+		editorPlayLink.setText(playlink);
+		lblInfo.setText("livecenter vid " + playlink + " selected");
+		System.out.println("live playlink found! " + playlink);
+		mState = EPG_STATE.EPG_STATE_FOUND_PLAYLINK;
+	}
+	
 	private void selectList() {
 		boolean ret;
 		
@@ -732,10 +750,14 @@ public class PPTVPanel extends JPanel {
 		if (mListLive) {
 			int type;
 			if (last_live_type == 0) {
-				if (n == 3)
-					type = 156;
-				else if (n == 2)
+				if (n == 1)
+					type = 44;
+				else if (n == 2)  // 卫视
 					type = 164;
+				else if (n == 3) // 地方台
+					type = 156;
+				else if (n == 4) // 电台
+					type = 210712;
 				else {
 					JOptionPane.showMessageDialog(null, "invalid live type!");
 					return;
@@ -746,25 +768,51 @@ public class PPTVPanel extends JPanel {
 				type = last_live_type;
 			}
 			
-			ret = mEPG.live(start_page, PAGE_NUM, type);
+			if (type == 44) { // 体育直播
+				SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd");
+				List<String> DayList = new ArrayList<String>();
+				Date today = new Date();
+				Calendar c = Calendar.getInstance();
+				c.setTime(today);
+				Date day = c.getTime();
+				String strDay = df.format(day);
+				ret = mEPG.live_center(String.valueOf(type), strDay);
+			}
+			else {
+				ret = mEPG.live(start_page, PAGE_NUM, type);
+			}
 		}
 		else
 			ret = mEPG.list(param, mContentType, start_page, "order=t", 10);
 		
-		if (!ret)
+		if (!ret) {
+			System.out.println("Java: failed to selectList()");
 			return;
+		}
 		
 		comboItem.removeAllItems();
 		
-		mPlayLinkList = mEPG.getLink();
-		int size = mPlayLinkList.size();
-		
-		for (int i=0;i<size;i++) {
-			System.out.println(mPlayLinkList.get(i).toString());
-			comboItem.addItem(mPlayLinkList.get(i).getTitle());
+		if (n == 1) { // 体育直播
+			mLiveStrmList = mEPG.getLiveStrm();
+			int size = mLiveStrmList.size();
+			
+			for (int i=0;i<size;i++) {
+				System.out.println(mLiveStrmList.get(i).toString());
+				comboItem.addItem(mLiveStrmList.get(i).title);
+			}
+			mState = EPG_STATE.EPG_STATE_LIVECENTER;
 		}
-		
-		mState = EPG_STATE.EPG_STATE_LIST;
+		else {
+			mPlayLinkList = mEPG.getLink();
+			int size = mPlayLinkList.size();
+			
+			for (int i=0;i<size;i++) {
+				System.out.println(mPlayLinkList.get(i).toString());
+				comboItem.addItem(mPlayLinkList.get(i).getTitle());
+			}
+			
+			mState = EPG_STATE.EPG_STATE_LIST;
+		}
 	}
 	
 	private void openExe(String... params) {

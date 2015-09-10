@@ -121,6 +121,7 @@ public class EPGUtil {
 	private List<Catalog> mCatalogList;
 	private List<PlayLink2> mPlayLinkList;
 	private List<Navigator> mNavList;
+	private List<LiveStream> mLiveStrmList;
 	
 	private List<Episode> mVirtualPlayLinkList;
 	private List<VirtualChannelInfo> mVchannelInfoList;
@@ -131,6 +132,7 @@ public class EPGUtil {
 		mCatalogList 		= new ArrayList<Catalog>();
 		mPlayLinkList 		= new ArrayList<PlayLink2>();
 		mNavList			= new ArrayList<Navigator>();
+		mLiveStrmList		= new ArrayList<LiveStream>();
 		
 		mVirtualPlayLinkList= new ArrayList<Episode>();
 		mVchannelInfoList	= new ArrayList<VirtualChannelInfo>();
@@ -154,6 +156,10 @@ public class EPGUtil {
 	
 	public List<VirtualChannelInfo> getVchannelInfo() {
 		return mVchannelInfoList;
+	}
+	
+	public List<LiveStream> getLiveStrm() {
+		return mLiveStrmList;
 	}
 	
 	public List<Navigator> getNav() {
@@ -1087,10 +1093,11 @@ public class EPGUtil {
 		return ret;
 	}
 	
-	/*@param start_time 20150902
-	 * 
+	/**
+	 * @param id
+	 * @param start_time format 2015-09-04
+	 * @return
 	 */
-	
 	public boolean live_center(String id, String start_time) {
 		String url = String.format(live_center_fmt, id, start_time);
 		
@@ -1111,17 +1118,9 @@ public class EPGUtil {
 			
 			SAXBuilder builder = new SAXBuilder();
 			Reader returnQuote = new StringReader(result);  
-	        Document doc = builder.build(returnQuote);
-	        Element root = doc.getRootElement();
-	        
-	        // get nav info
-	        Element collections = root.getChild("collections");
-	        if (collections == null)
-	        	return false;
-	        
+			Document doc = builder.build(returnQuote);
+	        Element collections = doc.getRootElement();
 	        Element collection = collections.getChild("collection");
-	        if (collection == null)
-	        	return false;
 	        
 	        Element sections = collection.getChild("sections");
 	        if (sections == null)
@@ -1130,6 +1129,8 @@ public class EPGUtil {
 	        List<Element> section = sections.getChildren("section");
 	        if (section == null || section.size() == 0)
 	        	return false;
+	        
+	        mLiveStrmList.clear();
 	        
 	        for (int i=0;i<section.size();i++) {
 	        	Element program = section.get(i);
@@ -1141,6 +1142,9 @@ public class EPGUtil {
 	        	Element streams = program.getChild("streams");
 	        	Element stream = streams.getChild("stream");
 	        	String channel_id = stream.getChildText("channel_id");
+	        	
+	        	mLiveStrmList.add(new LiveStream(prog_id, prog_title, channel_id, 
+	        			prog_start_time, prog_end_time, null));
 	        	
 	        	Log.i(TAG, String.format("Java: title %s, id %s, start %s, end %s, channel_id %s",
 	        			prog_title, prog_id, prog_start_time, prog_end_time, channel_id));
