@@ -69,7 +69,7 @@ int _tmain(int argc, _TCHAR* argv[])
 	time_t t = _mkgmtime(&utc_tm);
 	LOGI("sh %s, bh %s, st %s, key %s, time %I64d sec", 
 		item->get_sh(), item->get_bh(), item->get_st(), item->get_key(), t);
-	uint8_t * key = apKey::getKey(t);
+	uint8_t * key = apKey::genKey(t);
 
 	int64_t segment_time = t - 45; // unit second
 	segment_time -= (segment_time % 5);
@@ -83,7 +83,7 @@ int _tmain(int argc, _TCHAR* argv[])
 	memset(out_ts, 0, OUT_TS_MAX_SIZE);
 
 	for (int i=0;i<10;i++) {  
-		sprintf(url, LIVE_URL_FMT, item->get_sh(), item->get_rid(), segment_time, (char *)key);
+		sprintf(url, LIVE_URL_FMT, item->get_sh(), item->get_rid(), segment_time, item->get_key());
 
 		LOGI("ready to download segment: %s", url);
 

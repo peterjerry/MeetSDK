@@ -803,7 +803,7 @@ public class EPGUtil {
 			doc = builder.build(returnQuote);
 			Element root = doc.getRootElement();
 			
-			ArrayList<CDNrid> ridList = new ArrayList<CDNrid>();
+			ArrayList<CDNstream> ridList = new ArrayList<CDNstream>();
 			ArrayList<CDNItem> itemList = new ArrayList<CDNItem>();
 			
 			Element channel = root.getChild("channel");
@@ -817,7 +817,7 @@ public class EPGUtil {
 			for (int i=0;i<item_list.size();i++) {
 				String rid_ft = item_list.get(i).getAttributeValue("ft");
 				String rid_rid = item_list.get(i).getAttributeValue("rid");
-				CDNrid rid = new CDNrid(rid_ft, rid_rid);
+				CDNstream rid = new CDNstream(rid_ft, rid_rid);
 				ridList.add(rid);
 				ft[i] = Integer.valueOf(rid_ft);
 			}
@@ -871,17 +871,37 @@ public class EPGUtil {
 			doc = builder.build(returnQuote);
 			Element root = doc.getRootElement();
 			
-			String rid = root.getChild("channel").getAttributeValue("rid");
+			Element channel = root.getChild("channel");
+			Element stream = channel.getChild("stream");
+			/*
+			 * <stream delay="45" interval="5" jump="1800" cft="1">
+			 * <item rid="677a6d8e5f264fe9b5b87553c8e033e2" bitrate="412" width="480" height="360" ft="1" syncid="399" vip="0" protocol="live2" format="h264" />
+			 * </stream>
+			 */
+			String delay = stream.getAttributeValue("delay");
+			String interval = stream.getAttributeValue("interval");
 			
+			Element strm_item = stream.getChild("item");
+			String rid = strm_item.getAttributeValue("rid");
+			String bitrate = strm_item.getAttributeValue("bitrate");
+			String width = strm_item.getAttributeValue("width");
+			String height = strm_item.getAttributeValue("height");
+			String ft = strm_item.getAttributeValue("ft");
+			String format = strm_item.getAttributeValue("format");
+			
+			Log.i(TAG, String.format("Java: stream_info delay %s, interval %s, " +
+					"rid %s, bitrate %s, width %s, height %s, ft %s, format %s",
+					delay, interval, rid, bitrate, width, height, ft, format));
+
 			Element d = root.getChildren("dt").get(0);
 			
-			String d_ft = d.getAttributeValue("ft");
 			String d_sh = d.getChild("sh").getText(); // main server
 			String d_bh = d.getChild("bh").getText(); // backup server
 			String d_st = d.getChild("st").getText(); // server time
 			String d_key = d.getChild("key").getText();
 			
-			CDNItem item = new CDNItem(d_ft, d_sh, d_st, d_bh, d_key, rid);	
+			CDNItem item = new CDNItem(ft, Integer.valueOf(width), Integer.valueOf(height), 
+					d_sh, d_st, d_bh, d_key, rid);	
 			return item;
 		}
 		catch (JDOMException e) {
@@ -943,16 +963,22 @@ public class EPGUtil {
 			doc = builder.build(returnQuote);
 			Element root = doc.getRootElement();
 			
-			ArrayList<CDNrid> ridList = new ArrayList<CDNrid>();
+			ArrayList<CDNstream> strmList = new ArrayList<CDNstream>();
 			ArrayList<CDNItem> itemList = new ArrayList<CDNItem>();
 			
 			Element file = root.getChild("channel").getChild("file");
 			List<Element> item_list = file.getChildren("item");
 			for (int i=0;i<item_list.size();i++) {
-				String rid_ft = item_list.get(i).getAttributeValue("ft");
-				String rid_rid = item_list.get(i).getAttributeValue("rid");
-				CDNrid rid = new CDNrid(rid_ft, rid_rid);
-				ridList.add(rid);
+				Element strm_item = item_list.get(i);
+				String rid_ft	= strm_item.getAttributeValue("ft");
+				String rid_rid	= strm_item.getAttributeValue("rid");
+				String bitrate	= strm_item.getAttributeValue("bitrate");
+				String width	= strm_item.getAttributeValue("width");
+				String height	= strm_item.getAttributeValue("height");
+				String format	= strm_item.getAttributeValue("format");
+				CDNstream strm	= new CDNstream(rid_ft, rid_rid, 
+						format, Integer.valueOf(width), Integer.valueOf(height), Integer.valueOf(bitrate));
+				strmList.add(strm);
 			}
 			
 			List<Element> dt = root.getChildren("dt");
@@ -965,7 +991,8 @@ public class EPGUtil {
 				String d_st = d.getChild("st").getText(); // server time
 				String d_key = d.getChild("key").getText();
 				
-				CDNItem item = new CDNItem(d_ft, d_sh, d_st, d_bh, d_key, ridList.get(i).m_rid);
+				CDNItem item = new CDNItem(d_ft, 0, 0, 
+						d_sh, d_st, d_bh, d_key, strmList.get(i).m_rid);
 				itemList.add(item);
 			}
 			
@@ -987,8 +1014,9 @@ public class EPGUtil {
 					url += "/";
 					
 					String rid = "";
-					for (int j=0;j<ridList.size();j++) {
-						CDNrid r = ridList.get(j);
+					int size = itemList.size();
+					for (int j=0;j<size;j++) {
+						CDNstream r = strmList.get(j);
 						if (r.m_ft.equals(ft)) {
 							rid = r.m_rid;
 							break;
@@ -1000,7 +1028,7 @@ public class EPGUtil {
 					else
 						url += rid;
 			        
-					url += "?w=" + 1 + "&key=" + item.getK();
+					url += "?w=" + 1 + "&key=" + item.generateK();
 					url += "&k=" + item.getKey();
 					if (novideo)
 						url += "&video=false";

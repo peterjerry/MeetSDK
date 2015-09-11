@@ -962,13 +962,6 @@ public class MediaPlayer implements MediaPlayerInterface {
 		return 0;
 	}
 	
-	public SystemMediaPlayer getSystemMediaPlayer() {
-		if (mPlayer != null && mPlayer instanceof SystemMediaPlayer)
-			return (SystemMediaPlayer) mPlayer;
-		
-		return null;
-	}
-	
 	// event
     /* Do not change these values without updating their counterparts
      * in include/media/mediaplayer.h!

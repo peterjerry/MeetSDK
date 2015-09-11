@@ -13,6 +13,7 @@ import com.pplive.common.pptv.LiveStream;
 import com.pplive.common.pptv.PlayLink2;
 import com.pplive.common.pptv.PlayLinkUtil;
 import com.pplive.meetplayer.R;
+import com.pplive.meetplayer.service.MyHttpService;
 import com.pplive.sdk.MediaSDK;
 
 import android.app.Activity;
@@ -43,12 +44,15 @@ public class PPTVLiveCenterActivity extends Activity {
 	private Button btnLive;
 	private Button btnPlayback;
 	private Button btnNextDay;
+	private Button btnUseProxy;
 	private ListView lv_tvlist;
 	
 	private EPGUtil mEPG;
 	private String mLiveId;
 	private String mLinkSurfix = null;
 	private int dayOffset = 0;
+	
+	private boolean mUseMyHTTPserver = false;
 	
 	private MyPPTVLiveCenterAdapter mAdapter;
 	
@@ -65,9 +69,14 @@ public class PPTVLiveCenterActivity extends Activity {
 		this.btnLive = (Button)this.findViewById(R.id.btn_live);
 		this.btnPlayback = (Button)this.findViewById(R.id.btn_playback);
 		this.btnNextDay = (Button)this.findViewById(R.id.btn_nextday);
+		this.btnUseProxy = (Button)this.findViewById(R.id.btn_use_myhttp);
 		this.lv_tvlist = (ListView)this.findViewById(R.id.lv_tvlist);
 		
-		this.btnLive.setOnClickListener(new View.OnClickListener() {
+		this.btnLive.setOnClickListener(mOnClickListener);
+		this.btnPlayback.setOnClickListener(mOnClickListener);
+		this.btnNextDay.setOnClickListener(mOnClickListener);
+		this.btnUseProxy.setOnClickListener(mOnClickListener);
+		/*this.btnLive.setOnClickListener(new View.OnClickListener() {
 			
 			@Override
 			public void onClick(View v) {
@@ -86,6 +95,25 @@ public class PPTVLiveCenterActivity extends Activity {
 			}
 		});
 		
+		this.btnUseProxy.setOnClickListener(new View.OnClickListener() {
+			
+			@Override
+			public void onClick(View v) {
+				// TODO Auto-generated method stub
+				mUseMyHTTPserver = !mUseMyHTTPserver;
+				if (mUseMyHTTPserver) {
+					btnUseProxy.setText("代理");
+				}
+				else {
+					btnUseProxy.setText("直连");
+				}
+				
+				Toast.makeText(PPTVLiveCenterActivity.this, 
+						String.format("使用 %s 模式", (mUseMyHTTPserver ? "my http" : "ppbox")),
+						Toast.LENGTH_SHORT).show();
+			}
+		});
+		
 		this.btnNextDay.setOnClickListener(new View.OnClickListener() {
 			
 			@Override
@@ -97,7 +125,7 @@ public class PPTVLiveCenterActivity extends Activity {
 				
 				new EPGTask().execute(mLiveId, updateTime());
 			}
-		});
+		});*/
 		
 		this.lv_tvlist.setOnItemClickListener(new AdapterView.OnItemClickListener() {
 
@@ -108,6 +136,8 @@ public class PPTVLiveCenterActivity extends Activity {
 				LiveStream liveStrm = mAdapter.getItem(position);
 				String playlink = liveStrm.channelID;
 				short http_port = MediaSDK.getPort("http");
+				if (mUseMyHTTPserver)
+					http_port = (short)MyHttpService.getPort();
 				String play_url = PlayLinkUtil.getPlayUrl(
 						Integer.valueOf(playlink), http_port, 1, 3, mLinkSurfix);
 				
@@ -149,6 +179,47 @@ public class PPTVLiveCenterActivity extends Activity {
 			new EPGTask().execute(mLiveId, updateTime());
 	}
 	
+	private View.OnClickListener mOnClickListener = new View.OnClickListener() {
+
+		@Override
+		public void onClick(View v) {
+			// TODO Auto-generated method stub
+			int id = v.getId();
+			switch(id) {
+			case R.id.btn_live:
+				mLinkSurfix = null;
+				Toast.makeText(PPTVLiveCenterActivity.this, "切换为 直播 模式", Toast.LENGTH_SHORT).show();
+				break;
+			case R.id.btn_playback:
+				setPlaybackTime();
+				break;
+			case R.id.btn_nextday:
+				dayOffset++;
+				if (dayOffset > MAX_DAY)
+					dayOffset = 0;
+				
+				new EPGTask().execute(mLiveId, updateTime());
+				break;
+			case R.id.btn_use_myhttp:
+				mUseMyHTTPserver = !mUseMyHTTPserver;
+				if (mUseMyHTTPserver) {
+					btnUseProxy.setText("代理");
+				}
+				else {
+					btnUseProxy.setText("直连");
+				}
+				
+				Toast.makeText(PPTVLiveCenterActivity.this, 
+						String.format("使用 %s 模式", (mUseMyHTTPserver ? "my http" : "ppbox")),
+						Toast.LENGTH_SHORT).show();
+				break;
+			default:
+				break;
+			}
+		}
+		
+	};
+	
 	private String updateTime() {
 		SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
 		Calendar c = Calendar.getInstance();
@@ -157,7 +228,10 @@ public class PPTVLiveCenterActivity extends Activity {
 		c.add(Calendar.DAY_OF_MONTH, dayOffset);//把日期往后增加一天.整数往后推,负数往前移动 
 		Date day = c.getTime();
 		String strDay = sdf.format(day);
-		this.tvDay.setText(strDay);
+		
+		SimpleDateFormat sdfWeekend = new SimpleDateFormat("E");
+		String strWeekend = sdfWeekend.format(day);
+		this.tvDay.setText(strDay + " " + strWeekend);
 		return strDay;
 	}
 	

@@ -1785,7 +1785,7 @@ public class ClipListActivity extends Activity implements
 	private void testConvert() {
 		CDNItem liveitem = mEPG.live_cdn(300156);
 		if (liveitem != null) {
-			String block_url_fmt = "http://%s/live/074094e6c24c4ebbb4bf6a82f4ceabda/" +
+			String block_url_fmt = "http://%s/live/%s/" +
 					"%d.block?ft=1&platform=android3" +
 					"&type=phone.android.vip&sdk=1" +
 					"&channel=162&vvid=41&k=%s";
@@ -1795,7 +1795,8 @@ public class ClipListActivity extends Activity implements
             start_time -= 45;
             start_time -= (start_time % 5);
             
-			String httpUrl = String.format(block_url_fmt, liveitem.getHost(), start_time, liveitem.getK());
+			String httpUrl = String.format(block_url_fmt, 
+					liveitem.getHost(), liveitem.getRid(), start_time, liveitem.getKey());
 			Log.i(TAG, "Java: live flv block: " + httpUrl);
 			
 			String save_filepath = Environment.getExternalStorageDirectory().getAbsolutePath() + 
