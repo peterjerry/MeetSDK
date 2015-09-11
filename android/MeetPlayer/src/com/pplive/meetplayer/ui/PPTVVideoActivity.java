@@ -216,7 +216,7 @@ public class PPTVVideoActivity extends ListActivity {
 				mContentType = "";
 			Intent intent = null;
 			if (mListLive) {
-				if (1 == position) // 体育直播
+				if (1 == position || 5 == position) // 体育直播 游戏直播
 					intent = new Intent(PPTVVideoActivity.this, PPTVLiveCenterActivity.class);
 				else
 					intent = new Intent(PPTVVideoActivity.this, PPTVLiveActivity.class);
@@ -230,6 +230,8 @@ public class PPTVVideoActivity extends ListActivity {
 					live_type = 156;
 				else if (4 == position) // 电台
 					live_type = 210712;
+				else if (5 == position) // 游戏
+					live_type = 44;
 				else {
 					Toast.makeText(PPTVVideoActivity.this, "invalid live type: " + position, Toast.LENGTH_SHORT).show();
 					return;
@@ -237,6 +239,8 @@ public class PPTVVideoActivity extends ListActivity {
 				
 				if (1 == position) // 体育直播
 					intent.putExtra("livecenter_id", "44");
+				else if (5 == position)
+					intent.putExtra("livecenter_id", "game");
 				else
 					intent.putExtra("live_type", live_type);
 			}

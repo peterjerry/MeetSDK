@@ -12,7 +12,6 @@ import java.util.List;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.methods.HttpGet;
-import org.apache.http.impl.client.DefaultHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.util.EntityUtils;
 import org.jdom2.Document;
@@ -23,8 +22,6 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.json.JSONTokener;
-
-import com.pplive.epg.sohu.SohuUtil;
 
 public class EPGUtil {
 	private final int HOST_PORT = 80;
@@ -206,17 +203,37 @@ public class EPGUtil {
 			doc = builder.build(returnQuote);
 			Element root = doc.getRootElement();
 			
-			String rid = root.getChild("channel").getAttributeValue("rid");
+			Element channel = root.getChild("channel");
+			Element stream = channel.getChild("stream");
+			/*
+			 * <stream delay="45" interval="5" jump="1800" cft="1">
+			 * <item rid="677a6d8e5f264fe9b5b87553c8e033e2" bitrate="412" width="480" height="360" ft="1" syncid="399" vip="0" protocol="live2" format="h264" />
+			 * </stream>
+			 */
+			String delay = stream.getAttributeValue("delay");
+			String interval = stream.getAttributeValue("interval");
 			
+			Element strm_item = stream.getChild("item");
+			String rid = strm_item.getAttributeValue("rid");
+			String bitrate = strm_item.getAttributeValue("bitrate");
+			String width = strm_item.getAttributeValue("width");
+			String height = strm_item.getAttributeValue("height");
+			String ft = strm_item.getAttributeValue("ft");
+			String format = strm_item.getAttributeValue("format");
+			
+			System.out.println(String.format("Java: stream_info delay %s, interval %s, " +
+					"rid %s, bitrate %s, width %s, height %s, ft %s, format %s",
+					delay, interval, rid, bitrate, width, height, ft, format));
+
 			Element d = root.getChildren("dt").get(0);
 			
-			String d_ft = d.getAttributeValue("ft");
 			String d_sh = d.getChild("sh").getText(); // main server
 			String d_bh = d.getChild("bh").getText(); // backup server
 			String d_st = d.getChild("st").getText(); // server time
 			String d_key = d.getChild("key").getText();
 			
-			CDNItem item = new CDNItem(d_ft, d_sh, d_st, d_bh, d_key, rid);	
+			CDNItem item = new CDNItem(ft, Integer.valueOf(width), Integer.valueOf(height), 
+					d_sh, d_st, d_bh, d_key, rid);	
 			return item;
 		}
 		catch (JDOMException e) {
@@ -833,7 +850,7 @@ public class EPGUtil {
 			doc = builder.build(returnQuote);
 			Element root = doc.getRootElement();
 			
-			ArrayList<CDNrid> ridList = new ArrayList<CDNrid>();
+			ArrayList<CDNstream> ridList = new ArrayList<CDNstream>();
 			ArrayList<CDNItem> itemList = new ArrayList<CDNItem>();
 			
 			Element file = root.getChild("channel").getChild("file");
@@ -843,7 +860,7 @@ public class EPGUtil {
 			for (int i=0;i<item_list.size();i++) {
 				String rid_ft = item_list.get(i).getAttributeValue("ft");
 				String rid_rid = item_list.get(i).getAttributeValue("rid");
-				CDNrid rid = new CDNrid(rid_ft, rid_rid);
+				CDNstream rid = new CDNstream(rid_ft, rid_rid);
 				ridList.add(rid);
 				ft[i] = Integer.valueOf(rid_ft);
 			}
@@ -909,16 +926,30 @@ public class EPGUtil {
 			doc = builder.build(returnQuote);
 			Element root = doc.getRootElement();
 			
-			ArrayList<CDNrid> ridList = new ArrayList<CDNrid>();
+			ArrayList<CDNstream> strmList = new ArrayList<CDNstream>();
 			ArrayList<CDNItem> itemList = new ArrayList<CDNItem>();
 			
 			Element file = root.getChild("channel").getChild("file");
 			List<Element> item_list = file.getChildren("item");
+			/*<file cur="1">
+			  <item rid="902ad08f97cc2efa521ef6942a34e464.mp4" bitrate="337" vip="0" ft="0" filesize="321628975" width="480" height="216" format="h264" /> 
+			  <item rid="923b1ccda4d404a11b591ad24bf7cece.mp4" bitrate="518" vip="0" ft="1" filesize="494892624" width="720" height="320" format="h264" /> 
+			  <item rid="60118991ffd3a28e0f91e0184f78860f.mp4" bitrate="1047" vip="0" ft="2" filesize="999054567" width="1280" height="572" format="h264" /> 
+			  <item rid="9fda672c9e06768ce923554e53011d45.mp4" bitrate="2255" vip="1" ft="3" filesize="2152478843" width="1920" height="856" format="h264" /> 
+			  <item rid="d439e51f236d4b1d3131b90dc38e5865.mp4" bitrate="6108" vip="1" ft="4" filesize="5828167836" width="1920" height="856" format="h264" /> 
+			  </file>*/
+
 			for (int i=0;i<item_list.size();i++) {
-				String rid_ft = item_list.get(i).getAttributeValue("ft");
-				String rid_rid = item_list.get(i).getAttributeValue("rid");
-				CDNrid rid = new CDNrid(rid_ft, rid_rid);
-				ridList.add(rid);
+				Element strm_item = item_list.get(i);
+				String rid_ft = strm_item.getAttributeValue("ft");
+				String rid_rid = strm_item.getAttributeValue("rid");
+				String bitrate = strm_item.getAttributeValue("bitrate");
+				String width = strm_item.getAttributeValue("width");
+				String height = strm_item.getAttributeValue("height");
+				String format = strm_item.getAttributeValue("format");
+				CDNstream strm = new CDNstream(rid_ft, rid_rid, 
+						format, Integer.valueOf(width), Integer.valueOf(height), Integer.valueOf(bitrate));
+				strmList.add(strm);
 			}
 			
 			List<Element> dt = root.getChildren("dt");
@@ -931,7 +962,8 @@ public class EPGUtil {
 				String d_st = d.getChild("st").getText(); // server time
 				String d_key = d.getChild("key").getText();
 				
-				CDNItem item = new CDNItem(d_ft, d_sh, d_st, d_bh, d_key, ridList.get(i).m_rid);
+				CDNItem item = new CDNItem(d_ft, 0, 0, 
+						d_sh, d_st, d_bh, d_key, strmList.get(i).m_rid);
 				itemList.add(item);
 			}
 			
@@ -951,8 +983,8 @@ public class EPGUtil {
 					url += "/";
 					
 					String rid = "";
-					for (int j=0;j<ridList.size();j++) {
-						CDNrid r = ridList.get(j);
+					for (int j=0;j<strmList.size();j++) {
+						CDNstream r = strmList.get(j);
 						if (r.m_ft.equals(ft)) {
 							rid = r.m_rid;
 							break;
@@ -964,7 +996,7 @@ public class EPGUtil {
 					else
 						url += rid;
 					
-					url += "?w=" + 1 + "&key=" + item.getK();
+					url += "?w=" + 1 + "&key=" + item.generateK();
 					url += "&k=" + item.getKey();
 					if (novideo)
 						url += "&video=false";

@@ -216,12 +216,12 @@ apCDNItem * apXmlParser::parseLiveCDN(char *context, unsigned int size)
 	std::string d_sh = dom.GetData(); // main server
 	ret = dom.FindElem("st");
 	std::string d_st = dom.GetData(); // server time
-	dom.FindElem("bh");
-	std::string d_bh = dom.GetData(); // backup server
 	dom.FindElem("key");
 	std::string d_key = dom.GetData(); // key
+	dom.FindElem("bh");
+	std::string d_bh = dom.GetData(); // backup server
 
-	return new apCDNItem(d_sh.c_str(), d_st.c_str(), d_bh.c_str(), 1);
+	return new apCDNItem(d_sh.c_str(), d_st.c_str(), d_bh.c_str(), 1, main_rid.c_str(), d_key.c_str());
 }
 
 EPG_PLAYLINK_LIST * apXmlParser::parseDetail(char *context, unsigned int size)

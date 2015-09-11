@@ -565,7 +565,7 @@ AVFormatContext* FFStream::open(char* uri)
         mUrlType = TYPE_LIVE;
         LOGI("It is a online live stream with mMinPlayBufferCount:%d", mMinPlayBufferCount);
 	}
-    else if(mDurationMs == 0 || isM3u8Broadcast || strncmp(uri, "rtmp", 4) == 0) // m3u8 play cannot get duration, will cause "seek" and "flush" cache!
+    /*else if(mDurationMs == 0 || isM3u8Broadcast || strncmp(uri, "rtmp", 4) == 0) // m3u8 play cannot get duration, will cause "seek" and "flush" cache!
     {
         mUrlType = TYPE_BROADCAST;
         if(strstr(uri, "&realtime=high") != NULL || strstr(uri, "?realtime=high") != NULL || strncmp(uri, "rtmp", 4) == 0)
@@ -583,7 +583,7 @@ AVFormatContext* FFStream::open(char* uri)
         LOGI("It is a broadcast stream with mMinPlayBufferCount:%d, mMaxPlayBufferMs:%lld",
             mMinPlayBufferCount,
             mMaxPlayBufferMs);
-    }
+    }*/
     else {
         mMinPlayBufferCount = mFrameRate * FF_PLAYER_MIN_BUFFER_SECONDS_VOD;
         mUrlType = TYPE_ONDEMAND;

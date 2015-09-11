@@ -699,7 +699,8 @@ public class ClipListActivity extends Activity implements
 		        
 				// load tvlist.txt
 				LoadPlayLinkUtil ext_link = new LoadPlayLinkUtil();
-				if (ext_link.LoadTvList()) {
+				String path = Environment.getExternalStorageDirectory().getAbsolutePath() + "/tvlist.txt";
+				if (ext_link.LoadTvList(path)) {
 					Log.i(TAG, "Java: add tvlist.txt prog into list");
 					list_title.addAll(ext_link.getTitles());
 					list_url.addAll(ext_link.getUrls());

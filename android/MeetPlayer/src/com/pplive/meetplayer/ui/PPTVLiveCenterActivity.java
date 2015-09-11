@@ -31,17 +31,24 @@ import android.widget.Button;
 import android.widget.DatePicker;
 import android.widget.EditText;
 import android.widget.ListView;
+import android.widget.TextView;
 import android.widget.TimePicker;
 import android.widget.Toast;
 
 public class PPTVLiveCenterActivity extends Activity {
 	private final static String TAG = "PPTVLiveCenterActivity";
+	private final static int MAX_DAY = 5;
+	
+	private TextView tvDay;
 	private Button btnLive;
 	private Button btnPlayback;
+	private Button btnNextDay;
 	private ListView lv_tvlist;
 	
 	private EPGUtil mEPG;
+	private String mLiveId;
 	private String mLinkSurfix = null;
+	private int dayOffset = 0;
 	
 	private MyPPTVLiveCenterAdapter mAdapter;
 	
@@ -52,10 +59,12 @@ public class PPTVLiveCenterActivity extends Activity {
 		
 		Log.i(TAG, "Java: onCreate()");
 		
-		setContentView(R.layout.activity_pptv_live);
+		setContentView(R.layout.activity_pptv_livecenter);
 		
+		this.tvDay = (TextView)this.findViewById(R.id.tv_day);
 		this.btnLive = (Button)this.findViewById(R.id.btn_live);
 		this.btnPlayback = (Button)this.findViewById(R.id.btn_playback);
+		this.btnNextDay = (Button)this.findViewById(R.id.btn_nextday);
 		this.lv_tvlist = (ListView)this.findViewById(R.id.lv_tvlist);
 		
 		this.btnLive.setOnClickListener(new View.OnClickListener() {
@@ -74,6 +83,19 @@ public class PPTVLiveCenterActivity extends Activity {
 			public void onClick(View v) {
 				// TODO Auto-generated method stub
 				setPlaybackTime();
+			}
+		});
+		
+		this.btnNextDay.setOnClickListener(new View.OnClickListener() {
+			
+			@Override
+			public void onClick(View v) {
+				// TODO Auto-generated method stub
+				dayOffset++;
+				if (dayOffset > MAX_DAY)
+					dayOffset = 0;
+				
+				new EPGTask().execute(mLiveId, updateTime());
 			}
 		});
 		
@@ -103,14 +125,40 @@ public class PPTVLiveCenterActivity extends Activity {
 			}
 		});
 		
+		this.lv_tvlist.setOnItemLongClickListener(new AdapterView.OnItemLongClickListener() {
+
+			@Override
+			public boolean onItemLongClick(AdapterView<?> arg0, View view,
+					int position, long id) {
+				// TODO Auto-generated method stub
+				LiveStream strm = mAdapter.getItem(position);
+				if (strm != null)
+					Toast.makeText(PPTVLiveCenterActivity.this, "channel_id: " + strm.channelID, 
+							Toast.LENGTH_SHORT).show();
+				return true;
+			}
+		});
+		
 		Intent intent = getIntent();
-		String id = intent.getStringExtra("livecenter_id");
+		mLiveId = intent.getStringExtra("livecenter_id");
 		
 		mEPG = new EPGUtil();
-		if (id == null)
+		if (mLiveId == null)
 			Toast.makeText(this, "live_type 未获取", Toast.LENGTH_SHORT).show();
 		else
-			new EPGTask().execute(id);
+			new EPGTask().execute(mLiveId, updateTime());
+	}
+	
+	private String updateTime() {
+		SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
+		Calendar c = Calendar.getInstance();
+		Date today = new Date();
+		c.setTime(today);
+		c.add(Calendar.DAY_OF_MONTH, dayOffset);//把日期往后增加一天.整数往后推,负数往前移动 
+		Date day = c.getTime();
+		String strDay = sdf.format(day);
+		this.tvDay.setText(strDay);
+		return strDay;
 	}
 	
 	private boolean setPlaybackTime() {
@@ -151,8 +199,7 @@ public class PPTVLiveCenterActivity extends Activity {
                 sb.append(" ");
                 sb.append(strHour).append(":").append(strMin); 
                 
-                String strTime;
-                strTime = String.format("%d-%02d-%02d %02d:%02d",
+                String strTime = String.format("%d-%02d-%02d %02d:%02d",
                 		datePicker.getYear(),
                         datePicker.getMonth(), 
                         datePicker.getDayOfMonth(),
@@ -229,10 +276,10 @@ public class PPTVLiveCenterActivity extends Activity {
 		@Override
 		protected List<LiveStream> doInBackground(String... params) {
 			// TODO Auto-generated method stub
-			SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
-			Date date = new Date();
-			String start_time = sdf.format(date);
-			if (!mEPG.live_center(params[0], start_time))
+			if (params.length < 2)
+				return null;
+			
+			if (!mEPG.live_center(params[0], params[1]))
 				return null;
 			
 			else
