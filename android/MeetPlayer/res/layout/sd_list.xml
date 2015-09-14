@@ -3,12 +3,26 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="horizontal" >
+	
+	<RelativeLayout
+        android:id="@+id/layout_video_thumb"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content" >
 
-	<ImageView  
-        android:id="@+id/iv_thumb"  
-        android:layout_width="96dp"  
-        android:layout_height="96dp"  
-        android:layout_margin="5px" />
+        <ImageView
+            android:id="@+id/iv_thumb"
+            android:layout_width="96dp"
+            android:layout_height="96dp"
+            android:layout_margin="5px" />
+
+        <ImageView
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:layout_centerInParent="true"
+            android:background="@drawable/picture_play" />
+        
+    </RelativeLayout>
+    
 	<LinearLayout
 		android:layout_width="fill_parent"
 		android:layout_height="wrap_content"

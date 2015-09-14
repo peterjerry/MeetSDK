@@ -18,6 +18,7 @@ import java.util.Arrays;
 import java.util.Comparator;
 import java.util.Date;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.StringTokenizer;
@@ -51,16 +52,18 @@ public class MyNanoHTTPD extends NanoHTTPD{
 	private MimeTypeMap  mMimeTypeMap;
 	
 	private EPGUtil mEPG;
-	private CDNItem mLiveitem;
+	private List<CDNItem> mLiveItemList;
+	private CDNItem mLiveItem;
 	private String mLastM3u8;
 	private int m_first_seg = 1;
 	private int mVid;
+	private int mFt = 1;
 	private boolean mIsLive = true;
 	private long start_time;
 	
 	private String block_url_fmt = "http://%s/live/" +
 			"%s/" + // rid 074094e6c24c4ebbb4bf6a82f4ceabda
-			"%d.block?ft=1&platform=android3" +
+			"%d.block?ft=%d&platform=android3" +
 			"&type=phone.android.vip&sdk=1" +
 			"&channel=162" + 
 			"&vvid=41" +
@@ -411,11 +414,31 @@ public class MyNanoHTTPD extends NanoHTTPD{
 				mVid = Integer.valueOf(value);
 				Log.i(TAG, "Java: vid " + mVid);
 			}
+			else if (key.equals("ft")) {
+				mFt = Integer.valueOf(value);
+				Log.i(TAG, "Java: ft " + mFt);
+			}
 		}
 		
-		mLiveitem = mEPG.live_cdn(mVid);// 300156
-		if (mLiveitem == null) {
+		mLiveItemList = mEPG.live_cdn(mVid);// 300156
+		if (mLiveItemList == null || mLiveItemList.size() == 0) {
 			Log.e(TAG, "Java: failed to get mLiveitem");
+			return new myResponse(Status.BAD_REQUEST, null, null, 0, 0, 0);
+		}
+		
+		int size = mLiveItemList.size();
+		mLiveItem = null;
+		for(int i=0;i<size;i++) {
+			CDNItem liveItem = mLiveItemList.get(i);
+			if (Integer.valueOf(liveItem.getFT()) == mFt) {
+				mLiveItem = liveItem;
+				Log.i(TAG, "Java: found ft steam " + mFt);
+				break;
+			}
+		}
+		
+		if (mLiveItem == null) {
+			Log.e(TAG, "Java: failed to find ft stream " + mFt);
 			return new myResponse(Status.BAD_REQUEST, null, null, 0, 0, 0);
 		}
 		
@@ -424,7 +447,7 @@ public class MyNanoHTTPD extends NanoHTTPD{
 		sb_m3u8_context.append("#EXT-X-TARGETDURATION:5\n");
         
 		if (mIsLive) {
-			String item_st = mLiveitem.getST();
+			String item_st = mLiveItem.getST();
 	        begin_time = new Date(item_st).getTime() / 1000;
 	        Log.i(TAG, "Java: live begin_time(origin) " + begin_time);
 	        begin_time -= 45; // second live lag
@@ -488,8 +511,8 @@ public class MyNanoHTTPD extends NanoHTTPD{
 		
 		byte[] in_flv = new byte[1048576];
 		
-		String httpUrl = String.format(block_url_fmt, mLiveitem.getHost(), mLiveitem.getRid(),
-				time_stamp, mLiveitem.getKey());
+		String httpUrl = String.format(block_url_fmt, mLiveItem.getHost(), mLiveItem.getRid(),
+				time_stamp, mFt, mLiveItem.getKey());
 		Log.i(TAG, "Java: download live first flv segment: " + httpUrl);
 		int in_size = httpUtil.httpDownloadBuffer(httpUrl, 1400, in_flv);
 		byte[] out_ts = new byte[1048576];
@@ -509,8 +532,8 @@ public class MyNanoHTTPD extends NanoHTTPD{
 		
 		byte[] in_flv = new byte[1048576];
 		
-		String httpUrl = String.format(block_url_fmt, mLiveitem.getHost(), mLiveitem.getRid(),
-				time_stamp, mLiveitem.getKey());
+		String httpUrl = String.format(block_url_fmt, mLiveItem.getHost(), mLiveItem.getRid(),
+				time_stamp, mFt, mLiveItem.getKey());
 		Log.i(TAG, "Java: download flv segment: " + httpUrl);
 		int in_size = httpUtil.httpDownloadBuffer(httpUrl, 1400, in_flv);
 		byte[] out_ts = new byte[1048576];

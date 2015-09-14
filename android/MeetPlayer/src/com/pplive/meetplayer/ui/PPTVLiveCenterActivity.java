@@ -76,56 +76,6 @@ public class PPTVLiveCenterActivity extends Activity {
 		this.btnPlayback.setOnClickListener(mOnClickListener);
 		this.btnNextDay.setOnClickListener(mOnClickListener);
 		this.btnUseProxy.setOnClickListener(mOnClickListener);
-		/*this.btnLive.setOnClickListener(new View.OnClickListener() {
-			
-			@Override
-			public void onClick(View v) {
-				// TODO Auto-generated method stub
-				mLinkSurfix = null;
-				Toast.makeText(PPTVLiveCenterActivity.this, "切换为 直播 模式", Toast.LENGTH_SHORT).show();
-			}
-		});
-		
-		this.btnPlayback.setOnClickListener(new View.OnClickListener() {
-			
-			@Override
-			public void onClick(View v) {
-				// TODO Auto-generated method stub
-				setPlaybackTime();
-			}
-		});
-		
-		this.btnUseProxy.setOnClickListener(new View.OnClickListener() {
-			
-			@Override
-			public void onClick(View v) {
-				// TODO Auto-generated method stub
-				mUseMyHTTPserver = !mUseMyHTTPserver;
-				if (mUseMyHTTPserver) {
-					btnUseProxy.setText("代理");
-				}
-				else {
-					btnUseProxy.setText("直连");
-				}
-				
-				Toast.makeText(PPTVLiveCenterActivity.this, 
-						String.format("使用 %s 模式", (mUseMyHTTPserver ? "my http" : "ppbox")),
-						Toast.LENGTH_SHORT).show();
-			}
-		});
-		
-		this.btnNextDay.setOnClickListener(new View.OnClickListener() {
-			
-			@Override
-			public void onClick(View v) {
-				// TODO Auto-generated method stub
-				dayOffset++;
-				if (dayOffset > MAX_DAY)
-					dayOffset = 0;
-				
-				new EPGTask().execute(mLiveId, updateTime());
-			}
-		});*/
 		
 		this.lv_tvlist.setOnItemClickListener(new AdapterView.OnItemClickListener() {
 
@@ -196,7 +146,7 @@ public class PPTVLiveCenterActivity extends Activity {
 			case R.id.btn_nextday:
 				dayOffset++;
 				if (dayOffset > MAX_DAY)
-					dayOffset = 0;
+					dayOffset = -1;
 				
 				new EPGTask().execute(mLiveId, updateTime());
 				break;

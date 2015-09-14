@@ -10,6 +10,8 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.ServiceConnection;
+import android.content.pm.ActivityInfo;
+import android.content.res.Configuration;
 import android.graphics.Bitmap;
 import android.graphics.Color;
 import android.graphics.PixelFormat;
@@ -38,19 +40,23 @@ import android.pplive.media.subtitle.SubTitleSegment;
 import android.text.ClipboardManager;
 import android.util.DisplayMetrics;
 import android.util.Log;
+import android.view.GestureDetector;
 import android.view.KeyEvent;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.MotionEvent;
 import android.view.SubMenu;
 import android.view.SurfaceHolder;
 import android.view.View;
 import android.view.View.OnFocusChangeListener;
+import android.view.Window;
 import android.view.WindowManager;
 import android.widget.AdapterView;
 import android.widget.Button;
 import android.widget.DatePicker;
 import android.widget.EditText;
 import android.widget.ImageView;
+import android.widget.LinearLayout;
 import android.widget.ListView;
 import android.widget.ProgressBar;
 import android.widget.RelativeLayout;
@@ -74,6 +80,7 @@ import com.pplive.common.util.httpUtil;
 import com.pplive.dlna.DLNASdk;
 import com.pplive.meetplayer.R;
 import com.pplive.meetplayer.service.DLNAService;
+import com.pplive.meetplayer.service.MyHttpService;
 import com.pplive.meetplayer.ui.widget.MiniMediaController;
 import com.pplive.meetplayer.util.AtvUtils;
 import com.pplive.meetplayer.util.DownloadAsyncTask;
@@ -374,6 +381,7 @@ public class ClipListActivity extends Activity implements
 		
 		this.mMediaController = (MiniMediaController) findViewById(R.id.mmc);
 	
+		mPreview.setOnTouchListener(mOnTouchListener);
 		mMediaController.setInstance(this);
 		
 		readSettings();
@@ -441,7 +449,7 @@ public class ClipListActivity extends Activity implements
 		}
 		
 		if (Util.IsHaveInternet(this)) {
-			setTitle(getTitle() + " ip: " + Util.getIpAddr(this));
+			setTitle(getTitle() + " ip: " + Util.getIpAddr(this) + ", http port " + MyHttpService.getPort());
 		}
 		
 		mHolder = mPreview.getHolder();
@@ -784,6 +792,7 @@ public class ClipListActivity extends Activity implements
 				String ppbox_url = PlayLinkUtil.getPlayUrl(ppbox_playid, port, ppbox_ft, ppbox_bw_type, mPlayerLinkSurfix);
 				
 				start_player("N/A", ppbox_url);
+				//start_player("N/A", "rtmp://101.71.82.49:1935/live/35df07300b7b445488007903fe0a40ca");
 			}
 		});
 		
@@ -837,6 +846,71 @@ public class ClipListActivity extends Activity implements
 				}
 			}
 		});
+	}
+	
+	private View.OnTouchListener mOnTouchListener = new View.OnTouchListener() {
+		
+		@Override
+		public boolean onTouch(View v, MotionEvent event) {
+			Log.i(TAG, "onTouch(): " + event.toString());
+			
+			return mGestureDetector.onTouchEvent(event);
+		}
+	};
+	
+	// UI
+	private GestureDetector mGestureDetector = 
+		new GestureDetector(getApplication(), new GestureDetector.SimpleOnGestureListener() {
+			@Override
+			public boolean onSingleTapConfirmed(MotionEvent e) {
+				if (mMediaController.isShowing())
+					mMediaController.hide();
+				else
+					mMediaController.show();
+				
+				return true;
+			};
+			
+			@Override
+			public boolean onDoubleTap(MotionEvent event) {
+				Log.i(TAG, "onDoubleTap!!!");
+				
+				return true;
+			}
+	});			
+
+	@Override
+	public void onConfigurationChanged(Configuration config) {
+		super.onConfigurationChanged(config);
+		
+		Log.i(TAG, "Java: onConfigurationChanged");
+		
+		int orientation = getRequestedOrientation();
+		Log.i(TAG, "Java: orientation " + orientation);
+		boolean isLandscape = (orientation == ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
+		
+		if (isLandscape) {
+			WindowManager.LayoutParams params = getWindow().getAttributes();
+    		params.flags |= WindowManager.LayoutParams.FLAG_FULLSCREEN;
+    		getWindow().setAttributes(params);
+    		//getWindow().addFlags(WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS);
+    		//requestWindowFeature(Window.FEATURE_NO_TITLE);  
+    		
+    		mLayout.setLayoutParams(new LinearLayout.LayoutParams( 
+    				LinearLayout.LayoutParams.MATCH_PARENT, 
+    				LinearLayout.LayoutParams.MATCH_PARENT)); 
+    	}
+		else {
+			WindowManager.LayoutParams params = getWindow().getAttributes();
+    		params.flags &= (~WindowManager.LayoutParams.FLAG_FULLSCREEN);
+    		getWindow().setAttributes(params); 
+    		//getWindow().clearFlags(WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS);   
+    		
+    		preview_height = screen_height * 2 / 5;
+			mLayout.getLayoutParams().height = preview_height;
+		}
+		
+		mLayout.requestLayout(); //or invalidate();
 	}
 	
 	private void readSettings() {
@@ -1783,8 +1857,9 @@ public class ClipListActivity extends Activity implements
 	}
 
 	private void testConvert() {
-		CDNItem liveitem = mEPG.live_cdn(300156);
-		if (liveitem != null) {
+		List<CDNItem> liveitem_list = mEPG.live_cdn(300156);
+		if (liveitem_list != null && liveitem_list.size() != 0) {
+			CDNItem liveitem = liveitem_list.get(0);
 			String block_url_fmt = "http://%s/live/%s/" +
 					"%d.block?ft=1&platform=android3" +
 					"&type=phone.android.vip&sdk=1" +
@@ -2851,7 +2926,8 @@ public class ClipListActivity extends Activity implements
 		Log.i(TAG, String.format("Java: width %d, height %d", mPlayer.getVideoWidth(), mPlayer.getVideoHeight()));
 		mPlayer.start();
 		
-		attachMediaController();
+		mMediaController.setMediaPlayer(this);
+        mMediaController.setEnabled(true);
 		
 		mBufferingProgressBar.setVisibility(View.GONE);
 		mIsBuffering = false;
@@ -2973,8 +3049,7 @@ public class ClipListActivity extends Activity implements
 	}
 	
 	private void setupUpdater() {
-//		final String codec = MediaPlayer.getBestCodec("/data/data/com.pplive.meetplayer/");
-		final String apk_name = "MeetPlayer-debug.apk";
+		final String apk_name = "MeetPlayer-release.apk";
 		Log.d(TAG, "ready to download apk: " + apk_name);
 		if (null != apk_name && apk_name.length() > 0) {
 			mDownloadProgressBar = (ProgressBar) findViewById(R.id.progressbar_download);
@@ -3229,11 +3304,6 @@ public class ClipListActivity extends Activity implements
 		Log.i(TAG, String.format("Java: dlna start dlna server port: %d", port));
 		return true;
 	}
-	
-    private void attachMediaController() {
-        mMediaController.setMediaPlayer(this);
-        mMediaController.setEnabled(true);
-    }
     
 	@Override
 	public void surfaceChanged(SurfaceHolder holder, int format, int w, int h) {

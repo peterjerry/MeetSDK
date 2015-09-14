@@ -16,8 +16,12 @@
         android:orderInCategory="3"
         android:title="加载字幕"/>
 	<item
-        android:id="@+id/toggle_debug_info"
+        android:id="@+id/show_mediainfo"
         android:orderInCategory="4"
+        android:title="媒体信息"/>
+	<item
+        android:id="@+id/toggle_debug_info"
+        android:orderInCategory="5"
         android:title="切换调试信息"/>
 
 </menu>

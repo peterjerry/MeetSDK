@@ -4,9 +4,10 @@ rtsp 广西卫视,rtsp://127.0.0.1:5154/play.es?type=pplive3&playlink=300178%3Fft%3D
 rtsp 江苏卫视,rtsp://127.0.0.1:5154/play.es?type=pplive3&playlink=300163%3Fft%3D1%26bwtype%3D0%26platform%3Dandroid3%26type%3Dphone.android.vip
 rtsp 新闻综合 5min,rtsp://127.0.0.1:5154/play.es?type=pplive3&playlink=300156%3Fft%3D1%26bwtype%3D0%26platform%3Dandroid3%26type%3Dphone.android.vip%26delaytime%3D0%26begin_time%3D1416823200%26end_time%3D1416825000
 myFTP,ftp://u455123614.wnpllrzodiac:daqiao1@ftp.iloveyaya.zz.vc/test/[SumiSora][Mayoi_Neko_OVERRUN][BDRip][SP][04][BIG5][PSP_480P].mp4
-crash,http://115.231.44.163:80/w/743a609778819144fa4d9ff86fb786ec.mp4?w=1&key=f4d1d48c1dbaeafc60eeabc1b6f496b2&k=53d1e512b432451af49d485e04901383-ca45-1433411750%26chid%3D150343009%26cp%3Dprivate_cloud&type=phone.android.cloudplay&vvid=07c4a1b1-421a-42c1-9d55-41b581064ff2&sv=5.1.0&platform=android3&ft=0&accessType=wifi
+crash,http://172.16.204.106/test/town.mp4
 new,rtmp://172.16.204.106/live/test01
 pcs,http://192.168.200.237:8059/rest/2.0/pcs/file?method=download&access_token=23.f3349b421ca23cc9ccfcd36971c13d47.2592000.1440292801.184740130-266719&path=%2F%E6%88%91%E7%9A%84%E9%9F%B3%E4%B9%90%2FTaylor.Swift.-.%5BFearless%5D.Instrumentals.%28iTunes.Plus.AAC%29%2F08+Tell+Me+Why+%28Instrumentals+With+B.m4a
+rtmp,rtmp://live.hkstv.hk.lxdns.com/live/hks
 
 
 

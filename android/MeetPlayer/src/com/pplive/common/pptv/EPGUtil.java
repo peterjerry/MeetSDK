@@ -835,7 +835,7 @@ public class EPGUtil {
 		return null;
 	}
 	
-	public CDNItem live_cdn(int vid) {
+	public List<CDNItem> live_cdn(int vid) {
 		String url = String.format(live_cdn_url_fmt, vid);
 		Log.i(TAG, "Java: live_cdn() url: " + url);
 		
@@ -861,7 +861,7 @@ public class EPGUtil {
 		return null;
 	}
 	
-	private CDNItem parseLiveCdnUrlxml(String xml) {
+	private List<CDNItem> parseLiveCdnUrlxml(String xml) {
 		Log.d(TAG, "Java: epg parseLiveCdnUrlxml \n" + xml.replace("\n", ""));
 		
 		SAXBuilder builder = new SAXBuilder();
@@ -873,36 +873,53 @@ public class EPGUtil {
 			
 			Element channel = root.getChild("channel");
 			Element stream = channel.getChild("stream");
+			String delay = stream.getAttributeValue("delay");
+			String interval = stream.getAttributeValue("interval");
+			List<Element> item_list = stream.getChildren("item");
 			/*
 			 * <stream delay="45" interval="5" jump="1800" cft="1">
 			 * <item rid="677a6d8e5f264fe9b5b87553c8e033e2" bitrate="412" width="480" height="360" ft="1" syncid="399" vip="0" protocol="live2" format="h264" />
 			 * </stream>
 			 */
-			String delay = stream.getAttributeValue("delay");
-			String interval = stream.getAttributeValue("interval");
 			
-			Element strm_item = stream.getChild("item");
-			String rid = strm_item.getAttributeValue("rid");
-			String bitrate = strm_item.getAttributeValue("bitrate");
-			String width = strm_item.getAttributeValue("width");
-			String height = strm_item.getAttributeValue("height");
-			String ft = strm_item.getAttributeValue("ft");
-			String format = strm_item.getAttributeValue("format");
-			
-			Log.i(TAG, String.format("Java: stream_info delay %s, interval %s, " +
-					"rid %s, bitrate %s, width %s, height %s, ft %s, format %s",
-					delay, interval, rid, bitrate, width, height, ft, format));
-
-			Element d = root.getChildren("dt").get(0);
+			/*
+			<stream delay="30" interval="5" jump="1800" cft="0">
+				<item rid="166922db680f4756bb268263786c3b12" bitrate="412" width="480" height="360" ft="1" syncid="434" vip="0" protocol="live2" format="h264"/>
+				<item rid="a3143147011b4f508bafe73fdb90d753" bitrate="1152" width="640" height="480" ft="2" syncid="2181" vip="0" protocol="live2" format="h264"/>
+				<item rid="5bdbd19be45a46a79ddf8d23558f42ca" bitrate="232" width="640" height="360" ft="0" syncid="5335" vip="0" protocol="live2" format="h264"/>
+			</stream>
+			*/
+			Element d = root.getChild("dt");
 			
 			String d_sh = d.getChild("sh").getText(); // main server
 			String d_bh = d.getChild("bh").getText(); // backup server
 			String d_st = d.getChild("st").getText(); // server time
 			String d_key = d.getChild("key").getText();
 			
-			CDNItem item = new CDNItem(ft, Integer.valueOf(width), Integer.valueOf(height), 
-					d_sh, d_st, d_bh, d_key, rid);	
-			return item;
+			List<CDNItem> itemList = new ArrayList<CDNItem>();
+			int size = item_list.size();
+			for (int i=0;i<size;i++) {
+				Element strm_item = item_list.get(i);
+
+				String rid = strm_item.getAttributeValue("rid");
+				String bitrate = strm_item.getAttributeValue("bitrate");
+				String width = strm_item.getAttributeValue("width");
+				String height = strm_item.getAttributeValue("height");
+				String ft = strm_item.getAttributeValue("ft");
+				String format = strm_item.getAttributeValue("format");
+				
+				Log.i(TAG, String.format("Java: stream_info[#%d] delay %s, interval %s, " +
+						"rid %s, bitrate %s, width %s, height %s, ft %s, format %s",
+						i, delay, interval, rid, bitrate, width, height, ft, format));
+				
+				CDNItem item = new CDNItem(ft, Integer.valueOf(width), Integer.valueOf(height),
+						format, Integer.valueOf(bitrate),
+						Integer.valueOf(delay), Integer.valueOf(interval),
+						d_sh, d_st, d_bh, d_key, rid);	
+				itemList.add(item);
+			}
+			
+			return itemList;
 		}
 		catch (JDOMException e) {
 			// TODO Auto-generated catch block

@@ -514,7 +514,7 @@ public class BaiduPanel extends JPanel {
 				}
 				
 				try {
-					Thread.sleep(200);
+					Thread.sleep(500);
 				} catch (InterruptedException e1) {
 					// TODO Auto-generated catch block
 					e1.printStackTrace();
@@ -586,7 +586,7 @@ public class BaiduPanel extends JPanel {
 				String folder_path = mbRootPath + "/" + editPath.getText();
 				if (mkdir(folder_path)) {
 					try {
-						Thread.sleep(200);
+						Thread.sleep(500);
 					} catch (InterruptedException e1) {
 						// TODO Auto-generated catch block
 						e1.printStackTrace();
@@ -1021,6 +1021,14 @@ public class BaiduPanel extends JPanel {
 			double total_speed = len / (double)elapsed_msec;
 			lblInfo.setText(String.format("%s 上传至\n %s, 大小 %s, 速度 %.3f kB/s", 
 					/*src_path*/file.getName(), dst_path, getFileSize(len), total_speed));
+			
+			try {
+				Thread.sleep(500);
+			} catch (InterruptedException e1) {
+				// TODO Auto-generated catch block
+				e1.printStackTrace();
+			}
+			
 			init_combobox();
 			
 			return true;

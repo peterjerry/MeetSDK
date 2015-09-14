@@ -3,6 +3,8 @@ package com.pplive.meetplayer.ui;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
+import java.io.UnsupportedEncodingException;
+import java.net.URLDecoder;
 
 import android.app.Activity;
 import android.app.AlertDialog;
@@ -46,8 +48,10 @@ public class VideoPlayerActivity extends Activity implements Callback {
 	
 	private final static String []mode_desc = {"自适应", "铺满屏幕", "放大裁切", "原始大小"};
 
-	protected MeetVideoView mVideoView = null;
+	protected MeetVideoView mVideoView = null; // protected for child access
 	protected MyMediaController mController;
+	private int mVideoWidth;
+	private int mVideoHeight;
 	private ProgressBar mBufferingProgressBar = null;
 	
 	protected Uri mUri = null;
@@ -158,6 +162,9 @@ public class VideoPlayerActivity extends Activity implements Callback {
 		case R.id.select_subtitle:
 			popupSelectSubtitle();
 			break;
+		case R.id.show_mediainfo:
+			popupMediaInfo();
+			break;
 		case R.id.toggle_debug_info:
 			mbShowDebugInfo = !mbShowDebugInfo;
 			if (mbShowDebugInfo)
@@ -208,6 +215,32 @@ public class VideoPlayerActivity extends Activity implements Callback {
 		stop_subtitle();
 	}
 
+	private void popupMediaInfo() {
+		String decodedUrl;
+		try {
+			decodedUrl = URLDecoder.decode(mUri.toString(), "UTF-8");
+		} catch (UnsupportedEncodingException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+			return;
+		}
+		
+		StringBuffer sbInfo = new StringBuffer();
+		sbInfo.append("文件名 ");
+    	sbInfo.append(decodedUrl);
+    	
+    	sbInfo.append("\n分辨率 ");
+    	sbInfo.append(mVideoWidth);
+    	sbInfo.append(" x ");
+    	sbInfo.append(mVideoHeight);
+		
+    	new AlertDialog.Builder(this)
+		.setTitle("媒体信息")
+		.setMessage(sbInfo.toString())
+		.setPositiveButton("确定", null)
+		.show();
+    }
+	
 	private void popupSelectFT() {
 		final String[] ft_desc = {"流畅", "高清", "超清", "蓝光"};
 		
@@ -556,6 +589,8 @@ public class VideoPlayerActivity extends Activity implements Callback {
 		public void onPrepared(MediaPlayer mp) {
 			Log.i(TAG, "Java: OnPrepared");
 			mController.show();
+			mVideoWidth = mp.getVideoWidth();
+			mVideoHeight = mp.getVideoHeight();
 			mBufferingProgressBar.setVisibility(View.GONE);
 		}
 	};

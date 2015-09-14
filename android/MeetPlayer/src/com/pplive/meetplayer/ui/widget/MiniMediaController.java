@@ -19,6 +19,7 @@ import android.view.MotionEvent;
 import android.view.OrientationEventListener;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.WindowManager;
 import android.widget.ImageButton;
 import android.widget.ProgressBar;
 import android.widget.SeekBar;
@@ -366,10 +367,12 @@ public class MiniMediaController extends MediaController {
     private View.OnClickListener mFullScreenListener = new View.OnClickListener() {
         public void onClick(View v) {
             if (null != mInstance) {
-            	if (mIsLand)
+            	if (mIsLand) {
             		mInstance.setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
-            	else
+            	}
+            	else {
             		mInstance.setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
+            	}
             	
             	mIsLand = !mIsLand;
             	
