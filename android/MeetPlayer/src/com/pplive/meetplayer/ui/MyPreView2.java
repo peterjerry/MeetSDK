@@ -21,17 +21,14 @@ import com.pplive.meetplayer.ui.widget.MiniMediaController;
 public class MyPreView2 extends SurfaceView {
 	private int mVideoWidth 			= 0;
 	private int mVideoHeight			= 0;
-	private int mLayoutWidth			= 0;
-	private int mLayoutHeight			= 0;
-	private MiniMediaController mController;
-	private MediaPlayer mPlayer;
-	private GestureDetector mDetector;
 	
 	// display mode
 	public static final int SCREEN_FIT = 0; // 自适应
     public static final int SCREEN_STRETCH = 1; // 铺满屏幕 
     public static final int SCREEN_FILL = 2; // 放大裁切
     public static final int SCREEN_CENTER = 3; // 原始大小
+    
+    private final static String []mode_desc = {"自适应", "铺满屏幕", "放大裁切", "原始大小"};
 	
 	private int mDisplayMode = SCREEN_FIT;
 	
@@ -46,48 +43,27 @@ public class MyPreView2 extends SurfaceView {
 		// TODO Auto-generated constructor stub
 	}
 
-	private static final String TAG = "MyPreView";
+	private static final String TAG = "MyPreView2";
 	
 	public void SetVideoRes(int width, int height) {
 		mVideoWidth 	= width;
 		mVideoHeight	= height;
 	}
 	
-	public void BindInstance(MiniMediaController controller, MediaPlayer player) {
-		mController = controller;
-		mPlayer = player;
-		
-		mDetector = new GestureDetector(getContext(), new MyGestureListener(mPlayer));  
-        setLongClickable(true);  
-        this.setOnTouchListener(new OnTouchListener() {  
-              
-            @Override  
-            public boolean onTouch(View v, MotionEvent event) {  
-                return mDetector.onTouchEvent(event);  
-            }  
-        });  
+	public void switchDisplayMode() {
+		mDisplayMode++;
+		if (mDisplayMode > 3)
+			mDisplayMode = 0;
 	}
 	
-	@Override
-	public boolean onTouchEvent(MotionEvent e) {
-		float x 	= e.getX();
-		float y 	= e.getY();
-		int mask 	= e.getActionMasked();
-		Log.i(TAG, String.format("Java: MyPreview touch %d: %.3f %.3f", mask, x, y));
-		if (MotionEvent.ACTION_UP == mask) {
-			if(mController != null) {
-        		if(!mController.isShowing()) {
-        			mController.show(3000);
-	    		}
-			}
-		}
-		
-		return true;
+	public String getDisplayMode() {
+		return mode_desc[mDisplayMode];
 	}
 	
-	/*
 	@Override
     protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
+		//Log.d(TAG, String.format("Java: onMeasure %d %d", widthMeasureSpec, heightMeasureSpec));
+		
         int width = getDefaultSize(mVideoWidth, widthMeasureSpec);
         int height = getDefaultSize(mVideoHeight, heightMeasureSpec);
 
@@ -118,5 +94,5 @@ public class MyPreView2 extends SurfaceView {
         }
         setMeasuredDimension(width, height);
     }
-	*/
+	
 }

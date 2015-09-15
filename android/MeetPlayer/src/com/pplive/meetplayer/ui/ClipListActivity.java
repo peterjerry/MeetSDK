@@ -47,7 +47,9 @@ import android.view.MenuItem;
 import android.view.MotionEvent;
 import android.view.SubMenu;
 import android.view.SurfaceHolder;
+import android.view.SurfaceView;
 import android.view.View;
+import android.view.View.MeasureSpec;
 import android.view.View.OnFocusChangeListener;
 import android.view.Window;
 import android.view.WindowManager;
@@ -127,6 +129,7 @@ public class ClipListActivity extends Activity implements
     private final static String PORT_HTTP = "http";
     private final static String PORT_RTSP = "rtsp";
     
+    private TextView tv_title;
 	private Button btnPlay;
 	private Button btnSelectTime;
 	private Button btnMenu;
@@ -172,6 +175,7 @@ public class ClipListActivity extends Activity implements
 	
 	private WifiLock mWifiLock;
 	
+	private boolean isTVbox = false;
 	private boolean isLandscape = false;
 	
 	// playback
@@ -329,11 +333,11 @@ public class ClipListActivity extends Activity implements
 		   
 		Log.i(TAG, "Java: onCreate()");
 		
-		// compatible with tvbox
-		/*if (getResources().getConfiguration().orientation == 1) 
-			isLandscape = false;
-		else
-			isLandscape = true;*/
+		// 隐藏标题栏
+		requestWindowFeature(Window.FEATURE_NO_TITLE);
+		// 隐藏状态栏
+		getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN,
+				WindowManager.LayoutParams.FLAG_FULLSCREEN);
 		
 		DisplayMetrics dm = new DisplayMetrics(); 
 		getWindowManager().getDefaultDisplay().getMetrics(dm); 
@@ -342,11 +346,11 @@ public class ClipListActivity extends Activity implements
 		Log.i(TAG, String.format("Java: screen %dx%d", screen_width, screen_height));
 		
 		if (screen_width > screen_height)
-			isLandscape = true;
+			isTVbox = true;
 		else
-			isLandscape = false;
+			isTVbox = false;
 		
-		if (isLandscape) {
+		if (isTVbox) {
 			setContentView(R.layout.list_landscape);
 			
 			getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_VISIBLE
@@ -356,6 +360,7 @@ public class ClipListActivity extends Activity implements
 			setContentView(R.layout.list);
 		}
 		
+		this.tv_title = (TextView) findViewById(R.id.tv_title);
 		this.btnPlay = (Button) findViewById(R.id.btn_play);
 		this.btnSelectTime = (Button) findViewById(R.id.btn_select_time);
 		this.btnMenu = (Button) findViewById(R.id.btn_menu);
@@ -381,7 +386,8 @@ public class ClipListActivity extends Activity implements
 		
 		this.mMediaController = (MiniMediaController) findViewById(R.id.mmc);
 	
-		mPreview.setOnTouchListener(mOnTouchListener);
+		mLayout.setLongClickable(true); // MUST set to enable double-tap and single-tap-confirm
+		mLayout.setOnTouchListener(mOnTouchListener);
 		mMediaController.setInstance(this);
 		
 		readSettings();
@@ -405,7 +411,7 @@ public class ClipListActivity extends Activity implements
 				if (!file.isDirectory()) {
 					mCurrentFolder = Environment.getExternalStorageDirectory().getPath();
 				}
-				setTitle(mCurrentFolder);
+				tv_title.setText(mCurrentFolder);
 			}
 			else {
 				Toast.makeText(this, "sd card is not mounted!", Toast.LENGTH_SHORT).show();
@@ -449,7 +455,7 @@ public class ClipListActivity extends Activity implements
 		}
 		
 		if (Util.IsHaveInternet(this)) {
-			setTitle(getTitle() + " ip: " + Util.getIpAddr(this) + ", http port " + MyHttpService.getPort());
+			tv_title.setText(tv_title.getText().toString() + " ip: " + Util.getIpAddr(this) + ", http port " + MyHttpService.getPort());
 		}
 		
 		mHolder = mPreview.getHolder();
@@ -485,7 +491,7 @@ public class ClipListActivity extends Activity implements
 								}
 								else {
 									mCurrentFolder = parent_folder;
-									setTitle(mCurrentFolder);
+									tv_title.setText(mCurrentFolder);
 									new ListItemTask().execute(mCurrentFolder);
 								}
 							}
@@ -495,7 +501,7 @@ public class ClipListActivity extends Activity implements
 								int index = url.lastIndexOf('/', url.length() - 1 - 1);
 								url = url.substring(0, index + 1);
 								new ListItemTask().execute(url);
-								setTitle(url);
+								tv_title.setText(url);
 							}
 						}
 						else {
@@ -504,7 +510,7 @@ public class ClipListActivity extends Activity implements
 								
 								if (file_path.charAt(file_path.length() - 1) == '/') {
 									Log.i(TAG, "Java: list http folder");
-									setTitle(file_path);
+									tv_title.setText(file_path);
 									new ListItemTask().execute(file_path);		
 								}
 								else {
@@ -528,7 +534,7 @@ public class ClipListActivity extends Activity implements
 									else {
 										Log.i(TAG, "Java: list folder: " + file.getAbsolutePath());
 										mCurrentFolder = file_path;
-										setTitle(mCurrentFolder);
+										tv_title.setText(mCurrentFolder);
 										new ListItemTask().execute(mCurrentFolder);
 									}
 								}
@@ -852,7 +858,7 @@ public class ClipListActivity extends Activity implements
 		
 		@Override
 		public boolean onTouch(View v, MotionEvent event) {
-			Log.i(TAG, "onTouch(): " + event.toString());
+			Log.i(TAG, "Java: onTouch(): " + event.getAction());
 			
 			return mGestureDetector.onTouchEvent(event);
 		}
@@ -861,20 +867,41 @@ public class ClipListActivity extends Activity implements
 	// UI
 	private GestureDetector mGestureDetector = 
 		new GestureDetector(getApplication(), new GestureDetector.SimpleOnGestureListener() {
+			
+			public boolean onDown(MotionEvent e) {
+				Log.i(TAG, "Java: onDown!!!");
+				return true;
+			};
+			
 			@Override
 			public boolean onSingleTapConfirmed(MotionEvent e) {
-				if (mMediaController.isShowing())
-					mMediaController.hide();
-				else
-					mMediaController.show();
+				Log.i(TAG, "Java: onSingleTapConfirmed!!!");
+				if (mPlayer != null) {
+					if (mMediaController.isShowing())
+						mMediaController.hide();
+					else
+						mMediaController.show();
+				}
 				
 				return true;
 			};
 			
 			@Override
 			public boolean onDoubleTap(MotionEvent event) {
-				Log.i(TAG, "onDoubleTap!!!");
-				
+				Log.i(TAG, "Java: onDoubleTap!!!");
+				if (mPlayer != null) {
+					if (isLandscape) {
+						mPreview.switchDisplayMode();
+						mLayout.requestLayout(); // force refresh layout
+						
+						Toast.makeText(ClipListActivity.this, "switch to " + mPreview.getDisplayMode(),
+								Toast.LENGTH_SHORT).show();
+					}
+					else {
+						setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
+					}
+				}
+					
 				return true;
 			}
 	});			
@@ -887,30 +914,22 @@ public class ClipListActivity extends Activity implements
 		
 		int orientation = getRequestedOrientation();
 		Log.i(TAG, "Java: orientation " + orientation);
-		boolean isLandscape = (orientation == ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
+		isLandscape = (orientation == ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
 		
 		if (isLandscape) {
-			WindowManager.LayoutParams params = getWindow().getAttributes();
-    		params.flags |= WindowManager.LayoutParams.FLAG_FULLSCREEN;
-    		getWindow().setAttributes(params);
-    		//getWindow().addFlags(WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS);
-    		//requestWindowFeature(Window.FEATURE_NO_TITLE);  
-    		
     		mLayout.setLayoutParams(new LinearLayout.LayoutParams( 
     				LinearLayout.LayoutParams.MATCH_PARENT, 
-    				LinearLayout.LayoutParams.MATCH_PARENT)); 
+    				LinearLayout.LayoutParams.MATCH_PARENT));
+    		tv_title.setVisibility(View.GONE);
     	}
-		else {
-			WindowManager.LayoutParams params = getWindow().getAttributes();
-    		params.flags &= (~WindowManager.LayoutParams.FLAG_FULLSCREEN);
-    		getWindow().setAttributes(params); 
-    		//getWindow().clearFlags(WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS);   
-    		
+		else { 
     		preview_height = screen_height * 2 / 5;
 			mLayout.getLayoutParams().height = preview_height;
+			tv_title.setVisibility(View.VISIBLE);
 		}
 		
 		mLayout.requestLayout(); //or invalidate();
+		//mPreview.requestLayout();
 	}
 	
 	private void readSettings() {
@@ -1087,7 +1106,7 @@ public class ClipListActivity extends Activity implements
 	private int start_player(String title, String path) {
 		mPlayUrl = path;
 		
-		setTitle(path);
+		tv_title.setText(path);
 		Log.i(TAG, "Java: clipname: " + mPlayUrl);
 		
 		mDecMode = DecodeMode.UNKNOWN;
@@ -2838,6 +2857,7 @@ public class ClipListActivity extends Activity implements
 			}
 			//Toast.makeText(ClipListActivity.this, str_player_type, Toast.LENGTH_SHORT).show();
 			tv_player_impl.setText(short_type);
+			mMediaController.setPlayerImplement(short_type);
 		}
 		else if(MediaPlayer.MEDIA_INFO_TEST_DECODE_AVG_MSEC == what) {
 			decode_avg_msec = extra;
@@ -2920,8 +2940,6 @@ public class ClipListActivity extends Activity implements
 		
 		render_frame_num = 0;
 		decode_drop_frame = 0;
-
-		mPreview.BindInstance(mMediaController, mPlayer);
 		
 		Log.i(TAG, String.format("Java: width %d, height %d", mPlayer.getVideoWidth(), mPlayer.getVideoHeight()));
 		mPlayer.start();
@@ -3015,14 +3033,20 @@ public class ClipListActivity extends Activity implements
 			mVideoHeight	= h;
 		}
 		
+		SurfaceHolder holder = mPreview.getHolder();
+		holder.setFixedSize(mVideoWidth, mVideoHeight);
+		mPreview.SetVideoRes(mVideoWidth, mVideoHeight);
+		
+		// will trigger onMeasure() 
+		mPreview.measure(MeasureSpec.AT_MOST, MeasureSpec.AT_MOST);
+	}
+	
+	private void updatePreveiwUI() {
 		// view
 		int width	= mLayout.getMeasuredWidth();
 		int height 	= mLayout.getMeasuredHeight();
 		
-		Log.i(TAG, String.format("adjust_ui preview %d x %d, video %d x %d", width, height, mVideoWidth, mVideoHeight)); 
-		
-		SurfaceHolder holder = mPreview.getHolder();
-		holder.setFixedSize(mVideoWidth, mVideoHeight);
+		Log.i(TAG, String.format("Java: adjust_ui preview %d x %d, video %d x %d", width, height, mVideoWidth, mVideoHeight));
 		
 		RelativeLayout.LayoutParams sufaceviewParams = (RelativeLayout.LayoutParams) mPreview.getLayoutParams();
 		if ( mVideoWidth * height  > width * mVideoHeight ) { 
@@ -3043,9 +3067,6 @@ public class ClipListActivity extends Activity implements
 		Log.i(TAG, String.format("adjust_ui surfaceview setLayoutParams %d %d", 
 				sufaceviewParams.width, sufaceviewParams.height)); 
 		mPreview.setLayoutParams(sufaceviewParams);
-		
-		// will trigger onMeasure() 
-		//mPreview.measure(MeasureSpec.AT_MOST, MeasureSpec.AT_MOST);
 	}
 	
 	private void setupUpdater() {
@@ -3153,7 +3174,7 @@ public class ClipListActivity extends Activity implements
 		
 		Log.i(TAG, "Java: onResume()");
 		
-		if (!isLandscape) {
+		if (!isTVbox) {
 			Log.i(TAG, String.format("screen %dx%d, preview height %d", screen_width, screen_height, preview_height));
 			
 			preview_height = screen_height * 2 / 5;
@@ -3489,21 +3510,29 @@ public class ClipListActivity extends Activity implements
 			return true;
 		}
 		
-		if (!mPreviewFocused)
-			return super.onKeyDown(keyCode, event);
-		
-		switch (keyCode) {
-			case KeyEvent.KEYCODE_ENTER:
-			case KeyEvent.KEYCODE_DPAD_CENTER:
-				if (mPlayer != null && !mMediaController.isShowing()) {
-					mMediaController.show(5000);
+		if (!mPreviewFocused) {
+			if (keyCode == KeyEvent.KEYCODE_BACK) {
+				if (!isTVbox && isLandscape) {
+					setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
 					return true;
 				}
-				break;
-			default:
-				Log.d(TAG, "no spec action: " + keyCode);
-				break;
 			}
+			
+			return super.onKeyDown(keyCode, event);
+		}
+		
+		switch (keyCode) {
+		case KeyEvent.KEYCODE_ENTER:
+		case KeyEvent.KEYCODE_DPAD_CENTER:
+			if (mPlayer != null && !mMediaController.isShowing()) {
+				mMediaController.show(5000);
+				return true;
+			}
+			break;
+		default:
+			Log.d(TAG, "no spec action: " + keyCode);
+			break;
+		}
 		
 		return super.onKeyDown(keyCode, event);
 	}

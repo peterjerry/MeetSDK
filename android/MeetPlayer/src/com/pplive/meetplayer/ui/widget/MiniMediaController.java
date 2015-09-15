@@ -41,7 +41,7 @@ public class MiniMediaController extends MediaController {
 	private SeekBar mProgressBar;
 	private TextView mEndTime;
 	private TextView mCurrentTime;
-	private TextView mFileName;
+	private TextView mPlayerImpl;
 	StringBuilder mFormatBuilder;
     Formatter mFormatter;  
     
@@ -74,9 +74,9 @@ public class MiniMediaController extends MediaController {
 		mControllerView = makeControllerView();
 	}
 	
-	public void setFileName(String name) {
-		if (name != null)
-			mFileName.setText(name);
+	public void setPlayerImplement(String impl) {
+		if (impl != null)
+			mPlayerImpl.setText(impl);
 	}
 	
 	@Override
@@ -126,9 +126,7 @@ public class MiniMediaController extends MediaController {
 		mFormatBuilder = new StringBuilder();
         mFormatter = new Formatter(mFormatBuilder, Locale.getDefault());
         
-        mFileName = (TextView) v.findViewById(R.id.textview_filename);
-  
-        this.setOnTouchListener(mTouchListener);
+        mPlayerImpl = (TextView) v.findViewById(R.id.tv_player_impl);
 	}
 	
 	private String stringForTime(int timeMs) {
@@ -379,17 +377,6 @@ public class MiniMediaController extends MediaController {
             	updateFullScreen();
             }
             
-        }
-    };
-    
-    private OnTouchListener mTouchListener = new OnTouchListener() {
-        public boolean onTouch(View v, MotionEvent event) {
-            if (event.getAction() == MotionEvent.ACTION_DOWN) {
-                if (mIsShowing) {
-                    hide();
-                }
-            }
-            return false;
         }
     };
     

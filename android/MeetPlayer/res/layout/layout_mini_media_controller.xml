@@ -13,6 +13,15 @@
 		android:layout_alignParentBottom="true"
 		android:padding="10dp"
 		android:background="#b0000000" >
+		
+	    <TextView
+	        android:id="@+id/tv_player_impl"
+	        android:layout_width="wrap_content"
+	   		android:layout_height="wrap_content"
+	   		android:layout_above="@+id/layout_seek_panel"
+	   		android:layout_alignParentLeft="true"
+	   		android:text="N/A"
+	   		android:textColor="#fff" />
 		    
 		<LinearLayout 
 			android:id="@+id/layout_player_panel"

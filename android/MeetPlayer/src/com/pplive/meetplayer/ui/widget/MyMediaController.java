@@ -115,8 +115,6 @@ public class MyMediaController extends MediaController {
         mFormatter = new Formatter(mFormatBuilder, Locale.getDefault());
         
         mFileName = (TextView) v.findViewById(R.id.textview_filename);
-  
-        //this.setOnTouchListener(mTouchListener);
 	}
 	
 	private String stringForTime(int timeMs) {
@@ -301,36 +299,6 @@ public class MyMediaController extends MediaController {
             show(sDefaultTimeout);
         }
     };
-    
-    /*private GestureDetector mGestureDetector = new GestureDetector(
-    		mContext, new GestureDetector.SimpleOnGestureListener(){
-    	
-    	public boolean onDoubleTap(MotionEvent e) {
-    		Log.i(TAG, "onDoubleTap!!!");
-    		
-    		if (mPlayer instanceof MediaPlayerControl) {
-    			((MediaPlayerControl) mPlayer).switchDisplayMode();
-    		}
-    		
-    		return false;
-    	};
-    	
-    	public boolean onSingleTapConfirmed(MotionEvent e) {
-    		Log.i(TAG, "onSingleTapConfirmed!!!");
-    		
-    		
-    		return false;
-    	};
-    });
-    
-    private OnTouchListener mTouchListener = new OnTouchListener() {
-		
-		@Override
-		public boolean onTouch(View v, MotionEvent event) {
-			
-			return mGestureDetector.onTouchEvent(event);
-		}
-	};*/
 	
 	private SeekBar.OnSeekBarChangeListener mProgressChangeListener = new SeekBar.OnSeekBarChangeListener() {
 		

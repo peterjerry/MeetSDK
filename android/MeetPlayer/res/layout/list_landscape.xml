@@ -1,194 +1,206 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="fill_parent"
     android:layout_height="fill_parent"
-    android:orientation="horizontal" >
+    android:orientation="vertical" >
     
-	<LinearLayout  
-        android:layout_width="250dp"  
+    <TextView
+		android:id="@+id/tv_title"
+		android:layout_width="fill_parent"
+		android:layout_height="wrap_content"
+		android:text="@string/app_name"
+		android:singleLine="true" />
+    
+    <LinearLayout  
+        android:layout_width="fill_parent"  
         android:layout_height="fill_parent"  
-        android:orientation="vertical" >
-		
-		<LinearLayout  
-        android:layout_width="match_parent"  
-        android:layout_height="wrap_content"  
         android:orientation="horizontal" >
-			<Button
-				android:id="@+id/btn_ppbox"
-				android:layout_width="wrap_content"
-				android:layout_height="wrap_content"
-				android:text="ppbox"/>
-			<Button
-				android:id="@+id/btn_clip_location"
-				android:layout_width="wrap_content"
-				android:layout_height="wrap_content"
-				android:text="http"/>
-			<LinearLayout
-				android:focusable="true"
-				android:focusableInTouchMode="true"
-				android:layout_width="0px"
-				android:layout_height="0px"/>
-			<Button
-				android:id="@+id/btn_player_impl"
-				android:layout_width="wrap_content"
-				android:layout_height="wrap_content"
-				android:text="impl" />
-			<Button
-				android:id="@+id/btn_take_snapshot"
-				android:layout_width="wrap_content"
-				android:layout_height="wrap_content"
-				android:text="snap"/>
-		</LinearLayout>		
+        
 		<LinearLayout  
-			android:layout_width="match_parent"  
-			android:layout_height="wrap_content"  
-			android:orientation="horizontal" >
-			<TextView
-				android:layout_width="wrap_content"
-				android:layout_height="wrap_content"
-				android:text="id" />
-			<EditText
-				android:id="@+id/et_playlink"
-				android:layout_width="120dp"
-				android:layout_height="wrap_content"
-				android:text="17493573"
-				android:numeric="integer"
-				android:singleLine="true" />
-			<TextView
-				android:layout_width="wrap_content"
-				android:layout_height="wrap_content"
-				android:text="ft" />
-			<Button
-				android:id="@+id/btn_ft"
-				android:layout_width="wrap_content"
-				android:layout_height="wrap_content"
-				android:text="1" />
-			<TextView
-				android:layout_width="wrap_content"
-				android:layout_height="wrap_content"
-				android:text="bw" />
-			<Button
-				android:id="@+id/btn_bw_type"
-				android:layout_width="wrap_content"
-				android:layout_height="wrap_content"
-				android:text="3" />
+	        android:layout_width="250dp"  
+	        android:layout_height="fill_parent"  
+	        android:orientation="vertical" >
+			
+			<LinearLayout  
+	        android:layout_width="match_parent"  
+	        android:layout_height="wrap_content"  
+	        android:orientation="horizontal" >
+				<Button
+					android:id="@+id/btn_ppbox"
+					android:layout_width="wrap_content"
+					android:layout_height="wrap_content"
+					android:text="ppbox"/>
+				<Button
+					android:id="@+id/btn_clip_location"
+					android:layout_width="wrap_content"
+					android:layout_height="wrap_content"
+					android:text="http"/>
+				<LinearLayout
+					android:focusable="true"
+					android:focusableInTouchMode="true"
+					android:layout_width="0px"
+					android:layout_height="0px"/>
+				<Button
+					android:id="@+id/btn_player_impl"
+					android:layout_width="wrap_content"
+					android:layout_height="wrap_content"
+					android:text="impl" />
+				<Button
+					android:id="@+id/btn_take_snapshot"
+					android:layout_width="wrap_content"
+					android:layout_height="wrap_content"
+					android:text="snap"/>
+			</LinearLayout>		
+			<LinearLayout  
+				android:layout_width="match_parent"  
+				android:layout_height="wrap_content"  
+				android:orientation="horizontal" >
+				<TextView
+					android:layout_width="wrap_content"
+					android:layout_height="wrap_content"
+					android:text="id" />
+				<EditText
+					android:id="@+id/et_playlink"
+					android:layout_width="120dp"
+					android:layout_height="wrap_content"
+					android:text="17493573"
+					android:numeric="integer"
+					android:singleLine="true" />
+				<TextView
+					android:layout_width="wrap_content"
+					android:layout_height="wrap_content"
+					android:text="ft" />
+				<Button
+					android:id="@+id/btn_ft"
+					android:layout_width="wrap_content"
+					android:layout_height="wrap_content"
+					android:text="1" />
+				<TextView
+					android:layout_width="wrap_content"
+					android:layout_height="wrap_content"
+					android:text="bw" />
+				<Button
+					android:id="@+id/btn_bw_type"
+					android:layout_width="wrap_content"
+					android:layout_height="wrap_content"
+					android:text="3" />
+			</LinearLayout>
+			<LinearLayout  
+				android:layout_width="match_parent"  
+				android:layout_height="wrap_content"  
+				android:orientation="horizontal" >
+				<Button
+					android:id="@+id/btn_play"
+					android:layout_width="wrap_content"
+					android:layout_height="wrap_content"
+					android:text="play"/>
+				<Button
+					android:id="@+id/btn_select_time"
+					android:layout_width="wrap_content"
+					android:layout_height="wrap_content"
+					android:text="time"/>
+				<Button
+					android:id="@+id/btn_menu"
+					android:layout_width="wrap_content"
+					android:layout_height="wrap_content"
+					android:text="menu" />
+				<Button
+					android:id="@+id/btn_select_audiotrack"
+					android:layout_width="wrap_content"
+					android:layout_height="wrap_content"
+					android:text="track" 
+					android:visibility="gone" />
+			</LinearLayout>
+			<ListView
+				android:layout_width="fill_parent"
+				android:layout_height="fill_parent"
+				android:id="@+id/lv_filelist">
+			</ListView>                   
 		</LinearLayout>
-		<LinearLayout  
-			android:layout_width="match_parent"  
-			android:layout_height="wrap_content"  
-			android:orientation="horizontal" >
-			<Button
-				android:id="@+id/btn_play"
-				android:layout_width="wrap_content"
-				android:layout_height="wrap_content"
-				android:text="play"/>
-			<Button
-				android:id="@+id/btn_select_time"
-				android:layout_width="wrap_content"
-				android:layout_height="wrap_content"
-				android:text="time"/>
-			<Button
-				android:id="@+id/btn_menu"
-				android:layout_width="wrap_content"
-				android:layout_height="wrap_content"
-				android:text="menu" />
-			<Button
-				android:id="@+id/btn_select_audiotrack"
-				android:layout_width="wrap_content"
-				android:layout_height="wrap_content"
-				android:text="track" 
-				android:visibility="gone" />
-		</LinearLayout>
-		<ListView
+		
+		<RelativeLayout
+			android:id="@+id/layout_preview"
 			android:layout_width="fill_parent"
 			android:layout_height="fill_parent"
-			android:id="@+id/lv_filelist">
-		</ListView>                   
+			android:background="@android:color/black" >
+			
+			<com.pplive.meetplayer.ui.MyPreView2
+				android:id="@+id/preview"
+				android:layout_marginLeft="10dp"
+				android:layout_marginRight="10dp"
+				android:layout_marginTop="10dp"
+				android:layout_marginBottom="10dp"
+				android:layout_width="wrap_content"
+			    android:layout_height="wrap_content"
+				android:layout_centerInParent="true" />
+			<TextView
+				android:id="@+id/tv_info"
+				android:layout_width="wrap_content"
+				android:layout_height="wrap_content"
+				android:layout_alignParentTop="true"
+				android:text="play info" />
+			<ProgressBar 
+				android:id="@+id/progressbar_buffering"
+				style="@android:style/Widget.ProgressBar.Large"
+				android:layout_width="wrap_content"
+				android:layout_height="wrap_content"
+				android:layout_centerInParent="true"
+				android:visibility="gone" />
+			<ProgressBar
+				android:id="@+id/progressbar_download"
+				style="@android:style/Widget.ProgressBar.Large"
+				android:layout_width="wrap_content"
+				android:layout_height="wrap_content"
+				android:layout_centerInParent="true"
+				android:visibility="gone" />
+			<TextView
+				android:id="@+id/textview_progress"
+				android:layout_width="wrap_content"
+				android:layout_height="wrap_content"
+				android:layout_below="@+id/progressbar_download"
+				android:layout_centerHorizontal="true"
+				android:textColor="#FF0000"
+				android:visibility="gone" />
+			<TextView
+				android:id="@+id/textview_subtitle"
+				android:layout_width="wrap_content"
+				android:layout_height="wrap_content"
+				android:layout_alignParentBottom="true"
+				android:layout_marginBottom="10dp"
+				android:layout_centerHorizontal="true"
+				android:gravity="center"
+				android:textColor="#FF0000"
+				android:visibility="gone" />
+			<ImageView
+				android:id="@+id/iv_dlna_dmc"
+				android:layout_width="128dp"
+				android:layout_height="128dp" 
+				android:layout_centerInParent="true" 
+				android:src="@drawable/dlna"
+				android:scaleType="fitXY" 
+				android:alpha="0.5"
+				android:visibility="gone" />
+			<ImageView
+				android:id="@+id/iv_novideo"
+				android:layout_width="128dp"
+				android:layout_height="128dp" 
+				android:layout_centerInParent="true" 
+				android:src="@drawable/novideo"
+				android:scaleType="fitXY" 
+				android:visibility="gone" />
+			<com.pplive.meetplayer.ui.widget.MiniMediaController
+				android:id="@+id/mmc"
+				android:layout_width="wrap_content"
+				android:layout_height="wrap_content"
+				android:layout_alignParentBottom="true"
+				android:layout_marginBottom="20dp"
+				android:visibility="gone" />
+			<TextView
+			    android:id="@+id/textview_play_impl"
+				android:layout_width="wrap_content"
+				android:layout_height="wrap_content"
+				android:layout_alignParentBottom="true" 
+				android:layout_alignParentLeft="true"
+				android:textColor="#FF0000" />
+		</RelativeLayout>	
 	</LinearLayout>
-	
-	<RelativeLayout
-		android:id="@+id/layout_preview"
-		android:layout_width="fill_parent"
-		android:layout_height="fill_parent"
-		android:background="@android:color/black" >
-		
-		<com.pplive.meetplayer.ui.MyPreView2
-			android:id="@+id/preview"
-			android:layout_marginLeft="10dp"
-			android:layout_marginRight="10dp"
-			android:layout_marginTop="10dp"
-			android:layout_marginBottom="10dp"
-			android:layout_width="wrap_content"
-		    android:layout_height="wrap_content"
-			android:layout_centerInParent="true" />
-		<TextView
-			android:id="@+id/tv_info"
-			android:layout_width="wrap_content"
-			android:layout_height="wrap_content"
-			android:layout_alignParentTop="true"
-			android:text="play info" />
-		<ProgressBar 
-			android:id="@+id/progressbar_buffering"
-			style="@android:style/Widget.ProgressBar.Large"
-			android:layout_width="wrap_content"
-			android:layout_height="wrap_content"
-			android:layout_centerInParent="true"
-			android:visibility="gone" />
-		<ProgressBar
-			android:id="@+id/progressbar_download"
-			style="@android:style/Widget.ProgressBar.Large"
-			android:layout_width="wrap_content"
-			android:layout_height="wrap_content"
-			android:layout_centerInParent="true"
-			android:visibility="gone" />
-		<TextView
-			android:id="@+id/textview_progress"
-			android:layout_width="wrap_content"
-			android:layout_height="wrap_content"
-			android:layout_below="@+id/progressbar_download"
-			android:layout_centerHorizontal="true"
-			android:textColor="#FF0000"
-			android:visibility="gone" />
-		<TextView
-			android:id="@+id/textview_subtitle"
-			android:layout_width="wrap_content"
-			android:layout_height="wrap_content"
-			android:layout_alignParentBottom="true"
-			android:layout_marginBottom="10dp"
-			android:layout_centerHorizontal="true"
-			android:gravity="center"
-			android:textColor="#FF0000"
-			android:visibility="gone" />
-		<ImageView
-			android:id="@+id/iv_dlna_dmc"
-			android:layout_width="128dp"
-			android:layout_height="128dp" 
-			android:layout_centerInParent="true" 
-			android:src="@drawable/dlna"
-			android:scaleType="fitXY" 
-			android:alpha="0.5"
-			android:visibility="gone" />
-		<ImageView
-			android:id="@+id/iv_novideo"
-			android:layout_width="128dp"
-			android:layout_height="128dp" 
-			android:layout_centerInParent="true" 
-			android:src="@drawable/novideo"
-			android:scaleType="fitXY" 
-			android:visibility="gone" />
-		<com.pplive.meetplayer.ui.widget.MiniMediaController
-			android:id="@+id/mmc"
-			android:layout_width="wrap_content"
-			android:layout_height="wrap_content"
-			android:layout_alignParentBottom="true"
-			android:layout_marginBottom="20dp"
-			android:visibility="gone" />
-		<TextView
-		    android:id="@+id/textview_play_impl"
-			android:layout_width="wrap_content"
-			android:layout_height="wrap_content"
-			android:layout_alignParentBottom="true" 
-			android:layout_alignParentLeft="true"
-			android:textColor="#FF0000" />
-	</RelativeLayout>	
- 
 </LinearLayout>
