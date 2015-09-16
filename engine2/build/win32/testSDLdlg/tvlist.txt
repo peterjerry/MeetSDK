@@ -8,7 +8,8 @@ crash,http://172.16.204.106/test/town.mp4
 new,rtmp://172.16.204.106/live/test01
 pcs,http://192.168.200.237:8059/rest/2.0/pcs/file?method=download&access_token=23.f3349b421ca23cc9ccfcd36971c13d47.2592000.1440292801.184740130-266719&path=%2F%E6%88%91%E7%9A%84%E9%9F%B3%E4%B9%90%2FTaylor.Swift.-.%5BFearless%5D.Instrumentals.%28iTunes.Plus.AAC%29%2F08+Tell+Me+Why+%28Instrumentals+With+B.m4a
 rtmp,rtmp://live.hkstv.hk.lxdns.com/live/hks
-
+rtmp_good,rtmp://124.160.184.154:1935/live/dd992e7c24e444b78517d9401224b166
+xxx,rtmp://172.16.204.106/live/test01
 
 
 

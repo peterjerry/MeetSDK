@@ -3,12 +3,15 @@
     android:layout_height="fill_parent"
     android:orientation="vertical" >
     
-    <TextView
+    <com.pplive.meetplayer.ui.widget.MyMarqueeTextView
 		android:id="@+id/tv_title"
 		android:layout_width="fill_parent"
 		android:layout_height="wrap_content"
 		android:text="@string/app_name"
-		android:singleLine="true" />
+		android:singleLine="true"
+		android:ellipsize="marquee"  
+		android:marqueeRepeatLimit="marquee_forever"  
+		android:scrollHorizontally="true" />
     
     <LinearLayout  
         android:layout_width="fill_parent"  

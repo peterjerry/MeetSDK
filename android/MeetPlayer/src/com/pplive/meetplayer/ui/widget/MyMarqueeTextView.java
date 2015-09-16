@@ -11,15 +11,15 @@ import android.widget.TextView;
  * @author dennis
  *
  */
-public class MyGridViewTextView extends TextView {
+public class MyMarqueeTextView extends TextView {
 
-	public MyGridViewTextView(Context context, AttributeSet attrs, int defStyle)
+	public MyMarqueeTextView(Context context, AttributeSet attrs, int defStyle)
 	{
 		super(context, attrs, defStyle);
 		// TODO Auto-generated constructor stub
 	}
 
-	public MyGridViewTextView(Context context, AttributeSet attrs)
+	public MyMarqueeTextView(Context context, AttributeSet attrs)
 	{
 		super(context, attrs);
 	}

@@ -8,6 +8,7 @@ import java.util.Date;
 import java.util.GregorianCalendar;
 import java.util.List;
 
+import com.pplive.common.pptv.CDNItem;
 import com.pplive.common.pptv.EPGUtil;
 import com.pplive.common.pptv.LiveStream;
 import com.pplive.common.pptv.PlayLink2;
@@ -39,6 +40,9 @@ import android.widget.Toast;
 public class PPTVLiveCenterActivity extends Activity {
 	private final static String TAG = "PPTVLiveCenterActivity";
 	private final static int MAX_DAY = 5;
+	
+	private final static String ACTION_LIVE_CENTER = "live_center";
+	private final static String ACTION_LIVE_FT = "live_ft";
 	
 	private TextView tvDay;
 	private Button btnLive;
@@ -84,7 +88,7 @@ public class PPTVLiveCenterActivity extends Activity {
 					int position, long id) {
 				// TODO Auto-generated method stub
 				LiveStream liveStrm = mAdapter.getItem(position);
-				String playlink = liveStrm.channelID;
+				/*String playlink = liveStrm.channelID;
 				short http_port = MediaSDK.getPort("http");
 				if (mUseMyHTTPserver)
 					http_port = (short)MyHttpService.getPort();
@@ -101,7 +105,8 @@ public class PPTVLiveCenterActivity extends Activity {
 				intent.putExtra("ft", 1);
 				intent.putExtra("best_ft", 3);
 		        
-				startActivity(intent);
+				startActivity(intent);*/
+				new EPGTask().execute(ACTION_LIVE_FT, liveStrm.title, liveStrm.channelID);
 			}
 		});
 		
@@ -126,7 +131,7 @@ public class PPTVLiveCenterActivity extends Activity {
 		if (mLiveId == null)
 			Toast.makeText(this, "live_type 未获取", Toast.LENGTH_SHORT).show();
 		else
-			new EPGTask().execute(mLiveId, updateTime());
+			new EPGTask().execute(ACTION_LIVE_CENTER, mLiveId, updateTime());
 	}
 	
 	private View.OnClickListener mOnClickListener = new View.OnClickListener() {
@@ -148,7 +153,7 @@ public class PPTVLiveCenterActivity extends Activity {
 				if (dayOffset > MAX_DAY)
 					dayOffset = -1;
 				
-				new EPGTask().execute(mLiveId, updateTime());
+				new EPGTask().execute(ACTION_LIVE_CENTER, mLiveId, updateTime());
 				break;
 			case R.id.btn_use_myhttp:
 				mUseMyHTTPserver = !mUseMyHTTPserver;
@@ -283,31 +288,87 @@ public class PPTVLiveCenterActivity extends Activity {
         return true;
     }
 	
-	private class EPGTask extends AsyncTask<String, Integer, List<LiveStream>> {
+	private class EPGTask extends AsyncTask<String, Integer, Boolean> {
+		private List<LiveStream> strmList;
+		private List<CDNItem> itemList;
+		private String title;
+		private int vid;
+		private String action;
 		
 		@Override
-		protected void onPostExecute(List<LiveStream> result) {
+		protected void onPostExecute(Boolean result) {
 			// TODO Auto-generated method stub
-			if (result == null) {
-				Toast.makeText(getApplicationContext(),"获取列表失败", Toast.LENGTH_SHORT).show();
+			if (result) {
+				if (ACTION_LIVE_CENTER.equals(action)) {
+					mAdapter = new MyPPTVLiveCenterAdapter(
+							PPTVLiveCenterActivity.this, mEPG.getLiveStrm());
+					lv_tvlist.setAdapter(mAdapter);
+				}
+				else if (ACTION_LIVE_FT.equals(action)) {
+					int best_ft = 0;
+					int index = 0;
+					int count = itemList.size();
+					for (int i = 0;i<count;i++) {
+						CDNItem item = itemList.get(i);
+						int ft = Integer.valueOf(item.getFT());
+						if (ft > best_ft) {
+							best_ft = ft;
+							index = i;
+						}
+					}
+					
+					CDNItem LiveItem = itemList.get(index);
+					
+					short http_port = MediaSDK.getPort("http");
+					if (mUseMyHTTPserver)
+						http_port = (short)MyHttpService.getPort();
+					String play_url = PlayLinkUtil.getPlayUrl(
+							vid, http_port, best_ft/*ft*/, 3/*bw_type*/, mLinkSurfix);
+					
+					Intent intent = new Intent(PPTVLiveCenterActivity.this,
+			        		PPTVPlayerActivity.class);
+					Uri uri = Uri.parse(play_url);
+					Log.i(TAG, "to play uri: " + uri.toString());
+
+					intent.setData(uri);
+					intent.putExtra("title", title);
+					intent.putExtra("ft", best_ft);
+					intent.putExtra("best_ft", best_ft);
+					
+					Toast.makeText(PPTVLiveCenterActivity.this, 
+							String.format("start to play %s, playlink %d, ft %d, size %d x %d, bitrate %d",
+									title, vid, best_ft, 
+									LiveItem.getWidth(), LiveItem.getHeight(), LiveItem.getBitrate()),
+							Toast.LENGTH_SHORT).show();
+			        
+					startActivity(intent);
+				}
 			}
 			else {
-				mAdapter = new MyPPTVLiveCenterAdapter(PPTVLiveCenterActivity.this, result);
-				lv_tvlist.setAdapter(mAdapter);
+				Toast.makeText(getApplicationContext(),"获取列表失败", Toast.LENGTH_SHORT).show();
 			}
 		}
 		
 		@Override
-		protected List<LiveStream> doInBackground(String... params) {
+		protected Boolean doInBackground(String... params) {
 			// TODO Auto-generated method stub
-			if (params.length < 2)
-				return null;
+			if (params.length < 3)
+				return false;
 			
-			if (!mEPG.live_center(params[0], params[1]))
-				return null;
-			
-			else
-				return mEPG.getLiveStrm();
+			action = params[0];
+			if (ACTION_LIVE_CENTER.equals(action)) {
+				return mEPG.live_center(params[1], params[2]);
+			}
+			else if (ACTION_LIVE_FT.equals(action)) {
+				title = params[1];
+				
+				vid = Integer.valueOf(params[2]);
+				return ((itemList = mEPG.live_cdn(vid)) != null);
+			}
+			else {
+				Log.e(TAG, "Java: unknown action: " + action);
+				return false;
+			}
 		}
 	}
 }

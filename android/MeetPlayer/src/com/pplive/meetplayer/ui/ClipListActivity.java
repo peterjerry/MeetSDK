@@ -84,6 +84,7 @@ import com.pplive.meetplayer.R;
 import com.pplive.meetplayer.service.DLNAService;
 import com.pplive.meetplayer.service.MyHttpService;
 import com.pplive.meetplayer.ui.widget.MiniMediaController;
+import com.pplive.meetplayer.ui.widget.MyMarqueeTextView;
 import com.pplive.meetplayer.util.AtvUtils;
 import com.pplive.meetplayer.util.DownloadAsyncTask;
 import com.pplive.meetplayer.util.FeedBackFactory;
@@ -129,7 +130,7 @@ public class ClipListActivity extends Activity implements
     private final static String PORT_HTTP = "http";
     private final static String PORT_RTSP = "rtsp";
     
-    private TextView tv_title;
+    private MyMarqueeTextView tv_title;
 	private Button btnPlay;
 	private Button btnSelectTime;
 	private Button btnMenu;
@@ -360,7 +361,7 @@ public class ClipListActivity extends Activity implements
 			setContentView(R.layout.list);
 		}
 		
-		this.tv_title = (TextView) findViewById(R.id.tv_title);
+		this.tv_title = (MyMarqueeTextView) findViewById(R.id.tv_title);
 		this.btnPlay = (Button) findViewById(R.id.btn_play);
 		this.btnSelectTime = (Button) findViewById(R.id.btn_select_time);
 		this.btnMenu = (Button) findViewById(R.id.btn_menu);
@@ -2426,11 +2427,15 @@ public class ClipListActivity extends Activity implements
 	}
 	
 	private void upload_crash_report(int type) {  
-        String ip = Util.getIpAddr(this);
-        
         MeetSDK.makePlayerlog();
         Util.copyFile(getCacheDir().getAbsolutePath() + "/meetplayer.log", 
         		Environment.getExternalStorageDirectory().getAbsolutePath() + "/meetplayer.txt");
+        
+        String ip = Util.getIpAddr(this);
+        if (ip == null) {
+        	Toast.makeText(this, "network is un-available", Toast.LENGTH_SHORT).show();
+        	return;
+        }
         
         if (ip.startsWith("192.168.")) {
         	String URL = "http://172.16.10.137/crashapi/api/crashreport/launcher";
