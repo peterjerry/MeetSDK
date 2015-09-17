@@ -2,7 +2,6 @@
 #include "ppffmpeg.h"
 #include "surface.h"
 #include "utils.h"
-#include "autolock.h"
 
 #define LOG_TAG "IOSRender"
 #include "log.h"
@@ -14,6 +13,7 @@ static AVFrame * alloc_picture(AVPixelFormat pix_fmt, int width, int height);
 static void saveFrameRGB(void* data, int stride, int height, char* path);
 
 IOSRender::IOSRender()
+	:mConvertCtx(NULL), mSurfaceFrame(NULL)
 {
 }
 
@@ -35,7 +35,9 @@ bool IOSRender::init(void* surface, uint32_t frameWidth, uint32_t frameHeight, i
 	mWidth		= frameWidth;
 	mHeight		= frameHeight;
 	mFormat		= format;
-	mForceSW	= force_sw;
+	
+	if (Surface_open(mSurface, mFrameWidth, mFrameHeight, mFrameFormat) != OK)
+		return false;
 
 	return true;
 }
@@ -79,6 +81,9 @@ void IOSRender::close()
 	if (mSurfaceFrame != NULL) {
 		av_frame_free(&mSurfaceFrame);
 	}
+	
+	Surface_close();
+	LOGI("destructor()");
 }
 
 bool IOSRender::sws_sw(AVFrame *frame)

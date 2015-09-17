@@ -12,6 +12,7 @@ static int s_swsFlag = SWS_BICUBIC; // high quality
 static void saveFrameRGB(void* data, int stride, int height, char* path);
 
 WinRender::WinRender()
+	:mDoOnce(true), mConvertCtx(NULL), mSurfaceFrame(NULL)
 {
 }
 
@@ -53,9 +54,9 @@ bool WinRender::render(AVFrame* frame)
 	int64_t end_scale = getNowMs();
 	int64_t costTime = end_scale - begin_scale;
 	if (mAveScaleTimeMs == 0)
-		mAveScaleTimeMs = costTime;
+		mAveScaleTimeMs = (uint32_t)costTime;
 	else
-		mAveScaleTimeMs = (mAveScaleTimeMs * 4 + costTime) / 5;
+		mAveScaleTimeMs = (uint32_t)(mAveScaleTimeMs * 4 + costTime) / 5;
 
 	LOGD("scale picture cost %lld[ms]", costTime);
 
@@ -84,6 +85,7 @@ void WinRender::close()
 	if (mSurfaceFrame != NULL) {
 		av_frame_free(&mSurfaceFrame);
 	}
+	LOGI("destructor()");
 }
 
 bool WinRender::sws_sw(AVFrame *frame)
@@ -123,8 +125,8 @@ bool WinRender::sws_sw(AVFrame *frame)
 
 
 	// Convert the image
-	if (stride < frame->width || height < frame->height) {
-		LOGW("surface is too small: buffer %d x %d, frame %d x %d", stride, height, frame->width, frame->height);
+	if (stride < mWidth || height < mHeight) {
+		LOGW("surface is too small: buffer %d x %d, frame %d x %d", stride, height, mWidth, mHeight);
 		return false;
 	}
 
@@ -137,7 +139,7 @@ bool WinRender::sws_sw(AVFrame *frame)
 		frame->height,
 		mSurfaceFrame->data,
 		mSurfaceFrame->linesize);
-	if (ret != frame->height) {
+	if (ret != mHeight) {
 		LOGW("sws_scale ret: %d, %dx%d(fmt %d) -> %dx%d(fmt %d)", 
 			ret, frame->width, frame->height, frame->format, mWidth, mHeight, AV_PIX_FMT_RGB32);
 	}

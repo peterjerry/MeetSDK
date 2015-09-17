@@ -17,7 +17,6 @@ private:
 	
 	bool sws_sw(AVFrame *frame);
 private:
-	bool				mDoOnce;
 	struct SwsContext*	mConvertCtx;
 	AVFrame*			mSurfaceFrame;
 };

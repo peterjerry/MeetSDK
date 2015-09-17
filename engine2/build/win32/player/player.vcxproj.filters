@@ -77,9 +77,6 @@
     <ClCompile Include="..\..\..\platform\oslesrender.cpp">
       <Filter>源文件\platform</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\platform\surface_android.cpp">
-      <Filter>源文件\platform</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\..\platform\log_android.c">
       <Filter>源文件\platform</Filter>
     </ClCompile>

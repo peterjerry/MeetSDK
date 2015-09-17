@@ -99,7 +99,6 @@
     <ClCompile Include="..\..\..\platform\loop.cpp" />
     <ClCompile Include="..\..\..\platform\oslesrender.cpp" />
     <ClCompile Include="..\..\..\platform\packetqueue.cpp" />
-    <ClCompile Include="..\..\..\platform\surface_android.cpp" />
     <ClCompile Include="..\..\..\platform\utils.cpp" />
     <ClCompile Include="..\..\..\platform\yuv2rgb\yuv2rgb16tab.c" />
     <ClCompile Include="..\..\..\platform\yuv2rgb\yuv2rgb565.cpp" />

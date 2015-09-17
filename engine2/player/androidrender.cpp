@@ -38,6 +38,7 @@ static int I420ToABGR(const uint8_t* src_y, int src_stride_y,
 #endif
 
 AndroidRender::AndroidRender()
+	:mWindow(NULL), mForceSW(false), mDoOnce(true), mConvertCtx(NULL), mSurfaceFrame(NULL)
 {
 }
 
@@ -84,6 +85,8 @@ bool AndroidRender::render(AVFrame* frame)
 		LOGW("native window is null");
 	}
 	
+	int64_t begin_scale = getNowMs();
+
 	ANativeWindow_Buffer buffer = {0};
 	int32_t ret = ANativeWindow_lock(mWindow, &buffer, NULL);
 	if (ret != 0) {
@@ -107,25 +110,20 @@ bool AndroidRender::render(AVFrame* frame)
 		return false;
 	}
 
-	int64_t begin_scale = getNowMs();
-
 	//Convert format
 #if defined(__arm__) // arm implement
-	if (mForceSW)
-		return sws_sw(frame, &buffer);
+	if (!mForceSW) {
+		uint64_t cpuFeatures = android_getCpuFeatures();
+		if ((cpuFeatures & ANDROID_CPU_ARM_FEATURE_NEON) != 0 &&
+			(frame->format == AV_PIX_FMT_YUV420P ||
+			frame->format == AV_PIX_FMT_NV12 ||
+			frame->format == AV_PIX_FMT_NV21))
+		{
+			sws_neon(frame, &buffer);
+		}
+	}
 
-	uint64_t cpuFeatures = android_getCpuFeatures();
-	if ((cpuFeatures & ANDROID_CPU_ARM_FEATURE_NEON) != 0 &&
-		(frame->format == AV_PIX_FMT_YUV420P ||
-		frame->format == AV_PIX_FMT_NV12 ||
-		frame->format == AV_PIX_FMT_NV21))
-	{
-		sws_neon(frame, &buffer);
-	}
-	else
-	{
-		sws_sw(frame, &buffer);
-	}
+	sws_sw(frame, &buffer);
 #elif defined(__aarch64__)
 	if (frame->format == AV_PIX_FMT_YUV420P)
 		sws_neon(frame, &buffer);
@@ -169,10 +167,6 @@ bool AndroidRender::render(AVFrame* frame)
 
 void AndroidRender::close()
 {
-	if (mWindow) {
-		ANativeWindow_release(mWindow);
-		mWindow = NULL;
-	}
 	if (mConvertCtx != NULL) {
 		sws_freeContext(mConvertCtx);
 		mConvertCtx = NULL;
@@ -180,6 +174,12 @@ void AndroidRender::close()
 	if (mSurfaceFrame != NULL) {
 		av_frame_free(&mSurfaceFrame);
 	}
+	if (mWindow) {
+		ANativeWindow_release(mWindow);
+		mWindow = NULL;
+	}
+
+	LOGI("destructor()");
 }
 
 bool AndroidRender::sws_neon(AVFrame *frame, ANativeWindow_Buffer *buffer)
@@ -277,6 +277,8 @@ bool AndroidRender::sws_sw(AVFrame *frame, ANativeWindow_Buffer *buffer)
 #else
 		out_fmt = AV_PIX_FMT_RGB0;
 #endif
+		// android sws ONYL convert pixel format, resolution ALWAYS no change
+		// android surface will do swich scale job
 		mConvertCtx = sws_getContext(
 			frame->width, frame->height, (AVPixelFormat)frame->format,
 			mWidth, mHeight, out_fmt, 
