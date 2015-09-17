@@ -2,6 +2,7 @@
 #define _RENDER_BASE_H_
 
 #include <stdint.h>
+#include <stdio.h>
 
 struct AVFrame;
 

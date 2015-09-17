@@ -36,7 +36,7 @@ bool IOSRender::init(void* surface, uint32_t frameWidth, uint32_t frameHeight, i
 	mHeight		= frameHeight;
 	mFormat		= format;
 	
-	if (Surface_open(mSurface, mFrameWidth, mFrameHeight, mFrameFormat) != OK)
+	if (Surface_open(mSurface, mWidth, mHeight, mFormat) != OK)
 		return false;
 
 	return true;
@@ -48,7 +48,7 @@ bool IOSRender::render(AVFrame* frame)
 	
 	int64_t begin_scale = getNowMs();
 
-	AVframe *disp_frame = frame;
+	AVFrame *disp_frame = frame;
 	if (frame->format != AV_PIX_FMT_YUV420P && frame->format != AV_PIX_FMT_YUVJ420P) {
 		if (!sws_sw(frame))
 			return false;
