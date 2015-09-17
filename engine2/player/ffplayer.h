@@ -391,10 +391,11 @@ private:
 	int64_t				mFrameTimerMs;
 	int64_t				mAVDiffMs;
 
+	// option
 #ifdef PCM_DUMP
 	char*				mDumpUrl;
-	int					mBufferingSec;
 #endif
+	int					mBufferingSec;
 
 #if USE_AV_FILTER
 	//avfilter

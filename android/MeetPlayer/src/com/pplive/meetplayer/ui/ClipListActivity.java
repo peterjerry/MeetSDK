@@ -3506,9 +3506,29 @@ public class ClipListActivity extends Activity implements
 		}
 	}
 	
+	@Override  
+	public boolean dispatchKeyEvent(KeyEvent event) {  
+	    // TODO Auto-generated method stub
+		int action = event.getAction();
+		int keyCode = event.getKeyCode();
+		Log.d(TAG, "Java: dispatchKeyEvent action " + action + " ,keyCode: " + keyCode);
+		
+		if (mPreviewFocused && action == KeyEvent.ACTION_DOWN) {
+			if (keyCode == KeyEvent.KEYCODE_ENTER ||
+					keyCode == KeyEvent.KEYCODE_DPAD_CENTER) {
+				if (mPlayer != null && !mMediaController.isShowing()) {
+					mMediaController.show(5000);
+					return true;
+				}
+			}
+		}
+		
+		return super.dispatchKeyEvent(event);  
+	}
+	
 	@Override
 	public boolean onKeyDown(int keyCode, KeyEvent event) {
-		Log.d(TAG, "keyCode: " + keyCode);
+		Log.d(TAG, "Java: keyCode: " + keyCode);
 		
 		if (keyCode == KeyEvent.KEYCODE_MENU) {
 			openOptionsMenu();
@@ -3524,19 +3544,6 @@ public class ClipListActivity extends Activity implements
 			}
 			
 			return super.onKeyDown(keyCode, event);
-		}
-		
-		switch (keyCode) {
-		case KeyEvent.KEYCODE_ENTER:
-		case KeyEvent.KEYCODE_DPAD_CENTER:
-			if (mPlayer != null && !mMediaController.isShowing()) {
-				mMediaController.show(5000);
-				return true;
-			}
-			break;
-		default:
-			Log.d(TAG, "no spec action: " + keyCode);
-			break;
 		}
 		
 		return super.onKeyDown(keyCode, event);

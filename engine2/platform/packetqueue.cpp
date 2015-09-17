@@ -42,7 +42,7 @@ status_t PacketQueue::put(AVPacket* pkt)
     else
 		mDuration += pkt->duration;
 	mLastPTS = pkt->pts;
-    LOGD("mDuration:%lld", mDuration);
+	LOGD("put stream #%d: mDuration %lld", pkt->stream_index, mDuration);
 	
     return OK;
 }

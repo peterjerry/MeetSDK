@@ -288,8 +288,8 @@ FFPlayer::FFPlayer()
 
 #ifdef PCM_DUMP
 	mDumpUrl		= NULL;
-	mBufferingSec	= 0;
 #endif
+	mBufferingSec	= 0;
 
 #ifdef USE_AV_FILTER
 	mFilterGraph	= NULL;
@@ -1690,22 +1690,22 @@ void FFPlayer::process_opt(char *opt)
 		char *value = sep + 1;
 		LOGI("one option %s = %s", key, value);
 		
-#ifdef PCM_DUMP
-		if (strcmp(key, "-dump_url") == 0) {
-			if (mDumpUrl)
-				free(mDumpUrl);
-
-			mDumpUrl = my_strdup(value);
-			LOGI("set_opt dump_url udp://%s", mDumpUrl);
-
-		}
-		else if (strcmp(key, "-buffering_sec") == 0) {
+		if (strcmp(key, "-buffering_sec") == 0) {
 			mBufferingSec = atoi(value);
 			LOGI("set_opt buffering_sec %d", mBufferingSec);
 
 			if (mDataStream) {
 				mDataStream->setBufferingSec(mBufferingSec);
 			}
+		}
+#ifdef PCM_DUMP
+		else if (strcmp(key, "-dump_url") == 0) {
+			if (mDumpUrl)
+				free(mDumpUrl);
+
+			mDumpUrl = my_strdup(value);
+			LOGI("set_opt dump_url udp://%s", mDumpUrl);
+
 		}
 #endif
 	}

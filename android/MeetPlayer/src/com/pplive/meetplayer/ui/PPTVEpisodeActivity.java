@@ -751,7 +751,7 @@ public class PPTVEpisodeActivity extends Activity {
 			int progress = values[0];
 			double speed = (double)values[1] / 1000.0f;
 			progressDialog.setMessage(
-					String.format("%s\n下载进度: %d%%\n下载速度 %.3f MB/sec %s/%s", 
+					String.format("%s\n下载进度: %d%%\n下载速度 %.3f MB/sec\n剩余大小%s/%s", 
 							mSavePath, progress, speed, 
 							getFileSize(mDownloadedSize), getFileSize(mFileSize)));
 			progressDialog.setProgress(progress);	
