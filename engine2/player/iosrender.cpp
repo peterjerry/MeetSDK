@@ -93,7 +93,7 @@ bool IOSRender::sws_sw(AVFrame *frame)
 	if (mConvertCtx == NULL) {
 		//just do color format conversion
 		//avoid doing scaling as it cost lots of cpu
-		AVPixelFormat out_fmt = AV_PIX_FMT_RGB32;
+		AVPixelFormat out_fmt = AV_PIX_FMT_YUV420P;
 		mConvertCtx = sws_getContext(
 			frame->width, frame->height, (AVPixelFormat)frame->format,
 			mWidth, mHeight, out_fmt, 
@@ -111,8 +111,13 @@ bool IOSRender::sws_sw(AVFrame *frame)
 	}
 
 	if (mSurfaceFrame == NULL) {
-		//mSurfaceFrame = alloc_picture(AV_PIX_FMT_RGB32, mWidth, mHeight);
-		mSurfaceFrame = av_frame_alloc();
+		mSurfaceFrame = alloc_picture(AV_PIX_FMT_RGB32, mWidth, mHeight);
+		if (mSurfaceFrame == NULL) {
+			LOGE("alloc frame failed");
+			return false;
+		}
+		
+		/*mSurfaceFrame = av_frame_alloc();
 		if (mSurfaceFrame == NULL) {
 			LOGE("alloc frame failed");
 			return false;
@@ -121,10 +126,10 @@ bool IOSRender::sws_sw(AVFrame *frame)
 		mSurfaceFrame->width	= mWidth;
 		mSurfaceFrame->height	= mHeight;
 		mSurfaceFrame->format	= AV_PIX_FMT_YUV420P;
-		if (av_frame_get_buffer(mSurfaceFrame, 1) < 0) {
+		if (av_frame_get_buffer(mSurfaceFrame, 0) < 0) {
 			LOGE("get frame buffer failed");
 			return false;
-		}
+		}*/
 	}
 
 	// Convert the image
