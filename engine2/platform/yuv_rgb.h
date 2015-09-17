@@ -28,7 +28,6 @@ struct yuv_pack
     int32_t pitch;
 };
 
-#ifndef _MSC_VER
 /* I420 to RGBA conversion. */
 void i420_rgb_neon (struct yuv_pack *const out,
                     const struct yuv_planes *const in,
@@ -43,7 +42,6 @@ void nv21_rgb_neon (struct yuv_pack *const out,
 void nv12_rgb_neon (struct yuv_pack *const out,
                     const struct yuv_planes *const in,
                     int width, int height) asm("nv12_rgb_neon");
-#endif
 
 #endif
 

@@ -11,6 +11,7 @@
 #include "loop.h"
 #include "audioplayer.h"
 #include "ffstream.h"
+#include "renderbase.h"
 
 class ISubtitles;
 class FFRender;
@@ -267,7 +268,7 @@ private:
 	FFStream*				mDataStream; // demuxer setListener()
     MediaPlayerListener*	mListener;
     AudioPlayer*			mAudioPlayer; // audio render setListener()
-    FFRender*				mVideoRenderer; // video render
+    RenderBase*				mVideoRenderer; // video render
 	void*					mSurface; // native surface
 	AVFrame*				mVideoFrame;
 	// set to true(when "pause", "render first frame"), when decoder got picture, set it to false
