@@ -3,7 +3,7 @@
 cd ../../foundation_rext
 
 XCODE_NAME=Xcode
-SDK_VERSION=8.1
+SDK_VERSION=8.4
 TARGET_VERSION=v8
 
 case $1 in
