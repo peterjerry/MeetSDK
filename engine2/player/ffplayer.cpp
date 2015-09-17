@@ -21,7 +21,13 @@
 #include "log.h"
 #include "ppffmpeg.h"
 #include "utils.h"
-#include "ffrender.h"
+#ifdef __ANDROID__
+#include "androidrender.h"
+#elif defined(__APPLE__)
+#include "iosrender.h"
+#else
+#include "winrender.h"
+#endif
 #include "autolock.h"
 #include "filesource.h"
 #ifdef USE_TS_CONVERT
@@ -605,7 +611,7 @@ int FFPlayer::onAudioFrameImpl(AVFrame *frame)
 #ifdef TEST_PERFORMANCE
 		int64_t begin_render = getNowMs();
 #endif
-		if ( OK != mVideoRenderer->render(mAudioFiltFrame))
+		if (!mVideoRenderer->render(mAudioFiltFrame))
 			notifyListener_l(MEDIA_ERROR, MEDIA_ERROR_VIDEO_RENDER, 0);
 
 #ifdef TEST_PERFORMANCE
@@ -859,7 +865,6 @@ status_t FFPlayer::setVideoSurface(void* surface)
 		delete mVideoRenderer;
 
 		// realloc render
-		mVideoRenderer = new FFRender(mSurface, mVideoWidth, mVideoHeight, mVideoFormat);
 		bool force_sw = false;
 #ifdef USE_AV_FILTER
 		if (mVideoFiltFrame) {
@@ -867,32 +872,22 @@ status_t FFPlayer::setVideoSurface(void* surface)
 			force_sw = true;
 		}
 #endif
-        if (mVideoRenderer->init(force_sw) != OK) {
+		mVideoRenderer = new AndroidRender();
+        if (!mVideoRenderer->init(mSurface, mVideoWidth, mVideoHeight, mVideoFormat, force_sw)) {
          	LOGE("Initing video render failed");
             return ERROR;
         }
 
 		LOGI("Java: realloc render");
 	}
-#endif
-
-#ifdef _MSC_VER
+#elif defined(_MSC_VER)
 	if (mVideoRenderer) {
 		delete mVideoRenderer;
 
 		// realloc render
 		mSurface = surface;
-#ifdef USE_SDL2
-		SDL_Window* window = (SDL_Window *)surface;
 		int w, h;
-		SDL_GetWindowSize(window, &w, &h);
-		mVideoRenderer = new FFRender(mSurface, w, h, mVideoFormat);
-#else
-		SDL_Surface* surf = (SDL_Surface *)surface;
-		mVideoRenderer = new FFRender(mSurface, surf->w, surf->h, mVideoFormat);
-#endif
 
-		
 		bool force_sw = false;
 #ifdef USE_AV_FILTER
 		if (mVideoFiltFrame) {
@@ -900,7 +895,17 @@ status_t FFPlayer::setVideoSurface(void* surface)
 			force_sw = true;
 		}
 #endif
-        if (mVideoRenderer->init(force_sw) != OK) {
+
+#ifdef USE_SDL2
+		SDL_Window* window = (SDL_Window *)surface;
+		SDL_GetWindowSize(window, &w, &h);
+#else
+		SDL_Surface* surf = (SDL_Surface *)surface;
+		w = surf->w;
+		h = surf->h;
+#endif
+		mVideoRenderer = new WinRender();
+        if (!mVideoRenderer->init(mSurface, w, h, mVideoFormat)) {
          	LOGE("Initing video render failed");
             return ERROR;
         }
@@ -1049,9 +1054,7 @@ status_t FFPlayer::getVideoWidth(int32_t *w)
 {
     if (mVideoRenderer != NULL) {
         //Use optimized size from render
-        uint32_t optWidth = 0;
-        mVideoRenderer->width(optWidth);
-        *w = optWidth;
+		*w = mVideoRenderer->get_width();
     }
     else {
         *w = mVideoWidth;
@@ -1063,9 +1066,7 @@ status_t FFPlayer::getVideoHeight(int32_t *h)
 {
     if(mVideoRenderer != NULL) {
         //Use optimized size from render
-        uint32_t optHeight = 0;
-        mVideoRenderer->height(optHeight);
-        *h = optHeight;
+        *h = mVideoRenderer->get_height();
     }
     else
     {
@@ -1381,14 +1382,14 @@ void FFPlayer::render_impl()
 {
 #ifdef USE_AV_FILTER
 	if (mVideoFiltFrame) {
-		if ( OK != mVideoRenderer->render(mVideoFiltFrame))
+		if (!mVideoRenderer->render(mVideoFiltFrame))
 			notifyListener_l(MEDIA_ERROR, MEDIA_ERROR_VIDEO_RENDER, 0);
 
 		av_frame_unref(mVideoFiltFrame);
 		return;
 	}
 #endif
-	if (OK != mVideoRenderer->render(mVideoFrame))
+	if (!mVideoRenderer->render(mVideoFrame))
 		notifyListener_l(MEDIA_ERROR, MEDIA_ERROR_VIDEO_RENDER, 0);
 }
 
@@ -2294,8 +2295,8 @@ status_t FFPlayer::prepareVideo_l()
 				mAudioFiltFrame = av_frame_alloc();
 				notifyListener_l(MEDIA_SET_VIDEO_SIZE, AUDIO_VISUAL_WIDTH, AUDIO_VISUAL_HEIGHT);
 
-				mVideoRenderer = new FFRender(mSurface, AUDIO_VISUAL_WIDTH, AUDIO_VISUAL_HEIGHT, AV_PIX_FMT_YUV420P);
-				if (mVideoRenderer->init() != OK) {
+				mVideoRenderer = new FFRender();
+				if (!mVideoRenderer->init(mSurface, AUDIO_VISUAL_WIDTH, AUDIO_VISUAL_HEIGHT, AV_PIX_FMT_YUV420P)) {
          			LOGE("Initing video render failed");
 					return ERROR;
 				}		
@@ -2448,7 +2449,6 @@ status_t FFPlayer::prepareVideo_l()
 #endif
 #endif
 
-    mVideoRenderer = new FFRender(mSurface, render_w, render_h, mVideoFormat);
 	bool force_sw = false;
 #ifdef USE_AV_FILTER
 	if (mVideoFiltFrame) {
@@ -2456,15 +2456,19 @@ status_t FFPlayer::prepareVideo_l()
 		force_sw = true;
 	}
 #endif
-    if (mVideoRenderer->init(force_sw) != OK) {
+#ifdef __ANDROID__
+    mVideoRenderer = new AndroidRender();
+#elif defined(__APPLE__)
+	mVideoRenderer = new IOSRender();
+#else
+	mVideoRenderer = new WinRender();
+#endif
+    if (!mVideoRenderer->init(mSurface, render_w, render_h, mVideoFormat, force_sw)) {
         LOGE("Initing video render failed");
         return ERROR;
     }
 
-    uint32_t surfaceWidth = 0, surfaceHeight = 0;
-    mVideoRenderer->width(surfaceWidth);
-    mVideoRenderer->height(surfaceHeight);
-    notifyListener_l(MEDIA_SET_VIDEO_SIZE, surfaceWidth, surfaceHeight);
+    notifyListener_l(MEDIA_SET_VIDEO_SIZE, render_w, render_h);
 
 	return OK;
 }
@@ -3067,7 +3071,7 @@ bool FFPlayer::need_drop_pkt(AVPacket* packet)
                 int64_t latenessMs = audioPlayingTimeMs - packetTimeMs;
 
                 //as audio time is playing, so time*2
-                latenessMs = latenessMs + mVideoRenderer->swsMs() + mAveVideoDecodeTimeMs*2;
+                latenessMs = latenessMs + mVideoRenderer->get_swsMs() + mAveVideoDecodeTimeMs*2;
                 LOGD("packetTimeMs: %lld, audioPlayingTimeMs: %lld, latenessMs: %lld, maxPacketLatenessMs: %lld",
             		    packetTimeMs, audioPlayingTimeMs, latenessMs, latenessMs);
 

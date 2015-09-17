@@ -119,8 +119,7 @@ status_t AudioRender::open(int sampleRate,
 	mChannelLayoutOutput = mChannelLayout;
 	mChannelsOutput = mChannels;
 
-	switch(mSampleFormat)
-	{
+	switch (mSampleFormat) {
 	case AV_SAMPLE_FMT_U8:
 	case AV_SAMPLE_FMT_U8P:
 		mBitPerSample = 8;
