@@ -111,7 +111,7 @@ bool IOSRender::sws_sw(AVFrame *frame)
 	}
 
 	if (mSurfaceFrame == NULL) {
-		mSurfaceFrame = alloc_picture(AV_PIX_FMT_RGB32, mWidth, mHeight);
+		mSurfaceFrame = alloc_picture(AV_PIX_FMT_YUV420P, mWidth, mHeight);
 		if (mSurfaceFrame == NULL) {
 			LOGE("alloc frame failed");
 			return false;
