@@ -2295,7 +2295,11 @@ status_t FFPlayer::prepareVideo_l()
 				mAudioFiltFrame = av_frame_alloc();
 				notifyListener_l(MEDIA_SET_VIDEO_SIZE, AUDIO_VISUAL_WIDTH, AUDIO_VISUAL_HEIGHT);
 
-				mVideoRenderer = new FFRender();
+#ifdef __ANDROID__
+				mVideoRenderer = new AndroidRender();
+#else
+				mVideoRenderer = new WinRender();
+#endif
 				if (!mVideoRenderer->init(mSurface, AUDIO_VISUAL_WIDTH, AUDIO_VISUAL_HEIGHT, AV_PIX_FMT_YUV420P)) {
          			LOGE("Initing video render failed");
 					return ERROR;
