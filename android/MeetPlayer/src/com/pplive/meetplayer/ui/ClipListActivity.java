@@ -574,7 +574,6 @@ public class ClipListActivity extends Activity implements
 										filelist.remove(whichButton);
 										mAdapter.updateData(filelist);
 										mAdapter.notifyDataSetChanged();
-										//new ListItemTask().execute(mCurrentFolder);
 									}
 									else {
 										Log.e(TAG, "failed to delete file: " + file_path);

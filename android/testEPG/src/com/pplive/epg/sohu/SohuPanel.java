@@ -314,7 +314,7 @@ public class SohuPanel extends JPanel {
 			
 			int last_count = al.getLastCount();
 			if (last_count > EPISODE_INCR_PAGE_NUM) {
-				ep_page_index = (last_count - 1) / PAGE_SIZE + 1;
+				ep_page_index = (last_count + 9) / PAGE_SIZE;
 				ep_page_incr = -1;
 			}
 			else {

@@ -197,6 +197,24 @@ public class PPTVEpisodeActivity extends Activity {
 			}
 		});
 		
+		this.gridView.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+
+			@Override
+			public void onItemSelected(AdapterView<?> arg0, View v,
+					int position, long id) {
+				// TODO Auto-generated method stub
+				Map<String, Object> item = adapter.getItem(position);
+				String title = (String)item.get("title");
+				setTitle(title);
+			}
+
+			@Override
+			public void onNothingSelected(AdapterView<?> arg0) {
+				// TODO Auto-generated method stub
+				setTitle(getResources().getString(R.string.title_activity_pptv_video));
+			}
+		});
+		
 	    mEPG = new EPGUtil();
 	    
 	    if (search_key != null)

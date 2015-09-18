@@ -109,6 +109,7 @@ private:
 	char *mSubtitleTextUtf8;
 	bool mSubtitleUpdated;
 	bool mGotSub;
+	bool mHasEmbeddingSub;
 
 #ifdef USE_SDL2
 	SDL_Window *mWindow;

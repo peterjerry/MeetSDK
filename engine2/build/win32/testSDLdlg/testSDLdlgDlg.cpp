@@ -253,7 +253,8 @@ CtestSDLdlgDlg::CtestSDLdlgDlg(CWnd* pParent /*=NULL*/)
 	mUserAddChnNum(0), 
 	mEPGQueryType(EPG_QUERY_CATALOG), mEPGValue(-1),
 	mSubtitleParser(NULL), 
-	mSubtitleStartTime(0), mSubtitleStopTime(0), mSubtitleTextUtf8(NULL), mSubtitleUpdated(false), mGotSub(false),
+	mSubtitleStartTime(0), mSubtitleStopTime(0), mSubtitleTextUtf8(NULL), 
+	mSubtitleUpdated(false), mGotSub(false), mHasEmbeddingSub(false),
 #ifdef USE_SDL2
 	mWindow(NULL), mRenderer(NULL)
 #else
@@ -575,7 +576,11 @@ void CtestSDLdlgDlg::OnTimer(UINT_PTR nIDEvent)
 	drawBuffering();
 
 #ifdef ENABLE_SUBTITLE
+#ifdef ENABLE_EXTRA_SUBTITLE_PARSER
 	if (mSubtitleParser) {
+#else
+	if (mSubtitleParser && mHasEmbeddingSub) {
+#endif
 		STSSegment* segment = NULL;
 
 		if (curr_pos > mSubtitleStopTime) {
@@ -1228,6 +1233,12 @@ bool CtestSDLdlgDlg::OnPrepared()
 	//SDL_Window * pWindow = SDL_CreateWindowFrom( (void *)( GetDlgItem(IDC_STATIC1)->GetSafeHwnd() ) );
 	Surface_open2((void *)mSurface2);
 #endif
+
+	MediaInfo info;
+	if (mPlayer->getCurrentMediaInfo(&info)) {
+		if (info.subtitle_channels > 0)
+			mHasEmbeddingSub = true;
+	}
 
 	mPlayer->start();
 	mDropFrames = 0;

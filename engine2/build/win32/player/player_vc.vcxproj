@@ -127,10 +127,10 @@
     <ClCompile Include="..\..\..\player\ffplayer.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>
     </ClCompile>
-    <ClCompile Include="..\..\..\player\ffrender.cpp">
+    <ClCompile Include="..\..\..\player\ffstream.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>
     </ClCompile>
-    <ClCompile Include="..\..\..\player\ffstream.cpp">
+    <ClCompile Include="..\..\..\player\winrender.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="apFileLog.cpp">

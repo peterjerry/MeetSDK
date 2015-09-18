@@ -97,7 +97,7 @@
       <PrecompiledHeader>Use</PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
-      <PreprocessorDefinitions>PCM_DUMP;USE_SDL2;_DEBUG_FF;ENABLE_SUBTITLE;PROTOCOL_RTMP;SDL_EMBEDDED_WINDOW;_TEST_SUBTITLE;MARKUP_STL;CURL_STATICLIB;DEBUG_LOG_LEVEL__;SAVE_LOG_FILE;USE_AV_FILTER;TEST_PERFORMANCE;TEST_PERFORMANCE_BITRATE;NDEBUG;_CRT_SECURE_NO_WARNINGS;WIN32;_WINDOWS;_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>USE_SDL2;_DEBUG_FF;ENABLE_SUBTITLE;PROTOCOL_RTMP;SDL_EMBEDDED_WINDOW;_TEST_SUBTITLE;MARKUP_STL;CURL_STATICLIB;DEBUG_LOG_LEVEL__;SAVE_LOG_FILE;USE_AV_FILTER;TEST_PERFORMANCE;TEST_PERFORMANCE_BITRATE;NDEBUG;_CRT_SECURE_NO_WARNINGS;WIN32;_WINDOWS;_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <SDLCheck>true</SDLCheck>
       <AdditionalIncludeDirectories>.\;..\..\..\platform\clsocket;..\..\..\..\subtitle2\build\win32\TestSubtitle\libass\include;..\..\..\..\subtitle2\src\subtitle;..\..\..\..\subtitle2\src\tinyxml2;.\ppbox\include;..\testEPG;..\..\..\player;..\..\..\platform;..\testEPG\libjsoncpp\include;..\testEPG\libcurl\include;D:\Archive\SDK\FFMPEG\ffmpeg-20140613-git-1c5aa64-win32\include;D:\Archive\SDK\pthread\pthreads-w32-2-9-1-release\Pre-built.2\include;D:\Archive\SDK\SDL\SDL2-2.0.3\include;D:\Archive\SDK\SDL\SDL2_ttf-2.0.12\include;D:\Archive\SDK\pthread\pthreads-w32-2-9-1-release\Pre-built.2\include;D:\Software\Visual Leak Detector\include</AdditionalIncludeDirectories>
     </ClCompile>
@@ -276,6 +276,8 @@
     </ClCompile>
     <ClCompile Include="..\..\..\player\winrender.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug_ff|Win32'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="..\testEPG\apCatalog.cpp" />
     <ClCompile Include="..\testEPG\apContent.cpp" />
