@@ -36,7 +36,14 @@ bool IOSRender::init(void* surface, uint32_t frameWidth, uint32_t frameHeight, i
 	mHeight		= frameHeight;
 	mFormat		= format;
 	
-	if (Surface_open(mSurface, mWidth, mHeight, mFormat) != OK)
+    uint32_t surface_format = mFormat;
+    if (mFormat != AV_PIX_FMT_YUV420P && mFormat != AV_PIX_FMT_YUVJ420P) {
+        surface_format = AV_PIX_FMT_YUV420P;
+        LOGI("frame format is %d[%s], will do sws convert",
+             mFormat, av_get_pix_fmt_name((AVPixelFormat)mFormat));
+    }
+    
+	if (Surface_open(mSurface, mWidth, mHeight, surface_format) != OK)
 		return false;
 
 	return true;
@@ -64,9 +71,9 @@ bool IOSRender::render(AVFrame* frame)
 	int64_t end_scale = getNowMs();
 	int64_t costTime = end_scale-begin_scale;
 	if (mAveScaleTimeMs == 0)
-		mAveScaleTimeMs = costTime;
+		mAveScaleTimeMs = (uint32_t)costTime;
 	else
-		mAveScaleTimeMs = (mAveScaleTimeMs*4+costTime)/5;
+		mAveScaleTimeMs = (uint32_t)(mAveScaleTimeMs*4+costTime) / 5;
 	LOGD("opengl scale picture cost %lld ms, mAveScaleTimeMs %lld ms", costTime, mAveScaleTimeMs);
 
 	return true;
@@ -111,16 +118,17 @@ bool IOSRender::sws_sw(AVFrame *frame)
 	}
 
 	if (mSurfaceFrame == NULL) {
-		mSurfaceFrame = av_frame_alloc();
-		if (mSurfaceFrame == NULL) {
+		//mSurfaceFrame = av_frame_alloc();
+        mSurfaceFrame = alloc_picture(AV_PIX_FMT_YUV420P, frame->width, frame->height);
+        if (mSurfaceFrame == NULL) {
 			LOGE("alloc frame failed");
 			return false;
 		}
 		
-		/*mSurfaceFrame->width	= mWidth;
+		mSurfaceFrame->width	= mWidth;
 		mSurfaceFrame->height	= mHeight;
 		mSurfaceFrame->format	= AV_PIX_FMT_YUV420P;
-		if (av_frame_get_buffer(mSurfaceFrame, 0) < 0) {
+		/*if (av_frame_get_buffer(mSurfaceFrame, 0) < 0) {
 			LOGE("get frame buffer failed");
 			return false;
 		}*/
