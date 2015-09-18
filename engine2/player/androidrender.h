@@ -20,6 +20,8 @@ private:
 
 	bool sws_neon(AVFrame *frame, ANativeWindow_Buffer *buffer);
 
+	bool sws_arm64(AVFrame *frame, ANativeWindow_Buffer *buffer);
+
 	bool sws_sw(AVFrame *frame, ANativeWindow_Buffer *buffer);
 private:
 	ANativeWindow*		mWindow;

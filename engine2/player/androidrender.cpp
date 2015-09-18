@@ -110,9 +110,26 @@ bool AndroidRender::render(AVFrame* frame)
 		return false;
 	}
 
+	if (mDoOnce) {
+		LOGI("frame->data: %p, %p, %p", frame->data[0], frame->data[1], frame->data[2]);
+		LOGI("frame->linesize: %d,%d,%d", frame->linesize[0], frame->linesize[1], frame->linesize[2]);
+		LOGI("frame->width: %d, frame->height: %d", frame->width, frame->height);
+		LOGI("native_buffer width %d, height %d, stride %d", buffer.width, buffer.height, buffer.stride);
+		mDoOnce = false;
+	}
+
+	if (buffer.stride < frame->width || buffer.height < frame->height) {
+		LOGW("surface memory is too small: surf_w %d, surf_h %d, surf_stride %d, frame_w %d, frame_h %d", 
+			buffer.width, buffer.height, buffer.stride, frame->width, frame->height);
+		return false;
+	}
+
 	//Convert format
 #if defined(__arm__) // arm implement
-	if (!mForceSW) {
+	if (mForceSW) {
+		sws_sw(frame, &buffer);
+	}
+	else {
 		uint64_t cpuFeatures = android_getCpuFeatures();
 		if ((cpuFeatures & ANDROID_CPU_ARM_FEATURE_NEON) != 0 &&
 			(frame->format == AV_PIX_FMT_YUV420P ||
@@ -121,12 +138,13 @@ bool AndroidRender::render(AVFrame* frame)
 		{
 			sws_neon(frame, &buffer);
 		}
+		else {
+			sws_sw(frame, &buffer);
+		}
 	}
-
-	sws_sw(frame, &buffer);
 #elif defined(__aarch64__)
 	if (frame->format == AV_PIX_FMT_YUV420P)
-		sws_neon(frame, &buffer);
+		sws_arm64(frame, &buffer);
 	else
 		sws_sw(frame, &buffer);
 #else // android_x86 implement
@@ -149,18 +167,17 @@ bool AndroidRender::render(AVFrame* frame)
 
 	LOGD("scale picture cost %lld[ms]", costTime);
 
-	//For debug
-	/*
+#ifdef DEBUG_DUMP_PIC
 	char path[1024] = {0};
 	static int num=0;
 	num++;
 	sprintf(path, "/mnt/sdcard/frame_rgb_%d", num);
 	LOGD("mSurfaceFrame->linesize[0]:%d, mOptiSurfaceHeight:%d", mSurfaceFrame->linesize[0], mOptiSurfaceHeight);
 	saveFrameRGB(mSurfaceFrame->data[0], mSurfaceFrame->linesize[0], mOptiSurfaceHeight, path);
-	*/
+#endif
 
 	if (0)
-		saveFrameRGB(NULL, 640, 480, (char *)"/mnt/sdcard/1.rgb");
+		saveFrameRGB(NULL, 0, 0, (char *)"/mnt/sdcard/1.rgb");
 
 	return true;
 }
@@ -186,63 +203,35 @@ bool AndroidRender::sws_neon(AVFrame *frame, ANativeWindow_Buffer *buffer)
 {
 	LOGD("sws_neon");
 
-#if defined(__i386__) || defined(__x86_64__)
-	return false;
-#else
+#ifdef __arm__
 	//Convert format
-	switch(frame->format)
-	{
+	switch(frame->format) {
 	case AV_PIX_FMT_YUV420P:
 		{
-			if (mDoOnce) {
-				LOGI("frame->data: %p, %p, %p", frame->data[0], frame->data[1], frame->data[2]); //((((int32_t)frame->data[0])+0x20)&0xffffffe0)
-				LOGI("frame->linesize: %d,%d,%d", frame->linesize[0], frame->linesize[1], frame->linesize[2]);
-				LOGI("frame->width: %d, frame->height: %d", frame->width, frame->height);
-				LOGI("native_buffer width %d, height %d, stride %d", buffer->width, buffer->height, buffer->stride);
-				mDoOnce = false;
-			}
-
-			// 2015.4.24 guoliangma modify mSurfaceStride to mSurfaceWidth
-			// fix crash when play some small res clip then play big res clip 
-			if (buffer->stride >= frame->width && buffer->height >= frame->height) {
-#ifdef __arm__
 #ifdef RENDER_RGB565
-				/*yuv420_2_rgb565((uint8_t *)surfacePixels, 
-					frame->data[0], frame->data[1], frame->data[2],
-					frame->width, frame->height, // picture width and height
-					frame->linesize[0], //Y span/pitch
-					frame->linesize[1], //UV span/pitch //frame->linesize[1]
-					mSurfaceStride<<1, //bitmap span/pitch
-					yuv2rgb565_table,
-					0);*/
-				ConvertYCbCrToRGB565(
-					frame->data[0], frame->data[1], frame->data[2],
-					(uint8_t*)surfacePixels,
-					frame->width, frame->height, // picture width and height
-					frame->linesize[0], //Y span/pitch
-					frame->linesize[1], //UV span/pitch //frame->linesize[1]
-					mSurfaceStride<<1, //bitmap span/pitch
-					420);
+			/*yuv420_2_rgb565((uint8_t *)surfacePixels, 
+				frame->data[0], frame->data[1], frame->data[2],
+				frame->width, frame->height, // picture width and height
+				frame->linesize[0], //Y span/pitch
+				frame->linesize[1], //UV span/pitch //frame->linesize[1]
+				mSurfaceStride<<1, //bitmap span/pitch
+				yuv2rgb565_table,
+				0);*/
+			ConvertYCbCrToRGB565(
+				frame->data[0], frame->data[1], frame->data[2],
+				(uint8_t*)surfacePixels,
+				frame->width, frame->height, // picture width and height
+				frame->linesize[0], //Y span/pitch
+				frame->linesize[1], //UV span/pitch //frame->linesize[1]
+				mSurfaceStride<<1, //bitmap span/pitch
+				420);
 #else
-				struct yuv_pack out = {buffer->bits, (int32_t)buffer->stride * 4};
-				struct yuv_planes in = {frame->data[0], frame->data[1], frame->data[2], frame->linesize[0]};
-				i420_rgb_neon(&out, &in, frame->width, frame->height);
+			struct yuv_pack out = {buffer->bits, (int32_t)buffer->stride * 4};
+			struct yuv_planes in = {frame->data[0], frame->data[1], frame->data[2], frame->linesize[0]};
+			i420_rgb_neon(&out, &in, frame->width, frame->height);
 #endif // end of RENDER_RGB565
-#else // __aarch64__
-				I420ToABGR(frame->data[0], frame->linesize[0],
-					frame->data[1], frame->linesize[1],
-					frame->data[2], frame->linesize[2],
-					(uint8_t *)buffer->bits, buffer->stride * 4,
-					frame->width, frame->height);
-#endif // end of __arm__
-			}
-			else {
-				LOGW("surface memory is too small: surf_w %d, surf_h %d, surf_stride %d, frame_w %d, frame_h %d", 
-					mWidth, mHeight, buffer->stride, frame->width);
-			}
 			break;
 		}
-#ifdef __arm__ // only supported in armeabi (NOT arm64-v8a)
 	case AV_PIX_FMT_NV12:
 	case AV_PIX_FMT_NV21:
 		{
@@ -254,14 +243,38 @@ bool AndroidRender::sws_neon(AVFrame *frame, ANativeWindow_Buffer *buffer)
 				nv21_rgb_neon(&out, &in, frame->width, frame->height);
 			break;
 		}
-#endif
 	default:
 		LOGE("Video output format:%d(%s) does NOT support", frame->format, av_get_pix_fmt_name((AVPixelFormat)frame->format));
 		return false;
 	}
-#endif
 
 	return true;
+#else
+	return false;
+#endif
+}
+
+bool sws_arm64(AVFrame *frame, ANativeWindow_Buffer *buffer)
+{
+	LOGD("sws_arm64");
+
+#ifdef __aarch64__
+	//Convert format
+	switch(frame->format) {
+	case AV_PIX_FMT_YUV420P:
+		I420ToABGR(frame->data[0], frame->linesize[0],
+			frame->data[1], frame->linesize[1],
+			frame->data[2], frame->linesize[2],
+			(uint8_t *)buffer->bits, buffer->stride * 4,
+			frame->width, frame->height);
+		break;
+	default:
+		LOGE("Video output format:%d(%s) does NOT support", frame->format, av_get_pix_fmt_name((AVPixelFormat)frame->format));
+		return false;
+	}
+#else
+	return false;
+#endif
 }
 
 bool AndroidRender::sws_sw(AVFrame *frame, ANativeWindow_Buffer *buffer)

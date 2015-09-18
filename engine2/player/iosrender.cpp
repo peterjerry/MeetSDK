@@ -111,19 +111,13 @@ bool IOSRender::sws_sw(AVFrame *frame)
 	}
 
 	if (mSurfaceFrame == NULL) {
-		mSurfaceFrame = alloc_picture(AV_PIX_FMT_YUV420P, mWidth, mHeight);
+		mSurfaceFrame = av_frame_alloc();
 		if (mSurfaceFrame == NULL) {
 			LOGE("alloc frame failed");
 			return false;
 		}
 		
-		/*mSurfaceFrame = av_frame_alloc();
-		if (mSurfaceFrame == NULL) {
-			LOGE("alloc frame failed");
-			return false;
-		}
-		
-		mSurfaceFrame->width	= mWidth;
+		/*mSurfaceFrame->width	= mWidth;
 		mSurfaceFrame->height	= mHeight;
 		mSurfaceFrame->format	= AV_PIX_FMT_YUV420P;
 		if (av_frame_get_buffer(mSurfaceFrame, 0) < 0) {
@@ -142,7 +136,7 @@ bool IOSRender::sws_sw(AVFrame *frame)
 		mSurfaceFrame->linesize);
 	if (ret != (int)frame->height) {
 		LOGW("sws_scale ret: %d, %dx%d(fmt %d) -> %dx%d(fmt %d)", 
-			ret, frame->width, frame->height, frame->format, mWidth, mHeight, AV_PIX_FMT_RGB32);
+			ret, frame->width, frame->height, frame->format, mWidth, mHeight, AV_PIX_FMT_YUV420P);
 	}
 	
 	return true;
