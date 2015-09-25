@@ -800,7 +800,7 @@ public class BaiduPanel extends JPanel {
 		if (isdir) {
 			lblInfo.setText("统计文件夹大小中");
 			System.out.println("Java: ready to calc folder size");
-			long size = getFolderSize(path);
+			long size = 0;//getFolderSize(path);
 			
 			List<Map<String, Object>> metaList = meta(path);
 			Map<String, Object> metainfo = metaList.get(0);

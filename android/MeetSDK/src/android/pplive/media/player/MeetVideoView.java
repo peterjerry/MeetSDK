@@ -2,7 +2,6 @@ package android.pplive.media.player;
 
 import android.content.Context;
 import android.content.Intent;
-import android.graphics.PixelFormat;
 import android.media.AudioManager;
 import android.net.Uri;
 import android.util.AttributeSet;
@@ -297,7 +296,7 @@ public class MeetVideoView extends SurfaceView implements MediaPlayerControl {
             mErrorListener.onError(mMediaPlayer, MediaPlayer.MEDIA_ERROR_UNKNOWN, 0);
         } catch (IllegalStateException ex) {
         	LogUtils.error("Unable to open content(IllegalStateException): " + mUri);
-            Log.e(TAG, "Unable to open content: " + mUri, ex);
+            Log.e(TAG, "Unable to open content(IllegalStateException): " + mUri, ex);
             mCurrentState = STATE_ERROR;
             mTargetState = STATE_ERROR;
             mErrorListener.onError(mMediaPlayer, MediaPlayer.MEDIA_ERROR_UNKNOWN, 0);
@@ -707,5 +706,13 @@ public class MeetVideoView extends SurfaceView implements MediaPlayerControl {
 			return mMediaPlayer.getMediaInfo();
 		
 		return null;
+	}
+	
+	public int getAudioSessionId() {
+		if (mMediaPlayer != null) {
+			return mMediaPlayer.getAudioSessionId();
+		}
+		
+		return 0;
 	}
 }

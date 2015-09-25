@@ -820,7 +820,7 @@ jboolean android_media_MediaPlayer_native_init(JNIEnv *env, jobject thiz)
 #endif
 #else
 	if (!loadPlayerLib()) {
-		jniThrowException(env, "java/lang/RuntimeException", "Load Library Failed!!!");
+		PPLOGE("failed to load player lib");
 		return false;
 	}
 #endif

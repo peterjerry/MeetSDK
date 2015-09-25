@@ -209,9 +209,9 @@ public class MyMediaController extends MediaController {
 	public void show(int timeout) {
 		mHandler.sendEmptyMessage(SHOW);
 
+		mHandler.removeMessages(FADE_OUT);
         Message msg = mHandler.obtainMessage(FADE_OUT);
         if (timeout != 0) {
-            mHandler.removeMessages(FADE_OUT);
             mHandler.sendMessageDelayed(msg, timeout);
         }
 	}

@@ -243,9 +243,9 @@ public class MiniMediaController extends MediaController {
         // paused with the progress bar showing the user hits play.
         mHandler.sendEmptyMessage(UPDATE_PROGRESS);
 
+        mHandler.removeMessages(FADE_OUT);
         Message msg = mHandler.obtainMessage(FADE_OUT);
         if (timeout != 0) {
-            mHandler.removeMessages(FADE_OUT);
             mHandler.sendMessageDelayed(msg, timeout);
         }
     }

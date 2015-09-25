@@ -15,6 +15,7 @@ import com.pplive.common.pptv.PlayLink2;
 import com.pplive.common.pptv.PlayLinkUtil;
 import com.pplive.meetplayer.R;
 import com.pplive.meetplayer.service.MyHttpService;
+import com.pplive.meetplayer.util.Util;
 import com.pplive.sdk.MediaSDK;
 
 import android.app.Activity;
@@ -41,6 +42,11 @@ public class PPTVLiveCenterActivity extends Activity {
 	private final static String TAG = "PPTVLiveCenterActivity";
 	private final static int MAX_DAY = 5;
 	
+	private final static String live_m3u8_url_fmt = "http://%s/live/%d/%d/" + // interval/delay/
+			"%s.m3u8" +
+			"?type=phone.android.vip&sdk=1&channel=162&vvid=41" +
+			"&k=%s"; // NOT support start_time and end_time, ONLY live
+	
 	private final static String ACTION_LIVE_CENTER = "live_center";
 	private final static String ACTION_LIVE_FT = "live_ft";
 	
@@ -48,15 +54,14 @@ public class PPTVLiveCenterActivity extends Activity {
 	private Button btnLive;
 	private Button btnPlayback;
 	private Button btnNextDay;
-	private Button btnUseProxy;
+	private Button btnBwType;
 	private ListView lv_tvlist;
 	
 	private EPGUtil mEPG;
 	private String mLiveId;
+	private int mBwType = 0;
 	private String mLinkSurfix = null;
 	private int dayOffset = 0;
-	
-	private boolean mUseMyHTTPserver = false;
 	
 	private MyPPTVLiveCenterAdapter mAdapter;
 	
@@ -73,13 +78,13 @@ public class PPTVLiveCenterActivity extends Activity {
 		this.btnLive = (Button)this.findViewById(R.id.btn_live);
 		this.btnPlayback = (Button)this.findViewById(R.id.btn_playback);
 		this.btnNextDay = (Button)this.findViewById(R.id.btn_nextday);
-		this.btnUseProxy = (Button)this.findViewById(R.id.btn_use_myhttp);
+		this.btnBwType = (Button)this.findViewById(R.id.btn_bw_type);
 		this.lv_tvlist = (ListView)this.findViewById(R.id.lv_tvlist);
 		
 		this.btnLive.setOnClickListener(mOnClickListener);
 		this.btnPlayback.setOnClickListener(mOnClickListener);
 		this.btnNextDay.setOnClickListener(mOnClickListener);
-		this.btnUseProxy.setOnClickListener(mOnClickListener);
+		this.btnBwType.setOnClickListener(mOnClickListener);
 		
 		this.lv_tvlist.setOnItemClickListener(new AdapterView.OnItemClickListener() {
 
@@ -88,24 +93,6 @@ public class PPTVLiveCenterActivity extends Activity {
 					int position, long id) {
 				// TODO Auto-generated method stub
 				LiveStream liveStrm = mAdapter.getItem(position);
-				/*String playlink = liveStrm.channelID;
-				short http_port = MediaSDK.getPort("http");
-				if (mUseMyHTTPserver)
-					http_port = (short)MyHttpService.getPort();
-				String play_url = PlayLinkUtil.getPlayUrl(
-						Integer.valueOf(playlink), http_port, 1, 3, mLinkSurfix);
-				
-				Intent intent = new Intent(PPTVLiveCenterActivity.this,
-		        		PPTVPlayerActivity.class);
-				Uri uri = Uri.parse(play_url);
-				Log.i(TAG, "to play uri: " + uri.toString());
-
-				intent.setData(uri);
-				intent.putExtra("title", liveStrm.title);
-				intent.putExtra("ft", 1);
-				intent.putExtra("best_ft", 3);
-		        
-				startActivity(intent);*/
 				new EPGTask().execute(ACTION_LIVE_FT, liveStrm.title, liveStrm.channelID);
 			}
 		});
@@ -123,6 +110,8 @@ public class PPTVLiveCenterActivity extends Activity {
 				return true;
 			}
 		});
+		
+		mBwType = Util.readSettingsInt(this, "live_bwtype");
 		
 		Intent intent = getIntent();
 		mLiveId = intent.getStringExtra("livecenter_id");
@@ -155,18 +144,26 @@ public class PPTVLiveCenterActivity extends Activity {
 				
 				new EPGTask().execute(ACTION_LIVE_CENTER, mLiveId, updateTime());
 				break;
-			case R.id.btn_use_myhttp:
-				mUseMyHTTPserver = !mUseMyHTTPserver;
-				if (mUseMyHTTPserver) {
-					btnUseProxy.setText("代理");
-				}
-				else {
-					btnUseProxy.setText("直连");
-				}
-				
-				Toast.makeText(PPTVLiveCenterActivity.this, 
-						String.format("使用 %s 模式", (mUseMyHTTPserver ? "my http" : "ppbox")),
-						Toast.LENGTH_SHORT).show();
+			case R.id.btn_bw_type:
+				final String[] bw_type = {"P2P", "MYHTTP", "M3U8"};
+				int sel = Util.readSettingsInt(PPTVLiveCenterActivity.this, "live_bwtype");
+
+				Dialog choose_bw_type_dlg = new AlertDialog.Builder(PPTVLiveCenterActivity.this)
+				.setTitle("select bw_type")
+				.setSingleChoiceItems(bw_type, sel, /*default selection item number*/
+					new DialogInterface.OnClickListener(){
+						public void onClick(DialogInterface dialog, int whichButton){
+							mBwType = whichButton;
+							btnBwType.setText(bw_type[mBwType]);
+							Util.writeSettingsInt(PPTVLiveCenterActivity.this, "live_bwtype", mBwType);
+							Toast.makeText(PPTVLiveCenterActivity.this, 
+									"switch bw_type to " + bw_type[mBwType], 
+									Toast.LENGTH_SHORT).show();
+							dialog.dismiss();
+						}
+					})
+				.create();
+				choose_bw_type_dlg.show();
 				break;
 			default:
 				break;
@@ -318,12 +315,26 @@ public class PPTVLiveCenterActivity extends Activity {
 					}
 					
 					CDNItem LiveItem = itemList.get(index);
+					String play_url = null;
 					
-					short http_port = MediaSDK.getPort("http");
-					if (mUseMyHTTPserver)
-						http_port = (short)MyHttpService.getPort();
-					String play_url = PlayLinkUtil.getPlayUrl(
-							vid, http_port, best_ft/*ft*/, 3/*bw_type*/, mLinkSurfix);
+					if (mBwType == 0 || mBwType == 1) {
+						short http_port = MediaSDK.getPort("http");
+						if (mBwType == 1)
+							http_port = (short)MyHttpService.getPort();
+						
+						play_url = PlayLinkUtil.getPlayUrl(
+								vid, http_port, best_ft/*ft*/, 3/*bw_type*/, mLinkSurfix);
+					}
+					else if (mBwType == 2) {
+						play_url = String.format(live_m3u8_url_fmt, 
+								LiveItem.getHost(), 
+								LiveItem.getInterval(), LiveItem.getDelay(), 
+								LiveItem.getRid(), LiveItem.getKey());
+					}
+					else {
+						Toast.makeText(PPTVLiveCenterActivity.this, "invalid bw_type " + mBwType, Toast.LENGTH_SHORT).show();
+						return;
+					}
 					
 					Intent intent = new Intent(PPTVLiveCenterActivity.this,
 			        		PPTVPlayerActivity.class);
@@ -334,6 +345,8 @@ public class PPTVLiveCenterActivity extends Activity {
 					intent.putExtra("title", title);
 					intent.putExtra("ft", best_ft);
 					intent.putExtra("best_ft", best_ft);
+					if (mLinkSurfix == null)
+						intent.putExtra("do_retry", 1);
 					
 					Toast.makeText(PPTVLiveCenterActivity.this, 
 							String.format("start to play %s, playlink %d, ft %d, size %d x %d, bitrate %d",

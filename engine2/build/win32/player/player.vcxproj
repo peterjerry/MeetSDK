@@ -109,7 +109,6 @@
     <ClCompile Include="..\..\..\player\converter.c" />
     <ClCompile Include="..\..\..\player\ffextractor.cpp" />
     <ClCompile Include="..\..\..\player\ffplayer.cpp" />
-    <ClCompile Include="..\..\..\player\ffrender.cpp" />
     <ClCompile Include="..\..\..\player\ffstream.cpp" />
     <ClCompile Include="..\..\..\player\ppHttpd.cpp" />
   </ItemGroup>

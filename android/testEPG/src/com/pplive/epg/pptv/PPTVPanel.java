@@ -314,7 +314,7 @@ public class PPTVPanel extends JPanel {
 		
 		editorPlayExe.setFont(f);
 		editorPlayExe.setBounds(10, 400, 450, 40);
-		editorPlayExe.setText(exe_ffplay);
+		editorPlayExe.setText(exe_vlc);
 	    this.add(editorPlayExe);
 	}
 	
@@ -561,8 +561,7 @@ public class PPTVPanel extends JPanel {
 				
 				String saveFile = String.format("f:\\%d.flv", start_time);
 				//Util.httpDownload(httpUrl, saveFile);
-				String exe_filepath = editorPlayExe.getText();
-				String[] cmd = new String[] {exe_filepath, m3u8Url};
+				String[] cmd = new String[] {exe_ffplay, m3u8Url};
 				openExe(cmd);
 			}
 			

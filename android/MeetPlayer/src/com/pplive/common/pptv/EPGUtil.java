@@ -199,8 +199,12 @@ public class EPGUtil {
 	        	Element v  = (Element) it2.next();
 	        	String title = v.getChild("title").getText();
 	        	String vid = v.getChild("vid").getText();
-	        	String nowplay = v.getChild("nowplay").getText();
-	        	String willplay = v.getChild("willplay").getText();
+	        	String nowplay = "N/A";
+	        	if (v.getChild("nowplay") != null)
+	        		nowplay = v.getChild("nowplay").getText();
+	        	String willplay = "N/A";
+	        	if (v.getChild("willplay") != null)
+	        		willplay = v.getChild("willplay").getText();
 	        	String desc = nowplay + "|" + willplay;
 	        	
 	        	Element img = v.getChild("imgurl");

@@ -225,7 +225,6 @@ public class ClipListActivity extends Activity implements
 	private String mEPGtype;
 	private int mEPGlistStartPage = 1;
 	private int mEPGlistCount = 15;
-	private boolean mListLive			= false;
 	private boolean mListSearch		= false;
 	private boolean mIsVirtualChannel	= false;
 	private String mExtid;
@@ -1609,11 +1608,6 @@ public class ClipListActivity extends Activity implements
 							new EPGTask().execute(EPG_ITEM_CATALOG, item);
 						}
 						else {
-							if (title_list.get(whichButton).equals("直播"))
-								mListLive = true;
-							else
-								mListLive = false;
-							
 							mLink = value_list.get(whichButton);
 							
 							int pos = mLink.indexOf("type=");
@@ -1679,19 +1673,6 @@ public class ClipListActivity extends Activity implements
 						mEPGtype = "";
 					Log.i(TAG, String.format("Java: epg content param: %s, type: %s", mEPGparam, mEPGtype));
 					mEPGlistStartPage = 1;
-					
-					if (mListLive) {
-						if(2 == whichButton)
-							mEPGtype = "164";
-						else if(3 == whichButton)
-							mEPGtype = "156";
-						else {
-							Toast.makeText(ClipListActivity.this, "invalid live type", Toast.LENGTH_SHORT).show();
-							dialog.dismiss();
-							return;
-						}
-					}
-					
 					new EPGTask().execute(EPG_ITEM_LIST, mEPGlistStartPage, mEPGlistCount);
 				}
 				
@@ -1795,20 +1776,7 @@ public class ClipListActivity extends Activity implements
 					}
 					else {
 						int vid = Integer.valueOf(link_list.get(whichButton));
-						if (mListLive) {
-							et_playlink.setText(String.valueOf(vid));
-							Log.i(TAG, "Java: live id " + vid);
-							
-							boolean ret = add_list_history(mEPGLinkList.get(whichButton).getTitle(), vid);
-							if (!ret)
-								Toast.makeText(ClipListActivity.this, "failed to save play history", Toast.LENGTH_SHORT).show();
-							
-							Toast.makeText(ClipListActivity.this, String.format("live channel %s(%d) was set",
-									mEPGLinkList.get(whichButton).getTitle(), vid), Toast.LENGTH_SHORT).show();
-						}
-						else {
-							new EPGTask().execute(EPG_ITEM_DETAIL, vid);
-						}
+						new EPGTask().execute(EPG_ITEM_DETAIL, vid);
 					}
 					dialog.cancel();
 				}
@@ -2172,7 +2140,6 @@ public class ClipListActivity extends Activity implements
 					return false;
 				}
         		
-        		mListLive = false;
         		int start_page = params[1];
         		int count = params[2];
         		
@@ -2213,7 +2180,7 @@ public class ClipListActivity extends Activity implements
     			mHandler.sendEmptyMessage(MSG_EPG_CONTENT_SURFIX_DONE);
         	}
         	else if (EPG_ITEM_LIST == type) {
-        		if (!mListLive && (mEPGparam == null || mEPGparam.isEmpty() || params.length != 3)) {
+        		if (mEPGparam == null || mEPGparam.isEmpty() || params.length != 3) {
         			mHandler.sendEmptyMessage(MSG_FAIL_TO_PARSE_EPG_RESULT);
         			return false;
         		}
@@ -2225,16 +2192,7 @@ public class ClipListActivity extends Activity implements
         		
         		int start_page = params[1];
         		int count = params[2];
-        		if (mListLive) {
-        			int live_type = Integer.valueOf(mEPGtype);
-        			Log.i(TAG, "Java: EPGTask start to live() " + live_type);
-        			ret = mEPG.live(start_page, count, live_type);
-        		}
-        		else {
-        			ret = mEPG.list(mEPGparam, mEPGtype, start_page, "order=n", count, false);
-        		}
-        		
-        		if (!ret) {
+        		if (!mEPG.list(mEPGparam, mEPGtype, start_page, "order=n", count, false)) {
         			mHandler.sendEmptyMessage(MSG_FAIL_TO_PARSE_EPG_RESULT);
         			return false;
         		}
@@ -2591,7 +2549,6 @@ public class ClipListActivity extends Activity implements
 		// epg
 		OptSubMenu.add(Menu.NONE, OPTION_EPG_FRONTPAGE, Menu.FIRST + 3, "epg frontpage");
 		OptSubMenu.add(Menu.NONE, OPTION_EPG_CONTENT, Menu.FIRST + 4, "PPTV video");
-		//OptSubMenu.add(Menu.NONE, OPTION_EPG_SEARCH, Menu.FIRST + 5, "epg search");
 		OptSubMenu.add(Menu.NONE, OPTION_EPG_SOHUVIDEO, Menu.FIRST + 5, "sohu video");
 			
 		MenuItem previewMenuItem = commonMenu.add(Menu.NONE, OPTION_COMMON_PREVIEW, Menu.FIRST, "Preview");
@@ -2685,12 +2642,6 @@ public class ClipListActivity extends Activity implements
 			mIsNoVideo = !mIsNoVideo;
 			Util.writeSettingsInt(this, "IsNoVideo", mIsNoVideo ? 1 : 0);
 			break;
-		/*case OPTION_COMMON_MEETVIEW:
-			intent = new Intent(ClipListActivity.this, MeetViewActivity.class);
-			intent.putExtra("playlink", "9037770");
-			startActivity(intent);
-			break;
-		*/
 		case OPTION_COMMON_TVDUCK:
 			mTvduck = !mTvduck;
 			tvduckMenuItem.setChecked(mTvduck);
@@ -2736,6 +2687,11 @@ public class ClipListActivity extends Activity implements
 				// &seq=1&actcode=&tabIndex=1&topOffset=0&channelAbbr=dfws&type=0&channelCode=Umai:CHAN/1325@BESTV.SMG.SMG
 
 				int pos = strText.indexOf("?playUrl=");
+				if (pos == -1) {
+					Toast.makeText(this, "url is not bestv playlink", Toast.LENGTH_SHORT).show();
+					return true;
+				}
+				
 				String origin_url = strText.substring(pos + "?playUrl=".length());
 				try {
 					String decoded_url = URLDecoder.decode(origin_url, "UTF-8");
@@ -2748,7 +2704,7 @@ public class ClipListActivity extends Activity implements
 						start_player("百事通视频", play_url);
 					}
 					else {
-						Toast.makeText(this, "解析百事通播放串失败", Toast.LENGTH_SHORT).show();
+						Toast.makeText(this, "fail to parse bestv playlink", Toast.LENGTH_SHORT).show();
 					}
 				}
 				catch (UnsupportedEncodingException e) {

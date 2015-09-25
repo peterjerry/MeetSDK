@@ -65,9 +65,6 @@
     <ClCompile Include="..\..\..\platform\audiotrack_android.c">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\player\ffrender.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\..\platform\utils.cpp">
       <Filter>源文件\platform</Filter>
     </ClCompile>
