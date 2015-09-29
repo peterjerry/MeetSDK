@@ -165,9 +165,9 @@ public class ClipListActivity extends Activity implements
 	private boolean mIsPreview;
 	private boolean mIsLoop					= false;
 	private boolean mIsNoVideo					= false;
-	private boolean mTvduck					= false;
+	private boolean mDoScan					= false;
 	private MenuItem noVideoMenuItem;
-	private MenuItem tvduckMenuItem;
+	private MenuItem scanMenuItem;
 	
 	private int mBufferingPertent				= 0;
 	private boolean mIsBuffering 				= false;
@@ -281,7 +281,7 @@ public class ClipListActivity extends Activity implements
 	final static int OPTION_COMMON_PREVIEW		= Menu.FIRST + 21;
 	final static int OPTION_COMMON_LOOP		= Menu.FIRST + 22;
 	final static int OPTION_COMMON_NO_VIDEO	= Menu.FIRST + 23;
-	final static int OPTION_COMMON_TVDUCK		= Menu.FIRST + 24;
+	final static int OPTION_COMMON_SCAN		= Menu.FIRST + 24;
 	final static int OPTION_COMMON_SUBTITLE	= Menu.FIRST + 25;
 	final static int OPTION_COMMON_AUDIO_DST	= Menu.FIRST + 26;
 	
@@ -2365,15 +2365,15 @@ public class ClipListActivity extends Activity implements
 	private void start_fullscreen_play(String title, Uri uri, int player_impl) {
 		Log.i(TAG, "java: start_fullscreen_play: " + uri.toString());
 
-		Intent intent = null;
-		if (mTvduck) {
+		Intent intent = new Intent(ClipListActivity.this, VideoPlayerActivity.class);
+		/*if (mDoScan) {
 			intent = new Intent(Intent.ACTION_VIEW);
 			intent.setClassName("com.pplive.tvduck", "com.pplive.tvduck.PlayerActivity");
 	        intent.putExtra(Intent.ACTION_VIEW, uri);
 		}
 		else {
 			intent = new Intent(ClipListActivity.this, VideoPlayerActivity.class);
-		}
+		}*/
 
 		intent.setData(uri);
 		intent.putExtra("title", title);
@@ -2568,10 +2568,10 @@ public class ClipListActivity extends Activity implements
 		if (mIsNoVideo)
 			noVideoMenuItem.setChecked(false);
 		
-		tvduckMenuItem = commonMenu.add(Menu.NONE, OPTION_COMMON_TVDUCK, Menu.FIRST + 3, "tvduck");
-		tvduckMenuItem.setCheckable(true);
-		if (mTvduck)
-			tvduckMenuItem.setChecked(true);
+		scanMenuItem = commonMenu.add(Menu.NONE, OPTION_COMMON_SCAN, Menu.FIRST + 3, "scan media");
+		scanMenuItem.setCheckable(true);
+		if (mDoScan)
+			scanMenuItem.setChecked(true);
 		
 		commonMenu.add(Menu.NONE, OPTION_COMMON_SUBTITLE, Menu.FIRST + 4, "load subtitle");
 		commonMenu.add(Menu.NONE, OPTION_COMMON_AUDIO_DST, Menu.FIRST + 5, "audio dst");
@@ -2640,9 +2640,9 @@ public class ClipListActivity extends Activity implements
 			mIsNoVideo = !mIsNoVideo;
 			Util.writeSettingsInt(this, "IsNoVideo", mIsNoVideo ? 1 : 0);
 			break;
-		case OPTION_COMMON_TVDUCK:
-			mTvduck = !mTvduck;
-			tvduckMenuItem.setChecked(mTvduck);
+		case OPTION_COMMON_SCAN:
+			mDoScan = !mDoScan;
+			scanMenuItem.setChecked(mDoScan);
 			break;
 		case OPTION_COMMON_SUBTITLE:
 			popupSelectSubtitle();

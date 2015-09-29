@@ -1,6 +1,7 @@
 package com.pplive.meetplayer.service;
 
 import java.io.File;
+import java.io.FileFilter;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -10,6 +11,8 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import com.pplive.db.MediaStoreDatabaseHelper;
+import com.pplive.meetplayer.util.LocalIoUtil;
+import com.pplive.meetplayer.util.Util;
 
 import android.app.Service;
 import android.content.Intent;
@@ -80,14 +83,10 @@ public class MyMediaService extends Service {
         
         mediaDB = MediaStoreDatabaseHelper.getInstance(getApplicationContext());
         
-        if (null == mFileObserver) {  
-            mFileObserver = new RecursiveFileObserver(OBSERVE_PATH, 
-            		FileObserver.CLOSE_WRITE | FileObserver.CREATE |
-            		FileObserver.DELETE | FileObserver.DELETE_SELF |
-            		FileObserver.MOVE_SELF | FileObserver.MOVED_FROM | FileObserver.MOVED_TO);  
-            mFileObserver.startWatching(); //开始监听  
-            Log.i(TAG, "Java: start to monitor folder " + OBSERVE_PATH);
-        }  
+		if (null == mFileObserver) {  
+			Thread t1 = new Thread(new TaskThread());
+			t1.start();
+        }
     }
 	
 	@Override
@@ -269,6 +268,72 @@ public class MyMediaService extends Service {
 	            RecursiveFileObserver.this.onEvent(event, newPath);  
 	        }  
 	    }  
+	}
+	
+	private class TaskThread implements Runnable {
 
+		@Override
+		public void run() {
+			// TODO Auto-generated method stub
+			Log.i(TAG, "Java: TaskThread thread started");
+			
+			mFileObserver = new RecursiveFileObserver(OBSERVE_PATH, 
+            		FileObserver.CLOSE_WRITE | FileObserver.CREATE |
+            		FileObserver.DELETE | FileObserver.DELETE_SELF |
+            		FileObserver.MOVE_SELF | FileObserver.MOVED_FROM | FileObserver.MOVED_TO);  
+            mFileObserver.startWatching(); //开始监听  
+            Log.i(TAG, "Java: start to monitor folder " + OBSERVE_PATH);
+            
+            boolean doScan = false;
+            if (Util.readSettingsInt(getApplicationContext(), "scan_media") != 0)
+            	doScan = true;
+            
+            if (doScan) {
+            	// 扫描SD卡上的本地视频, 并过滤已知的本地视频.
+                FileFilter filter = new FileFilterImpl();
+        		Scanner scanner = Scanner.getInstance();
+        		scanner.setOnScannedListener(new OnScannedListener<File>() {
+        			
+        			@Override
+        			public void onScanned(File file) {
+        				if (file != null) {
+        					String path = file.getAbsolutePath();
+        					if (!mediaDB.hasMedia(file.getAbsolutePath())) {
+        						String title = file.getName();
+            					MediaInfo info = MeetSDK.getMediaDetailInfo(file);
+            					if (info != null) {
+            						mediaDB.saveMedia(path, title, info);
+            						Log.i(TAG, "Java: scan add media " + path);
+            					}
+        					}
+        				}
+        			}
+        		});
+        		
+        		scanner.scan(new File(OBSERVE_PATH), filter, 3);
+            }
+		}
+		
+	};
+	
+	static class FileFilterImpl implements FileFilter {
+
+		/* 
+		 * @see java.io.FileFilter#accept(java.io.File)
+		 */
+		@Override
+		public boolean accept(File file) {
+			if (!LocalIoUtil.isAccessible(file)) {
+				return false;
+			}
+			
+			String fileName = file.getName();
+			if (fileName.startsWith(".") && !fileName.equals(".pps")) {
+				return false;
+			}
+			
+			return file.isDirectory() || (file.isFile() && sRegMimeType.matcher(fileName).find());
+		}
+		
 	}
 }

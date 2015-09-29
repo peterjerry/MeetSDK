@@ -132,8 +132,15 @@ public class MediaStoreDatabaseHelper {
             return;
         }
         
+        Cursor c = null;
         try {
             SQLiteDatabase db = dbOpenHelper.getWritableDatabase();
+            
+            c = db.query(TABLE_NAME, new String[] { COLUMN_PLAY_URL, COLUMN_TITLE },
+                    COLUMN_PLAY_URL + "=?", new String[] { path }, null, null, null);
+            if (c.moveToFirst()) {
+            	return;
+            }
             
             ContentValues values = new ContentValues();
             values.put(COLUMN_PLAY_URL, path);
@@ -186,18 +193,28 @@ public class MediaStoreDatabaseHelper {
             	values.put(COLUMN_SUBTITLE_CHANNELS, 0);
             }
             
-            Cursor c = db.query(TABLE_NAME, new String[] { COLUMN_PLAY_URL, COLUMN_TITLE },
-                    COLUMN_PLAY_URL + "=?", new String[] { path }, null, null, null);
-            if (c.moveToFirst()) {
-            	//String[] args = {path};
-                //db.update(TABLE_NAME, values, COLUMN_PLAY_URL + "=?", args);
-            }
-            else {
-                db.insert(TABLE_NAME, null, values);
-            }
+            db.insert(TABLE_NAME, null, values);
         } catch (Exception e) {
         	Log.e(TAG, e.toString());
+        } finally {
+        	if (c != null)
+            	c.close();
         }
+    }
+    
+    public synchronized boolean hasMedia(String path) {
+    	try {
+	        SQLiteDatabase db = dbOpenHelper.getWritableDatabase();
+	    	Cursor c = db.query(TABLE_NAME, new String[] { COLUMN_PLAY_URL, COLUMN_TITLE },
+	                COLUMN_PLAY_URL + "=?", new String[] { path }, null, null, null);
+	        if (c != null && c.moveToFirst()) {
+	        	return true;
+	        }
+    	} catch (Exception e) {
+        	Log.e(TAG, e.toString());
+        }
+        
+		return false;
     }
     
     public synchronized void deleteMedia(String path) {

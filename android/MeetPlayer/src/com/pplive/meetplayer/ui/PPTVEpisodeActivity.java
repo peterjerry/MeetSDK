@@ -15,6 +15,9 @@ import com.pplive.sdk.MediaSDK;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.Dialog;
+import android.app.Notification;
+import android.app.NotificationManager;
+import android.app.PendingIntent;
 import android.app.ProgressDialog;
 import android.content.DialogInterface;
 import android.content.Intent;
@@ -25,12 +28,16 @@ import android.os.Environment;
 import android.os.Handler;
 import android.os.Message;
 import android.util.Log;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
 import android.view.View;
 import android.widget.AbsListView;
 import android.widget.AdapterView;
 import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.GridView;
+import android.widget.RemoteViews;
 import android.widget.Toast;
 
 
@@ -87,6 +94,11 @@ public class PPTVEpisodeActivity extends Activity {
     
     private boolean noMoreData = false;
     private boolean loadingMore = false;
+    
+    private boolean mDownload = false;
+    private NotificationManager notifManager;
+    private Notification notif;
+    private static final int notif_id = 12345;
 
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
@@ -228,6 +240,32 @@ public class PPTVEpisodeActivity extends Activity {
 		}
 	}
 	
+	@Override
+    public boolean onCreateOptionsMenu(Menu menu) {  
+        MenuInflater menuInflater = new MenuInflater(getApplication());  
+        menuInflater.inflate(R.menu.pptv_ep_menu, menu);  
+        return super.onCreateOptionsMenu(menu);  
+    }
+	
+	@Override
+	public boolean onOptionsItemSelected(MenuItem item) {
+		int id = item.getItemId();
+		Log.i(TAG, "Java: onOptionsItemSelected " + id);
+		
+		switch (id) {
+		case R.id.download:
+			mDownload = !mDownload;
+			Toast.makeText(PPTVEpisodeActivity.this, 
+					String.format("set to CLICK as %s", mDownload?"DOWNLOAD":"PLAY"), Toast.LENGTH_SHORT).show();
+			break;
+		default:
+			Log.w(TAG, "unknown menu id " + id);
+			break;
+		}
+		
+		return true;
+    }
+	
 	private void popupMoreDialog(final Map<String, Object> item) {
     	final String[] action = {"详情", "下载"};
 		Dialog choose_action_dlg = new AlertDialog.Builder(this)
@@ -252,7 +290,7 @@ public class PPTVEpisodeActivity extends Activity {
 						String save_path = Environment.getExternalStorageDirectory().getAbsolutePath() + 
 								"/test2/" + title + ".mp4";
 						
-						new PPBoxDownloadTask().execute(vid, save_path, title);
+						download_file(vid, save_path, title);
 					}
 				}
 			})
@@ -260,6 +298,22 @@ public class PPTVEpisodeActivity extends Activity {
 		.create();
 		choose_action_dlg.show();
     }
+	
+	private void download_file(String vid, String save_path, String title) {
+		Intent intent = new Intent(PPTVEpisodeActivity.this, PPTVPlayerActivity.class);  
+        
+        PendingIntent pIntent = PendingIntent.getActivity(PPTVEpisodeActivity.this, 0, intent, 0);  
+        notifManager = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);  
+        notif = new Notification();  
+        notif.icon = R.drawable.loading;  
+        notif.tickerText = "新通知";  
+        //通知栏显示所用到的布局文件   
+        notif.contentView = new RemoteViews(getPackageName(), R.layout.content_view);
+        notif.contentIntent = pIntent;  
+        notifManager.notify(notif_id, notif);
+		
+		new PPBoxDownloadTask().execute(vid, save_path, title);
+	}
 	
 	private View.OnClickListener mClickListener = new View.OnClickListener() {
 
@@ -304,13 +358,21 @@ public class PPTVEpisodeActivity extends Activity {
             		String vid = mEpisodeList.get(0).getId();
             		episode_title = mEpisodeList.get(0).getTitle();
             		int playlink = Integer.valueOf(vid);
-            		if (playlink >= 300000 && playlink <= 400000) { // live
-            			play_video(1, 1);
+            		if (mDownload) {
+						String save_path = Environment.getExternalStorageDirectory().getAbsolutePath() + 
+								"/test2/" + episode_title + ".mp4";
+						
+						download_file(vid, save_path, episode_title);
             		}
-            		else { // vod
-            			new PPTVEpgTask().execute(TASK_ITEM_FT, playlink);
+            		else {
+            			if (playlink >= 300000 && playlink <= 400000) { // live
+                			play_video(1, 1);
+                		}
+                		else { // vod
+                			new PPTVEpgTask().execute(TASK_ITEM_FT, playlink);
+                		}
             		}
-            			
+
 					return;
             	}
             	
@@ -632,6 +694,8 @@ public class PPTVEpisodeActivity extends Activity {
 			// TODO Auto-generated method stub
 			progressDialog.dismiss();
 			
+			notifManager.cancel(notif_id);
+			
 			if (result) {
 				Toast.makeText(PPTVEpisodeActivity.this, 
 						String.format("file %s saved to %s(size %s)", 
@@ -772,7 +836,11 @@ public class PPTVEpisodeActivity extends Activity {
 					String.format("%s\n下载进度: %d%%\n下载速度 %.3f MB/sec\n剩余大小%s/%s", 
 							mSavePath, progress, speed, 
 							getFileSize(mDownloadedSize), getFileSize(mFileSize)));
-			progressDialog.setProgress(progress);	
+			progressDialog.setProgress(progress);
+			
+			notif.contentView.setTextViewText(R.id.content_view_text1, progress + "%");  
+            notif.contentView.setProgressBar(R.id.content_view_progress, 100, progress, false);
+            notifManager.notify(notif_id, notif);
 		}
 	}
 	
