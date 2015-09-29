@@ -1,5 +1,7 @@
 package com.pplive.db; 
 
+import java.util.List;
+
 public class MediaInfoEntry {  
     public int _id;  
     public String path;
@@ -8,6 +10,14 @@ public class MediaInfoEntry {
     public int size;
     public int mime_type;
     public int last_play_pos; // msec
+    
+    public int width;
+    public int height;
+    public String videoCodecName;
+    public int audioChannels;
+    public List<String> audioCodecName;
+    public int subtitleChannels;
+    public List<String> subtitleCodecName;
       
     public MediaInfoEntry() {
     	

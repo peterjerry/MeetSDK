@@ -138,6 +138,10 @@ public class MediaInfo {
 		return getFile().lastModified();
 	}
 
+	public void setFormatName(String formatName) {
+		mFormatName = formatName;
+	}
+	
 	public String getFormatName() {
 		return mFormatName;
 	}
@@ -248,6 +252,10 @@ public class MediaInfo {
 
 	public ArrayList<TrackInfo> getSubtitleChannelsInfo() {
 		return subtitleTrackInfos;
+	}
+	
+	public void setSubtitleChannels(int num) {
+		mSubTitleChannels = num;
 	}
 	
 	public int getSubtitleChannels() {

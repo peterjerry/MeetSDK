@@ -121,6 +121,8 @@ bool AndroidRender::render(AVFrame* frame)
 	if (buffer.stride < frame->width || buffer.height < frame->height) {
 		LOGW("surface memory is too small: surf_w %d, surf_h %d, surf_stride %d, frame_w %d, frame_h %d", 
 			buffer.width, buffer.height, buffer.stride, frame->width, frame->height);
+		// 2015.9.29 guolinagma added to fix some clip failed to play
+		ANativeWindow_unlockAndPost(mWindow);
 		return false;
 	}
 

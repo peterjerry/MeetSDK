@@ -4,6 +4,7 @@ import com.nostra13.universalimageloader.core.ImageLoader;
 import com.nostra13.universalimageloader.core.ImageLoaderConfiguration;
 import com.nostra13.universalimageloader.core.assist.QueueProcessingType;
 
+import com.pplive.meetplayer.service.MyMediaService;
 import com.pplive.meetplayer.service.MyHttpService;
 
 import android.app.ActivityManager;
@@ -39,6 +40,9 @@ public class MeetApplication extends Application {
 		
 		Intent intent = new Intent(getApplicationContext(), MyHttpService.class);  
 		startService(intent);
+		
+		Intent intent2 = new Intent(getApplicationContext(), MyMediaService.class);  
+		startService(intent2);
 	}
 	
 	@Override

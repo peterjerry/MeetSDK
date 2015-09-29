@@ -16,20 +16,14 @@ import javax.swing.JScrollPane;
 import javax.swing.JTextPane;
 import javax.swing.ListCellRenderer;
 import javax.swing.ListSelectionModel;
-import javax.swing.event.ChangeEvent;
-import javax.swing.event.ChangeListener;
-import javax.swing.event.ListSelectionEvent;
-import javax.swing.event.ListSelectionListener;
 
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
-import org.apache.http.NameValuePair;
 import org.apache.http.ParseException;
 import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.entity.UrlEncodedFormEntity;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
-import org.apache.http.entity.mime.MultipartEntity;
 import org.apache.http.entity.mime.MultipartEntityBuilder;
 import org.apache.http.entity.mime.content.ByteArrayBody;
 import org.apache.http.entity.mime.content.ContentBody;
@@ -41,7 +35,6 @@ import org.json.JSONException;
 import org.json.JSONObject;
 import org.json.JSONTokener;
 
-import com.pplive.epg.util.ProgressHttpEntityWrapper;
 import com.pplive.epg.util.Util;
 
 import java.awt.Color;
@@ -77,7 +70,7 @@ import java.util.StringTokenizer;
 
 
 @SuppressWarnings("serial")
-public class BaiduPanel extends JPanel {
+public class BaiduPanel extends JPanel implements CallbackUpload {
 	
 	private String mbOauth 		= "23.48f0a3ad0fe8b41428000bb0509f1fb2.2592000.1441874259.184740130-266719";
 	private String mbRootPath 	=  "/我的视频";
@@ -666,7 +659,7 @@ public class BaiduPanel extends JPanel {
 				String save_path = mbRootPath + "/" + fload.getFile();
 				System.out.println("file upload src path: " + upload_path + " save_path: " + save_path);
 				
-				UploadThread myThread = new UploadThread(upload_path, save_path);
+				UploadThread myThread = new UploadThread(upload_path, save_path, BaiduPanel.this);
 				Thread t = new Thread(myThread);
 				t.start();
 			}
@@ -1021,15 +1014,6 @@ public class BaiduPanel extends JPanel {
 			double total_speed = len / (double)elapsed_msec;
 			lblInfo.setText(String.format("%s 上传至\n %s, 大小 %s, 速度 %.3f kB/s", 
 					/*src_path*/file.getName(), dst_path, getFileSize(len), total_speed));
-			
-			try {
-				Thread.sleep(500);
-			} catch (InterruptedException e1) {
-				// TODO Auto-generated catch block
-				e1.printStackTrace();
-			}
-			
-			init_combobox();
 			
 			return true;
 		} catch (IOException e) {
@@ -1765,16 +1749,20 @@ public class BaiduPanel extends JPanel {
 	private class UploadThread implements Runnable {
 		private String mSrcPath;
 		private String mDstPath;
+		private CallbackUpload mCallback;
 		
-		UploadThread(String srcPath, String dstPath) {
-			mSrcPath = srcPath;
-			mDstPath = dstPath;
+		UploadThread(String srcPath, String dstPath, CallbackUpload cbUpload) {
+			mSrcPath 	= srcPath;
+			mDstPath 	= dstPath;
+			mCallback	= cbUpload;
 		}
 		
 		@Override
 		public void run() {
 			// TODO Auto-generated method stub
-			uploadFile(mSrcPath, mDstPath);
+			if (uploadFile(mSrcPath, mDstPath) && mCallback != null) {
+				mCallback.onUploadComplete();
+			}
 		}
 		
 	};
@@ -1826,6 +1814,12 @@ public class BaiduPanel extends JPanel {
 				ioe.printStackTrace();
 			}
 		}
+	}
+
+	@Override
+	public void onUploadComplete() {
+		// TODO Auto-generated method stub
+		init_combobox();
 	}
 	
 	

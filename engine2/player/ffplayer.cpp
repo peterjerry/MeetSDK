@@ -611,8 +611,13 @@ int FFPlayer::onAudioFrameImpl(AVFrame *frame)
 #ifdef TEST_PERFORMANCE
 		int64_t begin_render = getNowMs();
 #endif
-		if (!mVideoRenderer->render(mAudioFiltFrame))
-			notifyListener_l(MEDIA_ERROR, MEDIA_ERROR_VIDEO_RENDER, 0);
+		if (!mVideoRenderer->render(mAudioFiltFrame)) {
+			static bool once = true;
+			if (once) {
+				notifyListener_l(MEDIA_ERROR, MEDIA_ERROR_VIDEO_RENDER, 0);
+				once = false;
+			}
+		}
 
 #ifdef TEST_PERFORMANCE
 		int64_t end_render, costTime;
@@ -1382,15 +1387,25 @@ void FFPlayer::render_impl()
 {
 #ifdef USE_AV_FILTER
 	if (mVideoFiltFrame) {
-		if (!mVideoRenderer->render(mVideoFiltFrame))
-			notifyListener_l(MEDIA_ERROR, MEDIA_ERROR_VIDEO_RENDER, 0);
+		if (!mVideoRenderer->render(mVideoFiltFrame)) {
+			static bool once = true;
+			if (once) {
+				notifyListener_l(MEDIA_ERROR, MEDIA_ERROR_VIDEO_RENDER, 0);
+				once = false;
+			}
+		}
 
 		av_frame_unref(mVideoFiltFrame);
 		return;
 	}
 #endif
-	if (!mVideoRenderer->render(mVideoFrame))
-		notifyListener_l(MEDIA_ERROR, MEDIA_ERROR_VIDEO_RENDER, 0);
+	if (!mVideoRenderer->render(mVideoFrame)) {
+		static bool once = true;
+		if (once) {
+			notifyListener_l(MEDIA_ERROR, MEDIA_ERROR_VIDEO_RENDER, 0);
+			once = false;
+		}
+	}
 }
 
 void FFPlayer::render_frame()

@@ -2327,16 +2327,14 @@ public class ClipListActivity extends Activity implements
         	boolean ret = mListUtil.ListMediaInfo(params[0]);
         	if (ret) {
         		if (params[0].startsWith("http://")) {
-        			 if (mListLocalFile)
-        				 mHandler.sendEmptyMessage(MSG_HTTP_LIST_DONE);
+        			mHandler.sendEmptyMessage(MSG_HTTP_LIST_DONE);
         		}
         		else {
-        			if (!mListLocalFile)
-        				mHandler.sendEmptyMessage(MSG_LOCAL_LIST_DONE);
+        			mHandler.sendEmptyMessage(MSG_LOCAL_LIST_DONE);
         		}
         	}
         	else {
-        		if (mListLocalFile)
+        		if (!mListLocalFile)
         			mHandler.sendEmptyMessage(MSG_FAIL_TO_LIST_HTTP_LIST);
         	}
         	
@@ -2390,7 +2388,7 @@ public class ClipListActivity extends Activity implements
         
         String ip = Util.getIpAddr(this);
         if (ip == null) {
-        	Toast.makeText(this, "network is un-available", Toast.LENGTH_SHORT).show();
+        	Toast.makeText(this, "network is un-available, cannot send crash report", Toast.LENGTH_SHORT).show();
         	return;
         }
         

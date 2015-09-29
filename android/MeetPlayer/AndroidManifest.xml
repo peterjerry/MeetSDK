@@ -138,6 +138,7 @@
                 <action android:name="com.pplive.meetplayer.MyHttpService" />
 			</intent-filter>
         </service>
+        <service android:name=".service.MyMediaService" />
         
     </application>
 </manifest>
