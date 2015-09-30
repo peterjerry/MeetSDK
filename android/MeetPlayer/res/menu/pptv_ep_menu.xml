@@ -7,5 +7,9 @@
         android:id="@+id/download"
         android:orderInCategory="1"
         android:title="download"/>
+    <item
+        android:id="@+id/download_mode"
+        android:orderInCategory="1"
+        android:title="download mode"/>
 
 </menu>
