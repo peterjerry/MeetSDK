@@ -5,10 +5,14 @@ import android.app.AlertDialog;
 import android.app.Dialog;
 import android.app.ProgressDialog;
 import android.app.Service;
+import android.content.BroadcastReceiver;
+import android.content.ClipData;
+import android.content.ClipboardManager;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.ServiceConnection;
 import android.content.pm.ActivityInfo;
 import android.content.res.Configuration;
@@ -37,12 +41,12 @@ import android.pplive.media.player.TrackInfo;
 import android.pplive.media.subtitle.SimpleSubTitleParser;
 import android.pplive.media.subtitle.SubTitleParser;
 import android.pplive.media.subtitle.SubTitleSegment;
-import android.text.ClipboardManager;
 import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.GestureDetector;
 import android.view.KeyEvent;
 import android.view.Menu;
+import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.MotionEvent;
 import android.view.SubMenu;
@@ -79,9 +83,11 @@ import com.pplive.common.sohu.PlaylinkSohu;
 import com.pplive.common.sohu.PlaylinkSohu.SOHU_FT;
 import com.pplive.common.sohu.SohuUtil;
 import com.pplive.common.util.httpUtil;
+import com.pplive.db.MediaStoreDatabaseHelper;
 import com.pplive.dlna.DLNASdk;
 import com.pplive.meetplayer.R;
 import com.pplive.meetplayer.service.DLNAService;
+import com.pplive.meetplayer.service.MediaScannerService;
 import com.pplive.meetplayer.service.MyHttpService;
 import com.pplive.meetplayer.ui.widget.MiniMediaController;
 import com.pplive.meetplayer.ui.widget.MyMarqueeTextView;
@@ -165,9 +171,7 @@ public class ClipListActivity extends Activity implements
 	private boolean mIsPreview;
 	private boolean mIsLoop					= false;
 	private boolean mIsNoVideo					= false;
-	private boolean mDoScan					= false;
-	private MenuItem noVideoMenuItem;
-	private MenuItem scanMenuItem;
+	private boolean mDebugInfo					= false;
 	
 	private int mBufferingPertent				= 0;
 	private boolean mIsBuffering 				= false;
@@ -265,26 +269,7 @@ public class ClipListActivity extends Activity implements
 	final static int ONE_MAGEBYTE 				= 1048576;
 	final static int ONE_KILOBYTE 				= 1024;
 	
-	// menu item
-	final static int OPTION 					= Menu.FIRST;
-	final static int UPDATE_CLIP_LIST			= Menu.FIRST + 1;
-	final static int UPDATE_APK				= Menu.FIRST + 2;
-	final static int UPLOAD_CRASH_REPORT		= Menu.FIRST + 3;
-	final static int QUIT 						= Menu.FIRST + 4;
-	final static int OPTION_COMMON				= Menu.FIRST + 11;
-	final static int OPTION_DLNA_DMR			= Menu.FIRST + 12;
-	final static int OPTION_BESTV_VIDEO			= Menu.FIRST + 13;
-	final static int OPTION_EPG_FRONTPAGE		= Menu.FIRST + 14;
-	final static int OPTION_EPG_CONTENT		= Menu.FIRST + 15;
-	final static int OPTION_EPG_SEARCH			= Menu.FIRST + 16;
-	final static int OPTION_EPG_SOHUVIDEO		= Menu.FIRST + 17;
-	final static int OPTION_COMMON_PREVIEW		= Menu.FIRST + 21;
-	final static int OPTION_COMMON_LOOP		= Menu.FIRST + 22;
-	final static int OPTION_COMMON_NO_VIDEO	= Menu.FIRST + 23;
-	final static int OPTION_COMMON_SCAN		= Menu.FIRST + 24;
-	final static int OPTION_COMMON_SUBTITLE	= Menu.FIRST + 25;
-	final static int OPTION_COMMON_AUDIO_DST	= Menu.FIRST + 26;
-	
+	private BroadcastReceiver mScannerReceiver;
 	
 	// message
 	private final static int MSG_CLIP_LIST_DONE					= 101;
@@ -390,8 +375,6 @@ public class ClipListActivity extends Activity implements
 		mLayout.setOnTouchListener(mOnTouchListener);
 		mMediaController.setInstance(this);
 		
-		readSettings();
-		
 		mTextViewInfo = (TextView) findViewById(R.id.tv_info);
 		mTextViewInfo.setTextColor(Color.RED);
 		mTextViewInfo.setTextSize(18);
@@ -399,7 +382,6 @@ public class ClipListActivity extends Activity implements
 		
 		mLayout.setFocusable(true);
 		mLayout.setOnFocusChangeListener(this);
-		//mLayout.addView(mTextViewInfo);
 		
 		if (home_folder.equals("")) {
 			mCurrentFolder = "";
@@ -464,9 +446,6 @@ public class ClipListActivity extends Activity implements
 		mHolder.addCallback(this);
 
 		this.lv_filelist = (ListView) findViewById(R.id.lv_filelist);
-		
-		//new ListItemTask().execute(mCurrentFolder);
-		
 		this.lv_filelist
 				.setOnItemClickListener(new ListView.OnItemClickListener() {
 					@SuppressWarnings("unchecked")
@@ -550,7 +529,7 @@ public class ClipListActivity extends Activity implements
 
 			@Override
 			public boolean onItemLongClick(AdapterView<?> arg0, View view,
-					int position, long id) {
+					final int position, long id) {
 				// TODO Auto-generated method stub
 				final String[] action = {"delete", "detail"};
 				Map<String, Object> item = mAdapter.getItem(position);
@@ -570,7 +549,7 @@ public class ClipListActivity extends Activity implements
 										Toast.makeText(ClipListActivity.this, "file " + file_name + " deleted!", Toast.LENGTH_SHORT).show();
 										
 										List<Map<String, Object>> filelist = mListUtil.getList();
-										filelist.remove(whichButton);
+										filelist.remove(position);
 										mAdapter.updateData(filelist);
 										mAdapter.notifyDataSetChanged();
 									}
@@ -631,13 +610,6 @@ public class ClipListActivity extends Activity implements
 					new DialogInterface.OnClickListener(){
 						public void onClick(DialogInterface dialog, int whichButton){
 							btn_bw_type.setText(Integer.toString(whichButton));
-							if (noVideoMenuItem != null) {
-								if (whichButton == 4)
-									noVideoMenuItem.setEnabled(true);
-								else
-									noVideoMenuItem.setEnabled(false);
-							}
-							
 							dialog.dismiss();
 						}
 					})
@@ -661,7 +633,6 @@ public class ClipListActivity extends Activity implements
 							Log.i(TAG, "select player impl: " + whichButton);
 							
 							mPlayerImpl = whichButton;
-							Util.writeSettingsInt(ClipListActivity.this, "PlayerImpl", mPlayerImpl);
 							Toast.makeText(ClipListActivity.this, 
 									"select type: " + PlayerImpl[whichButton], Toast.LENGTH_SHORT).show();
 							dialog.dismiss();
@@ -954,6 +925,15 @@ public class ClipListActivity extends Activity implements
 		
 		mPlayerImpl = Util.readSettingsInt(this, "PlayerImpl");
 		mAudioDst = Util.readSettings(this, "last_audio_ip_port");
+	}
+	
+	private void writeSettings() {
+		Util.writeSettingsInt(this, "isPreview", mIsPreview ? 1 : 0);
+		Util.writeSettingsInt(this, "isLoop", mIsLoop ? 1 : 0);
+		Util.writeSettingsInt(this, "IsNoVideo", mIsNoVideo ? 1 : 0);
+		
+		Util.writeSettingsInt(this, "PlayerImpl", mPlayerImpl);
+		Util.writeSettings(this, "last_audio_ip_port", mAudioDst);
 	}
 	
 	private void setPlaybackTime() {
@@ -1446,19 +1426,6 @@ public class ClipListActivity extends Activity implements
 					mAdapter.updateData(mListUtil.getList());
 					mAdapter.notifyDataSetChanged();
 				}
-				
-				/* add entry to db
-				 * List<MediaInfoEntry> videoList = new ArrayList<MediaInfoEntry>();
-				for (int i=0;i<mAdapter.getCount();i++) {
-					MediaInfoEntry entry = new MediaInfoEntry();
-					Map<String, Object> item = mAdapter.getItem(i);
-					entry._id	= i;
-					entry.path	= (String)item.get("filename");
-					
-					videoList.add(entry);
-				}
-				dbManager.add(videoList);*/
-				
 				break;
 			case MSG_UPDATE_PLAY_INFO:
 			case MSG_UPDATE_RENDER_INFO:
@@ -2332,6 +2299,8 @@ public class ClipListActivity extends Activity implements
         		else {
         			mHandler.sendEmptyMessage(MSG_LOCAL_LIST_DONE);
         		}
+        		
+        		mHandler.sendEmptyMessage(MSG_CLIP_LIST_DONE);
         	}
         	else {
         		if (!mListLocalFile)
@@ -2343,8 +2312,6 @@ public class ClipListActivity extends Activity implements
 
         @Override
         protected void onPostExecute(Boolean result) {
-        	if (result)
-        		mHandler.sendEmptyMessage(MSG_CLIP_LIST_DONE);
         	progDlg.dismiss();
         }
 
@@ -2537,55 +2504,28 @@ public class ClipListActivity extends Activity implements
 
 	@Override
 	public boolean onCreateOptionsMenu(Menu menu) {
-		SubMenu OptSubMenu = menu.addSubMenu(Menu.NONE, OPTION, Menu.FIRST, "Option");
-		OptSubMenu.setIcon(R.drawable.option);
-		
-		SubMenu commonMenu = OptSubMenu.addSubMenu(Menu.NONE, OPTION_COMMON, Menu.FIRST, "common");
-		// dlna
-		OptSubMenu.add(Menu.NONE, OPTION_DLNA_DMR, Menu.FIRST + 1, "dlna dmr");
-		OptSubMenu.add(Menu.NONE, OPTION_BESTV_VIDEO, Menu.FIRST + 2, "bestv video");
-		// epg
-		OptSubMenu.add(Menu.NONE, OPTION_EPG_FRONTPAGE, Menu.FIRST + 3, "epg frontpage");
-		OptSubMenu.add(Menu.NONE, OPTION_EPG_CONTENT, Menu.FIRST + 4, "PPTV video");
-		OptSubMenu.add(Menu.NONE, OPTION_EPG_SOHUVIDEO, Menu.FIRST + 5, "sohu video");
-			
-		MenuItem previewMenuItem = commonMenu.add(Menu.NONE, OPTION_COMMON_PREVIEW, Menu.FIRST, "Preview");
-		previewMenuItem.setCheckable(true);
-		if (mIsPreview)
-			previewMenuItem.setChecked(true);
-		
-		MenuItem loopMenuItem = commonMenu.add(Menu.NONE, OPTION_COMMON_LOOP, Menu.FIRST + 1, "Loop");
-		loopMenuItem.setCheckable(true);
-		if (mIsLoop)
-			loopMenuItem.setChecked(true);
-		
-		noVideoMenuItem = commonMenu.add(Menu.NONE, OPTION_COMMON_NO_VIDEO, Menu.FIRST + 2, "NoVideo");
-		noVideoMenuItem.setCheckable(true);
+		MenuInflater menuInflater = new MenuInflater(getApplication());  
+        menuInflater.inflate(R.menu.cliplist_activity_menu, menu);  
+        return super.onCreateOptionsMenu(menu);
+	}
+	
+	@Override
+    public boolean onPrepareOptionsMenu(Menu menu) {
+		MenuItem item = menu.getItem(2);
+    	SubMenu submenu = item.getSubMenu();
+    	MenuItem previewMenuItem = submenu.getItem(0);
+    	MenuItem loopMenuItem = submenu.getItem(1);
+    	MenuItem noVideoMenuItem = submenu.getItem(2);
+    	
+    	previewMenuItem.setChecked(mIsPreview);
+    	loopMenuItem.setChecked(mIsLoop);
+    	
 		if ("4".equals(btn_bw_type.getText())) // cdn play
 			noVideoMenuItem.setEnabled(true);
 		else
 			noVideoMenuItem.setEnabled(false);
-		if (mIsNoVideo)
-			noVideoMenuItem.setChecked(false);
 		
-		scanMenuItem = commonMenu.add(Menu.NONE, OPTION_COMMON_SCAN, Menu.FIRST + 3, "scan media");
-		scanMenuItem.setCheckable(true);
-		if (mDoScan)
-			scanMenuItem.setChecked(true);
-		
-		commonMenu.add(Menu.NONE, OPTION_COMMON_SUBTITLE, Menu.FIRST + 4, "load subtitle");
-		commonMenu.add(Menu.NONE, OPTION_COMMON_AUDIO_DST, Menu.FIRST + 5, "audio dst");
-		
-		menu.add(Menu.NONE, UPDATE_CLIP_LIST, Menu.FIRST + 1, "Update list")
-			.setIcon(R.drawable.list);
-		menu.add(Menu.NONE, UPDATE_APK, Menu.FIRST + 2, "Update apk")
-			.setIcon(R.drawable.update);
-		menu.add(Menu.NONE, UPLOAD_CRASH_REPORT, Menu.FIRST + 3, "Upload crash report")
-			.setIcon(R.drawable.log);
-		menu.add(Menu.NONE, QUIT, Menu.FIRST + 4, "Quit")
-			.setIcon(R.drawable.quit);
-		
-		return true;//super.onCreateOptionsMenu(menu);
+		return super.onPrepareOptionsMenu(menu);
 	}
 
 	@Override
@@ -2596,58 +2536,56 @@ public class ClipListActivity extends Activity implements
 		Intent intent = null;
 		
 		switch (id) {
-		case UPDATE_CLIP_LIST:
+		case R.id.list_clip:
 			if (mListLocalFile) {
+				MediaStoreDatabaseHelper mediaDB = MediaStoreDatabaseHelper.getInstance(getApplicationContext());
+				if (mediaDB.getMediaStore() == null) {
+					intent = new Intent(getApplicationContext(), MediaScannerService.class);
+					intent.setAction(MediaScannerService.ACTION_MEDIA_SCANNER_SCAN_FILE);
+					startService(intent);
+					return true;
+				}
+				
 				new ListItemTask().execute(mCurrentFolder);
 			}
 			break;
-		case UPLOAD_CRASH_REPORT:
+		case R.id.scan_media:
+			intent = new Intent(getApplicationContext(), MediaScannerService.class);
+			intent.setAction(MediaScannerService.ACTION_MEDIA_SCANNER_SCAN_FILE);
+			startService(intent);
+			break;
+		case R.id.upload_crash_report:
 			upload_crash_report(3);
 			break;
-		case UPDATE_APK:
-			Log.i(TAG, "update apk");
+		case R.id.update_apk:
 			setupUpdater();
 			break;
-		case QUIT:
+		case R.id.quit:
 			this.finish();
 			break;
-		case OPTION_COMMON_PREVIEW:
-			if (mIsPreview)
-				item.setChecked(false);
-			else
-				item.setChecked(true);
+		case R.id.preview:
 			mIsPreview = !mIsPreview;
-			Util.writeSettingsInt(this, "isPreview", mIsPreview ? 1 : 0);
+			item.setChecked(mIsPreview);
 			break;
-		case OPTION_COMMON_LOOP:
-			if (mIsLoop)
-				item.setChecked(false);
-			else
-				item.setChecked(true);
+		case R.id.loop:
 			mIsLoop = !mIsLoop;
-			Util.writeSettingsInt(this, "isLoop", mIsLoop ? 1 : 0);
+			item.setChecked(mIsLoop);
 			Log.i(TAG, "set loop to: " + mIsLoop);
 			break;
-		case OPTION_COMMON_NO_VIDEO:
-			if (mIsNoVideo) {
-				item.setChecked(false);
-				imageNoVideo.setVisibility(View.GONE);
-			}
-			else {
-				item.setChecked(true);
-				imageNoVideo.setVisibility(View.VISIBLE);
-			}
+		case R.id.no_video:
 			mIsNoVideo = !mIsNoVideo;
-			Util.writeSettingsInt(this, "IsNoVideo", mIsNoVideo ? 1 : 0);
+			item.setChecked(mIsNoVideo);
+			imageNoVideo.setVisibility(mIsNoVideo ? View.VISIBLE : View.GONE);
 			break;
-		case OPTION_COMMON_SCAN:
-			mDoScan = !mDoScan;
-			scanMenuItem.setChecked(mDoScan);
+		case R.id.debug_info:
+			mDebugInfo = !mDebugInfo;
+			item.setChecked(mDebugInfo);
+			mTextViewInfo.setVisibility(mDebugInfo ?  View.VISIBLE : View.GONE);
 			break;
-		case OPTION_COMMON_SUBTITLE:
+		case R.id.load_subtitle:
 			popupSelectSubtitle();
 			break;
-		case OPTION_COMMON_AUDIO_DST:
+		case R.id.audio_dst:
 			final EditText inputDst = new EditText(this);
 			String last_ip_port = Util.readSettings(this, "last_audio_ip_port");
 			inputDst.setText(last_ip_port);
@@ -2663,19 +2601,27 @@ public class ClipListActivity extends Activity implements
 	            public void onClick(DialogInterface dialog, int which) {
 	            	mAudioDst = inputDst.getText().toString();
 	            	Log.i(TAG, "Java save last_audio_ip_port: " + mAudioDst);
-	            	Util.writeSettings(ClipListActivity.this, "last_audio_ip_port", mAudioDst);
 	            	Toast.makeText(ClipListActivity.this, "set audio dst to: " + mAudioDst, Toast.LENGTH_SHORT).show();
 	             }
 	        });
 	        builder.show();
 			break;
-		case OPTION_DLNA_DMR:
+		case R.id.clean_media_db:
+			MediaStoreDatabaseHelper mediaDB = MediaStoreDatabaseHelper.getInstance(getApplicationContext());
+			mediaDB.clearMediaStore();
+			break;
+		case R.id.dlna_dmr:
 			push_to_dmr();
 			break;
-		case OPTION_BESTV_VIDEO:
+		case R.id.bestv_video:
 			ClipboardManager cmb = (ClipboardManager)this.getSystemService(Context.CLIPBOARD_SERVICE);
-			if (cmb.hasText()) {
-				String strText = (String)cmb.getText();
+			if (cmb.hasPrimaryClip()) {
+				ClipData cd = cmb.getPrimaryClip();
+				int count = cd.getItemCount();
+				if (count == 0)
+					return true;
+				
+				String strText = (String)cd.getItemAt(0).getText();
 				Log.i(TAG, "Java: clipboard manager: " + strText);
 				// http://wechat.bestv.com.cn/activity/androidPlay.jsp
 				// ?playUrl=http%3A%2F%2Fwx.live.bestvcdn.com.cn%2Flive%2Fprogram%2Flive991%2Fweixinhddfws%2Findex.m3u8
@@ -2710,7 +2656,7 @@ public class ClipListActivity extends Activity implements
 				}
 			}
 			break;
-		case OPTION_EPG_FRONTPAGE:
+		case R.id.pptv_frontpage:
 			if (!Util.IsHaveInternet(this)) {
 				Toast.makeText(this, "network is not connected", Toast.LENGTH_SHORT).show();
 				return true;
@@ -2719,47 +2665,16 @@ public class ClipListActivity extends Activity implements
 			Toast.makeText(this, "loading epg catalog...", Toast.LENGTH_SHORT).show();
 			new EPGTask().execute(EPG_ITEM_FRONTPAGE);
 			break;
-		case OPTION_EPG_SEARCH:
+		case R.id.pptv_video:
 			if (!Util.IsHaveInternet(this)) {
 				Toast.makeText(this, "network is not connected", Toast.LENGTH_SHORT).show();
 				return true;
 			}
 			
-			final EditText inputKey = new EditText(this);
-        	String last_key = Util.readSettings(this, "last_searchkey");
-        	Log.i(TAG, "Java last_key: " + last_key);
-        	inputKey.setText(last_key);
-			inputKey.setHint("input search key");
-			
-	        builder = new AlertDialog.Builder(this);
-	        builder.setTitle("input key").setIcon(android.R.drawable.ic_dialog_info).setView(inputKey)
-	                .setNegativeButton("Cancel", null);
-	        builder.setPositiveButton("Ok", new DialogInterface.OnClickListener() {
-
-	            public void onClick(DialogInterface dialog, int which) {
-	            	mEPGsearchKey = inputKey.getText().toString();
-	            	Log.i(TAG, "Java save last_key: " + mEPGsearchKey);
-	            	Util.writeSettings(ClipListActivity.this, "last_searchkey", mEPGsearchKey);
-					
-	            	Toast.makeText(ClipListActivity.this, "search epg...", Toast.LENGTH_SHORT).show();
-	            	mEPGlistStartPage = 1;
-	    			new EPGTask().execute(EPG_ITEM_SEARCH, mEPGlistStartPage, mEPGlistCount);
-	             }
-	        });
-	        builder.show();
-			break;
-		case OPTION_EPG_CONTENT:
-			if (!Util.IsHaveInternet(this)) {
-				Toast.makeText(this, "network is not connected", Toast.LENGTH_SHORT).show();
-				return true;
-			}
-			
-			//Toast.makeText(this, "loading epg contents...", Toast.LENGTH_SHORT).show();
-			//new EPGTask().execute(EPG_ITEM_CONTENT_LIST);
 			intent = new Intent(ClipListActivity.this, PPTVVideoActivity.class);
     		startActivity(intent);
 			break;
-		case OPTION_EPG_SOHUVIDEO:
+		case R.id.sohu_video:
 			if (!Util.IsHaveInternet(this)) {
 				Toast.makeText(this, "network is not connected", Toast.LENGTH_SHORT).show();
 				return true;
@@ -3111,8 +3026,7 @@ public class ClipListActivity extends Activity implements
 		downloadTask.execute(url, path);
 	}
 	
-	private void installApk(String apk_fullpath)
-    {
+	private void installApk(String apk_fullpath) {
 		Log.i(TAG, "installApk: " + apk_fullpath);
 		
         File apkfile = new File(apk_fullpath);
@@ -3129,8 +3043,9 @@ public class ClipListActivity extends Activity implements
 	@Override
 	protected void onResume() {
 		super.onResume();
-		
 		Log.i(TAG, "Java: onResume()");
+		
+		readSettings();
 		
 		if (!isTVbox) {
 			Log.i(TAG, String.format("screen %dx%d, preview height %d", screen_width, screen_height, preview_height));
@@ -3139,17 +3054,50 @@ public class ClipListActivity extends Activity implements
 			mLayout.getLayoutParams().height = preview_height;
 			mLayout.requestLayout(); //or invalidate();
 		}
+		
+		new ListItemTask().execute(mCurrentFolder);
+	}
+	
+	@Override
+	protected void onStart() {
+		// TODO Auto-generated method stub
+		super.onStart();
+		Log.i(TAG, "Java: onStart()");
+		
+		// Register receivers
+		mScannerReceiver = new BroadcastReceiver() {
+			@Override
+			public void onReceive(Context context, Intent intent) {
+				String action = intent.getAction();
+				Log.i(TAG, "Java: action Action: " + action);
+				if (action.equals(MediaScannerService.ACTION_MEDIA_SCANNER_FINISHED)) {
+					Toast.makeText(ClipListActivity.this, "scan finished", Toast.LENGTH_SHORT).show();
+					
+					new ListItemTask().execute("");
+				}
+				else if (action.equals(MediaScannerService.ACTION_MEDIA_SCANNER_STARTED)) {
+					Toast.makeText(ClipListActivity.this, "scan started", Toast.LENGTH_SHORT).show();
+				}
+			}
+		};
+				
+		IntentFilter filter = new IntentFilter();
+		filter.addAction(MediaScannerService.ACTION_MEDIA_SCANNER_STARTED);
+		filter.addAction(MediaScannerService.ACTION_MEDIA_SCANNER_FINISHED);
+		
+		registerReceiver(mScannerReceiver, filter);
 	}
 	
 	@Override
 	protected void onPause() {
 		super.onPause();
-
 		Log.i(TAG, "Java: onPause()");
 
 		if (mPlayer != null && mPlayer.isPlaying()) {
 			mPlayer.pause();
 		}
+		
+		writeSettings();
 			
 		//MeetSDK.closeLog();
 		
@@ -3167,9 +3115,13 @@ public class ClipListActivity extends Activity implements
 	@Override
 	protected void onStop() {
 		super.onStop();
-
 		Log.i(TAG, "Java: onStop()");
-
+		
+		if (mScannerReceiver != null) {
+			unregisterReceiver(mScannerReceiver);
+			mScannerReceiver = null;
+		}
+		
 		if (isFinishing()) {
 			if (mPlayer != null) {
 				mSubtitleStoped = true;

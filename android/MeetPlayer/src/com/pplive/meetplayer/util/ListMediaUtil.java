@@ -284,8 +284,6 @@ public class ListMediaUtil {
 				MediaInfo info = MeetSDK.getMediaDetailInfo(file);
 
 				if (info != null) {
-					mediaDB.saveMedia(file.getAbsolutePath(), file.getName(), info);
-					
 					HashMap<String, Object> map = new HashMap<String, Object>();
 					map.put("filename", file.getName());
 					map.put("mediainfo", QueryMediaInfo(file.getAbsolutePath(), info));

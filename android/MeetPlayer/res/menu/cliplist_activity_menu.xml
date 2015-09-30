@@ -1,0 +1,84 @@
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    tools:context="com.pplive.meetplayer.ui.ClipListActivity" >
+
+    <item
+        android:id="@+id/list_clip"
+        android:orderInCategory="1"
+        android:title="list clip"
+        android:icon="@drawable/list" />
+    <item
+        android:id="@+id/update_apk"
+        android:orderInCategory="2"
+        android:title="update"
+        android:icon="@drawable/update" />
+    <item
+        android:id="@+id/settings"
+        android:orderInCategory="3"
+        android:title="settings"
+        android:icon="@drawable/settings" >
+        <menu>      
+            <item
+		        android:id="@+id/preview"
+		        android:title="preview"
+		        android:checkable="true" />
+            <item
+		        android:id="@+id/loop"
+		        android:title="loop"
+		        android:checkable="true" />
+            <item
+		        android:id="@+id/no_video"
+		        android:title="no video"
+		        android:checkable="true" />
+            <item
+		        android:id="@+id/debug_info"
+		        android:title="debug info"
+		        android:checkable="true" />
+        </menu> "
+    </item>
+    <item
+        android:id="@+id/option"
+        android:orderInCategory="4"
+        android:title="option"
+        android:icon="@drawable/option" >
+    	<menu>      
+            <item
+		        android:id="@+id/dlna_dmr"
+		        android:title="dlna dmr"/>
+		    <item
+		        android:id="@+id/bestv_video"
+		        android:title="bestv video"/>
+		    <item
+		        android:id="@+id/pptv_frontpage"
+		        android:title="pptv frontpage"/>
+		    <item
+		        android:id="@+id/pptv_video"
+		        android:title="pptv video"/>
+		    <item
+		        android:id="@+id/sohu_video"
+		        android:title="sohu video"/>
+		    <item
+		        android:id="@+id/load_subtitle"
+		        android:title="load subtitle"/>
+		    <item
+		        android:id="@+id/audio_dst"
+		        android:title="audio dst"/>
+		    <item
+		        android:id="@+id/clean_media_db"
+		        android:title="clean media db"/>
+		    <item
+		        android:id="@+id/scan_media"
+		        android:title="scan media"/>
+		    <item
+		        android:id="@+id/upload_crash_report"
+		        android:title="upload crash report"/>
+		</menu>
+	</item>
+    <item
+        android:id="@+id/quit"
+        android:orderInCategory="5"
+        android:title="quit"
+        android:icon="@drawable/quit" />
+
+</menu>

@@ -92,14 +92,6 @@ public class MySohuEpAdapter extends BaseAdapter {
 		public ImageView getImg() {
 			return img;
 		}
-
-		public void setDownloaded(boolean isDownloaded) {
-			this.imgDownloaded = isDownloaded;
-		}
-		
-		public boolean isDownloaded() {
-			return imgDownloaded;
-		}
 	}
 
 	@Override
@@ -134,8 +126,11 @@ public class MySohuEpAdapter extends BaseAdapter {
 		holder.getTitle().setText(title);
 		holder.getTip().setText(tip);
 
-		if (img_url != null && img_url.startsWith("http://"))
+		if (img_url != null && img_url.startsWith("http://")) {
+			holder.getImg().setTag(img_url);
+			holder.getImg().setImageResource(R.drawable.loading);
 			new LoadPicTask().execute(holder, img_url);
+		}
 		
 		// 注意 默认为返回null,必须得返回convertView视图
 		return convertView;
@@ -154,34 +149,35 @@ public class MySohuEpAdapter extends BaseAdapter {
 	private class LoadPicTask extends AsyncTask<Object, Integer, Bitmap> {
 
 		private ViewHolder mHolder;
-		private String img_url;
+		private String mImgUrl;
 		
 		@Override
 		protected void onPostExecute(Bitmap bmp) {
 			if (mHolder == null || bmp == null) {
-				Log.e(TAG, "Java: failed to get http image " + img_url);
+				Log.e(TAG, "Java: failed to get http image " + mImgUrl);
 				return;
 			}
 			
 			ImageView thumb	= mHolder.getImg();
-			thumb.setImageBitmap(bmp);
+			if (thumb.getTag() != null && thumb.getTag().equals(mImgUrl))
+				thumb.setImageBitmap(bmp);
 		}
 		
 		@Override
 		protected Bitmap doInBackground(Object... params) {
 			mHolder = (ViewHolder)params[0];
-			img_url = (String)params[1];
-			String key = PicCacheUtil.hashKeyForDisk(img_url);
+			mImgUrl = (String)params[1];
+			
+			String key = PicCacheUtil.hashKeyForDisk(mImgUrl);
 			Bitmap bmp = PicCacheUtil.getThumbnailFromDiskCache(key);
 			if (bmp == null) {
-				bmp = ImgUtil.getHttpBitmap(img_url);
+				bmp = ImgUtil.getHttpBitmap(mImgUrl);
 				if (bmp == null) {
-					Log.e(TAG, "Java: failed to getHttpBitmap " + img_url);
+					Log.e(TAG, "Java: failed to getHttpBitmap " + mImgUrl);
 					return null;
 				}
 				
 				PicCacheUtil.addThumbnailToDiskCache(key, bmp);
-				mHolder.setDownloaded(true);
 			}
 			
 			return bmp;

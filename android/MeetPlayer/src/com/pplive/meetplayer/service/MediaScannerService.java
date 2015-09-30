@@ -23,9 +23,12 @@ import android.pplive.media.MeetSDK;
 import android.pplive.media.player.MediaInfo;
 import android.util.Log;
 
-public class MyMediaService extends Service {
-	private final static String TAG = "MyMediaService";
+public class MediaScannerService extends Service {
+	private final static String TAG = "MediaScannerService";
 	private final static String OBSERVE_PATH = Environment.getExternalStorageDirectory().getAbsolutePath();
+	private final static String SCAN_PATH = "/mnt";
+	private final static int SCAN_MAX_DEPTH = 4;
+	
 	
 	private FileObserver mFileObserver;
 	private static MediaStoreDatabaseHelper mediaDB;
@@ -33,9 +36,14 @@ public class MyMediaService extends Service {
 	private static final Map<String, String> sMimeTypeMap;
 	private static final Pattern sRegMimeType;
 	
+	public static final String ACTION_MEDIA_MOUNTED = "com.pplive.action.MEDIA_MOUNTED";
+	public static final String ACTION_MEDIA_SCANNER_SCAN_FILE = "com.pplive.action.MEDIA_SCANNER_SCAN_FILE";
+	public static final String ACTION_MEDIA_SCANNER_STARTED = "com.pplive.action.MEDIA_SCANNER_STARTED";
+	public static final String ACTION_MEDIA_SCANNER_FINISHED = "com.pplive.action.MEDIA_SCANNER_FINISHED";
+	
 	static {
 		final String extensions[] = { "264", "h264", "265", "h265", 
-				"3g2", "3gp", "3gp2", "3gpp", "3gpp2", "3p2", "amv", "asf", "avi", "dat",
+				"3g2", "3gp", "3gp2", "3gpp", "3gpp2", "3p2", "amv", "asf", "avi",
 				"dir", "divx", "dlx", "dv", "dv4", "dvr", "dvr-ms", "dvx", "dxr", "evo", 
 				"f4p", "f4v", "flv", "gvi",
 				"hdmov", "ivf", "ivr", "k3g", 
@@ -67,7 +75,7 @@ public class MyMediaService extends Service {
 		sMimeTypeMap.put(extension, "video/" + extension);
 	}
 
-	private static String getMimeType(String filename) {
+	public static String getMimeType(String filename) {
 		if (filename == null) {
 			return "video/unknown";
 		}
@@ -78,13 +86,15 @@ public class MyMediaService extends Service {
 	
 	@Override  
     public void onCreate() {  
-        Log.i(TAG, "Java: MyMediaService onCreate");  
+        Log.i(TAG, "Java: MediaScannerService onCreate");  
         super.onCreate();
+        
+        Util.initMeetSDK(getApplicationContext());
         
         mediaDB = MediaStoreDatabaseHelper.getInstance(getApplicationContext());
         
 		if (null == mFileObserver) {  
-			Thread t1 = new Thread(new TaskThread());
+			Thread t1 = new Thread(new ObserverThread());
 			t1.start();
         }
     }
@@ -92,7 +102,19 @@ public class MyMediaService extends Service {
 	@Override
 	public int onStartCommand(Intent intent, int flags, int startId) {
 		// TODO Auto-generated method stub
-		Log.i(TAG, String.format("Java: MyMediaService onStartCommand() %d %d", flags, startId));
+		Log.i(TAG, String.format("Java: onStartCommand() %d %d", flags, startId));
+		
+		if (intent != null) {
+			String action = intent.getAction();
+			if (action != null) {
+				Log.i(TAG, "Java: onStartCommand() intent.action " + action);
+				if (action.equals(MediaScannerService.ACTION_MEDIA_SCANNER_SCAN_FILE)) {
+		        	Log.i(TAG, "Java: begin to start scan thread");
+		        	Thread t1 = new Thread(new ScanThread());
+					t1.start();
+		        }
+			}
+		}
 		
 		return Service.START_STICKY;
 	}
@@ -101,7 +123,7 @@ public class MyMediaService extends Service {
     public void onDestroy() {
     	super.onDestroy();
 
-    	Log.i(TAG, "Java: MyMediaService onDestroy()");
+    	Log.i(TAG, "Java: onDestroy()");
     	if (null != mFileObserver)
     		mFileObserver.stopWatching(); //停止监听 
     }
@@ -113,7 +135,7 @@ public class MyMediaService extends Service {
 	}
 	
 	private static void deleteMedia(String path) {
-		mediaDB.deleteMedia(path);
+		mediaDB.deleteMediaInfo(path);
 		Log.i(TAG, "Java: delete media file: " + path);
 	}
 	
@@ -125,7 +147,7 @@ public class MyMediaService extends Service {
 			if (pos > 0)
 				title = title.substring(pos + 1);
 			
-			mediaDB.saveMedia(path, title, info);
+			mediaDB.saveMediaInfo(path, title, info);
 			Log.i(TAG, "Java: save new media file: " + path);
 		}
 	}
@@ -270,7 +292,7 @@ public class MyMediaService extends Service {
 	    }  
 	}
 	
-	private class TaskThread implements Runnable {
+	private class ObserverThread implements Runnable {
 
 		@Override
 		public void run() {
@@ -283,35 +305,46 @@ public class MyMediaService extends Service {
             		FileObserver.MOVE_SELF | FileObserver.MOVED_FROM | FileObserver.MOVED_TO);  
             mFileObserver.startWatching(); //开始监听  
             Log.i(TAG, "Java: start to monitor folder " + OBSERVE_PATH);
-            
-            boolean doScan = false;
-            if (Util.readSettingsInt(getApplicationContext(), "scan_media") != 0)
-            	doScan = true;
-            
-            if (doScan) {
-            	// 扫描SD卡上的本地视频, 并过滤已知的本地视频.
-                FileFilter filter = new FileFilterImpl();
-        		Scanner scanner = Scanner.getInstance();
-        		scanner.setOnScannedListener(new OnScannedListener<File>() {
-        			
-        			@Override
-        			public void onScanned(File file) {
-        				if (file != null) {
-        					String path = file.getAbsolutePath();
-        					if (!mediaDB.hasMedia(file.getAbsolutePath())) {
-        						String title = file.getName();
-            					MediaInfo info = MeetSDK.getMediaDetailInfo(file);
-            					if (info != null) {
-            						mediaDB.saveMedia(path, title, info);
-            						Log.i(TAG, "Java: scan add media " + path);
-            					}
+		}
+		
+	};
+	
+	private class ScanThread implements Runnable {
+
+		@Override
+		public void run() {
+			// TODO Auto-generated method stub
+			Log.i(TAG, "Java: ScanThread thread started");
+			
+        	sendBroadcast(new Intent(ACTION_MEDIA_SCANNER_STARTED));
+        	long start = System.currentTimeMillis();
+        	
+        	// 扫描SD卡上的本地视频, 并过滤已知的本地视频.
+            FileFilter filter = new FileFilterImpl();
+    		Scanner scanner = Scanner.getInstance();
+    		scanner.setOnScannedListener(new OnScannedListener<File>() {
+    			
+    			@Override
+    			public void onScanned(File file) {
+    				if (file != null) {
+    					String path = file.getAbsolutePath();
+    					if (!mediaDB.hasMediaInfo(file.getAbsolutePath())) {
+    						String title = file.getName();
+        					MediaInfo info = MeetSDK.getMediaDetailInfo(file);
+        					if (info != null) {
+        						mediaDB.saveMediaInfo(path, title, info);
+        						Log.i(TAG, "Java: scan add media " + path);
         					}
-        				}
-        			}
-        		});
-        		
-        		scanner.scan(new File(OBSERVE_PATH), filter, 3);
-            }
+    					}
+    				}
+    			}
+    		});
+    		
+    		// take a long time
+    		scanner.scan(new File(SCAN_PATH), filter, SCAN_MAX_DEPTH);
+    		
+    		Log.i(TAG, "Java scan job take " + (System.currentTimeMillis() - start) / 1000 + " sec");
+    		sendBroadcast(new Intent(ACTION_MEDIA_SCANNER_FINISHED));
 		}
 		
 	};

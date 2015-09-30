@@ -104,6 +104,7 @@ public class LocalFileAdapter extends BaseAdapter {
 		}
 		else {
 			holder.thumb.setImageResource(R.drawable.clip);
+			holder.thumb.setTag(fullpath);
 			new ThumbnailTask().execute(holder.thumb, fullpath);
 		}
 		
@@ -119,20 +120,21 @@ public class LocalFileAdapter extends BaseAdapter {
 	private class ThumbnailTask extends AsyncTask<Object, Integer, Bitmap> {
 
 		private ImageView mThumb;
+		private String mImgUrl;
 		
 		@Override
 		protected void onPostExecute(Bitmap bmp) {
 			if (bmp == null)
 				mThumb.setImageResource(R.drawable.clip);
-			else
+			else if (mThumb.getTag() != null && mThumb.getTag().equals(mImgUrl))
 				mThumb.setImageBitmap(bmp);
 		}
 		
 		@Override
 		protected Bitmap doInBackground(Object... params) {
 			mThumb = (ImageView)params[0];
-			String img_url = (String)params[1];
-			return MeetSDK.createVideoThumbnail(img_url, Thumbnails.MICRO_KIND);
+			mImgUrl = (String)params[1];
+			return MeetSDK.createVideoThumbnail(mImgUrl, Thumbnails.MICRO_KIND);
 		}
 		
 	}

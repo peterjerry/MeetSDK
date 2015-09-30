@@ -110,6 +110,8 @@ public class MyPPTVLiveAdapter extends BaseAdapter {
 		
 		String img_url = item.getImgUrl();
 		if (img_url.startsWith("http://")) {
+			holder.img_icon.setImageResource(R.drawable.clip);
+			holder.img_icon.setTag(img_url);
 			new LoadInfoTask().execute(holder, img_url);
 		}
 		
@@ -121,26 +123,29 @@ public class MyPPTVLiveAdapter extends BaseAdapter {
 	private class LoadInfoTask extends AsyncTask<Object, Integer, Bitmap> {
 
 		ViewHolder mHolder;
+		String mImgUrl;
 		
 		@Override
 		protected void onPostExecute(Bitmap bmp) {
 			if (mHolder == null || bmp == null)
 				return;
 			
-			ImageView thumb		= mHolder.img_icon;
-			thumb.setImageBitmap(bmp);
+			ImageView thumb	= mHolder.img_icon;
+			if (thumb.getTag() != null && thumb.getTag().equals(mImgUrl))
+				thumb.setImageBitmap(bmp);
 		}
 		
 		@Override
 		protected Bitmap doInBackground(Object... params) {
 			mHolder = (ViewHolder)params[0];
-			String img_url = (String)params[1];
-			String key = PicCacheUtil.hashKeyForDisk(img_url);
+			mImgUrl = (String)params[1];
+			
+			String key = PicCacheUtil.hashKeyForDisk(mImgUrl);
 			Bitmap bmp = PicCacheUtil.getThumbnailFromDiskCache(key);
 			if (bmp == null) {
-				bmp = ImgUtil.getHttpBitmap(img_url);
+				bmp = ImgUtil.getHttpBitmap(mImgUrl);
 				if (bmp == null) {
-					Log.e(TAG, "Java: failed to getHttpBitmap " + img_url);
+					Log.e(TAG, "Java: failed to getHttpBitmap " + mImgUrl);
 					return null;
 				}
 				

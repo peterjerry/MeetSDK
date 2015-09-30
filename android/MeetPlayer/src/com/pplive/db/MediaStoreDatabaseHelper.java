@@ -4,6 +4,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.StringTokenizer;
 
+import com.pplive.meetplayer.service.MediaScannerService;
+
 import android.content.ContentValues;
 import android.content.Context;
 import android.database.Cursor;
@@ -127,7 +129,7 @@ public class MediaStoreDatabaseHelper {
         return null;
     }
     
-    public synchronized void saveMedia(String path, String title, MediaInfo info) {
+    public synchronized void saveMediaInfo(String path, String title, MediaInfo info) {
         if (path == null || info == null) {
             return;
         }
@@ -146,12 +148,15 @@ public class MediaStoreDatabaseHelper {
             values.put(COLUMN_PLAY_URL, path);
             if (title != null)
             	values.put(COLUMN_TITLE, title);
+            values.put(COLUMN_MIME, MediaScannerService.getMimeType(title));
             values.put(COLUMN_WIDTH, info.getWidth());
             values.put(COLUMN_HEIGHT, info.getHeight());
             values.put(COLUMN_DURATION, info.getDuration());
             values.put(COLUMN_FILESIZE, info.getFile().length());
             values.put(COLUMN_FORMAT_NAME, info.getFormatName());
             values.put(COLUMN_VCODEC_NAME, info.getVideoCodecName());
+            if (info.getVideoCodecProfile() != null)
+            	values.put(COLUMN_VCODEC_PROFILE, info.getVideoCodecProfile());
             if (info.getAudioChannels() > 0) {
             	values.put(COLUMN_AUDIO_CHANNELS, info.getAudioChannels());
             	ArrayList<TrackInfo> list = info.getAudioChannelsInfo();
@@ -202,7 +207,7 @@ public class MediaStoreDatabaseHelper {
         }
     }
     
-    public synchronized boolean hasMedia(String path) {
+    public synchronized boolean hasMediaInfo(String path) {
     	try {
 	        SQLiteDatabase db = dbOpenHelper.getWritableDatabase();
 	    	Cursor c = db.query(TABLE_NAME, new String[] { COLUMN_PLAY_URL, COLUMN_TITLE },
@@ -217,7 +222,7 @@ public class MediaStoreDatabaseHelper {
 		return false;
     }
     
-    public synchronized void deleteMedia(String path) {
+    public synchronized void deleteMediaInfo(String path) {
     	if (path == null || path.length() < 1)
     		return;
     	
@@ -235,15 +240,14 @@ public class MediaStoreDatabaseHelper {
          Cursor c = null;
          
          try {
-             c = db.query(TABLE_NAME, new String[] { 
-            		 COLUMN_PLAY_URL, COLUMN_TITLE,
-					COLUMN_WIDTH, COLUMN_HEIGHT, 
-					COLUMN_FILESIZE, COLUMN_DURATION,
-					COLUMN_FORMAT_NAME,
-					COLUMN_VCODEC_NAME, COLUMN_VCODEC_PROFILE,
-					COLUMN_AUDIO_CHANNELS, COLUMN_AUDIO_STREAMS, COLUMN_ACODEC_NAMES,
-					COLUMN_SUBTITLE_CHANNELS, COLUMN_SUBTITLE_STREAMS, COLUMN_SCODEC_NAMES }, 
-					null, null, null, null, null);
+			c = db.query(TABLE_NAME, new String[] { COLUMN_PLAY_URL,
+					COLUMN_TITLE, COLUMN_WIDTH, COLUMN_HEIGHT, COLUMN_FILESIZE,
+					COLUMN_DURATION, COLUMN_FORMAT_NAME, COLUMN_VCODEC_NAME,
+					COLUMN_VCODEC_PROFILE, COLUMN_AUDIO_CHANNELS,
+					COLUMN_AUDIO_STREAMS, COLUMN_ACODEC_NAMES,
+					COLUMN_SUBTITLE_CHANNELS, COLUMN_SUBTITLE_STREAMS,
+					COLUMN_SCODEC_NAMES }, null, null, null, null, 
+					"LOWER(" + COLUMN_TITLE + ") ASC", null);
 			List<MediaInfo> listMediaInfo = new ArrayList<MediaInfo>();
 			if (c.moveToFirst()) {
 				int filepath_index = c.getColumnIndex(COLUMN_PLAY_URL);
