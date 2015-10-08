@@ -57,7 +57,8 @@ public class MediaScannerService extends Service {
 				"r3d", "rm", "rmvb", "roq", "rv", "svi", "trp", "ts", 
 				"vc1", "vcr", "vfw", "vid", "vivo", "vob", 
 				"vp3", "vp6", "vp7", "vp8", "vp9", "vro", "webm", "wm", "wmv", "wtv",
-				"xvid", "yuv" };
+				"xvid", "yuv",
+				"mp3", "wav", "flac", "ape", "wma"};
 
 		sMimeTypeMap = new HashMap<String, String>();
 		StringBuilder sb = new StringBuilder();
@@ -93,10 +94,10 @@ public class MediaScannerService extends Service {
         
         mediaDB = MediaStoreDatabaseHelper.getInstance(getApplicationContext());
         
-		if (null == mFileObserver) {  
+		/*if (null == mFileObserver) {  
 			Thread t1 = new Thread(new ObserverThread());
 			t1.start();
-        }
+        }*/
     }
 	
 	@Override
@@ -104,17 +105,8 @@ public class MediaScannerService extends Service {
 		// TODO Auto-generated method stub
 		Log.i(TAG, String.format("Java: onStartCommand() %d %d", flags, startId));
 		
-		if (intent != null) {
-			String action = intent.getAction();
-			if (action != null) {
-				Log.i(TAG, "Java: onStartCommand() intent.action " + action);
-				if (action.equals(MediaScannerService.ACTION_MEDIA_SCANNER_SCAN_FILE)) {
-		        	Log.i(TAG, "Java: begin to start scan thread");
-		        	Thread t1 = new Thread(new ScanThread());
-					t1.start();
-		        }
-			}
-		}
+    	Thread t1 = new Thread(new ScanThread());
+		t1.start();
 		
 		return Service.START_STICKY;
 	}

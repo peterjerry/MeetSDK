@@ -10,12 +10,14 @@ import javax.swing.JComboBox;
 import javax.swing.JLabel;
 import javax.swing.JList;
 import javax.swing.JMenuItem;
+import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JPopupMenu;
 import javax.swing.JScrollPane;
 import javax.swing.JTextPane;
 import javax.swing.ListCellRenderer;
 import javax.swing.ListSelectionModel;
+import javax.swing.SwingWorker;
 
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
@@ -35,6 +37,14 @@ import org.json.JSONException;
 import org.json.JSONObject;
 import org.json.JSONTokener;
 
+import com.pplive.epg.shooter.DetailItem;
+import com.pplive.epg.shooter.SearchItem;
+import com.pplive.epg.shooter.ShooterUtil;
+import com.pplive.epg.util.LrcDownloadUtil;
+import com.pplive.epg.util.LrcInfo;
+import com.pplive.epg.util.LrcParser2;
+import com.pplive.epg.util.SeparatorUtils;
+import com.pplive.epg.util.TimeLrc;
 import com.pplive.epg.util.Util;
 
 import java.awt.Color;
@@ -48,6 +58,7 @@ import java.awt.image.BufferedImage;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.FilenameFilter;
@@ -55,6 +66,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.UnsupportedEncodingException;
+import java.net.HttpURLConnection;
+import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URL;
 import java.net.URLConnection;
@@ -70,7 +83,7 @@ import java.util.StringTokenizer;
 
 
 @SuppressWarnings("serial")
-public class BaiduPanel extends JPanel implements CallbackUpload {
+public class BaiduPanel extends JPanel {
 	
 	private String mbOauth 		= "23.48f0a3ad0fe8b41428000bb0509f1fb2.2592000.1441874259.184740130-266719";
 	private String mbRootPath 	=  "/我的视频";
@@ -137,6 +150,10 @@ public class BaiduPanel extends JPanel implements CallbackUpload {
 	JPopupMenu jPopupMenu				= null;
 	JMenuItem menuItemCut				= null;
 	JMenuItem menuItemCopy				= null;
+	JMenuItem menuItemRename			= null;
+	JMenuItem menuItemSearchOnlineSub	= null;
+	JMenuItem menuItemSearchOnlineLrc	= null;
+	JMenuItem menuItemGetFolderSize		= null;
 	
 	JLabel lblImage = new JLabel();
 	
@@ -282,6 +299,87 @@ public class BaiduPanel extends JPanel implements CallbackUpload {
 		});
 		jPopupMenu.add(menuItemCopy);
 		
+		menuItemRename = new JMenuItem("重命名");
+		menuItemRename.setFont(f);
+		menuItemRename.addMouseListener(new MouseAdapter() {
+			public void mouseReleased(MouseEvent e) {
+				mOperatePath = getOperatePath();
+				int pos = mOperatePath.lastIndexOf("/");
+				String oldFileName = mOperatePath.substring(pos + 1);
+				String newFileName = JOptionPane.showInputDialog(null, "输入新文件名", oldFileName);
+				if (newFileName == null || newFileName.equals(""))
+					return;
+				
+				String toPath = mbRootPath + "/" + newFileName;
+				move_copy(mOperatePath, toPath, false);
+				init_combobox();
+			}
+		});
+		jPopupMenu.add(menuItemRename);
+		
+		menuItemSearchOnlineSub = new JMenuItem("查找在线字幕");
+		menuItemSearchOnlineSub.setFont(f);
+		menuItemSearchOnlineSub.addMouseListener(new MouseAdapter() {
+			public void mouseReleased(MouseEvent e) {
+				mOperatePath = getOperatePath();
+				int pos = mOperatePath.lastIndexOf("/");
+				int pos2 = mOperatePath.lastIndexOf(".");
+				if (pos == -1 || pos2 == -1 || pos >= pos2)
+					return;
+				
+				String FileName = mOperatePath.substring(pos + 1, pos2);
+				String searchKey = JOptionPane.showInputDialog(null, "输入搜索字幕关键字", FileName);
+				if (searchKey == null || searchKey.equals(""))
+					return;
+				
+				searchSub(searchKey);
+			}
+		});
+		jPopupMenu.add(menuItemSearchOnlineSub);
+		
+		menuItemSearchOnlineLrc = new JMenuItem("查找在线歌词");
+		menuItemSearchOnlineLrc.setFont(f);
+		menuItemSearchOnlineLrc.addMouseListener(new MouseAdapter() {
+			public void mouseReleased(MouseEvent e) {
+				mOperatePath = getOperatePath();
+				int pos = mOperatePath.lastIndexOf("/");
+				int pos2 = mOperatePath.lastIndexOf(".");
+				if (pos == -1 || pos2 == -1 || pos >= pos2)
+					return;
+				String filename = mOperatePath.substring(pos + 1, pos2);
+				
+				String song_name = JOptionPane.showInputDialog(null, "输入歌曲名", filename);
+				if (song_name == null)
+					return;
+				
+				String artist = JOptionPane.showInputDialog(null, "输入艺术家", filename);
+				if (artist == null)
+					return;
+
+				String lrc_url = LrcDownloadUtil.getBaiduLyc(song_name, artist);
+				if (lrc_url == null) {
+					System.out.println("Java: failed to get lrc_path");
+					return;
+				}
+				
+				if (!process_lrc(lrc_url)) {
+					System.out.println("failed to process_lrc()");
+					return;
+				}
+			}
+		});
+		jPopupMenu.add(menuItemSearchOnlineLrc);
+		
+		menuItemGetFolderSize = new JMenuItem("统计文件夹大小");
+		menuItemGetFolderSize.setFont(f);
+		menuItemGetFolderSize.addMouseListener(new MouseAdapter() {
+			public void mouseReleased(MouseEvent e) {
+				GetFolderSizeWorker worker = new GetFolderSizeWorker(getOperatePath());
+				worker.execute();
+			}
+		});
+		jPopupMenu.add(menuItemGetFolderSize);
+		
 		listItem = new JList<String>();
 		listItem.setFont(f);
 		listModel = new DefaultListModel<String>();
@@ -296,7 +394,7 @@ public class BaiduPanel extends JPanel implements CallbackUpload {
 					return;
 				
 				int button = event.getButton();
-				if (button == 1) { // left
+				if (button == 1) { // Left button
 					if (event.getClickCount() == 2) {
 						if (mFileList != null) {
 							Map<String, Object> fileinfo = mFileList.get(index);
@@ -659,9 +757,8 @@ public class BaiduPanel extends JPanel implements CallbackUpload {
 				String save_path = mbRootPath + "/" + fload.getFile();
 				System.out.println("file upload src path: " + upload_path + " save_path: " + save_path);
 				
-				UploadThread myThread = new UploadThread(upload_path, save_path, BaiduPanel.this);
-				Thread t = new Thread(myThread);
-				t.start();
+				UploadWorker worker = new UploadWorker(upload_path, save_path);
+				worker.execute();
 			}
 		});
 		
@@ -694,6 +791,169 @@ public class BaiduPanel extends JPanel implements CallbackUpload {
 		this.add(lblInfo);
 		
 		init_combobox();
+	}
+	
+	private boolean process_lrc(String lrc_path) {
+		try {
+			LrcParser2 parser = new LrcParser2();
+			
+			URL url = new URL(lrc_path);
+			URLConnection conn = url.openConnection();
+			conn.setConnectTimeout(3000);
+			InputStream inStream = conn.getInputStream();
+			
+			LrcInfo info = null;
+			info = parser.readLrc(inStream, "GB2312");
+			System.out.println(String.format("Java: lrc: artist %s, album %s, title %s",
+					info.getArtist(), info.getAlbum(), info.getTitle()));
+			List<TimeLrc> Lyric = info.getInfos();
+			int count = Lyric.size();
+			StringBuffer sb = new StringBuffer();
+			for (int i=0;i<count;i++) {
+				TimeLrc lrc = Lyric.get(i);
+				String strLine = String.format("Java: lrc time %s: text %s", lrc.getTimePoint(), lrc.getLrcString());
+				sb.append(strLine);
+				sb.append("\n");
+			}
+			
+			System.out.println("Java: all lrc " + sb.toString());
+			return true;
+			
+		} catch (MalformedURLException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+		return false;
+	}
+	
+	private void searchSub(String key) {
+		
+		List<SearchItem> list = ShooterUtil.search(key, 10);
+		for (int j=0;j<list.size();j++) {
+			System.out.println("title " + list.get(j).mVideoName);
+		}
+		
+		List<String> titleList = new ArrayList<String>();
+		for (int i=0;i<list.size();i++) {
+			String title = list.get(i).mNativeName;
+			if (title == null || title.isEmpty())
+				title = list.get(i).mVideoName;
+			title += "(";
+			title += list.get(i).mLangDesc;
+			title += ")";
+			
+			titleList.add(title);
+		}
+		
+		String []titles = titleList.toArray(new String[titleList.size()]);
+		String strTitle = (String) JOptionPane.showInputDialog(null,
+				 "选择字幕文件", "选择在线字幕", JOptionPane.INFORMATION_MESSAGE ,
+				 null, titles , titles[0]);
+		if (strTitle == null)
+			return;
+		
+		int id = -1;
+		for (int i=0;i<list.size();i++) {
+			if (strTitle.contains(list.get(i).mNativeName) ||
+					strTitle.contains(list.get(i).mVideoName)) {
+				id = list.get(i).mId;
+				break;
+			}
+		}
+		
+		if (id == -1)
+			return;
+		
+		DetailItem detailItem = ShooterUtil.detail(id);
+		
+		// step2
+		String download_url = detailItem.mUrl;
+		String save_path = null;
+		if (detailItem.mFileName != null && !detailItem.mFileName.isEmpty())
+			save_path = detailItem.mFileName;
+		else
+			save_path = detailItem.mNativeName;
+		
+		if (detailItem.mArvList != null) {
+			String []filenames = detailItem.mArvList.toArray(new String[detailItem.mArvList.size()]);
+			String filename = (String) JOptionPane.showInputDialog(null,
+					 "选择压缩包内字幕文件", "选择字幕文件", JOptionPane.INFORMATION_MESSAGE ,
+					 null, filenames , filenames[0]);
+			if (filename == null)
+				return;
+			
+			int path_pos = detailItem.mUrl.lastIndexOf("/");
+			String encoded_path;
+			try {
+				encoded_path = URLEncoder.encode(filename, "UTF-8");
+			} catch (UnsupportedEncodingException e1) {
+				// TODO Auto-generated catch block
+				e1.printStackTrace();
+				return;
+			}
+			
+			download_url = detailItem.mUrl.substring(0, path_pos + 1) + 
+					"-/" + String.valueOf(0 + 1) + "/" + encoded_path;
+			save_path = "./" + filename;
+		}
+
+		download_url = download_url.replace("+", "%20");
+		download_url = download_url.replace("%28", "(");
+		download_url = download_url.replace("%29", ")");
+		download_url = download_url.replace("%5B", "[");
+		download_url = download_url.replace("%5D", "]");
+		System.out.println("download_url " + download_url);
+		
+		URL url = null;
+		try {
+			url = new URL(download_url);
+			
+			HttpURLConnection conn = (HttpURLConnection)url.openConnection();
+			//conn.setConnectTimeout(3000);
+			//conn.setReadTimeout(3000);
+
+			conn.connect();
+			int code = conn.getResponseCode();
+			System.out.println("http response code " + code);
+			InputStream inStream = conn.getInputStream();
+			
+			final FileOutputStream fos = new FileOutputStream(save_path);
+
+			try {
+				int readed;
+				byte[] buf = new byte[4096];
+
+				bDownloading = true;
+				while ((readed = inStream.read(buf)) != -1 && !bInterrupt) {
+					fos.write(buf, 0, readed);
+				}
+
+				fos.close();
+				inStream.close();
+				String title = save_path;
+				if (title.length() > 32)
+					title = title.substring(0, 32) + "...";
+				lblInfo.setText("字幕 " + title + " 下载成功!");
+			} catch (Exception ex) {
+				ex.printStackTrace();
+				lblInfo.setText("字幕 " + save_path + "下载失败: " + ex.getMessage());
+			}
+		} catch (MalformedURLException e1) {
+			// TODO Auto-generated catch block
+			e1.printStackTrace();
+			return;
+		} catch (FileNotFoundException e1) {
+			e1.printStackTrace();
+		} catch (IOException e1) {
+			e1.printStackTrace();
+		}
 	}
 	
 	private String getOperatePath() {
@@ -930,99 +1190,6 @@ public class BaiduPanel extends JPanel implements CallbackUpload {
 		}
 	}
 	
-	private boolean uploadFile(String src_path, String dst_path) {
-		try {
-			String encoded_path = URLEncoder.encode(dst_path, "utf-8");
-
-			String url_path = BAIDU_PCS_UPLOAD + "&path=" + encoded_path;
-			System.out.println("Java: upload_file() " + url_path);
-			
-			File file = new File(src_path);
-			long len = file.length();
-			System.out.println("Java file size " + len);
-			
-			FileInputStream fin = new FileInputStream(file);
-
-			int offset;
-			int left;
-			long total_left = len;
-			long total_sent = 0;
-			int byteread, toread;
-
-			long start_msec = System.currentTimeMillis();
-			List<String> md5s = new ArrayList<String>();
-			
-			while (total_left > 0) {
-				offset = 0;
-				left = UPLOAD_CHUNKSIZE;
-				if (left > total_left)
-					left = (int)total_left;
-				byte[] context = new byte[left];
-				
-				while (true) {
-					toread = UPLOAD_READSIZE;
-					if (left < toread)
-						toread = left;
-					byteread = fin.read(context, offset, toread);
-					if (byteread == -1) {
-						System.out.println("Java eof " + offset);
-						break;
-					}
-					
-					offset += byteread;
-					left -= byteread;
-
-					if (left <= 0)
-						break;
-				}
-				
-				System.out.println("Java: read context " + offset);
-				String md5 = uploadPiece(context, null);
-			
-				if (md5 == null) {
-					System.out.println("Java: failed to uploadPiece()");
-					return false;
-				}
-				
-				md5s.add(md5);
-				
-				total_left -= offset;
-				total_sent += offset;
-				
-				String filename = src_path;
-				int pos = src_path.lastIndexOf("/");
-				if (pos > -1)
-					filename = src_path.substring(pos + 1);
-				long elapsed_msec = System.currentTimeMillis() - start_msec;
-				double speed = total_sent / (double)elapsed_msec;
-				lblInfo.setText(String.format("%s 已传 %s, 剩余 %s, 速度 %.3f kB/s", 
-						file.getName(), getFileSize(total_sent), getFileSize(total_left), speed));
-				
-				System.out.println(String.format("Java: add md5 to list %s, total_left %d",
-						md5, total_left));
-			}
-			
-			if (!create_superfile(md5s, encoded_path)) {
-				lblInfo.setText("创建大文件失败 " + dst_path);
-				return false;
-			}
-			
-			System.out.println(String.format("Java: file %s uploaded to %s, size %s", 
-					src_path, dst_path, getFileSize(len)));
-			
-			long elapsed_msec = System.currentTimeMillis() - start_msec;
-			double total_speed = len / (double)elapsed_msec;
-			lblInfo.setText(String.format("%s 上传至\n %s, 大小 %s, 速度 %.3f kB/s", 
-					/*src_path*/file.getName(), dst_path, getFileSize(len), total_speed));
-			
-			return true;
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-		
-		return false;
-	}
-	
 	private String uploadPiece(byte[] bytes, String target) {
 		try {
 			ContentBody bsData = new ByteArrayBody(bytes, "upload.tmp");
@@ -1165,14 +1332,19 @@ public class BaiduPanel extends JPanel implements CallbackUpload {
 			String path = (String) fileinfo.get("path");
 			String filename = (String) fileinfo.get("filename");
 			
-			if (path.equals(mChildPath))
+			if (path.equals(mChildPath)) {
+				System.out.println(String.format("Java: found mChildPath at #%d, %s, %s",
+						i, path, mChildPath));
 				child_index = i;
+			}
 			
 			listModel.addElement(filename);
 		}
 		
-		if (child_index != -1)
+		if (child_index != -1) {
 			listItem.setSelectedIndex(child_index);
+			System.out.println("Java: setSelectedIndex at #" + child_index);
+		}
 	}
 	
 	private boolean streaming(String path, String type) {
@@ -1254,7 +1426,10 @@ public class BaiduPanel extends JPanel implements CallbackUpload {
 				total_size += item_size;
 		}
 		
-		lblInfo.setText(lblInfo.getText() + ".");
+		if (lblInfo.getText().length() > 12)
+			lblInfo.setText("统计文件夹大小中");
+		else
+			lblInfo.setText(lblInfo.getText() + ".");
 		return total_size;
 	}
 	
@@ -1746,27 +1921,6 @@ public class BaiduPanel extends JPanel implements CallbackUpload {
 		
 	};
 	
-	private class UploadThread implements Runnable {
-		private String mSrcPath;
-		private String mDstPath;
-		private CallbackUpload mCallback;
-		
-		UploadThread(String srcPath, String dstPath, CallbackUpload cbUpload) {
-			mSrcPath 	= srcPath;
-			mDstPath 	= dstPath;
-			mCallback	= cbUpload;
-		}
-		
-		@Override
-		public void run() {
-			// TODO Auto-generated method stub
-			if (uploadFile(mSrcPath, mDstPath) && mCallback != null) {
-				mCallback.onUploadComplete();
-			}
-		}
-		
-	};
-	
 	private void openExe(String... params) {
 		Runtime rn = Runtime.getRuntime();
 		Process proc = null;
@@ -1815,12 +1969,168 @@ public class BaiduPanel extends JPanel implements CallbackUpload {
 			}
 		}
 	}
+	
+	private class UploadWorker extends SwingWorker<Boolean, Long> {
 
-	@Override
-	public void onUploadComplete() {
-		// TODO Auto-generated method stub
-		init_combobox();
-	}
+		private String mSrcPath;
+		private String mDstPath;
+		private String mFileName;
+		
+		public UploadWorker(String srcPath, String dstPath) {
+			mSrcPath	= srcPath;
+			mDstPath	= dstPath;
+			mFileName	= srcPath;
+			
+			int pos = srcPath.lastIndexOf(SeparatorUtils.getFileSeparator());
+			if (pos > -1)
+				mFileName = srcPath.substring(pos + 1);
+		}
+		
+		@Override
+		protected Boolean doInBackground() throws Exception {
+			FileInputStream fin = null;
+			
+			try {
+				String encoded_path = URLEncoder.encode(mDstPath, "utf-8");
+
+				String url_path = BAIDU_PCS_UPLOAD + "&path=" + encoded_path;
+				System.out.println("Java: upload_file() " + url_path);
+				
+				File file = new File(mSrcPath);
+				long len = file.length();
+				System.out.println("Java file size " + len);
+				
+				fin = new FileInputStream(file);
+
+				int offset;
+				int left;
+				long total_left = len;
+				long total_sent = 0;
+				int byteread, toread;
+
+				long start_msec = System.currentTimeMillis();
+				List<String> md5s = new ArrayList<String>();
+				
+				while (total_left > 0) {
+					offset = 0;
+					left = UPLOAD_CHUNKSIZE;
+					if (left > total_left)
+						left = (int)total_left;
+					byte[] context = new byte[left];
+					
+					while (true) {
+						toread = UPLOAD_READSIZE;
+						if (left < toread)
+							toread = left;
+						byteread = fin.read(context, offset, toread);
+						if (byteread == -1) {
+							System.out.println("Java eof " + offset);
+							break;
+						}
+						
+						offset += byteread;
+						left -= byteread;
+
+						if (left <= 0)
+							break;
+					}
+					
+					System.out.println("Java: read context " + offset);
+					String md5 = uploadPiece(context, null);
+				
+					if (md5 == null) {
+						System.out.println("Java: failed to uploadPiece()");
+						return false;
+					}
+					
+					md5s.add(md5);
+					
+					total_left -= offset;
+					total_sent += offset;
+					
+					long elapsed_msec = System.currentTimeMillis() - start_msec;
+					long speed = total_sent / elapsed_msec;
+					publish(total_sent, total_left, speed);
+					System.out.println(String.format("Java: add md5 to list %s, total_left %d",
+							md5, total_left));
+				}
+				
+				if (!create_superfile(md5s, encoded_path)) {
+					lblInfo.setText("创建大文件失败 " + mDstPath);
+					return false;
+				}
+				
+				System.out.println(String.format("Java: file %s uploaded to %s, size %s", 
+						mSrcPath, mDstPath, getFileSize(len)));
+				
+				long elapsed_msec = System.currentTimeMillis() - start_msec;
+				double total_speed = len / (double)elapsed_msec;
+				lblInfo.setText(String.format("%s 上传至\n %s, 大小 %s, 速度 %.3f kB/s", 
+						/*src_path*/file.getName(), mDstPath, getFileSize(len), total_speed));
+
+				return true;
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+			finally {
+				try {
+					fin.close();
+				} catch (IOException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+			}
+			
+			return false;
+		}
+		
+		@Override
+		protected void done() {
+			// TODO Auto-generated method stub
+			super.done();
+			init_combobox();
+		}
+		
+		@Override
+		protected void process(List<Long> list) {
+			// TODO Auto-generated method stub
+			super.process(list);
+			
+			long total_sent = list.get(0);
+			long total_left = list.get(1);
+			long speed 		= list.get(2);
+			
+			lblInfo.setText(String.format("%s 已传  %s, 剩余  %s, 速度  %d kB/s", 
+					mFileName, getFileSize(total_sent), getFileSize(total_left), speed));
+		}
+	};
 	
-	
+	private class GetFolderSizeWorker extends SwingWorker<Boolean, Long> {
+
+		private String mFolderPath;
+		private long mSize;
+		
+		public GetFolderSizeWorker(String folderPath) {
+			mFolderPath	= folderPath;
+		}
+		
+		@Override
+		protected Boolean doInBackground() throws Exception {
+			lblInfo.setText("统计文件夹大小中");
+			mSize = getFolderSize(mFolderPath);
+			return true;
+		}
+		
+		@Override
+		protected void done() {
+			// TODO Auto-generated method stub
+			lblInfo.setText(mFolderPath + " 占用空间 " + getFileSize(mSize));
+		}
+		
+		@Override
+		protected void process(List<Long> list) {
+			// TODO Auto-generated method stub
+			super.process(list);
+		}
+	};
 }

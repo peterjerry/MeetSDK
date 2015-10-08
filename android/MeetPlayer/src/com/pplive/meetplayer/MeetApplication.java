@@ -41,9 +41,6 @@ public class MeetApplication extends Application {
 		
 		Intent intent = new Intent(getApplicationContext(), MyHttpService.class);  
 		startService(intent);
-		
-		Intent intent2 = new Intent(getApplicationContext(), MediaScannerService.class);
-		startService(intent2);
 	}
 	
 	@Override

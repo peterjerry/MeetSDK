@@ -116,7 +116,7 @@ then
 	CROSS_PREFIX=$NDK/toolchains/x86-4.8/prebuilt/$HOST/bin/i686-linux-android-
 	EXTRA_CFLAGS="$EXTRA_CFLAGS -fstrict-aliasing"
 	OPTFLAGS="-O2 -fno-pic"
-	FDK_AAC_LIB=$FDK_AAC_HOME/lib/x86
+	FDK_AAC_LIB=$FDK_AAC_HOME/lib/android/x86
 	RTMPDUMP_LIB=$USER_ROOT/thirdparty/rtmpdump/lib/android/x86
 	X264_LIB=$X264_HOME/lib/android/x86
 elif [ $ARCH == 'mips' ] 

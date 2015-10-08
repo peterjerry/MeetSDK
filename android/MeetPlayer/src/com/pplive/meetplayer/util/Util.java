@@ -15,6 +15,7 @@ import java.net.SocketException;
 import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.List;
+import java.util.Properties;
 import java.util.StringTokenizer;
 
 import android.content.Context;
@@ -47,11 +48,15 @@ public class Util {
 
 		String libPath = "/data/data/com.pplive.meetplayer/lib";
 		MediaSDK.libPath = libPath;
-		MediaSDK.libName = "ppbox_jni-armandroid-r4-gcc44-mt-1.1.0";
 		MediaSDK.logPath = "/data/data/com.pplive.meetplayer/cache";
 		MediaSDK.logOn = false;
 		MediaSDK.setConfig("", "HttpManager", "addr", "127.0.0.1:9106+");
 		MediaSDK.setConfig("", "RtspManager", "addr", "127.0.0.1:5156+");
+		
+		Properties props = System.getProperties();
+        String osArch = props.getProperty("os.arch");
+        if (osArch != null && osArch.contains("aarch64"))
+        	MediaSDK.libName = "ppbox_jni-armandroid-r4-gcc44-mt-1.1.0";
 		
 		long ret = -1;
 

@@ -693,10 +693,19 @@ public class MeetVideoView extends SurfaceView implements MediaPlayerControl {
         requestLayout();
 	}
 
+	/**
+    * @brief		循环切换显示缩放模式
+    * 自适应 -> 铺满屏幕 -> 放大裁切 -> 原始大小
+    */
 	public void switchDisplayMode() {
 		setDisplayMode((mDisplayMode + 1) % 4);
 	}
 	
+	/**
+    * @brief		设置自定义参数
+    * @param[in]	opt 参数
+    * e.g. -param1 val1\n-param2 val2\param3 val3
+    */
 	public void setOption(String opt) {
 		mOption = opt;
 	}
