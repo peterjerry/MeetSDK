@@ -154,6 +154,10 @@ public class MediaPlayer implements MediaPlayerInterface {
 		mDecodeMode = mode;
 	}
 	
+	/**
+     * @brief		获取当前解码模式
+     * @return     解码模式 DecodeMode
+     */
 	public DecodeMode getDecodeMode() {
 		return mDecodeMode;
 	}
@@ -911,6 +915,7 @@ public class MediaPlayer implements MediaPlayerInterface {
 	}
 
 	/**
+	 * @brief		选择track
      * @param index: index of all streams(NOT audio index)
      */
 	@Override
@@ -931,13 +936,13 @@ public class MediaPlayer implements MediaPlayerInterface {
 	}
 	
 	/**
-	    * @brief		实时截图(仅自有播放器模式支持改功能)，支持缩放
-	    * @param[in]	width 截图宽
-	    * @param[in]	height 截图高
-	    * @param[in]	fmt 截图格式，未使用，建议填0 - RGBX_8888
-	    * @param[in]	msec 截图时间戳，未使用，建议填-1
-	    * @return      Bitmap 截图
-	    */
+    * @brief		实时截图(仅自有播放器模式支持改功能)，支持缩放
+    * @param[in]	width 截图宽
+    * @param[in]	height 截图高
+    * @param[in]	fmt 截图格式，未使用，建议填0 - RGBX_8888
+    * @param[in]	msec 截图时间戳，未使用，建议填-1
+    * @return      Bitmap 截图
+    */
 	@Override
 	public Bitmap getSnapShot(int width, int height, int fmt, int msec) {
 		if (mPlayer != null) {
@@ -1004,9 +1009,9 @@ public class MediaPlayer implements MediaPlayerInterface {
 	}
 	
 	/**
-	    * @brief		获取当前播放媒体文件的媒体信息   
-	    * @return      MediaInfo 数据结构，详见结构体
-	    */
+    * @brief		获取当前播放媒体文件的媒体信息   
+    * @return      MediaInfo 数据结构，详见结构体
+    */
 	@Override
 	public MediaInfo getMediaInfo() throws IllegalStateException {
 		if (mPlayer != null) {

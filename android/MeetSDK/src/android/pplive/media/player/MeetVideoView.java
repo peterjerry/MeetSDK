@@ -629,10 +629,18 @@ public class MeetVideoView extends SurfaceView implements MediaPlayerControl {
         }
     }
 
+    /**
+     * @brief		是否正在播放
+     * @return     true if playing
+     */
     public boolean isPlaying() {
         return isInPlaybackState() && mMediaPlayer.isPlaying();
     }
 
+    /**
+     * @brief		获取缓冲百分比
+     * @return     已缓冲数据占媒体时长百分比(0-100)
+     */
     public int getBufferPercentage() {
         if (mMediaPlayer != null) {
             return mCurrentBufferPercentage;
@@ -647,23 +655,43 @@ public class MeetVideoView extends SurfaceView implements MediaPlayerControl {
                 mCurrentState != STATE_PREPARING);
     }
 
+    /**
+     * @brief		是否支持暂停
+     * @return     true if support Pause
+     */
     public boolean canPause() {
         return mCanPause;
     }
 
+    /**
+     * @brief		是否支持回退
+     * @return     true if support seek back
+     */
     public boolean canSeekBackward() {
         return mCanSeekBack;
     }
 
+    /**
+     * @brief		是否支持前进
+     * @return     true if support seek forward
+     */
     public boolean canSeekForward() {
         return mCanSeekForward;
     }
 	
 	// 2015.1.13 guoliangma added
+    /**
+     * @brief		设置解码模式
+     * param[in]    mode 解码模式
+     */
 	public void setDecodeMode(DecodeMode mode) {
         mDecodeMode = mode;
     }
 
+	/**
+     * @brief		获取当前解码模式
+     * @return     解码模式 DecodeMode
+     */
     public DecodeMode getDecodeMode() {
         if (null != mMediaPlayer) {
             return mMediaPlayer.getDecodeMode();
@@ -673,7 +701,8 @@ public class MeetVideoView extends SurfaceView implements MediaPlayerControl {
     }
     
     /**
-     * @param index: index of all streams(NOT audio index)
+     * @brief		选择音轨
+     * @param[in]	index: index of all streams(NOT audio index)
      */
     public void selectAudioChannel(int index){
         mAudioChannel = index;
@@ -682,11 +711,23 @@ public class MeetVideoView extends SurfaceView implements MediaPlayerControl {
         	mAudioChannel = -1;
         }
     }
-
+    
+    /**
+     * @brief		获取当前显示缩放模式
+     * @return     当前显示模式
+     */
 	public int getDisplayMode() {
 		return mDisplayMode;
 	}
 
+	/**
+    * @brief		设置显示缩放模式
+    * @param[in]	mode 显示模式
+    * @ int SCREEN_FIT = 0; // 自适应
+    * @ int SCREEN_STRETCH = 1; // 铺满屏幕 
+    * @ int SCREEN_FILL = 2; // 放大裁切
+    * @ int SCREEN_CENTER = 3; // 原始大小
+    */
 	public void setDisplayMode(int mode) {
 		LogUtils.info(String.format("setDisplayerMode %d", mode));
 		mDisplayMode = mode;
@@ -710,6 +751,10 @@ public class MeetVideoView extends SurfaceView implements MediaPlayerControl {
 		mOption = opt;
 	}
 	
+	/**
+    * @brief		获取当前播放媒体文件的媒体信息   
+    * @return      MediaInfo 数据结构，详见结构体
+    */
 	public MediaInfo getMediaInfo() {
 		if (mMediaPlayer != null)
 			return mMediaPlayer.getMediaInfo();
@@ -717,6 +762,10 @@ public class MeetVideoView extends SurfaceView implements MediaPlayerControl {
 		return null;
 	}
 	
+	/**
+    * @brief		获取音频sessionId 自有播放器模式总是返回0   
+    * @return      sessionId
+    */
 	public int getAudioSessionId() {
 		if (mMediaPlayer != null) {
 			return mMediaPlayer.getAudioSessionId();

@@ -8,6 +8,8 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.Hashtable;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * <b>歌词解析类</b>
@@ -67,6 +69,8 @@ public class LrcParser2 {
 	 * 单行解析
 	 * */
 	private void decodeLine(String str) {
+		String reg = "\\[\\d{2}:\\d{2}";
+		Pattern pattern = Pattern.compile(reg);
 
 		if (str.startsWith("[ti:")) {// 歌曲名
 			String title = str.substring(4, str.lastIndexOf("]"));
@@ -96,7 +100,7 @@ public class LrcParser2 {
 		} else if (str.startsWith("[url:")) { // fix 费玉清 一剪梅
 			String url = str.substring(4, str.lastIndexOf("]"));
 			lrcTable.put("url", url);
-		} else {
+		} else if (pattern.matcher(str).find()){
 			// 歌词正文
 			System.out.println("Java: lrc " + str);
 			int startIndex = -1;

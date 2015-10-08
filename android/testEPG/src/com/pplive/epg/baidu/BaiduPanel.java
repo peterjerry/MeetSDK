@@ -125,6 +125,7 @@ public class BaiduPanel extends JPanel {
 	private final String BAIDU_PCS_MKDIR;
 	private final String BAIDU_PCS_DELETE;
 	private final String BAIDU_PCS_CLOUD_DL;
+	private final String BAIDU_PCS_SEARCH;
 	
 	private final int UPLOAD_CHUNKSIZE = 1048576; // 1M
 	private final int UPLOAD_READSIZE = 4096; // 4k
@@ -162,6 +163,7 @@ public class BaiduPanel extends JPanel {
 	JButton btnDownload = new JButton("下载");
 	JButton btnYunDownload = new JButton("云存");
 	JButton btnUpload = new JButton("上传");
+	JButton btnSearch = new JButton("搜索");
 	
 	boolean bDownloading = false;
 	boolean bInterrupt = false;
@@ -269,6 +271,9 @@ public class BaiduPanel extends JPanel {
 				"&path=";
 		BAIDU_PCS_CLOUD_DL = BAIDU_PCS_SERVICE_PREFIX + 
 				"?method=add_task" +
+				"&access_token=" + mbOauth;
+		BAIDU_PCS_SEARCH = BAIDU_PCS_FILE_PREFIX + 
+				"?method=search" +
 				"&access_token=" + mbOauth;
 		
 		// Action
@@ -759,6 +764,28 @@ public class BaiduPanel extends JPanel {
 				
 				UploadWorker worker = new UploadWorker(upload_path, save_path);
 				worker.execute();
+			}
+		});
+		
+		btnSearch.setFont(f);
+		btnSearch.setBounds(590, 450, 80, 40);
+		btnSearch.setFont(f);
+		this.add(btnSearch);
+		btnSearch.addActionListener(new AbstractAction() {
+			public void actionPerformed(ActionEvent e) {
+				mFileList = search("/", editPath.getText(), true);
+				listModel.clear();
+				
+				int size = mFileList.size();
+				for (int i=0;i<size;i++) {
+					Map<String, Object> fileinfo = mFileList.get(i);
+					String path = (String) fileinfo.get("path");
+					String filename = (String) fileinfo.get("filename");
+					
+					listModel.addElement(filename);
+				}
+				
+				lblRootPath.setText("搜索结果");
 			}
 		});
 		
@@ -1451,6 +1478,81 @@ public class BaiduPanel extends JPanel {
 		url += list_order;
 		
 		System.out.println("Java: list() " + url);
+		HttpGet request = new HttpGet(url);
+		
+		HttpResponse response;
+		try {
+			response = HttpClients.createDefault().execute(request);
+			if (response.getStatusLine().getStatusCode() != 200){
+				System.out.println("Java: failed to list(): code " + response.getStatusLine().getStatusCode());
+				return null;
+			}
+			
+			String result = EntityUtils.toString(response.getEntity());
+			
+			JSONTokener jsonParser = new JSONTokener(result);
+			JSONObject root = (JSONObject) jsonParser.nextValue();
+			JSONArray list = root.getJSONArray("list");
+			int cnt = list.length();
+			
+			List<Map<String, Object>> fileList = new ArrayList<Map<String, Object>>();
+			for (int i=0;i<cnt;i++) {
+				JSONObject item = list.getJSONObject(i);
+				String path = item.getString("path");
+				long filesize = item.getLong("size");
+				int isdir = item.getInt("isdir");
+				
+				String filename = path;
+				int pos = filename.lastIndexOf("/");
+				if (pos > -1) {
+					filename = filename.substring(pos + 1);
+				}
+				
+				Map<String, Object> fileinfo = new HashMap<String, Object>();
+				fileinfo.put("path", path);
+				fileinfo.put("filename", filename);
+				fileinfo.put("filesize", filesize);
+				fileinfo.put("isdir", isdir == 1 ? true : false);
+				
+				fileList.add(fileinfo);
+			}
+			
+			return fileList;
+		}
+		catch (ClientProtocolException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (JSONException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+		return null;
+	}
+	
+	private List<Map<String, Object>> search(String search_path, String wd, boolean recursive) {
+		String encoded_wd = null;
+		try {
+			encoded_wd = URLEncoder.encode(wd, "utf-8");
+		}
+		catch (UnsupportedEncodingException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+			return null;
+		}
+		
+		String url = BAIDU_PCS_SEARCH;
+		url += "&path=";
+		url += search_path;
+		url += "&wd=";
+		url += encoded_wd;
+		url += "&re=";
+		url += (recursive ? "1" : "0");
+		
+		System.out.println("Java: search() " + url);
 		HttpGet request = new HttpGet(url);
 		
 		HttpResponse response;

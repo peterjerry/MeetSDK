@@ -139,19 +139,24 @@ public class LrcDownloadUtil {
 			String count = root.getChildText("count");
 			int c = Integer.valueOf(count);
 			if (c == 0) {
-				System.out.println("lrc count is zero");
+				System.out.println("Java: lrc count is zero");
 				return null;
 			}
 			
 			List<Element> xml_url_list = root.getChildren("url");
 			if (xml_url_list == null || xml_url_list.size() == 0) {
-				System.out.println("failed to get xml_url_list");
+				System.out.println("Java: failed to get xml_url_list");
 				return null;
 			}
 			
 			Element first_item = xml_url_list.get(0);
 			String lrcid = first_item.getChildText("lrcid");
 			int id = Integer.valueOf(lrcid);
+			if (id ==0) {
+				System.out.println("Java: error lrcid is 0");
+				return null;
+			}
+			
 			String lrc_url = String.format(BAIDU_LRC_URL_FMT, id / 100, id);
 			System.out.println("Java: get lrc_url " + lrc_url);
 			return lrc_url;
