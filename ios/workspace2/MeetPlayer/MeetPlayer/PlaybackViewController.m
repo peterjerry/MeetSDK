@@ -83,7 +83,7 @@
     //create player
     player_ = [PPPlayerController PPPlayerControllerWithUrl:url_
                                                       frame:frame
-                                                       type:PPMOVIE_AUTO_PLAYER];
+                                                       type:PPMOVIE_SYSTEM_PLAYER];
     player_.delegate = self;
     player_.allowsAirPlay = YES;
     [self.view insertSubview:player_.view atIndex:0];

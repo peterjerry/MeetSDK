@@ -8,7 +8,7 @@
 
 #import "PPPlayerController.h"
 
-@interface AVPlayerController : PPPlayerController
+@interface SysPlayerController : PPPlayerController
 
 - (id)initWithUrl:(NSURL*)url frame:(CGRect)frame;
 
