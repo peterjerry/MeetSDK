@@ -93,10 +93,8 @@ NSString *kPlayableKey		= @"playable";
     if (currentItem_) {
         for (AVPlayerItemTrack *itemTrack in currentItem_.tracks) {
             AVAssetTrack *track = itemTrack.assetTrack;
-            NSString *str = [NSString stringWithFormat:@"track%d(type:%@, playable=%hhd)"
-                             , track.trackID
-                             , track.mediaType
-                             , track.playable];
+            NSString *str = [NSString stringWithFormat:@"track%d (type:%@, playable: %d)",
+                track.trackID, track.mediaType, track.playable];
             if (infoStr == nil) {
                 infoStr = str;
             } else {

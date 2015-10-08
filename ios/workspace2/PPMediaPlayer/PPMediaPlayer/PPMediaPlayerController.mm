@@ -47,6 +47,7 @@ class playerListener;
 {
     NSString *str = [NSString stringWithFormat:@"prepareToPlay url:%@", [url_ absoluteString]];
     [self printLog:LOG_FORMAT(str)];
+	
     if (player_ == NULL) {
         player_ = getPlayer(NULL);
         if ([url_.scheme isEqualToString:@"file"]) {
@@ -106,18 +107,19 @@ class playerListener;
     player_->seekTo(second * 1000);
 }
 
-//获得当前播放时间
+//获得当前播放时间 sec
 - (NSTimeInterval)currentPlaybackTime
 {
     player_->getCurrentPosition(&currentPos_);
     return currentPos_ / 1000.0;
 }
 
+//获得媒体时长 sec
 - (NSTimeInterval)duration
 {
     int32_t msec = 0;
     player_->getDuration(&msec);
-    return msec/1000.0;
+    return msec / 1000.0;
 }
 
 - (BOOL)isPlaying
@@ -133,26 +135,7 @@ class playerListener;
 //切换音轨
 - (void)changeAudioChannel:(NSInteger)channel
 {
-    assert(0 && @"not support");
-    return;
-    /*
-    player_->getCurrentPosition(&currentTime);
-    if(player_ != NULL) {
-        delete player_;
-        player_ = NULL;
-    }
-    if(myListener != NULL) {
-        delete myListener;
-        myListener = NULL;
-    }
-    player = getPlayer(NULL);
-    player -> setDataSource([[self.contentURL absoluteString] UTF8String]);
-    player -> setVideoSurface((__bridge void *)self.view);
-    myListener = new playerListener();
-    player -> setListener(myListener);
-    player -> selectAudioChannel(channel);
-    player -> prepareAsync();
-     */
+    player_->selectAudioChannel(channel);
 }
 
 - (void)setAllowsAirPlay:(BOOL)allowsAirPlay
