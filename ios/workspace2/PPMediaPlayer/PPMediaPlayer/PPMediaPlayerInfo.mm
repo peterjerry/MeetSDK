@@ -88,11 +88,12 @@ static IPlayer *player = nil;
 
 - (PPMediaInfo)getMediaInfo:(NSString*)url
 {
-    if(myURL == url) {
+    if (myURL == url) {
+		// duplicateed call
         myMediaInfo.height = info.height;
         myMediaInfo.width = info.width;
         myMediaInfo.duration = info.duration_ms;
-        if (info.audio_channels>0) {
+        if (info.audio_channels > 0) {
             strcpy(myMediaInfo.audio_name, info.audiocodec_names[0]);
         }
         strcpy(myMediaInfo.video_name, info.videocodec_name);
@@ -104,7 +105,7 @@ static IPlayer *player = nil;
         myMediaInfo.height = myInfo.height;
         myMediaInfo.width = myInfo.width;
         myMediaInfo.duration = myInfo.duration_ms;
-        if (myInfo.audio_channels>0) {
+        if (myInfo.audio_channels > 0) {
             strcpy(myMediaInfo.audio_name, myInfo.audiocodec_names[0]);
         }
         strcpy(myMediaInfo.video_name, myInfo.videocodec_name);
@@ -112,20 +113,22 @@ static IPlayer *player = nil;
         myMediaInfo.video_channels = myInfo.video_channels;
         
     }
+	
     return myMediaInfo;
 }
 
 - (NSMutableDictionary*)getAudioChannel
 {
     NSMutableDictionary * audioDictionary = [[NSMutableDictionary alloc] init];
-    for(int i = 0;i < info.channels;i++)
-    {
-        if(strlen(info.audio_languages[i]) != 0)
-        {
-            if(strlen(info.audio_titles[i]) != 0)[audioDictionary setValue:[NSString stringWithCString:info.audio_titles[i] encoding:NSUTF8StringEncoding] forKey:[NSString stringWithFormat:@"%d",i]];
-            else[audioDictionary setValue:[NSString stringWithCString:info.audio_languages[i] encoding:NSUTF8StringEncoding] forKey:[NSString stringWithFormat:@"%d",i]];
-        }
+    for (int i = 0;i < info.channels;i++) {
+		if (strlen(info.audio_titles[i]) != 0)
+			[audioDictionary setValue:[NSString stringWithCString:info.audio_titles[i] encoding:NSUTF8StringEncoding] forKey:[NSString stringWithFormat:@"%d",i]];
+		else if (strlen(info.audio_languages[i]) != 0)
+			[audioDictionary setValue:[NSString stringWithCString:info.audio_languages[i] encoding:NSUTF8StringEncoding] forKey:[NSString stringWithFormat:@"%d",i]];
+		else
+			[audioDictionary setValue:[NSString stringWithCString:"N/A" encoding:NSUTF8StringEncoding] forKey:[NSString stringWithFormat:@"%d",i]];
     }
+	
     return audioDictionary;
 }
 

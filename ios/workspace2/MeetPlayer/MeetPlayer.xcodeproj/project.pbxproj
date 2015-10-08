@@ -1052,6 +1052,7 @@
 					/Users/Developer/gitlab/meetsdk/ios/lib,
 				);
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				TARGETED_DEVICE_FAMILY = 1;
 			};
 			name = Debug;
 		};
@@ -1076,6 +1077,7 @@
 					/Users/Developer/gitlab/meetsdk/ios/lib,
 				);
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				TARGETED_DEVICE_FAMILY = 1;
 			};
 			name = Release;
 		};
