@@ -194,7 +194,9 @@ class playerListener;
 
 - (NSTimeInterval)bufferingTime
 {
-    return 0;
+    int msec;
+    player_->getBufferingTime(&msec);
+    return (NSTimeInterval)msec;
 }
 
 #pragma mark callback class for player
