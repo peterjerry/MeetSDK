@@ -17,6 +17,7 @@ import java.util.Random;
 import com.pplive.common.pptv.EPGUtil;
 import com.pplive.common.pptv.PlayLink2;
 import com.pplive.common.pptv.PlayLinkUtil;
+import com.pplive.db.MediaStoreDatabaseHelper;
 import com.pplive.meetplayer.R;
 import com.pplive.meetplayer.service.MediaScannerService;
 import com.pplive.meetplayer.util.Util;
@@ -40,6 +41,8 @@ import android.os.Bundle;
 import android.os.Environment;
 import android.os.Handler;
 import android.os.Message;
+import android.pplive.media.MeetSDK;
+import android.pplive.media.player.MediaInfo;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuInflater;
@@ -737,6 +740,14 @@ public class PPTVEpisodeActivity extends Activity {
 			interrupted = true;
 		}
 		
+		private void saveMedia() {
+			MediaInfo info = MeetSDK.getMediaDetailInfo(mSavePath);
+			if (info != null) {
+				MediaStoreDatabaseHelper db = MediaStoreDatabaseHelper.getInstance(PPTVEpisodeActivity.this);
+				db.saveMediaInfo(mSavePath, mTitle, info);
+			}
+		}
+		
 		@Override
 		protected void onPreExecute() {
 			// TODO Auto-generated method stub
@@ -920,6 +931,8 @@ public class PPTVEpisodeActivity extends Activity {
 				}
 				
 				MediaSDK.downloadClose(handle);
+				saveMedia();
+				
 				return true;
 			}
 			else {
@@ -969,6 +982,7 @@ public class PPTVEpisodeActivity extends Activity {
 					}
 
 					Log.i(TAG, "Java: total file size: " + mDownloadedSize);
+					saveMedia();
 					return true;
 				} catch (FileNotFoundException e) {
 					e.printStackTrace();

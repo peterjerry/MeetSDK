@@ -123,7 +123,7 @@ bool AndroidRender::render(AVFrame* frame)
 			buffer.width, buffer.height, buffer.stride, frame->width, frame->height);
 		// 2015.9.29 guolinagma added to fix some clip failed to play
 		ANativeWindow_unlockAndPost(mWindow);
-		return false;
+		return true; // just OK
 	}
 
 	//Convert format

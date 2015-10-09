@@ -19,9 +19,6 @@ import android.util.Log;
 public class MediaStoreDatabaseHelper {
     private static final String TAG = "MediaStoreDatabaseHelper";
 	
-    /**
-     * UUID
-     */
     private static final String TABLE_NAME = "mediastore";
     
     private static final String COLUMN_TITLE = "title";
@@ -60,6 +57,8 @@ public class MediaStoreDatabaseHelper {
     
     private static final String COLUMN_WATCH_TIME = "watch_time";
     
+    private static MediaStoreDatabaseHelper instance = null;
+    
     private DBOpenHelper dbOpenHelper;
     
     private Context context;
@@ -84,14 +83,10 @@ public class MediaStoreDatabaseHelper {
      * @see [类、类#方法、类#成员]
      */
     public static synchronized MediaStoreDatabaseHelper getInstance(Context context) {
-        
-        // if (instance == null)
-        // {
-        // instance = new UUIDDatabaseHelper(context);
-        // }
-        // return instance;
-        
-        return new MediaStoreDatabaseHelper(context.getApplicationContext());
+         if (instance == null)
+        	 instance = new MediaStoreDatabaseHelper(context);
+         
+         return instance;
     }
     
     /**

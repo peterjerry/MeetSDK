@@ -269,6 +269,7 @@ public class ClipListActivity extends Activity implements
 	final static int ONE_KILOBYTE 				= 1024;
 	
 	private BroadcastReceiver mScannerReceiver;
+	private MediaStoreDatabaseHelper mMediaDB;
 	
 	// message
 	private final static int MSG_CLIP_LIST_DONE					= 101;
@@ -432,6 +433,8 @@ public class ClipListActivity extends Activity implements
 					Toast.LENGTH_SHORT).show();
 		}
 		
+		mMediaDB = MediaStoreDatabaseHelper.getInstance(this);
+		
 		if (Util.IsHaveInternet(this)) {
 			tv_title.setText(tv_title.getText().toString() + " ip: " + Util.getIpAddr(this) + ", http port " + MyHttpService.getPort());
 		}
@@ -541,6 +544,8 @@ public class ClipListActivity extends Activity implements
 								if (file_path.startsWith("/") || file_path.startsWith("file://")) {
 									File file = new File(file_path);
 									if (file.exists() && file.delete()) {
+										mMediaDB.deleteMediaInfo(file.getAbsolutePath());
+										
 										Log.i(TAG, "file: " + file_path + " deleted");
 										Toast.makeText(ClipListActivity.this, "file " + file_name + " deleted!", Toast.LENGTH_SHORT).show();
 										
@@ -559,7 +564,7 @@ public class ClipListActivity extends Activity implements
 								}
 							}
 							else {
-								
+								// todo
 							}
 						}
 					})
@@ -2534,8 +2539,7 @@ public class ClipListActivity extends Activity implements
 		switch (id) {
 		case R.id.list_clip:
 			if (mListLocalFile) {
-				MediaStoreDatabaseHelper mediaDB = MediaStoreDatabaseHelper.getInstance(getApplicationContext());
-				if (mediaDB.getMediaStore() == null) {
+				if (mMediaDB.getMediaStore() == null) {
 					intent = new Intent(getApplicationContext(), MediaScannerService.class);
 					startService(intent);
 					return true;
@@ -2601,8 +2605,7 @@ public class ClipListActivity extends Activity implements
 	        builder.show();
 			break;
 		case R.id.clean_media_db:
-			MediaStoreDatabaseHelper mediaDB = MediaStoreDatabaseHelper.getInstance(getApplicationContext());
-			mediaDB.clearMediaStore();
+			mMediaDB.clearMediaStore();
 			break;
 		case R.id.dlna_dmr:
 			push_to_dmr();
