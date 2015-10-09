@@ -1,7 +1,3 @@
-/*
- * Copyright (C) 2012 Roger Shen  rogershen@pptv.com
- *
- */
 #include "audioplayer.h"
 
 #ifndef _MSC_VER
@@ -40,6 +36,12 @@ AudioPlayer::AudioPlayer(FFStream* dataStream, AVStream* context, int32_t stream
     mListener = NULL;
     mRender = NULL;
     mReachEndStream = false;
+	mOnFrame = NULL;
+	mOpaque = NULL;
+
+#ifdef PCM_DUMP
+	mDumpUrl = NULL;
+#endif
     
     pthread_mutex_init(&mLock, NULL);
     pthread_cond_init(&mCondition, NULL);
@@ -114,6 +116,11 @@ status_t AudioPlayer::setup_render()
 		CodecCtx->channels);
 
 	mRender = new AudioRender();
+
+#ifdef PCM_DUMP
+	mRender->set_dump(mDumpUrl);
+#endif
+
 	uint64_t channelLayout = get_channel_layout(CodecCtx->channel_layout, CodecCtx->channels);
 
 	return mRender->open(mAudioContext->codec->sample_rate,

@@ -7,7 +7,6 @@
 #define FF_AUDIO_PLAYER_H
 
 #include <pthread.h>
-//#include <sys/types.h>
 
 #include "player.h"
 #include "packetqueue.h"
