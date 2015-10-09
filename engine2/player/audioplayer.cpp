@@ -104,9 +104,14 @@ status_t AudioPlayer::prepare()
 status_t AudioPlayer::setup_render()
 {
 	AVCodecContext *CodecCtx = mAudioContext->codec;
-	LOGI("channel layout:%lld, sample rate:%d, sample format:%d, channels:%d", 
-		CodecCtx->channel_layout, 
-		CodecCtx->sample_rate, CodecCtx->sample_fmt, CodecCtx->channels);
+
+	char channel_layout_desc[1024] = {0};
+	av_get_channel_layout_string(channel_layout_desc, 1024, CodecCtx->channels, CodecCtx->channel_layout);
+	LOGI("channel layout:%lld(%s), sample rate:%d, sample format:%d(%s), channels:%d", 
+		CodecCtx->channel_layout, channel_layout_desc, 
+		CodecCtx->sample_rate, 
+		CodecCtx->sample_fmt, av_get_sample_fmt_name(CodecCtx->sample_fmt), 
+		CodecCtx->channels);
 
 	mRender = new AudioRender();
 	uint64_t channelLayout = get_channel_layout(CodecCtx->channel_layout, CodecCtx->channels);
@@ -302,6 +307,9 @@ int AudioPlayer::process_pkt(AVPacket *packet)
 					set_time_msec(pos);
 					LOGD("update mAudioPlayingTimeMs %lld", pos);
 
+					if (mOnFrame && mOpaque) {
+						mOnFrame(mAudioFrame, mOpaque);
+					}
 				}
 			}
 		}
