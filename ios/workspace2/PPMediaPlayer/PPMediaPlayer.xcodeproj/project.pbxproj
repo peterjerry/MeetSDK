@@ -11,7 +11,7 @@
 		2221C32E1A30480C0067C75D /* PPMediaPlayerController.mm in Sources */ = {isa = PBXBuildFile; fileRef = 2221C32C1A30480C0067C75D /* PPMediaPlayerController.mm */; };
 		223A1A481A272A0A008E7ECD /* CoreMedia.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 223A1A471A272A0A008E7ECD /* CoreMedia.framework */; };
 		223A1A4A1A272A10008E7ECD /* AVFoundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 223A1A491A272A10008E7ECD /* AVFoundation.framework */; };
-		226ADE7B1A246EBB00CA919E /* AVPlayerController.m in Sources */ = {isa = PBXBuildFile; fileRef = 226ADE771A246EBB00CA919E /* AVPlayerController.m */; };
+		226ADE7B1A246EBB00CA919E /* SysPlayerController.m in Sources */ = {isa = PBXBuildFile; fileRef = 226ADE771A246EBB00CA919E /* SysPlayerController.m */; };
 		226ADE7C1A246EBB00CA919E /* PPPlayerController.h in Headers */ = {isa = PBXBuildFile; fileRef = 226ADE781A246EBB00CA919E /* PPPlayerController.h */; settings = {ATTRIBUTES = (Public, ); }; };
 		226ADE921A247BE900CA919E /* PPMediaPlayerInfo.h in Headers */ = {isa = PBXBuildFile; fileRef = 226ADE8A1A247BE900CA919E /* PPMediaPlayerInfo.h */; settings = {ATTRIBUTES = (Public, ); }; };
 		226ADE931A247BE900CA919E /* PPMediaPlayerInfo.mm in Sources */ = {isa = PBXBuildFile; fileRef = 226ADE8B1A247BE900CA919E /* PPMediaPlayerInfo.mm */; };
@@ -21,7 +21,7 @@
 		226ADE971A247BE900CA919E /* PPPlayerSubtitle.mm in Sources */ = {isa = PBXBuildFile; fileRef = 226ADE8F1A247BE900CA919E /* PPPlayerSubtitle.mm */; };
 		226ADE991A247BE900CA919E /* PPPlayerUtil.mm in Sources */ = {isa = PBXBuildFile; fileRef = 226ADE911A247BE900CA919E /* PPPlayerUtil.mm */; };
 		22E102AD1A25C09D000A994C /* PPPlayerController.m in Sources */ = {isa = PBXBuildFile; fileRef = 22E102AC1A25C09D000A994C /* PPPlayerController.m */; };
-		22E102AE1A25C5EE000A994C /* AVPlayerController.h in Headers */ = {isa = PBXBuildFile; fileRef = 226ADE761A246EBB00CA919E /* AVPlayerController.h */; settings = {ATTRIBUTES = (Private, ); }; };
+		22E102AE1A25C5EE000A994C /* SysPlayerController.h in Headers */ = {isa = PBXBuildFile; fileRef = 226ADE761A246EBB00CA919E /* SysPlayerController.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		22E102AF1A25C5EE000A994C /* PPPlayerUtil.h in Headers */ = {isa = PBXBuildFile; fileRef = 226ADE901A247BE900CA919E /* PPPlayerUtil.h */; };
 		22E102B21A26C175000A994C /* AVPlaybackView.h in Headers */ = {isa = PBXBuildFile; fileRef = 22E102B01A26C175000A994C /* AVPlaybackView.h */; };
 		22E102B31A26C175000A994C /* AVPlaybackView.m in Sources */ = {isa = PBXBuildFile; fileRef = 22E102B11A26C175000A994C /* AVPlaybackView.m */; };
@@ -51,8 +51,8 @@
 		2221C32C1A30480C0067C75D /* PPMediaPlayerController.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = PPMediaPlayerController.mm; sourceTree = "<group>"; };
 		223A1A471A272A0A008E7ECD /* CoreMedia.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreMedia.framework; path = System/Library/Frameworks/CoreMedia.framework; sourceTree = SDKROOT; };
 		223A1A491A272A10008E7ECD /* AVFoundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AVFoundation.framework; path = System/Library/Frameworks/AVFoundation.framework; sourceTree = SDKROOT; };
-		226ADE761A246EBB00CA919E /* AVPlayerController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = AVPlayerController.h; sourceTree = "<group>"; };
-		226ADE771A246EBB00CA919E /* AVPlayerController.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = AVPlayerController.m; sourceTree = "<group>"; };
+		226ADE761A246EBB00CA919E /* SysPlayerController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = SysPlayerController.h; sourceTree = "<group>"; };
+		226ADE771A246EBB00CA919E /* SysPlayerController.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = SysPlayerController.m; sourceTree = "<group>"; };
 		226ADE781A246EBB00CA919E /* PPPlayerController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = PPPlayerController.h; sourceTree = "<group>"; };
 		226ADE8A1A247BE900CA919E /* PPMediaPlayerInfo.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = PPMediaPlayerInfo.h; sourceTree = "<group>"; };
 		226ADE8B1A247BE900CA919E /* PPMediaPlayerInfo.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = PPMediaPlayerInfo.mm; sourceTree = "<group>"; };
@@ -95,8 +95,8 @@
 		226ADE751A246E8600CA919E /* player */ = {
 			isa = PBXGroup;
 			children = (
-				226ADE761A246EBB00CA919E /* AVPlayerController.h */,
-				226ADE771A246EBB00CA919E /* AVPlayerController.m */,
+				226ADE761A246EBB00CA919E /* SysPlayerController.h */,
+				226ADE771A246EBB00CA919E /* SysPlayerController.m */,
 				226ADE781A246EBB00CA919E /* PPPlayerController.h */,
 				22E102AC1A25C09D000A994C /* PPPlayerController.m */,
 				22E102B01A26C175000A994C /* AVPlaybackView.h */,
@@ -203,7 +203,7 @@
 				226ADE961A247BE900CA919E /* PPPlayerSubtitle.h in Headers */,
 				226ADE7C1A246EBB00CA919E /* PPPlayerController.h in Headers */,
 				24B9F315178FFE7700809D14 /* PPMediaPlayer.h in Headers */,
-				22E102AE1A25C5EE000A994C /* AVPlayerController.h in Headers */,
+				22E102AE1A25C5EE000A994C /* SysPlayerController.h in Headers */,
 				22E102AF1A25C5EE000A994C /* PPPlayerUtil.h in Headers */,
 				22E102B21A26C175000A994C /* AVPlaybackView.h in Headers */,
 				2221C32D1A30480C0067C75D /* PPMediaPlayerController.h in Headers */,
@@ -309,7 +309,7 @@
 				226ADE991A247BE900CA919E /* PPPlayerUtil.mm in Sources */,
 				226ADE951A247BE900CA919E /* PPPlayerLog.mm in Sources */,
 				22E102AD1A25C09D000A994C /* PPPlayerController.m in Sources */,
-				226ADE7B1A246EBB00CA919E /* AVPlayerController.m in Sources */,
+				226ADE7B1A246EBB00CA919E /* SysPlayerController.m in Sources */,
 				226ADE971A247BE900CA919E /* PPPlayerSubtitle.mm in Sources */,
 				2221C32E1A30480C0067C75D /* PPMediaPlayerController.mm in Sources */,
 				226ADE931A247BE900CA919E /* PPMediaPlayerInfo.mm in Sources */,

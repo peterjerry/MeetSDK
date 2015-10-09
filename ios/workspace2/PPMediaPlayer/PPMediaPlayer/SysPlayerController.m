@@ -8,7 +8,7 @@
 
 #import <AVFoundation/AVFoundation.h>
 
-#import "AVPlayerController.h"
+#import "SysPlayerController.h"
 #import "AVPlaybackView.h"
 
 #define BOOL2MSG(bret) bret ? @"YES" : @"NO"
@@ -45,7 +45,7 @@ NSString *kLoadedTimeRanges = @"loadedTimeRanges";
 NSString *kTracksKey        = @"tracks";
 NSString *kPlayableKey		= @"playable";
 
-@implementation AVPlayerController
+@implementation SysPlayerController
 {
     AVPlayer *avPlayer_;
     AVPlayerItem *currentItem_;
@@ -93,8 +93,10 @@ NSString *kPlayableKey		= @"playable";
     if (currentItem_) {
         for (AVPlayerItemTrack *itemTrack in currentItem_.tracks) {
             AVAssetTrack *track = itemTrack.assetTrack;
-            NSString *str = [NSString stringWithFormat:@"track%d (type:%@, playable: %d)",
-                track.trackID, track.mediaType, track.playable];
+            NSString *str = [NSString stringWithFormat:@"track%d(type:%@, playable=%hhd)"
+                             , track.trackID
+                             , track.mediaType
+                             , track.playable];
             if (infoStr == nil) {
                 infoStr = str;
             } else {
@@ -564,7 +566,7 @@ NSString *kPlayableKey		= @"playable";
         }
     } else if (currentItem_ == object){     //player item key
         if (avPlayer_.currentItem != currentItem_) {
-            //NSLog(@"[AVPlayerController] [observeValueForKeyPath] player's currentitem err!");
+            //NSLog(@"[SysPlayerController] [observeValueForKeyPath] player's currentitem err!");
             return;
         }
         if (context == PPPlayerItemStatusObserverContext) {

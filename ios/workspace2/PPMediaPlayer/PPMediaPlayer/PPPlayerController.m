@@ -8,7 +8,7 @@
 
 #import "PPPlayerController.h"
 #import "PPMediaPlayerController.h"
-#import "AvPlayerController.h"
+#import "SysPlayerController.h"
 #import "PPMediaPlayerInfo.h"
 
 
@@ -25,7 +25,7 @@
     PPPlayerController *player = nil;
     switch (type) {
         case PPMOVIE_SYSTEM_PLAYER:
-            player = [[AVPlayerController alloc] initWithUrl:url frame:frame];
+            player = [[SysPlayerController alloc] initWithUrl:url frame:frame];
             NSLog(@"Create AvPlayer");
             break;
         case PPMOVIE_SELF_PLAYER:
@@ -56,7 +56,7 @@
                 && [PPPlayerController audioSupport:audioType];
             }
             if (canHardDecoding) {
-                player = [[AVPlayerController alloc] initWithUrl:url frame:frame];
+                player = [[SysPlayerController alloc] initWithUrl:url frame:frame];
                 NSLog(@"Create AvPlayer");
             } else {
                 player = [[PPMediaPlayerController alloc] initWithUrl:url frame:frame];
