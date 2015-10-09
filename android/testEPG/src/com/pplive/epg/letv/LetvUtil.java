@@ -37,7 +37,7 @@ public class LetvUtil {
 	
 	String play_list_url_fmt = "http://st.live.letv.com/live/playlist/%s.json"; // lb_1080P
 	
-	String context_json_url = "http://121.201.14.53/apk_api/itv_json_v5.zip";
+	String context_json_url = "http://121.201.14.53/apk_api/itv_json_v6.zip";
 	
 	String live_url_fmt = "http://live.gslb.letv.com/gslb?stream_id=%s&tag=live" +
 			"&ext=m3u8&sign=live_tv&platid=10&splatid=1002&tm=10&format=2&expect=3&must=%s";
@@ -96,12 +96,13 @@ public class LetvUtil {
 			e.printStackTrace();
 		}
 		
+		System.out.println("Java: failed to load_json");
 		return false;
 	}
 	
 	public boolean update_json() {
-		String zip_save_path = "itv_json_v5.zip";
-		String json_save_path = "itv_json_v5.php";
+		String zip_save_path = "itv_json_v6.zip";
+		String json_save_path = "itv_json_v6.php";
 		
 		File json_file = new File(json_save_path);
 		if (json_file.exists()) {
@@ -109,7 +110,7 @@ public class LetvUtil {
 			return load_json(json_save_path);
 		}
 		
-		boolean ret = httpUtil.httpDownload(context_json_url, "itv_json_v5.zip");
+		boolean ret = httpUtil.httpDownload(context_json_url, "itv_json_v6.zip");
 		if (ret == false) {
 			System.out.println("Java: failed to download json");
 			return false;
@@ -150,7 +151,6 @@ public class LetvUtil {
 			
 			String result = new String(EntityUtils.toString(
 					response.getEntity()).getBytes("ISO-8859-1"), "utf-8");
-			System.out.println("Java: result: " + result.substring(0, 256));
 			
 			JSONTokener jsonParser = new JSONTokener(result);
 			JSONObject root = (JSONObject) jsonParser.nextValue();

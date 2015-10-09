@@ -68,9 +68,6 @@
     <ClCompile Include="..\..\..\player\audioplayer.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\player\ffrender.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\..\player\ffplayer.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
@@ -84,6 +81,9 @@
       <Filter>源文件</Filter>
     </ClCompile>
     <ClCompile Include="apFileLog.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\player\winrender.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
   </ItemGroup>

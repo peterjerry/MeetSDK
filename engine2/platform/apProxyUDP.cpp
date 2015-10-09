@@ -99,7 +99,7 @@ int apProxyUDP::wait(int64_t usec)
 	ts.tv_sec = usec / 1000000ll; // unit: sec
 	ts.tv_nsec = (usec % 1000000ll) * 1000ll;
 
-#if defined(__CYGWIN__) || defined(_MSC_VER)
+#if defined(__CYGWIN__) || defined(_MSC_VER) || defined(__aarch64__)
 	int64_t now_usec = getNowUs();
 	int64_t now_sec = now_usec / 1000000;
 	now_usec = now_usec - now_sec * 1000000;

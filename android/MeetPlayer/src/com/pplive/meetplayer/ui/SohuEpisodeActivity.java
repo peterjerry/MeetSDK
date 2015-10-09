@@ -105,8 +105,8 @@ public class SohuEpisodeActivity extends Activity {
 					selected_aid = (Long)item.get("aid");
 					int last_count = (Integer)item.get("last_count");
 					if (last_count > 30) {
-						// " last_count - 1" fix 50 / 10 case
-						ep_page_index = (last_count - 1) / page_size + 1;
+						// " last_count - 1" fix 709 case
+						ep_page_index = (last_count + 9) / page_size;
 						ep_page_incr = -1;
 					}
 					else {

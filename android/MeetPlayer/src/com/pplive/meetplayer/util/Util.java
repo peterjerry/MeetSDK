@@ -1,16 +1,21 @@
 package com.pplive.meetplayer.util;
 
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
+import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.UnsupportedEncodingException;
 import java.net.InetAddress;
 import java.net.NetworkInterface;
 import java.net.SocketException;
 import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.List;
+import java.util.Properties;
 import java.util.StringTokenizer;
 
 import android.content.Context;
@@ -47,6 +52,11 @@ public class Util {
 		MediaSDK.logOn = false;
 		MediaSDK.setConfig("", "HttpManager", "addr", "127.0.0.1:9106+");
 		MediaSDK.setConfig("", "RtspManager", "addr", "127.0.0.1:5156+");
+		
+		Properties props = System.getProperties();
+        String osArch = props.getProperty("os.arch");
+        if (osArch != null && osArch.contains("aarch64"))
+        	MediaSDK.libName = "ppbox_jni-armandroid-r4-gcc44-mt-1.1.0";
 		
 		long ret = -1;
 
@@ -194,6 +204,49 @@ public class Util {
         	Log.i(TAG, String.format("Java %s already in history list", new_video));
         
 		writeSettings(ctx, key, sb.toString());
+	}
+	
+	public static String read_file(String path, String encode) {
+		if (path == null || encode == null)
+			return null;
+		
+		File file = new File(path);
+		FileInputStream fis = null;
+		try {
+			fis = new FileInputStream(file);
+		} catch (FileNotFoundException e1) {
+			// TODO Auto-generated catch block
+			e1.printStackTrace();
+			return null;
+		}
+		
+		InputStreamReader inputStreamReader = null;  
+	    try {  
+	        inputStreamReader = new InputStreamReader(fis, encode);  
+	    } catch (UnsupportedEncodingException e) {  
+	        e.printStackTrace();  
+	    }  
+	    
+	    BufferedReader reader = new BufferedReader(inputStreamReader);  
+	    StringBuffer sb = new StringBuffer("");  
+	    String line;  
+	    try {  
+	        while ((line = reader.readLine()) != null) {  
+	            sb.append(line);  
+	            sb.append("\n");  
+	        }  
+	    } catch (IOException e) {  
+	        e.printStackTrace();  
+	    }  
+	    
+	    try {
+			reader.close();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	    
+	    return sb.toString();  
 	}
 	
 	public static boolean IsHaveInternet(final Context context) { 

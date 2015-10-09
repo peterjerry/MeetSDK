@@ -82,7 +82,7 @@ public class PlayLinkUtil {
 			e.printStackTrace();
 		}
 		
-		if (playlink >= 300000 && playlink <= 300999) {
+		if (playlink >= 300000 && playlink <= 400000) {
 			// live
 			if (link_surfix == null || link_surfix.equals("")) {
 				// real live

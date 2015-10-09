@@ -25,7 +25,7 @@ xcodebuild -project PPMediaPlayer.xcodeproj -sdk "iphonesimulator" VALID_ARCHS=i
 cp -rp ../../output/PPMediaPlayer.framework ../../output/i386/
 echo "build i386 end"
 
-echo "begin morge"
+echo "begin merge"
 cd ../../output
 rm PPMediaPlayer.framework/PPMediaPlayer 
 lipo -create armv7/PPMediaPlayer.framework/PPMediaPlayer i386/PPMediaPlayer.framework/PPMediaPlayer  -output PPMediaPlayer.framework/PPMediaPlayer

@@ -9,7 +9,7 @@
 #include "autolock.h"
 #ifdef __ANDROID__
 #include <cpu-features.h> // for decide render implement
-#ifdef __aarch64__
+#if defined(__ANDROID__) && defined(__aarch64__)
 #include "libyuv/row.h"
 #endif
 #endif
@@ -436,7 +436,7 @@ void FFRender::saveFrameRGB(void* data, int stride, int height, char* path)
 	fclose(pFile);
 }
 
-#ifdef __aarch64__
+#if defined(__ANDROID__) && defined(__aarch64__)
 // Convert I420 to ARGB.
 static int I420ToABGR(const uint8_t* src_y, int src_stride_y,
                const uint8_t* src_u, int src_stride_u,

@@ -61,8 +61,8 @@ int __pp_log_print(int prio, const char *tag,  const char *fmt, ...)
     va_start(ap, fmt);
 
 #ifdef SAVE_LOG_FILE
-	char header[128] = {0};
-	snprintf(header, 128, "[%s] %s", tag, fmt);
+	char header[256] = {0};
+	snprintf(header, 256, "[%s] %s", tag, fmt);
 
 	int cnt = _vsnprintf_s(msg, sizeof(msg), header, ap);
 	apLog::print(0, get_log_level2(prio), "%s", msg); // "%s", msg : avoid url "%" error

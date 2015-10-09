@@ -361,12 +361,7 @@
 				INFOPLIST_EXPAND_BUILD_SETTINGS = NO;
 				INFOPLIST_FILE = "";
 				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Bundles";
-				LIBRARY_SEARCH_PATHS = (
-					../../lib,
-					/Users/Developer/meet/PPMediaPlayer/lib,
-					/Users/zenzhang/Desktop/meet/engine2/subtitle/output/ios,
-					/Users/zenzhang/Desktop/meet/PPMediaPlayer/lib,
-				);
+				LIBRARY_SEARCH_PATHS = ../../lib;
 				MACOSX_DEPLOYMENT_TARGET = "";
 				ONLY_ACTIVE_ARCH = NO;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -396,12 +391,7 @@
 				INFOPLIST_FILE = "";
 				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Bundles";
 				"IPHONEOS_DEPLOYMENT_TARGET[sdk=iphonesimulator7.1]" = 5.1.1;
-				LIBRARY_SEARCH_PATHS = (
-					../../lib,
-					/Users/Developer/meet/PPMediaPlayer/lib,
-					/Users/zenzhang/Desktop/meet/engine2/subtitle/output/ios,
-					/Users/zenzhang/Desktop/meet/PPMediaPlayer/lib,
-				);
+				LIBRARY_SEARCH_PATHS = ../../lib;
 				MACOSX_DEPLOYMENT_TARGET = "";
 				ONLY_ACTIVE_ARCH = NO;
 				PRODUCT_NAME = "$(TARGET_NAME)";

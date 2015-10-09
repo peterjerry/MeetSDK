@@ -1,6 +1,8 @@
 package com.pplive.meetplayer.service;
 
-import com.pplive.meetplayer.util.MyNanoHTTPD;
+import java.util.Random;
+
+import com.pplive.common.util.MyNanoHTTPD;
 
 import fi.iki.elonen.NanoHTTPD;
 import android.app.Service;
@@ -10,14 +12,22 @@ import android.util.Log;
 
 public class MyHttpService extends Service {
 	private final static String TAG = "HttpService";
-	private final static int HTTP_PORT = 8080;
+	private static int HTTP_PORT = 8011;
 	
 	private NanoHTTPD nanoHttpd;
+	
+	public static int getPort() {
+		return HTTP_PORT;
+	}
 	
 	@Override  
     public void onCreate() {  
         Log.i(TAG, "Java: HttpService onCreate");  
         super.onCreate();
+        
+        Random rand =new Random();
+		HTTP_PORT = 8800 + rand.nextInt(100);
+		Log.i(TAG, "Java: http port: " + HTTP_PORT);
         
         nanoHttpd = new MyNanoHTTPD(this, HTTP_PORT, null);
     }

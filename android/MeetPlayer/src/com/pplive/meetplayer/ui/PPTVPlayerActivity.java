@@ -36,6 +36,7 @@ public class PPTVPlayerActivity extends VideoPlayerActivity {
 	private String episode_title;
 	private int mEpisodeIndex;
 	private int mVid;
+	private boolean do_retry = false;
 	
 	@Override
 	public void onCreate(Bundle savedInstanceState) {
@@ -45,6 +46,8 @@ public class PPTVPlayerActivity extends VideoPlayerActivity {
 		Intent intent 	= getIntent();
 		mVid 			= intent.getIntExtra("vid", -1);
 		mEpisodeIndex	= intent.getIntExtra("index", -1);
+		do_retry		= intent.hasExtra("do_retry");
+		
 		mEPG = new EPGUtil();
 	}
 	
@@ -52,10 +55,15 @@ public class PPTVPlayerActivity extends VideoPlayerActivity {
 	protected void onComplete() {
 		mVideoView.stopPlayback();
 		
-		mEpisodeIndex ++;
+		mEpisodeIndex++;
 		
 		if (mEpisodeList == null) {
-			if (mVid == -1) {
+			if (do_retry) {
+				mVideoView.stopPlayback();
+				
+				mVideoView.start();
+			}
+			else if (mVid == -1) {
 				Toast.makeText(this, "mVid is invalid", Toast.LENGTH_SHORT).show();
 				finish();
 			}

@@ -197,7 +197,6 @@ public class LeTVPanel extends JPanel {
 		});
 		
 		init_combobox();
-		
 	}
 	
 	private void selectProgram() {
@@ -273,17 +272,29 @@ public class LeTVPanel extends JPanel {
 		if (mPlayLinkList.size() > 0) {
 			PlayLinkLb lb = mPlayLinkList.get(0);
 			String url = lb.getUrl();
-			System.out.println(String.format("Java: select %s %s", 
+			System.out.println(String.format("Java: select location_server %s, url %s", 
 					lb.getName(), url));
 			
-			String exe_filepath  = "D:/Program files/ffmpeg/ffplay.exe";
+			String url_fmt = "http://live.gslb.letv.com/gslb" +
+					"?stream_id=%s" +
+					"&tag=live" +
+					"&ext=m3u8" +
+					"&sign=live_tv" +
+					"&platid=10" +
+					"&splatid=1009" +
+					"&format=C1S" +
+					"&expect=1";
+			
+			url = String.format(url_fmt, select_strm_id);
+			
+			String exe_filepath  = "D:/Software/ffmpeg/ffplay.exe";
 			String[] cmd = new String[] {exe_filepath, url};
 			openExe(cmd);
 		}
 	}
 	
 	private void init_combobox() {
-		/*if (!mEPG.context()) {
+		if (!mEPG.context()) {
 			System.out.println("failed to get context");
 			return;
 		}
@@ -293,7 +304,7 @@ public class LeTVPanel extends JPanel {
 		mProgramList = mEPG.getProgramList();
 		for (int i=0;i<mProgramList.size();i++) {
 			comboItem.addItem(mProgramList.get(i).getName());
-		}*/
+		}
 		
 		mState = LETV_EPG_STATE.LETV_EPG_STATE_CONTENT;
 	}

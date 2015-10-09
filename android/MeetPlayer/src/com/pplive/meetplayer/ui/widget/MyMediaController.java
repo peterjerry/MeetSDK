@@ -14,8 +14,8 @@ import android.view.LayoutInflater;
 import android.view.MotionEvent;
 import android.view.View;
 import android.widget.ImageButton;
-import android.widget.ProgressBar;
 import android.widget.SeekBar;
+import android.widget.SeekBar.OnSeekBarChangeListener;
 import android.widget.TextView;
 import android.pplive.media.player.MediaController;
 
@@ -115,8 +115,6 @@ public class MyMediaController extends MediaController {
         mFormatter = new Formatter(mFormatBuilder, Locale.getDefault());
         
         mFileName = (TextView) v.findViewById(R.id.textview_filename);
-  
-        //this.setOnTouchListener(mTouchListener);
 	}
 	
 	private String stringForTime(int timeMs) {
@@ -138,6 +136,7 @@ public class MyMediaController extends MediaController {
 		if (mPlayer == null) {
 			return 0;
 		}
+	
 		int position = mPlayer.getCurrentPosition();
 		return setProgress(position);
 	}
@@ -155,7 +154,7 @@ public class MyMediaController extends MediaController {
 				mProgressBar.setProgress((int)pos);
 			}
 			int percent = mPlayer.getBufferPercentage();
-			mProgressBar.setSecondaryProgress(percent * 10);
+			mProgressBar.setSecondaryProgress(percent * MAX_RANGE / 100);
 		}
 		
 		if (mEndTime != null) {
@@ -179,12 +178,12 @@ public class MyMediaController extends MediaController {
 		
 		int maxVolume = mAudioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC);
 		int volume = mAudioManager.getStreamVolume(AudioManager.STREAM_MUSIC);
-		//Log.d(TAG, String.format("Java: volume %d/%d", volume, maxVolume));
 		
 		if (mVolumeBar != null && !mVolumerDragging) {
 			if (maxVolume > 0) {
 				int pos = volume * MAX_RANGE / maxVolume;
-				mVolumeBar.setProgress(pos);
+				Log.i(TAG, String.format("Java: volume %d/%d, pos %d", volume, maxVolume, pos));
+				mVolumeBar.setProgressAndThumb(pos);
 			}
 		}
 	}
@@ -210,9 +209,9 @@ public class MyMediaController extends MediaController {
 	public void show(int timeout) {
 		mHandler.sendEmptyMessage(SHOW);
 
+		mHandler.removeMessages(FADE_OUT);
         Message msg = mHandler.obtainMessage(FADE_OUT);
         if (timeout != 0) {
-            mHandler.removeMessages(FADE_OUT);
             mHandler.sendMessageDelayed(msg, timeout);
         }
 	}
@@ -236,7 +235,7 @@ public class MyMediaController extends MediaController {
                 	mIsShowing = true;
                     break;
                case UPDATE_PROGRESS:
-            	   updateVolumeProgress();
+            	   //updateVolumeProgress();
                    setProgress();
                    // keep UI always show up
                    if (isShowing() && mPlayer.isPlaying()) {
@@ -300,37 +299,6 @@ public class MyMediaController extends MediaController {
             show(sDefaultTimeout);
         }
     };
-    
-    /*private GestureDetector mGestureDetector = new GestureDetector(
-    		mContext, new GestureDetector.SimpleOnGestureListener(){
-    	
-    	public boolean onDoubleTap(MotionEvent e) {
-    		Log.i(TAG, "onDoubleTap!!!");
-    		
-    		if (mPlayer instanceof MediaPlayerControl) {
-    			((MediaPlayerControl) mPlayer).switchDisplayMode();
-    		}
-    		
-    		return false;
-    	};
-    	
-    	public boolean onSingleTapConfirmed(MotionEvent e) {
-    		Log.i(TAG, "onSingleTapConfirmed!!!");
-    		
-    		
-    		return false;
-    	};
-    });
-    
-    private OnTouchListener mTouchListener = new OnTouchListener() {
-		
-		@Override
-		public boolean onTouch(View v, MotionEvent event) {
-			Log.i(TAG, "onTouch(): " + event.toString());
-			
-			return mGestureDetector.onTouchEvent(event);
-		}
-	};*/
 	
 	private SeekBar.OnSeekBarChangeListener mProgressChangeListener = new SeekBar.OnSeekBarChangeListener() {
 		
@@ -388,11 +356,11 @@ public class MyMediaController extends MediaController {
 		}
 	};
 	
-	private VerticalSeekBar.OnSeekBarChangeListener mVolumeChangeListener = new VerticalSeekBar.OnSeekBarChangeListener() {
+	private OnSeekBarChangeListener mVolumeChangeListener = new OnSeekBarChangeListener() {
 		
 		@Override
-		public void onStopTrackingTouch(VerticalSeekBar seekBar) {
-			Log.d(TAG, "Java: onStopTrackingTouch()");
+		public void onStopTrackingTouch(SeekBar seekBar) {
+			Log.i(TAG, "Java: onStopTrackingTouch()");
 			
 			show(sDefaultTimeout);
 			mVolumerDragging = false;
@@ -400,20 +368,20 @@ public class MyMediaController extends MediaController {
 			int maxVolume = mAudioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC);
 			int volume = maxVolume * mVolumeProgress / 1000;
 			
-			Log.d(TAG, String.format("Java: onProgressChanged %d.%d", volume, maxVolume));
+			Log.i(TAG, String.format("Java: setVolume %d.%d", volume, maxVolume));
 			setVolume(volume);
 		}
 		
 		@Override
-		public void onStartTrackingTouch(VerticalSeekBar seekBar) {
-			Log.d(TAG, "Java: onStartTrackingTouch()");
+		public void onStartTrackingTouch(SeekBar seekBar) {
+			Log.i(TAG, "Java: onStartTrackingTouch()");
 			
 			show(3600000);
 			mVolumerDragging = true;
 		}
 		
 		@Override
-		public void onProgressChanged(VerticalSeekBar seekBar, int progress, boolean fromUser) {
+		public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
 			Log.d(TAG, String.format("Java: onProgressChanged() %d, fromUser: %s", progress, fromUser?"yes":"no"));
 			if (fromUser)
 				mVolumeProgress = progress;

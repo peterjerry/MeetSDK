@@ -1,7 +1,6 @@
 package com.pplive.meetplayer.util;
 
 import java.io.File;
-import java.io.IOException;
 import java.net.URL;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -22,6 +21,8 @@ import android.provider.MediaStore;
 import android.util.Log;
 import android.widget.Toast;
 
+import com.pplive.db.DBOpenHelper;
+import com.pplive.db.MediaStoreDatabaseHelper;
 import com.pplive.meetplayer.R;
 
 public class ListMediaUtil {
@@ -30,6 +31,8 @@ public class ListMediaUtil {
 	
 	private final static int ONE_MAGABYTE = 1048576;
 	private final static int ONE_KILOBYTE = 1024;
+	
+	private MediaStoreDatabaseHelper mediaDB;
 	
 	private List<Map<String, Object>> mClipList = null;
 	private Context mContext;
@@ -42,6 +45,7 @@ public class ListMediaUtil {
 	public ListMediaUtil(Context ctx) {
 		mContext = ctx;
 		mClipList = new ArrayList<Map<String, Object>>();
+		mediaDB = MediaStoreDatabaseHelper.getInstance(ctx);
 	}
 
 	private String GetFileExt(String path) {
@@ -335,6 +339,58 @@ public class ListMediaUtil {
 		return true;
 	}
 	
+	private boolean ListMediaInfoDatabase() {
+		List<MediaInfo> list = mediaDB.getMediaStore();
+		if (list == null || list.size() == 0)
+			return false;
+		
+		SimpleDateFormat dateFormat = new SimpleDateFormat(
+				"yyyy-MM-dd HH:mm:ss");
+
+		for (int i=0;i<list.size();i++) {
+			MediaInfo info = list.get(i);
+			
+			File file = new File(info.getPath());
+			if (!file.exists())
+				continue;
+			
+			long modTime = file.lastModified();
+
+			String strFilesize;
+			long size = info.getSize();
+			if (size > ONE_MAGABYTE)
+				strFilesize = String.format("%.3f MB",
+						(float) size / (float) ONE_MAGABYTE);
+			else if (size > ONE_KILOBYTE)
+				strFilesize = String.format("%.3f kB",
+						(float) size / (float) ONE_KILOBYTE);
+			else
+				strFilesize = String.format("%d Byte", size);
+
+			if (info != null) {
+				HashMap<String, Object> map = new HashMap<String, Object>();
+				map.put("filename", file.getName());
+				map.put("mediainfo", QueryMediaInfo(file.getAbsolutePath(), info));
+				map.put("folder", GetFileFolder(file.getAbsolutePath()));
+				map.put("filesize", strFilesize);
+				map.put("modify", dateFormat.format(new Date(modTime)));
+				
+				String string_res = String.format("%dx%d %s", 
+						info.getWidth(), info.getHeight(), msecToString(info.getDuration()));
+				map.put("resolution", string_res);
+				Log.i(TAG, "Java: media info: " + string_res);
+				
+				map.put("fullpath", file.getAbsolutePath());
+				map.put("thumb", file.getAbsolutePath()/*R.drawable.clip*/);
+				
+				Log.i(TAG, "video: " + file.getName() + " added to list");
+				mClipList.add(map);
+			}
+		}
+		
+		return true;
+	}
+	
 	private boolean ListMediaInfoMediaStore() {
 		Log.i(TAG, "Java: ListMediaInfoMediaStore()");
 		
@@ -442,8 +498,9 @@ public class ListMediaUtil {
 		mClipList.clear();
 		
 		if (mUrl == null || mUrl.equals(""))
-			return ListMediaInfoMediaStore();
-		else if(mUrl.startsWith("http://"))
+			//return ListMediaInfoMediaStore();
+			return ListMediaInfoDatabase();
+		else if (mUrl.startsWith("http://"))
 			return ListMediaInfoHttp();
 		else
 			return ListMediaInfoFolder();

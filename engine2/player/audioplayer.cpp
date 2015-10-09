@@ -40,13 +40,7 @@ AudioPlayer::AudioPlayer(FFStream* dataStream, AVStream* context, int32_t stream
     mListener = NULL;
     mRender = NULL;
     mReachEndStream = false;
-	mOnFrame = NULL;
-	mOpaque = NULL;
-
-#ifdef PCM_DUMP
-	mDumpUrl = NULL;
-#endif
-
+    
     pthread_mutex_init(&mLock, NULL);
     pthread_cond_init(&mCondition, NULL);
 	pthread_mutex_init(&mClockLock, NULL);
@@ -110,19 +104,11 @@ status_t AudioPlayer::prepare()
 status_t AudioPlayer::setup_render()
 {
 	AVCodecContext *CodecCtx = mAudioContext->codec;
-
-	char channel_layout_desc[1024] = {0};
-	av_get_channel_layout_string(channel_layout_desc, 1024, CodecCtx->channels, CodecCtx->channel_layout);
-	LOGI("channel layout:%lld(%s), sample rate:%d, sample format:%d(%s), channels:%d", 
-		CodecCtx->channel_layout, channel_layout_desc, 
-		CodecCtx->sample_rate, 
-		CodecCtx->sample_fmt, av_get_sample_fmt_name(CodecCtx->sample_fmt), 
-		CodecCtx->channels);
+	LOGI("channel layout:%lld, sample rate:%d, sample format:%d, channels:%d", 
+		CodecCtx->channel_layout, 
+		CodecCtx->sample_rate, CodecCtx->sample_fmt, CodecCtx->channels);
 
 	mRender = new AudioRender();
-#ifdef PCM_DUMP
-	mRender->set_dump(mDumpUrl);
-#endif
 	uint64_t channelLayout = get_channel_layout(CodecCtx->channel_layout, CodecCtx->channels);
 
 	return mRender->open(mAudioContext->codec->sample_rate,
@@ -316,9 +302,6 @@ int AudioPlayer::process_pkt(AVPacket *packet)
 					set_time_msec(pos);
 					LOGD("update mAudioPlayingTimeMs %lld", pos);
 
-					if (mOnFrame && mOpaque) {
-						mOnFrame(mAudioFrame, mOpaque);
-					}
 				}
 			}
 		}
@@ -344,7 +327,7 @@ void AudioPlayer::wait(int msec)
 	struct timespec ts;
     ts.tv_sec = 0;
     ts.tv_nsec = msec * 1000000L;//10 msec
-#if defined(__CYGWIN__) || defined(_MSC_VER) || defined(__aarch64__)
+#if defined(__CYGWIN__) || defined(_MSC_VER)
 	int64_t now_usec = getNowUs();
 	int64_t now_sec = now_usec / 1000000;
 	now_usec	= now_usec - now_sec * 1000000;

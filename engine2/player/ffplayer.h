@@ -11,6 +11,7 @@
 #include "loop.h"
 #include "audioplayer.h"
 #include "ffstream.h"
+#include "renderbase.h"
 
 class ISubtitles;
 class FFRender;
@@ -18,6 +19,7 @@ class FFSourceBase;
 
 struct AVFormatContext;
 struct AVStream;
+struct AVCodecContext;
 struct AVPacket;
 struct AVFrame;
 struct SwsContext;
@@ -97,7 +99,8 @@ public:
 
 	bool getMediaDetailInfo(const char* url, MediaInfo* info);
 
-	bool getThumbnail(const char* url, MediaInfo* info);
+	bool getThumbnail(const char* url, MediaInfo* info, 
+		int width = DEFAULT_THUMBNAIL_WIDTH, int height = DEFAULT_THUMBNAIL_WIDTH);
 
 	// deprecated
 	bool getThumbnail2(const char* url, MediaInfo* info);
@@ -185,7 +188,7 @@ private:
 	void SwapResolution(int32_t *width, int32_t *height);
 
 #ifdef USE_AV_FILTER
-	bool init_filters_video(const char **filters_descr);
+	bool init_filters_video(const char **filters_descr, AVCodecContext *dec_ctx);
 	bool init_filters_audio(const char **filters_descr);
 	bool insert_filter(const char *name, const char* arg, AVFilterContext **last_filter);
 #endif
@@ -265,7 +268,7 @@ private:
 	FFStream*				mDataStream; // demuxer setListener()
     MediaPlayerListener*	mListener;
     AudioPlayer*			mAudioPlayer; // audio render setListener()
-    FFRender*				mVideoRenderer; // video render
+    RenderBase*				mVideoRenderer; // video render
 	void*					mSurface; // native surface
 	AVFrame*				mVideoFrame;
 	// set to true(when "pause", "render first frame"), when decoder got picture, set it to false
@@ -389,10 +392,11 @@ private:
 	int64_t				mFrameTimerMs;
 	int64_t				mAVDiffMs;
 
+	// option
 #ifdef PCM_DUMP
 	char*				mDumpUrl;
-	int					mBufferingSec;
 #endif
+	int					mBufferingSec;
 
 #if USE_AV_FILTER
 	//avfilter

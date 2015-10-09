@@ -87,6 +87,19 @@ public class MediaPlayer implements MediaPlayerInterface {
                 holder.setType(SurfaceHolder.SURFACE_TYPE_PUSH_BUFFERS);
             }
         },
+        HW_OMX {
+            @Override
+            public MediaPlayerInterface newInstance(MediaPlayer mp) {
+            	LogUtils.info("player_select omx player");
+                return new OMXMediaPlayer(mp);
+            }
+            
+            @Override
+            public void setSurfaceType(SurfaceHolder holder) {
+                holder.setType(SurfaceHolder.SURFACE_TYPE_NORMAL);
+                holder.setFormat(PixelFormat.RGBA_8888);
+            }
+        },
         SW {
             @Override
             public MediaPlayerInterface newInstance(MediaPlayer mp) {
@@ -122,18 +135,29 @@ public class MediaPlayer implements MediaPlayerInterface {
 	private int mWakeMode;
 	private String mOption;
 
+	/**
+	    * @brief		新建播放器实例(默认软解)
+	    * @return      播放器实例
+	    */
 	public MediaPlayer() {
 		this(DecodeMode.SW);
 	}
 	
 	/**
-	 * @param mode valid value: DecodeMode.SW, DecodeMode.HW_SYSTEM
-	 * @param mode invalid value: DecodeMode.AUTO(should use MeetSDK.isOMXSurface to decide mode first)
-	 */
+	    * @brief		新建播放器实例
+	    * @param[in]	mode 解码模式
+	    * 有效值: DecodeMode.SW, DecodeMode.HW_SYSTEM
+	    * 无效值: DecodeMode.AUTO(因为无法兼容android 2.3.3系统，surfaceview需要手动设置surface type)
+	    * @return      播放器实例
+	    */
 	public MediaPlayer(DecodeMode mode) {
 		mDecodeMode = mode;
 	}
 	
+	/**
+     * @brief		获取当前解码模式
+     * @return     解码模式 DecodeMode
+     */
 	public DecodeMode getDecodeMode() {
 		return mDecodeMode;
 	}
@@ -424,6 +448,10 @@ public class MediaPlayer implements MediaPlayerInterface {
 	}
 	
 	private boolean mLooping = false;
+	/**
+	    * @brief		设置循环播放
+	    * @param[in]	looping: 是否循环播放
+	    */
 	@Override
 	public void setLooping(boolean looping) {
 		LogUtils.info("MediaPlayer setLooping: " + looping);
@@ -437,6 +465,10 @@ public class MediaPlayer implements MediaPlayerInterface {
 	}
 	
 	private int mStreamType = 0;
+	/**
+	    * @brief		设置声音流类型
+	    * @param[in]	streamtype: the audio stream type STREAM_MUSIC, STREAM_ALARM, STREAM_NOTIFICATION, ...
+	    */
 	@Override
 	public void setAudioStreamType(int streamtype) {
 		LogUtils.info("MediaPlayer setAudioStreamType: " + streamtype);
@@ -450,6 +482,10 @@ public class MediaPlayer implements MediaPlayerInterface {
 	}
 	
 	SimpleSubTitleParser mSubtitleParser = null;
+	/**
+	    * @brief		挂在外部字幕解析类
+	    * @param[in]	parser 字幕解析类
+	    */
 	@Override
     public void setSubtitleParser(SimpleSubTitleParser parser) {
         mSubtitleParser = parser;
@@ -837,6 +873,10 @@ public class MediaPlayer implements MediaPlayerInterface {
 		}
 	}*/
 
+	/**
+	    * @brief		获取当前播放媒体文件的track info
+	    * @return      track info 数组
+	    */
 	@Override
 	public TrackInfo[] getTrackInfo() throws IllegalStateException {
 		if (mPlayer != null)
@@ -847,6 +887,11 @@ public class MediaPlayer implements MediaPlayerInterface {
 
 	public static final String MEDIA_MIMETYPE_TEXT_SUBRIP = "application/x-subrip";
 	
+	/**
+	    * @brief		实时截图(仅自有播放器模式支持改功能)，支持缩放
+	    * @param[in]	path 本地字幕文件路径
+	    * @param[in]	mimeType 媒体类型
+	    */
 	@Override
 	public void addTimedTextSource(String path, String mimeType)
 			throws IOException, IllegalArgumentException, IllegalStateException {
@@ -855,6 +900,12 @@ public class MediaPlayer implements MediaPlayerInterface {
 		}
 	}
 
+	/**
+	    * @brief		实时截图(仅自有播放器模式支持改功能)，支持缩放
+	    * @param[in]	context 上下文句柄
+	    * @param[in]	uri 在线字幕文件路径
+	    * @param[in]	mimeType 媒体类型
+	    */
 	@Override
 	public void addTimedTextSource(Context context, Uri uri, String mimeType)
 			throws IOException, IllegalArgumentException, IllegalStateException {
@@ -864,30 +915,34 @@ public class MediaPlayer implements MediaPlayerInterface {
 	}
 
 	/**
+	 * @brief		选择track
      * @param index: index of all streams(NOT audio index)
      */
 	@Override
-	/**
-     * @param index: index of ALL stream
-     */
 	public void selectTrack(int index) throws IllegalStateException {
 		if (mPlayer != null) {
 			mPlayer.selectTrack(index);
 		}
 	}
 
-	@Override
 	/**
-     * @param index: index of ALL stream
+     * @param index: index of all streams(NOT audio index)
      */
+	@Override
 	public void deselectTrack(int index) throws IllegalStateException {
 		if (mPlayer != null) {
 			mPlayer.deselectTrack(index);
 		}
 	}
 	
-	// snapshot
-	// width, height: output demension, fmt: 0-RGBX_8888, msec: -1 : get current frame 
+	/**
+    * @brief		实时截图(仅自有播放器模式支持改功能)，支持缩放
+    * @param[in]	width 截图宽
+    * @param[in]	height 截图高
+    * @param[in]	fmt 截图格式，未使用，建议填0 - RGBX_8888
+    * @param[in]	msec 截图时间戳，未使用，建议填-1
+    * @return      Bitmap 截图
+    */
 	@Override
 	public Bitmap getSnapShot(int width, int height, int fmt, int msec) {
 		if (mPlayer != null) {
@@ -920,6 +975,11 @@ public class MediaPlayer implements MediaPlayerInterface {
 		}
     }
     
+    /**
+     * @brief		设置睡眠模式 
+     * @param[in]	ctx 上下文环境
+     * @param[in]	mode the power/wake mode to set
+     */
     public void setWakeMode(Context ctx, int mode) {
 		mContext = ctx;
 		mWakeMode = mode;
@@ -932,6 +992,11 @@ public class MediaPlayer implements MediaPlayerInterface {
 		}
 	}
 	
+    /**
+    * @brief		设置自定义参数
+    * @param[in]	opt 参数
+    * e.g. -param1 val1\n-param2 val2\param3 val3
+    */
 	public void setOption(String opt) {
 		mOption = opt;
 		setOption();
@@ -943,6 +1008,10 @@ public class MediaPlayer implements MediaPlayerInterface {
 		}
 	}
 	
+	/**
+    * @brief		获取当前播放媒体文件的媒体信息   
+    * @return      MediaInfo 数据结构，详见结构体
+    */
 	@Override
 	public MediaInfo getMediaInfo() throws IllegalStateException {
 		if (mPlayer != null) {
@@ -953,6 +1022,10 @@ public class MediaPlayer implements MediaPlayerInterface {
 		throw new IllegalStateException("MediaPlayer has't initialized!!!");
 	}
 	
+    /**
+    * @brief		获取音频sessionId 自有播放器模式总是返回0   
+    * @return      sessionId
+    */
 	@Override
 	public int getAudioSessionId() {
 		if (mPlayer != null) {
@@ -960,13 +1033,6 @@ public class MediaPlayer implements MediaPlayerInterface {
 		}
 		
 		return 0;
-	}
-	
-	public SystemMediaPlayer getSystemMediaPlayer() {
-		if (mPlayer != null && mPlayer instanceof SystemMediaPlayer)
-			return (SystemMediaPlayer) mPlayer;
-		
-		return null;
 	}
 	
 	// event

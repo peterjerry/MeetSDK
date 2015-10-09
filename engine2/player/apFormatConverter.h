@@ -26,7 +26,9 @@ public:
 	apFormatConverter(void);
 	~apFormatConverter(void);
 
-	bool convert(uint8_t* from, int from_size, uint8_t *to, int *to_size, int is_live, int first_seg);
+	// @param process_timestamp : need process pts in media file
+	// @param first segment should be 1 to note down the start_time pts
+	bool convert(uint8_t* from, int from_size, uint8_t *to, int *to_size, int process_timestamp, int first_seg);
 
 protected:
 	static int interrupt_l(void* ctx);

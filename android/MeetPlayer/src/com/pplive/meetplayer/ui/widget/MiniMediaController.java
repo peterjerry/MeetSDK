@@ -19,6 +19,7 @@ import android.view.MotionEvent;
 import android.view.OrientationEventListener;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.WindowManager;
 import android.widget.ImageButton;
 import android.widget.ProgressBar;
 import android.widget.SeekBar;
@@ -40,7 +41,7 @@ public class MiniMediaController extends MediaController {
 	private SeekBar mProgressBar;
 	private TextView mEndTime;
 	private TextView mCurrentTime;
-	private TextView mFileName;
+	private TextView mPlayerImpl;
 	StringBuilder mFormatBuilder;
     Formatter mFormatter;  
     
@@ -73,9 +74,9 @@ public class MiniMediaController extends MediaController {
 		mControllerView = makeControllerView();
 	}
 	
-	public void setFileName(String name) {
-		if (name != null)
-			mFileName.setText(name);
+	public void setPlayerImplement(String impl) {
+		if (impl != null)
+			mPlayerImpl.setText(impl);
 	}
 	
 	@Override
@@ -125,9 +126,7 @@ public class MiniMediaController extends MediaController {
 		mFormatBuilder = new StringBuilder();
         mFormatter = new Formatter(mFormatBuilder, Locale.getDefault());
         
-        mFileName = (TextView) v.findViewById(R.id.textview_filename);
-  
-        this.setOnTouchListener(mTouchListener);
+        mPlayerImpl = (TextView) v.findViewById(R.id.tv_player_impl);
 	}
 	
 	private String stringForTime(int timeMs) {
@@ -244,9 +243,9 @@ public class MiniMediaController extends MediaController {
         // paused with the progress bar showing the user hits play.
         mHandler.sendEmptyMessage(UPDATE_PROGRESS);
 
+        mHandler.removeMessages(FADE_OUT);
         Message msg = mHandler.obtainMessage(FADE_OUT);
         if (timeout != 0) {
-            mHandler.removeMessages(FADE_OUT);
             mHandler.sendMessageDelayed(msg, timeout);
         }
     }
@@ -366,27 +365,18 @@ public class MiniMediaController extends MediaController {
     private View.OnClickListener mFullScreenListener = new View.OnClickListener() {
         public void onClick(View v) {
             if (null != mInstance) {
-            	if (mIsLand)
+            	if (mIsLand) {
             		mInstance.setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
-            	else
+            	}
+            	else {
             		mInstance.setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
+            	}
             	
             	mIsLand = !mIsLand;
             	
             	updateFullScreen();
             }
             
-        }
-    };
-    
-    private OnTouchListener mTouchListener = new OnTouchListener() {
-        public boolean onTouch(View v, MotionEvent event) {
-            if (event.getAction() == MotionEvent.ACTION_DOWN) {
-                if (mIsShowing) {
-                    hide();
-                }
-            }
-            return false;
         }
     };
     

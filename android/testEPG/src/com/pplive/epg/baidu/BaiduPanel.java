@@ -10,26 +10,22 @@ import javax.swing.JComboBox;
 import javax.swing.JLabel;
 import javax.swing.JList;
 import javax.swing.JMenuItem;
+import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JPopupMenu;
 import javax.swing.JScrollPane;
 import javax.swing.JTextPane;
 import javax.swing.ListCellRenderer;
 import javax.swing.ListSelectionModel;
-import javax.swing.event.ChangeEvent;
-import javax.swing.event.ChangeListener;
-import javax.swing.event.ListSelectionEvent;
-import javax.swing.event.ListSelectionListener;
+import javax.swing.SwingWorker;
 
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
-import org.apache.http.NameValuePair;
 import org.apache.http.ParseException;
 import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.entity.UrlEncodedFormEntity;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
-import org.apache.http.entity.mime.MultipartEntity;
 import org.apache.http.entity.mime.MultipartEntityBuilder;
 import org.apache.http.entity.mime.content.ByteArrayBody;
 import org.apache.http.entity.mime.content.ContentBody;
@@ -41,6 +37,14 @@ import org.json.JSONException;
 import org.json.JSONObject;
 import org.json.JSONTokener;
 
+import com.pplive.epg.shooter.DetailItem;
+import com.pplive.epg.shooter.SearchItem;
+import com.pplive.epg.shooter.ShooterUtil;
+import com.pplive.epg.util.LrcDownloadUtil;
+import com.pplive.epg.util.LrcInfo;
+import com.pplive.epg.util.LrcParser2;
+import com.pplive.epg.util.SeparatorUtils;
+import com.pplive.epg.util.TimeLrc;
 import com.pplive.epg.util.Util;
 
 import java.awt.Color;
@@ -54,6 +58,7 @@ import java.awt.image.BufferedImage;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.FilenameFilter;
@@ -61,6 +66,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.UnsupportedEncodingException;
+import java.net.HttpURLConnection;
+import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URL;
 import java.net.URLConnection;
@@ -71,6 +78,7 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 import java.util.StringTokenizer;
 
 
@@ -117,9 +125,10 @@ public class BaiduPanel extends JPanel {
 	private final String BAIDU_PCS_MKDIR;
 	private final String BAIDU_PCS_DELETE;
 	private final String BAIDU_PCS_CLOUD_DL;
+	private final String BAIDU_PCS_SEARCH;
 	
-	private final int UPLOAD_CHUNKSIZE = 1048576 * 4;
-	private final int UPLOAD_READSIZE = 65536; // 64k
+	private final int UPLOAD_CHUNKSIZE = 1048576; // 1M
+	private final int UPLOAD_READSIZE = 4096; // 4k
 
 	private final static String[] list_by_desc = {"按时间", "按名称", "按大小"}; //time" "name" "size"
 	
@@ -142,6 +151,10 @@ public class BaiduPanel extends JPanel {
 	JPopupMenu jPopupMenu				= null;
 	JMenuItem menuItemCut				= null;
 	JMenuItem menuItemCopy				= null;
+	JMenuItem menuItemRename			= null;
+	JMenuItem menuItemSearchOnlineSub	= null;
+	JMenuItem menuItemSearchOnlineLrc	= null;
+	JMenuItem menuItemGetFolderSize		= null;
 	
 	JLabel lblImage = new JLabel();
 	
@@ -150,6 +163,7 @@ public class BaiduPanel extends JPanel {
 	JButton btnDownload = new JButton("下载");
 	JButton btnYunDownload = new JButton("云存");
 	JButton btnUpload = new JButton("上传");
+	JButton btnSearch = new JButton("搜索");
 	
 	boolean bDownloading = false;
 	boolean bInterrupt = false;
@@ -258,6 +272,9 @@ public class BaiduPanel extends JPanel {
 		BAIDU_PCS_CLOUD_DL = BAIDU_PCS_SERVICE_PREFIX + 
 				"?method=add_task" +
 				"&access_token=" + mbOauth;
+		BAIDU_PCS_SEARCH = BAIDU_PCS_FILE_PREFIX + 
+				"?method=search" +
+				"&access_token=" + mbOauth;
 		
 		// Action
 		lblRootPath.setFont(f);
@@ -287,6 +304,87 @@ public class BaiduPanel extends JPanel {
 		});
 		jPopupMenu.add(menuItemCopy);
 		
+		menuItemRename = new JMenuItem("重命名");
+		menuItemRename.setFont(f);
+		menuItemRename.addMouseListener(new MouseAdapter() {
+			public void mouseReleased(MouseEvent e) {
+				mOperatePath = getOperatePath();
+				int pos = mOperatePath.lastIndexOf("/");
+				String oldFileName = mOperatePath.substring(pos + 1);
+				String newFileName = JOptionPane.showInputDialog(null, "输入新文件名", oldFileName);
+				if (newFileName == null || newFileName.equals(""))
+					return;
+				
+				String toPath = mbRootPath + "/" + newFileName;
+				move_copy(mOperatePath, toPath, false);
+				init_combobox();
+			}
+		});
+		jPopupMenu.add(menuItemRename);
+		
+		menuItemSearchOnlineSub = new JMenuItem("查找在线字幕");
+		menuItemSearchOnlineSub.setFont(f);
+		menuItemSearchOnlineSub.addMouseListener(new MouseAdapter() {
+			public void mouseReleased(MouseEvent e) {
+				mOperatePath = getOperatePath();
+				int pos = mOperatePath.lastIndexOf("/");
+				int pos2 = mOperatePath.lastIndexOf(".");
+				if (pos == -1 || pos2 == -1 || pos >= pos2)
+					return;
+				
+				String FileName = mOperatePath.substring(pos + 1, pos2);
+				String searchKey = JOptionPane.showInputDialog(null, "输入搜索字幕关键字", FileName);
+				if (searchKey == null || searchKey.equals(""))
+					return;
+				
+				searchSub(searchKey);
+			}
+		});
+		jPopupMenu.add(menuItemSearchOnlineSub);
+		
+		menuItemSearchOnlineLrc = new JMenuItem("查找在线歌词");
+		menuItemSearchOnlineLrc.setFont(f);
+		menuItemSearchOnlineLrc.addMouseListener(new MouseAdapter() {
+			public void mouseReleased(MouseEvent e) {
+				mOperatePath = getOperatePath();
+				int pos = mOperatePath.lastIndexOf("/");
+				int pos2 = mOperatePath.lastIndexOf(".");
+				if (pos == -1 || pos2 == -1 || pos >= pos2)
+					return;
+				String filename = mOperatePath.substring(pos + 1, pos2);
+				
+				String song_name = JOptionPane.showInputDialog(null, "输入歌曲名", filename);
+				if (song_name == null)
+					return;
+				
+				String artist = JOptionPane.showInputDialog(null, "输入艺术家", filename);
+				if (artist == null)
+					return;
+
+				String lrc_url = LrcDownloadUtil.getBaiduLyc(song_name, artist);
+				if (lrc_url == null) {
+					System.out.println("Java: failed to get lrc_path");
+					return;
+				}
+				
+				if (!process_lrc(lrc_url)) {
+					System.out.println("failed to process_lrc()");
+					return;
+				}
+			}
+		});
+		jPopupMenu.add(menuItemSearchOnlineLrc);
+		
+		menuItemGetFolderSize = new JMenuItem("统计文件夹大小");
+		menuItemGetFolderSize.setFont(f);
+		menuItemGetFolderSize.addMouseListener(new MouseAdapter() {
+			public void mouseReleased(MouseEvent e) {
+				GetFolderSizeWorker worker = new GetFolderSizeWorker(getOperatePath());
+				worker.execute();
+			}
+		});
+		jPopupMenu.add(menuItemGetFolderSize);
+		
 		listItem = new JList<String>();
 		listItem.setFont(f);
 		listModel = new DefaultListModel<String>();
@@ -301,7 +399,7 @@ public class BaiduPanel extends JPanel {
 					return;
 				
 				int button = event.getButton();
-				if (button == 1) { // left
+				if (button == 1) { // Left button
 					if (event.getClickCount() == 2) {
 						if (mFileList != null) {
 							Map<String, Object> fileinfo = mFileList.get(index);
@@ -407,11 +505,14 @@ public class BaiduPanel extends JPanel {
 				}
 				else if (indices.length > 1) {
 					String first_filename = "";
-					
+					String play_url = null;
+							
 					try {
-						File file=new File("playlist.m3u");
+						File file = new File("playlist.m3u");
 				        if (!file.exists())
 				        	file.createNewFile();
+				        play_url = file.getAbsolutePath();
+				        
 				        FileOutputStream out = new FileOutputStream(file,false); //如果追加方式用true
 				        out.write("#EXTM3U\n".getBytes("utf-8"));
 				        
@@ -448,8 +549,6 @@ public class BaiduPanel extends JPanel {
 						return;
 					}
 					
-					String url = "playlist.m3u";
-					
 					String exe_path = exe_vlc;
 					if (first_filename.endsWith(".mp3") || 
 							first_filename.endsWith(".flac") ||
@@ -458,7 +557,17 @@ public class BaiduPanel extends JPanel {
 							first_filename.endsWith(".wav")) {
 						exe_path = exe_foobar;
 					}
-					String[] cmd = new String[] {exe_path, url};
+					
+					String[] cmd = null;
+					if (isMac()) {
+						cmd = new String[] {"open",
+								"-a", "/Applications/VLC.app", "--args",
+								play_url};
+					}
+					else {
+						cmd = new String[] {exe_path, play_url};
+					}
+					
 					openExe(cmd);
 				}
 			}
@@ -501,7 +610,7 @@ public class BaiduPanel extends JPanel {
 				}
 				
 				try {
-					Thread.sleep(200);
+					Thread.sleep(500);
 				} catch (InterruptedException e1) {
 					// TODO Auto-generated catch block
 					e1.printStackTrace();
@@ -573,7 +682,7 @@ public class BaiduPanel extends JPanel {
 				String folder_path = mbRootPath + "/" + editPath.getText();
 				if (mkdir(folder_path)) {
 					try {
-						Thread.sleep(200);
+						Thread.sleep(500);
 					} catch (InterruptedException e1) {
 						// TODO Auto-generated catch block
 						e1.printStackTrace();
@@ -653,9 +762,30 @@ public class BaiduPanel extends JPanel {
 				String save_path = mbRootPath + "/" + fload.getFile();
 				System.out.println("file upload src path: " + upload_path + " save_path: " + save_path);
 				
-				UploadThread myThread = new UploadThread(upload_path, save_path);
-				Thread t = new Thread(myThread);
-				t.start();
+				UploadWorker worker = new UploadWorker(upload_path, save_path);
+				worker.execute();
+			}
+		});
+		
+		btnSearch.setFont(f);
+		btnSearch.setBounds(590, 450, 80, 40);
+		btnSearch.setFont(f);
+		this.add(btnSearch);
+		btnSearch.addActionListener(new AbstractAction() {
+			public void actionPerformed(ActionEvent e) {
+				mFileList = search("/", editPath.getText(), true);
+				listModel.clear();
+				
+				int size = mFileList.size();
+				for (int i=0;i<size;i++) {
+					Map<String, Object> fileinfo = mFileList.get(i);
+					String path = (String) fileinfo.get("path");
+					String filename = (String) fileinfo.get("filename");
+					
+					listModel.addElement(filename);
+				}
+				
+				lblRootPath.setText("搜索结果");
 			}
 		});
 		
@@ -690,6 +820,169 @@ public class BaiduPanel extends JPanel {
 		init_combobox();
 	}
 	
+	private boolean process_lrc(String lrc_path) {
+		try {
+			LrcParser2 parser = new LrcParser2();
+			
+			URL url = new URL(lrc_path);
+			URLConnection conn = url.openConnection();
+			conn.setConnectTimeout(3000);
+			InputStream inStream = conn.getInputStream();
+			
+			LrcInfo info = null;
+			info = parser.readLrc(inStream, "GB2312");
+			System.out.println(String.format("Java: lrc: artist %s, album %s, title %s",
+					info.getArtist(), info.getAlbum(), info.getTitle()));
+			List<TimeLrc> Lyric = info.getInfos();
+			int count = Lyric.size();
+			StringBuffer sb = new StringBuffer();
+			for (int i=0;i<count;i++) {
+				TimeLrc lrc = Lyric.get(i);
+				String strLine = String.format("Java: lrc time %s: text %s", lrc.getTimePoint(), lrc.getLrcString());
+				sb.append(strLine);
+				sb.append("\n");
+			}
+			
+			System.out.println("Java: all lrc " + sb.toString());
+			return true;
+			
+		} catch (MalformedURLException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+		return false;
+	}
+	
+	private void searchSub(String key) {
+		
+		List<SearchItem> list = ShooterUtil.search(key, 10);
+		for (int j=0;j<list.size();j++) {
+			System.out.println("title " + list.get(j).mVideoName);
+		}
+		
+		List<String> titleList = new ArrayList<String>();
+		for (int i=0;i<list.size();i++) {
+			String title = list.get(i).mNativeName;
+			if (title == null || title.isEmpty())
+				title = list.get(i).mVideoName;
+			title += "(";
+			title += list.get(i).mLangDesc;
+			title += ")";
+			
+			titleList.add(title);
+		}
+		
+		String []titles = titleList.toArray(new String[titleList.size()]);
+		String strTitle = (String) JOptionPane.showInputDialog(null,
+				 "选择字幕文件", "选择在线字幕", JOptionPane.INFORMATION_MESSAGE ,
+				 null, titles , titles[0]);
+		if (strTitle == null)
+			return;
+		
+		int id = -1;
+		for (int i=0;i<list.size();i++) {
+			if (strTitle.contains(list.get(i).mNativeName) ||
+					strTitle.contains(list.get(i).mVideoName)) {
+				id = list.get(i).mId;
+				break;
+			}
+		}
+		
+		if (id == -1)
+			return;
+		
+		DetailItem detailItem = ShooterUtil.detail(id);
+		
+		// step2
+		String download_url = detailItem.mUrl;
+		String save_path = null;
+		if (detailItem.mFileName != null && !detailItem.mFileName.isEmpty())
+			save_path = detailItem.mFileName;
+		else
+			save_path = detailItem.mNativeName;
+		
+		if (detailItem.mArvList != null) {
+			String []filenames = detailItem.mArvList.toArray(new String[detailItem.mArvList.size()]);
+			String filename = (String) JOptionPane.showInputDialog(null,
+					 "选择压缩包内字幕文件", "选择字幕文件", JOptionPane.INFORMATION_MESSAGE ,
+					 null, filenames , filenames[0]);
+			if (filename == null)
+				return;
+			
+			int path_pos = detailItem.mUrl.lastIndexOf("/");
+			String encoded_path;
+			try {
+				encoded_path = URLEncoder.encode(filename, "UTF-8");
+			} catch (UnsupportedEncodingException e1) {
+				// TODO Auto-generated catch block
+				e1.printStackTrace();
+				return;
+			}
+			
+			download_url = detailItem.mUrl.substring(0, path_pos + 1) + 
+					"-/" + String.valueOf(0 + 1) + "/" + encoded_path;
+			save_path = "./" + filename;
+		}
+
+		download_url = download_url.replace("+", "%20");
+		download_url = download_url.replace("%28", "(");
+		download_url = download_url.replace("%29", ")");
+		download_url = download_url.replace("%5B", "[");
+		download_url = download_url.replace("%5D", "]");
+		System.out.println("download_url " + download_url);
+		
+		URL url = null;
+		try {
+			url = new URL(download_url);
+			
+			HttpURLConnection conn = (HttpURLConnection)url.openConnection();
+			//conn.setConnectTimeout(3000);
+			//conn.setReadTimeout(3000);
+
+			conn.connect();
+			int code = conn.getResponseCode();
+			System.out.println("http response code " + code);
+			InputStream inStream = conn.getInputStream();
+			
+			final FileOutputStream fos = new FileOutputStream(save_path);
+
+			try {
+				int readed;
+				byte[] buf = new byte[4096];
+
+				bDownloading = true;
+				while ((readed = inStream.read(buf)) != -1 && !bInterrupt) {
+					fos.write(buf, 0, readed);
+				}
+
+				fos.close();
+				inStream.close();
+				String title = save_path;
+				if (title.length() > 32)
+					title = title.substring(0, 32) + "...";
+				lblInfo.setText("字幕 " + title + " 下载成功!");
+			} catch (Exception ex) {
+				ex.printStackTrace();
+				lblInfo.setText("字幕 " + save_path + "下载失败: " + ex.getMessage());
+			}
+		} catch (MalformedURLException e1) {
+			// TODO Auto-generated catch block
+			e1.printStackTrace();
+			return;
+		} catch (FileNotFoundException e1) {
+			e1.printStackTrace();
+		} catch (IOException e1) {
+			e1.printStackTrace();
+		}
+	}
+	
 	private String getOperatePath() {
 		int index = listItem.getSelectedIndex();
 		if (index == -1)
@@ -717,15 +1010,31 @@ public class BaiduPanel extends JPanel {
 					path.toLowerCase().endsWith(".wav")) {
 				exe_path = exe_foobar;
 			}
-			String[] cmd = new String[] {exe_path, url};
-			/*String[] cmd = new String[] {"open",
-					"-a", "/Applications/MPlayerX.app", "--args",
-					"-url", url};*/
+
+			String[] cmd = null;
+			if (isMac() && cbUseVLC.isSelected()) {
+				cmd = new String[] {"open",
+						"-a", "/Applications/VLC.app", "--args",
+						url};
+			}
+			else {
+				cmd = new String[] {exe_path, url};
+			}
+			
 			openExe(cmd);
 		} catch (UnsupportedEncodingException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
+	}
+	
+	private boolean isMac() {
+		Properties prop = System.getProperties();
+
+		String os = prop.getProperty("os.name");
+		System.out.println("Java: os.name " + os);
+
+		return os.toLowerCase().contains("mac");
 	}
 	
 	private class MyRender extends JLabel implements ListCellRenderer<String> {
@@ -763,19 +1072,32 @@ public class BaiduPanel extends JPanel {
 	};
 		
 	private void showInfo(int index) {
+		SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 		Map<String, Object> fileinfo = mFileList.get(index);
 		boolean isdir = (Boolean) fileinfo.get("isdir");
-		if (!isdir) {
-			String path = (String) fileinfo.get("path");
+		String path = (String) fileinfo.get("path");
+		
+		if (isdir) {
+			lblInfo.setText("统计文件夹大小中");
+			System.out.println("Java: ready to calc folder size");
+			long size = 0;//getFolderSize(path);
+			
+			List<Map<String, Object>> metaList = meta(path);
+			Map<String, Object> metainfo = metaList.get(0);
+			int meta_mtime = (Integer)metainfo.get("mtime");
+			Date date = new Date(meta_mtime/*unit is sec*/ * 1000L);
+			
+			lblInfo.setText("总共大小: " + getFileSize(size) + 
+					"   修改时间 " + sdf.format(date));
+		}
+		else {
 			List<Map<String, Object>> metaList = meta(path);
 			if (metaList != null && metaList.size() > 0) {
 				Map<String, Object> metainfo = metaList.get(0);
-				long size = (Long) metainfo.get("filesize");
-				int mtime = (Integer)metainfo.get("mtime");
-				SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-				Date date = new Date(mtime/*unit is sec*/ * 1000L);
-				
-				lblInfo.setText("文件大小: " + getFileSize(size) + 
+				long meta_size = (Long) metainfo.get("filesize");
+				int meta_mtime = (Integer)metainfo.get("mtime");
+				Date date = new Date(meta_mtime/*unit is sec*/ * 1000L);
+				lblInfo.setText("文件大小: " + getFileSize(meta_size) + 
 						"   修改时间 " + sdf.format(date));
 			}
 			
@@ -833,6 +1155,8 @@ public class BaiduPanel extends JPanel {
 			//fsave.setFilenameFilter(ff);
 			fsave.setFile(filename);
 			fsave.setVisible(true);
+			if (fsave.getFile() == null || fsave.getDirectory() == null)
+				return;
 			
 			final String save_path = fsave.getDirectory() + fsave.getFile();
 			System.out.println("file save path: " + save_path);
@@ -893,100 +1217,6 @@ public class BaiduPanel extends JPanel {
 		}
 	}
 	
-	private boolean uploadFile(String src_path, String dst_path) {
-		try {
-			String encoded_path = URLEncoder.encode(dst_path, "utf-8");
-
-			String url_path = BAIDU_PCS_UPLOAD + "&path=" + encoded_path;
-			System.out.println("Java: upload_file() " + url_path);
-			
-			File file = new File(src_path);
-			long len = file.length();
-			System.out.println("Java file size " + len);
-			
-			FileInputStream fin = new FileInputStream(file);
-
-			int offset;
-			int left;
-			long total_left = len;
-			long total_sent = 0;
-			int byteread, toread;
-
-			long start_msec = System.currentTimeMillis();
-			List<String> md5s = new ArrayList<String>();
-			
-			while (total_left > 0) {
-				offset = 0;
-				left = UPLOAD_CHUNKSIZE;
-				if (left > total_left)
-					left = (int)total_left;
-				byte[] context = new byte[left];
-				
-				while (true) {
-					toread = UPLOAD_READSIZE;
-					if (left < toread)
-						toread = left;
-					byteread = fin.read(context, offset, toread);
-					if (byteread == -1) {
-						System.out.println("Java eof " + offset);
-						break;
-					}
-					
-					offset += byteread;
-					left -= byteread;
-
-					if (left <= 0)
-						break;
-				}
-				
-				System.out.println("Java: read context " + offset);
-				String md5 = uploadPiece(context, null);
-			
-				if (md5 == null) {
-					System.out.println("Java: failed to uploadPiece()");
-					return false;
-				}
-				
-				md5s.add(md5);
-				
-				total_left -= offset;
-				total_sent += offset;
-				
-				String filename = src_path;
-				int pos = src_path.lastIndexOf("/");
-				if (pos > -1)
-					filename = src_path.substring(pos + 1);
-				long elapsed_msec = System.currentTimeMillis() - start_msec;
-				double speed = total_sent / (double)elapsed_msec;
-				lblInfo.setText(String.format("%s 已传 %s, 剩余 %s, 速度 %.3f kB/s", 
-						filename, getFileSize(total_sent), getFileSize(total_left), speed));
-				
-				System.out.println(String.format("Java: add md5 to list %s, total_left %d",
-						md5, total_left));
-			}
-			
-			if (!create_superfile(md5s, encoded_path)) {
-				lblInfo.setText("创建大文件失败 " + dst_path);
-				return false;
-			}
-			
-			System.out.println(String.format("Java: file %s uploaded to %s, size %s", 
-					src_path, dst_path, getFileSize(len)));
-			
-			long elapsed_msec = System.currentTimeMillis() - start_msec;
-			double total_speed = len / (double)elapsed_msec;
-			lblInfo.setText(String.format("%s 上传至\n %s, 大小 %s, 速度 %.3f kB/s", 
-					/*src_path*/file.getName(), dst_path, getFileSize(len), total_speed));
-			init_combobox();
-			
-			return true;
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-		
-		return false;
-	}
-	
 	private String uploadPiece(byte[] bytes, String target) {
 		try {
 			ContentBody bsData = new ByteArrayBody(bytes, "upload.tmp");
@@ -1002,13 +1232,23 @@ public class BaiduPanel extends JPanel {
 			System.out.println("Java: uploadPiece() " + url_path);
 
 			HttpPost httppost = new HttpPost(url_path);
-			/*MultipartEntity entity = new MultipartEntity();
-			entity.addPart("file", bsData);
-			httppost.setEntity(entity);*/
-			
+
 			MultipartEntityBuilder builder = MultipartEntityBuilder.create();
 			builder.addPart("file", bsData);
 			httppost.setEntity(builder.build());
+			
+			/*ProgressHttpEntityWrapper.ProgressCallback progressCallback = 
+					new ProgressHttpEntityWrapper.ProgressCallback() {
+
+		        @Override
+		        public void progress(float progress) {
+		            //Use the progress
+		        	//System.out.println(String.format("Java: progress %.3f", progress));
+		        }
+
+		    };
+
+			httppost.setEntity(new ProgressHttpEntityWrapper(builder.build(), progressCallback));*/
 
 			HttpResponse response = HttpClients.createDefault().execute(httppost);
 			if (response.getStatusLine().getStatusCode() != 200) {
@@ -1051,11 +1291,11 @@ public class BaiduPanel extends JPanel {
 				&& (target.length() > 0)) {
 			String url = BAIDU_PCS_CREATE_SUPER_FILE + "&path=" + target;
 
-			List bodyParams = new ArrayList();
+			List<BasicNameValuePair> bodyParams = new ArrayList<BasicNameValuePair>();
 
 			if (md5s != null) {
 				JSONArray json = new JSONArray(md5s);
-				Map map = new HashMap();
+				Map<String, JSONArray> map = new HashMap<String, JSONArray>();
 				map.put("block_list", json);
 
 				JSONObject md5list = new JSONObject(map);
@@ -1113,19 +1353,25 @@ public class BaiduPanel extends JPanel {
 		listModel.clear();
 		
 		int size = mFileList.size();
-		int child_index = 0;
+		int child_index = -1;
 		for (int i=0;i<size;i++) {
 			Map<String, Object> fileinfo = mFileList.get(i);
 			String path = (String) fileinfo.get("path");
 			String filename = (String) fileinfo.get("filename");
 			
-			if (path.equals(mChildPath))
+			if (path.equals(mChildPath)) {
+				System.out.println(String.format("Java: found mChildPath at #%d, %s, %s",
+						i, path, mChildPath));
 				child_index = i;
+			}
 			
 			listModel.addElement(filename);
 		}
 		
-		listItem.setSelectedIndex(child_index);
+		if (child_index != -1) {
+			listItem.setSelectedIndex(child_index);
+			System.out.println("Java: setSelectedIndex at #" + child_index);
+		}
 	}
 	
 	private boolean streaming(String path, String type) {
@@ -1189,6 +1435,31 @@ public class BaiduPanel extends JPanel {
 		}
 	}
 	
+	private long getFolderSize(String path) {
+		List<Map<String, Object>> infoList = list(path);
+		if (infoList == null)
+			return 0;
+		
+		long total_size = 0;
+		int count = infoList.size();
+		for (int i=0;i<count;i++) {
+			Map<String, Object> fileinfo = infoList.get(i);
+			boolean item_isdir = (Boolean) fileinfo.get("isdir");
+			String item_path = (String) fileinfo.get("path");
+			long item_size = (Long) fileinfo.get("filesize");
+			if (item_isdir)
+				total_size += getFolderSize(item_path);
+			else
+				total_size += item_size;
+		}
+		
+		if (lblInfo.getText().length() > 12)
+			lblInfo.setText("统计文件夹大小中");
+		else
+			lblInfo.setText(lblInfo.getText() + ".");
+		return total_size;
+	}
+	
 	private List<Map<String, Object>> list(String listPath) {
 		String encoded_path = null;
 		try {
@@ -1207,6 +1478,81 @@ public class BaiduPanel extends JPanel {
 		url += list_order;
 		
 		System.out.println("Java: list() " + url);
+		HttpGet request = new HttpGet(url);
+		
+		HttpResponse response;
+		try {
+			response = HttpClients.createDefault().execute(request);
+			if (response.getStatusLine().getStatusCode() != 200){
+				System.out.println("Java: failed to list(): code " + response.getStatusLine().getStatusCode());
+				return null;
+			}
+			
+			String result = EntityUtils.toString(response.getEntity());
+			
+			JSONTokener jsonParser = new JSONTokener(result);
+			JSONObject root = (JSONObject) jsonParser.nextValue();
+			JSONArray list = root.getJSONArray("list");
+			int cnt = list.length();
+			
+			List<Map<String, Object>> fileList = new ArrayList<Map<String, Object>>();
+			for (int i=0;i<cnt;i++) {
+				JSONObject item = list.getJSONObject(i);
+				String path = item.getString("path");
+				long filesize = item.getLong("size");
+				int isdir = item.getInt("isdir");
+				
+				String filename = path;
+				int pos = filename.lastIndexOf("/");
+				if (pos > -1) {
+					filename = filename.substring(pos + 1);
+				}
+				
+				Map<String, Object> fileinfo = new HashMap<String, Object>();
+				fileinfo.put("path", path);
+				fileinfo.put("filename", filename);
+				fileinfo.put("filesize", filesize);
+				fileinfo.put("isdir", isdir == 1 ? true : false);
+				
+				fileList.add(fileinfo);
+			}
+			
+			return fileList;
+		}
+		catch (ClientProtocolException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (JSONException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+		return null;
+	}
+	
+	private List<Map<String, Object>> search(String search_path, String wd, boolean recursive) {
+		String encoded_wd = null;
+		try {
+			encoded_wd = URLEncoder.encode(wd, "utf-8");
+		}
+		catch (UnsupportedEncodingException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+			return null;
+		}
+		
+		String url = BAIDU_PCS_SEARCH;
+		url += "&path=";
+		url += search_path;
+		url += "&wd=";
+		url += encoded_wd;
+		url += "&re=";
+		url += (recursive ? "1" : "0");
+		
+		System.out.println("Java: search() " + url);
 		HttpGet request = new HttpGet(url);
 		
 		HttpResponse response;
@@ -1677,23 +2023,6 @@ public class BaiduPanel extends JPanel {
 		
 	};
 	
-	private class UploadThread implements Runnable {
-		private String mSrcPath;
-		private String mDstPath;
-		
-		UploadThread(String srcPath, String dstPath) {
-			mSrcPath = srcPath;
-			mDstPath = dstPath;
-		}
-		
-		@Override
-		public void run() {
-			// TODO Auto-generated method stub
-			uploadFile(mSrcPath, mDstPath);
-		}
-		
-	};
-	
 	private void openExe(String... params) {
 		Runtime rn = Runtime.getRuntime();
 		Process proc = null;
@@ -1743,5 +2072,167 @@ public class BaiduPanel extends JPanel {
 		}
 	}
 	
+	private class UploadWorker extends SwingWorker<Boolean, Long> {
+
+		private String mSrcPath;
+		private String mDstPath;
+		private String mFileName;
+		
+		public UploadWorker(String srcPath, String dstPath) {
+			mSrcPath	= srcPath;
+			mDstPath	= dstPath;
+			mFileName	= srcPath;
+			
+			int pos = srcPath.lastIndexOf(SeparatorUtils.getFileSeparator());
+			if (pos > -1)
+				mFileName = srcPath.substring(pos + 1);
+		}
+		
+		@Override
+		protected Boolean doInBackground() throws Exception {
+			FileInputStream fin = null;
+			
+			try {
+				String encoded_path = URLEncoder.encode(mDstPath, "utf-8");
+
+				String url_path = BAIDU_PCS_UPLOAD + "&path=" + encoded_path;
+				System.out.println("Java: upload_file() " + url_path);
+				
+				File file = new File(mSrcPath);
+				long len = file.length();
+				System.out.println("Java file size " + len);
+				
+				fin = new FileInputStream(file);
+
+				int offset;
+				int left;
+				long total_left = len;
+				long total_sent = 0;
+				int byteread, toread;
+
+				long start_msec = System.currentTimeMillis();
+				List<String> md5s = new ArrayList<String>();
+				
+				while (total_left > 0) {
+					offset = 0;
+					left = UPLOAD_CHUNKSIZE;
+					if (left > total_left)
+						left = (int)total_left;
+					byte[] context = new byte[left];
+					
+					while (true) {
+						toread = UPLOAD_READSIZE;
+						if (left < toread)
+							toread = left;
+						byteread = fin.read(context, offset, toread);
+						if (byteread == -1) {
+							System.out.println("Java eof " + offset);
+							break;
+						}
+						
+						offset += byteread;
+						left -= byteread;
+
+						if (left <= 0)
+							break;
+					}
+					
+					System.out.println("Java: read context " + offset);
+					String md5 = uploadPiece(context, null);
+				
+					if (md5 == null) {
+						System.out.println("Java: failed to uploadPiece()");
+						return false;
+					}
+					
+					md5s.add(md5);
+					
+					total_left -= offset;
+					total_sent += offset;
+					
+					long elapsed_msec = System.currentTimeMillis() - start_msec;
+					long speed = total_sent / elapsed_msec;
+					publish(total_sent, total_left, speed);
+					System.out.println(String.format("Java: add md5 to list %s, total_left %d",
+							md5, total_left));
+				}
+				
+				if (!create_superfile(md5s, encoded_path)) {
+					lblInfo.setText("创建大文件失败 " + mDstPath);
+					return false;
+				}
+				
+				System.out.println(String.format("Java: file %s uploaded to %s, size %s", 
+						mSrcPath, mDstPath, getFileSize(len)));
+				
+				long elapsed_msec = System.currentTimeMillis() - start_msec;
+				double total_speed = len / (double)elapsed_msec;
+				lblInfo.setText(String.format("%s 上传至\n %s, 大小 %s, 速度 %.3f kB/s", 
+						/*src_path*/file.getName(), mDstPath, getFileSize(len), total_speed));
+
+				return true;
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+			finally {
+				try {
+					fin.close();
+				} catch (IOException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+			}
+			
+			return false;
+		}
+		
+		@Override
+		protected void done() {
+			// TODO Auto-generated method stub
+			super.done();
+			init_combobox();
+		}
+		
+		@Override
+		protected void process(List<Long> list) {
+			// TODO Auto-generated method stub
+			super.process(list);
+			
+			long total_sent = list.get(0);
+			long total_left = list.get(1);
+			long speed 		= list.get(2);
+			
+			lblInfo.setText(String.format("%s 已传  %s, 剩余  %s, 速度  %d kB/s", 
+					mFileName, getFileSize(total_sent), getFileSize(total_left), speed));
+		}
+	};
 	
+	private class GetFolderSizeWorker extends SwingWorker<Boolean, Long> {
+
+		private String mFolderPath;
+		private long mSize;
+		
+		public GetFolderSizeWorker(String folderPath) {
+			mFolderPath	= folderPath;
+		}
+		
+		@Override
+		protected Boolean doInBackground() throws Exception {
+			lblInfo.setText("统计文件夹大小中");
+			mSize = getFolderSize(mFolderPath);
+			return true;
+		}
+		
+		@Override
+		protected void done() {
+			// TODO Auto-generated method stub
+			lblInfo.setText(mFolderPath + " 占用空间 " + getFileSize(mSize));
+		}
+		
+		@Override
+		protected void process(List<Long> list) {
+			// TODO Auto-generated method stub
+			super.process(list);
+		}
+	};
 }

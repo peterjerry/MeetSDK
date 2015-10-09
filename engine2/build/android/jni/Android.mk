@@ -75,9 +75,9 @@ LOCAL_C_INCLUDES		+= $(LOCAL_PATH)/$(PLATFORMPATH)/libyuv/jni/include
 endif	
 	
 LOCAL_CFLAGS    		:= -Wall -DNDK_BUILD=1 -DUSE_NDK_SURFACE_REF -DUSE_AV_FILTER #-DTEST_PERFORMANCE -DTEST_PERFORMANCE_BITRATE -DUSE_TS_CONVERT -DNO_AUDIO_PLAY 
-MY_SRC_PLAYER_FILES 	:= ffstream.cpp audioplayer.cpp audiorender.cpp ffplayer.cpp ffrender.cpp filesource.cpp ffextractor.cpp #apFormatConverter.cpp
-MY_SRC_PLATFORM_FILES	:= surface_android.cpp \
-	log_android.c packetqueue.cpp list.cpp loop.cpp utils.cpp
+MY_SRC_PLAYER_FILES 	:= ffstream.cpp audioplayer.cpp audiorender.cpp ffplayer.cpp androidrender.cpp \
+	filesource.cpp ffextractor.cpp #apFormatConverter.cpp
+MY_SRC_PLATFORM_FILES	:= log_android.c packetqueue.cpp list.cpp loop.cpp utils.cpp
 MY_SRC_SOCKET_FILES		:= SimpleSocket.cpp ActiveSocket.cpp
 ifdef BUILD_PCM_DUMP
 MY_SRC_PLAYER_FILES 	+= apAudioEncoder.cpp

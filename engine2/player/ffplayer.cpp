@@ -21,7 +21,13 @@
 #include "log.h"
 #include "ppffmpeg.h"
 #include "utils.h"
-#include "ffrender.h"
+#ifdef __ANDROID__
+#include "androidrender.h"
+#elif defined(__APPLE__)
+#include "iosrender.h"
+#else
+#include "winrender.h"
+#endif
 #include "autolock.h"
 #include "filesource.h"
 #ifdef USE_TS_CONVERT
@@ -288,8 +294,8 @@ FFPlayer::FFPlayer()
 
 #ifdef PCM_DUMP
 	mDumpUrl		= NULL;
-	mBufferingSec	= 0;
 #endif
+	mBufferingSec	= 0;
 
 #ifdef USE_AV_FILTER
 	mFilterGraph	= NULL;
@@ -365,7 +371,7 @@ bool FFPlayer::FixInterlace(AVStream *video_st)
 {
 #ifdef USE_AV_FILTER
 	mFilterDescr[0] = "yadif";
-	if (!init_filters_video(mFilterDescr)) {
+	if (!init_filters_video(mFilterDescr, mVideoStream->codec)) {
 		LOGE("failed to init video filters");
 		return false;
 	}
@@ -408,7 +414,7 @@ bool FFPlayer::FixRotateVideo(AVStream *video_st)
 				i++;
 			}
 
-			if (!init_filters_video(mFilterDescr)) {
+			if (!init_filters_video(mFilterDescr, mVideoStream->codec)) {
 				LOGE("failed to init video filters");
 				return false;
 			}
@@ -461,14 +467,14 @@ bool FFPlayer::insert_filter(const char *name, const char* arg, AVFilterContext 
 	return true;
 }
 
-bool FFPlayer::init_filters_video(const char **filters_descr)
+bool FFPlayer::init_filters_video(const char **filters_descr, AVCodecContext *dec_ctx)
 {
 	char args[512] = {0};
     int ret = 0;
 	int index;
     AVFilter *buffersrc  = avfilter_get_by_name("buffer");
     AVFilter *buffersink = avfilter_get_by_name("buffersink");
-	AVCodecContext *dec_ctx = mVideoStream->codec;
+	//AVCodecContext *dec_ctx = mVideoStream->codec;
 
 	mFilterOutputs = avfilter_inout_alloc();
     mFilterInputs  = avfilter_inout_alloc();
@@ -605,8 +611,13 @@ int FFPlayer::onAudioFrameImpl(AVFrame *frame)
 #ifdef TEST_PERFORMANCE
 		int64_t begin_render = getNowMs();
 #endif
-		if ( OK != mVideoRenderer->render(mAudioFiltFrame))
-			notifyListener_l(MEDIA_ERROR, MEDIA_ERROR_VIDEO_RENDER, 0);
+		if (!mVideoRenderer->render(mAudioFiltFrame)) {
+			static bool once = true;
+			if (once) {
+				notifyListener_l(MEDIA_ERROR, MEDIA_ERROR_VIDEO_RENDER, 0);
+				once = false;
+			}
+		}
 
 #ifdef TEST_PERFORMANCE
 		int64_t end_render, costTime;
@@ -859,7 +870,6 @@ status_t FFPlayer::setVideoSurface(void* surface)
 		delete mVideoRenderer;
 
 		// realloc render
-		mVideoRenderer = new FFRender(mSurface, mVideoWidth, mVideoHeight, mVideoFormat);
 		bool force_sw = false;
 #ifdef USE_AV_FILTER
 		if (mVideoFiltFrame) {
@@ -867,32 +877,22 @@ status_t FFPlayer::setVideoSurface(void* surface)
 			force_sw = true;
 		}
 #endif
-        if (mVideoRenderer->init(force_sw) != OK) {
+		mVideoRenderer = new AndroidRender();
+        if (!mVideoRenderer->init(mSurface, mVideoWidth, mVideoHeight, mVideoFormat, force_sw)) {
          	LOGE("Initing video render failed");
             return ERROR;
         }
 
 		LOGI("Java: realloc render");
 	}
-#endif
-
-#ifdef _MSC_VER
+#elif defined(_MSC_VER)
 	if (mVideoRenderer) {
 		delete mVideoRenderer;
 
 		// realloc render
 		mSurface = surface;
-#ifdef USE_SDL2
-		SDL_Window* window = (SDL_Window *)surface;
 		int w, h;
-		SDL_GetWindowSize(window, &w, &h);
-		mVideoRenderer = new FFRender(mSurface, w, h, mVideoFormat);
-#else
-		SDL_Surface* surf = (SDL_Surface *)surface;
-		mVideoRenderer = new FFRender(mSurface, surf->w, surf->h, mVideoFormat);
-#endif
 
-		
 		bool force_sw = false;
 #ifdef USE_AV_FILTER
 		if (mVideoFiltFrame) {
@@ -900,7 +900,17 @@ status_t FFPlayer::setVideoSurface(void* surface)
 			force_sw = true;
 		}
 #endif
-        if (mVideoRenderer->init(force_sw) != OK) {
+
+#ifdef USE_SDL2
+		SDL_Window* window = (SDL_Window *)surface;
+		SDL_GetWindowSize(window, &w, &h);
+#else
+		SDL_Surface* surf = (SDL_Surface *)surface;
+		w = surf->w;
+		h = surf->h;
+#endif
+		mVideoRenderer = new WinRender();
+        if (!mVideoRenderer->init(mSurface, w, h, mVideoFormat)) {
          	LOGE("Initing video render failed");
             return ERROR;
         }
@@ -1049,9 +1059,7 @@ status_t FFPlayer::getVideoWidth(int32_t *w)
 {
     if (mVideoRenderer != NULL) {
         //Use optimized size from render
-        uint32_t optWidth = 0;
-        mVideoRenderer->width(optWidth);
-        *w = optWidth;
+		*w = mVideoRenderer->get_width();
     }
     else {
         *w = mVideoWidth;
@@ -1063,9 +1071,7 @@ status_t FFPlayer::getVideoHeight(int32_t *h)
 {
     if(mVideoRenderer != NULL) {
         //Use optimized size from render
-        uint32_t optHeight = 0;
-        mVideoRenderer->height(optHeight);
-        *h = optHeight;
+        *h = mVideoRenderer->get_height();
     }
     else
     {
@@ -1381,15 +1387,25 @@ void FFPlayer::render_impl()
 {
 #ifdef USE_AV_FILTER
 	if (mVideoFiltFrame) {
-		if ( OK != mVideoRenderer->render(mVideoFiltFrame))
-			notifyListener_l(MEDIA_ERROR, MEDIA_ERROR_VIDEO_RENDER, 0);
+		if (!mVideoRenderer->render(mVideoFiltFrame)) {
+			static bool once = true;
+			if (once) {
+				notifyListener_l(MEDIA_ERROR, MEDIA_ERROR_VIDEO_RENDER, 0);
+				once = false;
+			}
+		}
 
 		av_frame_unref(mVideoFiltFrame);
 		return;
 	}
 #endif
-	if (OK != mVideoRenderer->render(mVideoFrame))
-		notifyListener_l(MEDIA_ERROR, MEDIA_ERROR_VIDEO_RENDER, 0);
+	if (!mVideoRenderer->render(mVideoFrame)) {
+		static bool once = true;
+		if (once) {
+			notifyListener_l(MEDIA_ERROR, MEDIA_ERROR_VIDEO_RENDER, 0);
+			once = false;
+		}
+	}
 }
 
 void FFPlayer::render_frame()
@@ -1690,22 +1706,22 @@ void FFPlayer::process_opt(char *opt)
 		char *value = sep + 1;
 		LOGI("one option %s = %s", key, value);
 		
-#ifdef PCM_DUMP
-		if (strcmp(key, "-dump_url") == 0) {
-			if (mDumpUrl)
-				free(mDumpUrl);
-
-			mDumpUrl = my_strdup(value);
-			LOGI("set_opt dump_url udp://%s", mDumpUrl);
-
-		}
-		else if (strcmp(key, "-buffering_sec") == 0) {
+		if (strcmp(key, "-buffering_sec") == 0) {
 			mBufferingSec = atoi(value);
 			LOGI("set_opt buffering_sec %d", mBufferingSec);
 
 			if (mDataStream) {
 				mDataStream->setBufferingSec(mBufferingSec);
 			}
+		}
+#ifdef PCM_DUMP
+		else if (strcmp(key, "-dump_url") == 0) {
+			if (mDumpUrl)
+				free(mDumpUrl);
+
+			mDumpUrl = my_strdup(value);
+			LOGI("set_opt dump_url udp://%s", mDumpUrl);
+
 		}
 #endif
 	}
@@ -1815,7 +1831,8 @@ void FFPlayer::onSeekingImpl()
     mSeekingEventPending = false;
 
     if (!mSeeking) {
-        mSeeking = true; //doing seek.
+		//do a seek op
+        mSeeking = true; //condition that is doing seek.
         seekTo_l();
         if (mVideoStream != NULL) {
             mRenderFirstFrame = true;
@@ -2177,9 +2194,8 @@ void FFPlayer::postBufferingEndEvent_l() {
 
 void FFPlayer::postSeekingCompleteEvent_l() {
 
-    if (mSeekingCompleteEventPending) {
+    if (mSeekingCompleteEventPending)
         return;
-    }
 
     mSeekingCompleteEventPending = true;
 	
@@ -2294,8 +2310,12 @@ status_t FFPlayer::prepareVideo_l()
 				mAudioFiltFrame = av_frame_alloc();
 				notifyListener_l(MEDIA_SET_VIDEO_SIZE, AUDIO_VISUAL_WIDTH, AUDIO_VISUAL_HEIGHT);
 
-				mVideoRenderer = new FFRender(mSurface, AUDIO_VISUAL_WIDTH, AUDIO_VISUAL_HEIGHT, AV_PIX_FMT_YUV420P);
-				if (mVideoRenderer->init() != OK) {
+#ifdef __ANDROID__
+				mVideoRenderer = new AndroidRender();
+#else
+				mVideoRenderer = new WinRender();
+#endif
+				if (!mVideoRenderer->init(mSurface, AUDIO_VISUAL_WIDTH, AUDIO_VISUAL_HEIGHT, AV_PIX_FMT_YUV420P)) {
          			LOGE("Initing video render failed");
 					return ERROR;
 				}		
@@ -2448,7 +2468,6 @@ status_t FFPlayer::prepareVideo_l()
 #endif
 #endif
 
-    mVideoRenderer = new FFRender(mSurface, render_w, render_h, mVideoFormat);
 	bool force_sw = false;
 #ifdef USE_AV_FILTER
 	if (mVideoFiltFrame) {
@@ -2456,15 +2475,19 @@ status_t FFPlayer::prepareVideo_l()
 		force_sw = true;
 	}
 #endif
-    if (mVideoRenderer->init(force_sw) != OK) {
+#ifdef __ANDROID__
+    mVideoRenderer = new AndroidRender();
+#elif defined(__APPLE__)
+	mVideoRenderer = new IOSRender();
+#else
+	mVideoRenderer = new WinRender();
+#endif
+    if (!mVideoRenderer->init(mSurface, render_w, render_h, mVideoFormat, force_sw)) {
         LOGE("Initing video render failed");
         return ERROR;
     }
 
-    uint32_t surfaceWidth = 0, surfaceHeight = 0;
-    mVideoRenderer->width(surfaceWidth);
-    mVideoRenderer->height(surfaceHeight);
-    notifyListener_l(MEDIA_SET_VIDEO_SIZE, surfaceWidth, surfaceHeight);
+    notifyListener_l(MEDIA_SET_VIDEO_SIZE, render_w, render_h);
 
 	return OK;
 }
@@ -3067,7 +3090,7 @@ bool FFPlayer::need_drop_pkt(AVPacket* packet)
                 int64_t latenessMs = audioPlayingTimeMs - packetTimeMs;
 
                 //as audio time is playing, so time*2
-                latenessMs = latenessMs + mVideoRenderer->swsMs() + mAveVideoDecodeTimeMs*2;
+                latenessMs = latenessMs + mVideoRenderer->get_swsMs() + mAveVideoDecodeTimeMs*2;
                 LOGD("packetTimeMs: %lld, audioPlayingTimeMs: %lld, latenessMs: %lld, maxPacketLatenessMs: %lld",
             		    packetTimeMs, audioPlayingTimeMs, latenessMs, latenessMs);
 
@@ -3438,7 +3461,7 @@ bool generateThumbnail(AVFrame* videoFrame,
 	int ret;
 	bool result = false;
 	enum AVPixelFormat out_fmt = AV_PIX_FMT_NONE;
-#ifdef __ANDROID__
+#if defined(__ANDROID__) || defined(_MSC_VER) || defined(__CYGWIN__)
 	out_fmt = AV_PIX_FMT_BGRA;
 #else
 	// for common case(including IOS)
@@ -4068,7 +4091,7 @@ bool FFPlayer::getThumbnail2(const char* url, MediaInfo* info)
     return ret;
 }
 
-bool FFPlayer::getThumbnail(const char* url, MediaInfo* info)
+bool FFPlayer::getThumbnail(const char* url, MediaInfo* info, int width, int height)
 {
 	LOGI("player op getThumbnail() %s", url);
 
@@ -4132,7 +4155,7 @@ bool FFPlayer::getThumbnail(const char* url, MediaInfo* info)
         goto end;
     }
 
-	info->duration_ms = (int32_t)movieFile->duration * 1000 / AV_TIME_BASE;
+	info->duration_ms = (int32_t)(movieFile->duration * 1000 / AV_TIME_BASE);
 	info->format_name = my_strdup(movieFile->iformat->name);
 
 	frame = av_frame_alloc();
@@ -4172,6 +4195,15 @@ bool FFPlayer::getThumbnail(const char* url, MediaInfo* info)
 		}
     }
 
+#ifdef SCENE_DETECT
+	const char *filt_desc[2] = {"select='gt(scene,0.2)'", NULL};
+	if (!init_filters_video(filt_desc, video_dec_ctx)) {
+		LOGE("failed to init video filters");
+		goto end;
+	}
+	AVFrame *videoFiltFrame = av_frame_alloc();
+#endif
+
 	/* initialize packet, set data to NULL, let the demuxer fill it */
     av_init_packet(&pkt);
     pkt.data = NULL;
@@ -4180,7 +4212,7 @@ bool FFPlayer::getThumbnail(const char* url, MediaInfo* info)
 	/* read frames from the file */
     while (av_read_frame(movieFile, &pkt) >= 0) {
 		AVPacket orig_pkt = pkt;
-		if(pkt.stream_index == video_stream_idx) {
+		if (pkt.stream_index == video_stream_idx) {
 			int got_frame;
 			do {
 				/* decode video frame */
@@ -4191,14 +4223,44 @@ bool FFPlayer::getThumbnail(const char* url, MediaInfo* info)
 				}
 
 				if (got_frame) {
-					info->thumbnail_width = 96;
-                    info->thumbnail_height = 96;
+#ifdef SCENE_DETECT
+					// push the decoded frame into the filtergraph
+					if (av_buffersrc_add_frame_flags(mBufferSrcCtx, frame, AV_BUFFERSRC_FLAG_KEEP_REF) < 0) {
+						LOGE("Error while feeding the filtergraph");
+						goto end;
+					}
+
+					// pull filtered frames from the filtergraph
+					int filt_ret;
+					while (1) {
+						filt_ret = av_buffersink_get_frame(mBufferSinkCtx, videoFiltFrame);
+						if (filt_ret >= 0) {
+							info->thumbnail_width = width;
+							info->thumbnail_height = height;
+							info->thumbnail = (int*)malloc(info->thumbnail_width * info->thumbnail_height * 4);
+							if (generateThumbnail(videoFiltFrame, info->thumbnail, info->thumbnail_width, info->thumbnail_height)) {
+								got_thumbnail = 1;
+								LOGI("generateThumbnail(select) done!");
+							}
+							av_frame_unref(videoFiltFrame);
+							av_frame_unref(frame);
+							break;
+						}
+						else if (filt_ret == AVERROR(EAGAIN) || filt_ret == AVERROR_EOF)
+							break;
+						else if (filt_ret < 0)
+							break;
+					}
+#else
+					info->thumbnail_width = width;
+                    info->thumbnail_height = height;
                     info->thumbnail = (int*)malloc(info->thumbnail_width * info->thumbnail_height * 4);
                     if (generateThumbnail(frame, info->thumbnail, info->thumbnail_width, info->thumbnail_height)) {
 						got_thumbnail = 1;
 						LOGI("generateThumbnail done!");
 					}
 					av_frame_unref(frame);
+#endif
 				}
 					
 				pkt.data += ret;

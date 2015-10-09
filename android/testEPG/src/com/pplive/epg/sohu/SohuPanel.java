@@ -3,10 +3,12 @@ package com.pplive.epg.sohu;
 import javax.imageio.ImageIO;
 import javax.swing.*; 
 
+import org.jdom2.CDATA;
 import org.jdom2.Document;
 import org.jdom2.Element;
 import org.jdom2.output.XMLOutputter;
 
+import java.awt.Desktop;
 import java.awt.Font;
 import java.awt.event.*; 
 import java.awt.image.BufferedImage;
@@ -16,6 +18,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.net.URI;
 import java.net.URL;
 import java.util.List;
 import java.util.StringTokenizer;
@@ -158,7 +161,7 @@ public class SohuPanel extends JPanel {
 		});
 		this.add(listItem);
 		
-		lblImage.setBounds(350, 100, 256, 256);
+		lblImage.setBounds(350, 200, 256, 256);
 		this.add(lblImage);
 		
 		lblTip.setFont(f);
@@ -311,7 +314,7 @@ public class SohuPanel extends JPanel {
 			
 			int last_count = al.getLastCount();
 			if (last_count > EPISODE_INCR_PAGE_NUM) {
-				ep_page_index = (last_count - 1) / PAGE_SIZE + 1;
+				ep_page_index = (last_count + 9) / PAGE_SIZE;
 				ep_page_incr = -1;
 			}
 			else {
@@ -508,8 +511,27 @@ public class SohuPanel extends JPanel {
 
 		System.out.println("final play link " + url);
 		
-		String[] cmd = new String[] {exe_vlc, url};
-		openExe(cmd);
+		if (Desktop.isDesktopSupported()){
+            try {
+                //创建一个URI实例
+                URI uri = URI.create("http://172.16.204.106/play.htm"); 
+                //获取当前系统桌面扩展
+                Desktop dp = Desktop.getDesktop();
+                //判断系统桌面是否支持要执行的功能
+                if(dp.isSupported(Desktop.Action.BROWSE)){
+                    //获取系统默认浏览器打开链接
+                    dp.browse(uri);    
+                }
+            } catch(java.lang.NullPointerException e){
+                //此为uri为空时抛出异常
+            } catch (java.io.IOException e) {
+                //此为无法获取系统默认浏览器
+            }             
+        }
+		else {
+			String[] cmd = new String[] {exe_vlc, url};
+			openExe(cmd);
+		}
 	}
 	
 	private void gen_xml(PlaylinkSohu pl, SOHU_FT ft) {
@@ -517,33 +539,50 @@ public class SohuPanel extends JPanel {
 		String strDuration = pl.getDuration(ft);
 		String strSize = pl.getSize(ft);
 		
+		System.out.println("Java: strUrl " + strUrl);
+		
 		// 创建根节点 list;
         Element root = new Element("ckplayer");
         // 将根节点添加到文档中；
         Document Doc = new Document(root);
         // 创建新节点 flashvars;
-        Element flashvars = new Element("flashvars").setText("{h->2}");
+        Element flashvars = new Element("flashvars").setText("![CDATA[{h->2}]]");
         root.addContent(flashvars);
         
-        StringTokenizer stUrl, stSize, stDuration;
-		int i=0;
-		
-		stUrl = new StringTokenizer(strUrl, ",", false);
-		stDuration = new StringTokenizer(strDuration, ",", false);
-		stSize = new StringTokenizer(strSize, ",", false);
-		
-		while (stUrl.hasMoreElements() && stDuration.hasMoreElements() && stSize.hasMoreElements()) {
-			String url = stUrl.nextToken();
-			String duration = stDuration.nextToken();
-			String size = stSize.nextToken();
-			
-			System.out.println(String.format("Java: segment #%d url: %s", i++, url));
+		if (!strUrl.contains(",")) {
+			System.out.println("Java: add ONLY ONE segment " + strUrl);
 			Element video = new Element("video");
-            video.addContent(new Element("file").setText(url));
-            video.addContent(new Element("size").setText(size));
-            video.addContent(new Element("seconds").setText(duration));
+			Element file = new Element("file");
+			file.addContent(new CDATA(strUrl));
+			video.addContent(file);
+            video.addContent(new Element("size").setText(strSize));
+            video.addContent(new Element("seconds").setText(strDuration));
             // 给父节点list添加company子节点;
             root.addContent(video);
+		}
+		else {
+			StringTokenizer stUrl, stSize, stDuration;
+			int i=0;
+			
+			stUrl = new StringTokenizer(strUrl, ",", false);
+			stDuration = new StringTokenizer(strDuration, ",", false);
+			stSize = new StringTokenizer(strSize, ",", false);
+			
+			while (stUrl.hasMoreElements() && stDuration.hasMoreElements() && stSize.hasMoreElements()) {
+				String url = stUrl.nextToken();
+				String duration = stDuration.nextToken();
+				String size = stSize.nextToken();
+				
+				System.out.println(String.format("Java: segment #%d url: %s", i++, url));
+				Element video = new Element("video");
+				Element file = new Element("file");
+				file.addContent(new CDATA(url));
+				video.addContent(file);
+	            video.addContent(new Element("size").setText(size));
+	            video.addContent(new Element("seconds").setText(duration));
+	            // 给父节点list添加company子节点;
+	            root.addContent(video);
+			}
 		}
         
         // 输出company_list.xml文件

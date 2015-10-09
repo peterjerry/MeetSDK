@@ -49,7 +49,7 @@ public class TabbedPaneDemo extends JPanel {
        tp.setMnemonicAt(0, KeyEvent.VK_0);
       
        //第二个标签
-       //tp.addTab("LeTV", ii, letvPanel, "乐视");
+       //tp.addTab("LeTV", iiPPTV, letvPanel, "乐视");
        //tp.setMnemonicAt(1, KeyEvent.VK_1);
  
        //第三个标签

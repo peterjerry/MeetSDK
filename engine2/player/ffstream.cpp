@@ -35,11 +35,7 @@ extern JavaVM* gs_jvm;
 #define FF_PLAYER_MIN_BUFFER_SECONDS_VOD				4 //sec
 #endif
 
-#define FF_PLAYER_MIN_BUFFER_MILISECONDS_BROADCAST_HR	0 //ms
-#define FF_PLAYER_MAX_BUFFER_MILISECONDS_BROADCAST_HR	400 //ms
-
-#define FF_PLAYER_MIN_BUFFER_MILISECONDS_BROADCAST_LR	3000 //ms
-#define FF_PLAYER_MAX_BUFFER_MILISECONDS_BROADCAST_LR	60000 //ms
+#define FF_PLAYER_BROADCAST_MAX_CACHE_MSEC				3000 //ms
 
 #define FF_PLAYER_MAX_QUEUE_SIZE_DEFAULT				(1048576 * 4) //10MB -> 4MB
 
@@ -59,7 +55,7 @@ FFStream::FFStream()
     mMovieFile			= NULL;
     mBufferSize			= 0;
     mMinPlayBufferCount = 0;
-    mMaxPlayBufferMs	= 1000;
+    mMaxPlayBufferMs	= FF_PLAYER_BROADCAST_MAX_CACHE_MSEC;
     mMaxBufferSize		= FF_PLAYER_MAX_QUEUE_SIZE_DEFAULT;
     mStatus				= FFSTREAM_INITED;
 
@@ -355,7 +351,7 @@ AVFormatContext* FFStream::open(char* uri)
 	mOpenStreamStartMs = 0;
     LOGI("open url successed");
 
-    bool isM3u8Broadcast = false;
+    /*bool isM3u8Broadcast = false;
     if (mMovieFile->iformat->name != NULL
         && !strcmp(mMovieFile->iformat->name, "hls,applehttp"))
     {
@@ -364,7 +360,7 @@ AVFormatContext* FFStream::open(char* uri)
             isM3u8Broadcast = true;
 			LOGI("m3u8 broadcast is on");
         }
-    }
+    }*/
 
 	if (strstr(uri, "appid%3DPPTVIBOBO") != NULL) {
 #if defined(_MSC_VER) && !defined(_DEBUG) || defined(_DEBUG_FF)
@@ -406,7 +402,7 @@ AVFormatContext* FFStream::open(char* uri)
     //Todo: support displaying album picture when playing audio file
 	// 2015.9.1 guoliangma added to fix bug OTT-43P SSP-237 some ogg clip has BLACK screen problem
     if (mMovieFile->iformat->name != NULL
-        //&& strcmp(mMovieFile->iformat->name, "mp3") != 0
+        && strcmp(mMovieFile->iformat->name, "mp3") != 0
         //&& strcmp(mMovieFile->iformat->name, "ogg") != 0
         && strcmp(mMovieFile->iformat->name, "wmav1") != 0
         && strcmp(mMovieFile->iformat->name, "wmav2") != 0)
@@ -565,25 +561,11 @@ AVFormatContext* FFStream::open(char* uri)
         mUrlType = TYPE_LIVE;
         LOGI("It is a online live stream with mMinPlayBufferCount:%d", mMinPlayBufferCount);
 	}
-    else if(mDurationMs == 0 || isM3u8Broadcast || strncmp(uri, "rtmp", 4) == 0) // m3u8 play cannot get duration, will cause "seek" and "flush" cache!
-    {
+	else if (strncmp(uri, "rtmp", 4) == 0) {
+		mMinPlayBufferCount = mFrameRate / 4; // 250 msec
         mUrlType = TYPE_BROADCAST;
-        if(strstr(uri, "&realtime=high") != NULL || strstr(uri, "?realtime=high") != NULL || strncmp(uri, "rtmp", 4) == 0)
-        {
-            mRealtimeLevel = LEVEL_HIGH;
-            mMinPlayBufferCount = mFrameRate * FF_PLAYER_MIN_BUFFER_MILISECONDS_BROADCAST_HR/1000;
-            mMaxPlayBufferMs = FF_PLAYER_MAX_BUFFER_MILISECONDS_BROADCAST_HR;
-        }
-        else
-        {
-            mRealtimeLevel = LEVEL_LOW;
-            mMinPlayBufferCount = mFrameRate * FF_PLAYER_MIN_BUFFER_MILISECONDS_BROADCAST_LR/1000;
-            mMaxPlayBufferMs = FF_PLAYER_MAX_BUFFER_MILISECONDS_BROADCAST_LR;
-        }
-        LOGI("It is a broadcast stream with mMinPlayBufferCount:%d, mMaxPlayBufferMs:%lld",
-            mMinPlayBufferCount,
-            mMaxPlayBufferMs);
-    }
+        LOGI("It is a rtmp stream with mMinPlayBufferCount:%d", mMinPlayBufferCount);
+	}
     else {
         mMinPlayBufferCount = mFrameRate * FF_PLAYER_MIN_BUFFER_SECONDS_VOD;
         mUrlType = TYPE_ONDEMAND;
@@ -903,7 +885,11 @@ void FFStream::thread_impl()
 #else
 				seek_target= av_rescale_q(seek_target, AV_TIME_BASE_Q, mMovieFile->streams[stream_index]->time_base);
 #endif
-                if (av_seek_frame(mMovieFile, stream_index, seek_target, mSeekFlag) < 0) {
+                int64_t seek_min    = /*mSeekRel > 0 ? seek_target - mSeekRel + 2: */INT64_MIN;
+				int64_t seek_max    = /*mSeekRel < 0 ? seek_target - mSeekRel - 2: */INT64_MAX;
+                //if (av_seek_frame(mMovieFile, stream_index, seek_target, mSeekFlag) < 0) {
+				// 2015.9.9 guoliang change api to fix some clip cannot seek to the VERY end of file(5 sec)
+				if (avformat_seek_file(mMovieFile, stream_index, seek_min, seek_target, seek_max, mSeekFlag) < 0) {
 #ifdef _MSC_VER
 					LOGE("failed to seek to: %I64d(ms)", mSeekTimeMs);
 #else
@@ -1147,29 +1133,27 @@ void FFStream::thread_impl()
 #endif
                 int64_t duration = (int64_t)(mAudioQueue.duration() * 1000 * av_q2d(mAudioStream->time_base));
                 LOGD("audio duration: %lld", duration);
-                if (!mDelaying || duration < mMaxPlayBufferMs) {
-                    mAudioQueue.put(pPacket);
-                    mBufferSize += pPacket->size;
-					LOGD("audio_queue: count %d, size %d", mAudioQueue.count(), mAudioQueue.size());
+                if (mUrlType == TYPE_BROADCAST && duration > mMaxPlayBufferMs) {
+					mAudioQueue.flush();
+					LOGW("[liveplatform] flush audio packet");
+				}
 
-                    //update cached duration
-                    int64_t packetPTS = 0;
-                    if (pPacket->pts == AV_NOPTS_VALUE)
-                        packetPTS = pPacket->dts;
-                    else
-                        packetPTS = pPacket->pts;
+                mAudioQueue.put(pPacket);
+                mBufferSize += pPacket->size;
+				LOGD("audio_queue: count %d, size %d", mAudioQueue.count(), mAudioQueue.size());
 
-                    if (packetPTS == AV_NOPTS_VALUE) // aggregate value
-                        mCachedDurationMs += (int64_t)((double)pPacket->duration * 1000 * av_q2d(mAudioStream->time_base));
-                    else // absolute value
-						mCachedDurationMs = (int64_t)(packetPTS * 1000 * av_q2d(mAudioStream->time_base));
-                    LOGD("mCachedDurationMs: %lld", mCachedDurationMs);
-                }
-                else {
-                    av_free_packet(pPacket);
-                    av_free(pPacket);
-                    LOGI("[liveplatform]:drop delayed audio packet");
-                }
+                //update cached duration
+                int64_t packetPTS = 0;
+                if (pPacket->pts == AV_NOPTS_VALUE)
+                    packetPTS = pPacket->dts;
+                else
+                    packetPTS = pPacket->pts;
+
+                if (packetPTS == AV_NOPTS_VALUE) // aggregate value
+                    mCachedDurationMs += (int64_t)((double)pPacket->duration * 1000 * av_q2d(mAudioStream->time_base));
+                else // absolute value
+					mCachedDurationMs = (int64_t)(packetPTS * 1000 * av_q2d(mAudioStream->time_base));
+                LOGD("mCachedDurationMs: %lld", mCachedDurationMs);
 			}
 			else if (pPacket->stream_index == mVideoStreamIndex) {
 				//video data
@@ -1244,7 +1228,7 @@ void FFStream::thread_impl()
                     if (mGopStart && mGopEnd) {
 						// ahha! we got duration now!
                         mGopDuration = (int64_t)((mGopEnd - mGopStart) * 1000 * av_q2d(mVideoStream->time_base));
-                        if (mGopDuration < FF_PLAYER_MAX_BUFFER_MILISECONDS_BROADCAST_HR || mGopDuration > FF_PLAYER_INVALID_GOP_DURATION) {
+                        if (mGopDuration > FF_PLAYER_INVALID_GOP_DURATION) {
 #ifdef _MSC_VER
 							LOGW("GOP duration is invalid: %I64d msec", mGopDuration);
 #else
@@ -1253,52 +1237,36 @@ void FFStream::thread_impl()
 							mGopDuration = FF_PLAYER_DEFAULT_GOP_DURATION;
 						}
                         LOGI("got GOP duration: %lld(msec)", mGopDuration);
-
-                        if (mUrlType == TYPE_BROADCAST && mRealtimeLevel == LEVEL_HIGH) {
-                            mMinPlayBufferCount = 0;
-                            mMaxPlayBufferMs = mGopDuration / 2;
-                            LOGI("Update broadcast stream with mMinPlayBufferCount:%d, mMaxPlayBufferMs:%lld",
-                                mMinPlayBufferCount, mMaxPlayBufferMs);
-						}
 					}
 				}
 
 				int64_t duration = (int64_t)(mVideoQueue.duration()*1000*av_q2d(mVideoStream->time_base));
 				LOGD("video duration:%lld", duration);
-				if ((mUrlType == TYPE_BROADCAST) &&
-					(mRealtimeLevel == LEVEL_HIGH) &&
-					(duration > mMaxPlayBufferMs))
-				{
-					mDelaying = true;
-					LOGD("[liveplatform]:switch to delay state");
-					if(mRefreshed &&
-						mMaxPlayBufferMs < mGopDuration * 3 &&
-						mRealtimeLevel == LEVEL_HIGH)
-					{
-						mMaxPlayBufferMs+=200;
-						LOGD("[liveplatform] increase mMaxPlayBufferMs to: %lld", mMaxPlayBufferMs);
+				if (mUrlType == TYPE_BROADCAST && duration > mMaxPlayBufferMs) {
+					if (!mDelaying) {
+						mDelaying = true;
+						LOGW("[liveplatform] set state to drop");
 					}
 				}
 
-				if (mDelaying &&
-					(pPacket->flags & AV_PKT_FLAG_KEY) &&
-                    (duration <= mMaxPlayBufferMs))
-                {
-                    mDelaying = false;
-                    LOGD("[liveplatform]:switch to normal state");
-                }
-
 				if (mDelaying) {
-                    av_free_packet(pPacket);
-                    av_free(pPacket);
-                    LOGD("[liveplatform]:drop delayed video packet");
-                }
-				else {
-                    mVideoQueue.put(pPacket);
-                    mBufferSize += pPacket->size;
+					if (pPacket->flags & AV_PKT_FLAG_KEY) {
+						mDelaying = false;
+						LOGW("[liveplatform] set state to normal");
+					}
+					else {
+						LOGW("[liveplatform] drop delayed video packet %lld", pPacket->pts);
+						notifyListener_l(MEDIA_INFO, MEDIA_INFO_TEST_DROP_FRAME, 0);
+						av_free_packet(pPacket);
+						av_free(pPacket);
+						continue;
+					}
+				}
 
-					LOGD("video_queue: count %d, size %d", mVideoQueue.count(), mVideoQueue.size());
-                }
+                mVideoQueue.put(pPacket);
+                mBufferSize += pPacket->size;
+
+				LOGD("video_queue: count %d, size %d", mVideoQueue.count(), mVideoQueue.size());
             }
 			else if (pPacket->stream_index == mSubtitleStreamIndex)
 			{

@@ -1,21 +1,15 @@
-测试片子
-http://60.55.12.135:80/2edb8f3b840171234f5eea4aa07ad712.m3u8?w=1&key=93331b0993f1e66d94e259e7600e06f1&k=bbae05ac17771c45d631fdc6b0e1a257-620b-1423230772&type=phone.android.vip&vvid=877a4382-f0e4-49ed-afea-8d59dbd11df1&sv=4.1.3&platform=android3&ft=1&accessType=wifi
+测试片子,http://60.55.12.135:80/2edb8f3b840171234f5eea4aa07ad712.m3u8?w=1&key=93331b0993f1e66d94e259e7600e06f1&k=bbae05ac17771c45d631fdc6b0e1a257-620b-1423230772&type=phone.android.vip&vvid=877a4382-f0e4-49ed-afea-8d59dbd11df1&sv=4.1.3&platform=android3&ft=1&accessType=wifi
 
-rtsp 广西卫视
-rtsp://127.0.0.1:5154/play.es?type=pplive3&playlink=300178%3Fft%3D1%26bwtype%3D0%26platform%3Dandroid3%26type%3Dphone.android.vip%26bitrate%3D1200
-rtsp 江苏卫视
-rtsp://127.0.0.1:5154/play.es?type=pplive3&playlink=300163%3Fft%3D1%26bwtype%3D0%26platform%3Dandroid3%26type%3Dphone.android.vip
-rtsp 新闻综合 5min
-rtsp://127.0.0.1:5154/play.es?type=pplive3&playlink=300156%3Fft%3D1%26bwtype%3D0%26platform%3Dandroid3%26type%3Dphone.android.vip%26delaytime%3D0%26begin_time%3D1416823200%26end_time%3D1416825000
-myFTP
-ftp://u455123614.wnpllrzodiac:daqiao1@ftp.iloveyaya.zz.vc/test/[SumiSora][Mayoi_Neko_OVERRUN][BDRip][SP][04][BIG5][PSP_480P].mp4
-crash
-http://115.231.44.163:80/w/743a609778819144fa4d9ff86fb786ec.mp4?w=1&key=f4d1d48c1dbaeafc60eeabc1b6f496b2&k=53d1e512b432451af49d485e04901383-ca45-1433411750%26chid%3D150343009%26cp%3Dprivate_cloud&type=phone.android.cloudplay&vvid=07c4a1b1-421a-42c1-9d55-41b581064ff2&sv=5.1.0&platform=android3&ft=0&accessType=wifi
-new
-rtmp://172.16.204.106/live/test01
-m3u8
-http://172.16.204.106/test/test/dump/1.m3u8
-
+rtsp 广西卫视,rtsp://127.0.0.1:5154/play.es?type=pplive3&playlink=300178%3Fft%3D1%26bwtype%3D0%26platform%3Dandroid3%26type%3Dphone.android.vip%26bitrate%3D1200
+rtsp 江苏卫视,rtsp://127.0.0.1:5154/play.es?type=pplive3&playlink=300163%3Fft%3D1%26bwtype%3D0%26platform%3Dandroid3%26type%3Dphone.android.vip
+rtsp 新闻综合 5min,rtsp://127.0.0.1:5154/play.es?type=pplive3&playlink=300156%3Fft%3D1%26bwtype%3D0%26platform%3Dandroid3%26type%3Dphone.android.vip%26delaytime%3D0%26begin_time%3D1416823200%26end_time%3D1416825000
+myFTP,ftp://u455123614.wnpllrzodiac:daqiao1@ftp.iloveyaya.zz.vc/test/[SumiSora][Mayoi_Neko_OVERRUN][BDRip][SP][04][BIG5][PSP_480P].mp4
+crash,http://172.16.204.106/test/town.mp4
+new,rtmp://172.16.204.106/live/test01
+pcs,http://192.168.200.237:8059/rest/2.0/pcs/file?method=download&access_token=23.f3349b421ca23cc9ccfcd36971c13d47.2592000.1440292801.184740130-266719&path=%2F%E6%88%91%E7%9A%84%E9%9F%B3%E4%B9%90%2FTaylor.Swift.-.%5BFearless%5D.Instrumentals.%28iTunes.Plus.AAC%29%2F08+Tell+Me+Why+%28Instrumentals+With+B.m4a
+rtmp,rtmp://live.hkstv.hk.lxdns.com/live/hks
+rtmp_good,rtmp://124.160.184.154:1935/live/dd992e7c24e444b78517d9401224b166
+xxx,rtmp://172.16.204.106/live/test01
 
 
 

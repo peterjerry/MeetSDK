@@ -27,7 +27,7 @@ apKey::~apKey(void)
 {
 }
 
-uint8_t * apKey::getKey(int64_t server_time)
+uint8_t * apKey::genKey(int64_t server_time)
 {
 	uint8_t bytes[16]	= {0};
     uint8_t key[16]		= {0};

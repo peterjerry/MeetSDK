@@ -131,9 +131,6 @@
     <ClCompile Include="..\..\..\player\ffplayer.cpp">
       <Filter>源文件\player</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\player\ffrender.cpp">
-      <Filter>源文件\player</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\..\player\ffstream.cpp">
       <Filter>源文件\player</Filter>
     </ClCompile>
@@ -193,6 +190,9 @@
     </ClCompile>
     <ClCompile Include="..\..\..\platform\clsocket\SimpleSocket.cpp">
       <Filter>源文件\pcmdump</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\player\winrender.cpp">
+      <Filter>源文件\player</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

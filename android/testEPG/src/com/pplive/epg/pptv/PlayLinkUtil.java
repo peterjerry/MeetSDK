@@ -80,7 +80,7 @@ public class PlayLinkUtil {
 			e.printStackTrace();
 		}
 		
-		if (playlink >= 300000 && playlink <= 300999) {
+		if (playlink >= 300000 && playlink <= 400000) {
 			// live
 			String url_fmt;
 			if (http_port == 9006)

@@ -1,4 +1,4 @@
-package com.pplive.meetplayer.util;
+package com.pplive.common.util;
 
 import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
@@ -9,13 +9,16 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.UnsupportedEncodingException;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.net.URLConnection;
 import java.net.URLDecoder;
-import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.Date;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.StringTokenizer;
@@ -23,16 +26,18 @@ import java.util.StringTokenizer;
 import com.pplive.common.pptv.CDNItem;
 import com.pplive.common.pptv.EPGUtil;
 import com.pplive.common.util.httpUtil;
+import com.pplive.meetplayer.util.Util;
 
 import android.content.Context;
-import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Environment;
-import android.pplive.media.MeetSDK;
 import android.util.Log;
 import android.webkit.MimeTypeMap;
 import fi.iki.elonen.NanoHTTPD;
+import fi.iki.elonen.NanoHTTPD.Response.IStatus;
 import fi.iki.elonen.NanoHTTPD.Response.Status;
+
+import android.pplive.media.MeetSDK;
 
 public class MyNanoHTTPD extends NanoHTTPD{  
 	private final static String TAG = "MyNanoHTTPD";
@@ -47,15 +52,18 @@ public class MyNanoHTTPD extends NanoHTTPD{
 	private MimeTypeMap  mMimeTypeMap;
 	
 	private EPGUtil mEPG;
-	private CDNItem mLiveitem;
+	private List<CDNItem> mLiveItemList;
+	private CDNItem mLiveItem;
 	private String mLastM3u8;
 	private int m_first_seg = 1;
 	private int mVid;
+	private int mFt = 1;
 	private boolean mIsLive = true;
+	private long start_time;
 	
 	private String block_url_fmt = "http://%s/live/" +
 			"%s/" + // rid 074094e6c24c4ebbb4bf6a82f4ceabda
-			"%d.block?ft=1&platform=android3" +
+			"%d.block?ft=%d&platform=android3" +
 			"&type=phone.android.vip&sdk=1" +
 			"&channel=162" + 
 			"&vvid=41" +
@@ -87,10 +95,10 @@ public class MyNanoHTTPD extends NanoHTTPD{
 		if (NanoHTTPD.Method.GET.equals(method)) {
 			// get方式
 			String queryParams = session.getQueryParameterString();
-			Log.i(TAG, "params: " + queryParams);
+			Log.i(TAG, "Java: params: " + queryParams);
 			
-			long from = 0;
-			long to = -1;
+			long from	= -1; // not SET
+			long to		= -1; // not SET
 			
 			String uri = session.getUri();
 			Log.i(TAG, "Java: uri: " + uri);
@@ -104,6 +112,7 @@ public class MyNanoHTTPD extends NanoHTTPD{
 				
 				if (key.equals("range")) {
 					// Range: bytes=500-999
+					
 					int pos;
 					pos = value.indexOf("-");
 					from = Long.valueOf(value.substring(6, pos));
@@ -128,14 +137,17 @@ public class MyNanoHTTPD extends NanoHTTPD{
 					Log.i(TAG, "Java: load resource: " + uri);
 					int pos = uri.lastIndexOf("/");
 					InputStream is = mContext.getAssets().open(uri.substring(pos + 1, uri.length()));
-					return serveLocalFile(is, uri, 0, is.available(), false);
+					return serveLocalFile(is, uri, -1, -1);
+				}
+				else if (uri.contains("rest/2.0/pcs")) {
+					return servePCS(uri, queryParams, from, to);
 				}
 				else if (uri.contains("/play.m3u8") && 
 						queryParams != null && queryParams.contains("type=pplive3")) {
-					return serveM3u8(uri, queryParams);
+					return serveM3u8(uri, queryParams, from, to);
 				}
 				else if (uri.endsWith(".ts")) {
-					return serveSegment(uri);
+					return serveSegment(uri, from, to);
 				}
 				else {
 					String filepath = mRootDir + uri;
@@ -146,7 +158,7 @@ public class MyNanoHTTPD extends NanoHTTPD{
 					
 					try {
 						FileInputStream is = new FileInputStream(file);
-						return serveLocalFile(is, filepath, from, to, headers.containsKey("range"));
+						return serveLocalFile(is, filepath, from, to);
 					} catch (FileNotFoundException e) {
 						// TODO Auto-generated catch block
 						e.printStackTrace();
@@ -155,11 +167,11 @@ public class MyNanoHTTPD extends NanoHTTPD{
 			} catch (FileNotFoundException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
-				Log.e(TAG, "failed to open file: " + uri);
+				Log.e(TAG, "Java: failed to open file: " + uri);
 			} catch (IOException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
-				Log.e(TAG, "failed to IOException: " + e.getMessage());
+				Log.e(TAG, "Java: failed to IOException: " + e.getMessage());
 			}
 		} else if (NanoHTTPD.Method.POST.equals(method)) {
 			// post方式
@@ -168,15 +180,11 @@ public class MyNanoHTTPD extends NanoHTTPD{
          return super.serve(session);  
      }
 	
-	private myResponse serveLocalFile(InputStream is, String path, 
-			long from, long to, boolean range) {
+	private myResponse serveLocalFile(InputStream is, String path, long from, long to) {
 		Log.i(TAG, "Java: GET file: " + path);
 		
 		try {
 			int len = is.available();
-			
-			if (to == -1)
-				to = len;
 
 			if (len > 0) {
 				Log.i(TAG, "before get mime_type: " + path);
@@ -198,8 +206,13 @@ public class MyNanoHTTPD extends NanoHTTPD{
 					is.skip(from);
 				}
 				
-				return new myResponse(Status.OK, mimeType, is, 
-						from, to, range);
+				long totalbytes = len;
+				IStatus stat = Status.OK;
+				if (from != -1) {
+					totalbytes = len - from;
+					stat = Status.PARTIAL_CONTENT;
+				}
+				return new myResponse(stat, mimeType, is, from, to, totalbytes);
 			}
 			else {
 				Log.w(TAG, "cannot get file size");
@@ -209,7 +222,7 @@ public class MyNanoHTTPD extends NanoHTTPD{
 			e.printStackTrace();
 		}
 		
-		return new myResponse(Status.BAD_REQUEST, "", null, 0, 0, false);
+		return new myResponse(Status.BAD_REQUEST, "", null, 0, 0, 0);
 	}
 	
 	private myResponse serveList(String uri, String path) {
@@ -292,10 +305,56 @@ public class MyNanoHTTPD extends NanoHTTPD{
 		int len = str_html_context.length();
 		
 		InputStream html_is = new ByteArrayInputStream(str_html_context.getBytes(/*"UTF-8"*/));
-		return new myResponse(Status.OK, mimeType, html_is, 0, len, false);
+		return new myResponse(Status.OK, mimeType, html_is, -1, -1, len);
 	}
 	
-	private myResponse serveM3u8(String uri, String params) {
+	private myResponse servePCS(String uri, String params, long from, long to) {
+		Log.i(TAG, String.format("Java: servePCS() uri %s, params: %s, from %d, to %d",
+				uri, params, from, to));
+		String httpUrl = "https://pcs.baidu.com" + uri + "?" + params;
+		Log.i(TAG, "Java: httpUrl " + httpUrl);
+		
+		URL url = null;
+		try {
+			url = new URL(httpUrl);
+		} catch (MalformedURLException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+			return new myResponse(Status.BAD_REQUEST, null, null, 0, 0, 0);
+		}
+
+		try {
+			URLConnection conn = url.openConnection();
+			if (from != -1) {
+				// Range: bytes=500-999
+				String range = String.format("bytes=%d-", from);
+				if (to != -1)
+					range += String.valueOf(to);
+				conn.setRequestProperty("RANGE", range);
+			}
+			
+			long contentLength = Long.parseLong(conn.getHeaderField("Content-Length"));
+			// conn.getContentLength() can only support less than 2G file size
+			Log.i(TAG, String.format("Java: conn type %s, len %s", 
+					conn.getContentType(), contentLength));
+			InputStream inStream = conn.getInputStream();
+			
+			IStatus stat = Status.OK;
+			if (from != -1)
+				stat = Status.PARTIAL_CONTENT;
+			
+			return new myResponse(stat, conn.getContentType(), 
+					inStream, from, to, contentLength);
+		} catch (FileNotFoundException e) {
+			e.printStackTrace();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		
+		return new myResponse(Status.BAD_REQUEST, null, null, 0, 0, 0);
+	}
+	
+	private myResponse serveM3u8(String uri, String params, long from, long to) {
 		// http://127.0.0.1:9006/play.m3u8?type=pplive3&playlink=300151
 		// %3Fft%3D1%26bwtype%3D0%26platform%3Dandroid3%26type%3Dphone.android.vip
 		// %26begin_time%3D1436716800%26end_time%3D1436722200
@@ -314,7 +373,7 @@ public class MyNanoHTTPD extends NanoHTTPD{
 		} catch (UnsupportedEncodingException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
-			return new myResponse(Status.BAD_REQUEST, null, null, 0, 0, false);
+			return new myResponse(Status.BAD_REQUEST, null, null, 0, 0, 0);
 		}
 		
 		long begin_time = 0;
@@ -355,12 +414,32 @@ public class MyNanoHTTPD extends NanoHTTPD{
 				mVid = Integer.valueOf(value);
 				Log.i(TAG, "Java: vid " + mVid);
 			}
+			else if (key.equals("ft")) {
+				mFt = Integer.valueOf(value);
+				Log.i(TAG, "Java: ft " + mFt);
+			}
 		}
 		
-		mLiveitem = mEPG.live_cdn(mVid);// 300156
-		if (mLiveitem == null) {
+		mLiveItemList = mEPG.live_cdn(mVid);// 300156
+		if (mLiveItemList == null || mLiveItemList.size() == 0) {
 			Log.e(TAG, "Java: failed to get mLiveitem");
-			return new myResponse(Status.BAD_REQUEST, null, null, 0, 0, false);
+			return new myResponse(Status.BAD_REQUEST, null, null, 0, 0, 0);
+		}
+		
+		int size = mLiveItemList.size();
+		mLiveItem = null;
+		for(int i=0;i<size;i++) {
+			CDNItem liveItem = mLiveItemList.get(i);
+			if (Integer.valueOf(liveItem.getFT()) == mFt) {
+				mLiveItem = liveItem;
+				Log.i(TAG, "Java: found ft steam " + mFt);
+				break;
+			}
+		}
+		
+		if (mLiveItem == null) {
+			Log.e(TAG, "Java: failed to find ft stream " + mFt);
+			return new myResponse(Status.BAD_REQUEST, null, null, 0, 0, 0);
 		}
 		
         StringBuffer sb_m3u8_context = new StringBuffer();
@@ -368,19 +447,22 @@ public class MyNanoHTTPD extends NanoHTTPD{
 		sb_m3u8_context.append("#EXT-X-TARGETDURATION:5\n");
         
 		if (mIsLive) {
-			String item_st = mLiveitem.getST();
+			String item_st = mLiveItem.getST();
 	        begin_time = new Date(item_st).getTime() / 1000;
 	        Log.i(TAG, "Java: live begin_time(origin) " + begin_time);
 	        begin_time -= 45; // second live lag
-	        begin_time -= (5 * (180 + 3)); // 900 sec
+	        begin_time -= (5 * (360 + 3)); // 1800 sec
 	        begin_time -= (begin_time % 5);
 	        Log.i(TAG, "Java: live begin_time(final) " + begin_time);
 	        
 	        process_live_seg(begin_time);
-	        
-	        sb_m3u8_context.append(String.format("#EXT-X-MEDIA-SEQUENCE:%d\n", begin_time));
+
+	        // must use 1,2,3... index
+	        // cannot use segment time_stamp, otherwise will cause seek stuck
+	        sb_m3u8_context.append(String.format("#EXT-X-MEDIA-SEQUENCE:%d\n", (begin_time - start_time) / 5));
 			
-	        int count = 180 + 3;
+	        int count = 360 + 3;
+	        
 			for (int i=0;i<count;i++) {
 				sb_m3u8_context.append("#EXTINF:5,\n");
 				String filename = String.format("%d.ts", begin_time + i * 5);
@@ -404,30 +486,45 @@ public class MyNanoHTTPD extends NanoHTTPD{
 		
 		String str_m3u8_context = sb_m3u8_context.toString();
 		int len = sb_m3u8_context.length();
-		
+
 		InputStream m3u8_is = new ByteArrayInputStream(str_m3u8_context.getBytes());
+		if (from > 0) {
+			try {
+				m3u8_is.skip(from);
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+				return new myResponse(Status.BAD_REQUEST, null, null, 0, 0, 0);
+			}
+			
+			len -= from;
+		}
 		String mimeType = "application/vnd.apple.mpegurl";
-		return new myResponse(Status.OK, mimeType, m3u8_is, 0, len, false);
+		return new myResponse(Status.OK, mimeType, m3u8_is, from, to, len);
 	}
 	
 	private void process_live_seg(long time_stamp) {
 		if (m_first_seg == 0)
 			return;
 		
+		Log.i(TAG, "Java: process_live_seg() " + time_stamp);
+		
 		byte[] in_flv = new byte[1048576];
 		
-		String httpUrl = String.format(block_url_fmt, mLiveitem.getHost(), mLiveitem.getRid(),
-				time_stamp, mLiveitem.getK());
+		String httpUrl = String.format(block_url_fmt, mLiveItem.getHost(), mLiveItem.getRid(),
+				time_stamp, mFt, mLiveItem.getKey());
 		Log.i(TAG, "Java: download live first flv segment: " + httpUrl);
 		int in_size = httpUtil.httpDownloadBuffer(httpUrl, 1400, in_flv);
 		byte[] out_ts = new byte[1048576];
 		
 		int out_size = MeetSDK.Convert(in_flv, in_size, out_ts, 1, m_first_seg);
 		Log.i(TAG, "Java: live first flv out_size " + out_size);
+		
+        start_time = time_stamp;
 		m_first_seg = 0;
 	}
 	
-	private myResponse serveSegment(String uri) {
+	private myResponse serveSegment(String uri, long from, long to) {
 		Log.i(TAG, "Java serveSegment: " + uri);
 		
 		int time_stamp = Integer.valueOf(uri.substring(1, uri.length() - 3));
@@ -435,8 +532,8 @@ public class MyNanoHTTPD extends NanoHTTPD{
 		
 		byte[] in_flv = new byte[1048576];
 		
-		String httpUrl = String.format(block_url_fmt, mLiveitem.getHost(), mLiveitem.getRid(),
-				time_stamp, mLiveitem.getK());
+		String httpUrl = String.format(block_url_fmt, mLiveItem.getHost(), mLiveItem.getRid(),
+				time_stamp, mFt, mLiveItem.getKey());
 		Log.i(TAG, "Java: download flv segment: " + httpUrl);
 		int in_size = httpUtil.httpDownloadBuffer(httpUrl, 1400, in_flv);
 		byte[] out_ts = new byte[1048576];
@@ -446,9 +543,16 @@ public class MyNanoHTTPD extends NanoHTTPD{
 		m_first_seg = 0;
 		
 		String mimeType = MimeTypeMap.getSingleton().getMimeTypeFromExtension("ts");
-		ByteArrayInputStream is = new ByteArrayInputStream(out_ts); 
-		return new myResponse(Status.OK, mimeType, is, 
-				0, out_size, false);
+		ByteArrayInputStream is = new ByteArrayInputStream(out_ts);
+		
+		IStatus stat = Status.OK;
+		if (from > 0) {
+			is.skip(from);
+			out_size -= from;
+			stat = Status.PARTIAL_CONTENT;
+		}
+		return new myResponse(stat, mimeType, is, 
+				from, to, out_size);
 	}
 	
 	private String getAssetFileContext(String filename) {
@@ -478,11 +582,20 @@ public class MyNanoHTTPD extends NanoHTTPD{
 	private class myResponse extends Response {
 
 		protected myResponse(IStatus status, String mimeType, InputStream data,
-				long from, long to, boolean addrange) {
-			super(status, mimeType, data, to - from);
+				long from, long to, long totalbytes) {
+			super(status, mimeType, data, totalbytes);
 			
-			if (addrange || from > 0)
-				this.addHeader("Content-Range", String.format("bytes %d-", from));
+			Log.i(TAG, String.format("Java: myResponse() from %d, to %d, totalbytes %d",
+					from, to, totalbytes));
+			if (from != -1) {
+				String strRange = String.format("bytes %d-", from);
+				if (to != -1)
+					strRange += String.valueOf(to);
+				strRange += "/";
+				strRange += String.valueOf(from + totalbytes);
+				this.addHeader("Content-Range", strRange);
+				Log.i(TAG, "Java: add header Content-Range: " + strRange);
+			}
 		}
 		
 	}

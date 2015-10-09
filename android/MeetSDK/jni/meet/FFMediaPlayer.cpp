@@ -820,7 +820,7 @@ jboolean android_media_MediaPlayer_native_init(JNIEnv *env, jobject thiz)
 #endif
 #else
 	if (!loadPlayerLib()) {
-		jniThrowException(env, "java/lang/RuntimeException", "Load Library Failed!!!");
+		PPLOGE("failed to load player lib");
 		return false;
 	}
 #endif
@@ -1328,11 +1328,6 @@ android_media_MediaPlayer_native_getThumbnail(JNIEnv *env, jobject thiz, jstring
 	MediaInfo native_info;
 	bool isSuccess = mp->getThumbnail(url, &native_info);
 	if (!isSuccess || native_info.thumbnail == NULL) {
-		if(native_info.thumbnail != NULL)
-        {
-            free(native_info.thumbnail);
-            native_info.thumbnail = NULL;
-        }
 		PPLOGE("Get Thumbnail failed: %s", url);
 	}
 	else {
@@ -1368,9 +1363,7 @@ android_media_MediaPlayer_native_getThumbnail(JNIEnv *env, jobject thiz, jstring
         jintArray thumbnail = env->NewIntArray(size);
         env->SetIntArrayRegion(thumbnail,0, size, native_info.thumbnail);
 		env->SetObjectField(info, f_thumbnail, thumbnail);
-        PPLOGD("get thumbnail success");
-        free(native_info.thumbnail);
-        native_info.thumbnail = NULL;
+        PPLOGI("get thumbnail success");
 
 		env->SetIntField(info, f_audio_channels, native_info.audio_channels);
 		env->SetIntField(info, f_video_channels, native_info.video_channels);

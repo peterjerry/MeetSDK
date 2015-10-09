@@ -116,7 +116,7 @@ then
 	CROSS_PREFIX=$NDK/toolchains/x86-4.8/prebuilt/$HOST/bin/i686-linux-android-
 	EXTRA_CFLAGS="$EXTRA_CFLAGS -fstrict-aliasing"
 	OPTFLAGS="-O2 -fno-pic"
-	FDK_AAC_LIB=$FDK_AAC_HOME/lib/x86
+	FDK_AAC_LIB=$FDK_AAC_HOME/lib/android/x86
 	RTMPDUMP_LIB=$USER_ROOT/thirdparty/rtmpdump/lib/android/x86
 	X264_LIB=$X264_HOME/lib/android/x86
 elif [ $ARCH == 'mips' ] 
@@ -154,7 +154,7 @@ then
 echo "lite build"
 EXTRA_PARAMETERS="$EXTRA_PARAMETERS \
 	--disable-decoders \
-	--enable-decoder=h263,h264,hevc,vp3,vp5,vp6,vp6a,vp6f,vp7,vp8,vp9,flv,mpeg1video,mpeg2video,mpegvideo,mpeg4,dca,ac3,eac3,aac,mp1,mp2,mp3,rv30,rv40,cook,wmv1,wmv2,wmv3,wmv3image,vorbis,ape,flac,wmav1,wmav2,wmapro,mjpeg,msmpeg4v1,msmpeg4v2,msmpeg4v3,amrnb,amrwb,pcm_s16be,pcm_s16be_planar,pcm_s16le,pcm_s16le_planar,ass,dvbsub,dvdsub,mov_text,sami,srt,ssa,subrip,text \
+	--enable-decoder=h263,h264,hevc,vp3,vp5,vp6,vp6a,vp6f,vp7,vp8,vp9,flv,mpeg1video,mpeg2video,mpegvideo,mpeg4,dca,ac3,eac3,aac,mp1,mp2,mp3,rv30,rv40,cook,wmv1,wmv2,wmv3,wmv3image,vorbis,ape,flac,wmav1,wmav2,wmapro,mjpeg,msmpeg4v1,msmpeg4v2,msmpeg4v3,tscc,gsm,gsm_ms,amrnb,amrwb,pcm_s16be,pcm_s16be_planar,pcm_s16le,pcm_s16le_planar,ass,dvbsub,dvdsub,mov_text,sami,srt,ssa,subrip,text \
 	--disable-demuxers \
 	--enable-demuxer=rm,mpegvideo,mjpeg,avi,h263,h264,hevc,matroska,dts,dtshd,aac,flv,mpegts,mpegps,mp4,m4v,mov,ape,hls,flac,rawvideo,realtext,rtsp,vc1,mp3,wav,asf,ogg \
 	--disable-parsers \

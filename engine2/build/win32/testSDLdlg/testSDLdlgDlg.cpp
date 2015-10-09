@@ -52,6 +52,9 @@
 #define PROGRESS_RANGE		1000
 #define LIVE_DURATION_SEC	1800
 
+#define PIC_WIDTH			320
+#define PIC_HEIGHT			240
+
 const char* url_desc[PROG_MAX_NUM] = {
 	_T("变形金刚2 720p"),
 	_T("因为爱情 hls"),
@@ -123,7 +126,8 @@ int pptv_channel_id[] = {
 
 const char *pptv_rtsp_playlink_fmt = "rtsp://%s:%d/play.es?type=pplive3&playlink=%d";
 const char *pptv_http_playlink_fmt = "http://%s:%d/play.m3u8?type=pplive3&playlink=%d";
-const char *pptv_playlink_surfix = "%3Fft%3D1%26bwtype%3D0%26platform%3Dandroid3%26type%3Dphone.android.vip";
+const char *pptv_live_playlink_surfix = "%3Fft%3D1%26bwtype%3D3%26platform%3Dandroid3%26type%3Dphone.android.vip";
+const char *pptv_live_fmt = "?ft=%d&bwtype=3&platform=android3&type=phone.android.vip";
 const char *pptv_playlink_ppvod2_fmt = "http://%s:%d/record.m3u8?type=ppvod2&playlink=%s";
 
 static void genHMSM(int total_msec, int *hour, int *minute, int *sec, int *msec);
@@ -162,6 +166,78 @@ void CAboutDlg::DoDataExchange(CDataExchange* pDX)
 BEGIN_MESSAGE_MAP(CAboutDlg, CDialogEx)
 END_MESSAGE_MAP()
 
+// 媒体信息 对话框
+class CMediaInfoDlg : public CDialogEx
+{
+public:
+	CMediaInfoDlg(CString strInfo, int32_t *thumbnail = NULL, int width = 96, int height = 96);
+
+// 对话框数据
+	enum { IDD = IDD_MEDIAINFO_DIALOG };
+
+	protected:
+	virtual void DoDataExchange(CDataExchange* pDX);    // DDX/DDV 支持
+	virtual BOOL OnInitDialog();
+	afx_msg void OnPaint();
+
+// 实现
+protected:
+	DECLARE_MESSAGE_MAP()
+private:
+	CString		mStrInfo;
+	int32_t *	mThumbnail;
+	int			mWidth;
+	int			mHeight;
+};
+
+CMediaInfoDlg::CMediaInfoDlg(CString strInfo, int32_t *thumbnail, int width, int height) : CDialogEx(CMediaInfoDlg::IDD),
+	mThumbnail(NULL)
+{
+	mStrInfo	= strInfo;
+	mThumbnail	= thumbnail;
+	mWidth		= width;
+	mHeight		= height;
+}
+
+void CMediaInfoDlg::DoDataExchange(CDataExchange* pDX)
+{
+	CDialogEx::DoDataExchange(pDX);
+}
+
+BEGIN_MESSAGE_MAP(CMediaInfoDlg, CDialogEx)
+	ON_WM_PAINT()
+END_MESSAGE_MAP()
+
+BOOL CMediaInfoDlg::OnInitDialog()
+{
+	CDialogEx::OnInitDialog();
+
+	SetDlgItemText(IDC_STATIC_MEDIAINFO, mStrInfo);
+	return TRUE;
+}
+
+void CMediaInfoDlg::OnPaint()
+{
+	CDialogEx::OnPaint();
+
+	if (mThumbnail) {
+		CClientDC dc(this);
+		CDC memDC;		
+
+		CBitmap bmp;
+		bmp.CreateCompatibleBitmap(&dc, mWidth, mHeight);
+	
+		bmp.SetBitmapBits(mWidth * mHeight * 4, mThumbnail);
+
+		memDC.CreateCompatibleDC(&dc);
+		memDC.SelectObject(bmp);
+
+		dc.BitBlt(400, 70, mWidth, mHeight,
+			&memDC, 0, 0, SRCCOPY);
+
+		ReleaseDC(&memDC);
+	}
+}
 
 // CtestSDLdlgDlg 对话框
 
@@ -177,7 +253,8 @@ CtestSDLdlgDlg::CtestSDLdlgDlg(CWnd* pParent /*=NULL*/)
 	mUserAddChnNum(0), 
 	mEPGQueryType(EPG_QUERY_CATALOG), mEPGValue(-1),
 	mSubtitleParser(NULL), 
-	mSubtitleStartTime(0), mSubtitleStopTime(0), mSubtitleTextUtf8(NULL), mSubtitleUpdated(false), mGotSub(false),
+	mSubtitleStartTime(0), mSubtitleStopTime(0), mSubtitleTextUtf8(NULL), 
+	mSubtitleUpdated(false), mGotSub(false), mHasEmbeddingSub(false),
 #ifdef USE_SDL2
 	mWindow(NULL), mRenderer(NULL)
 #else
@@ -261,14 +338,14 @@ BOOL CtestSDLdlgDlg::OnInitDialog()
 	for (int i=0;i<sizeof(pptv_channel_id) / sizeof(int);i++) {
 		char *new_item = (char *)malloc(256);
 		_snprintf(new_item, 256, pptv_rtsp_playlink_fmt, HOST, mrtspPort, pptv_channel_id[i]);
-		strcat(new_item, pptv_playlink_surfix);
+		strcat(new_item, pptv_live_playlink_surfix);
 		url_list[PPTV_RTSP_URL_OFFSET + i] = new_item;
 	}
 
 	for (int i=0;i<sizeof(pptv_channel_id) / sizeof(int);i++) {
 		char *new_item = (char *)malloc(256);
 		_snprintf(new_item, 256, pptv_http_playlink_fmt, HOST, mhttpPort, pptv_channel_id[i]);
-		strcat(new_item, pptv_playlink_surfix);
+		strcat(new_item, pptv_live_playlink_surfix);
 		url_list[PPTV_HLS_URL_OFFSET + i] = new_item;
 	}
 
@@ -282,20 +359,27 @@ BOOL CtestSDLdlgDlg::OnInitDialog()
 		data = new char[filesize + 1];
 		memset(data, 0, filesize + 1);
 		fread(data, 1, filesize, pFile);
-		char *p = NULL;
-		p = strtok(data, "\n");
+		char *p = strtok(data, "\n");
 		int i=0;
 		while (p) {
-			char *new_ptr = new char[strlen(p) + 1];
-			strcpy(new_ptr, p);
-			if (i%2 == 0)
-				url_desc[USER_LIST_OFFSET + i/2] = new_ptr;
-			else
-				url_list[USER_LIST_OFFSET + i/2] = new_ptr;
+			if (p[0] == '#' || p[0] == ' ')
+				continue;
+
+			char *delim = strchr(p, ',');
+			if (delim == NULL)
+				continue;
+
+			*delim = '\0';
+			char *desc = strdup(p);
+			char *url = strdup(delim + 1);
+
+			url_desc[USER_LIST_OFFSET + i] = desc;
+			url_list[USER_LIST_OFFSET + i] = url;
+
 			p = strtok(NULL, "\n");
 			i++;
 		}
-		mUserAddChnNum = i / 2;
+		mUserAddChnNum = i;
 
 		fclose(pFile);
 		delete data;
@@ -492,7 +576,11 @@ void CtestSDLdlgDlg::OnTimer(UINT_PTR nIDEvent)
 	drawBuffering();
 
 #ifdef ENABLE_SUBTITLE
+#ifdef ENABLE_EXTRA_SUBTITLE_PARSER
 	if (mSubtitleParser) {
+#else
+	if (mSubtitleParser && mHasEmbeddingSub) {
+#endif
 		STSSegment* segment = NULL;
 
 		if (curr_pos > mSubtitleStopTime) {
@@ -1146,6 +1234,12 @@ bool CtestSDLdlgDlg::OnPrepared()
 	Surface_open2((void *)mSurface2);
 #endif
 
+	MediaInfo info;
+	if (mPlayer->getCurrentMediaInfo(&info)) {
+		if (info.subtitle_channels > 0)
+			mHasEmbeddingSub = true;
+	}
+
 	mPlayer->start();
 	mDropFrames = 0;
 	mPaused = false;
@@ -1390,28 +1484,41 @@ void CtestSDLdlgDlg::OnBnClickedButtonPlayEpg()
 	ft		= mCBft.GetCurSel();
 	bw_type = mCBbwType.GetCurSel();
 
-	if (bw_type == 4) {
-		char *url = mEPG.get_cdn_url(link, ft, false, false);
-		if (url == NULL) {
-			LOGE("failed to get cdn url");
-			MessageBox("failed to get cdn url");
-			return;
-		}
+	if (link >= 300000 && link <= 400000) {
+		_snprintf(str_url, 1024, pptv_http_playlink_fmt, HOST, mhttpPort, link);
 
-		strcpy(str_url, url);
-		free(url);
-		url = NULL;
+		_snprintf(str_playlink, 512, pptv_live_fmt, ft);
+		int out_len;
+		char *encoded_playlink = urlencode(str_playlink, strlen(str_playlink), &out_len);
+
+		strcat(str_url, encoded_playlink);
+		strcat(str_url, "&m3u8seekback=true");
+		mPlayLive = true;
 	}
 	else {
-		_snprintf(str_playlink, 512, "%d?ft=%d&bwtype=%d&platform=android3&type=phone.android.vip&sv=4.0.1", // &param=userType%3D1
-			link, ft, bw_type);
-		LOGI("playlink before urlencode: %s", str_playlink);
-		int out_len = 0;
-		char *encoded_playlink = urlencode(str_playlink, strlen(str_playlink), &out_len);
-		LOGI("playlink after urlencode: %s", encoded_playlink);
+		if (bw_type == 4) {
+			char *url = mEPG.get_cdn_url(link, ft, false, false);
+			if (url == NULL) {
+				LOGE("failed to get cdn url");
+				MessageBox("failed to get cdn url");
+				return;
+			}
 
-		_snprintf(str_url, 1024, pptv_playlink_ppvod2_fmt, HOST, mhttpPort, encoded_playlink);
-		strcat(str_url, "%26param%3DuserType%253D1&mux.M3U8.segment_duration=5");// %26param%3DuserType%253D1
+			strcpy(str_url, url);
+			free(url);
+			url = NULL;
+		}
+		else {
+			_snprintf(str_playlink, 512, "%d?ft=%d&bwtype=%d&platform=android3&type=phone.android.vip&sv=4.0.1", // &param=userType%3D1
+				link, ft, bw_type);
+			LOGI("playlink before urlencode: %s", str_playlink);
+			int out_len = 0;
+			char *encoded_playlink = urlencode(str_playlink, strlen(str_playlink), &out_len);
+			LOGI("playlink after urlencode: %s", encoded_playlink);
+
+			_snprintf(str_url, 1024, pptv_playlink_ppvod2_fmt, HOST, mhttpPort, encoded_playlink);
+			strcat(str_url, "%26param%3DuserType%253D1&mux.M3U8.segment_duration=5");// %26param%3DuserType%253D1
+		}
 	}
 
 	LOGI("final vod url: %s", str_url);
@@ -1477,7 +1584,7 @@ void CtestSDLdlgDlg::OnNMReleasedcaptureSliderProgress(NMHDR *pNMHDR, LRESULT *p
 	*pResult = 0;
 }
 
-void CtestSDLdlgDlg::FillMediaInfo(MediaInfo *info)
+void CtestSDLdlgDlg::FillMediaInfo(MediaInfo *info, int32_t *pic, int width, int height)
 {
 	CString str, tmp;
 
@@ -1530,7 +1637,20 @@ void CtestSDLdlgDlg::FillMediaInfo(MediaInfo *info)
 		}
 	}
 
-	AfxMessageBox(str.GetBuffer());
+	if (info->meta_data) {
+		str.Append("\n容器元数据:\n");
+		DictEntry *entry = info->meta_data;
+		while (entry) {
+			str.Append(entry->key);
+			str.Append(":  ");
+			str.Append(entry->value);
+			str.Append("\n");
+			entry = entry->next;
+		}
+	}
+
+	CMediaInfoDlg dlgMediaInfo(str, pic, width, height);
+	dlgMediaInfo.DoModal();
 }
 
 void CtestSDLdlgDlg::OnBnClickedButtonGetMediainfo()
@@ -1539,26 +1659,35 @@ void CtestSDLdlgDlg::OnBnClickedButtonGetMediainfo()
 	MediaInfo info;
 	if (mPlayer) {
 		mPlayer->getCurrentMediaInfo(&info);
+		SnapShot *snap = mPlayer->getSnapShot(PIC_WIDTH, PIC_HEIGHT, -1);
+		FillMediaInfo(&info, (int32_t *)snap->picture_data, PIC_WIDTH, PIC_HEIGHT);
+		return;
+	}
+
+	int sel = mComboURL.GetCurSel();
+	if (sel < 0) {
+		AfxMessageBox("not select item");
+		return;
+	}
+
+	if (sel < USER_LIST_OFFSET + mUserAddChnNum) {
+		mUrl = url_list[sel];
 	}
 	else {
-		int sel = mComboURL.GetCurSel();
-		if (sel < 0) {
-			AfxMessageBox("not select item");
-			return;
-		}
-
-		if (sel < USER_LIST_OFFSET + mUserAddChnNum) {
-			mUrl = url_list[sel];
-		}
-		else {
-			mComboURL.GetLBText(sel, mUrl);
-		}
-
-		FFPlayer player;
-		player.getMediaDetailInfo(mUrl.GetBuffer(), &info);
+		mComboURL.GetLBText(sel, mUrl);
 	}
 
-	FillMediaInfo(&info);
+	FFPlayer player;
+	player.getMediaDetailInfo(mUrl.GetBuffer(), &info);
+
+	MediaInfo infoThumbnail;
+	player.getThumbnail(mUrl.GetBuffer(), &infoThumbnail, PIC_WIDTH, PIC_HEIGHT);
+	LOGI("thumbnail %d x %d, %p", infoThumbnail.thumbnail_width, infoThumbnail.thumbnail_height, infoThumbnail.thumbnail);
+
+	int32_t *pic	= infoThumbnail.thumbnail;
+	int w			= infoThumbnail.thumbnail_width;
+	int h			= infoThumbnail.thumbnail_height;
+	FillMediaInfo(&info, pic, w, h);
 }
 
 static void genHMSM(int total_msec, int *hour, int *minute, int *sec, int *msec)

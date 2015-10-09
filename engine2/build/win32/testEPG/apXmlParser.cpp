@@ -124,7 +124,7 @@ char * apXmlParser::parseCDN(char *context, unsigned int size, int ft, bool is_m
 			LOGI("ft %s sh %s, bh %s, st %s, key %s, time %I64d sec", 
 				d_ft.c_str(), d_sh.c_str(), d_bh.c_str(), d_st.c_str(), d_key.c_str(), t);
 
-			uint8_t *gen_key = apKey::getKey(t);
+			uint8_t *gen_key = apKey::genKey(t);
 			LOGI("key %s", gen_key);
 
 			std::string final_url;
@@ -207,7 +207,14 @@ apCDNItem * apXmlParser::parseLiveCDN(char *context, unsigned int size)
 	dom.IntoElem();
 
 	dom.FindElem("channel");
-	std::string main_rid = dom.GetAttrib("rid");
+	dom.IntoElem();
+	dom.FindElem("stream");
+	dom.IntoElem();
+	dom.FindElem("item");
+	std::string rid = dom.GetAttrib("rid");
+	std::string ft = dom.GetAttrib("ft");
+	dom.OutOfElem();
+	dom.OutOfElem();
 
 	dom.FindElem("dt");
 	dom.IntoElem();
@@ -216,12 +223,12 @@ apCDNItem * apXmlParser::parseLiveCDN(char *context, unsigned int size)
 	std::string d_sh = dom.GetData(); // main server
 	ret = dom.FindElem("st");
 	std::string d_st = dom.GetData(); // server time
-	dom.FindElem("bh");
-	std::string d_bh = dom.GetData(); // backup server
 	dom.FindElem("key");
 	std::string d_key = dom.GetData(); // key
+	dom.FindElem("bh");
+	std::string d_bh = dom.GetData(); // backup server
 
-	return new apCDNItem(d_sh.c_str(), d_st.c_str(), d_bh.c_str(), 1);
+	return new apCDNItem(d_sh.c_str(), d_st.c_str(), d_bh.c_str(), atoi(ft.c_str()), rid.c_str(), d_key.c_str());
 }
 
 EPG_PLAYLINK_LIST * apXmlParser::parseDetail(char *context, unsigned int size)

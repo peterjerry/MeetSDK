@@ -4,7 +4,9 @@ import com.nostra13.universalimageloader.core.ImageLoader;
 import com.nostra13.universalimageloader.core.ImageLoaderConfiguration;
 import com.nostra13.universalimageloader.core.assist.QueueProcessingType;
 
+import com.pplive.meetplayer.service.MediaScannerService;
 import com.pplive.meetplayer.service.MyHttpService;
+import com.pplive.meetplayer.util.Util;
 
 import android.app.ActivityManager;
 import android.app.ActivityManager.RunningServiceInfo;

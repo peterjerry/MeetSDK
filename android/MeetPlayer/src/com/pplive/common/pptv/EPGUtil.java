@@ -108,11 +108,20 @@ public class EPGUtil {
 	private final static String getvchannel_fmt = "http://epg.api.pptv.com/getvchannel?" +
 			"platform=android3&pagesize=%d&infoid=%d&siteid=%d&nowpage=%d";
 	
+	private final static String live_center_fmt = "http://livecenter.pptv.com" +
+			"/api/v1/collection?" +
+			"auth=d410fafad87e7bbf6c6dd62434345818&platform=android3" +
+			"&id=%s" + // 44 -> sports, game -> game
+			"&start=%s" + // 2015-09-08
+			"&appid=com.pplive.androidphone" +
+			"&appver=5.2.1&appplt=aph&recommend=0";
+	
 	private List<Content> mContentList;
 	private List<Module> mModuleList;
 	private List<Catalog> mCatalogList;
 	private List<PlayLink2> mPlayLinkList;
 	private List<Navigator> mNavList;
+	private List<LiveStream> mLiveStrmList;
 	
 	private List<Episode> mVirtualPlayLinkList;
 	private List<VirtualChannelInfo> mVchannelInfoList;
@@ -123,6 +132,7 @@ public class EPGUtil {
 		mCatalogList 		= new ArrayList<Catalog>();
 		mPlayLinkList 		= new ArrayList<PlayLink2>();
 		mNavList			= new ArrayList<Navigator>();
+		mLiveStrmList		= new ArrayList<LiveStream>();
 		
 		mVirtualPlayLinkList= new ArrayList<Episode>();
 		mVchannelInfoList	= new ArrayList<VirtualChannelInfo>();
@@ -148,6 +158,10 @@ public class EPGUtil {
 		return mVchannelInfoList;
 	}
 	
+	public List<LiveStream> getLiveStrm() {
+		return mLiveStrmList;
+	}
+	
 	public List<Navigator> getNav() {
 		return mNavList;
 	}
@@ -158,7 +172,7 @@ public class EPGUtil {
 	
 	public boolean live(int start_page, int count, int type) {
 		String url = String.format(live_url_fmt, start_page, count, type);
-		System.out.println(url);
+		Log.i(TAG, "Java: live() " + url);
 		
 		HttpGet request = new HttpGet(url);
 		
@@ -185,9 +199,22 @@ public class EPGUtil {
 	        	Element v  = (Element) it2.next();
 	        	String title = v.getChild("title").getText();
 	        	String vid = v.getChild("vid").getText();
-	        	String nowplay = v.getChild("nowplay").getText();
-	        	System.out.println(String.format("title: %s, id: %s, nowplay: %s", title, vid, nowplay));
-	        	PlayLink2 l = new PlayLink2(title, vid, nowplay);
+	        	String nowplay = "N/A";
+	        	if (v.getChild("nowplay") != null)
+	        		nowplay = v.getChild("nowplay").getText();
+	        	String willplay = "N/A";
+	        	if (v.getChild("willplay") != null)
+	        		willplay = v.getChild("willplay").getText();
+	        	String desc = nowplay + "|" + willplay;
+	        	
+	        	Element img = v.getChild("imgurl");
+		    	String imgUrl = "";
+		    	if (img != null)
+		    		imgUrl = img.getText();
+		    	
+	        	Log.i(TAG, String.format("Java: live prog title: %s, id: %s, nowplay: %s, willplay: %s", 
+	        			title, vid, nowplay, willplay));
+	        	PlayLink2 l = new PlayLink2(title, vid, desc, imgUrl);
 	        	mPlayLinkList.add(l);
 	        }
 		} catch (ClientProtocolException e) {
@@ -420,7 +447,6 @@ public class EPGUtil {
 			int start_page, String order, int count, boolean isCatalog) {
 		Log.i(TAG, String.format("Java: list() param %s, type %s, start_page %d, order %s, count %d",
 				param, type, start_page, order, count));
-		
 		String encoded_param;
 		int pos = param.indexOf('=');
 		if (pos == -1)
@@ -447,7 +473,6 @@ public class EPGUtil {
 		
 		if (isCatalog)
 			url += "&vt=21%2C22";
-		
 		url += "&";
 		url += encoded_param;
 		url += "&appid=com.pplive.androidphone&appplt=aph";
@@ -610,15 +635,23 @@ public class EPGUtil {
 		return true;
 	}
 	
+	private String getXMLNode(Element e, String key) {
+		Element node = e.getChild(key);
+		if (node == null)
+			return null;
+		
+		return node.getText();
+	}
+	
 	private boolean add_v(Element v) {
 		String link_title  = v.getChild("title").getText();
     	String link_id = v.getChild("vid").getText();
-    	String link_director = v.getChild("director").getText();
-    	String link_act = v.getChild("act").getText();
-    	String link_year = v.getChild("year").getText();
-    	String link_area = v.getChild("area").getText();
-    	String link_count = v.getChild("state").getText();
-    	String link_imgurl = v.getChild("imgurl").getText();
+    	String link_director = getXMLNode(v, "director");
+    	String link_act = getXMLNode(v, "act");
+    	String link_year = getXMLNode(v, "year");
+    	String link_area = getXMLNode(v, "area");
+    	String link_count = getXMLNode(v, "state");
+    	String link_imgurl = getXMLNode(v, "imgurl");
     	
     	String str_du;
     	int duration_sec;
@@ -628,9 +661,11 @@ public class EPGUtil {
     		duration_sec = Integer.valueOf(str_du);
     	}
     	else {
-    		du = v.getChild("duration");
-    		str_du = du.getText();
-    		duration_sec = Integer.valueOf(str_du) * 60;
+    		str_du = getXMLNode(v, "duration");
+    		if (str_du == null)
+    			duration_sec = 0;
+    		else
+    			duration_sec = Integer.valueOf(str_du) * 60;
     	}
 
     	String link_resolution = v.getChild("resolution").getText();
@@ -709,8 +744,12 @@ public class EPGUtil {
 	    	String src_res = source.getAttributeValue("resolution");
 	    	if(src_res != null && !src_res.isEmpty())
 	    		link_resolution = src_res; // overwrite
+	    	
+	    	int video_count = 0;
+	    	if (link_count != null)
+	    		video_count = Integer.valueOf(link_count);
 	    	PlayLink2 l = new PlayLink2(link_title, ext_title, link_id, link_description, 
-	    			Integer.valueOf(link_count), link_imgurl,
+	    			video_count, link_imgurl,
 	    			src_mark, link_director, link_act,
 	    			link_year, link_area,
 	    			link_resolution, duration_sec);
@@ -768,7 +807,7 @@ public class EPGUtil {
 			doc = builder.build(returnQuote);
 			Element root = doc.getRootElement();
 			
-			ArrayList<CDNrid> ridList = new ArrayList<CDNrid>();
+			ArrayList<CDNstream> ridList = new ArrayList<CDNstream>();
 			ArrayList<CDNItem> itemList = new ArrayList<CDNItem>();
 			
 			Element channel = root.getChild("channel");
@@ -782,7 +821,7 @@ public class EPGUtil {
 			for (int i=0;i<item_list.size();i++) {
 				String rid_ft = item_list.get(i).getAttributeValue("ft");
 				String rid_rid = item_list.get(i).getAttributeValue("rid");
-				CDNrid rid = new CDNrid(rid_ft, rid_rid);
+				CDNstream rid = new CDNstream(rid_ft, rid_rid);
 				ridList.add(rid);
 				ft[i] = Integer.valueOf(rid_ft);
 			}
@@ -800,7 +839,7 @@ public class EPGUtil {
 		return null;
 	}
 	
-	public CDNItem live_cdn(int vid) {
+	public List<CDNItem> live_cdn(int vid) {
 		String url = String.format(live_cdn_url_fmt, vid);
 		Log.i(TAG, "Java: live_cdn() url: " + url);
 		
@@ -826,7 +865,7 @@ public class EPGUtil {
 		return null;
 	}
 	
-	private CDNItem parseLiveCdnUrlxml(String xml) {
+	private List<CDNItem> parseLiveCdnUrlxml(String xml) {
 		Log.d(TAG, "Java: epg parseLiveCdnUrlxml \n" + xml.replace("\n", ""));
 		
 		SAXBuilder builder = new SAXBuilder();
@@ -836,18 +875,55 @@ public class EPGUtil {
 			doc = builder.build(returnQuote);
 			Element root = doc.getRootElement();
 			
-			String rid = root.getChild("channel").getAttributeValue("rid");
+			Element channel = root.getChild("channel");
+			Element stream = channel.getChild("stream");
+			String delay = stream.getAttributeValue("delay");
+			String interval = stream.getAttributeValue("interval");
+			List<Element> item_list = stream.getChildren("item");
+			/*
+			 * <stream delay="45" interval="5" jump="1800" cft="1">
+			 * <item rid="677a6d8e5f264fe9b5b87553c8e033e2" bitrate="412" width="480" height="360" ft="1" syncid="399" vip="0" protocol="live2" format="h264" />
+			 * </stream>
+			 */
 			
-			Element d = root.getChildren("dt").get(0);
+			/*
+			<stream delay="30" interval="5" jump="1800" cft="0">
+				<item rid="166922db680f4756bb268263786c3b12" bitrate="412" width="480" height="360" ft="1" syncid="434" vip="0" protocol="live2" format="h264"/>
+				<item rid="a3143147011b4f508bafe73fdb90d753" bitrate="1152" width="640" height="480" ft="2" syncid="2181" vip="0" protocol="live2" format="h264"/>
+				<item rid="5bdbd19be45a46a79ddf8d23558f42ca" bitrate="232" width="640" height="360" ft="0" syncid="5335" vip="0" protocol="live2" format="h264"/>
+			</stream>
+			*/
+			Element d = root.getChild("dt");
 			
-			String d_ft = d.getAttributeValue("ft");
 			String d_sh = d.getChild("sh").getText(); // main server
 			String d_bh = d.getChild("bh").getText(); // backup server
 			String d_st = d.getChild("st").getText(); // server time
 			String d_key = d.getChild("key").getText();
 			
-			CDNItem item = new CDNItem(d_ft, d_sh, d_st, d_bh, d_key, rid);	
-			return item;
+			List<CDNItem> itemList = new ArrayList<CDNItem>();
+			int size = item_list.size();
+			for (int i=0;i<size;i++) {
+				Element strm_item = item_list.get(i);
+
+				String rid = strm_item.getAttributeValue("rid");
+				String bitrate = strm_item.getAttributeValue("bitrate");
+				String width = strm_item.getAttributeValue("width");
+				String height = strm_item.getAttributeValue("height");
+				String ft = strm_item.getAttributeValue("ft");
+				String format = strm_item.getAttributeValue("format");
+				
+				Log.i(TAG, String.format("Java: stream_info[#%d] delay %s, interval %s, " +
+						"rid %s, bitrate %s, width %s, height %s, ft %s, format %s",
+						i, delay, interval, rid, bitrate, width, height, ft, format));
+				
+				CDNItem item = new CDNItem(ft, Integer.valueOf(width), Integer.valueOf(height),
+						format, Integer.valueOf(bitrate),
+						Integer.valueOf(delay), Integer.valueOf(interval),
+						d_sh, d_st, d_bh, d_key, rid);	
+				itemList.add(item);
+			}
+			
+			return itemList;
 		}
 		catch (JDOMException e) {
 			// TODO Auto-generated catch block
@@ -908,16 +984,22 @@ public class EPGUtil {
 			doc = builder.build(returnQuote);
 			Element root = doc.getRootElement();
 			
-			ArrayList<CDNrid> ridList = new ArrayList<CDNrid>();
+			ArrayList<CDNstream> strmList = new ArrayList<CDNstream>();
 			ArrayList<CDNItem> itemList = new ArrayList<CDNItem>();
 			
 			Element file = root.getChild("channel").getChild("file");
 			List<Element> item_list = file.getChildren("item");
 			for (int i=0;i<item_list.size();i++) {
-				String rid_ft = item_list.get(i).getAttributeValue("ft");
-				String rid_rid = item_list.get(i).getAttributeValue("rid");
-				CDNrid rid = new CDNrid(rid_ft, rid_rid);
-				ridList.add(rid);
+				Element strm_item = item_list.get(i);
+				String rid_ft	= strm_item.getAttributeValue("ft");
+				String rid_rid	= strm_item.getAttributeValue("rid");
+				String bitrate	= strm_item.getAttributeValue("bitrate");
+				String width	= strm_item.getAttributeValue("width");
+				String height	= strm_item.getAttributeValue("height");
+				String format	= strm_item.getAttributeValue("format");
+				CDNstream strm	= new CDNstream(rid_ft, rid_rid, 
+						format, Integer.valueOf(width), Integer.valueOf(height), Integer.valueOf(bitrate));
+				strmList.add(strm);
 			}
 			
 			List<Element> dt = root.getChildren("dt");
@@ -930,7 +1012,8 @@ public class EPGUtil {
 				String d_st = d.getChild("st").getText(); // server time
 				String d_key = d.getChild("key").getText();
 				
-				CDNItem item = new CDNItem(d_ft, d_sh, d_st, d_bh, d_key, ridList.get(i).m_rid);
+				CDNItem item = new CDNItem(d_ft, 0, 0, 
+						d_sh, d_st, d_bh, d_key, strmList.get(i).m_rid);
 				itemList.add(item);
 			}
 			
@@ -952,8 +1035,9 @@ public class EPGUtil {
 					url += "/";
 					
 					String rid = "";
-					for (int j=0;j<ridList.size();j++) {
-						CDNrid r = ridList.get(j);
+					int size = itemList.size();
+					for (int j=0;j<size;j++) {
+						CDNstream r = strmList.get(j);
 						if (r.m_ft.equals(ft)) {
 							rid = r.m_rid;
 							break;
@@ -965,7 +1049,7 @@ public class EPGUtil {
 					else
 						url += rid;
 			        
-					url += "?w=" + 1 + "&key=" + item.getK();
+					url += "?w=" + 1 + "&key=" + item.generateK();
 					url += "&k=" + item.getKey();
 					if (novideo)
 						url += "&video=false";
@@ -991,7 +1075,7 @@ public class EPGUtil {
 	
 	public boolean search(String s_key, int s_type, int s_contenttype, int s_start_page, int s_count) {
 		String url = String.format(search_url_fmt, s_key, s_type, s_contenttype, s_start_page, s_count);
-		Log.i(TAG, "Java: epg url " + url);
+		Log.i(TAG, "Java: epg search() " + url);
 
 		boolean ret = false;
 		
@@ -1056,5 +1140,77 @@ public class EPGUtil {
 		}
 		
 		return ret;
+	}
+	
+	/**
+	 * @param id
+	 * @param start_time format 2015-09-04
+	 * @return
+	 */
+	public boolean live_center(String id, String start_time) {
+		String url = String.format(live_center_fmt, id, start_time);
+		
+		Log.i(TAG, "Java: epg live_center() " + url);
+
+		HttpGet request = new HttpGet(url);
+		HttpResponse response;
+		
+		try {
+			response = new DefaultHttpClient().execute(request);
+			if (response.getStatusLine().getStatusCode() != 200){
+				Log.e(TAG, "failed to connect to epg server");
+				return false;
+			}
+			
+			String result = EntityUtils.toString(response.getEntity());
+			Log.d(TAG, "Java: epg result " + result.replace("\n", ""));
+			
+			SAXBuilder builder = new SAXBuilder();
+			Reader returnQuote = new StringReader(result);  
+			Document doc = builder.build(returnQuote);
+	        Element collections = doc.getRootElement();
+	        Element collection = collections.getChild("collection");
+	        
+	        Element sections = collection.getChild("sections");
+	        if (sections == null)
+	        	return false;
+	        
+	        List<Element> section = sections.getChildren("section");
+	        if (section == null || section.size() == 0)
+	        	return false;
+	        
+	        mLiveStrmList.clear();
+	        
+	        for (int i=0;i<section.size();i++) {
+	        	Element program = section.get(i);
+	        	String prog_title = program.getChildText("title");
+	        	String prog_id = program.getChildText("id");
+	        	String prog_start_time = program.getChildText("start_time");
+	        	String prog_end_time = program.getChildText("end_time");
+	        	
+	        	Element streams = program.getChild("streams");
+	        	Element stream = streams.getChild("stream");
+	        	String channel_id = stream.getChildText("channel_id");
+	        	
+	        	mLiveStrmList.add(new LiveStream(prog_id, prog_title, channel_id, 
+	        			prog_start_time, prog_end_time, null));
+	        	
+	        	Log.i(TAG, String.format("Java: title %s, id %s, start %s, end %s, channel_id %s",
+	        			prog_title, prog_id, prog_start_time, prog_end_time, channel_id));
+	        }
+	        
+	        return true;
+		} catch (ClientProtocolException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (JDOMException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+		return false;
 	}
 }

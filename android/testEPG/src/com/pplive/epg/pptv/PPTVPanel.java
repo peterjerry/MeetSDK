@@ -31,11 +31,13 @@ public class PPTVPanel extends JPanel {
 	private List<Catalog> mCatalogList;
 	private List<PlayLink2> mPlayLinkList;
 	private List<Navigator> mNavList;
+	private List<LiveStream> mLiveStrmList;
 	private List<Episode> mVirtualLinkList;
 	private String mContentType;
 	private boolean mVirtualChannel = false;
 	
-	private String player_path = "E:/git/PPTV/MeetSDK/engine2/build/win32/bin/Release/player_vc.exe";
+	private static String exe_vlc = "D:/Program Files/vlc-3.0.0/vlc.exe";
+	private static String exe_ffplay = "D:/Program Files/ffmpeg/ffplay.exe";
 	
 	private int start_page = 1;
 	private int last_live_type = 0;
@@ -59,6 +61,7 @@ public class PPTVPanel extends JPanel {
 		EPG_STATE_FOUND_PLAYLINK,
 		EPG_STATE_LIST,
 		EPG_STATE_SEARCH,
+		EPG_STATE_LIVECENTER,
 	}
 	
 	private final static String[] ft_desc = {"流畅","高清","超清","蓝光"};
@@ -110,9 +113,13 @@ public class PPTVPanel extends JPanel {
 				String value = strLine.substring(pos + 1);
 				System.out.println(String.format("Java: key %s, value %s", key ,value));
 
-				if (key.equals("vlc_path")) {
-					player_path = value;
-					System.out.println("Java: set player path to " + player_path);
+				if (key.equals("ffplay_path")) {
+					exe_ffplay = value;
+					System.out.println("Java: set ffplay path to " + exe_ffplay);
+				}
+				else if (key.equals("vlc_path")) {
+					exe_vlc = value;
+					System.out.println("Java: set vlc path to " + exe_vlc);
 				}
 				else {
 					System.out.println("Java: unknown key" + key);
@@ -173,6 +180,9 @@ public class PPTVPanel extends JPanel {
 				case EPG_STATE_CONTENT:
 					selectList();
 					break;
+				case EPG_STATE_LIVECENTER:
+					selectLiveStrm();
+					break;
 				default:
 					System.out.println("invalid state: " + mState.toString());
 					break;
@@ -196,7 +206,7 @@ public class PPTVPanel extends JPanel {
 		
 		comboItem = new JComboBox<String>();
 		comboItem.setFont(f);
-		comboItem.setBounds(20, 60, 450, 40);
+		comboItem.setBounds(20, 60, 500, 40);
 		comboItem.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent e) {
@@ -304,7 +314,7 @@ public class PPTVPanel extends JPanel {
 		
 		editorPlayExe.setFont(f);
 		editorPlayExe.setBounds(10, 400, 450, 40);
-		editorPlayExe.setText(player_path);
+		editorPlayExe.setText(exe_vlc);
 	    this.add(editorPlayExe);
 	}
 	
@@ -407,8 +417,6 @@ public class PPTVPanel extends JPanel {
 		System.out.println("ready to open url: " + url);
 		
 		String exe_filepath = editorPlayExe.getText();
-		if (exe_filepath == null || exe_filepath.equals(""))
-			exe_filepath  = player_path;
 		String[] cmd = new String[] {exe_filepath, url};
 		openExe(cmd);
 	}
@@ -503,38 +511,58 @@ public class PPTVPanel extends JPanel {
 			lblInfo.setText("live vid " + vid + " selected");
 			System.out.println("live playlink found! " + vid);
 			
-			CDNItem liveitem = mEPG.live_cdn(Integer.valueOf(vid));
+			List<CDNItem> liveitemList = mEPG.live_cdn(Integer.valueOf(vid));
 			
-			if (liveitem != null) {
-				String block_url_fmt = "http://%s/live/074094e6c24c4ebbb4bf6a82f4ceabda/" +
+			if (liveitemList != null && liveitemList.size() > 0) {
+				String block_url_fmt = "http://%s/live/%s/" +
 						"%d.block?ft=1&platform=android3" +
 						"&type=phone.android.vip&sdk=1" +
 						"&channel=162&vvid=41&k=%s";
-				String m3u8_url_fmt = "http://%s/live/interval/delay/" +
-						"074094e6c24c4ebbb4bf6a82f4ceabda.m3u8" +
-						"?type=phone.android.vip&sdk=1" +
+				String m3u8_url_fmt = "http://%s/live/%d/%d/" + // interval/delay/
+						"%s.m3u8" +
+						"?type=phone.android.vip&sdk=1&channel=162&vvid=41" +
 						"&k=%s";
-				String ts_url_fmt = "http://%s/live/074094e6c24c4ebbb4bf6a82f4ceabda/" +
+				String ts_url_fmt = "http://%s/live/%s/" +
 						"%d.ts" +
-						"?type=phone.android.vip" +
+						"?type=phone.android.vip&sdk=1&channel=162&vvid=41" +
 						"&k=%s";
-	            
+
+				int best_ft = 0;
+				int index = 0;
+				for (int i = 0;i<liveitemList.size();i++) {
+					CDNItem item = liveitemList.get(i);
+					int ft = Integer.valueOf(item.getFT());
+					if (ft > best_ft) {
+						best_ft = ft;
+						index = i;
+					}
+				}
+						
+				CDNItem liveitem = liveitemList.get(index);
 	            String st = liveitem.getST();
 	            long start_time = new Date(st).getTime() / 1000;
 	            start_time -= 45;
 	            start_time -= (start_time % 5);
 	            
-				String httpUrl = String.format(block_url_fmt, liveitem.getHost(), start_time, liveitem.getK());
+				String httpUrl = String.format(block_url_fmt, 
+						liveitem.getHost(), liveitem.getRid(), start_time, liveitem.getKey());
 				System.out.println("Java: live flv block: " + httpUrl);
 				
-				String m3u8Url = String.format(m3u8_url_fmt, liveitem.getHost(), liveitem.getK());
+				String m3u8Url = String.format(m3u8_url_fmt, 
+						liveitem.getHost(), 
+						liveitem.getInterval(), liveitem.getDelay(), 
+						liveitem.getRid(), liveitem.getKey());
 				System.out.println("Java: live m3u8: " + m3u8Url);
 				
-				String tsUrl = String.format(ts_url_fmt, liveitem.getHost(), start_time, liveitem.getK());
+				String tsUrl = String.format(ts_url_fmt, 
+						liveitem.getHost(), liveitem.getRid(),
+						start_time, liveitem.getKey());
 				System.out.println("Java: live ts: " + tsUrl);
 				
-				String saveFile = String.format("d:\\%d.flv", start_time);
+				String saveFile = String.format("f:\\%d.flv", start_time);
 				//Util.httpDownload(httpUrl, saveFile);
+				String[] cmd = new String[] {exe_ffplay, m3u8Url};
+				openExe(cmd);
 			}
 			
 			return;
@@ -719,6 +747,34 @@ public class PPTVPanel extends JPanel {
 		mState = EPG_STATE.EPG_STATE_CONTENT;
 	}
 	
+	private void selectLiveStrm() {
+		int n = comboItem.getSelectedIndex();
+		
+		String playlink = mLiveStrmList.get(n).channelID;
+		editorPlayLink.setText(playlink);
+		lblInfo.setText("livecenter vid " + playlink + " selected");
+		System.out.println("live playlink found! " + playlink);
+		
+		List<CDNItem> liveitem_list = mEPG.live_cdn(Integer.valueOf(playlink));
+		if (liveitem_list != null && liveitem_list.size() > 0) {
+			int best_ft = 0;
+			for (int i = 0;i<liveitem_list.size();i++) {
+				CDNItem item = liveitem_list.get(i);
+				int ft = Integer.valueOf(item.getFT());
+				if (ft > best_ft)
+					best_ft = ft;
+				
+				System.out.println(String.format("Java: stream #%d ft %s, format %s, bitrate %d, " +
+						"resolution  %d x %d",
+						i, item.getFT(), item.getFormat(), item.getBitrate(), 
+						item.getWidth(), item.getHeight()));
+			}
+				
+		}
+		
+		mState = EPG_STATE.EPG_STATE_FOUND_PLAYLINK;
+	}
+	
 	private void selectList() {
 		boolean ret;
 		
@@ -732,10 +788,16 @@ public class PPTVPanel extends JPanel {
 		if (mListLive) {
 			int type;
 			if (last_live_type == 0) {
-				if (n == 3)
-					type = 156;
-				else if (n == 2)
+				if (n == 1)
+					type = 44;
+				else if (n == 2)  // 卫视
 					type = 164;
+				else if (n == 3) // 地方台
+					type = 156;
+				else if (n == 4) // 电台
+					type = 210712;
+				else if (n == 5) // 游戏
+					type = 55;
 				else {
 					JOptionPane.showMessageDialog(null, "invalid live type!");
 					return;
@@ -746,25 +808,54 @@ public class PPTVPanel extends JPanel {
 				type = last_live_type;
 			}
 			
-			ret = mEPG.live(start_page, PAGE_NUM, type);
+			if (type == 44 || type == 55) { // 体育直播
+				SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd");
+				Date today = new Date();
+				Calendar c = Calendar.getInstance();
+				c.setTime(today);
+				Date day = c.getTime();
+				String strDay = df.format(day);
+				String id = "44";
+				if (type == 55)
+					id = "game";
+				ret = mEPG.live_center(id, strDay);
+			}
+			else {
+				ret = mEPG.live(start_page, PAGE_NUM, type);
+			}
 		}
 		else
 			ret = mEPG.list(param, mContentType, start_page, "order=t", 10);
 		
-		if (!ret)
+		if (!ret) {
+			System.out.println("Java: failed to selectList()");
 			return;
+		}
 		
 		comboItem.removeAllItems();
 		
-		mPlayLinkList = mEPG.getLink();
-		int size = mPlayLinkList.size();
-		
-		for (int i=0;i<size;i++) {
-			System.out.println(mPlayLinkList.get(i).toString());
-			comboItem.addItem(mPlayLinkList.get(i).getTitle());
+		if (n == 1 || n == 5) { // 体育直播 游戏直播
+			mLiveStrmList = mEPG.getLiveStrm();
+			int size = mLiveStrmList.size();
+			
+			for (int i=0;i<size;i++) {
+				LiveStream strm = mLiveStrmList.get(i);
+				System.out.println(strm.toString());
+				comboItem.addItem(strm.title + " " + strm.start_time);
+			}
+			mState = EPG_STATE.EPG_STATE_LIVECENTER;
 		}
-		
-		mState = EPG_STATE.EPG_STATE_LIST;
+		else {
+			mPlayLinkList = mEPG.getLink();
+			int size = mPlayLinkList.size();
+			
+			for (int i=0;i<size;i++) {
+				System.out.println(mPlayLinkList.get(i).toString());
+				comboItem.addItem(mPlayLinkList.get(i).getTitle());
+			}
+			
+			mState = EPG_STATE.EPG_STATE_LIST;
+		}
 	}
 	
 	private void openExe(String... params) {
