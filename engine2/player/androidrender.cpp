@@ -256,7 +256,7 @@ bool AndroidRender::sws_neon(AVFrame *frame, ANativeWindow_Buffer *buffer)
 #endif
 }
 
-bool sws_arm64(AVFrame *frame, ANativeWindow_Buffer *buffer)
+bool AndroidRender::sws_arm64(AVFrame *frame, ANativeWindow_Buffer *buffer)
 {
 	LOGD("sws_arm64");
 
