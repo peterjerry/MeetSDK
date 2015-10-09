@@ -274,6 +274,8 @@ bool sws_arm64(AVFrame *frame, ANativeWindow_Buffer *buffer)
 		LOGE("Video output format:%d(%s) does NOT support", frame->format, av_get_pix_fmt_name((AVPixelFormat)frame->format));
 		return false;
 	}
+	
+	return true;
 #else
 	return false;
 #endif

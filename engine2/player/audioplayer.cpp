@@ -327,7 +327,7 @@ void AudioPlayer::wait(int msec)
 	struct timespec ts;
     ts.tv_sec = 0;
     ts.tv_nsec = msec * 1000000L;//10 msec
-#if defined(__CYGWIN__) || defined(_MSC_VER)
+#if defined(__CYGWIN__) || defined(_MSC_VER) || defined(__aarch64__)
 	int64_t now_usec = getNowUs();
 	int64_t now_sec = now_usec / 1000000;
 	now_usec	= now_usec - now_sec * 1000000;
