@@ -30,16 +30,12 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="翻页" />
-        
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="源" />
+
         <Button
             android:id="@+id/btn_bw_type"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="P2P" />
+            android:text="播放源" />
 		
 	</LinearLayout>
 	

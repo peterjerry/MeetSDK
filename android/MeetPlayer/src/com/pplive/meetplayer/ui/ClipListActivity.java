@@ -4,16 +4,13 @@ import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.Dialog;
 import android.app.ProgressDialog;
-import android.app.Service;
 import android.content.BroadcastReceiver;
 import android.content.ClipData;
 import android.content.ClipboardManager;
-import android.content.ComponentName;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
-import android.content.ServiceConnection;
 import android.content.pm.ActivityInfo;
 import android.content.res.Configuration;
 import android.graphics.Bitmap;
@@ -30,7 +27,6 @@ import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
 import android.os.Handler;
-import android.os.IBinder;
 import android.os.Message;
 import android.pplive.media.MeetSDK;
 import android.pplive.media.player.MediaController.MediaPlayerControl;
@@ -51,7 +47,6 @@ import android.view.MenuItem;
 import android.view.MotionEvent;
 import android.view.SubMenu;
 import android.view.SurfaceHolder;
-import android.view.SurfaceView;
 import android.view.View;
 import android.view.View.MeasureSpec;
 import android.view.View.OnFocusChangeListener;
@@ -123,8 +118,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Random;
 
-// for thread
-
 public class ClipListActivity extends Activity implements
 		MediaPlayer.OnPreparedListener, MediaPlayer.OnCompletionListener,
 		MediaPlayer.OnErrorListener, MediaPlayer.OnInfoListener,
@@ -170,6 +163,7 @@ public class ClipListActivity extends Activity implements
 	private boolean mIsPreview;
 	private boolean mIsLoop					= false;
 	private boolean mIsNoVideo					= false;
+	private boolean mIsRememberPos				= true;
 	private boolean mDebugInfo					= false;
 	
 	private int mBufferingPertent				= 0;
@@ -924,6 +918,12 @@ public class ClipListActivity extends Activity implements
 		else
 			mIsNoVideo = false;
 		
+		value = Util.readSettingsInt(this, "isRemberPos");
+		if (value == 1)
+			mIsRememberPos = true;
+		else
+			mIsRememberPos = false;
+		
 		mPlayerImpl = Util.readSettingsInt(this, "PlayerImpl");
 		mAudioDst = Util.readSettings(this, "last_audio_ip_port");
 	}
@@ -931,7 +931,8 @@ public class ClipListActivity extends Activity implements
 	private void writeSettings() {
 		Util.writeSettingsInt(this, "isPreview", mIsPreview ? 1 : 0);
 		Util.writeSettingsInt(this, "isLoop", mIsLoop ? 1 : 0);
-		Util.writeSettingsInt(this, "IsNoVideo", mIsNoVideo ? 1 : 0);
+		Util.writeSettingsInt(this, "isNoVideo", mIsNoVideo ? 1 : 0);
+		Util.writeSettingsInt(this, "isRemberPos", mIsRememberPos ? 1 : 0);
 		
 		Util.writeSettingsInt(this, "PlayerImpl", mPlayerImpl);
 		Util.writeSettings(this, "last_audio_ip_port", mAudioDst);
@@ -1084,11 +1085,6 @@ public class ClipListActivity extends Activity implements
 	
 	@SuppressWarnings("deprecation") // avoid setType warning
 	private int start_player(String title, String path) {
-		mPlayUrl = path;
-		
-		tv_title.setText(path);
-		Log.i(TAG, "Java: clipname: " + mPlayUrl);
-		
 		mDecMode = DecodeMode.UNKNOWN;
 		if (0 == mPlayerImpl) {
 			mDecMode = DecodeMode.AUTO;
@@ -1153,6 +1149,10 @@ public class ClipListActivity extends Activity implements
 		}
 		
 		stop_player();
+		
+		mPlayUrl = path;
+		tv_title.setText(path);
+		Log.i(TAG, "Java: clipname: " + mPlayUrl);
 		
 		btnSelectAudioTrack.setVisibility(View.GONE);
 		
@@ -1249,6 +1249,9 @@ public class ClipListActivity extends Activity implements
 			mMediaController.hide();
 			
 			stop_subtitle();
+			
+			mMediaDB.savePlayedPosition(mPlayUrl, mPlayer.getCurrentPosition());
+			Log.i(TAG, "Java: save " + mPlayUrl + " , played pos " + mPlayer.getCurrentPosition());
 			
 			mPlayer.stop();
 			mPlayer.release();
@@ -2517,9 +2520,11 @@ public class ClipListActivity extends Activity implements
     	MenuItem previewMenuItem = submenu.getItem(0);
     	MenuItem loopMenuItem = submenu.getItem(1);
     	MenuItem noVideoMenuItem = submenu.getItem(2);
+    	MenuItem rememberPosMenuItem = submenu.getItem(3);
     	
     	previewMenuItem.setChecked(mIsPreview);
     	loopMenuItem.setChecked(mIsLoop);
+    	rememberPosMenuItem.setChecked(mIsRememberPos);
     	
 		if ("4".equals(btn_bw_type.getText())) // cdn play
 			noVideoMenuItem.setEnabled(true);
@@ -2573,6 +2578,11 @@ public class ClipListActivity extends Activity implements
 		case R.id.no_video:
 			mIsNoVideo = !mIsNoVideo;
 			item.setChecked(mIsNoVideo);
+			imageNoVideo.setVisibility(mIsNoVideo ? View.VISIBLE : View.GONE);
+			break;
+		case R.id.remember_last_pos:
+			mIsRememberPos = !mIsRememberPos;
+			item.setChecked(mIsRememberPos);
 			imageNoVideo.setVisibility(mIsNoVideo ? View.VISIBLE : View.GONE);
 			break;
 		case R.id.debug_info:
@@ -2791,6 +2801,8 @@ public class ClipListActivity extends Activity implements
 	public void onCompletion(MediaPlayer mp) {
 		// TODO Auto-generated method stub
 		Log.i(TAG, "onCompletion");
+		mMediaDB.savePlayedPosition(mPlayUrl, 0);
+		
 		mPlayer.stop();
 		mMediaController.hide();
 		mHandler.sendEmptyMessage(MSG_CLIP_PLAY_DONE);
@@ -2803,6 +2815,13 @@ public class ClipListActivity extends Activity implements
 		
 		render_frame_num = 0;
 		decode_drop_frame = 0;
+		
+		int pos = mMediaDB.getLastPlayedPosition(mPlayUrl);
+		Log.i(TAG, "Java: get " + mPlayUrl + " , played pos " + pos);
+		if (mIsRememberPos && pos > 0) {
+			mPlayer.seekTo(pos);
+			Log.i(TAG, "Java: pre-seek to " + pos + " msec");
+		}
 		
 		Log.i(TAG, String.format("Java: width %d, height %d", mPlayer.getVideoWidth(), mPlayer.getVideoHeight()));
 		mPlayer.start();
@@ -3127,6 +3146,7 @@ public class ClipListActivity extends Activity implements
 					}
 				}
 				
+				mMediaDB.savePlayedPosition(mPlayUrl, mPlayer.getCurrentPosition());
 				mPlayer.stop();
 			}
 		}

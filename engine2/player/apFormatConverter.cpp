@@ -112,7 +112,7 @@ int apFormatConverter::ff_write_packet_impl(uint8_t *buf, int buf_size)
 
 bool apFormatConverter::convert(uint8_t* from, int from_size, uint8_t *to, int *to_size, int process_timestamp, int first_seg)
 {
-	LOGI("convert()");
+	LOGI("convert() flv %p, size %d, process_timestamp %d, first_seg %d", from, from_size, process_timestamp, first_seg);
 
 	if (process_timestamp && first_seg)
 		apFormatConverter::m_start_pts = INIT_PTS;

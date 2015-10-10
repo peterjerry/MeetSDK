@@ -218,6 +218,7 @@ extern "C" bool my_convert(uint8_t* flv_data, int flv_data_size, uint8_t* ts_dat
 	apFormatConverter converter;
 	return converter.convert(flv_data, flv_data_size, ts_data, out_size, process_timestamp, first_seg);
 #else
+	LOGW("USE_TS_CONVERT is NOT enabled");
 	return false;
 #endif
 }

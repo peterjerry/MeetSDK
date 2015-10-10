@@ -203,6 +203,9 @@ public class MediaStoreDatabaseHelper {
     }
     
     public synchronized boolean hasMediaInfo(String path) {
+    	if (path == null || path.isEmpty())
+    		return false;
+    	
     	try {
 	        SQLiteDatabase db = dbOpenHelper.getWritableDatabase();
 	    	Cursor c = db.query(TABLE_NAME, new String[] { COLUMN_PLAY_URL, COLUMN_TITLE },
@@ -218,7 +221,7 @@ public class MediaStoreDatabaseHelper {
     }
     
     public synchronized void deleteMediaInfo(String path) {
-    	if (path == null || path.length() < 1)
+    	if (path == null || path.isEmpty())
     		return;
     	
     	 try {
@@ -228,6 +231,56 @@ public class MediaStoreDatabaseHelper {
          } catch (Exception e) {
          	Log.e(TAG, e.toString());
          }
+    }
+    
+    /**
+     * @param path
+     * @param position: unit msec
+     */
+    public synchronized void savePlayedPosition(String path, int position) {
+    	if (path == null || path.isEmpty() || position < 0)
+    		return;
+    	
+    	 try {
+			SQLiteDatabase db = dbOpenHelper.getWritableDatabase();
+
+			Cursor c = db.query(TABLE_NAME, new String[] { COLUMN_PLAY_URL,
+					COLUMN_TITLE }, COLUMN_PLAY_URL + "=?",
+					new String[] { path }, null, null, null);
+			if (c == null || !c.moveToFirst()) {
+				Log.w(TAG, "Java: url NOT found");
+				return;
+			}
+
+			ContentValues values = new ContentValues();
+			values.put(COLUMN_PLAY_URL, path);
+			values.put(COLUMN_LAST_PLAY_POSITION, position);
+			values.put(COLUMN_WATCH_TIME, System.currentTimeMillis());
+			String[] args = { path };
+			db.update(TABLE_NAME, values, COLUMN_PLAY_URL + "=?", args);
+		} catch (Exception e) {
+			Log.e(TAG, e.toString());
+         }
+    }
+    
+    public synchronized int getLastPlayedPosition(String path) {
+    	SQLiteDatabase db = dbOpenHelper.getWritableDatabase();
+        Cursor c = null;
+        try {
+        	c = db.query(TABLE_NAME, new String[] { COLUMN_LAST_PLAY_POSITION },
+                    COLUMN_PLAY_URL + "=?", new String[] { path }, null, null, null);
+            if (c.moveToFirst()) {
+                return c.getInt(0);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            if (c != null) {
+                c.close();
+            }
+        }
+        
+        return -1;
     }
     
     public synchronized List<MediaInfo> getMediaStore() {
