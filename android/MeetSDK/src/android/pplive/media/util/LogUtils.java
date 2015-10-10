@@ -40,6 +40,8 @@ public class LogUtils {
     }
 
     public static boolean init(String logfile, String tempPath) {
+    	Log.i(TAG, String.format("Java: init() logfile %s, tempPath %s", logfile, tempPath));
+    	
         outputfile = logfile;
         infopath = tempPath + "/deviceinfo";
         logpath = tempPath + "/player.log";
@@ -51,6 +53,7 @@ public class LogUtils {
 
     public static void logDeviceInfo() {
         if (!inited) {
+        	Log.w(TAG, "log is not inited");
             return;
         }
         try {
@@ -69,15 +72,19 @@ public class LogUtils {
             bw.write(sb.toString());
             bw.close();
         } catch (IOException e) {
+        	e.printStackTrace();
         }
     }
 
     public static void makeUploadLog() {
         if (!inited) {
+        	Log.w(TAG, "log is not inited");
             return;
         }
+        
         logDeviceInfo();
         try {
+        	Log.i(TAG, "Java: begin to write log file: " + outputfile);
             BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(outputfile)));
             BufferedReader br = new BufferedReader(new InputStreamReader(new FileInputStream(infopath)));
             String line = "";
@@ -96,8 +103,11 @@ public class LogUtils {
                 }
                 br.close();
             }
+            bw.flush();
             bw.close();
+            Log.i(TAG, "Java: end write log file");
         } catch (IOException e) {
+        	e.printStackTrace();
         }
     }
 

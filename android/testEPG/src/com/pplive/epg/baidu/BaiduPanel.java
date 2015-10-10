@@ -129,6 +129,8 @@ public class BaiduPanel extends JPanel {
 	
 	private final int UPLOAD_CHUNKSIZE = 1048576; // 1M
 	private final int UPLOAD_READSIZE = 4096; // 4k
+	
+	private int mDownloadBlockSize = 1048576; // 1M
 
 	private final static String[] list_by_desc = {"按时间", "按名称", "按大小"}; //time" "name" "size"
 	
@@ -210,6 +212,10 @@ public class BaiduPanel extends JPanel {
 				else if (key.equals("foobar_path")) {
 					exe_foobar = value;
 					System.out.println("Java: set foobar path to " + exe_foobar);
+				}
+				else if (key.equals("write_blocksize")) {
+					mDownloadBlockSize = Integer.valueOf(value);
+					System.out.println("Java: set mDownloadBlockSize to " + mDownloadBlockSize);
 				}
 				else {
 					System.out.println("Java: unknown key " + key);
@@ -955,7 +961,7 @@ public class BaiduPanel extends JPanel {
 
 			try {
 				int readed;
-				byte[] buf = new byte[4096];
+				byte[] buf = new byte[mDownloadBlockSize];
 
 				bDownloading = true;
 				while ((readed = inStream.read(buf)) != -1 && !bInterrupt) {
