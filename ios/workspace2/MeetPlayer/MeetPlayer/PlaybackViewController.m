@@ -83,7 +83,7 @@
     //create player
     player_ = [PPPlayerController PPPlayerControllerWithUrl:url_
                                                       frame:frame
-                                                       type:PPMOVIE_SYSTEM_PLAYER];
+                                                       type:PPMOVIE_SELF_PLAYER];
     player_.delegate = self;
     player_.allowsAirPlay = YES;
     [self.view insertSubview:player_.view atIndex:0];
@@ -143,10 +143,10 @@
 {
     NSString *msg = [NSString stringWithFormat:@"Type: %@", [player_ playerType]==PPMOVIE_SYSTEM_PLAYER ? @"system" : @"ppplayer"];
     //NSString *msg1 = [NSString stringWithFormat:@"Url: %@", [url_ absoluteString]];
-    NSString *msg2 = [NSString stringWithFormat:@"Duration: %f", player_.duration];
-    NSString *msg3 = [NSString stringWithFormat:@"Size: %f * %f", player_.size.width, player_.size.height];
+    NSString *msg2 = [NSString stringWithFormat:@"Duration: %.0f sec", player_.duration];
+    NSString *msg3 = [NSString stringWithFormat:@"Resolution: %.0f * %.0f", player_.size.width, player_.size.height];
     NSString *msg4 = [NSString stringWithFormat:@"numberOfBytesTransfered: %lld", [player_ numberOfBytesTransfered]];
-    NSString *msg5 = [NSString stringWithFormat:@"buffering time: %f", player_.bufferingTime];
+    NSString *msg5 = [NSString stringWithFormat:@"buffering time: %.0f msec", player_.bufferingTime];
     NSString *tmp = [NSString stringWithFormat:@"%@\r\n%@\r\n%@\r\n%@\r\n%@", msg, msg2, msg3, msg4, msg5];
     messageLab_.text = tmp;
 }
