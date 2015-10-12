@@ -7,6 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		289EBEBA1BCBA811007A86EF /* BaiduTableViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 289EBEB91BCBA811007A86EF /* BaiduTableViewController.m */; };
+		289EBEBC1BCBAAB3007A86EF /* baidu_pcs_ios-1.0.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 289EBEBB1BCBAAB3007A86EF /* baidu_pcs_ios-1.0.a */; };
 		9B4A5DF61AAD4831002669AE /* PPboxViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 9B4A5DF51AAD4831002669AE /* PPboxViewController.m */; };
 		9B4D0DD41AA6DC0A00698B1D /* main.m in Sources */ = {isa = PBXBuildFile; fileRef = 9B4D0DD31AA6DC0A00698B1D /* main.m */; };
 		9B4D0DD71AA6DC0A00698B1D /* AppDelegate.m in Sources */ = {isa = PBXBuildFile; fileRef = 9B4D0DD61AA6DC0A00698B1D /* AppDelegate.m */; };
@@ -189,6 +191,9 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		289EBEB81BCBA811007A86EF /* BaiduTableViewController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = BaiduTableViewController.h; path = MeetPlayer/BaiduTableViewController.h; sourceTree = "<group>"; };
+		289EBEB91BCBA811007A86EF /* BaiduTableViewController.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = BaiduTableViewController.m; path = MeetPlayer/BaiduTableViewController.m; sourceTree = "<group>"; };
+		289EBEBB1BCBAAB3007A86EF /* baidu_pcs_ios-1.0.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = "baidu_pcs_ios-1.0.a"; path = "MeetPlayer/baidu_pcs_ios-1.0.a"; sourceTree = "<group>"; };
 		9B4A5DF41AAD4831002669AE /* PPboxViewController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = PPboxViewController.h; sourceTree = "<group>"; };
 		9B4A5DF51AAD4831002669AE /* PPboxViewController.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = PPboxViewController.m; sourceTree = "<group>"; };
 		9B4D0DCE1AA6DC0A00698B1D /* MeetPlayer.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MeetPlayer.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -377,6 +382,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				289EBEBC1BCBAAB3007A86EF /* baidu_pcs_ios-1.0.a in Frameworks */,
 				9B4D0E611AA704BF00698B1D /* PPMediaPlayer.framework in Frameworks */,
 				9B4D0E371AA6F93400698B1D /* libbz2.dylib in Frameworks */,
 				9B4D0E301AA6E9E700698B1D /* libiconv.dylib in Frameworks */,
@@ -401,6 +407,16 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		289EBEB21BCBA63A007A86EF /* baidu */ = {
+			isa = PBXGroup;
+			children = (
+				289EBEB81BCBA811007A86EF /* BaiduTableViewController.h */,
+				289EBEB91BCBA811007A86EF /* BaiduTableViewController.m */,
+			);
+			name = baidu;
+			path = ..;
+			sourceTree = "<group>";
+		};
 		9B4A5DF31AAD4670002669AE /* ppbox */ = {
 			isa = PBXGroup;
 			children = (
@@ -413,6 +429,7 @@
 		9B4D0DC51AA6DC0A00698B1D = {
 			isa = PBXGroup;
 			children = (
+				289EBEBB1BCBAAB3007A86EF /* baidu_pcs_ios-1.0.a */,
 				9B4D0DD01AA6DC0A00698B1D /* MeetPlayer */,
 				9B4D0E311AA6EB0B00698B1D /* framework */,
 				9B4D0DCF1AA6DC0A00698B1D /* Products */,
@@ -436,6 +453,7 @@
 				9B4D0DFD1AA6DF7900698B1D /* local */,
 				9B4D0E011AA6E25400698B1D /* Http */,
 				9B4A5DF31AAD4670002669AE /* ppbox */,
+				289EBEB21BCBA63A007A86EF /* baidu */,
 				9B4D0DFA1AA6DC5000698B1D /* storyboard */,
 				9B4D0E401AA7041100698B1D /* MTLog */,
 				9B4D0E641AA8224F00698B1D /* pic */,
@@ -924,6 +942,7 @@
 				9B4D0E471AA7042500698B1D /* MTLog.m in Sources */,
 				9B4D0E5D1AA7047900698B1D /* MTLogPluginRoute.m in Sources */,
 				9B4D0E041AA6E2E200698B1D /* HttpViewController.m in Sources */,
+				289EBEBA1BCBA811007A86EF /* BaiduTableViewController.m in Sources */,
 				9B4D0DD41AA6DC0A00698B1D /* main.m in Sources */,
 				9B4A5DF61AAD4831002669AE /* PPboxViewController.m in Sources */,
 				9B4D0E5C1AA7047900698B1D /* MTLogPluginRemove.m in Sources */,
@@ -1044,12 +1063,14 @@
 					"$(inherited)",
 					/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include,
 					../../include,
+					MeetPlayer/include,
 				);
 				INFOPLIST_FILE = MeetPlayer/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
 				LIBRARY_SEARCH_PATHS = (
 					"$(inherited)",
 					/Users/Developer/gitlab/meetsdk/ios/lib,
+					"$(PROJECT_DIR)/MeetPlayer",
 				);
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				TARGETED_DEVICE_FAMILY = 1;
@@ -1069,12 +1090,14 @@
 					"$(inherited)",
 					/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include,
 					../../include,
+					MeetPlayer/include,
 				);
 				INFOPLIST_FILE = MeetPlayer/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
 				LIBRARY_SEARCH_PATHS = (
 					"$(inherited)",
 					/Users/Developer/gitlab/meetsdk/ios/lib,
+					"$(PROJECT_DIR)/MeetPlayer",
 				);
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				TARGETED_DEVICE_FAMILY = 1;

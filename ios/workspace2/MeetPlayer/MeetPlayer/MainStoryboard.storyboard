@@ -9,6 +9,7 @@
             <objects>
                 <tabBarController storyboardIdentifier="main" title="米特播放器" useStoryboardIdentifierAsRestorationIdentifier="YES" id="1Dx-ca-PuA" sceneMemberID="viewController">
                     <extendedEdge key="edgesForExtendedLayout"/>
+                    <navigationItem key="navigationItem" id="yRm-oB-03P"/>
                     <nil key="simulatedBottomBarMetrics"/>
                     <tabBar key="tabBar" contentMode="scaleToFill" id="JuM-u2-kpJ">
                         <rect key="frame" x="0.0" y="0.0" width="320" height="49"/>
@@ -19,11 +20,12 @@
                         <segue destination="JSZ-J7-avv" kind="relationship" relationship="viewControllers" id="Bqh-eh-Y9b"/>
                         <segue destination="Sk6-fA-8gd" kind="relationship" relationship="viewControllers" id="kjU-Sr-Cth"/>
                         <segue destination="7Bd-na-Vij" kind="relationship" relationship="viewControllers" id="uJp-kt-rSM"/>
+                        <segue destination="uDd-yS-XgK" kind="relationship" relationship="viewControllers" id="5Fz-aM-yEi"/>
                     </connections>
                 </tabBarController>
                 <placeholder placeholderIdentifier="IBFirstResponder" id="gNB-bB-MhG" userLabel="First Responder" sceneMemberID="firstResponder"/>
             </objects>
-            <point key="canvasLocation" x="-495" y="151"/>
+            <point key="canvasLocation" x="-531" y="151"/>
         </scene>
         <!--Local-->
         <scene sceneID="RGi-2V-U7O">
@@ -56,6 +58,16 @@
                 <placeholder placeholderIdentifier="IBFirstResponder" id="IEK-lT-O3F" userLabel="First Responder" sceneMemberID="firstResponder"/>
             </objects>
             <point key="canvasLocation" x="266" y="151"/>
+        </scene>
+        <!--Baidu pcs-->
+        <scene sceneID="vOd-SC-w16">
+            <objects>
+                <tableViewController id="uDd-yS-XgK" customClass="BaiduTableViewController" sceneMemberID="viewController">
+                    <tabBarItem key="tabBarItem" title="Baidu pcs" id="nud-C1-1IM"/>
+                </tableViewController>
+                <placeholder placeholderIdentifier="IBFirstResponder" id="nlf-Vz-Kw0" userLabel="First Responder" sceneMemberID="firstResponder"/>
+            </objects>
+            <point key="canvasLocation" x="-1184" y="870"/>
         </scene>
         <!--ppbox-->
         <scene sceneID="MZO-6I-vXF">
