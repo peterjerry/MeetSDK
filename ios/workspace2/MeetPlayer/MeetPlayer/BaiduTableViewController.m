@@ -7,6 +7,7 @@
 //
 
 #import "BaiduTableViewController.h"
+#import "PlaybackViewController.h"
 
 #define KEY_ACCESSTOKEN @"access_token"
 //
@@ -17,6 +18,8 @@
 // User has to replace this api key with own api key, this key is invalid hKUZTfsigrwRlXfs0uvDdHb
 //
 #define BAIDU_API_KEY @"4YchBAkgxfWug3KRYCGOv8EK"
+
+#define BAIDU_DOWNLOAD_FILE_FMT  @"https://pcs.baidu.com/rest/2.0/pcs/file?method=download&access_token=%@&path=%@"
 
 @interface BaiduTableViewController ()
 
@@ -87,6 +90,21 @@
     return cell;
 }
 
+- (void)tableView:(UITableView *)tableView
+didSelectRowAtIndexPath:(NSIndexPath *)indexPath
+{
+    NSString *path = [self.listItem objectAtIndex:indexPath.row];
+    NSString *play_url = [NSString stringWithFormat:BAIDU_DOWNLOAD_FILE_FMT, mpToken, path];
+    NSLog(@"path %@, play_url %@", path, play_url);
+    play_url = [play_url stringByAddingPercentEscapesUsingEncoding:NSUTF8StringEncoding];
+     NSLog(@"encoded play_url %@", play_url);
+    
+    NSURL *url = [NSURL URLWithString:play_url];
+    PlaybackViewController *playerViewContorller = [[PlaybackViewController alloc] initWithUrl:url player_type:2];
+    [self presentViewController:playerViewContorller
+                       animated:NO
+                     completion:nil];
+}
 
 /*
 // Override to support conditional editing of the table view.

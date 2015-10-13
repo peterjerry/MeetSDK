@@ -17,6 +17,7 @@
 {
     PPPlayerController *player_;
     NSURL *url_;
+    int play_type;
     NSTimer *timer_;
     MPVolumeView *airPlayBtn_;
     __weak IBOutlet UISlider *scrubber_;
@@ -49,9 +50,15 @@
 
 - (id)initWithUrl:(NSURL *)url
 {
+    return [self initWithUrl:url player_type:0];
+}
+
+- (id)initWithUrl:(NSURL *)url player_type:(int)type
+{
     self = [super init];
     if (self) {
         url_ = [url copy];
+        play_type = type;
     }
     return self;
 }
@@ -81,6 +88,14 @@
                [UIScreen mainScreen].bounds.size.height,
                [UIScreen mainScreen].bounds.size.width);
     //create player
+    enum PPPLAYER_TYPE type = PPMOVIE_AUTO_PLAYER;
+    if (play_type == 1)
+        type = PPMOVIE_SYSTEM_PLAYER;
+    else if (play_type == 2)
+        type = PPMOVIE_SELF_PLAYER;
+    else
+        type = PPMOVIE_SELF_PLAYER;
+        
     player_ = [PPPlayerController PPPlayerControllerWithUrl:url_
                                                       frame:frame
                                                        type:PPMOVIE_SELF_PLAYER];

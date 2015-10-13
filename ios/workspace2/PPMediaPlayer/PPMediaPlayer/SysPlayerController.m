@@ -60,7 +60,7 @@ NSString *kPlayableKey		= @"playable";
 {
     self = [super init];
     if (self) {
-        url_ = [url copy];
+        url_ = url;
         self.view = [[AVPlaybackView alloc] initWithFrame:frame];
         [self.view setBackgroundColor:[UIColor blackColor]];
         

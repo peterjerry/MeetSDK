@@ -12,4 +12,5 @@
 
 - (id)initWithUrl:(NSURL*)url;
 
+- (id)initWithUrl:(NSURL*)url player_type:(int)type;
 @end
