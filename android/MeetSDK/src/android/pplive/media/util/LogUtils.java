@@ -105,6 +105,11 @@ public class LogUtils {
             }
             bw.flush();
             bw.close();
+            
+            braf.flush();
+            braf.close();
+            braf = null;
+            logfile.delete();
             Log.i(TAG, "Java: end write log file");
         } catch (IOException e) {
         	e.printStackTrace();
@@ -206,6 +211,7 @@ public class LogUtils {
 
         try {
             if (braf == null) {
+            	// open/create log file
                 braf = new BufferedRandomAccessFile(logpath, "rw");
                 try {
                     offset = braf.length();
@@ -215,9 +221,11 @@ public class LogUtils {
                         offset = (index == -1) ? 0 : Integer.parseInt(firstline.substring(0, index));
                     }
                 } catch (Exception e) {
+                	e.printStackTrace();
                     offset = 0;
                 }
             }
+            
             msg += '\n';
             try {
                 braf.seek(offset);
@@ -227,9 +235,10 @@ public class LogUtils {
                 braf.write((offset + "#").getBytes());
                 braf.flush();
             } catch (IOException e) {
-
+            	e.printStackTrace();
             }
         } catch (Exception e) {
+        	e.printStackTrace();
         }
     }
 }

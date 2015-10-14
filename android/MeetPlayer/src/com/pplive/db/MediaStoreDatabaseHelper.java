@@ -104,18 +104,19 @@ public class MediaStoreDatabaseHelper {
         SQLiteDatabase db = dbOpenHelper.getWritableDatabase();
         Cursor c = null;
         try {
-            c = db.query(TABLE_NAME, new String[] { COLUMN_WIDTH, COLUMN_HEIGHT, COLUMN_DURATION },
+            c = db.query(TABLE_NAME, new String[] { COLUMN_PLAY_URL,
+					COLUMN_TITLE, COLUMN_WIDTH, COLUMN_HEIGHT, COLUMN_FILESIZE,
+					COLUMN_DURATION, COLUMN_FORMAT_NAME, COLUMN_VCODEC_NAME,
+					COLUMN_VCODEC_PROFILE, COLUMN_AUDIO_CHANNELS,
+					COLUMN_AUDIO_STREAMS, COLUMN_ACODEC_NAMES,
+					COLUMN_SUBTITLE_CHANNELS, COLUMN_SUBTITLE_STREAMS,
+					COLUMN_SCODEC_NAMES },
                     COLUMN_PLAY_URL + "=?", new String[] { path }, null, null, null);
             if (c.moveToFirst()) {
-            	int duration_index = c.getColumnIndex(COLUMN_DURATION);
-            	int size_index = c.getColumnIndex(COLUMN_FILESIZE);
-            	long duration = c.getLong(duration_index);
-            	long filesize = c.getLong(size_index);
-            	MediaInfo retInfo = new MediaInfo(path, duration, filesize);
-                return retInfo;
+                return fillMediaInfo(c);
             }
         } catch (Exception e) {
-            
+            e.printStackTrace();
         } finally {
             if (c != null) {
                 c.close();
@@ -262,6 +263,38 @@ public class MediaStoreDatabaseHelper {
 			Log.e(TAG, e.toString());
          }
     }
+
+    /**
+     * @param from_path
+     * @param to_path
+     * @return is updated ok
+     */
+    public synchronized boolean updatePath(String from_path, String to_path) {
+    	if (from_path == null || to_path == null)
+    		return false;
+    	
+    	 try {
+			SQLiteDatabase db = dbOpenHelper.getWritableDatabase();
+
+			Cursor c = db.query(TABLE_NAME, new String[] { COLUMN_PLAY_URL,
+					COLUMN_TITLE }, COLUMN_PLAY_URL + "=?",
+					new String[] { from_path }, null, null, null);
+			if (c == null || !c.moveToFirst()) {
+				Log.w(TAG, "Java: url NOT found");
+				return false;
+			}
+
+			ContentValues values = new ContentValues();
+			values.put(COLUMN_PLAY_URL, to_path);
+			String[] args = { from_path };
+			db.update(TABLE_NAME, values, COLUMN_PLAY_URL + "=?", args);
+			return true;
+		} catch (Exception e) {
+			Log.e(TAG, e.toString());
+         }
+    	 
+    	 return false;
+    }
     
     public synchronized int getLastPlayedPosition(String path) {
     	SQLiteDatabase db = dbOpenHelper.getWritableDatabase();
@@ -298,68 +331,10 @@ public class MediaStoreDatabaseHelper {
 					"LOWER(" + COLUMN_TITLE + ") ASC", null);
 			List<MediaInfo> listMediaInfo = new ArrayList<MediaInfo>();
 			if (c.moveToFirst()) {
-				int filepath_index = c.getColumnIndex(COLUMN_PLAY_URL);
-				int duration_index = c.getColumnIndex(COLUMN_DURATION);
-				int size_index = c.getColumnIndex(COLUMN_FILESIZE);
-				int width_index = c.getColumnIndex(COLUMN_WIDTH);
-				int height_index = c.getColumnIndex(COLUMN_HEIGHT);
-				
-				int format_name_index = c.getColumnIndex(COLUMN_FORMAT_NAME);
-				int video_codec_index = c.getColumnIndex(COLUMN_VCODEC_NAME);
-				
-				int audio_channels_index = c.getColumnIndex(COLUMN_AUDIO_CHANNELS);
-				int audio_streams_index = c.getColumnIndex(COLUMN_AUDIO_STREAMS);
-				int audio_codecs_index = c.getColumnIndex(COLUMN_ACODEC_NAMES);
-				int subtitle_channels_index = c.getColumnIndex(COLUMN_SUBTITLE_CHANNELS);
-				int subtitle_streams_index = c.getColumnIndex(COLUMN_SUBTITLE_STREAMS);
-				int subtitle_codecs_index = c.getColumnIndex(COLUMN_SCODEC_NAMES);
-				
 				while (true) {
-					String filepath = c.getString(filepath_index);
-					int width = c.getInt(width_index);
-					int height = c.getInt(height_index);
-					int duration = c.getInt(duration_index);
-					long filesize = c.getLong(size_index);
-					String formatName = c.getString(format_name_index);
-					String videoCodec = c.getString(video_codec_index);
-					
-					MediaInfo info = new MediaInfo(filepath, duration, filesize);
-					info.setFormatName(formatName);
-					info.setVideoInfo(width, height, videoCodec, duration);
-					
-					int audio_channels = c.getInt(audio_channels_index);
-					info.setAudioChannels(audio_channels);
-					if (audio_channels > 0) {
-						String audio_streams = c.getString(audio_streams_index);
-						String audio_codecs = c.getString(audio_codecs_index);
-						
-						StringTokenizer st1 = new StringTokenizer(audio_streams, "|", false);
-						StringTokenizer st2 = new StringTokenizer(audio_codecs, "|", false);
-						int id = 0;
-						while (st1.hasMoreTokens() && st2.hasMoreTokens()) {
-							int streamIndex = Integer.valueOf(st1.nextToken());
-							String codec_name = st2.nextToken();
-							info.setAudioChannelsInfo(id++, streamIndex, codec_name, "", "", "");
-						}
-					}
-					
-					int subtitle_channels = c.getInt(subtitle_channels_index);
-					info.setSubtitleChannels(subtitle_channels);
-					if (subtitle_channels > 0) {
-						String subtitle_streams = c.getString(subtitle_streams_index);
-						String subtitle_codecs = c.getString(subtitle_codecs_index);
-						
-						StringTokenizer st1 = new StringTokenizer(subtitle_streams, "|", false);
-						StringTokenizer st2 = new StringTokenizer(subtitle_codecs, "|", false);
-						int id = 0;
-						while (st1.hasMoreTokens() && st2.hasMoreTokens()) {
-							int streamIndex = Integer.valueOf(st1.nextToken());
-							String codec_name = st2.nextToken();
-							info.setSubtitleChannelsInfo(id++, streamIndex, codec_name, "", "");
-						}
-					}
-					
-					listMediaInfo.add(info);
+					MediaInfo info = fillMediaInfo(c);
+					if (info != null)
+						listMediaInfo.add(info);
 					
 					if (!c.moveToNext())
 						break;
@@ -434,4 +409,67 @@ public class MediaStoreDatabaseHelper {
         }
     }
     
+    private static MediaInfo fillMediaInfo(Cursor c) {
+    	int filepath_index = c.getColumnIndex(COLUMN_PLAY_URL);
+		int duration_index = c.getColumnIndex(COLUMN_DURATION);
+		int size_index = c.getColumnIndex(COLUMN_FILESIZE);
+		int width_index = c.getColumnIndex(COLUMN_WIDTH);
+		int height_index = c.getColumnIndex(COLUMN_HEIGHT);
+		
+		int format_name_index = c.getColumnIndex(COLUMN_FORMAT_NAME);
+		int video_codec_index = c.getColumnIndex(COLUMN_VCODEC_NAME);
+		
+		int audio_channels_index = c.getColumnIndex(COLUMN_AUDIO_CHANNELS);
+		int audio_streams_index = c.getColumnIndex(COLUMN_AUDIO_STREAMS);
+		int audio_codecs_index = c.getColumnIndex(COLUMN_ACODEC_NAMES);
+		int subtitle_channels_index = c.getColumnIndex(COLUMN_SUBTITLE_CHANNELS);
+		int subtitle_streams_index = c.getColumnIndex(COLUMN_SUBTITLE_STREAMS);
+		int subtitle_codecs_index = c.getColumnIndex(COLUMN_SCODEC_NAMES);
+		
+		String filepath = c.getString(filepath_index);
+		int width = c.getInt(width_index);
+		int height = c.getInt(height_index);
+		int duration = c.getInt(duration_index);
+		long filesize = c.getLong(size_index);
+		String formatName = c.getString(format_name_index);
+		String videoCodec = c.getString(video_codec_index);
+		
+		MediaInfo info = new MediaInfo(filepath, duration, filesize);
+		info.setFormatName(formatName);
+		info.setVideoInfo(width, height, videoCodec, duration);
+		
+		int audio_channels = c.getInt(audio_channels_index);
+		info.setAudioChannels(audio_channels);
+		if (audio_channels > 0) {
+			String audio_streams = c.getString(audio_streams_index);
+			String audio_codecs = c.getString(audio_codecs_index);
+			
+			StringTokenizer st1 = new StringTokenizer(audio_streams, "|", false);
+			StringTokenizer st2 = new StringTokenizer(audio_codecs, "|", false);
+			int id = 0;
+			while (st1.hasMoreTokens() && st2.hasMoreTokens()) {
+				int streamIndex = Integer.valueOf(st1.nextToken());
+				String codec_name = st2.nextToken();
+				info.setAudioChannelsInfo(id++, streamIndex, codec_name, "", "", "");
+			}
+		}
+		
+		int subtitle_channels = c.getInt(subtitle_channels_index);
+		info.setSubtitleChannels(subtitle_channels);
+		if (subtitle_channels > 0) {
+			String subtitle_streams = c.getString(subtitle_streams_index);
+			String subtitle_codecs = c.getString(subtitle_codecs_index);
+			
+			StringTokenizer st1 = new StringTokenizer(subtitle_streams, "|", false);
+			StringTokenizer st2 = new StringTokenizer(subtitle_codecs, "|", false);
+			int id = 0;
+			while (st1.hasMoreTokens() && st2.hasMoreTokens()) {
+				int streamIndex = Integer.valueOf(st1.nextToken());
+				String codec_name = st2.nextToken();
+				info.setSubtitleChannelsInfo(id++, streamIndex, codec_name, "", "");
+			}
+		}
+		
+		return info;
+    }
 }

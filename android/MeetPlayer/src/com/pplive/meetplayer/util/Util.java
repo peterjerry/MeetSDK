@@ -12,9 +12,12 @@ import java.io.UnsupportedEncodingException;
 import java.net.InetAddress;
 import java.net.NetworkInterface;
 import java.net.SocketException;
+import java.net.URLDecoder;
 import java.util.ArrayList;
 import java.util.Enumeration;
+import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Properties;
 import java.util.StringTokenizer;
 
@@ -26,6 +29,8 @@ import android.net.wifi.WifiInfo;
 import android.net.wifi.WifiManager;
 import android.os.Environment;
 import android.pplive.media.MeetSDK;
+import android.pplive.media.player.MediaInfo;
+import android.pplive.media.player.TrackInfo;
 import android.util.Log;
 
 import com.pplive.meetplayer.ui.PPTVEpisodeActivity;
@@ -338,6 +343,92 @@ public class Util {
 
 	}
 	
+	public static String getMediaInfoDescription(String path, MediaInfo info) {
+    	StringBuffer sbInfo = new StringBuffer();
+
+    	sbInfo.append("文件名 ");
+    	sbInfo.append(path);
+    	
+    	sbInfo.append("\n分辨率 ");
+    	sbInfo.append(info.getWidth());
+    	sbInfo.append(" x ");
+    	sbInfo.append(info.getHeight());
+    	sbInfo.append("\n时长 ");
+    	sbInfo.append(msecToString(info.getDuration()));
+    	sbInfo.append("\n帧率 ");
+    	sbInfo.append(String.format("%.2f", info.getFrameRate()));
+    	sbInfo.append("\n码率 ");
+    	sbInfo.append(info.getBitrate() / 1024);
+    	sbInfo.append(" kbps");
+    	if (info.getVideoCodecName() != null) {
+    		sbInfo.append("\n视频编码 ");
+    		sbInfo.append(info.getVideoCodecName());
+    	}
+    	String vProfile = info.getVideoCodecProfile();
+    	if (vProfile != null) {
+    		sbInfo.append("(profile ");
+    		sbInfo.append(vProfile);
+    		sbInfo.append(")");
+    	}
+    	
+    	sbInfo.append("\n音轨数 ");
+    	int audioNum = info.getAudioChannels();
+    	sbInfo.append(audioNum);
+    	
+    	if (audioNum > 0) {
+    		sbInfo.append("\n音轨编码 ");
+    		List<TrackInfo> audioList = info.getAudioChannelsInfo();
+    		if (audioList != null) {
+	    		for (int i=0;i<audioNum;i++) {
+	    			if (i > 0)
+	    				sbInfo.append(" | ");
+	    			
+	    			sbInfo.append(audioList.get(i).getCodecName());
+	    			String profile = audioList.get(i).getCodecProfile();
+	    			if (profile != null) {
+	    	    		sbInfo.append("(profile ");
+	    	    		sbInfo.append(profile);
+	    	    		sbInfo.append(")");
+	    	    	}
+	    		}
+    		}
+    	}
+    	
+    	sbInfo.append("\n内嵌字幕数 ");
+    	int subtitleNum = info.getSubtitleChannels();
+    	sbInfo.append(subtitleNum);
+
+    	if (subtitleNum > 0) {
+    		sbInfo.append("\n字幕编码 ");
+    		List<TrackInfo> subtitleList = info.getSubtitleChannelsInfo();
+    		if (subtitleList != null) {
+	    		for (int i=0;i<subtitleNum;i++) {
+	    			if (i > 0)
+	    				sbInfo.append(" | ");
+	    			
+	    			sbInfo.append(subtitleList.get(i).getCodecName());
+	    		}
+    		}
+    	}
+    	
+    	Map<String, String> metadata = info.getMetaData();
+    	if (metadata != null) {
+    		sbInfo.append("\n容器元数据\n");
+    		Iterator<Map.Entry<String, String>> iter = metadata.entrySet().iterator();
+			while (iter.hasNext()) {
+				Map.Entry<String, String> entry = (Map.Entry<String, String>) iter.next();
+				String key = entry.getKey();
+				String val = entry.getValue();
+				sbInfo.append(key);
+				sbInfo.append(":   ");
+				sbInfo.append(val);
+				sbInfo.append("\n");
+			}
+    	}
+
+		return sbInfo.toString();
+	}
+	
 	public void copyFolder(String oldPath, String newPath) {
 
 		try {
@@ -374,6 +465,19 @@ public class Util {
 			e.printStackTrace();
 
 		}
+	}
+	
+	private static String msecToString(long msec) {
+		long msec_, sec, minute, hour, tmp;
+		msec_ = msec % 1000;
+		sec = msec / 1000;
+
+		// sec = 3710
+		tmp = sec % 3600; // 110
+		hour = sec / 3600; // 1
+		sec = tmp % 60; // 50
+		minute = tmp / 60; // 1
+		return String.format("%02d:%02d:%02d:%03d", hour, minute, sec, msec_);
 	}
 	
 	private static String intToIp(int i) {

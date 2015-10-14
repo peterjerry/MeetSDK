@@ -266,13 +266,9 @@ public class ClipListActivity extends Activity implements
 	private MediaStoreDatabaseHelper mMediaDB;
 	
 	// message
-	private final static int MSG_CLIP_LIST_DONE					= 101;
 	private final static int MSG_CLIP_PLAY_DONE					= 102;
 	private static final int MSG_UPDATE_PLAY_INFO 				= 201;
 	private static final int MSG_UPDATE_RENDER_INFO				= 202;
-	private static final int MSG_LOCAL_LIST_DONE					= 203;
-	private static final int MSG_HTTP_LIST_DONE					= 204;
-	private static final int MSG_FAIL_TO_LIST_HTTP_LIST			= 301;
 	private static final int MSG_DISPLAY_SUBTITLE					= 401;
 	private static final int MSG_HIDE_SUBTITLE					= 402;
 	private static final int MSG_EPG_FRONTPAGE_DONE				= 501;
@@ -402,6 +398,7 @@ public class ClipListActivity extends Activity implements
         }
 		
 		mListUtil = new ListMediaUtil(this);
+		new ListItemTask().execute(mCurrentFolder);
 		
 		initFeedback();
 		
@@ -524,7 +521,7 @@ public class ClipListActivity extends Activity implements
 			public boolean onItemLongClick(AdapterView<?> arg0, View view,
 					final int position, long id) {
 				// TODO Auto-generated method stub
-				final String[] action = {"delete", "detail"};
+				final String[] action = {"delete", "rename", "detail"};
 				Map<String, Object> item = mAdapter.getItem(position);
 				final String file_name = (String)item.get("filename");
 				final String file_path = (String)item.get("fullpath");
@@ -557,8 +554,73 @@ public class ClipListActivity extends Activity implements
 									Toast.makeText(ClipListActivity.this, "DELETE only support local file", Toast.LENGTH_SHORT).show();
 								}
 							}
+							else if (whichButton == 1) {
+								final EditText inputFilename = new EditText(ClipListActivity.this);
+								inputFilename.setText(file_name);
+								inputFilename.setHint("input new file name");
+								
+								AlertDialog.Builder builder = new AlertDialog.Builder(
+										ClipListActivity.this);
+						        builder.setTitle("input new file name")
+						        	.setIcon(android.R.drawable.ic_dialog_info)
+						        	.setView(inputFilename)
+						        	.setNegativeButton("Cancel", null);
+						        builder.setPositiveButton("Ok", new DialogInterface.OnClickListener() {
+
+						            public void onClick(DialogInterface dialog, int which) {
+						            	int pos = file_path.lastIndexOf("/");
+						            	if (pos == -1)
+						            		return;
+						            	
+						            	String newFilename = inputFilename.getText().toString();
+						            	Log.i(TAG, String.format("Java change filename from %s to %s", 
+						            			file_name, newFilename));
+						            	String new_filepath = file_path.substring(0, pos + 1) + 
+						            			inputFilename.getText().toString();
+						            	
+						            	File file = new File(file_path);
+						            	file.renameTo(new File(new_filepath));
+						            	Toast.makeText(ClipListActivity.this, 
+						            			String.format("change filename from %s to %s", 
+								            			file_name, newFilename),
+								            			Toast.LENGTH_SHORT).show();
+						            	
+						            	Map<String, Object> item = mListUtil.getList().get(position);
+						            	item.put("filename", newFilename);
+						            	item.put("fullpath", new_filepath);
+						            	mListUtil.getList().set(position, item);
+						            	
+						            	mAdapter.updateData(mListUtil.getList());
+										mAdapter.notifyDataSetChanged();
+										
+										mMediaDB.updatePath(file_path, new_filepath);
+						             }
+						        });
+						        builder.show();
+							}
+							else if (whichButton == 2) {
+								MediaInfo info = mMediaDB.getMediaInfo(file_path);
+								if (info == null) {
+									Toast.makeText(ClipListActivity.this, "media info is null", Toast.LENGTH_SHORT).show();
+								}
+								else {
+									String strInfo = Util.getMediaInfoDescription(file_path, info);
+							    	if (strInfo == null) {
+							    		Toast.makeText(ClipListActivity.this, "strInfo is null", Toast.LENGTH_SHORT).show();
+							    		return;
+							    	}
+							    	
+							    	AlertDialog.Builder builder = new AlertDialog.Builder(
+							    			ClipListActivity.this)
+									.setTitle("媒体信息")
+									.setMessage(strInfo)
+									.setPositiveButton("确定", null);
+
+									builder.show();
+								}
+							}
 							else {
-								// todo
+								Log.e(TAG, "Java: more action: unknown index " + whichButton);
 							}
 						}
 					})
@@ -566,7 +628,7 @@ public class ClipListActivity extends Activity implements
 				.create();
 				choose_action_dlg.show();
 				
-				return false;
+				return true; // already handled
 			}
 			
 		});
@@ -1421,16 +1483,6 @@ public class ClipListActivity extends Activity implements
         @Override  
         public void handleMessage(Message msg) {  
             switch(msg.what) {
-			case MSG_CLIP_LIST_DONE:
-				if (mAdapter == null) {
-					mAdapter = new LocalFileAdapter(ClipListActivity.this, mListUtil.getList(), R.layout.pptv_list);
-					lv_filelist.setAdapter(mAdapter);
-				}
-				else {
-					mAdapter.updateData(mListUtil.getList());
-					mAdapter.notifyDataSetChanged();
-				}
-				break;
 			case MSG_UPDATE_PLAY_INFO:
 			case MSG_UPDATE_RENDER_INFO:
 				if (isLandscape) {
@@ -1451,20 +1503,6 @@ public class ClipListActivity extends Activity implements
 			case MSG_CLIP_PLAY_DONE:
 				Toast.makeText(ClipListActivity.this, "clip completed", Toast.LENGTH_SHORT).show();
 				mTextViewInfo.setText("play info");
-				break;
-			case MSG_LOCAL_LIST_DONE:
-				btnClipLocation.setText("http");
-				mListLocalFile = true;
-				break;
-			case MSG_HTTP_LIST_DONE:
-				setTitle(HTTP_SERVER_URL);
-				btnClipLocation.setText("local");
-				mListLocalFile = false;
-				break;
-			case MSG_FAIL_TO_LIST_HTTP_LIST:
-				Toast.makeText(ClipListActivity.this, "failed to connect to http server", 
-					Toast.LENGTH_SHORT).show();
-				btnClipLocation.setText("http");
 				break;
 			case MSG_DISPLAY_SUBTITLE:
 				mSubtitleTextView.setText(mSubtitleText);
@@ -2288,34 +2326,50 @@ public class ClipListActivity extends Activity implements
 	}
 	
 	private class ListItemTask extends AsyncTask<String, Integer, Boolean> {
+		private String mPath;
+		
         @Override
         protected Boolean doInBackground(String... params) {
-        	Log.i(TAG, "Java: doInBackground " + params[0]);
+        	mPath = params[0];
+        	Log.i(TAG, "Java: doInBackground " + mPath);
         	
         	// update progress
         	// publishProgress(progresses)
         	
-        	boolean ret = mListUtil.ListMediaInfo(params[0]);
-        	if (ret) {
-        		if (params[0].startsWith("http://")) {
-        			mHandler.sendEmptyMessage(MSG_HTTP_LIST_DONE);
-        		}
-        		else {
-        			mHandler.sendEmptyMessage(MSG_LOCAL_LIST_DONE);
-        		}
-        		
-        		mHandler.sendEmptyMessage(MSG_CLIP_LIST_DONE);
-        	}
-        	else {
-        		if (!mListLocalFile)
-        			mHandler.sendEmptyMessage(MSG_FAIL_TO_LIST_HTTP_LIST);
-        	}
-        	
-        	return ret;
+        	return mListUtil.ListMediaInfo(mPath);
         }
 
         @Override
         protected void onPostExecute(Boolean result) {
+        	if (result) {
+        		if (mPath.startsWith("http://")) {
+        			setTitle(HTTP_SERVER_URL);
+    				btnClipLocation.setText("local");
+    				mListLocalFile = false;
+        		}
+        		else {
+        			btnClipLocation.setText("http");
+    				mListLocalFile = true;
+        		}
+        		
+				if (mAdapter == null) {
+					mAdapter = new LocalFileAdapter(ClipListActivity.this, mListUtil.getList(), 
+							R.layout.pptv_list);
+					lv_filelist.setAdapter(mAdapter);
+				}
+				else {
+					mAdapter.updateData(mListUtil.getList());
+					mAdapter.notifyDataSetChanged();
+				}
+        	}
+        	else {
+        		if (!mListLocalFile) {
+					Toast.makeText(ClipListActivity.this, "failed to connect to http server", 
+						Toast.LENGTH_SHORT).show();
+					btnClipLocation.setText("http");
+        		}
+        	}
+        	
         	progDlg.dismiss();
         }
 
@@ -3063,8 +3117,6 @@ public class ClipListActivity extends Activity implements
 			mLayout.getLayoutParams().height = preview_height;
 			mLayout.requestLayout(); //or invalidate();
 		}
-		
-		new ListItemTask().execute(mCurrentFolder);
 	}
 	
 	@Override

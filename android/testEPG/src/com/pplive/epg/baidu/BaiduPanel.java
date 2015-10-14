@@ -53,6 +53,8 @@ import java.awt.Desktop;
 import java.awt.FileDialog;
 import java.awt.Font;
 import java.awt.Frame;
+import java.awt.datatransfer.Clipboard;
+import java.awt.datatransfer.StringSelection;
 import java.awt.event.*; 
 import java.awt.image.BufferedImage;
 import java.io.BufferedReader;
@@ -157,6 +159,7 @@ public class BaiduPanel extends JPanel {
 	JMenuItem menuItemSearchOnlineSub	= null;
 	JMenuItem menuItemSearchOnlineLrc	= null;
 	JMenuItem menuItemGetFolderSize		= null;
+	JMenuItem menuItemGetDownloadPath	= null;
 	
 	JLabel lblImage = new JLabel();
 	
@@ -390,6 +393,28 @@ public class BaiduPanel extends JPanel {
 			}
 		});
 		jPopupMenu.add(menuItemGetFolderSize);
+		
+		menuItemGetDownloadPath = new JMenuItem("获取下载路径");
+		menuItemGetDownloadPath.setFont(f);
+		menuItemGetDownloadPath.addMouseListener(new MouseAdapter() {
+			public void mouseReleased(MouseEvent e) {
+				mOperatePath = getOperatePath();
+				try {
+					String encoded_path = URLEncoder.encode(mOperatePath, "utf-8");
+
+					String url = BAIDU_PCS_DOWNLOAD + encoded_path;
+					System.out.println("get download url: " + url);
+					Clipboard clipboard = getToolkit().getSystemClipboard();//获取系统剪贴板;
+					StringSelection text = new StringSelection(url);
+					clipboard.setContents(text,null);
+					JOptionPane.showMessageDialog(null,"地址已复制至剪贴板");
+				} catch (UnsupportedEncodingException e1) {
+					// TODO Auto-generated catch block
+					e1.printStackTrace();
+				}
+			}
+		});
+		jPopupMenu.add(menuItemGetDownloadPath);
 		
 		listItem = new JList<String>();
 		listItem.setFont(f);
