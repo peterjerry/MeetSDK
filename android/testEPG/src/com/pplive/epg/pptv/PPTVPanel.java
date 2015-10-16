@@ -3,6 +3,8 @@ package com.pplive.epg.pptv;
 import javax.swing.*; 
 
 import java.awt.Font;
+import java.awt.datatransfer.Clipboard;
+import java.awt.datatransfer.StringSelection;
 import java.awt.event.*; 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -15,6 +17,7 @@ import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
+import java.util.Map;
 import java.util.StringTokenizer;
 
 import com.pplive.epg.sohu.PlaylinkSohu;
@@ -77,11 +80,12 @@ public class PPTVPanel extends JPanel {
 	JLabel lbl_link = new JLabel("链接");
 	JTextPane editorPlayLink = new JTextPane();
 	
-	JComboBox<String> comboItem 	= null;
-	
 	JList<String> listItem 				= null;
 	DefaultListModel<String> listModel 	= null;
 	JScrollPane scrollPane				= null;
+	
+	JPopupMenu jPopupMenu				= null;
+	JMenuItem menuItemDownloadUrl		= null;
 	
 	JComboBox<String> comboFt 		= null;
 	JComboBox<String> comboBwType 	= null;
@@ -135,32 +139,98 @@ public class PPTVPanel extends JPanel {
 		mEPG = new EPGUtil();
 
 		Font f = new Font("宋体", 0, 20);
-
-		comboItem = new JComboBox<String>();
-		comboItem.setFont(f);
-		comboItem.setBounds(20, 60, 500, 40);
-		comboItem.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(ActionEvent e) {
-				// TODO Auto-generated method stub	
-			}
-		});
 		
-		init_combobox();
-		
-		comboItem.addItemListener(new ItemListener(){
-
+		listItem = new JList<String>();
+		listItem.setFont(f);
+		listModel = new DefaultListModel<String>();
+		listItem.setModel(listModel);
+		listItem.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+		listItem.addMouseListener(new MouseAdapter(){
 			@Override
-			public void itemStateChanged(ItemEvent e) {
+			public void mouseClicked(MouseEvent event) {
 				// TODO Auto-generated method stub
+				int index = listItem.getSelectedIndex();
+				if (index == -1)
+					return;
+				
+				int button = event.getButton();
+				if (button == 1) { // Left button
+					if (event.getClickCount() == 2) {
+						switch (mState) {
+						case EPG_STATE_FRONTPAGE:
+							selectCatalog();
+							break;
+						case EPG_STATE_CATALOG:
+							selectDetail();
+							break;
+						case EPG_STATE_CONTENT_LIST:
+							selectContents();
+							break;
+						case EPG_STATE_DETAIL:
+						case EPG_STATE_LIST:
+						case EPG_STATE_LINK:
+						case EPG_STATE_SEARCH:	
+							selectLink();
+							break;
+						case EPG_STATE_FOUND_PLAYLINK:
+							//JOptionPane.showMessageDialog(null, "playlink already found!");
+							playvideo();
+							break;
+						case EPG_STATE_CONTENT:
+							selectList();
+							break;
+						case EPG_STATE_LIVECENTER:
+							selectLiveStrm();
+							break;
+						default:
+							System.out.println("invalid state: " + mState.toString());
+							break;
+						}
+					}
+					else if (event.getClickCount() == 1) {
+						
+					}
+				}
+				else if (button == 3) { // right
+					jPopupMenu.show(listItem, event.getX(), event.getY());
+				}
+				
 			}
-
 		});
 		
-		this.add(comboItem);
+		scrollPane = new JScrollPane(listItem);
+		scrollPane.setBounds(20, 40, 500, 250);
+		this.add(scrollPane);
+		
+		jPopupMenu = new JPopupMenu();
+		menuItemDownloadUrl = new JMenuItem("获取文件下载地址");
+		menuItemDownloadUrl.setFont(f);
+		menuItemDownloadUrl.addMouseListener(new MouseAdapter() {
+			public void mouseReleased(MouseEvent e) {
+				if (mState != EPG_STATE.EPG_STATE_FOUND_PLAYLINK)
+					return;
+				
+				String link = editorPlayLink.getText();
+				int ft = comboFt.getSelectedIndex();
+				
+				String url = mEPG.getCDNUrl(link, String.valueOf(ft), false, false);
+				if (url == null) {
+					System.out.println("Java: failed to get download url");
+					JOptionPane.showMessageDialog(null, "获取下载地址失败");
+					return;
+				}
+				
+				System.out.println("get download url: " + url);
+				Clipboard clipboard = getToolkit().getSystemClipboard();//获取系统剪贴板;
+				StringSelection text = new StringSelection(url);
+				clipboard.setContents(text,null);
+				JOptionPane.showMessageDialog(null,"地址已复制至剪贴板");
+			}
+		});
+		jPopupMenu.add(menuItemDownloadUrl);
 		
 		// 信息
-		lblInfo.setBounds(20, 20, 300, 40);
+		lblInfo.setBounds(20, 0, 300, 40);
 		lblInfo.setFont(f);
 		this.add(lblInfo);
 		
@@ -187,37 +257,6 @@ public class PPTVPanel extends JPanel {
 
 		btnGo.addActionListener(new AbstractAction() {
 			public void actionPerformed(ActionEvent e) {
-				switch (mState) {
-				case EPG_STATE_FRONTPAGE:
-					selectCatalog();
-					break;
-				case EPG_STATE_CATALOG:
-					selectDetail();
-					break;
-				case EPG_STATE_CONTENT_LIST:
-					selectContents();
-					break;
-				case EPG_STATE_DETAIL:
-				case EPG_STATE_LIST:
-				case EPG_STATE_LINK:
-				case EPG_STATE_SEARCH:	
-					selectLink();
-					break;
-				case EPG_STATE_FOUND_PLAYLINK:
-					//JOptionPane.showMessageDialog(null, "playlink already found!");
-					playvideo();
-					break;
-				case EPG_STATE_CONTENT:
-					selectList();
-					break;
-				case EPG_STATE_LIVECENTER:
-					selectLiveStrm();
-					break;
-				default:
-					System.out.println("invalid state: " + mState.toString());
-					break;
-				}
-				
 			}
 		});
 		
@@ -329,6 +368,8 @@ public class PPTVPanel extends JPanel {
 				search(key);
 			}
 		});
+		
+		init_combobox();
 	}
 	
 	private void playvideo() {
@@ -433,7 +474,7 @@ public class PPTVPanel extends JPanel {
 	}
 	
 	private void selectCatalog() {
-		int n = comboItem.getSelectedIndex();
+		int n = listItem.getSelectedIndex();
 		int index = mModuleList.get(n).getIndex();
 		
 		mEPG.catalog(index);
@@ -446,11 +487,11 @@ public class PPTVPanel extends JPanel {
 		if (size < 1)
 			return;
 		
-		comboItem.removeAllItems();
+		listModel.clear();
 		
 		for (int i=0;i<size;i++) {
 			System.out.println(mCatalogList.get(i).toString());
-			comboItem.addItem(mCatalogList.get(i).getTitle());
+			listModel.addElement(mCatalogList.get(i).getTitle());
 		}
 		
 		mState = EPG_STATE.EPG_STATE_CATALOG;
@@ -459,7 +500,7 @@ public class PPTVPanel extends JPanel {
 	private void selectDetail() {
 		boolean ret;
 		
-		int n = comboItem.getSelectedIndex();
+		int n = listItem.getSelectedIndex();
 		String vid = mCatalogList.get(n).getVid();
 		if (vid == null) {
 			System.out.println("vid is null");
@@ -476,11 +517,11 @@ public class PPTVPanel extends JPanel {
 		mPlayLinkList = mEPG.getLink();
 		int size = mPlayLinkList.size();
 		
-		comboItem.removeAllItems();
+		listModel.clear();
 		
 		for (int i=0;i<size;i++) {
 			System.out.println(mPlayLinkList.get(i).toString());
-			comboItem.addItem(mPlayLinkList.get(i).getTitle());
+			listModel.addElement(mPlayLinkList.get(i).getTitle());
 		}
 			
 		mState = EPG_STATE.EPG_STATE_DETAIL;
@@ -489,7 +530,7 @@ public class PPTVPanel extends JPanel {
 	private void selectLink() {
 		boolean ret;
 		
-		int n = comboItem.getSelectedIndex();
+		int n = listItem.getSelectedIndex();
 		if (mVirtualChannel) {
 			String ext_id = mVirtualLinkList.get(n).getExtId();
 			
@@ -602,14 +643,14 @@ public class PPTVPanel extends JPanel {
 				return;
 			}
 		
-			comboItem.removeAllItems();
+			listModel.clear();
 			
 			mVirtualLinkList = mEPG.getVirtualLink();
 			size = mVirtualLinkList.size();
 			
 			for (int j=0;j<size;j++) {
 				Episode e = mVirtualLinkList.get(j);
-				comboItem.addItem(e.getTitle());
+				listModel.addElement(e.getTitle());
 				System.out.println(String.format("Java: episode #%d %s", j, e.toString()));
 			}
 		}
@@ -618,11 +659,11 @@ public class PPTVPanel extends JPanel {
 			
 			size = mPlayLinkList.size();
 			
-			comboItem.removeAllItems();
+			listModel.clear();
 			
 			for (int i=0;i<size;i++) {
 				System.out.println(mPlayLinkList.get(i).toString());
-				comboItem.addItem(mPlayLinkList.get(i).getTitle());
+				listModel.addElement(mPlayLinkList.get(i).getTitle());
 			}
 		}
 		
@@ -671,13 +712,13 @@ public class PPTVPanel extends JPanel {
 		if(mPlayLinkList.size() < 1)
 			return;
 		
-		comboItem.removeAllItems();
+		listModel.clear();
 		
 		int size = mPlayLinkList.size();
 		for(int i=0;i<size;i++) {
 			PlayLink2 l = mPlayLinkList.get(i);
 			System.out.println(l.toString());
-			comboItem.addItem(mPlayLinkList.get(i).getTitle());
+			listModel.addElement(mPlayLinkList.get(i).getTitle());
 		}
 	
 		mState = EPG_STATE.EPG_STATE_SEARCH;
@@ -693,11 +734,11 @@ public class PPTVPanel extends JPanel {
 		mModuleList = mEPG.getModule();
 		int size = mModuleList.size();
 		
-		comboItem.removeAllItems();
+		listModel.clear();
 		
 		for (int i=0;i<size;i++) {
 			System.out.println(mModuleList.get(i).toString());
-			comboItem.addItem(mModuleList.get(i).getTitle());
+			listModel.addElement(mModuleList.get(i).getTitle());
 		}
 		
 		mState = EPG_STATE.EPG_STATE_FRONTPAGE;
@@ -710,14 +751,14 @@ public class PPTVPanel extends JPanel {
 		if (!ret)
 			return;
 
-		comboItem.removeAllItems();
+		listModel.clear();
 		
 		mModuleList = mEPG.getModule();
 		int size = mModuleList.size();
 		
 		for (int i=0;i<size;i++) {
 			System.out.println(mModuleList.get(i).toString());
-			comboItem.addItem(mModuleList.get(i).getTitle());
+			listModel.addElement(mModuleList.get(i).getTitle());
 		}
 		
 		mState = EPG_STATE.EPG_STATE_CONTENT_LIST;
@@ -726,7 +767,7 @@ public class PPTVPanel extends JPanel {
 	private void selectContents() {
 		boolean ret;
 		
-		int n = comboItem.getSelectedIndex();
+		int n = listItem.getSelectedIndex();
 		String link = mModuleList.get(n).getLink(); //"app://aph.pptv.com/v4/cate/tv";
 		
 		if (mModuleList.get(n).getTitle().equals("直播"))
@@ -745,21 +786,21 @@ public class PPTVPanel extends JPanel {
 		if(!ret)
 			return;
 		
-		comboItem.removeAllItems();
+		listModel.clear();
 		
 		mContentList = mEPG.getContent();
 		int size = mContentList.size();
 		
 		for(int i=0;i<size;i++) {
 			System.out.println("#" + i + ": " + mContentList.get(i).toString());
-			comboItem.addItem(mContentList.get(i).getTitle());
+			listModel.addElement(mContentList.get(i).getTitle());
 		}
 		
 		mState = EPG_STATE.EPG_STATE_CONTENT;
 	}
 	
 	private void selectLiveStrm() {
-		int n = comboItem.getSelectedIndex();
+		int n = listItem.getSelectedIndex();
 		
 		String playlink = mLiveStrmList.get(n).channelID;
 		editorPlayLink.setText(playlink);
@@ -789,7 +830,7 @@ public class PPTVPanel extends JPanel {
 	private void selectList() {
 		boolean ret = false;
 		
-		int n = comboItem.getSelectedIndex();
+		int n = listItem.getSelectedIndex();
 		mParam = mContentList.get(n).getParam();
 		if (mParam.startsWith("type="))
 			mContentType = "";
@@ -837,7 +878,7 @@ public class PPTVPanel extends JPanel {
 			return;
 		}
 		
-		comboItem.removeAllItems();
+		listModel.clear();
 		
 		if (mListLive && (mLiveType == 44 || mLiveType == 55)) {
 			mLiveStrmList = mEPG.getLiveStrm();
@@ -846,7 +887,7 @@ public class PPTVPanel extends JPanel {
 			for (int i=0;i<size;i++) {
 				LiveStream strm = mLiveStrmList.get(i);
 				System.out.println(strm.toString());
-				comboItem.addItem(strm.title + " " + strm.start_time);
+				listModel.addElement(strm.title + " " + strm.start_time);
 			}
 			
 			mState = EPG_STATE.EPG_STATE_LIVECENTER;
@@ -857,7 +898,7 @@ public class PPTVPanel extends JPanel {
 			
 			for (int i=0;i<size;i++) {
 				System.out.println(mPlayLinkList.get(i).toString());
-				comboItem.addItem(mPlayLinkList.get(i).getTitle());
+				listModel.addElement(mPlayLinkList.get(i).getTitle());
 			}
 		
 			mState = EPG_STATE.EPG_STATE_LIST;
@@ -894,7 +935,7 @@ public class PPTVPanel extends JPanel {
 			return;
 		}
 			
-		comboItem.removeAllItems();
+		listModel.clear();
 		
 		if (mListLive && (mLiveType == 44 || mLiveType == 55)) {
 			mLiveStrmList = mEPG.getLiveStrm();
@@ -903,7 +944,7 @@ public class PPTVPanel extends JPanel {
 			for (int i=0;i<size;i++) {
 				LiveStream strm = mLiveStrmList.get(i);
 				System.out.println(strm.toString());
-				comboItem.addItem(strm.title + " " + strm.start_time);
+				listModel.addElement(strm.title + " " + strm.start_time);
 			}
 			
 			mState = EPG_STATE.EPG_STATE_LIVECENTER;
@@ -914,7 +955,7 @@ public class PPTVPanel extends JPanel {
 			
 			for (int i=0;i<size;i++) {
 				System.out.println(mPlayLinkList.get(i).toString());
-				comboItem.addItem(mPlayLinkList.get(i).getTitle());
+				listModel.addElement(mPlayLinkList.get(i).getTitle());
 			}
 		
 			mState = EPG_STATE.EPG_STATE_LIST;

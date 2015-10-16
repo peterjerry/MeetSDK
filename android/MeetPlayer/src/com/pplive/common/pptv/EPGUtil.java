@@ -284,7 +284,7 @@ public class EPGUtil {
 	}
 	
 	public boolean contents(String surfix) {
-		
+		Log.i(TAG, "Java: contents() surfix: " + surfix);
 		String cate;
 		try {
 			String sur = "app://aph.pptv.com/v4/cate";
@@ -318,8 +318,11 @@ public class EPGUtil {
 			mContentList.clear();
 			
 			int module_index = 0;
+			// hard code
 			if ("app://aph.pptv.com/v4/cate/sports?type=5".equals(surfix))
-				module_index = 1; // hard code
+				module_index = 1;
+			else if ("app://aph.pptv.com/v4/cate/life?type=75399".equals(surfix))
+				module_index = 5;
 			
 			JSONObject program = modules.getJSONObject(module_index).getJSONObject("data");
 			JSONArray contents = program.getJSONArray("dlist");
