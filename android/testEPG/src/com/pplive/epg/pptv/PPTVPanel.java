@@ -34,13 +34,15 @@ public class PPTVPanel extends JPanel {
 	private List<LiveStream> mLiveStrmList;
 	private List<Episode> mVirtualLinkList;
 	private String mContentType;
+	private String mParam;
+	private int mItemIndex;
 	private boolean mVirtualChannel = false;
 	
 	private static String exe_vlc = "D:/Program Files/vlc-3.0.0/vlc.exe";
 	private static String exe_ffplay = "D:/Program Files/ffmpeg/ffplay.exe";
 	
 	private int start_page = 1;
-	private int last_live_type = 0;
+	private int mLiveType = 0;
 	
 	private boolean mListLive = false;
 	
@@ -76,6 +78,11 @@ public class PPTVPanel extends JPanel {
 	JTextPane editorPlayLink = new JTextPane();
 	
 	JComboBox<String> comboItem 	= null;
+	
+	JList<String> listItem 				= null;
+	DefaultListModel<String> listModel 	= null;
+	JScrollPane scrollPane				= null;
+	
 	JComboBox<String> comboFt 		= null;
 	JComboBox<String> comboBwType 	= null;
 	JList<String> lstType 			= null;
@@ -92,8 +99,6 @@ public class PPTVPanel extends JPanel {
 	JComboBox<String> comboDay 		= null;
 	JComboBox<String> comboHour 	= null;
 	JComboBox<String> comboDuration	= null;
-	
-	JTextPane editorPlayExe = new JTextPane();
 
 	public PPTVPanel() {
 		super();
@@ -131,27 +136,52 @@ public class PPTVPanel extends JPanel {
 
 		Font f = new Font("宋体", 0, 20);
 
-		// Action
+		comboItem = new JComboBox<String>();
+		comboItem.setFont(f);
+		comboItem.setBounds(20, 60, 500, 40);
+		comboItem.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				// TODO Auto-generated method stub	
+			}
+		});
+		
+		init_combobox();
+		
+		comboItem.addItemListener(new ItemListener(){
+
+			@Override
+			public void itemStateChanged(ItemEvent e) {
+				// TODO Auto-generated method stub
+			}
+
+		});
+		
+		this.add(comboItem);
+		
+		// 信息
 		lblInfo.setBounds(20, 20, 300, 40);
 		lblInfo.setFont(f);
 		this.add(lblInfo);
 		
+		// 按钮
 		btnGo.setFont(f);
-		btnGo.setBounds(200, 110, 80, 40);
+		btnGo.setBounds(200, 300, 80, 40);
 		this.add(btnGo);
 		btnReset.setFont(f);
-		btnReset.setBounds(290, 110, 80, 40);
+		btnReset.setBounds(290, 300, 80, 40);
 		this.add(btnReset);
 		btnNext.setFont(f);
-		btnNext.setBounds(380, 110, 80, 40);
+		btnNext.setBounds(380, 300, 80, 40);
 		this.add(btnNext);
 		
+		// 播放link
 		lbl_link.setFont(f);
-		lbl_link.setBounds(20, 110, 40, 40);
+		lbl_link.setBounds(20, 300, 40, 40);
 		this.add(lbl_link);
 		
 		editorPlayLink.setFont(f);
-		editorPlayLink.setBounds(60, 110, 120, 40);
+		editorPlayLink.setBounds(60, 300, 120, 40);
 		editorPlayLink.setText("20986187");
 	    this.add(editorPlayLink);
 
@@ -199,68 +229,39 @@ public class PPTVPanel extends JPanel {
 		
 		btnNext.addActionListener(new AbstractAction() {
 			public void actionPerformed(ActionEvent e) {
-				start_page++;
-				selectList();
+				if (mListLive && (mLiveType == 44 || mLiveType == 55)) {
+					start_page++;
+					if (start_page > 7)
+						start_page = 0;
+				}
+				else {
+					start_page++;
+				}
+				
+				nextPage();
 			}
 		});
 		
-		comboItem = new JComboBox<String>();
-		comboItem.setFont(f);
-		comboItem.setBounds(20, 60, 500, 40);
-		comboItem.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(ActionEvent e) {
-				// TODO Auto-generated method stub	
-			}
-		});
-		
-		init_combobox();
-		
-		comboItem.addItemListener(new ItemListener(){
-
-			@Override
-			public void itemStateChanged(ItemEvent e) {
-				// TODO Auto-generated method stub
-			}
-
-		});
-		
-		this.add(comboItem);
-		
+		// 播放设置
 		comboFt = new JComboBox<String>(ft_desc);
 		comboFt.setFont(f);
-		comboFt.setBounds(20, 170, 100, 40);
+		comboFt.setBounds(20, 350, 100, 40);
 		comboFt.setSelectedIndex(1);
 		this.add(comboFt);
 		
 		String[] bw_type = {"P2P", "CDNP2P", "CDN", "PPTV", "DLNA"};
 		comboBwType = new JComboBox<String>(bw_type);
 		comboBwType.setFont(f);
-		comboBwType.setBounds(130, 170, 100, 40);
+		comboBwType.setBounds(130, 350, 100, 40);
 		comboBwType.setSelectedIndex(3);
 		this.add(comboBwType);
 
-		cbNoVideo.setBounds(250, 170, 120, 40);
+		cbNoVideo.setBounds(250, 350, 120, 40);
 		cbNoVideo.setFont(f);
 		this.add(cbNoVideo);
 		
-		editorSearch.setFont(f);
-		editorSearch.setBounds(20, 350, 200, 40);
-		editorSearch.setText("海贼王");
-	    this.add(editorSearch);
-	    
-	    btnSearch.setFont(f);
-	    btnSearch.setBounds(230, 350, 80, 40);
-	    editorSearch.setFont(f);
-		this.add(btnSearch);
-		btnSearch.addActionListener(new AbstractAction() {
-			public void actionPerformed(ActionEvent e) {
-				String key = editorSearch.getText();//"沈震轩PPTV独家专访";
-				search(key);
-			}
-		});
-		
-		lbl_day.setBounds(10, 250, 50, 40);
+		// 回看功能
+		lbl_day.setBounds(10, 400, 50, 40);
 		lbl_day.setFont(f);
 		this.add(lbl_day);
 		
@@ -279,11 +280,11 @@ public class PPTVPanel extends JPanel {
 		DayList.toArray(day_desc);
 		comboDay = new JComboBox<String>(day_desc);
 		comboDay.setFont(f);
-		comboDay.setBounds(60, 250, 200, 40);
+		comboDay.setBounds(60, 400, 200, 40);
 		comboDay.setSelectedIndex(0);
 		this.add(comboDay);
 		
-		lbl_start_time.setBounds(280, 250, 50, 40);
+		lbl_start_time.setBounds(280, 400, 50, 40);
 		lbl_start_time.setFont(f);
 		this.add(lbl_start_time);
 		
@@ -296,11 +297,11 @@ public class PPTVPanel extends JPanel {
 		HourList.toArray(hour_desc);
 		comboHour = new JComboBox<String>(hour_desc);
 		comboHour.setFont(f);
-		comboHour.setBounds(330, 250, 120, 40);
+		comboHour.setBounds(330, 400, 120, 40);
 		comboHour.setSelectedIndex(16);
 		this.add(comboHour);
 		
-		lbl_duration.setBounds(10, 300, 80, 40);
+		lbl_duration.setBounds(10, 450, 80, 40);
 		lbl_duration.setFont(f);
 		this.add(lbl_duration);
 		
@@ -308,14 +309,26 @@ public class PPTVPanel extends JPanel {
 				"1.5小时", "2小时", "2.5小时", "3小时"};
 		comboDuration = new JComboBox<String>(duration_desc);
 		comboDuration.setFont(f);
-		comboDuration.setBounds(80, 300, 120, 40);
+		comboDuration.setBounds(80, 450, 120, 40);
 		comboDuration.setSelectedIndex(0);
 		this.add(comboDuration);
 		
-		editorPlayExe.setFont(f);
-		editorPlayExe.setBounds(10, 400, 450, 40);
-		editorPlayExe.setText(exe_vlc);
-	    this.add(editorPlayExe);
+		// 搜索功能
+		editorSearch.setFont(f);
+		editorSearch.setBounds(20, 500, 200, 40);
+		editorSearch.setText("海贼王");
+	    this.add(editorSearch);
+	    
+	    btnSearch.setFont(f);
+	    btnSearch.setBounds(230, 500, 80, 40);
+	    editorSearch.setFont(f);
+		this.add(btnSearch);
+		btnSearch.addActionListener(new AbstractAction() {
+			public void actionPerformed(ActionEvent e) {
+				String key = editorSearch.getText();//"沈震轩PPTV独家专访";
+				search(key);
+			}
+		});
 	}
 	
 	private void playvideo() {
@@ -415,9 +428,7 @@ public class PPTVPanel extends JPanel {
 		}
 		
 		System.out.println("ready to open url: " + url);
-		
-		String exe_filepath = editorPlayExe.getText();
-		String[] cmd = new String[] {exe_filepath, url};
+		String[] cmd = new String[] {exe_vlc, url};
 		openExe(cmd);
 	}
 	
@@ -630,7 +641,7 @@ public class PPTVPanel extends JPanel {
 		mListLive = false;
 		mVirtualChannel = false;
 		start_page = 1;
-		last_live_type = 0;
+		mLiveType = 0;
 		
 		int type = 1;
 		switch (type) {
@@ -776,39 +787,32 @@ public class PPTVPanel extends JPanel {
 	}
 	
 	private void selectList() {
-		boolean ret;
+		boolean ret = false;
 		
 		int n = comboItem.getSelectedIndex();
-		String param = mContentList.get(n).getParam();
-		if (param.startsWith("type="))
+		mParam = mContentList.get(n).getParam();
+		if (mParam.startsWith("type="))
 			mContentType = "";
-		
-		System.out.println(String.format("param: %s, type %s", param, mContentType));
+	
+		System.out.println(String.format("param: %s, type: %s", mParam, mContentType));
 		
 		if (mListLive) {
-			int type;
-			if (last_live_type == 0) {
-				if (n == 1)
-					type = 44;
-				else if (n == 2)  // 卫视
-					type = 164;
-				else if (n == 3) // 地方台
-					type = 156;
-				else if (n == 4) // 电台
-					type = 210712;
-				else if (n == 5) // 游戏
-					type = 55;
-				else {
-					JOptionPane.showMessageDialog(null, "invalid live type!");
-					return;
-				}
-				last_live_type = type;
-			}
+			if (n == 1)
+				mLiveType = 44;
+			else if (n == 2)  // 卫视
+				mLiveType = 164;
+			else if (n == 3) // 地方台
+				mLiveType = 156;
+			else if (n == 4) // 电台
+				mLiveType = 210712;
+			else if (n == 5) // 游戏
+				mLiveType = 55;
 			else {
-				type = last_live_type;
+				JOptionPane.showMessageDialog(null, "invalid live type!");
+				return;
 			}
 			
-			if (type == 44 || type == 55) { // 体育直播
+			if (mLiveType == 44 || mLiveType == 55) { // 体育直播
 				SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd");
 				Date today = new Date();
 				Calendar c = Calendar.getInstance();
@@ -816,16 +820,17 @@ public class PPTVPanel extends JPanel {
 				Date day = c.getTime();
 				String strDay = df.format(day);
 				String id = "44";
-				if (type == 55)
+				if (mLiveType == 55)
 					id = "game";
 				ret = mEPG.live_center(id, strDay);
 			}
 			else {
-				ret = mEPG.live(start_page, PAGE_NUM, type);
+				ret = mEPG.live(start_page, PAGE_NUM, mLiveType);
 			}
 		}
-		else
-			ret = mEPG.list(param, mContentType, start_page, "order=t", 10);
+		else {
+			ret = mEPG.list(mParam, mContentType, start_page, "order=t", 10);
+		}
 		
 		if (!ret) {
 			System.out.println("Java: failed to selectList()");
@@ -834,7 +839,7 @@ public class PPTVPanel extends JPanel {
 		
 		comboItem.removeAllItems();
 		
-		if (n == 1 || n == 5) { // 体育直播 游戏直播
+		if (mListLive && (mLiveType == 44 || mLiveType == 55)) {
 			mLiveStrmList = mEPG.getLiveStrm();
 			int size = mLiveStrmList.size();
 			
@@ -843,6 +848,7 @@ public class PPTVPanel extends JPanel {
 				System.out.println(strm.toString());
 				comboItem.addItem(strm.title + " " + strm.start_time);
 			}
+			
 			mState = EPG_STATE.EPG_STATE_LIVECENTER;
 		}
 		else {
@@ -853,7 +859,64 @@ public class PPTVPanel extends JPanel {
 				System.out.println(mPlayLinkList.get(i).toString());
 				comboItem.addItem(mPlayLinkList.get(i).getTitle());
 			}
+		
+			mState = EPG_STATE.EPG_STATE_LIST;
+		}
+	}
+	
+	private void nextPage() {
+		boolean ret = false;
+		
+		if (mListLive) {
+			if (mLiveType == 44 || mLiveType == 55) {
+				SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd");
+				Date today = new Date();
+				Calendar c = Calendar.getInstance();
+				c.setTime(today);
+				c.add(Calendar.DAY_OF_MONTH, start_page);
+				Date day = c.getTime();
+				String strDay = df.format(day);
+				String id = "44";
+				if (mLiveType == 55)
+					id = "game";
+				ret = mEPG.live_center(id, strDay);
+			}
+			else {
+				ret = mEPG.live(start_page, PAGE_NUM, mLiveType);
+			}
+		}
+		else {
+			ret = mEPG.list(mParam, mContentType, start_page, "order=t", 10);
+		}
 			
+		if (!ret) {
+			System.out.println("Java: failed to nextPage()");
+			return;
+		}
+			
+		comboItem.removeAllItems();
+		
+		if (mListLive && (mLiveType == 44 || mLiveType == 55)) {
+			mLiveStrmList = mEPG.getLiveStrm();
+			int size = mLiveStrmList.size();
+			
+			for (int i=0;i<size;i++) {
+				LiveStream strm = mLiveStrmList.get(i);
+				System.out.println(strm.toString());
+				comboItem.addItem(strm.title + " " + strm.start_time);
+			}
+			
+			mState = EPG_STATE.EPG_STATE_LIVECENTER;
+		}
+		else {
+			mPlayLinkList = mEPG.getLink();
+			int size = mPlayLinkList.size();
+			
+			for (int i=0;i<size;i++) {
+				System.out.println(mPlayLinkList.get(i).toString());
+				comboItem.addItem(mPlayLinkList.get(i).getTitle());
+			}
+		
 			mState = EPG_STATE.EPG_STATE_LIST;
 		}
 	}

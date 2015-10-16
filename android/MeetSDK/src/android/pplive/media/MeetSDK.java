@@ -129,7 +129,6 @@ public final class MeetSDK {
 		return decodeLevel;
 	}
 	
-
 	public static int getCpuArchNumber() {
 		if (AppRootDir == null) {
 		    LogUtils.error("MeetSDK.AppRootDir is null.");

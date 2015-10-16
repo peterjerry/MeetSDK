@@ -23,6 +23,7 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
 import android.util.Log;
+import android.view.KeyEvent;
 import android.view.View;
 import android.widget.AbsListView;
 import android.widget.AdapterView;
@@ -178,6 +179,18 @@ public class SohuEpisodeActivity extends Activity {
 	    	new SetDataTask().execute(SET_DATA_SEARCH);
 	    else
 	    	new SetDataTask().execute(SET_DATA_LIST);
+	}
+	
+	@Override
+	public boolean onKeyDown(int keyCode, KeyEvent event) {
+		Log.d(TAG, "keyCode: " + keyCode);
+		
+		if (keyCode == KeyEvent.KEYCODE_MENU) {
+			super.openOptionsMenu();
+			return true;
+		}
+		
+		return super.onKeyDown(keyCode, event);
 	}
 	
 	private Handler mhandler = new Handler(){  
