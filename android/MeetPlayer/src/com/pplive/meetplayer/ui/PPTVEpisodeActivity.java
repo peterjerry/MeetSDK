@@ -262,7 +262,7 @@ public class PPTVEpisodeActivity extends Activity {
 	    String folder = Util.readSettings(this, "download_folder");
 	    if (folder.isEmpty())
 		    mDownloadLocalFolder = Environment.getExternalStorageDirectory().getAbsolutePath() + 
-					"/test2/";
+					"/test2";
 	    else
 	    	mDownloadLocalFolder = folder;
 	    notifManager = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
@@ -412,7 +412,7 @@ public class PPTVEpisodeActivity extends Activity {
 					else if (whichButton == 1) {
 						String vid = (String) item.get("vid");
 						String title = (String)item.get("title");
-						String save_path = mDownloadLocalFolder + title + ".mp4";
+						String save_path = mDownloadLocalFolder + "/" + title + ".mp4";
 						
 						download_file(vid, save_path, title);
 					}
@@ -473,7 +473,7 @@ public class PPTVEpisodeActivity extends Activity {
             		episode_title = mEpisodeList.get(0).getTitle();
             		int playlink = Integer.valueOf(vid);
             		if (mDownload) {
-						String save_path = mDownloadLocalFolder + episode_title + ".mp4";
+						String save_path = mDownloadLocalFolder + "/" + episode_title + ".mp4";
 						
 						download_file(vid, save_path, episode_title);
             		}

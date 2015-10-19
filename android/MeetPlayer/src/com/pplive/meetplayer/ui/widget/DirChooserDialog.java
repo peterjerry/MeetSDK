@@ -23,7 +23,6 @@ import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.ListView;
 import android.widget.TextView;
-import android.widget.Toast;
 
 public class DirChooserDialog extends Dialog implements android.view.View.OnClickListener{
 	
@@ -152,7 +151,7 @@ public class DirChooserDialog extends Dialog implements android.view.View.OnClic
 			if (temp.equals(".."))
 				path = getSubDir(path);
 			else
-				path = path + temp + "/";
+				path = path + "/" + temp;
 	
 			if (type == TypeOpen)
 				title.setText(path);
@@ -235,8 +234,6 @@ public class DirChooserDialog extends Dialog implements android.view.View.OnClic
 	    	handler.post(add);
 		}else if(v.getId() == ok.getId()){
 			dismiss();
-			if (!path.endsWith("/"))
-				path = path + "/";
 			
 			if (mOnListener != null) {
 				mOnListener.saveFolder(path);
@@ -274,16 +271,12 @@ public class DirChooserDialog extends Dialog implements android.view.View.OnClic
 		if (path.equals("/"))
 			return path;
 		
-		int pos = -1;
-		if (path.endsWith("/"))
-			pos = path.lastIndexOf("/", path.length() - 2);
-		else
-			pos = path.lastIndexOf("/");
+		int pos = path.lastIndexOf("/");
 		if (pos == -1)
 			return path;
 		else if (pos == 0)
 			return "/";
-		
-		return path.substring(0, pos) + "/";
+		else
+			return path.substring(0, pos);
 	}
 }

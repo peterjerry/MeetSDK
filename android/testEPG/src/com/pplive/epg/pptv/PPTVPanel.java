@@ -402,7 +402,6 @@ public class PPTVPanel extends JPanel {
 		int ft = comboFt.getSelectedIndex();
 		
 		int bw_type = comboBwType.getSelectedIndex();
-		String link_surfix = "";
 		
 		String url = null;
 		
@@ -414,53 +413,8 @@ public class PPTVPanel extends JPanel {
 			url = mEPG.getCDNUrl(link, str_ft, is_m3u8, noVideo);
 		}
 		else {
-			long start_time, duration;
-			
-			int dayIndex = comboDay.getSelectedIndex();
-			int hourIndex = comboHour.getSelectedIndex();
-			int durationIndex = comboDuration.getSelectedIndex();
-			
-			duration = durationIndex * 30;
-			if (duration != 0) {
-				Date date = new Date();
-				Calendar c = Calendar.getInstance();
-				c.setTime(date);
-				c.add(Calendar.DAY_OF_MONTH, -dayIndex);//把日期往后增加一天.整数往后推,负数往前移动 
-				c.set(Calendar.HOUR_OF_DAY, hourIndex / 2);
-				if (hourIndex % 2 == 0)
-					c.set(Calendar.MINUTE, 0);
-				else
-					c.set(Calendar.MINUTE, 30);
-				c.set(Calendar.SECOND, 0);
-				c.set(Calendar.MILLISECOND, 0);
-				System.out.println("Java: set time to: " + c.getTime());
-				
-				start_time = c.getTime().getTime() / 1000;
-				System.out.println(
-						"start_time: " + start_time + 
-						" , duration：" + duration);
-				
-				link_surfix = String.format("&begin_time=%d&end_time=%d", 
-						start_time, start_time + duration * 60);
-
-                try {
-                	link_surfix = URLEncoder.encode(link_surfix, "utf-8");
-				} catch (UnsupportedEncodingException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
-					return;
-				}
-
-                System.out.println("Java: mPlayerLinkSurfix final: " + link_surfix);
-			}
-			
-			int port;
-			if (mListLive)
-				port = 5054;
-			else
-				port = 9006;
 			url = PlayLinkUtil.getPlayUrl(
-					Integer.valueOf(link), port, ft, bw_type, link_surfix);
+					Integer.valueOf(link), 9006, ft, bw_type, "");
 		}
 		
 		if (url == null) {
@@ -558,7 +512,6 @@ public class PPTVPanel extends JPanel {
 		}
 		
 		if (mListLive) {
-			mState = EPG_STATE.EPG_STATE_FOUND_PLAYLINK;
 			editorPlayLink.setText(vid);
 			lblInfo.setText("live vid " + vid + " selected");
 			System.out.println("live playlink found! " + vid);
@@ -613,7 +566,58 @@ public class PPTVPanel extends JPanel {
 				
 				String saveFile = String.format("f:\\%d.flv", start_time);
 				//Util.httpDownload(httpUrl, saveFile);
-				String[] cmd = new String[] {exe_ffplay, m3u8Url};
+				
+				long replay_start_time, duration;
+				String link_surfix = null;
+				
+				int dayIndex = comboDay.getSelectedIndex();
+				int hourIndex = comboHour.getSelectedIndex();
+				int durationIndex = comboDuration.getSelectedIndex();
+				
+				duration = durationIndex * 30;
+				if (duration != 0) {
+					Date date = new Date();
+					Calendar c = Calendar.getInstance();
+					c.setTime(date);
+					c.add(Calendar.DAY_OF_MONTH, -dayIndex);//把日期往后增加一天.整数往后推,负数往前移动 
+					c.set(Calendar.HOUR_OF_DAY, hourIndex / 2);
+					if (hourIndex % 2 == 0)
+						c.set(Calendar.MINUTE, 0);
+					else
+						c.set(Calendar.MINUTE, 30);
+					c.set(Calendar.SECOND, 0);
+					c.set(Calendar.MILLISECOND, 0);
+					System.out.println("Java: set time to: " + c.getTime());
+					
+					replay_start_time = c.getTime().getTime() / 1000;
+					System.out.println(
+							"start_time: " + replay_start_time + 
+							" , duration：" + duration);
+					
+					link_surfix = String.format("&begin_time=%d&end_time=%d", 
+							replay_start_time, replay_start_time + duration * 60);
+
+	                try {
+	                	link_surfix = URLEncoder.encode(link_surfix, "utf-8");
+					} catch (UnsupportedEncodingException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+						return;
+					}
+
+	                System.out.println("Java: mPlayerLinkSurfix final: " + link_surfix);
+				}
+				
+				String play_url = m3u8Url;
+				String play_exe = exe_ffplay;
+				
+				if (link_surfix != null) {
+					play_url = PlayLinkUtil.getPlayUrl(
+						Integer.valueOf(vid), 5054, 1, 3, link_surfix);
+					play_exe = exe_vlc;
+				}
+				
+				String[] cmd = new String[] {play_exe, play_url};
 				openExe(cmd);
 			}
 			

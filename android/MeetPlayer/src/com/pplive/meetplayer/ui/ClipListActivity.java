@@ -164,6 +164,7 @@ public class ClipListActivity extends Activity implements
 	private boolean mIsLoop					= false;
 	private boolean mIsNoVideo					= false;
 	private boolean mIsRememberPos				= true;
+	private boolean mIsListAudioFile			= false;
 	private boolean mDebugInfo					= false;
 	
 	private int mBufferingPertent				= 0;
@@ -986,6 +987,12 @@ public class ClipListActivity extends Activity implements
 		else
 			mIsRememberPos = false;
 		
+		value = Util.readSettingsInt(this, "isListAudioFile");
+		if (value == 1)
+			mIsListAudioFile = true;
+		else
+			mIsListAudioFile = false;
+		
 		mPlayerImpl = Util.readSettingsInt(this, "PlayerImpl");
 		mAudioDst = Util.readSettings(this, "last_audio_ip_port");
 	}
@@ -995,6 +1002,7 @@ public class ClipListActivity extends Activity implements
 		Util.writeSettingsInt(this, "isLoop", mIsLoop ? 1 : 0);
 		Util.writeSettingsInt(this, "isNoVideo", mIsNoVideo ? 1 : 0);
 		Util.writeSettingsInt(this, "isRemberPos", mIsRememberPos ? 1 : 0);
+		Util.writeSettingsInt(this, "isListAudioFile", mIsListAudioFile ? 1 : 0);
 		
 		Util.writeSettingsInt(this, "PlayerImpl", mPlayerImpl);
 		Util.writeSettings(this, "last_audio_ip_port", mAudioDst);
@@ -2575,10 +2583,12 @@ public class ClipListActivity extends Activity implements
     	MenuItem loopMenuItem = submenu.getItem(1);
     	MenuItem noVideoMenuItem = submenu.getItem(2);
     	MenuItem rememberPosMenuItem = submenu.getItem(3);
+    	MenuItem listAudioFileMenuItem = submenu.getItem(4);
     	
     	previewMenuItem.setChecked(mIsPreview);
     	loopMenuItem.setChecked(mIsLoop);
     	rememberPosMenuItem.setChecked(mIsRememberPos);
+    	listAudioFileMenuItem.setChecked(mIsListAudioFile);
     	
 		if ("4".equals(btn_bw_type.getText())) // cdn play
 			noVideoMenuItem.setEnabled(true);
@@ -2638,6 +2648,10 @@ public class ClipListActivity extends Activity implements
 			mIsRememberPos = !mIsRememberPos;
 			item.setChecked(mIsRememberPos);
 			imageNoVideo.setVisibility(mIsNoVideo ? View.VISIBLE : View.GONE);
+			break;
+		case R.id.list_audio_file:
+			mIsListAudioFile = !mIsListAudioFile;
+			item.setChecked(mIsListAudioFile);
 			break;
 		case R.id.debug_info:
 			mDebugInfo = !mDebugInfo;
