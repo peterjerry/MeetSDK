@@ -50,7 +50,6 @@
 //#define RTSP_PORT 5154
 
 #define PROGRESS_RANGE		1000
-#define LIVE_DURATION_SEC	1800
 
 #define PIC_WIDTH			320
 #define PIC_HEIGHT			240
@@ -249,7 +248,7 @@ CtestSDLdlgDlg::CtestSDLdlgDlg(CWnd* pParent /*=NULL*/)
 	mWidth(0), mHeight(0), mDuration(0), mUsedAudioChannel(1),
 	mDecFPS(0), mRenderFPS(0), mDecAvgMsec(0), mRenderAvgMsec(0), 
 	mDropFrames(0), mRenderFrames(0), mLatency(0), mIOBitrate(0), mBitrate(0),
-	mBufferingTimeMsec(0), mBufferPercentage(0), 
+	mBufferingTimeMsec(0), mBufferPercentage(0), mLiveBackSeekSec(1800),
 	mUserAddChnNum(0), 
 	mEPGQueryType(EPG_QUERY_CATALOG), mEPGValue(-1),
 	mSubtitleParser(NULL), 
@@ -543,9 +542,9 @@ void CtestSDLdlgDlg::OnTimer(UINT_PTR nIDEvent)
 			if (mPlayLive) {
 				int32_t new_duration;
 				mPlayer->getDuration(&new_duration);
-				int32_t offset = new_duration - LIVE_DURATION_SEC * 1000;
+				int32_t offset = new_duration - mLiveBackSeekSec * 1000;
 				int32_t correct_pos = curr_pos - offset;
-				mProgress.SetPos((int)((double)curr_pos / (LIVE_DURATION_SEC * 1000 ) * PROGRESS_RANGE));
+				mProgress.SetPos((int)((double)curr_pos / (mLiveBackSeekSec * 1000 ) * PROGRESS_RANGE));
 			}
 			else {
 				mProgress.SetPos((int)((double)curr_pos / duration * PROGRESS_RANGE));
@@ -566,7 +565,7 @@ void CtestSDLdlgDlg::OnTimer(UINT_PTR nIDEvent)
 
 		if (mPlayLive) {
 			CTime tm_end = CTime::GetCurrentTime();
-			CTime tm_start = tm_end - CTimeSpan( 0, 0, 30, 0 ); // 30 min before
+			CTime tm_start = tm_end - CTimeSpan( 0, 0, mLiveBackSeekSec / 60, 0 ); // 30 min before
 			CString strStartTime, strEndTime;
 			strStartTime = tm_start.Format("%H:%M:%S");
 			SetDlgItemText(IDC_STATIC_START_TIME, strStartTime);
@@ -715,7 +714,19 @@ void CtestSDLdlgDlg::OnBnClickedStart()
 			// live
 			mUrl += "&m3u8seekback=true";
 			mPlayLive = true;
+			LOGI("switch to live mode");
 		}
+	}
+
+	if (mUrl.Find("&m3u8seekback=true") != -1) {
+		mPlayLive = true;
+		int pos = mUrl.Find("&mux.M3U8.back_seek_time=");
+		if (pos != -1) {
+			int from = mUrl.Find("&", pos + 1);
+			int to = mUrl.Find("=", pos);
+			mLiveBackSeekSec = atoi(mUrl.Mid(to + 1, from - to).GetBuffer());
+		}
+		LOGI("switch to live mode");
 	}
 
 	CString vlcPath;
@@ -872,8 +883,8 @@ void CtestSDLdlgDlg::OnLButtonUp(UINT nFlags, CPoint point)
 		if (mPlayLive) {
 			int32_t new_duration;
 			mPlayer->getDuration(&new_duration);
-			new_pos = new_duration - 1800 * 1000; // get available earliest time
-			new_pos += point.x * (int64_t)(1800 * 1000) / width;
+			new_pos = new_duration - mLiveBackSeekSec * 1000; // get available earliest time
+			new_pos += point.x * (int64_t)(mLiveBackSeekSec * 1000) / width;
 		}
 		else {
 			new_pos = point.x * (int64_t)mDuration / width;
@@ -981,9 +992,9 @@ void CtestSDLdlgDlg::Seek(int msec)
 
 		int32_t new_duration;
 		mPlayer->getDuration(&new_duration);
-		int32_t offset = new_duration - LIVE_DURATION_SEC * 1000;
+		int32_t offset = new_duration - mLiveBackSeekSec * 1000;
 		int32_t correct_pos = msec - offset;
-		mProgress.SetPos((int)((double)correct_pos / (LIVE_DURATION_SEC * 1000) * PROGRESS_RANGE));
+		mProgress.SetPos((int)((double)correct_pos / (mLiveBackSeekSec * 1000) * PROGRESS_RANGE));
 	}
 	else {
 		if (msec >= 0 && msec <= mDuration) {
@@ -1538,8 +1549,8 @@ void CtestSDLdlgDlg::OnHScroll(UINT nSBCode, UINT nPos, CScrollBar* pScrollBar)
 				mPlayer->getDuration(&duration);
 				int32_t msec;
 				if (mPlayLive) {
-					msec = duration - LIVE_DURATION_SEC * 1000; // get available earliest time
-					msec += (int)((double)nPos / PROGRESS_RANGE * LIVE_DURATION_SEC * 1000);
+					msec = duration - mLiveBackSeekSec * 1000; // get available earliest time
+					msec += (int)((double)nPos / PROGRESS_RANGE * mLiveBackSeekSec * 1000);
 				}
 				else {
 					msec = (int)((double)nPos / PROGRESS_RANGE * duration);

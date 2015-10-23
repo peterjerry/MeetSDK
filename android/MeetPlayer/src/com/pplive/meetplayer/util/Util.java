@@ -385,7 +385,7 @@ public class Util {
 	    			
 	    			sbInfo.append(audioList.get(i).getCodecName());
 	    			String profile = audioList.get(i).getCodecProfile();
-	    			if (profile != null) {
+	    			if (profile != null && !profile.isEmpty()) {
 	    	    		sbInfo.append("(profile ");
 	    	    		sbInfo.append(profile);
 	    	    		sbInfo.append(")");

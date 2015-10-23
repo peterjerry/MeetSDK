@@ -1,6 +1,8 @@
 package com.pplive.epg;
 
+import java.awt.Dimension;
 import java.awt.Font;
+import java.awt.Toolkit;
 import java.awt.event.ActionEvent;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
@@ -28,6 +30,9 @@ import com.pplive.epg.boxcontroller.MyBoxController;
 import com.pplive.epg.util.Util;
 
 public class TestEPG { 
+	private final static int APP_WIDTH	= 800;
+	private final static int APP_HEIGHT	= 600;
+	
 	private static MyBoxController con;
 	
 	public static void main(String[] args) {
@@ -35,6 +40,20 @@ public class TestEPG {
 	}
 	
 	public static void createAndShowGUI() {
+		Dimension dim = Toolkit.getDefaultToolkit().getScreenSize();
+		int screen_width = dim.width;
+		int screen_height = dim.height;
+		int x, y;
+		
+		if (screen_width <= APP_WIDTH || screen_height <= APP_HEIGHT) {
+			x = 0;
+			y = 0;
+		}
+		else {
+			x = (screen_width - APP_WIDTH) / 2;
+			y = (screen_height - APP_HEIGHT) / 2;
+		}
+		
 		JFrame frame = new JFrame("电视鸭");
 		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
@@ -48,7 +67,7 @@ public class TestEPG {
 		else {
 			frame.add(new TabbedPaneDemo());
 			frame.pack();
-			frame.setBounds(400, 300, 800, 600);
+			frame.setBounds(x, y, APP_WIDTH, APP_HEIGHT);
 			
 			frame.setVisible(true);
 		}

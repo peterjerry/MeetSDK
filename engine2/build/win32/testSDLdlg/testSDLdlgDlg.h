@@ -91,6 +91,8 @@ private:
 
 	int mBufferPercentage;
 
+	int mLiveBackSeekSec;
+
 	int mDecFPS;
 	int mRenderFPS;
 	int mDecAvgMsec;
