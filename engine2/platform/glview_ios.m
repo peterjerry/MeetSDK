@@ -334,8 +334,8 @@ static NSData * copyFrameData(UInt8 *src, int linesize, int width, int height)
         glTexImage2D(GL_TEXTURE_2D,
                      0,     //代表图像的详细程度，默认为0既可
                      GL_LUMINANCE,      //yuv数据格式
-                     widths[i],         //纹理宽度
-                     heights[i],        //纹理高度
+                     (GLsizei)widths[i],         //纹理宽度
+                     (GLsizei)heights[i],        //纹理高度
                      0,                 //边框值
                      GL_LUMINANCE,      //yuv数据格式
                      GL_UNSIGNED_BYTE,  //数据单位
@@ -456,7 +456,7 @@ enum {
         _vertices[7] =  1.0f;  // y3
         
         _render_sema = dispatch_semaphore_create(1);
-        LOGD("OK setup GL");
+        LOGI("initWithFrame all done!");
     }
     
     return self;
@@ -486,29 +486,31 @@ enum {
 	}
     
 	_context = nil;
+    
+    [super dealloc];
 }
 
 - (void)layoutSubviews
 {
+    LOGI("layoutSubviews()");
+    
     [super layoutSubviews];
     dispatch_semaphore_wait(_render_sema, DISPATCH_TIME_FOREVER);
-    LOGD("layoutSubviews");
+    
     glBindRenderbuffer(GL_RENDERBUFFER, _renderbuffer);
     [_context renderbufferStorage:GL_RENDERBUFFER
                                 fromDrawable:(CAEAGLLayer*)self.layer];
 	glGetRenderbufferParameteriv(GL_RENDERBUFFER, GL_RENDERBUFFER_WIDTH, &_backingWidth);
     glGetRenderbufferParameteriv(GL_RENDERBUFFER, GL_RENDERBUFFER_HEIGHT, &_backingHeight);
+    LOGI("backingWidth %d, backingHeight %d", _backingWidth, _backingHeight);
     //glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_RENDERBUFFER, _renderbuffer);
-	
+    
     GLenum status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
-	if (status != GL_FRAMEBUFFER_COMPLETE) {
-		
-        LOGD("failed to make complete framebuffer object %x", status);
-        
-	} else {
-        
-        LOGD("OK setup GL framebuffer %d:%d", _backingWidth, _backingHeight);
-    }    
+	if (status != GL_FRAMEBUFFER_COMPLETE)
+        LOGE("failed to make complete framebuffer object, status %x", status);
+	else
+        LOGI("glCheckFrameBufferStatus is ok, resolution: %d x %d", _backingWidth, _backingHeight);
+    
     [self updateVertices];
     dispatch_semaphore_signal(_render_sema);
     [self render: nil];
@@ -564,11 +566,8 @@ exit:
         glDeleteShader(fragShader);
     
     if (result) {
-        
-        LOGD("OK setup GL programm");
-        
+        LOGI("loadShaders all done!");
     } else {
-        
         glDeleteProgram(_program);
         _program = 0;
     }
@@ -668,17 +667,16 @@ exit:
     
     GLenum status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
     if (status != GL_FRAMEBUFFER_COMPLETE) {
-        
         LOGE("failed to make complete framebuffer object %x", status);
         return NO;
     }
     
     GLenum glError = glGetError();
     if (GL_NO_ERROR != glError) {
-        
         LOGE("failed to setup GL %x", glError);
         return NO;
     }
+    
     return YES;
 }
 @end

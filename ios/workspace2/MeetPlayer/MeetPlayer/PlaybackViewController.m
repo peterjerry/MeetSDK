@@ -18,6 +18,7 @@
     PPPlayerController *player_;
     NSURL *url_;
     int play_type;
+    int is_half;
     NSTimer *timer_;
     MPVolumeView *airPlayBtn_;
     __weak IBOutlet UISlider *scrubber_;
@@ -53,12 +54,30 @@
     return [self initWithUrl:url player_type:0];
 }
 
+- (IBAction)doResize:(id)sender {
+    is_half = !is_half;
+    if (is_half) {
+        NSLog(@"origin size %.0f x %.0f", player_.view.frame.size.width, player_.view.frame.size.height);
+        int w = self.view.bounds.size.width * 2 / 3;
+        int h = self.view.bounds.size.height / 2;
+        NSLog(@"new size %d x %d", w, h);
+              
+        player_.view.frame = CGRectMake(0, 0, w, h);
+        NSLog(@"switch to half screen");
+    }
+    else {
+        player_.view.frame = CGRectMake(0, 0, self.view.bounds.size.width, self.view.bounds.size.height);
+        NSLog(@"switch to full screen");
+    }
+}
+
 - (id)initWithUrl:(NSURL *)url player_type:(int)type
 {
     self = [super init];
     if (self) {
         url_ = [url copy];
         play_type = type;
+        is_half = 0;
     }
     return self;
 }

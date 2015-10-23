@@ -11,6 +11,7 @@
 @interface PlaybackViewController : UIViewController
 
 - (id)initWithUrl:(NSURL*)url;
+- (IBAction)doResize:(id)sender;
 
 - (id)initWithUrl:(NSURL*)url player_type:(int)type;
 @end

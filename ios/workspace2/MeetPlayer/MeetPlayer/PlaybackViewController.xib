@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
-<document type="com.apple.InterfaceBuilder3.CocoaTouch.XIB" version="3.0" toolsVersion="6254" systemVersion="14B25" targetRuntime="iOS.CocoaTouch" propertyAccessControl="none" useAutolayout="YES">
+<document type="com.apple.InterfaceBuilder3.CocoaTouch.XIB" version="3.0" toolsVersion="7706" systemVersion="14F27" targetRuntime="iOS.CocoaTouch" propertyAccessControl="none" useAutolayout="YES">
     <dependencies>
-        <plugIn identifier="com.apple.InterfaceBuilder.IBCocoaTouchPlugin" version="6247"/>
+        <plugIn identifier="com.apple.InterfaceBuilder.IBCocoaTouchPlugin" version="7703"/>
     </dependencies>
     <objects>
         <placeholder placeholderIdentifier="IBFilesOwner" id="-1" userLabel="File's Owner" customClass="PlaybackViewController">
@@ -55,19 +55,6 @@
                     </state>
                     <connections>
                         <action selector="stop" destination="-1" eventType="touchUpInside" id="fIA-cu-esG"/>
-                    </connections>
-                </button>
-                <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="roundedRect" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="dDf-Z8-RXA">
-                    <rect key="frame" x="257" y="316" width="75" height="40"/>
-                    <constraints>
-                        <constraint firstAttribute="height" constant="40" id="JmG-Kh-bw5"/>
-                        <constraint firstAttribute="width" constant="75" id="TDS-pi-2iM"/>
-                    </constraints>
-                    <state key="normal" title="PrtScn">
-                        <color key="titleShadowColor" white="0.5" alpha="1" colorSpace="calibratedWhite"/>
-                    </state>
-                    <connections>
-                        <action selector="printScreen" destination="-1" eventType="touchUpInside" id="e30-Lr-LhW"/>
                     </connections>
                 </button>
                 <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="2Et-wb-jaa" userLabel="back">
@@ -133,9 +120,32 @@
                     <color key="textColor" white="1" alpha="1" colorSpace="calibratedWhite"/>
                     <nil key="highlightedColor"/>
                 </label>
+                <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="roundedRect" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="4bW-9A-PH8">
+                    <rect key="frame" x="362" y="321" width="46" height="30"/>
+                    <state key="normal" title="Resize">
+                        <color key="titleShadowColor" white="0.5" alpha="1" colorSpace="calibratedWhite"/>
+                    </state>
+                    <connections>
+                        <action selector="doResize:" destination="-1" eventType="touchUpInside" id="tIL-WA-keW"/>
+                    </connections>
+                </button>
+                <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="roundedRect" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="dDf-Z8-RXA">
+                    <rect key="frame" x="257" y="316" width="75" height="40"/>
+                    <constraints>
+                        <constraint firstAttribute="height" constant="40" id="JmG-Kh-bw5"/>
+                        <constraint firstAttribute="width" constant="75" id="TDS-pi-2iM"/>
+                    </constraints>
+                    <state key="normal" title="PrtScn">
+                        <color key="titleShadowColor" white="0.5" alpha="1" colorSpace="calibratedWhite"/>
+                    </state>
+                    <connections>
+                        <action selector="printScreen" destination="-1" eventType="touchUpInside" id="e30-Lr-LhW"/>
+                    </connections>
+                </button>
             </subviews>
             <color key="backgroundColor" white="1" alpha="1" colorSpace="custom" customColorSpace="calibratedWhite"/>
             <constraints>
+                <constraint firstItem="4bW-9A-PH8" firstAttribute="leading" secondItem="dDf-Z8-RXA" secondAttribute="trailing" constant="30" id="1MZ-2k-n6R"/>
                 <constraint firstItem="v4Y-zE-9MB" firstAttribute="top" secondItem="V9G-af-wyk" secondAttribute="bottom" constant="3" id="1ks-4n-vlb"/>
                 <constraint firstAttribute="trailing" secondItem="0aH-6s-9se" secondAttribute="trailing" constant="8" id="2FB-Fu-gvU"/>
                 <constraint firstAttribute="bottom" secondItem="48K-z6-GCM" secondAttribute="bottom" constant="8" id="2Mq-AF-Cgy"/>
@@ -146,6 +156,7 @@
                 <constraint firstItem="4Nv-4h-nl3" firstAttribute="leading" secondItem="V9G-af-wyk" secondAttribute="trailing" constant="9" id="JmJ-Ej-feU"/>
                 <constraint firstItem="mXb-N2-BuI" firstAttribute="top" secondItem="i5M-Pr-FkT" secondAttribute="top" constant="15" id="K3y-4h-Tvb"/>
                 <constraint firstItem="dDf-Z8-RXA" firstAttribute="leading" secondItem="1yo-G5-Ua3" secondAttribute="trailing" constant="8" id="LWE-SF-DRs"/>
+                <constraint firstItem="4bW-9A-PH8" firstAttribute="baseline" secondItem="dDf-Z8-RXA" secondAttribute="baseline" id="MtM-Lf-68F"/>
                 <constraint firstItem="2Et-wb-jaa" firstAttribute="leading" secondItem="i5M-Pr-FkT" secondAttribute="leading" constant="8" id="Q6x-Kb-lWn"/>
                 <constraint firstItem="V9G-af-wyk" firstAttribute="top" secondItem="0aH-6s-9se" secondAttribute="bottom" constant="8" id="TBD-Xb-lPQ"/>
                 <constraint firstItem="48K-z6-GCM" firstAttribute="top" secondItem="HyX-XQ-Vnx" secondAttribute="bottom" constant="8" id="Vgn-Qk-74V"/>
