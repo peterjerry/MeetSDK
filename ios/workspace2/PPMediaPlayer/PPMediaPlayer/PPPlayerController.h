@@ -30,7 +30,7 @@
 
 @interface PPPlayerController : NSObject
 
-enum {
+enum PPPLAYER_TYPE {
     PPMOVIE_SYSTEM_PLAYER = 0,
     PPMOVIE_SELF_PLAYER,
     PPMOVIE_AUTO_PLAYER
