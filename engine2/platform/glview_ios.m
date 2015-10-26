@@ -608,7 +608,9 @@ exit:
     [EAGLContext setCurrentContext:_context];
     
     glBindFramebuffer(GL_FRAMEBUFFER, _framebuffer);
-    glViewport(0, 0, _backingWidth, _backingHeight);
+    // 2015.10.26 fix re-size problem when playing
+    //glViewport(0, 0, _backingWidth, _backingHeight);
+    glViewport(0, 0, self.bounds.size.width, self.bounds.size.height);
     glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT);
 	glUseProgram(_program);

@@ -58,10 +58,11 @@
     is_half = !is_half;
     if (is_half) {
         NSLog(@"origin size %.0f x %.0f", player_.view.frame.size.width, player_.view.frame.size.height);
-        int w = self.view.bounds.size.width * 2 / 3;
+        int w = self.view.bounds.size.width / 2;
         int h = self.view.bounds.size.height / 2;
         NSLog(@"new size %d x %d", w, h);
-              
+        
+        //player_.view.transform = CGAffineTransformMakeScale(0.5, 0.5);
         player_.view.frame = CGRectMake(0, 0, w, h);
         NSLog(@"switch to half screen");
     }
