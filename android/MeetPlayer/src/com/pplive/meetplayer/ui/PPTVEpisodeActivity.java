@@ -501,7 +501,7 @@ public class PPTVEpisodeActivity extends Activity {
     				
     				episode.put("title", al.getTitle());
     				episode.put("img_url", al.getImgUrl());
-    				episode.put("tip", al.getVideoCount() + "集");
+    				episode.put("tip", "评分: " + al.getMark());
     				episode.put("vid", al.getId());
     				episode.put("desc", al.getDescription());
     				listData.add(episode);
@@ -756,7 +756,7 @@ public class PPTVEpisodeActivity extends Activity {
 				
 				episode.put("title", al.getTitle());
 				episode.put("img_url", al.getImgUrl());
-				episode.put("tip", al.getVideoCount() + "集");
+				episode.put("tip", "评分: " + al.getMark());
 				episode.put("vid", al.getId());
 				episode.put("desc", al.getDescription());
 				items.add(episode);

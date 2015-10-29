@@ -615,12 +615,12 @@ public class BaiduPanel extends JPanel {
 			public void actionPerformed(ActionEvent e) {
 				int pos = mOperatePath.lastIndexOf("/");
 				if (pos > -1) {
-					String to = mbRootPath + mOperatePath.substring(pos + 1);
+					String to = mbRootPath + "/" + mOperatePath.substring(pos + 1);
 					if (move_copy(mOperatePath, to, mIsCopy)) {
 						init_combobox();
 						
 						lblInfo.setText(String.format("%s 成功 %s至 %s", 
-										mOperatePath, mIsCopy?"复制":"移动", to));
+										mOperatePath, mIsCopy ? "复制" : "移动", to));
 					}
 				}
 			}
