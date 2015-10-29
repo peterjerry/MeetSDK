@@ -39,6 +39,8 @@
 #include "url.h"
 #include "id3v2.h"
 
+#define DEFAULT_LIVE_SEG_DURATION 10
+
 #define INITIAL_BUFFER_SIZE 32768
 
 #define MAX_FIELD_LEN 64
@@ -1182,9 +1184,9 @@ static int find_timestamp_in_playlist(HLSContext *c, struct playlist *pls,
     int64_t pos = c->first_timestamp == AV_NOPTS_VALUE ?
                   0 : c->first_timestamp;
 
-	// guoliang.ma fixme
+	// 2015.10.22 guoliang.ma fix canot seekback 2 hour
 	if (c->is_live)
-		pos -= (1800 * AV_TIME_BASE);
+		pos = 0;
 		
     if (timestamp < pos) {
 		av_log(NULL, AV_LOG_ERROR, "timestamp(%lld) less than pos(%lld)", timestamp, pos);
@@ -1195,7 +1197,7 @@ static int find_timestamp_in_playlist(HLSContext *c, struct playlist *pls,
 	// guoliang.ma
 	if(c->is_live)
 	{
-		int tsDuration = 10;
+		int tsDuration = DEFAULT_LIVE_SEG_DURATION;
 		if(pls->segments[0]->duration > 0)
 		{
 			tsDuration = pls->segments[0]->duration;

@@ -218,6 +218,7 @@ extern "C" bool my_convert(uint8_t* flv_data, int flv_data_size, uint8_t* ts_dat
 	apFormatConverter converter;
 	return converter.convert(flv_data, flv_data_size, ts_data, out_size, process_timestamp, first_seg);
 #else
+	LOGW("USE_TS_CONVERT is NOT enabled");
 	return false;
 #endif
 }
@@ -4139,12 +4140,19 @@ bool FFPlayer::getThumbnail(const char* url, MediaInfo* info, int width, int hei
         /* allocate image where the decoded image will be put */
         //alloc_picture(video_dec_ctx->pix_fmt, video_dec_ctx->width, video_dec_ctx->height);
     }
+	else {
+		LOGE("Could not find video stream %s", url);
+		goto end;
+	}
 
     if (open_codec_context(&audio_stream_idx, movieFile, AVMEDIA_TYPE_AUDIO) >= 0) {
         audio_stream = movieFile->streams[audio_stream_idx];
         audio_dec_ctx = audio_stream->codec;
 		info->audiocodec_names[0] = my_strdup(avcodec_get_name(audio_dec_ctx->codec_id));
     }
+	else {
+		LOGW("Could not find audio stream %s", url);
+	}
 
 	/* dump input information to stderr */
     av_dump_format(movieFile, 0, url, 0);

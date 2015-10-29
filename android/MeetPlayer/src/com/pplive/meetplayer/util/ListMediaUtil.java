@@ -339,7 +339,7 @@ public class ListMediaUtil {
 		return true;
 	}
 	
-	private boolean ListMediaInfoDatabase() {
+	private boolean ListMediaInfoDatabase(boolean bNoAudioFile) {
 		List<MediaInfo> list = mediaDB.getMediaStore();
 		if (list == null || list.size() == 0)
 			return false;
@@ -368,6 +368,15 @@ public class ListMediaUtil {
 				strFilesize = String.format("%d Byte", size);
 
 			if (info != null) {
+				if (bNoAudioFile &&
+						(file.getPath().endsWith("mp3") || file.getPath().endsWith("flac") ||
+						file.getPath().endsWith("ogg") || file.getPath().endsWith("ape") ||
+						file.getPath().endsWith("wav") || file.getPath().endsWith("wma") ||
+						file.getPath().endsWith("amr")))
+				{
+					continue;
+				}
+				
 				HashMap<String, Object> map = new HashMap<String, Object>();
 				map.put("filename", file.getName());
 				map.put("mediainfo", QueryMediaInfo(file.getAbsolutePath(), info));
@@ -497,9 +506,12 @@ public class ListMediaUtil {
 		mUrl = url;
 		mClipList.clear();
 		
+		int value = Util.readSettingsInt(mContext, "isListAudioFile");
+		boolean noAudio = (value == 0);
+		
 		if (mUrl == null || mUrl.equals(""))
 			//return ListMediaInfoMediaStore();
-			return ListMediaInfoDatabase();
+			return ListMediaInfoDatabase(noAudio);
 		else if (mUrl.startsWith("http://"))
 			return ListMediaInfoHttp();
 		else

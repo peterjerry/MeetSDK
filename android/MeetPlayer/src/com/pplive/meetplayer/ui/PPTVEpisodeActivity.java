@@ -19,7 +19,8 @@ import com.pplive.common.pptv.PlayLink2;
 import com.pplive.common.pptv.PlayLinkUtil;
 import com.pplive.db.MediaStoreDatabaseHelper;
 import com.pplive.meetplayer.R;
-import com.pplive.meetplayer.service.MediaScannerService;
+import com.pplive.meetplayer.ui.widget.DirChooserDialog;
+import com.pplive.meetplayer.ui.widget.DirChooserDialog.onOKListener;
 import com.pplive.meetplayer.util.Util;
 import com.pplive.sdk.MediaSDK;
 
@@ -44,6 +45,7 @@ import android.os.Message;
 import android.pplive.media.MeetSDK;
 import android.pplive.media.player.MediaInfo;
 import android.util.Log;
+import android.view.KeyEvent;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
@@ -115,6 +117,7 @@ public class PPTVEpisodeActivity extends Activity {
     private List<DownloadTask> downloadTaskList;
     private boolean mDownload = false;
     private boolean mDownloadP2P = false;
+    private String mDownloadLocalFolder;
     private NotificationManager notifManager;
 
 	@Override
@@ -256,6 +259,12 @@ public class PPTVEpisodeActivity extends Activity {
 					Toast.LENGTH_SHORT).show();
 		}
 	    
+	    String folder = Util.readSettings(this, "download_folder");
+	    if (folder.isEmpty())
+		    mDownloadLocalFolder = Environment.getExternalStorageDirectory().getAbsolutePath() + 
+					"/test2";
+	    else
+	    	mDownloadLocalFolder = folder;
 	    notifManager = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
 	    downloadTaskList = new ArrayList<DownloadTask>();
 	}
@@ -310,6 +319,26 @@ public class PPTVEpisodeActivity extends Activity {
 	}
 	
 	@Override
+	protected void onPause() {
+		// TODO Auto-generated method stub
+		super.onPause();
+		
+		Util.writeSettings(this, "download_folder", mDownloadLocalFolder);
+	}
+	
+	@Override
+	public boolean onKeyDown(int keyCode, KeyEvent event) {
+		Log.d(TAG, "keyCode: " + keyCode);
+		
+		if (keyCode == KeyEvent.KEYCODE_MENU) {
+			super.openOptionsMenu();
+			return true;
+		}
+		
+		return super.onKeyDown(keyCode, event);
+	}
+	
+	@Override
     public boolean onCreateOptionsMenu(Menu menu) {  
         MenuInflater menuInflater = new MenuInflater(getApplication());  
         menuInflater.inflate(R.menu.pptv_ep_menu, menu);  
@@ -324,13 +353,35 @@ public class PPTVEpisodeActivity extends Activity {
 		switch (id) {
 		case R.id.download:
 			mDownload = !mDownload;
-			Toast.makeText(PPTVEpisodeActivity.this, 
-					String.format("set to CLICK as %s", mDownload?"DOWNLOAD":"PLAY"), Toast.LENGTH_SHORT).show();
+			item.setChecked(mDownload);
 			break;
-		case R.id.download_mode:
+		case R.id.p2p_download:
 			mDownloadP2P = !mDownloadP2P;
-			Toast.makeText(PPTVEpisodeActivity.this, 
-					String.format("set download mode to %s", mDownloadP2P?"p2p":"cdn"), Toast.LENGTH_SHORT).show();
+			item.setChecked(mDownloadP2P);
+			break;
+		case R.id.set_download_folder:  
+	        DirChooserDialog dlg = new DirChooserDialog(PPTVEpisodeActivity.this, 
+	        		DirChooserDialog.TypeOpen, null, mDownloadLocalFolder);  
+	        dlg.setTitle("Choose dst file dir");
+	        dlg.setOnOKListener(new onOKListener(){
+
+				@Override
+				public void saveFolder(String folder) {
+					// TODO Auto-generated method stub
+					File f = new File(folder);
+					if (!f.exists() && !f.mkdir())
+						Toast.makeText(PPTVEpisodeActivity.this, "Failed to create new folder " + folder,
+								Toast.LENGTH_SHORT).show();
+					else {
+						mDownloadLocalFolder = folder;
+						Toast.makeText(PPTVEpisodeActivity.this, 
+							"Download folder save as: " + mDownloadLocalFolder, Toast.LENGTH_SHORT).show();
+					}
+				}
+	        	
+	        });
+	       
+	        dlg.show();
 			break;
 		default:
 			Log.w(TAG, "unknown menu id " + id);
@@ -361,8 +412,7 @@ public class PPTVEpisodeActivity extends Activity {
 					else if (whichButton == 1) {
 						String vid = (String) item.get("vid");
 						String title = (String)item.get("title");
-						String save_path = Environment.getExternalStorageDirectory().getAbsolutePath() + 
-								"/test2/" + title + ".mp4";
+						String save_path = mDownloadLocalFolder + "/" + title + ".mp4";
 						
 						download_file(vid, save_path, title);
 					}
@@ -423,8 +473,7 @@ public class PPTVEpisodeActivity extends Activity {
             		episode_title = mEpisodeList.get(0).getTitle();
             		int playlink = Integer.valueOf(vid);
             		if (mDownload) {
-						String save_path = Environment.getExternalStorageDirectory().getAbsolutePath() + 
-								"/test2/" + episode_title + ".mp4";
+						String save_path = mDownloadLocalFolder + "/" + episode_title + ".mp4";
 						
 						download_file(vid, save_path, episode_title);
             		}
@@ -452,7 +501,7 @@ public class PPTVEpisodeActivity extends Activity {
     				
     				episode.put("title", al.getTitle());
     				episode.put("img_url", al.getImgUrl());
-    				episode.put("tip", al.getVideoCount() + "集");
+    				episode.put("tip", "评分: " + al.getMark());
     				episode.put("vid", al.getId());
     				episode.put("desc", al.getDescription());
     				listData.add(episode);
@@ -707,7 +756,7 @@ public class PPTVEpisodeActivity extends Activity {
 				
 				episode.put("title", al.getTitle());
 				episode.put("img_url", al.getImgUrl());
-				episode.put("tip", al.getVideoCount() + "集");
+				episode.put("tip", "评分: " + al.getMark());
 				episode.put("vid", al.getId());
 				episode.put("desc", al.getDescription());
 				items.add(episode);

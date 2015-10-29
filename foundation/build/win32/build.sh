@@ -9,15 +9,18 @@ if [ ${1}x == 'lite'x ]
 then
 echo "lite build"
 PREFIX=$PREFIX/lite
+cp config/lite/config.h $FFMPEG_HOME
+cp config/lite/config.mak $FFMPEG_HOME
 else
 echo "full build"
 PREFIX=$PREFIX/full
+cp config/config.h $FFMPEG_HOME
+cp config/config.mak $FFMPEG_HOME
 fi
 
 rm -rf $PREFIX
 
-#cp config/config.h $FFMPEG_HOME
-#cp config/config.mak $FFMPEG_HOME
+
 
 cd $FFMPEG_HOME
 

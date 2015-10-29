@@ -53,6 +53,8 @@ import java.awt.Desktop;
 import java.awt.FileDialog;
 import java.awt.Font;
 import java.awt.Frame;
+import java.awt.datatransfer.Clipboard;
+import java.awt.datatransfer.StringSelection;
 import java.awt.event.*; 
 import java.awt.image.BufferedImage;
 import java.io.BufferedReader;
@@ -127,8 +129,10 @@ public class BaiduPanel extends JPanel {
 	private final String BAIDU_PCS_CLOUD_DL;
 	private final String BAIDU_PCS_SEARCH;
 	
-	private final int UPLOAD_CHUNKSIZE = 1048576; // 1M
 	private final int UPLOAD_READSIZE = 4096; // 4k
+	
+	private int mDownloadBlockSize = 1048576; // 1M
+	private int mUploadBlockSize = 0;
 
 	private final static String[] list_by_desc = {"按时间", "按名称", "按大小"}; //time" "name" "size"
 	
@@ -155,6 +159,7 @@ public class BaiduPanel extends JPanel {
 	JMenuItem menuItemSearchOnlineSub	= null;
 	JMenuItem menuItemSearchOnlineLrc	= null;
 	JMenuItem menuItemGetFolderSize		= null;
+	JMenuItem menuItemGetDownloadPath	= null;
 	
 	JLabel lblImage = new JLabel();
 	
@@ -210,6 +215,14 @@ public class BaiduPanel extends JPanel {
 				else if (key.equals("foobar_path")) {
 					exe_foobar = value;
 					System.out.println("Java: set foobar path to " + exe_foobar);
+				}
+				else if (key.equals("write_blocksize")) {
+					mDownloadBlockSize = Integer.valueOf(value);
+					System.out.println("Java: set mDownloadBlockSize to " + mDownloadBlockSize);
+				}
+				else if (key.equals("upload_blocksize")) {
+					mUploadBlockSize = Integer.valueOf(value);
+					System.out.println("Java: set mUploadBlockSize to " + mUploadBlockSize);
 				}
 				else {
 					System.out.println("Java: unknown key " + key);
@@ -384,6 +397,28 @@ public class BaiduPanel extends JPanel {
 			}
 		});
 		jPopupMenu.add(menuItemGetFolderSize);
+		
+		menuItemGetDownloadPath = new JMenuItem("获取下载路径");
+		menuItemGetDownloadPath.setFont(f);
+		menuItemGetDownloadPath.addMouseListener(new MouseAdapter() {
+			public void mouseReleased(MouseEvent e) {
+				mOperatePath = getOperatePath();
+				try {
+					String encoded_path = URLEncoder.encode(mOperatePath, "utf-8");
+
+					String url = BAIDU_PCS_DOWNLOAD + encoded_path;
+					System.out.println("get download url: " + url);
+					Clipboard clipboard = getToolkit().getSystemClipboard();//获取系统剪贴板;
+					StringSelection text = new StringSelection(url);
+					clipboard.setContents(text,null);
+					JOptionPane.showMessageDialog(null,"地址已复制至剪贴板");
+				} catch (UnsupportedEncodingException e1) {
+					// TODO Auto-generated catch block
+					e1.printStackTrace();
+				}
+			}
+		});
+		jPopupMenu.add(menuItemGetDownloadPath);
 		
 		listItem = new JList<String>();
 		listItem.setFont(f);
@@ -580,12 +615,12 @@ public class BaiduPanel extends JPanel {
 			public void actionPerformed(ActionEvent e) {
 				int pos = mOperatePath.lastIndexOf("/");
 				if (pos > -1) {
-					String to = mbRootPath + mOperatePath.substring(pos + 1);
+					String to = mbRootPath + "/" + mOperatePath.substring(pos + 1);
 					if (move_copy(mOperatePath, to, mIsCopy)) {
 						init_combobox();
 						
 						lblInfo.setText(String.format("%s 成功 %s至 %s", 
-										mOperatePath, mIsCopy?"复制":"移动", to));
+										mOperatePath, mIsCopy ? "复制" : "移动", to));
 					}
 				}
 			}
@@ -955,7 +990,7 @@ public class BaiduPanel extends JPanel {
 
 			try {
 				int readed;
-				byte[] buf = new byte[4096];
+				byte[] buf = new byte[mDownloadBlockSize];
 
 				bDownloading = true;
 				while ((readed = inStream.read(buf)) != -1 && !bInterrupt) {
@@ -1077,20 +1112,7 @@ public class BaiduPanel extends JPanel {
 		boolean isdir = (Boolean) fileinfo.get("isdir");
 		String path = (String) fileinfo.get("path");
 		
-		if (isdir) {
-			lblInfo.setText("统计文件夹大小中");
-			System.out.println("Java: ready to calc folder size");
-			long size = 0;//getFolderSize(path);
-			
-			List<Map<String, Object>> metaList = meta(path);
-			Map<String, Object> metainfo = metaList.get(0);
-			int meta_mtime = (Integer)metainfo.get("mtime");
-			Date date = new Date(meta_mtime/*unit is sec*/ * 1000L);
-			
-			lblInfo.setText("总共大小: " + getFileSize(size) + 
-					"   修改时间 " + sdf.format(date));
-		}
-		else {
+		if (!isdir) {
 			List<Map<String, Object>> metaList = meta(path);
 			if (metaList != null && metaList.size() > 0) {
 				Map<String, Object> metainfo = metaList.get(0);
@@ -2102,6 +2124,19 @@ public class BaiduPanel extends JPanel {
 				long len = file.length();
 				System.out.println("Java file size " + len);
 				
+				if (len <= 0) {
+					System.out.println("Java cannot get file size ");
+					return false;
+				}
+				
+				if (mUploadBlockSize == 0) {
+					mUploadBlockSize = (int)(len / 1048576 / 200 * 1048576);
+					if (0 == mUploadBlockSize)
+						mUploadBlockSize = 1048576;
+					System.out.println("Java set mUploadBlockSize to " + mUploadBlockSize);
+					lblInfo.setText("上传块大小设置为 " + mUploadBlockSize / 1048576 + " MB");
+				}
+				
 				fin = new FileInputStream(file);
 
 				int offset;
@@ -2115,7 +2150,7 @@ public class BaiduPanel extends JPanel {
 				
 				while (total_left > 0) {
 					offset = 0;
-					left = UPLOAD_CHUNKSIZE;
+					left = mUploadBlockSize;
 					if (left > total_left)
 						left = (int)total_left;
 					byte[] context = new byte[left];
@@ -2138,23 +2173,37 @@ public class BaiduPanel extends JPanel {
 					}
 					
 					System.out.println("Java: read context " + offset);
-					String md5 = uploadPiece(context, null);
-				
-					if (md5 == null) {
-						System.out.println("Java: failed to uploadPiece()");
-						return false;
+					
+					int retry = 0;
+					while (true) {
+						String md5 = uploadPiece(context, null);
+						
+						if (md5 != null) {
+							md5s.add(md5);
+							
+							total_left -= offset;
+							total_sent += offset;
+							
+							long elapsed_msec = System.currentTimeMillis() - start_msec;
+							long speed = total_sent / elapsed_msec;
+							publish(total_sent, total_left, speed);
+							System.out.println(String.format("Java: add md5 to list %s, total_left %d",
+									md5, total_left));
+							
+							break;
+						}
+						else {
+							if (retry < 10)
+								System.out.println("Java: failed to uploadPiece(), retry #" + retry);
+							else {
+								System.out.println("Java: failed to uploadPiece() after try 10 times.");
+								lblInfo.setText("上传块文件失败，重试中");
+								return false;
+							}
+						}
+
+						retry++;
 					}
-					
-					md5s.add(md5);
-					
-					total_left -= offset;
-					total_sent += offset;
-					
-					long elapsed_msec = System.currentTimeMillis() - start_msec;
-					long speed = total_sent / elapsed_msec;
-					publish(total_sent, total_left, speed);
-					System.out.println(String.format("Java: add md5 to list %s, total_left %d",
-							md5, total_left));
 				}
 				
 				if (!create_superfile(md5s, encoded_path)) {

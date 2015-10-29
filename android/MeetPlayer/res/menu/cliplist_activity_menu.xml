@@ -32,10 +32,18 @@
 		        android:title="no video"
 		        android:checkable="true" />
             <item
+		        android:id="@+id/remember_last_pos"
+		        android:title="remember last position"
+		        android:checkable="true" />
+            <item
+		        android:id="@+id/list_audio_file"
+		        android:title="list audio file"
+		        android:checkable="true" />
+            <item
 		        android:id="@+id/debug_info"
 		        android:title="debug info"
 		        android:checkable="true" />
-        </menu> "
+        </menu>
     </item>
     <item
         android:id="@+id/option"

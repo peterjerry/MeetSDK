@@ -17,6 +17,8 @@
 {
     PPPlayerController *player_;
     NSURL *url_;
+    int play_type;
+    int is_half;
     NSTimer *timer_;
     MPVolumeView *airPlayBtn_;
     __weak IBOutlet UISlider *scrubber_;
@@ -49,9 +51,34 @@
 
 - (id)initWithUrl:(NSURL *)url
 {
+    return [self initWithUrl:url player_type:0];
+}
+
+- (IBAction)doResize:(id)sender {
+    is_half = !is_half;
+    if (is_half) {
+        NSLog(@"origin size %.0f x %.0f", player_.view.frame.size.width, player_.view.frame.size.height);
+        int w = self.view.bounds.size.width / 2;
+        int h = self.view.bounds.size.height / 2;
+        NSLog(@"new size %d x %d", w, h);
+        
+        //player_.view.transform = CGAffineTransformMakeScale(0.5, 0.5);
+        player_.view.frame = CGRectMake(0, 0, w, h);
+        NSLog(@"switch to half screen");
+    }
+    else {
+        player_.view.frame = CGRectMake(0, 0, self.view.bounds.size.width, self.view.bounds.size.height);
+        NSLog(@"switch to full screen");
+    }
+}
+
+- (id)initWithUrl:(NSURL *)url player_type:(int)type
+{
     self = [super init];
     if (self) {
         url_ = [url copy];
+        play_type = type;
+        is_half = 0;
     }
     return self;
 }
@@ -81,9 +108,17 @@
                [UIScreen mainScreen].bounds.size.height,
                [UIScreen mainScreen].bounds.size.width);
     //create player
+    enum PPPLAYER_TYPE type = PPMOVIE_AUTO_PLAYER;
+    if (play_type == 1)
+        type = PPMOVIE_SYSTEM_PLAYER;
+    else if (play_type == 2)
+        type = PPMOVIE_SELF_PLAYER;
+    else
+        type = PPMOVIE_SELF_PLAYER;
+        
     player_ = [PPPlayerController PPPlayerControllerWithUrl:url_
                                                       frame:frame
-                                                       type:PPMOVIE_SYSTEM_PLAYER];
+                                                       type:PPMOVIE_SELF_PLAYER];
     player_.delegate = self;
     player_.allowsAirPlay = YES;
     [self.view insertSubview:player_.view atIndex:0];
@@ -143,10 +178,10 @@
 {
     NSString *msg = [NSString stringWithFormat:@"Type: %@", [player_ playerType]==PPMOVIE_SYSTEM_PLAYER ? @"system" : @"ppplayer"];
     //NSString *msg1 = [NSString stringWithFormat:@"Url: %@", [url_ absoluteString]];
-    NSString *msg2 = [NSString stringWithFormat:@"Duration: %f", player_.duration];
-    NSString *msg3 = [NSString stringWithFormat:@"Size: %f * %f", player_.size.width, player_.size.height];
+    NSString *msg2 = [NSString stringWithFormat:@"Duration: %.0f sec", player_.duration];
+    NSString *msg3 = [NSString stringWithFormat:@"Resolution: %.0f * %.0f", player_.size.width, player_.size.height];
     NSString *msg4 = [NSString stringWithFormat:@"numberOfBytesTransfered: %lld", [player_ numberOfBytesTransfered]];
-    NSString *msg5 = [NSString stringWithFormat:@"buffering time: %f", player_.bufferingTime];
+    NSString *msg5 = [NSString stringWithFormat:@"buffering time: %.0f msec", player_.bufferingTime];
     NSString *tmp = [NSString stringWithFormat:@"%@\r\n%@\r\n%@\r\n%@\r\n%@", msg, msg2, msg3, msg4, msg5];
     messageLab_.text = tmp;
 }

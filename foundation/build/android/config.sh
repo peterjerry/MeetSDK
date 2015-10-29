@@ -1,5 +1,13 @@
 #!/bin/bash
 
+if [ $# == 0 ] ; then 
+echo "USAGE: $0 <abi(x86 neon arm64-v8a)> [config(full lite micro)] [has_encoder(enc)]" 
+echo " e.g.: $0 neon"
+echo " e.g.: $0 neon lite"
+echo " e.g.: $0 neon lite enc" 
+exit 1; 
+fi
+
 OS=`uname`
 case $OS in
 	MINGW32_NT-6.1)
@@ -149,8 +157,7 @@ fi
 
 #lite build
 #if [[ $2 = 'lite' ]]
-if [ ${2}x == 'lite'x ]
-then
+if [ ${2}x == 'lite'x ]; then
 echo "lite build"
 EXTRA_PARAMETERS="$EXTRA_PARAMETERS \
 	--disable-decoders \
@@ -161,6 +168,17 @@ EXTRA_PARAMETERS="$EXTRA_PARAMETERS \
 	--enable-parser=h263,h264,hevc,mpegaudio,mpegvideo,aac_latm,mpeg4video,dca,aac,ac3,eac3,flac,png,bmp,rv30,rv40,cavsvideo,vc1,vorbis,mjpeg,vp3,vp8,vp9,cook "
 
 # hevc,liblenthevchm91,liblenthevchm10,liblenthevc
+elif [[ $2 = 'micro' ]]; then
+echo "micro build"
+EXTRA_PARAMETERS="$EXTRA_PARAMETERS \
+        --disable-decoders \
+        --enable-decoder=h264,aac \
+        --disable-demuxers \
+        --enable-demuxer=h264,mp4,mov,mpegts \
+        --disable-parsers \
+        --enable-parser=h264,aac_latm,ac3 \
+	--disable-protocols \
+	--enable-protocol=file,http "
 else
 echo "full build"
 fi

@@ -4,8 +4,8 @@ public class PlayLink2 {
 	private String mTitle;
 	private String mId;
 	private String mDescription;
-	private int mVideoCount;
 	private String mImgUrl;
+	private String mOnlineTime;
 	
 	private String mMark;
 	private String mDirector;
@@ -25,7 +25,7 @@ public class PlayLink2 {
 	
 	public PlayLink2(String title, String id, String desc) {
 		this(title, "", id, desc,
-				0, "",
+				"", "",
 				"", "", "", 
 				"", "",
 				"", 0);
@@ -33,14 +33,14 @@ public class PlayLink2 {
 	
 	public PlayLink2(String title, String id, String desc, String imgUrl) {
 		this(title, "", id, desc, 
-				0, imgUrl,
+				imgUrl, "",
 				"", "", "", 
 				"", "",
 				"", 0);
 	}
 
 	public PlayLink2(String title, String ext_title, String id, String desc, 
-			int video_count, String img_url, 
+			String img_url, String online_time,
 			String mark, String director, String act, 
 			String year, String area,
 			String resolution, int duration_sec) {
@@ -49,8 +49,8 @@ public class PlayLink2 {
 		mId				= id;
 		mDescription	= desc;
 		
-		mVideoCount		= video_count;
 		mImgUrl			= img_url;
+		mOnlineTime		= online_time;
 		
 		mMark			= mark;
 		mDirector		= director;
@@ -85,12 +85,16 @@ public class PlayLink2 {
 		return sb.toString();
 	}
 	
+	public String getMark() {
+		return mMark;
+	}
+	
 	public String getImgUrl() {
 		return mImgUrl;
 	}
 	
-	public int getVideoCount() {
-		return mVideoCount;
+	public String getOnlineTime() {
+		return mOnlineTime;
 	}
 	
 	public String getArea() {
@@ -141,7 +145,7 @@ public class PlayLink2 {
 		sb.append(mId);
 		sb.append(", 描述: ");
 		sb.append(mDescription);
-		sb.append(", mark: ");
+		sb.append(", 评分: ");
 		sb.append(mMark);
 		sb.append(", 导演: ");
 		sb.append(mDirector);
@@ -153,8 +157,8 @@ public class PlayLink2 {
 		sb.append(mArea);
 		sb.append(", 图片预览: ");
 		sb.append(mImgUrl);
-		sb.append(", 集数: ");
-		sb.append(mVideoCount);
+		sb.append(", 上片时间: ");
+		sb.append(mOnlineTime);
 		sb.append(", 分辨率: ");
 		sb.append(String.format("%dx%d", mWidth, mHeight));
 		sb.append(", 时长: ");

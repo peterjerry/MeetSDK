@@ -284,7 +284,7 @@ public class EPGUtil {
 	}
 	
 	public boolean contents(String surfix) {
-		
+		Log.i(TAG, "Java: contents() surfix: " + surfix);
 		String cate;
 		try {
 			String sur = "app://aph.pptv.com/v4/cate";
@@ -318,8 +318,11 @@ public class EPGUtil {
 			mContentList.clear();
 			
 			int module_index = 0;
+			// hard code
 			if ("app://aph.pptv.com/v4/cate/sports?type=5".equals(surfix))
-				module_index = 1; // hard code
+				module_index = 1;
+			else if ("app://aph.pptv.com/v4/cate/life?type=75399".equals(surfix))
+				module_index = 5;
 			
 			JSONObject program = modules.getJSONObject(module_index).getJSONObject("data");
 			JSONArray contents = program.getJSONArray("dlist");
@@ -638,7 +641,7 @@ public class EPGUtil {
 	private String getXMLNode(Element e, String key) {
 		Element node = e.getChild(key);
 		if (node == null)
-			return null;
+			return "";
 		
 		return node.getText();
 	}
@@ -650,8 +653,8 @@ public class EPGUtil {
     	String link_act = getXMLNode(v, "act");
     	String link_year = getXMLNode(v, "year");
     	String link_area = getXMLNode(v, "area");
-    	String link_count = getXMLNode(v, "state");
     	String link_imgurl = getXMLNode(v, "imgurl");
+    	String link_mark = getXMLNode(v, "mark");
     	
     	String str_du;
     	int duration_sec;
@@ -669,11 +672,8 @@ public class EPGUtil {
     	}
 
     	String link_resolution = v.getChild("resolution").getText();
-    	
-    	String link_description = "";
-    	Element content = v.getChild("content");
-    	if (content != null)
-    		link_description = content.getText();
+    	String link_description = getXMLNode(v, "content");
+    	String online_time = getXMLNode(v, "onlinetime");
     	
     	//virtual channel
     	List<Element> virtuals = v.getChildren("virtual");
@@ -742,15 +742,12 @@ public class EPGUtil {
         	Element source = playlink2.getChild("source");
 	    	String src_mark = source.getAttributeValue("mark");
 	    	String src_res = source.getAttributeValue("resolution");
-	    	if(src_res != null && !src_res.isEmpty())
+	    	if (src_res != null && !src_res.isEmpty())
 	    		link_resolution = src_res; // overwrite
 	    	
-	    	int video_count = 0;
-	    	if (link_count != null)
-	    		video_count = Integer.valueOf(link_count);
 	    	PlayLink2 l = new PlayLink2(link_title, ext_title, link_id, link_description, 
-	    			video_count, link_imgurl,
-	    			src_mark, link_director, link_act,
+	    			link_imgurl, online_time,
+	    			link_mark, link_director, link_act,
 	    			link_year, link_area,
 	    			link_resolution, duration_sec);
 	    	mPlayLinkList.add(l);

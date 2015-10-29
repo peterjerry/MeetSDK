@@ -6,6 +6,9 @@ XCODE_NAME=Xcode
 SDK_VERSION=8.4
 TARGET_VERSION=v8
 
+OPENSSL_INCLUDE=`pwd`/thirdparty/rtmpdump/include
+OPENSSL_LIB=`pwd`/thirdparty/rtmpdump/lib/ios
+
 case $1 in
 	i386)
 		ARCH=i386
@@ -73,7 +76,12 @@ EXTRA_PARAMETERS="$EXTRA_PARAMETERS \
 	--disable-demuxers \
 	--enable-demuxer=rm,mpegvideo,mjpeg,avi,h263,h264,hevc,matroska,dts,dtshd,aac,flv,mpegts,mpegps,mp4,m4v,mov,ape,hls,flac,rawvideo,realtext,rtsp,vc1,mp3,wav,asf,ogg \
 	--disable-parsers \
-	--enable-parser=h263,h264,hevc,mpegaudio,mpegvideo,aac_latm,mpeg4video,dca,aac,flac,png,bmp,rv30,rv40,cavsvideo,vc1,vorbis,mjpeg,vp3,vp8,vp9,cook "
+	--enable-parser=h263,h264,hevc,mpegaudio,mpegvideo,aac_latm,mpeg4video,dca,aac,flac,png,bmp,rv30,rv40,cavsvideo,vc1,vorbis,mjpeg,vp3,vp8,vp9,cook \
+	--enable-openssl"
+EXTRA_C_FLAGS="$EXTRA_C_FLAGS -I$OPENSSL_INCLUDE"
+EXTRA_LD_FLAGS="$EXTRA_LD_FLAGS -L$OPENSSL_LIB -lssl -lcrypto -lz"
+echo "EXTRA_C_FLAGS ${EXTRA_C_FLAGS}"
+echo "EXTRA_LD_FLAGS ${EXTRA_LD_FLAGS}"
 else
 echo "full build"
 fi

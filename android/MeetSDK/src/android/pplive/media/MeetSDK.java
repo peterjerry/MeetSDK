@@ -129,7 +129,6 @@ public final class MeetSDK {
 		return decodeLevel;
 	}
 	
-
 	public static int getCpuArchNumber() {
 		if (AppRootDir == null) {
 		    LogUtils.error("MeetSDK.AppRootDir is null.");
@@ -483,6 +482,11 @@ public final class MeetSDK {
 		return bitmap;
 	}
 	
+	/**
+	 * logfile 使用默认文件名 Environment.getExternalStorageDirectory() + "/pptv/tmp/outputlog.log"
+	 * tempPath 使用默认路径 Environment.getExternalStorageDirectory() + "/pptv/tmp/"
+	 * @return 是否成功
+	 */
 	public static boolean setLogPath()
     {
 		String DEFAULT_LOGFILE = "/pptv/tmp/outputlog.log";
@@ -490,16 +494,29 @@ public final class MeetSDK {
         		Environment.getExternalStorageDirectory() + "/pptv/tmp/");
     }
 	
+    /**
+     * @param logfile 调用makePlayerlog() 时生成log文件的路径
+     * tempPath 使用默认路径 Environment.getExternalStorageDirectory() + "/pptv/tmp/"
+     * @return 是否成功
+     */
     public static boolean setLogPath(String logfile)
     {
         return LogUtils.init(logfile, Environment.getExternalStorageDirectory() + "/pptv/tmp/");
     }
     
+    /**
+     * @param logfile 调用makePlayerlog() 时生成log文件的路径
+     * @param tempPath 保存deviceinfo, player.log 等日志文件的临时路径
+     * @return
+     */
     public static boolean setLogPath(String logfile, String tempPath)
     {
         return LogUtils.init(logfile, tempPath);
     }
 
+    /** @brief 生成 播放器日志 该文件由 setLogPath() 的tempPath目录下的player.log内容而生成
+     * 
+     */
     public static void makePlayerlog()
     {
         LogUtils.makeUploadLog();
@@ -519,7 +536,14 @@ public final class MeetSDK {
     
 	private MeetSDK() {}
 	
-	// for ts convert
+	/**
+	 * @param [in]in_flv 输入flv文件内容
+	 * @param [in]in_size 输入flv文件大小
+	 * @param [out]out_ts 输出mpegts文件内容
+	 * @param process_timestamp 是否处理时间戳
+	 * @param first_seg 是否是第一个分段(仅当 process_timestamp为1有效)
+	 * @return
+	 */
 	public static native int Convert(byte[] in_flv, int in_size, byte[] out_ts, 
 			int process_timestamp, int first_seg);
 }
