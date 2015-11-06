@@ -41,6 +41,10 @@ public class Util {
 	
 	private final static String PREF_NAME = "settings";
 	
+    private final static int ONE_KILOBYTE 	= 1024;
+	private final static int ONE_MAGABYTE 	= (ONE_KILOBYTE * ONE_KILOBYTE);
+	private final static int ONE_GIGABYTE 	= (ONE_MAGABYTE * ONE_KILOBYTE);
+	
 	public static boolean startP2PEngine(Context context) {
 		Log.d("Util", "startP2PEngine()");
 		if (context == null) {
@@ -466,6 +470,25 @@ public class Util {
 
 		}
 	}
+	
+	public static String getFileSize(long size) {
+	    String strSize;
+	    if (size < 0)
+	    	return "N/A";
+	    
+	    if (size > ONE_GIGABYTE)
+			strSize = String.format("%.3f GB",
+					(double) size / (double) ONE_GIGABYTE);
+	    else if (size > ONE_MAGABYTE)
+			strSize = String.format("%.3f MB",
+					(double) size / (double) ONE_MAGABYTE);
+		else if (size > ONE_KILOBYTE)
+			strSize = String.format("%.3f kB",
+					(double) size / (double) ONE_KILOBYTE);
+		else
+			strSize = String.format("%d Byte", size);
+		return strSize;
+    }
 	
 	private static String msecToString(long msec) {
 		long msec_, sec, minute, hour, tmp;

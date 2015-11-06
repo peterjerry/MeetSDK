@@ -33,6 +33,7 @@ import android.pplive.media.player.MediaController.MediaPlayerControl;
 import android.pplive.media.player.MediaInfo;
 import android.pplive.media.player.MediaPlayer;
 import android.pplive.media.player.MediaPlayer.DecodeMode;
+import android.pplive.media.player.MediaPlayer.OnSeekCompleteListener;
 import android.pplive.media.player.TrackInfo;
 import android.pplive.media.subtitle.SimpleSubTitleParser;
 import android.pplive.media.subtitle.SubTitleParser;
@@ -122,6 +123,7 @@ public class ClipListActivity extends Activity implements
 		MediaPlayer.OnPreparedListener, MediaPlayer.OnCompletionListener,
 		MediaPlayer.OnErrorListener, MediaPlayer.OnInfoListener,
 		MediaPlayer.OnVideoSizeChangedListener, MediaPlayer.OnBufferingUpdateListener,
+		MediaPlayer.OnSeekCompleteListener,
 		MediaPlayerControl, SurfaceHolder.Callback, SubTitleParser.Callback, OnFocusChangeListener {
 
 	private final static String TAG = "ClipList";
@@ -149,6 +151,8 @@ public class ClipListActivity extends Activity implements
 	private Button btn_bw_type;
 	private ImageView imageDMR;
 	private ImageView imageNoVideo;
+	private ImageView imageBackward;
+	private ImageView imageForward;
 	private MediaPlayer mPlayer 				= null;
 	private LocalFileAdapter mAdapter;
 	private ListView lv_filelist;
@@ -166,6 +170,7 @@ public class ClipListActivity extends Activity implements
 	private boolean mIsRememberPos				= true;
 	private boolean mIsListAudioFile			= false;
 	private boolean mDebugInfo					= false;
+	private boolean mIsFlinging				= false;
 	
 	private int mBufferingPertent				= 0;
 	private boolean mIsBuffering 				= false;
@@ -336,34 +341,37 @@ public class ClipListActivity extends Activity implements
 			setContentView(R.layout.list);
 		}
 		
-		this.tv_title = (MyMarqueeTextView) findViewById(R.id.tv_title);
-		this.btnPlay = (Button) findViewById(R.id.btn_play);
-		this.btnSelectTime = (Button) findViewById(R.id.btn_select_time);
-		this.btnMenu = (Button) findViewById(R.id.btn_menu);
-		this.btnClipLocation = (Button) findViewById(R.id.btn_clip_location);
-		this.btnPlayerImpl = (Button) findViewById(R.id.btn_player_impl);
-		this.btnPPboxSel = (Button) findViewById(R.id.btn_ppbox);
-		this.btnTakeSnapShot = (Button) findViewById(R.id.btn_take_snapshot);
-		this.btnSelectAudioTrack = (Button) findViewById(R.id.btn_select_audiotrack);
-		this.et_playlink = (EditText) findViewById(R.id.et_playlink);
-		this.btn_ft = (Button) findViewById(R.id.btn_ft);
-		this.btn_bw_type = (Button) findViewById(R.id.btn_bw_type);
-		this.imageDMR = (ImageView) findViewById(R.id.iv_dlna_dmc);
-		this.imageNoVideo = (ImageView) findViewById(R.id.iv_novideo);
+		this.tv_title = (MyMarqueeTextView) this.findViewById(R.id.tv_title);
+		this.btnPlay = (Button) this.findViewById(R.id.btn_play);
+		this.btnSelectTime = (Button) this.findViewById(R.id.btn_select_time);
+		this.btnMenu = (Button) this.findViewById(R.id.btn_menu);
+		this.btnClipLocation = (Button) this.findViewById(R.id.btn_clip_location);
+		this.btnPlayerImpl = (Button) this.findViewById(R.id.btn_player_impl);
+		this.btnPPboxSel = (Button) this.findViewById(R.id.btn_ppbox);
+		this.btnTakeSnapShot = (Button) this.findViewById(R.id.btn_take_snapshot);
+		this.btnSelectAudioTrack = (Button) this.findViewById(R.id.btn_select_audiotrack);
+		this.et_playlink = (EditText) this.findViewById(R.id.et_playlink);
+		this.btn_ft = (Button) this.findViewById(R.id.btn_ft);
+		this.btn_bw_type = (Button) this.findViewById(R.id.btn_bw_type);
+		this.imageDMR = (ImageView) this.findViewById(R.id.iv_dlna_dmc);
+		this.imageNoVideo = (ImageView) this.findViewById(R.id.iv_novideo);
 		
-		this.mPreview = (MyPreView2) findViewById(R.id.preview);
-		this.mLayout = (RelativeLayout) findViewById(R.id.layout_preview);
+		this.mPreview = (MyPreView2) this.findViewById(R.id.preview);
+		this.mLayout = (RelativeLayout) this.findViewById(R.id.layout_preview);
 		
-		this.mBufferingProgressBar = (ProgressBar) findViewById(R.id.progressbar_buffering);
-		this.mSubtitleTextView = (TextView) findViewById(R.id.textview_subtitle);
+		this.mBufferingProgressBar = (ProgressBar) this.findViewById(R.id.progressbar_buffering);
+		this.mSubtitleTextView = (TextView) this.findViewById(R.id.textview_subtitle);
 		
-		this.mMediaController = (MiniMediaController) findViewById(R.id.mmc);
+		this.mMediaController = (MiniMediaController) this.findViewById(R.id.mmc);
+		
+		this.imageBackward = (ImageView) this.findViewById(R.id.iv_seekbackward);
+		this.imageForward = (ImageView) this.findViewById(R.id.iv_seekforward);
 	
 		mLayout.setLongClickable(true); // MUST set to enable double-tap and single-tap-confirm
 		mLayout.setOnTouchListener(mOnTouchListener);
 		mMediaController.setInstance(this);
 		
-		mTextViewInfo = (TextView) findViewById(R.id.tv_info);
+		mTextViewInfo = (TextView) this.findViewById(R.id.tv_info);
 		mTextViewInfo.setTextColor(Color.RED);
 		mTextViewInfo.setTextSize(18);
 		mTextViewInfo.setTypeface(Typeface.MONOSPACE);
@@ -895,10 +903,40 @@ public class ClipListActivity extends Activity implements
 	// UI
 	private GestureDetector mGestureDetector = 
 		new GestureDetector(getApplication(), new GestureDetector.SimpleOnGestureListener() {
-			
+			@Override
 			public boolean onDown(MotionEvent e) {
 				Log.i(TAG, "Java: onDown!!!");
 				return true;
+			};
+			
+			@Override
+			public boolean onFling(MotionEvent e1, MotionEvent e2, float velocityX, float velocityY) {
+				Log.d(TAG, String.format("Java: onFling!!! velocityX %.3f, velocityY %.3f", 
+						velocityX, velocityY));
+				
+				// 1xxx - 4xxx
+				if (velocityX > 1000.0f || velocityX < -1000.0f) {
+					if (mPlayer != null && !isTVbox) {
+						int pos = mPlayer.getCurrentPosition();
+						int incr = velocityX > 1.0f ? 1 : -1;
+						pos += incr * 15000; // 15sec
+						if (pos > mPlayer.getDuration())
+							pos = mPlayer.getDuration();
+						else if (pos < 0)
+							pos = 0;
+						
+						mPlayer.seekTo(pos);
+						
+						if (incr > 0)
+							imageForward.setVisibility(View.VISIBLE);
+						else
+							imageBackward.setVisibility(View.VISIBLE);
+						mIsFlinging = true;
+						return true;
+					}
+				}
+				
+				return false;
 			};
 			
 			@Override
@@ -918,7 +956,10 @@ public class ClipListActivity extends Activity implements
 			public boolean onDoubleTap(MotionEvent event) {
 				Log.i(TAG, "Java: onDoubleTap!!!");
 				if (mPlayer != null) {
+					mMediaController.updateLandscape(!isLandscape);
+					
 					if (isLandscape) {
+						
 						mPreview.switchDisplayMode();
 						mLayout.requestLayout(); // force refresh layout
 						
@@ -1265,6 +1306,7 @@ public class ClipListActivity extends Activity implements
 			mPlayer.setOnErrorListener(this);
 			mPlayer.setOnBufferingUpdateListener(this);
 			mPlayer.setOnInfoListener(this);
+			mPlayer.setOnSeekCompleteListener(this);
 			
 			mPlayer.setLooping(mIsLoop);
 			
@@ -2991,6 +3033,16 @@ public class ClipListActivity extends Activity implements
 		mPreview.measure(MeasureSpec.AT_MOST, MeasureSpec.AT_MOST);
 	}
 	
+	@Override
+	public void onSeekComplete(MediaPlayer mp) {
+		// TODO Auto-generated method stub
+		if (mIsFlinging) {
+			imageBackward.setVisibility(View.INVISIBLE);
+			imageForward.setVisibility(View.INVISIBLE);
+			mIsFlinging = false;
+		}
+	}
+	
 	private void updatePreveiwUI() {
 		// view
 		int width	= mLayout.getMeasuredWidth();
@@ -3533,5 +3585,5 @@ public class ClipListActivity extends Activity implements
 	static {
 		//System.loadLibrary("lenthevcdec");
 	}
-	
+
 }

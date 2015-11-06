@@ -25,17 +25,14 @@ public class DownloadAsyncTask extends AsyncTask<String, Integer, Boolean> {
 	protected static final String MSG_DOWNLOAD_SUCCESS = "Download Success!!!";
 	protected static final String MSG_DOWNLOAD_FAILED = "Download Failed!!!";
 	
-	private String installApk_fullpath;
-	
 	@Override
 	protected Boolean doInBackground(String... params) {
 		Log.i(TAG, "doInBackground");
 	
 		String url = params[0];
 		String path = params[1];
-		installApk_fullpath = path;	
+		
 		boolean ret = false;
-
 		OutputStream os = null;
 		InputStream is = null;
 

@@ -9,9 +9,10 @@
         android:title="settings" >
         <menu>      
 		    <item
-		        android:id="@+id/download"
-		        android:title="download"
-		        android:checkable="true" />
+		        android:id="@+id/pop_sel_ep"
+		        android:title="select episode"
+		        android:checkable="true"
+		        android:checked="true" />
 		    <item
 		        android:id="@+id/p2p_download"
 		        android:title="p2p download"

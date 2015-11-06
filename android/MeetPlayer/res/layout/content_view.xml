@@ -15,7 +15,7 @@
         android:layout_alignParentTop="true" />
     <TextView
         android:id="@+id/content_view_text1"
-        android:layout_width="wrap_content"
+        android:layout_width="40dp"
         android:layout_height="wrap_content"
         android:text="0%"
         android:textColor="#FF0000"

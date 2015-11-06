@@ -170,6 +170,9 @@ public class DirChooserDialog extends Dialog implements android.view.View.OnClic
 			Arrays.sort(myFile, new FileComparator());
 			
 			for (File f : myFile) {
+				if (f.isHidden() || !f.canRead())
+					continue;
+				
 				if (f.isDirectory()) {
 					String tempf = f.toString();
 					int pos = tempf.lastIndexOf("/");

@@ -27,23 +27,16 @@ import com.pplive.sdk.MediaSDK;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.Dialog;
-import android.app.Notification;
-import android.app.NotificationManager;
-import android.app.PendingIntent;
-import android.app.ProgressDialog;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
-import android.content.IntentFilter;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Environment;
 import android.os.Handler;
 import android.os.Message;
-import android.pplive.media.MeetSDK;
-import android.pplive.media.player.MediaInfo;
 import android.util.Log;
 import android.view.KeyEvent;
 import android.view.Menu;
@@ -55,7 +48,6 @@ import android.widget.AdapterView;
 import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.GridView;
-import android.widget.RemoteViews;
 import android.widget.Toast;
 
 
@@ -69,10 +61,6 @@ public class PPTVEpisodeActivity extends Activity {
 	private Button btnFt;
 	private GridView gridView = null;
     private MySohuEpAdapter adapter = null;
-    
-    private final static int ONE_KILOBYTE 	= 1024;
-	private final static int ONE_MAGABYTE 	= (ONE_KILOBYTE * ONE_KILOBYTE);
-	private final static int ONE_GIGABYTE 	= (ONE_MAGABYTE * ONE_KILOBYTE);
     
     private final static int MSG_EPISODE_DONE		= 1;
     private final static int MSG_MOREDATA_DONE	= 2;
@@ -88,9 +76,6 @@ public class PPTVEpisodeActivity extends Activity {
     
     private final static int SET_DATA_LIST		= 1;
     private final static int SET_DATA_SEARCH		= 2;
-    
-    private final static String STATUS_BAR_COVER_CLICK_ACTION = "com.pplive.meetplayer.STATUS_BAR_COVER_CLICK_ACTION";
-    private BroadcastReceiver mClickReceiver;
     
     private final static int page_size = 10;
     private int album_page_index = 1;
@@ -114,11 +99,8 @@ public class PPTVEpisodeActivity extends Activity {
     private boolean noMoreData = false;
     private boolean loadingMore = false;
 
-    private List<DownloadTask> downloadTaskList;
-    private boolean mDownload = false;
-    private boolean mDownloadP2P = false;
+    private boolean mbPopSelEp = true;
     private String mDownloadLocalFolder;
-    private NotificationManager notifManager;
 
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
@@ -183,7 +165,15 @@ public class PPTVEpisodeActivity extends Activity {
 				
 				Map<String, Object> item = adapter.getItem(position);
 				String vid = (String)item.get("vid");
-				new PPTVEpgTask().execute(TASK_DETAIL, Integer.valueOf(vid));
+				
+				if (mbPopSelEp) {
+					new PPTVEpgTask().execute(TASK_DETAIL, Integer.valueOf(vid));
+				}
+				else {
+					Intent intent = new Intent(PPTVEpisodeActivity.this, MeetViewActivity.class);
+					intent.putExtra("playlink", vid);
+					startActivity(intent);
+				}	
 			}
 			
 		});
@@ -265,57 +255,6 @@ public class PPTVEpisodeActivity extends Activity {
 					"/test2";
 	    else
 	    	mDownloadLocalFolder = folder;
-	    notifManager = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
-	    downloadTaskList = new ArrayList<DownloadTask>();
-	}
-	
-	@Override
-	protected void onStart() {
-		// TODO Auto-generated method stub
-		super.onStart();
-		
-		// Register receivers
-		mClickReceiver = new BroadcastReceiver() {
-			@Override
-			public void onReceive(Context context, Intent intent) {
-				String action = intent.getAction();
-				Log.i(TAG, "Java: action Action: " + action);
-				if (action.equals(STATUS_BAR_COVER_CLICK_ACTION)) {
-					int notifyId = intent.getIntExtra("notifId", -1);
-					String title = intent.getStringExtra("title");
-					Log.i(TAG, String.format("Java: ready to cancel download job %s, notifyId %d", title, notifyId));
-					
-					for (int i=0;i<downloadTaskList.size();i++) {
-						DownloadTask t = downloadTaskList.get(i);
-						if (t.getNotifId() == notifyId) {
-							t.interrupt();
-							downloadTaskList.remove(i);
-							Toast.makeText(PPTVEpisodeActivity.this, title + " download canceled", Toast.LENGTH_SHORT).show();
-							break;
-						}
-						else {
-							Log.i(TAG, String.format("Java: notifyId %d dismatch", t.getNotifId()));
-						}
-					}
-				}
-			}
-		};
-		
-		IntentFilter filter = new IntentFilter();
-		filter.addAction(STATUS_BAR_COVER_CLICK_ACTION);
-		
-		registerReceiver(mClickReceiver, filter);
-	}
-	
-	@Override
-	protected void onStop() {
-		// TODO Auto-generated method stub
-		super.onStop();
-		
-		if (mClickReceiver != null) {
-			unregisterReceiver(mClickReceiver);
-			mClickReceiver = null;
-		}
 	}
 	
 	@Override
@@ -351,13 +290,11 @@ public class PPTVEpisodeActivity extends Activity {
 		Log.i(TAG, "Java: onOptionsItemSelected " + id);
 		
 		switch (id) {
-		case R.id.download:
-			mDownload = !mDownload;
-			item.setChecked(mDownload);
+		case R.id.pop_sel_ep:
+			mbPopSelEp = !mbPopSelEp;
+			item.setChecked(mbPopSelEp);
 			break;
 		case R.id.p2p_download:
-			mDownloadP2P = !mDownloadP2P;
-			item.setChecked(mDownloadP2P);
 			break;
 		case R.id.set_download_folder:  
 	        DirChooserDialog dlg = new DirChooserDialog(PPTVEpisodeActivity.this, 
@@ -413,8 +350,6 @@ public class PPTVEpisodeActivity extends Activity {
 						String vid = (String) item.get("vid");
 						String title = (String)item.get("title");
 						String save_path = mDownloadLocalFolder + "/" + title + ".mp4";
-						
-						download_file(vid, save_path, title);
 					}
 				}
 			})
@@ -422,12 +357,6 @@ public class PPTVEpisodeActivity extends Activity {
 		.create();
 		choose_action_dlg.show();
     }
-	
-	private void download_file(String vid, String save_path, String title) {	
-		DownloadTask task = new DownloadTask(title);
-		task.execute(vid, save_path);
-		downloadTaskList.add(task);
-	}
 	
 	private View.OnClickListener mClickListener = new View.OnClickListener() {
 
@@ -472,18 +401,11 @@ public class PPTVEpisodeActivity extends Activity {
             		String vid = mEpisodeList.get(0).getId();
             		episode_title = mEpisodeList.get(0).getTitle();
             		int playlink = Integer.valueOf(vid);
-            		if (mDownload) {
-						String save_path = mDownloadLocalFolder + "/" + episode_title + ".mp4";
-						
-						download_file(vid, save_path, episode_title);
+        			if (playlink >= 300000 && playlink <= 400000) { // live
+            			play_video(1, 1);
             		}
-            		else {
-            			if (playlink >= 300000 && playlink <= 400000) { // live
-                			play_video(1, 1);
-                		}
-                		else { // vod
-                			new PPTVEpgTask().execute(TASK_ITEM_FT, playlink);
-                		}
+            		else { // vod
+            			new PPTVEpgTask().execute(TASK_ITEM_FT, playlink);
             		}
 
 					return;
@@ -766,318 +688,5 @@ public class PPTVEpisodeActivity extends Activity {
 		}
 	}  
 	
-	private class DownloadTask extends AsyncTask<String, Integer, Boolean> {
-		private String mTitle;
-		private String mSavePath;
-		private long mFileSize = 0;
-		private long mDownloadedSize = 0;
-		private Notification mNotif;
-		private int mNotifId;
-		private boolean interrupted = false;
-		
-		ProgressDialog progressDialog;
-		
-		public DownloadTask(String title) {
-			mTitle = title;
-		}
-		
-		public int getNotifId() {
-			return mNotifId;
-		}
-		
-		public void interrupt() {
-			interrupted = true;
-		}
-		
-		private void saveMedia() {
-			MediaInfo info = MeetSDK.getMediaDetailInfo(mSavePath);
-			if (info != null) {
-				MediaStoreDatabaseHelper db = MediaStoreDatabaseHelper.getInstance(PPTVEpisodeActivity.this);
-				db.saveMediaInfo(mSavePath, mTitle, info);
-			}
-		}
-		
-		@Override
-		protected void onPreExecute() {
-			// TODO Auto-generated method stub
-			progressDialog = new ProgressDialog(PPTVEpisodeActivity.this);
-			progressDialog.setTitle("Downloading...");
-			progressDialog.setMessage("file\nprogress: ");
-			progressDialog.setProgressStyle(ProgressDialog.STYLE_HORIZONTAL);
-			progressDialog.setMax(100);
-			progressDialog.setIndeterminate(false);
-			progressDialog.setCancelable(true);
-	    	/*progressDialog.setOnCancelListener(new DialogInterface.OnCancelListener() {
-				
-				@Override
-				public void onCancel(DialogInterface dialog) {
-					// TODO Auto-generated method stub
-					interrupt();
-					Toast.makeText(getApplicationContext(), 
-							"file " + mSavePath + " download aborted", Toast.LENGTH_SHORT).show();
-					dialog.dismiss();
-				}
-			});*/
-	    	progressDialog.show();
-	    	
-	        Random rand = new Random();
-	        mNotifId = 1000 + rand.nextInt(100);
-	        Log.i(TAG, String.format("Java: download file %s, notifyId %d", mTitle, mNotifId));
-	        mNotif = new Notification();  
-	        mNotif.icon = R.drawable.download;  
-	        mNotif.tickerText = "new download task added";
-	        
-	        //Intent intent = new Intent("android.settings.SETTINGS");
-	    	Intent intent = new Intent(STATUS_BAR_COVER_CLICK_ACTION);
-	    	intent.putExtra("notifId", mNotifId);
-	    	intent.putExtra("title", mTitle);
-	        PendingIntent pIntent = PendingIntent.getBroadcast(PPTVEpisodeActivity.this, 0, intent, 0);
-	        
-	        //通知栏显示所用到的布局文件   
-	        mNotif.contentView = new RemoteViews(getPackageName(), R.layout.content_view);
-	        mNotif.contentIntent = pIntent;
-	        String filename = mTitle;
-	        if (filename.length() > 16)
-	        	filename = filename.substring(0, 16) + "...";
-	        mNotif.contentView.setTextViewText(R.id.content_view_filename, filename);
-	        notifManager.notify(mNotifId, mNotif);
-		}
-		
-		@Override
-		protected void onPostExecute(Boolean result) {
-			// TODO Auto-generated method stub
-			progressDialog.dismiss();
-			
-			notifManager.cancel(mNotifId);
-			
-			if (result) {
-				Toast.makeText(PPTVEpisodeActivity.this, 
-						String.format("file %s saved to %s(size %s)", 
-								mTitle, mSavePath, getFileSize(mFileSize)),
-						Toast.LENGTH_SHORT).show();
-			}
-			else {
-				Toast.makeText(PPTVEpisodeActivity.this, "failed to download file " + mTitle, 
-						Toast.LENGTH_SHORT).show();
-			}
-		}
-		
-		@Override
-		protected Boolean doInBackground(String... params) {
-			if (params.length < 2)
-				return false;
-			
-			String vid		= params[0];
-			mSavePath		= params[1];
-			
-			publishProgress(0, 0);
-			
-			if (!mEPG.detail(String.valueOf(vid))) {
-				Log.e(TAG, "Java: failed to call detail()");
-				return false;
-			}
-			
-			mEpisodeList = mEPG.getLink();
-			if (mEpisodeList == null || mEpisodeList.size() == 0) {
-				Log.e(TAG, "Java: mEpisodeList is empty");
-				return false;
-			}
-			
-			PlayLink2 link = mEpisodeList.get(0);
-			String playlink = link.getId();
-			String ft = btnFt.getText().toString();
-			
-			if (mDownloadP2P) {
-				//playcode:ppvod2:///23832333?ft=1&bwtype=3&platform=android3
-				//&type=phone.android.download.vip&sv=4.1.3&p2p.source=7&bighead=true&p2p.level=1
-				String playcode = String.format("%s?ft=%s&bwtype=3&platform=android3" +
-						"&type=phone.android.download.vip&sv=4.1.3", playlink, ft);
-				playcode = "ppvod2:///" + playcode + "&p2p.source=7&bighead=true&p2p.level=1";
-				Log.i(TAG, String.format("Java: playcode %s, mSavePath %s", playcode, mSavePath));
-				// TODO Auto-generated method stub
-				long handle = -1;
-				try {
-					handle = MediaSDK.downloadOpen(playcode, "mp4", mSavePath, 
-						new MediaSDK.Download_Callback() {
-
-							@Override
-							public void invoke(long result) {
-								// TODO Auto-generated method stub
-								Log.i(TAG, "Java: MediaSDK invoke " + result);
-								
-								/**
-		                         * sdk 正常关闭回调，handle <= 0不回调
-		                         * 0：成功
-		                         * 5：取消操作，调用了close
-		                         */
-							}
-					
-					});
-				}
-				catch (Throwable e) {
-		            e.printStackTrace();
-		            return false;
-		        }
-				
-				// open失败
-		        if (handle == 0 || handle == -1) {
-		        	Log.e(TAG, "Java: failed to open download session");
-		            return false;
-		        }
-		        
-		        Log.i(TAG, "Java: download handle: " + handle);
-				
-				while (true) {
-		            MediaSDK.Download_Statistic stat = new MediaSDK.Download_Statistic();
-		            long resultCode = -1;
-		            try {
-		                resultCode = MediaSDK.getDownloadInfo(handle, stat);
-		                Log.i(TAG, String.format("Java: download stat: %d/%d, speed %d kB/s", 
-		                		stat.finish_size, stat.total_size, stat.speed / 1024));
-		                if (stat.total_size > 0 && stat.speed > 0)
-		                	publishProgress((int)(stat.finish_size * 100 / stat.total_size), stat.speed / 1024);
-		            }
-		            catch (Throwable e) {
-		                // Log.v(TAG, "getDownloadInfo");
-		                // addLog("getDownloadInfo\n");
-		                e.printStackTrace();
-		                MediaSDK.downloadClose(handle);
-		                return false;
-		            }
-		            
-		            if (resultCode != 0) {
-		                // 下载出错
-		                Log.e(TAG, "Java: download error: " + resultCode);
-		                MediaSDK.downloadClose(handle);
-		                return false;
-		            }
-		            
-		            if (stat.total_size > 0 && stat.finish_size >= stat.total_size) {
-		            	Log.i(TAG, String.format("Java: download done! %s %s", 
-		            			stat.finish_size, stat.total_size));
-		            	break;
-		            }
-		            
-		            if (stat.total_size > 0 && mFileSize == 0)
-		            	mFileSize = stat.total_size;
-		            if (stat.finish_size > 0)
-		            	mDownloadedSize = stat.finish_size;
-		            
-		            if (interrupted) {
-						Log.w(TAG, "interrupted by user");
-						MediaSDK.downloadClose(handle);
-						File f = new File(mSavePath);
-						f.delete();
-						return false;
-					}
-		            
-		            try {
-		                Thread.sleep(300);
-		            }
-		            catch (InterruptedException e) {
-		                
-		            }
-				}
-				
-				MediaSDK.downloadClose(handle);
-				saveMedia();
-				
-				return true;
-			}
-			else {
-				String download_url = mEPG.getCDNUrl(playlink, btnFt.getText().toString(), false, false);
-				
-				URL url = null;
-				try {
-					url = new URL(download_url);
-				} catch (MalformedURLException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
-					return false;
-				}
-
-				try {
-					URLConnection conn = url.openConnection();
-					conn.setConnectTimeout(3000);
-					conn.setReadTimeout(3000);
-
-					InputStream inStream = conn.getInputStream();
-					FileOutputStream fs = new FileOutputStream(mSavePath);
-
-					mFileSize = Long.parseLong(conn.getHeaderField("Content-Length"));
-					
-					int byteread = 0;
-					byte[] buffer = new byte[1024];
-					
-					long total_start = System.currentTimeMillis();
-					long start = total_start;
-					while ((byteread = inStream.read(buffer)) != -1) {
-						mDownloadedSize += byteread;
-						fs.write(buffer, 0, byteread);
-						
-						if (interrupted) {
-							Log.w(TAG, "interrupted by user");
-							File f = new File(mSavePath);
-							f.delete();
-							return false;
-						}
-						
-						long curr = System.currentTimeMillis();
-						if (curr - start > 500) {
-							int speed = (int)(mDownloadedSize / (curr - total_start));
-							publishProgress((int)(mDownloadedSize * 100 / mFileSize), speed/* kB/sec */);
-							start = curr;
-						}
-					}
-
-					Log.i(TAG, "Java: total file size: " + mDownloadedSize);
-					saveMedia();
-					return true;
-				} catch (FileNotFoundException e) {
-					e.printStackTrace();
-				} catch (IOException e) {
-					e.printStackTrace();
-				}
-				
-			}
-
-			return false;
-		}
-		
-		@Override
-		protected void onProgressUpdate(Integer... values) {
-			// TODO Auto-generated method stub
-			int progress = values[0];
-			double speed = (double)values[1] / 1000.0f;
-			progressDialog.setMessage(
-					String.format("%s\nprogress: %d%%\nspeed: %.3f MB/sec\nleft: %s/%s", 
-							mSavePath, progress, speed, 
-							getFileSize(mDownloadedSize), getFileSize(mFileSize)));
-			progressDialog.setProgress(progress);
-			
-			mNotif.contentView.setTextViewText(R.id.content_view_text1, progress + "%");  
-			mNotif.contentView.setProgressBar(R.id.content_view_progress, 100, progress, false);
-            notifManager.notify(mNotifId, mNotif);
-		}
-	}
-	
-	private String getFileSize(long size) {
-	    String strSize;
-	    if (size < 0)
-	    	return "N/A";
-	    
-	    if (size > ONE_GIGABYTE)
-			strSize = String.format("%.3f GB",
-					(double) size / (double) ONE_GIGABYTE);
-	    else if (size > ONE_MAGABYTE)
-			strSize = String.format("%.3f MB",
-					(double) size / (double) ONE_MAGABYTE);
-		else if (size > ONE_KILOBYTE)
-			strSize = String.format("%.3f kB",
-					(double) size / (double) ONE_KILOBYTE);
-		else
-			strSize = String.format("%d Byte", size);
-		return strSize;
-    }
 }
 

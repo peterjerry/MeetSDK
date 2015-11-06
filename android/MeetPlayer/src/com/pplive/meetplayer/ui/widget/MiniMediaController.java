@@ -35,7 +35,7 @@ public class MiniMediaController extends MediaController {
 	private final static String TAG = "MiniMediaController";
 
 	private Context mContext;
-	private boolean mIsLand = false; // 是否是横屏
+	private boolean mIsLandscape = false; // 是否是横屏
 	
 	private View mControllerView;
 	private SeekBar mProgressBar;
@@ -51,8 +51,8 @@ public class MiniMediaController extends MediaController {
     private boolean mIsShowing = false;
     
     private ImageButton mPauseBtn;
-    private ImageButton mFwdBtn;
-    private ImageButton mRewBtn;
+    private ImageButton mForwardBtn;
+    private ImageButton mRewindBtn;
     private ImageButton	 mFullScreenBtn;
     
     private Activity mInstance;
@@ -79,6 +79,15 @@ public class MiniMediaController extends MediaController {
 			mPlayerImpl.setText(impl);
 	}
 	
+	public void updateLandscape(boolean isLandscape) {
+		Log.i(TAG, "Java: updateLandscape" + isLandscape);
+		
+		if (mIsLandscape != isLandscape) {
+			mIsLandscape = isLandscape;
+			updateFullScreen();
+		}
+	}
+	
 	@Override
 	public void onFinishInflate() {
 		initControllerView(mControllerView);
@@ -97,14 +106,14 @@ public class MiniMediaController extends MediaController {
 			mPauseBtn.setOnClickListener(mPlayPauseListener);
         }
 		
-		mRewBtn = (ImageButton) v.findViewById(R.id.player_bf_btn);
-		if (mRewBtn != null) {
-			mRewBtn.setOnClickListener(mBwdListener);
+		mRewindBtn = (ImageButton) v.findViewById(R.id.player_bf_btn);
+		if (mRewindBtn != null) {
+			mRewindBtn.setOnClickListener(mBwdListener);
         }
 		
-		mFwdBtn = (ImageButton) v.findViewById(R.id.player_ff_btn);
-		if (mFwdBtn != null) {
-			mFwdBtn.setOnClickListener(mFwdListener);
+		mForwardBtn = (ImageButton) v.findViewById(R.id.player_ff_btn);
+		if (mForwardBtn != null) {
+			mForwardBtn.setOnClickListener(mFwdListener);
         }
 		
 		mFullScreenBtn = (ImageButton) v.findViewById(R.id.player_fullscreen_btn);
@@ -206,11 +215,11 @@ public class MiniMediaController extends MediaController {
             if (mPauseBtn != null && !mPlayer.canPause()) {
             	mPauseBtn.setEnabled(false);
             }
-            if (mRewBtn != null && !mPlayer.canSeekBackward()) {
-                mRewBtn.setEnabled(false);
+            if (mRewindBtn != null && !mPlayer.canSeekBackward()) {
+                mRewindBtn.setEnabled(false);
             }
-            if (mFwdBtn != null && !mPlayer.canSeekForward()) {
-            	mFwdBtn.setEnabled(false);
+            if (mForwardBtn != null && !mPlayer.canSeekForward()) {
+            	mForwardBtn.setEnabled(false);
             }
         } catch (IncompatibleClassChangeError ex) {
             // We were given an old version of the interface, that doesn't have
@@ -286,11 +295,11 @@ public class MiniMediaController extends MediaController {
         if (mPauseBtn != null) {
         	mPauseBtn.setEnabled(enabled);
         }
-        if (mFwdBtn != null) {
-            mFwdBtn.setEnabled(enabled);
+        if (mForwardBtn != null) {
+            mForwardBtn.setEnabled(enabled);
         }
-        if (mRewBtn != null) {
-        	mRewBtn.setEnabled(enabled);
+        if (mRewindBtn != null) {
+        	mRewindBtn.setEnabled(enabled);
         }
         if (mProgressBar != null) {
         	mProgressBar.setEnabled(enabled);
@@ -328,10 +337,7 @@ public class MiniMediaController extends MediaController {
     }
     
     private void updateFullScreen() {
-    	if (mFullScreenBtn == null)
-            return;
-    	
-    	if (mIsLand) {
+    	if (mIsLandscape) {
             mFullScreenBtn.setImageResource(R.drawable.player_window_btn);
         } else {
         	mFullScreenBtn.setImageResource(R.drawable.player_fullscreen_btn);
@@ -341,7 +347,7 @@ public class MiniMediaController extends MediaController {
     private View.OnClickListener mBwdListener = new View.OnClickListener() {
         public void onClick(View v) {
             int pos = mPlayer.getCurrentPosition();
-            pos -= 5000; // milliseconds
+            pos -= 15000; // milliseconds
             mPlayer.seekTo(pos);
             setProgress();
 
@@ -365,14 +371,14 @@ public class MiniMediaController extends MediaController {
     private View.OnClickListener mFullScreenListener = new View.OnClickListener() {
         public void onClick(View v) {
             if (null != mInstance) {
-            	if (mIsLand) {
+            	if (mIsLandscape) {
             		mInstance.setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
             	}
             	else {
             		mInstance.setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
             	}
             	
-            	mIsLand = !mIsLand;
+            	mIsLandscape = !mIsLandscape;
             	
             	updateFullScreen();
             }
@@ -423,8 +429,8 @@ public class MiniMediaController extends MediaController {
         	if (pos < 0)
         		pos = 0;
         	mPlayer.seekTo(pos);
-        	if (mRewBtn != null) {
-        		mRewBtn.requestFocus();
+        	if (mRewindBtn != null) {
+        		mRewindBtn.requestFocus();
             }
         	return true;
         } else if (keyCode == KeyEvent.KEYCODE_DPAD_RIGHT) {
@@ -433,8 +439,8 @@ public class MiniMediaController extends MediaController {
         	if (pos > mPlayer.getDuration())
         		pos = mPlayer.getDuration();
         	mPlayer.seekTo(pos);
-        	if (mFwdBtn != null) {
-        		mFwdBtn.requestFocus();
+        	if (mForwardBtn != null) {
+        		mForwardBtn.requestFocus();
             }
         	return true;
         } else if (keyCode == KeyEvent.KEYCODE_VOLUME_DOWN
