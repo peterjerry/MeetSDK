@@ -42,6 +42,7 @@ import com.pplive.epg.shooter.SearchItem;
 import com.pplive.epg.shooter.ShooterUtil;
 import com.pplive.epg.util.LrcDownloadUtil;
 import com.pplive.epg.util.LrcInfo;
+import com.pplive.epg.util.LrcParser;
 import com.pplive.epg.util.LrcParser2;
 import com.pplive.epg.util.SeparatorUtils;
 import com.pplive.epg.util.TimeLrc;
@@ -866,6 +867,7 @@ public class BaiduPanel extends JPanel {
 			
 			LrcInfo info = null;
 			info = parser.readLrc(inStream, "GB2312");
+			//info = parser.parseStream(inStream, "GB2312");
 			System.out.println(String.format("Java: lrc: artist %s, album %s, title %s",
 					info.getArtist(), info.getAlbum(), info.getTitle()));
 			List<TimeLrc> Lyric = info.getInfos();

@@ -61,6 +61,7 @@ void start_player() {
 	DecodeMode dec_mode = DecodeMode.SW;
 	
 	// force refresh a new surface
+	// NOTICE: DO NOT place start_player() in SurfaceCreated() callback to avoid recursive-call
 	mPreview.setVisibility(View.INVISIBLE);
 
 	if (DecodeMode.HW_SYSTEM == dec_mode) {

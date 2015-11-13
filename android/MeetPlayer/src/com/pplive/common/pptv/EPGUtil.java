@@ -781,10 +781,14 @@ public class EPGUtil {
 		HttpResponse response;
 		try {
 			response = new DefaultHttpClient().execute(request);
-			if (response.getStatusLine().getStatusCode() == 200) {
-				String result = EntityUtils.toString(response.getEntity());
-				return parseCdnUrlxml_ft(result);
+			int code = response.getStatusLine().getStatusCode();
+			if (code != 200) {
+				Log.e(TAG, "Java: getAvailableFT() result is no 200: " + code);
+				return null;
 			}
+			
+			String result = EntityUtils.toString(response.getEntity());
+			return parseCdnUrlxml_ft(result);
 		} catch (ClientProtocolException e) {
 			e.printStackTrace();
 		} catch (IOException e) {
@@ -957,10 +961,14 @@ public class EPGUtil {
 		HttpResponse response;
 		try {
 			response = new DefaultHttpClient().execute(request);
-			if (response.getStatusLine().getStatusCode() == 200) {
-				String result = EntityUtils.toString(response.getEntity());
-				return parseCdnUrlxml(result, ft, is_m3u8, noVideo);
+			int code = response.getStatusLine().getStatusCode();
+			if (code != 200) {
+				Log.e(TAG, "Java: getCDNUrl() result is no 200: " + code);
+				return null;
 			}
+			
+			String result = EntityUtils.toString(response.getEntity());
+			return parseCdnUrlxml(result, ft, is_m3u8, noVideo);
 		} catch (ClientProtocolException e) {
 			e.printStackTrace();
 		} catch (IOException e) {
@@ -1004,10 +1012,10 @@ public class EPGUtil {
 				Element d = dt.get(i);
 				
 				String d_ft = d.getAttributeValue("ft");
-				String d_sh = d.getChild("sh").getText(); // main server
-				String d_bh = d.getChild("bh").getText(); // backup server
-				String d_st = d.getChild("st").getText(); // server time
-				String d_key = d.getChild("key").getText();
+				String d_sh = getChildText(d, "sh"); // main server
+				String d_bh = getChildText(d, "bh"); // backup server
+				String d_st = getChildText(d, "st"); // server time
+				String d_key = getChildText(d, "key");
 				
 				CDNItem item = new CDNItem(d_ft, 0, 0, 
 						d_sh, d_st, d_bh, d_key, strmList.get(i).m_rid);
@@ -1209,5 +1217,13 @@ public class EPGUtil {
 		}
 		
 		return false;
+	}
+	
+	private String getChildText(Element e, String cname) {
+		String text = "";
+		if (e.getChild(cname) != null)
+			text = e.getChild(cname).getText();
+		
+		return text;
 	}
 }

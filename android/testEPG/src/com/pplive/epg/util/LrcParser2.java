@@ -69,8 +69,10 @@ public class LrcParser2 {
 	 * 单行解析
 	 * */
 	private void decodeLine(String str) {
-		String reg = "\\[\\d{2}:\\d{2}";
-		Pattern pattern = Pattern.compile(reg);
+		System.out.println("Java: parse line " + str);
+		
+		String regLrcLine = "\\[\\d{2}:\\d{2}";
+		Pattern patternLrcLine = Pattern.compile(regLrcLine);
 
 		if (str.startsWith("[ti:")) {// 歌曲名
 			String title = str.substring(4, str.lastIndexOf("]"));
@@ -100,20 +102,80 @@ public class LrcParser2 {
 		} else if (str.startsWith("[url:")) { // fix 费玉清 一剪梅
 			String url = str.substring(4, str.lastIndexOf("]"));
 			lrcTable.put("url", url);
-		} else if (pattern.matcher(str).find()){
+		} else if (patternLrcLine.matcher(str).find()){
 			// 歌词正文
 			System.out.println("Java: lrc " + str);
+			
+			// 设置正则规则
+			String reg2 = null;
+			if (str.contains("."))
+				reg2 = "\\[(\\d{2}:\\d{2}\\.\\d{2})\\]"; // "\[(\d{2}:\d{2}\.\d{2})\]";
+			else
+				reg2 = "\\[(\\d{2}:\\d{2})\\]"; // "\[(\d{2}:\d{2})\]"
+
+			// 编译
+			Pattern pattern2 = Pattern.compile(reg2);
+			Matcher matcher = pattern2.matcher(str);
+
+			// 如果存在匹配项，则执行以下操作
+			while (matcher.find()) {
+				// 得到这个匹配项中的所有内容和组数
+				int groupCount = matcher.groupCount();
+				System.out.println(String.format("Java: group %s, count %d", matcher.group(), groupCount));
+				
+				// 得到这个匹配项开始的索引
+				int start = matcher.start();
+				// 得到这个匹配项结束的索引
+				int end = matcher.end();
+				System.out.println(String.format("Java: start\'[\' %d, end\']\'  %d", start, end));
+				
+				long currentTime = 0;//存放临时时间
+				String currentContent = "";//存放临时歌词
+				// 得到每个组中内容
+				for (int i = 0; i <= groupCount; i++) {
+					String timeStr = matcher.group(i);
+					System.out.println(String.format("Java: group #%d %s", i, timeStr));
+					
+					if (i == 1) {
+						// 将第二组中的内容设置为当前的一个时间点
+						currentTime = strToLong(timeStr);
+					}
+				}
+
+				// 得到时间点后的内容
+				String[] content = pattern2.split(str); // [aaa], [bbb], [ccc], lrc_text
+				if (content.length > 0) {
+					System.out.println(String.format("Java: content size %d, duplicated src %d", 
+							content.length, content.length - 1));
+					currentContent = content[content.length - 1];
+				}
+				else {
+					currentContent = "";
+				}
+				
+				// 设置时间点和内容的映射
+				lrcList.add(new TimeLrc(currentContent, currentTime, 0));
+				System.out.println("Java: put---currentTime--->" + currentTime
+						+ "----currentContent---->" + currentContent);
+			}
+			
+			/*
 			int startIndex = -1;
-			//
+			
 			while ((startIndex = str.indexOf("[", startIndex + 1)) != -1) {
 				int endIndex = str.indexOf("]", startIndex + 1);
 				// 添加时间格式m:ss
 				String lrcLine = str.substring(str.lastIndexOf("]") + 1, str.length());
+				if (lrcLine.isEmpty() && lastLine != null)
+					lrcLine = lastLine;
 				String startTime  = strToLongToTime(str.substring(startIndex + 1, endIndex));
 				lrcTable.put(startTime, lrcLine);
 				lrcList.add(new TimeLrc(lrcLine, strToLong(startTime) - offset, 0));
 				System.out.println(String.format("Java: lrc line %s, start at %s", lrcLine, startTime));
-			}
+				
+				if (!lrcLine.isEmpty())
+					lastLine = lrcLine;
+			}*/
 		}
 	}
 

@@ -1,0 +1,26 @@
+1 download msys http://sourceforge.net/projects/mingwbuilds/files/external-binary-packages/
+  msys+7za+wget+svn+git+mercurial+cvs-rev13.7z and extract
+  
+3 put msys_xxx.bat under msys folder
+
+4 modify msys_xxx.bat
+  Notice change to YOUR OWN PROGRAM PATH
+  1) msys_iclxxx.bat
+      call "C:\Program Files (x86)\Intel\Composer XE 2013\bin\ipsxe-comp-vars.bat" ia32 vs2012 
+  2) msys_vcxxx.bat
+      call "C:\Program Files (x86)\Microsoft Visual Studio 11.0\VC\vcvarsall.bat" x86
+
+5 run msys.bat
+	  	 
+6 download ffmpeg source code from http://www.ffmpeg.org/ and put file under /home/YOUR_ACCOUNT_NAME/
+	  
+intel icl build
+1 run msys_icl.bat for win32 build, run msys_icl_x64.bat for x64 build
+
+2 run build_ffmpeg_icl.sh
+=======================================
+
+ms vs2013 build
+1 run msys_vc12.bat for win32 build, run msys_vc12_x64.bat for x64 build
+
+2 run build_ffmpeg_vc12.bat

@@ -2953,32 +2953,29 @@ bool FFPlayer::need_drop_pkt(AVPacket* packet)
         uint8_t* pNAL = NULL;
         int32_t sizeNAL = 0;
         LOGD("mMediaFile->iformat->name:%s", mMediaFile->iformat->name);
-        if(strstr(mMediaFile->iformat->name, "matroska") != NULL ||
+        if (strstr(mMediaFile->iformat->name, "matroska") != NULL ||
             strstr(mMediaFile->iformat->name, "mp4") != NULL ||
             strstr(mMediaFile->iformat->name, "flv") != NULL)
         {
             uint8_t* pExtra = mVideoStream->codec->extradata;
-            if(pExtra == NULL)
-            {
+            if (pExtra == NULL) {
                 LOGD("Skip nal parse");
                 return false;
             }
-            if(pExtra[0] != 1 || mVideoStream->codec->extradata_size < 7)
-            {
+            if (pExtra[0] != 1 || mVideoStream->codec->extradata_size < 7) {
                 LOGE("Invalid AVCC");
                 return false;
             }
             int32_t avccLengthSize = (pExtra[4] & 0x03) + 1;
-            LOGD("avccLengthSize:%d", avccLengthSize);
-            pNAL = packet->data+avccLengthSize;
-            sizeNAL = packet->size-avccLengthSize;
+            LOGD("avccLengthSize: %d", avccLengthSize);
+            pNAL = packet->data + avccLengthSize;
+            sizeNAL = packet->size - avccLengthSize;
         }
-        else
-        {
+        else {
             //other types input stream
-            for(int32_t offset=0; offset < packet->size-3; offset++ )
-            {
-                if(packet->data[offset] == 0x00 &&
+            for (int32_t offset=0; offset < packet->size-3; offset++ ) {
+				// 00 00 00 01 or 00 00 01
+                if (packet->data[offset] == 0x00 &&
                     packet->data[offset+1] == 0x00 &&
                     packet->data[offset+2] == 0x01)
                 {
@@ -2991,23 +2988,21 @@ bool FFPlayer::need_drop_pkt(AVPacket* packet)
             }
         }
 
-        if(pNAL == NULL)
-        {
+        if (pNAL == NULL) {
             LOGD("Skip nal parse");
             return false;
         }
 
         int32_t nalForb = pNAL[0]>>7;
-        if(nalForb == 1)
-        {
+        if(nalForb == 1) {
             LOGE("Packet is corrupted");
             return true;
         }
 
-        int32_t nalType = pNAL[0]&0x1f;
+        int32_t nalType = pNAL[0] & 0x1f;
         int32_t nalReferrenceIDC = (pNAL[0]>>5)&0x3;
-        LOGD("nalType:%d", nalType);
-        LOGD("nalReferrenceIDC:%d", nalReferrenceIDC);
+        LOGD("nalType: %d", nalType);
+        LOGD("nalReferrenceIDC: %d", nalReferrenceIDC);
         if(nalType >= NAL_SLICE && nalType <= NAL_IDR_SLICE) // frame type?
         {
             if (mDiscardCount > 0) {
@@ -3073,30 +3068,27 @@ bool FFPlayer::need_drop_pkt(AVPacket* packet)
             else if(nalReferrenceIDC == 0)
             {
                 int64_t packetPTS = 0;
-                if(packet->pts == AV_NOPTS_VALUE)
-                {
+                if(packet->pts == AV_NOPTS_VALUE) {
                     LOGV("pPacket->pts is AV_NOPTS_VALUE");
                     packetPTS = packet->dts;
                 }
-                else
-                {
+                else {
                     packetPTS = packet->pts;
                 }
-                if(packetPTS == AV_NOPTS_VALUE)
-                {
+
+                if (packetPTS == AV_NOPTS_VALUE)
                     return false;
-                }
+
                 int64_t packetTimeMs = (int64_t)(packetPTS * 1000 * av_q2d(mVideoStream->time_base));
 				int64_t audioPlayingTimeMs = get_audio_clock();
                 int64_t latenessMs = audioPlayingTimeMs - packetTimeMs;
 
-                //as audio time is playing, so time*2
-                latenessMs = latenessMs + mVideoRenderer->get_swsMs() + mAveVideoDecodeTimeMs*2;
+                //as audio time is playing, so time * 2
+                latenessMs = latenessMs + mVideoRenderer->get_swsMs() + mAveVideoDecodeTimeMs * 2;
                 LOGD("packetTimeMs: %lld, audioPlayingTimeMs: %lld, latenessMs: %lld, maxPacketLatenessMs: %lld",
             		    packetTimeMs, audioPlayingTimeMs, latenessMs, latenessMs);
 
-                if(latenessMs > AV_LATENCY_THR1)
-                {
+                if (latenessMs > AV_LATENCY_THR1) {
                     LOGD("discard packet as packet is late");
                     return true;
                 }

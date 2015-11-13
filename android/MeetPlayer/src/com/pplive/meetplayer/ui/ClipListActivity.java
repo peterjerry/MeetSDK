@@ -956,8 +956,6 @@ public class ClipListActivity extends Activity implements
 			public boolean onDoubleTap(MotionEvent event) {
 				Log.i(TAG, "Java: onDoubleTap!!!");
 				if (mPlayer != null) {
-					mMediaController.updateLandscape(!isLandscape);
-					
 					if (isLandscape) {
 						
 						mPreview.switchDisplayMode();
@@ -984,6 +982,8 @@ public class ClipListActivity extends Activity implements
 		int orientation = getRequestedOrientation();
 		Log.i(TAG, "Java: orientation " + orientation);
 		isLandscape = (orientation == ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
+		
+		mMediaController.updateLandscape(isLandscape);
 		
 		if (isLandscape) {
     		mLayout.setLayoutParams(new LinearLayout.LayoutParams( 

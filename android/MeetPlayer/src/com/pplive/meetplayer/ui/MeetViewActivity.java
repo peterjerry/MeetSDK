@@ -293,6 +293,8 @@ public class MeetViewActivity extends Activity implements OnFocusChangeListener 
 			}
 		});
 		
+		mPlayerImpl = Util.readSettingsInt(this, "PlayerImpl");
+		
 		mPPTVClipList = new ArrayList<Map<String, Object>>();
 		
 		new ListPPTVTask().execute(mListType, mPageNum);
@@ -700,7 +702,7 @@ public class MeetViewActivity extends Activity implements OnFocusChangeListener 
 				paramsPreview.height = screen_height;
 				paramsPreview.addRule(RelativeLayout.RIGHT_OF, R.id.layout_ctrl);
 				
-				paramsCtrl.width = screen_width / 4;
+				paramsCtrl.width = screen_width / 3; // LinearLayout.LayoutParams.WRAP_CONTENT
 				paramsCtrl.addRule(RelativeLayout.ALIGN_PARENT_LEFT);
 			}
 		}
@@ -739,6 +741,7 @@ public class MeetViewActivity extends Activity implements OnFocusChangeListener 
 			isLandscape = true;
 		
 		mStartFromPortrait = !isLandscape;
+		mSideBarShowed = isLandscape;
 		setup_layout(isLandscape);
 		
 		mVideoView.start();
@@ -747,8 +750,9 @@ public class MeetViewActivity extends Activity implements OnFocusChangeListener 
 	@Override
 	protected void onPause() {
 		super.onPause();
-
 		Log.i(TAG, "Java: onPause()");
+		
+		Util.writeSettingsInt(this, "PlayerImpl", mPlayerImpl);
 
 		mVideoView.pause();
 	}
