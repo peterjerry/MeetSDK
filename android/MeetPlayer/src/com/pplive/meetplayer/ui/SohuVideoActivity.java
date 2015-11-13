@@ -8,7 +8,7 @@ import com.pplive.common.sohu.ChannelSohu;
 import com.pplive.common.sohu.PlaylinkSohu;
 import com.pplive.common.sohu.SohuUtil;
 import com.pplive.common.sohu.SubChannelSohu;
-import com.pplive.common.sohu.PlaylinkSohu.SOHU_FT;
+import com.pplive.common.sohu.PlaylinkSohu.SohuFtEnum;
 import com.pplive.meetplayer.R;
 import com.pplive.meetplayer.util.Util;
 
@@ -115,18 +115,18 @@ public class SohuVideoActivity extends ListActivity {
         public void handleMessage(Message msg) {  
             switch (msg.what) {
             case MSG_PLAYLINK_DONE:
-            	SOHU_FT ft = SOHU_FT.SOHU_FT_ORIGIN;
+            	SohuFtEnum ft = SohuFtEnum.SOHU_FT_ORIGIN;
             	String strUrl = mPlaylink.getUrl(ft);
         		if (strUrl == null || strUrl.isEmpty()) {
-        			ft = SOHU_FT.SOHU_FT_SUPER;
+        			ft = SohuFtEnum.SOHU_FT_SUPER;
         			strUrl = mPlaylink.getUrl(ft);
         		}
         		if (strUrl == null || strUrl.isEmpty()) {
-        			ft = SOHU_FT.SOHU_FT_HIGH;
+        			ft = SohuFtEnum.SOHU_FT_HIGH;
         			strUrl = mPlaylink.getUrl(ft);
         		}
         		if (strUrl == null || strUrl.isEmpty()) {
-        			ft = SOHU_FT.SOHU_FT_NORMAL;
+        			ft = SohuFtEnum.SOHU_FT_NORMAL;
         			strUrl = mPlaylink.getUrl(ft);
         		}
         		if (strUrl == null || strUrl.isEmpty()) {

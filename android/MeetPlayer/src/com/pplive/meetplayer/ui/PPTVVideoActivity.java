@@ -14,9 +14,9 @@ import com.pplive.common.pptv.PlayLinkUtil;
 import com.pplive.common.pptv.VirtualChannelInfo;
 import com.pplive.common.sohu.ChannelSohu;
 import com.pplive.common.sohu.PlaylinkSohu;
+import com.pplive.common.sohu.PlaylinkSohu.SohuFtEnum;
 import com.pplive.common.sohu.SohuUtil;
 import com.pplive.common.sohu.SubChannelSohu;
-import com.pplive.common.sohu.PlaylinkSohu.SOHU_FT;
 import com.pplive.meetplayer.R;
 import com.pplive.meetplayer.util.Util;
 import com.pplive.sdk.MediaSDK;
@@ -148,32 +148,6 @@ public class PPTVVideoActivity extends ListActivity {
         @Override  
         public void handleMessage(Message msg) {  
             switch (msg.what) {
-            case MSG_PLAYLINK_DONE:
-            	SOHU_FT ft = SOHU_FT.SOHU_FT_ORIGIN;
-            	String strUrl = mPlaylink.getUrl(ft);
-        		if (strUrl == null || strUrl.isEmpty()) {
-        			ft = SOHU_FT.SOHU_FT_SUPER;
-        			strUrl = mPlaylink.getUrl(ft);
-        		}
-        		if (strUrl == null || strUrl.isEmpty()) {
-        			ft = SOHU_FT.SOHU_FT_HIGH;
-        			strUrl = mPlaylink.getUrl(ft);
-        		}
-        		if (strUrl == null || strUrl.isEmpty()) {
-        			ft = SOHU_FT.SOHU_FT_NORMAL;
-        			strUrl = mPlaylink.getUrl(ft);
-        		}
-        		if (strUrl == null || strUrl.isEmpty()) {
-        			Toast.makeText(PPTVVideoActivity.this, "no stream available", Toast.LENGTH_SHORT).show();
-        			return;
-        		}
-        		
-        		Intent intent = new Intent(PPTVVideoActivity.this, PlaySohuActivity.class);
-        		intent.putExtra("url_list", strUrl);
-        		intent.putExtra("duration_list", mPlaylink.getDuration(ft));
-        		intent.putExtra("title", mPlaylink.getTitle());
-        		startActivity(intent);
-            	break;
             case MSG_FAIL_TO_GET_PLAYLINK:
             	Toast.makeText(PPTVVideoActivity.this, "failed to get playlink",
             			Toast.LENGTH_SHORT).show();

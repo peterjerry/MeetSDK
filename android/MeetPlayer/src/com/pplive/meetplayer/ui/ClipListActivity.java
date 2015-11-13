@@ -76,7 +76,7 @@ import com.pplive.common.pptv.PlayLink2;
 import com.pplive.common.pptv.PlayLinkUtil;
 import com.pplive.common.pptv.VirtualChannelInfo;
 import com.pplive.common.sohu.PlaylinkSohu;
-import com.pplive.common.sohu.PlaylinkSohu.SOHU_FT;
+import com.pplive.common.sohu.PlaylinkSohu.SohuFtEnum;
 import com.pplive.common.sohu.SohuUtil;
 import com.pplive.common.util.httpUtil;
 import com.pplive.db.MediaStoreDatabaseHelper;
@@ -2324,8 +2324,8 @@ public class ClipListActivity extends Activity implements
         		
         		Intent intent = new Intent(ClipListActivity.this,
         				/*FragmentMp4PlayerActivity*/PlaySohuActivity.class);
-        		intent.putExtra("url_list", l.getUrl(SOHU_FT.SOHU_FT_HIGH));
-        		intent.putExtra("duration_list", l.getDuration(SOHU_FT.SOHU_FT_HIGH));
+        		intent.putExtra("url_list", l.getUrl(SohuFtEnum.SOHU_FT_HIGH));
+        		intent.putExtra("duration_list", l.getDuration(SohuFtEnum.SOHU_FT_HIGH));
         		intent.putExtra("title", l.getTitle());
         		intent.putExtra("info_id", info_id);
         		intent.putExtra("index", index);

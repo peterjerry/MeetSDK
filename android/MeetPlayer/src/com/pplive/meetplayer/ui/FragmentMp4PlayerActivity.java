@@ -8,7 +8,7 @@ import java.util.StringTokenizer;
 import com.pplive.common.pptv.EPGUtil;
 import com.pplive.common.pptv.Episode;
 import com.pplive.common.sohu.PlaylinkSohu;
-import com.pplive.common.sohu.PlaylinkSohu.SOHU_FT;
+import com.pplive.common.sohu.PlaylinkSohu.SohuFtEnum;
 import com.pplive.common.sohu.SohuUtil;
 import com.pplive.meetplayer.R;
 
@@ -468,8 +468,8 @@ public class FragmentMp4PlayerActivity extends Activity implements Callback {
         		return false;
     		}
     		
-    		mUrlListStr 		= l.getUrl(SOHU_FT.SOHU_FT_HIGH);
-			mDurationListStr	= l.getDuration(SOHU_FT.SOHU_FT_HIGH);
+    		mUrlListStr 		= l.getUrl(SohuFtEnum.SOHU_FT_HIGH);
+			mDurationListStr	= l.getDuration(SohuFtEnum.SOHU_FT_HIGH);
 			mTitle				= l.getTitle();
 			
 			buildPlaylinkList();

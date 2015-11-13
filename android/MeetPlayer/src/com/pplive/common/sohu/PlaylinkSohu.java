@@ -1,15 +1,36 @@
 package com.pplive.common.sohu;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.StringTokenizer;
-
 public class PlaylinkSohu {
-	public enum SOHU_FT {
-		SOHU_FT_NORMAL,
-		SOHU_FT_HIGH,
-		SOHU_FT_SUPER,
-		SOHU_FT_ORIGIN
+	public enum SohuFtEnum {
+		SOHU_FT_NORMAL(0),
+		SOHU_FT_HIGH(1),
+		SOHU_FT_SUPER(2),
+		SOHU_FT_ORIGIN(3);
+		
+		private int value = 0;
+
+	    private SohuFtEnum(int value) {    //    必须是private的，否则编译错误
+	        this.value = value;
+	    }
+
+	    public static SohuFtEnum valueOf(int value) {    //    手写的从int到enum的转换函数
+	        switch (value) {
+	        case 0:
+	            return SOHU_FT_NORMAL;
+	        case 1:
+	            return SOHU_FT_HIGH;
+	        case 2:
+	            return SOHU_FT_SUPER;
+	        case 3:
+	            return SOHU_FT_ORIGIN;
+	        default:
+	            return null;
+	        }
+	    }
+	
+	    public int value() {
+	        return this.value;
+	    }
 	};
 	
 	private String mTitle;
@@ -32,14 +53,14 @@ public class PlaylinkSohu {
 		return mTitle;
 	}
 	
-	public String getUrl(SOHU_FT ft) {
-		if (ft == SOHU_FT.SOHU_FT_NORMAL)
+	public String getUrl(SohuFtEnum ft) {
+		if (ft == SohuFtEnum.SOHU_FT_NORMAL)
 			return mUrlNormal;
-		else if (ft == SOHU_FT.SOHU_FT_HIGH)
+		else if (ft == SohuFtEnum.SOHU_FT_HIGH)
 			return mUrlHigh;
-		else if (ft == SOHU_FT.SOHU_FT_SUPER)
+		else if (ft == SohuFtEnum.SOHU_FT_SUPER)
 			return mUrlSuper;
-		else if (ft == SOHU_FT.SOHU_FT_ORIGIN)
+		else if (ft == SohuFtEnum.SOHU_FT_ORIGIN)
 			return mUrlOrigin;
 		else
 			return null;
@@ -48,14 +69,14 @@ public class PlaylinkSohu {
 	/*
 	 * unit sec, sepearted by comma e.g. 150.1,150.1,100.2
 	 */
-	public String getDuration(SOHU_FT ft) {
-		if (ft == SOHU_FT.SOHU_FT_NORMAL)
+	public String getDuration(SohuFtEnum ft) {
+		if (ft == SohuFtEnum.SOHU_FT_NORMAL)
 			return mNormalDuration;
-		else if (ft == SOHU_FT.SOHU_FT_HIGH)
+		else if (ft == SohuFtEnum.SOHU_FT_HIGH)
 			return mHighDuration;
-		else if (ft == SOHU_FT.SOHU_FT_SUPER)
+		else if (ft == SohuFtEnum.SOHU_FT_SUPER)
 			return mSuperDuration;
-		else if (ft == SOHU_FT.SOHU_FT_ORIGIN)
+		else if (ft == SohuFtEnum.SOHU_FT_ORIGIN)
 			return mOriginDuration;
 		else
 			return null;
