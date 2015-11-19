@@ -1,0 +1,341 @@
+===============PPMediaPlayer==========
+#parameter
+1) version
+1.0.5
+
+2) git_branch
+master
+git branch(Default is master)
+
+#build
+cd $WORKSPACE/ios/build
+chmod +x build.sh
+./build.sh $version
+
+#archive
+ios/output/PPMediaPlayer_*.zip
+
+===============ffmpeg_android==========
+#parameter
+
+1) git_branch
+master
+git branch (Default is master) 
+
+2) BUILD_ABI
+neon
+build abi(neon x86 arm64-v8a)
+
+3) release_version
+1.0.5
+version
+
+4) build_selection
+full
+lite or full
+
+#Properties Content
+NDK_HOME=/home/share/android-ndk-r10e
+
+ANDROID_HOME=/home/share/adt-bundle-linux-x86_64-20140702/sdk
+
+NDK=$NDK_HOME
+
+eval $(LANG=C svn info | awk -F ': ' '$1 == "Revision" {printf("version=%s",$2)}') 
+
+release_version=${release_version}.${BUILD_NUMBER}
+
+#build2
+cd $WORKSPACE/foundation/build/android
+chmod +x *.sh
+chmod +x ../../foundation_rext/*.sh
+chmod +x  ../../foundation_rext/configure
+
+./config.sh $BUILD_ABI $build_selection
+./build.sh $BUILD_ABI $build_selection
+./merge.sh $BUILD_ABI $build_selection
+
+cd ../../output/android/$BUILD_ABI
+rm -f libffmpeg_${BUILD_ABI}*.zip
+zip -r ./libffmpeg_${BUILD_ABI}_${build_selection}_${release_version}.zip ./
+
+#archive
+foundation/output/android/$BUILD_ABI/*.zip
+
+===============ffmpeg_ios==========
+#parameter
+
+1) release_version
+1.0.3
+version
+
+2) build_selection
+full
+lite or full
+
+#Properties Content
+eval $(LANG=C svn info | awk -F ': ' '$1 == "Revision" {printf("version=%s",$2)}')
+
+release_version = ${release_version}.${BUILD_NUMBER}
+
+#build
+cd $WORKSPACE/foundation/build/ios
+
+chmod +x *.sh
+chmod +x ../../foundation_rext/configure
+chmod +x ../../foundation_rext/*.sh
+
+export PATH=/usr/local/bin/:$PATH
+
+rm -rf ../../output/ios/v8
+mkdir -p ../../output/ios/v8
+
+ARCHS="arm64 armv7s armv7 x86_64 i386"
+XCODE_VERSION="xc6"
+
+for ARCH in $ARCHS
+do
+    echo "building $ARCH..."
+    ./config_$XCODE_VERSION.sh $ARCH $build_selection
+    ./build_$XCODE_VERSION.sh $ARCH $build_selection
+done
+
+./merge.sh
+
+cd ../../output/ios/v8
+rm -rf i386
+rm -rf x86_64
+rm -rf armv7
+rm -rf armv7s
+rm -rf arm64
+zip -r libffmpeg_univernal_${build_selection}_${release_version}.zip ./
+
+#archive
+foundation/output/ios/v8/*.zip
+
+===============subtitle2_android==========
+#parameter
+
+1) release_version
+1.0.4
+version
+
+2) git_branch
+master
+git branch (Default is master)
+
+#Properties Content
+NDK_HOME=/home/share/android-ndk-r10e
+
+ANDROID_HOME=/home/share/adt-bundle-linux-x86_64-20140702/sdk
+
+NDK=$NDK_HOME
+
+eval $(LANG=C svn info | awk -F ': ' '$1 == "Revision" {printf("build_version=%s",$2)}')
+
+release_version=${release_version}.${BUILD_NUMBER}
+
+#build
+cd $WORKSPACE/subtitle2/build/android
+
+export PATH=$NDK_HOME:$PATH
+ndk-build clean
+ndk-build -j4
+
+rm -rf output
+mkdir output
+cd output
+
+mkdir include
+mkdir lib
+
+COMMON_ABIS="armeabi x86 arm64-v8a"
+for ABI in $COMMON_ABIS; do
+    mkdir lib/${ABI}
+    cp ../obj/local/${ABI}/*.a lib/${ABI}/
+done
+
+cp ../../../src/subtitle/subtitle.h include/
+
+zip -r ./subtitle2_${release_version}.zip ./
+
+#archive
+subtitle2/build/android/output/subtitle2_*.zip
+
+===============subtitle2_ios==========
+#parameter
+
+1) release_version
+1.0.2
+version
+
+#Properties Content
+eval $(LANG=C svn info | awk -F ': ' '$1 == "Revision" {printf("version=%s",$2)}')
+
+release_version = ${release_version}.${BUILD_NUMBER}
+
+#build
+cd $WORKSPACE/subtitle2/build/ios
+
+chmod +x *.sh
+
+./build.sh
+
+rm -rf output
+mkdir output
+mkdir -p output/include
+mkdir -p output/lib
+
+cp ../../src/subtitle/subtitle.h output/include/
+
+OUTPUT_DIST=output/lib
+FILE=libsubtitle.a
+ARCHS="arm64 armv7s armv7 x86_64 i386"
+for ARCH in $ARCHS
+do
+    mkdir -p output/$ARCH
+done
+
+xcrun -sdk iphoneos lipo -output output/i386/$FILE -thin i386 subtitle2/subtitle/build/Release-iphonesimulator/$FILE
+xcrun -sdk iphoneos lipo -output output/x86_64/$FILE -thin x86_64 subtitle2/subtitle/build/Release-iphonesimulator/$FILE
+xcrun -sdk iphoneos lipo -output output/armv7/$FILE -thin armv7 subtitle2/subtitle/build/Release-iphoneos/$FILE
+xcrun -sdk iphoneos lipo -output output/arm64/$FILE -thin arm64 subtitle2/subtitle/build/Release-iphoneos/$FILE
+
+xcrun -sdk iphoneos lipo -output $OUTPUT_DIST/$FILE -create \
+    -arch i386 output/i386/$FILE \
+    -arch x86_64 output/x86_64/$FILE \
+    -arch armv7 output/armv7/$FILE \
+    -arch arm64 output/arm64/$FILE
+xcrun -sdk iphoneos lipo -info $OUTPUT_DIST/$FILE
+
+for ARCH in $ARCHS
+do
+    rm -r output/$ARCH
+done
+
+cd output
+zip -r subtitle2_univernal_${release_version}.zip ./
+
+#archive
+subtitle2/build/ios/output/subtitle2_univernal_*.zip
+
+===============meetsdk==========
+#parameter
+
+1) git_branch
+master
+git branch (Default is master) 
+
+2) release_version
+2.3.4
+Release Version of MeetPlayer SDK
+
+3) NDK_HOME
+/home/share/android-ndk-r10e
+android NDK sdk path(/home/share/android-ndk-r9d or /home/share/android-ndk-r10e)
+
+4) android_platform
+android-20
+android sdk version  (Default is android-20, android-21 for build arm64)
+
+#Properties Content
+ANDROID_HOME	=	/home/share/adt-bundle-linux-x86_64-20140702/sdk
+
+NDK	=	$NDK_HOME
+
+eval $(LANG=C svn info | awk -F ': ' '$1 == "Revision" {printf("version=%s",$2)}')
+
+release_version = ${release_version}.${BUILD_NUMBER}
+
+#build
+#if [ ${git_branch} = "dev_android_arm64" ]; then
+#if [ ${android_platform} = "android-21" ]; then
+build_android_arm64=yes
+#else
+#build_android_arm64=no
+#fi
+
+#get prebuild subtitle
+if [ ! -d $WORKSPACE/subtitle2/output ]; then 
+mkdir $WORKSPACE/subtitle2/output
+fi
+
+#get prebuilt subtitle2
+rm -rf $WORKSPACE/subtitle2/output/android
+mkdir $WORKSPACE/subtitle2/output/android
+cd $WORKSPACE/subtitle2/output/android
+curl http://jenkins/view/Meet/job/subtitle2_android_git/26/artifact/subtitle2/build/android/output/subtitle2_1.0.4.26.zip -o subtitle2.zip
+unzip subtitle2.zip
+
+#get prebuilt foundation
+rm -rf $WORKSPACE/foundation/output/android/neon/
+mkdir -p $WORKSPACE/foundation/output/android/neon/
+cd $WORKSPACE/foundation/output/android/neon/
+curl http://jenkins/view/Meet/job/ffmpeg_android_git/17/artifact/foundation/output/android/neon/libffmpeg_neon_full_1.0.4.17.zip -o ./libffmpeg_neon.zip
+unzip libffmpeg_neon.zip
+
+rm -rf $WORKSPACE/foundation/output/android/x86/
+mkdir -p $WORKSPACE/foundation/output/android/x86/
+cd $WORKSPACE/foundation/output/android/x86/
+curl http://jenkins/view/Meet/job/ffmpeg_android_git/18/artifact/foundation/output/android/x86/libffmpeg_x86_full_1.0.4.18.zip -o ./libffmpeg_x86.zip
+unzip libffmpeg_x86.zip
+
+rm -rf $WORKSPACE/foundation/output/android/arm64-v8a/
+mkdir -p $WORKSPACE/foundation/output/android/arm64-v8a/
+cd $WORKSPACE/foundation/output/android/arm64-v8a/
+curl http://jenkins/view/Meet/job/ffmpeg_android_git/16/artifact/foundation/output/android/arm64-v8a/libffmpeg_arm64-v8a_full_1.0.4.16.zip -o ./libffmpeg_arm64-v8a.zip
+unzip libffmpeg_arm64-v8a.zip
+
+cd $WORKSPACE/engine2/build/android
+export PATH=$NDK_HOME:$PATH
+ndk-build clean
+ndk-build -j4
+
+OUTPUT_FOLDER=$WORKSPACE/engine2/output/android
+if [ ! -d $OUTPUT_FOLDER ]; then
+    rm -rf $OUTPUT_FOLDER
+fi
+mkdir -p $OUTPUT_FOLDER/armeabi
+mkdir -p $OUTPUT_FOLDER/armeabi/debug
+mkdir -p $OUTPUT_FOLDER/x86
+mkdir -p $OUTPUT_FOLDER/x86/debug
+
+if [ ${build_android_arm64} = "yes" ]; then
+mkdir -p $OUTPUT_FOLDER/arm64-v8a
+mkdir -p $OUTPUT_FOLDER/arm64-v8a/debug
+fi
+
+cp -f libs/armeabi/libplayer_neon.so $OUTPUT_FOLDER/armeabi
+cp -f obj/local/armeabi/libplayer_neon.so $OUTPUT_FOLDER/armeabi/debug/
+cp -f libs/x86/libplayer_neon.so $OUTPUT_FOLDER/x86/
+cp -f obj/local/x86/libplayer_neon.so $OUTPUT_FOLDER/x86/debug/
+
+if [ ${build_android_arm64} = "yes" ]; then
+cp -f libs/arm64-v8a/libplayer_neon.so $OUTPUT_FOLDER/arm64-v8a/
+cp -f obj/local/arm64-v8a/libplayer_neon.so $OUTPUT_FOLDER/arm64-v8a/debug/
+fi
+
+#build2
+cd $WORKSPACE/android/MeetSDK
+
+cd jni
+chmod +x gen_version.sh
+./gen_version.sh
+cd ..
+
+rm -f dist/*.zip
+
+export PATH=$ANDROID_HOME:$PATH
+export PATH=$ANDROID_HOME/tools:$PATH
+export PATH=$ANDROID_HOME/platform-tools:$PATH
+export PATH=$NDK_HOME:$PATH
+android update project -p . -n MeetSDK -t $android_platform
+
+chmod 766 src/android/pplive/media/config/Config.java.template
+
+ant clean
+ant release -DVersion=$release_version
+#ant release -DVersion=$release_version -DNDK_HOME=$NDK_HOME -DANDROID_HOME=$ANDROID_HOME
+
+#archive
+android/MeetSDK/dist/meet_sdk_**.zip
