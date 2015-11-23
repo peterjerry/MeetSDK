@@ -17,6 +17,8 @@ import com.pplive.common.sohu.PlaylinkSohu;
 import com.pplive.common.sohu.PlaylinkSohu.SohuFtEnum;
 import com.pplive.common.sohu.SohuUtil;
 import com.pplive.common.sohu.SubChannelSohu;
+import com.pplive.db.PPTVPlayhistoryDatabaseHelper;
+import com.pplive.db.PPTVPlayhistoryDatabaseHelper.ClipInfo;
 import com.pplive.meetplayer.R;
 import com.pplive.meetplayer.util.Util;
 import com.pplive.sdk.MediaSDK;
@@ -94,11 +96,15 @@ public class PPTVVideoActivity extends ListActivity {
 	
 	private String mEPGsearchKey;
 	
+	private PPTVPlayhistoryDatabaseHelper mHistoryDB;
+	
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 		
 		Log.i(TAG, "Java: onCreate()");
+		
+		mHistoryDB = PPTVPlayhistoryDatabaseHelper.getInstance(this);
 		
 		mEPG = new EPGUtil();
 		new EPGTask().execute(EPG_ITEM_CONTENT_LIST);
@@ -119,7 +125,7 @@ public class PPTVVideoActivity extends ListActivity {
 	@Override
     public boolean onCreateOptionsMenu(Menu menu) {  
         MenuInflater menuInflater = new MenuInflater(getApplication());  
-        menuInflater.inflate(R.menu.sohu_menu, menu);  
+        menuInflater.inflate(R.menu.pptv_menu, menu);  
         return super.onCreateOptionsMenu(menu);  
     }
 	
@@ -134,6 +140,9 @@ public class PPTVVideoActivity extends ListActivity {
 			break;
 		case R.id.play_history:
 			popupHistory();
+			break;
+		case R.id.recent_play:
+			popupRecentPlay();
 			break;
 		default:
 			Log.w(TAG, "unknown menu id " + id);
@@ -277,75 +286,124 @@ public class PPTVVideoActivity extends ListActivity {
         builder.show();
 	}
 	
-	private void popupHistory() {
-		final String key = "PPTVPlayHistory";
-		final String regularEx = ",";
-		String value = Util.readSettings(PPTVVideoActivity.this, key);
+	private void popupRecentPlay() {
+		final List<ClipInfo> infoList = mHistoryDB.getRecentPlay();
 		
-		List<String> TitleList = new ArrayList<String>();
-		final List<String> videoInfoList = new ArrayList<String>();
-		StringTokenizer st = new StringTokenizer(value, regularEx, false);
-        while (st.hasMoreElements()) {
-        	String token = st.nextToken();
-        	int pos = token.indexOf("|");
-        	if (pos != -1) {
-        		TitleList.add(token.substring(0, pos));
-        		videoInfoList.add(token.substring(pos + 1));
-        	}
-        }
+		if (infoList == null || infoList.size() == 0) {
+			Toast.makeText(this, "pptv history is empty", Toast.LENGTH_SHORT).show();
+			return;
+		}
 		
-        int size = TitleList.size();
-        if (size == 0) {
-        	Toast.makeText(PPTVVideoActivity.this, "no sohu playlink history", Toast.LENGTH_SHORT).show();
-        	return;
-        }
-        
-		final String[] str_title_list = (String[])TitleList.toArray(new String[size]);
+		List<String> titleList = new ArrayList<String>();
+		for (int i=0;i<infoList.size();i++) {
+			titleList.add(infoList.get(i).mTitle);
+		}
 		
-		Dialog choose_history_dlg = new AlertDialog.Builder(PPTVVideoActivity.this)
-		.setTitle("Select video")
+		final String[] str_title_list = titleList.toArray(new String[infoList.size()]);
+		
+		Dialog choose_recentplay_dlg = new AlertDialog.Builder(PPTVVideoActivity.this)
+		.setTitle("Recent play")
 		.setItems(str_title_list, 
 			new DialogInterface.OnClickListener(){
 			public void onClick(DialogInterface dialog, int whichButton) {
-				String videoInfo = videoInfoList.get(whichButton);
-				
-				int playlink;
-				int ft = 0;
+				ClipInfo info = infoList.get(whichButton);
+				int playlink = Integer.valueOf(info.mPlaylink);
+				int ft = info.mFt;
 				int bw_type = 3;
 				
-				int pos = videoInfo.indexOf("|");
-				if (pos == -1) {
-					playlink = Integer.valueOf(videoInfo);
-				}
-				else {
-					playlink = Integer.valueOf(videoInfo.substring(0, pos));
-					ft = Integer.valueOf(videoInfo.substring(pos + 1));
-					
-					short port = MediaSDK.getPort("http");
-					String url = PlayLinkUtil.getPlayUrl(playlink, port, ft, bw_type, null);
-					
-					Uri uri = Uri.parse(url);
-					Intent intent = new Intent(PPTVVideoActivity.this,
-							VideoPlayerActivity.class);
-					Log.i(TAG, "to play uri: " + uri.toString());
-					
-					Toast.makeText(PPTVVideoActivity.this, 
-							String.format("ready to play %s, 码流 %d",str_title_list[whichButton], ft), 
-									Toast.LENGTH_SHORT).show();
+				short port = MediaSDK.getPort("http");
+				String url = PlayLinkUtil.getPlayUrl(playlink, port, ft, bw_type, null);
+				
+				Uri uri = Uri.parse(url);
+				Intent intent = new Intent(PPTVVideoActivity.this,
+						PPTVPlayerActivity.class);
+				Log.i(TAG, "to play uri: " + uri.toString());
+				
+				Toast.makeText(PPTVVideoActivity.this, 
+						String.format("ready to play %s, 码流 %d",str_title_list[whichButton], ft), 
+								Toast.LENGTH_SHORT).show();
 
-					intent.setData(uri);
-					intent.putExtra("ft", ft);
-			        
-					startActivity(intent);
+				intent.setData(uri);
+				intent.putExtra("title", info.mTitle);
+				intent.putExtra("playlink", Integer.valueOf(info.mPlaylink));
+				intent.putExtra("album_id", Integer.valueOf(info.mAlbumId));
+				intent.putExtra("ft", ft);
+				
+				if (info.mLastPos > 0) {
+					intent.putExtra("preseek_msec", info.mLastPos);
+					Log.i(TAG, "Java: set preseek_msec " + info.mLastPos);
 				}
-
+		        
+				startActivity(intent);
+				
+				dialog.dismiss();
+			}
+		})
+		.setNegativeButton("Cancel",
+			new DialogInterface.OnClickListener(){
+				public void onClick(DialogInterface dialog, int whichButton){
+			}})
+		.create();
+		
+		choose_recentplay_dlg.show();
+	}
+	
+	private void popupHistory() {
+		final List<ClipInfo> infoList = mHistoryDB.getPlayedClips();
+		
+		if (infoList == null || infoList.size() == 0) {
+			Toast.makeText(this, "pptv history is empty", Toast.LENGTH_SHORT).show();
+			return;
+		}
+		
+		List<String> titleList = new ArrayList<String>();
+		for (int i=0;i<infoList.size();i++) {
+			titleList.add(infoList.get(i).mTitle);
+		}
+		
+		final String[] str_title_list = titleList.toArray(new String[infoList.size()]);
+		
+		Dialog choose_history_dlg = new AlertDialog.Builder(PPTVVideoActivity.this)
+		.setTitle("Play history")
+		.setItems(str_title_list, 
+			new DialogInterface.OnClickListener(){
+			public void onClick(DialogInterface dialog, int whichButton) {
+				ClipInfo info = infoList.get(whichButton);
+				int playlink = Integer.valueOf(info.mPlaylink);
+				int ft = info.mFt;
+				int bw_type = 3;
+				
+				short port = MediaSDK.getPort("http");
+				String url = PlayLinkUtil.getPlayUrl(playlink, port, ft, bw_type, null);
+				
+				Uri uri = Uri.parse(url);
+				Log.i(TAG, "to play uri: " + uri.toString());
+				
+				Toast.makeText(PPTVVideoActivity.this, 
+						String.format("ready to play %s, 码流 %d",str_title_list[whichButton], ft), 
+								Toast.LENGTH_SHORT).show();
+				
+				Intent intent = new Intent(PPTVVideoActivity.this, PPTVPlayerActivity.class);
+				intent.setData(uri);
+				intent.putExtra("title", info.mTitle);
+				intent.putExtra("playlink", Integer.valueOf(info.mPlaylink));
+				intent.putExtra("album_id", Integer.valueOf(info.mAlbumId));
+				intent.putExtra("ft", ft);
+				
+				if (info.mLastPos > 0) {
+					intent.putExtra("preseek_msec", info.mLastPos);
+					Log.i(TAG, "Java: set preseek_msec " + info.mLastPos);
+				}
+		        
+				startActivity(intent);
+				
 				dialog.dismiss();
 			}
 		})
 		.setNeutralButton("Clear",
 			new DialogInterface.OnClickListener(){
 				public void onClick(DialogInterface dialog, int whichButton){
-					Util.writeSettings(PPTVVideoActivity.this, key, "");
+					mHistoryDB.clearHistory();
 					Toast.makeText(PPTVVideoActivity.this, "pptv playlink history was clear", 
 							Toast.LENGTH_LONG).show();
 			}})

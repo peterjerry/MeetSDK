@@ -61,6 +61,7 @@ public class PPTVLiveCenterActivity extends Activity {
 	private String mLiveId;
 	private int mBwType = 0;
 	private String mLinkSurfix = null;
+	private long StartTimeSec = -1;
 	private int dayOffset = 0;
 	
 	private MyPPTVLiveCenterAdapter mAdapter;
@@ -196,12 +197,23 @@ public class PPTVLiveCenterActivity extends Activity {
         builder.setView(view); 
 
         Calendar cal = Calendar.getInstance(); 
-        cal.setTimeInMillis(System.currentTimeMillis()); 
-        datePicker.init(cal.get(Calendar.YEAR), cal.get(Calendar.MONTH), cal.get(Calendar.DAY_OF_MONTH), null); 
-
-        timePicker.setIs24HourView(true); 
-        timePicker.setCurrentHour(18/*cal.get(Calendar.HOUR_OF_DAY)*/); 
-        timePicker.setCurrentMinute(30/*cal.get(Calendar.MINUTE)*/); 
+        
+        timePicker.setIs24HourView(true);
+        if (StartTimeSec != -1) {
+            cal.setTimeInMillis(StartTimeSec * 1000); 
+        	timePicker.setCurrentHour(cal.get(Calendar.HOUR_OF_DAY)); 
+	        timePicker.setCurrentMinute(cal.get(Calendar.MINUTE)); 
+        }
+        else {
+        	cal.setTimeInMillis(System.currentTimeMillis()); 
+            datePicker.init(
+            		cal.get(Calendar.YEAR), 
+            		cal.get(Calendar.MONTH), 
+            		cal.get(Calendar.DAY_OF_MONTH), 
+            		null);
+	        timePicker.setCurrentHour(18/*cal.get(Calendar.HOUR_OF_DAY)*/); 
+	        timePicker.setCurrentMinute(30/*cal.get(Calendar.MINUTE)*/); 
+        }
  
         builder.setTitle("选择开始时间"); 
         builder.setPositiveButton("确认", new DialogInterface.OnClickListener() { 
@@ -232,7 +244,6 @@ public class PPTVLiveCenterActivity extends Activity {
                         timePicker.getCurrentHour(),
                         timePicker.getCurrentMinute());
 
-                long StartTimeSec;
                 int DurationSec;
                 // step1
                 GregorianCalendar gc = new GregorianCalendar(year, month, day, hour, min, 0);

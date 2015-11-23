@@ -135,12 +135,12 @@ public class MeetViewActivity extends Activity implements OnFocusChangeListener 
 	private ListView lv_pptvlist;
 	private List<Map<String, Object>> mPPTVClipList = null;
 	private int mLastPlayItemPos = -1;
+	private String mAlbumId;
 	private String mPlaylink;
 	
 	private NotificationManager mNotifManager;
 	private List<DownloadTask> downloadTaskList;
 	private String mDownloadLocalFolder;
-	private boolean mbIsP2P = false;
 	private BroadcastReceiver mClickReceiver;
 	
 	@Override
@@ -149,11 +149,11 @@ public class MeetViewActivity extends Activity implements OnFocusChangeListener 
 		Log.i(TAG, "Java: onCreate()");
 		
 		Intent intent = getIntent();
-		if (intent.hasExtra("playlink")) {
-			mPlaylink = intent.getStringExtra("playlink");
+		if (intent.hasExtra("album_id")) {
+			mAlbumId = intent.getStringExtra("album_id");
 		}
 		else {
-			mPlaylink = TV_SERIES_LINK;
+			mAlbumId = TV_SERIES_LINK;
 		}
 		
 		// Full Screen
@@ -345,7 +345,10 @@ public class MeetViewActivity extends Activity implements OnFocusChangeListener 
 	private void start_player(String title, String vid, int ft) {
 		String info = String.format("title %s, vid %s ft %d", title, vid, ft);
 		Log.i(TAG, "Java: " + info);
-		Toast.makeText(this, "play " + info, Toast.LENGTH_SHORT).show();
+		Toast.makeText(this, "[play] " + info, Toast.LENGTH_SHORT).show();
+		
+		mPlaylink = vid;
+		Util.add_pptvvideo_history(MeetViewActivity.this, title, vid, mAlbumId, 0);
 		
 		short http_port = MediaSDK.getPort("http");
 		Log.i(TAG, "Http port is: " + http_port);
@@ -508,7 +511,7 @@ public class MeetViewActivity extends Activity implements OnFocusChangeListener 
 	
 	private boolean fill_list_series() {
 		EPGUtil util = new EPGUtil();
-		boolean ret = util.detail(mPlaylink);
+		boolean ret = util.detail(mAlbumId);
 		if (!ret)
 			return false;
 		
@@ -754,7 +757,10 @@ public class MeetViewActivity extends Activity implements OnFocusChangeListener 
 		
 		Util.writeSettingsInt(this, "PlayerImpl", mPlayerImpl);
 
-		mVideoView.pause();
+		if (mVideoView.isPlaying()) {
+			mVideoView.pause();
+			Util.save_pptvvideo_pos(this, mPlaylink, mVideoView.getCurrentPosition());
+		}
 	}
 
 	@Override
@@ -763,8 +769,9 @@ public class MeetViewActivity extends Activity implements OnFocusChangeListener 
 
 		Log.i(TAG, "Java: onStop()");
 
-		if (isFinishing())
+		if (isFinishing()) {
 			mVideoView.stopPlayback();
+		}
 		
 		if (mClickReceiver != null) {
 			unregisterReceiver(mClickReceiver);
@@ -973,7 +980,7 @@ public class MeetViewActivity extends Activity implements OnFocusChangeListener 
 	public void onBackPressed() {
 		// TODO Auto-generated method stub
 		Log.i(TAG, "Java: onBackPressed()");
-		if (mSideBarShowed) {
+		if (mSideBarShowed && mVideoView.isPlaying()) {
 			showMenu(false);
 			return;
 		}

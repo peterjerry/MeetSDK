@@ -13,7 +13,8 @@
             android:id="@+id/iv_thumb"
             android:layout_width="96dp"
             android:layout_height="96dp"
-            android:layout_margin="5px" />
+            android:layout_centerInParent="true"
+            android:layout_margin="5dp" />
 
         <ImageView
             android:layout_width="36dp"

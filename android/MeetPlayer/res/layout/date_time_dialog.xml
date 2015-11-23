@@ -55,7 +55,7 @@
 	   
 	    <EditText 
 	        android:id="@+id/et_duration" 
-	        android:layout_width="50dp" 
+	        android:layout_width="100dp" 
 	        android:layout_height="wrap_content" 
 	        android:text="60" /> 
 			

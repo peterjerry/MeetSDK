@@ -18,6 +18,7 @@ import com.pplive.common.pptv.EPGUtil;
 import com.pplive.common.pptv.PlayLink2;
 import com.pplive.common.pptv.PlayLinkUtil;
 import com.pplive.db.MediaStoreDatabaseHelper;
+import com.pplive.db.PPTVPlayhistoryDatabaseHelper;
 import com.pplive.meetplayer.R;
 import com.pplive.meetplayer.ui.widget.DirChooserDialog;
 import com.pplive.meetplayer.ui.widget.DirChooserDialog.onOKListener;
@@ -88,7 +89,8 @@ public class PPTVEpisodeActivity extends Activity {
     private String epg_type;
     private String episode_title;
     private int episode_index;
-    private int selected_episode = -1;
+    private int selected_album_id = -1;
+    private String album_id;
     // 最受好评, param: order=g|最高人气, param: order=t|最新更新, param: order=n
     private String epg_order = "order=t";
     private String search_key;
@@ -101,6 +103,8 @@ public class PPTVEpisodeActivity extends Activity {
 
     private boolean mbPopSelEp = true;
     private String mDownloadLocalFolder;
+    
+    private PPTVPlayhistoryDatabaseHelper mHistoryDB;
 
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
@@ -164,14 +168,14 @@ public class PPTVEpisodeActivity extends Activity {
 				// TODO Auto-generated method stub
 				
 				Map<String, Object> item = adapter.getItem(position);
-				String vid = (String)item.get("vid");
+				album_id = (String)item.get("vid");
 				
 				if (mbPopSelEp) {
-					new PPTVEpgTask().execute(TASK_DETAIL, Integer.valueOf(vid));
+					new PPTVEpgTask().execute(TASK_DETAIL, Integer.valueOf(album_id));
 				}
 				else {
 					Intent intent = new Intent(PPTVEpisodeActivity.this, MeetViewActivity.class);
-					intent.putExtra("playlink", vid);
+					intent.putExtra("album_id", album_id);
 					startActivity(intent);
 				}	
 			}
@@ -255,6 +259,8 @@ public class PPTVEpisodeActivity extends Activity {
 					"/test2";
 	    else
 	    	mDownloadLocalFolder = folder;
+	    
+	    mHistoryDB = PPTVPlayhistoryDatabaseHelper.getInstance(this);
 	}
 	
 	@Override
@@ -474,16 +480,24 @@ public class PPTVEpisodeActivity extends Activity {
         startActivity(wrapperIntent);*/
 		
         // method 3
+		int last_pos = mHistoryDB.getLastPlayedPosition(String.valueOf(playlink));
+		
         Intent intent = new Intent(PPTVEpisodeActivity.this,
         		PPTVPlayerActivity.class);
 		Log.i(TAG, "to play uri: " + uri.toString());
 
 		intent.setData(uri);
 		intent.putExtra("title", episode_title);
+		intent.putExtra("playlink", playlink);
+		intent.putExtra("album_id", selected_album_id);
 		intent.putExtra("ft", ft);
 		intent.putExtra("best_ft", best_ft);
-		intent.putExtra("vid", selected_episode);
 		intent.putExtra("index", episode_index);
+		
+		if (last_pos > 0) {
+			intent.putExtra("preseek_msec", last_pos);
+			Log.i(TAG, "Java: set preseek_msec " + last_pos);
+		}
         
 		startActivity(intent);
 	}
@@ -563,7 +577,7 @@ public class PPTVEpisodeActivity extends Activity {
 				
 				mEpisodeList = mEPG.getLink();
 				if (mEpisodeList.size() > 1)
-					selected_episode = vid;
+					selected_album_id = vid;
 				
 				mhandler.sendEmptyMessage(MSG_EPISODE_DONE);
 			}
@@ -614,7 +628,8 @@ public class PPTVEpisodeActivity extends Activity {
             		return false;
         		}
         		
-        		Util.add_pptvvideo_history(PPTVEpisodeActivity.this, episode_title, vid, ft);
+        		Util.add_pptvvideo_history(PPTVEpisodeActivity.this, episode_title, 
+        				String.valueOf(vid), album_id, ft);
         		
         		Message msg = mhandler.obtainMessage(MSG_PLAY_CDN_FT, ft, ft);
     	        msg.sendToTarget();

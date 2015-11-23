@@ -30,6 +30,8 @@ import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.pplive.db.MediaStoreDatabaseHelper;
+import com.pplive.db.PPTVPlayhistoryDatabaseHelper;
 import com.pplive.meetplayer.R;
 import com.pplive.meetplayer.ui.widget.MyMediaController;
 import com.pplive.meetplayer.util.FileFilterTest;
@@ -114,6 +116,8 @@ public class VideoPlayerActivity extends Activity implements Callback {
 		mFt = intent.getIntExtra("ft", 0);
 		mBestFt = intent.getIntExtra("best_ft", 3);
 		
+		pre_seek_msec = intent.getIntExtra("preseek_msec", -1);
+		
 		setContentView(R.layout.activity_video_player);
 		
 		this.mController = (MyMediaController) findViewById(R.id.video_controller);
@@ -129,7 +133,6 @@ public class VideoPlayerActivity extends Activity implements Callback {
 		this.mController.setMediaPlayer(mVideoView);
 		
 		Util.initMeetSDK(this);
-		
 	}
 	
 	@Override
@@ -167,6 +170,7 @@ public class VideoPlayerActivity extends Activity implements Callback {
 			break;
 		case R.id.toggle_debug_info:
 			mbShowDebugInfo = !mbShowDebugInfo;
+			
 			if (mbShowDebugInfo)
 				mTextViewDebugInfo.setVisibility(View.VISIBLE);
 			else
@@ -436,6 +440,8 @@ public class VideoPlayerActivity extends Activity implements Callback {
 		}
 
 		if (pre_seek_msec != -1) {
+			Log.i(TAG, "Java: pre seek to " + pre_seek_msec + " msec");
+			
 			mVideoView.seekTo(pre_seek_msec);
 			pre_seek_msec = -1;
 		}
