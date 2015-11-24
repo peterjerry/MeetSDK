@@ -30,8 +30,6 @@ import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import com.pplive.db.MediaStoreDatabaseHelper;
-import com.pplive.db.PPTVPlayhistoryDatabaseHelper;
 import com.pplive.meetplayer.R;
 import com.pplive.meetplayer.ui.widget.MyMediaController;
 import com.pplive.meetplayer.util.FileFilterTest;

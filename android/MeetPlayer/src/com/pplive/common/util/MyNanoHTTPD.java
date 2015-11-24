@@ -534,7 +534,28 @@ public class MyNanoHTTPD extends NanoHTTPD{
 		String httpUrl = String.format(block_url_fmt, mLiveItem.getHost(), mLiveItem.getRid(),
 				time_stamp, mFt, mLiveItem.getKey());
 		Log.i(TAG, "Java: download flv segment: " + httpUrl);
-		int in_size = httpUtil.httpDownloadBuffer(httpUrl, 1400, in_flv);
+		
+		int retry = 3;
+		int in_size = 0;
+		while (retry > 0) {
+			in_size = httpUtil.httpDownloadBuffer(httpUrl, 1400, in_flv);
+			if (in_size > 100)
+				break;
+			
+			try {
+				Thread.sleep(100);
+			} catch (InterruptedException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+			
+			retry--;
+		}
+		
+		if (in_size < 0) {
+			return new myResponse(Status.BAD_REQUEST, null, null, 0, 0, 0);
+		}
+		
 		byte[] out_ts = new byte[1048576];
 		
 		int out_size = MeetSDK.Convert(in_flv, in_size, out_ts, 1, m_first_seg);

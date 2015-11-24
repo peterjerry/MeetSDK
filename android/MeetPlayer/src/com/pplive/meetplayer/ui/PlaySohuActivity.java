@@ -405,8 +405,12 @@ public class PlaySohuActivity extends Activity implements Callback {
 	@Override
 	public boolean onTouchEvent(MotionEvent event) {
 		// TODO Auto-generated method stub
-		if (mPlayer != null && !mController.isShowing())
-			mController.show(MEDIA_CONTROLLER_TIMEOUT);
+		if (mPlayer != null && event.getAction() == MotionEvent.ACTION_UP) {
+			if (mController.isShowing())
+				mController.hide();
+			else
+				mController.show(MEDIA_CONTROLLER_TIMEOUT);
+		}
 		
 		return super.onTouchEvent(event);
 	}

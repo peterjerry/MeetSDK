@@ -37,7 +37,6 @@ public class PPTVPlayerActivity extends VideoPlayerActivity {
 	private int mEpisodeIndex;
 	private int mAlbumId;
 	private int mPlaylink;
-	private boolean do_retry = false;
 	
 	@Override
 	public void onCreate(Bundle savedInstanceState) {
@@ -48,7 +47,6 @@ public class PPTVPlayerActivity extends VideoPlayerActivity {
 		mPlaylink		= intent.getIntExtra("playlink", -1);
 		mAlbumId 		= intent.getIntExtra("album_id", -1);
 		mEpisodeIndex	= intent.getIntExtra("index", -1);
-		do_retry		= intent.hasExtra("do_retry");
 		
 		mEPG = new EPGUtil();
 	}
@@ -60,7 +58,7 @@ public class PPTVPlayerActivity extends VideoPlayerActivity {
 		
 		if (mVideoView.isPlaying()) {
 			int pos = mVideoView.getCurrentPosition();
-			if (pos > 5000) {
+			if (mPlaylink != -1 && (mPlaylink < 300000 || mPlaylink > 400000) && pos > 5000) {
 				Util.save_pptvvideo_pos(this, String.valueOf(mPlaylink), pos);
 				Log.i(TAG, String.format("Java: vid %d played pos %d msec saved", mPlaylink, pos));
 			}
@@ -76,12 +74,7 @@ public class PPTVPlayerActivity extends VideoPlayerActivity {
 		mEpisodeIndex++;
 		
 		if (mEpisodeList == null) {
-			if (do_retry) {
-				mVideoView.stopPlayback();
-				
-				mVideoView.start();
-			}
-			else if (mAlbumId == -1) {
+			if (mAlbumId == -1) {
 				Toast.makeText(this, "album Id is invalid", Toast.LENGTH_SHORT).show();
 				finish();
 			}

@@ -322,12 +322,14 @@ public class FragmentMp4PlayerActivity extends Activity implements Callback {
 		if (keyCode == KeyEvent.KEYCODE_DPAD_CENTER || 
 				keyCode == KeyEvent.KEYCODE_ENTER) {
 			if (mPlayer != null) {
-				mController.show(3000);
+				if (!mController.isShowing()) {
+					mController.show(3000);
 				
-				mTextViewFileName.setVisibility(View.VISIBLE);
-				Message msg = mHandler.obtainMessage(MSG_FADE_OUT_TV_FILENAME);
-				mHandler.removeMessages(MSG_FADE_OUT_TV_FILENAME);
-	            mHandler.sendMessageDelayed(msg, 3000);
+					mTextViewFileName.setVisibility(View.VISIBLE);
+					Message msg = mHandler.obtainMessage(MSG_FADE_OUT_TV_FILENAME);
+					mHandler.removeMessages(MSG_FADE_OUT_TV_FILENAME);
+		            mHandler.sendMessageDelayed(msg, 3000);
+				}
 				return true;
 			}
 		}
@@ -368,8 +370,14 @@ public class FragmentMp4PlayerActivity extends Activity implements Callback {
 	@Override
 	public boolean onTouchEvent(MotionEvent event) {
 		// TODO Auto-generated method stub
-		if (mPlayer != null)
-			mController.show(3000);
+		if (mPlayer != null) {
+			if (mController.isShowing()) {
+				Log.i(TAG, "Java: to hide");
+				mController.hide();
+			}
+			else
+				mController.show(3000);
+		}
 		
 		return super.onTouchEvent(event);
 	}

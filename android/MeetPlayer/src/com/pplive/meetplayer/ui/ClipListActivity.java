@@ -54,6 +54,7 @@ import android.view.View.OnFocusChangeListener;
 import android.view.Window;
 import android.view.WindowManager;
 import android.widget.AdapterView;
+import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.DatePicker;
 import android.widget.EditText;
@@ -62,6 +63,7 @@ import android.widget.LinearLayout;
 import android.widget.ListView;
 import android.widget.ProgressBar;
 import android.widget.RelativeLayout;
+import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.TimePicker;
 import android.widget.Toast;
@@ -78,6 +80,7 @@ import com.pplive.common.pptv.VirtualChannelInfo;
 import com.pplive.common.sohu.PlaylinkSohu;
 import com.pplive.common.sohu.PlaylinkSohu.SohuFtEnum;
 import com.pplive.common.sohu.SohuUtil;
+import com.pplive.common.util.PlayBackTime;
 import com.pplive.common.util.httpUtil;
 import com.pplive.db.MediaStoreDatabaseHelper;
 import com.pplive.dlna.DLNASdk;
@@ -153,7 +156,7 @@ public class ClipListActivity extends Activity implements
 	private ImageView imageNoVideo;
 	private ImageView imageBackward;
 	private ImageView imageForward;
-	private MediaPlayer mPlayer 				= null;
+	private MediaPlayer mPlayer;
 	private LocalFileAdapter mAdapter;
 	private ListView lv_filelist;
 	
@@ -182,9 +185,8 @@ public class ClipListActivity extends Activity implements
 	private boolean isTVbox = false;
 	private boolean isLandscape = false;
 	
-	// playback
-	private long mStartTimeSec = 0;
-	private int mDuration = 0;
+	// playback time
+	private PlayBackTime mPlaybackTime;
 	
 	// list
 	private ListMediaUtil mListUtil;
@@ -260,7 +262,6 @@ public class ClipListActivity extends Activity implements
 	
 	private int preview_height;
 	
-	private String mPlayerLinkSurfix;
 	private boolean mIsLivePlay = false;
 	
 	private String mAudioDst;
@@ -438,6 +439,8 @@ public class ClipListActivity extends Activity implements
 		if (Util.IsHaveInternet(this)) {
 			tv_title.setText(tv_title.getText().toString() + " ip: " + Util.getIpAddr(this) + ", http port " + MyHttpService.getPort());
 		}
+		
+		mPlaybackTime = new PlayBackTime(this);
 		
 		mHolder = mPreview.getHolder();
 		mHolder.setType(SurfaceHolder.SURFACE_TYPE_NORMAL);
@@ -817,7 +820,7 @@ public class ClipListActivity extends Activity implements
 				Log.i(TAG, "Http port is: " + port);
 				
 				if (ppbox_playid >= 300000 && ppbox_playid < 400000 && 
-						(mPlayerLinkSurfix == null || mPlayerLinkSurfix.equals(""))) {
+						mPlaybackTime.getPlaylinkSurfix() == null) {
 					mIsLivePlay = true;
 					Log.i(TAG, "Java: set mIsLivePlay to true");
 				}
@@ -831,7 +834,8 @@ public class ClipListActivity extends Activity implements
 					return;
 				}
 				
-				String ppbox_url = PlayLinkUtil.getPlayUrl(ppbox_playid, port, ppbox_ft, ppbox_bw_type, mPlayerLinkSurfix);
+				String ppbox_url = PlayLinkUtil.getPlayUrl(ppbox_playid, port, ppbox_ft, ppbox_bw_type, 
+						mPlaybackTime.getPlaylinkSurfix());
 				
 				start_player("N/A", ppbox_url);
 				//start_player("N/A", "rtmp://101.71.82.49:1935/live/35df07300b7b445488007903fe0a40ca");
@@ -841,7 +845,7 @@ public class ClipListActivity extends Activity implements
 		this.btnSelectTime.setOnClickListener(new Button.OnClickListener() {
 			@Override
 			public void onClick(View view) {
-				setPlaybackTime();
+				mPlaybackTime.setPlaybackTime();
 			}
 		});
 		
@@ -1048,97 +1052,7 @@ public class ClipListActivity extends Activity implements
 		Util.writeSettingsInt(this, "PlayerImpl", mPlayerImpl);
 		Util.writeSettings(this, "last_audio_ip_port", mAudioDst);
 	}
-	
-	private void setPlaybackTime() {
-    	AlertDialog.Builder builder = new AlertDialog.Builder(this); 
-        View view = View.inflate(this, R.layout.date_time_dialog, null); 
-        final DatePicker datePicker = (DatePicker) view.findViewById(R.id.date_picker); 
-        final TimePicker timePicker = (TimePicker) view.findViewById(R.id.time_picker);
-        final EditText etDuration = (EditText) view.findViewById(R.id.et_duration);
-        builder.setView(view); 
 
-        Calendar cal = Calendar.getInstance(); 
-        cal.setTimeInMillis(System.currentTimeMillis()); 
-        datePicker.init(cal.get(Calendar.YEAR), cal.get(Calendar.MONTH), cal.get(Calendar.DAY_OF_MONTH), null); 
-
-        timePicker.setIs24HourView(true); 
-        timePicker.setCurrentHour(18/*cal.get(Calendar.HOUR_OF_DAY)*/); 
-        timePicker.setCurrentMinute(30/*cal.get(Calendar.MINUTE)*/); 
- 
-        builder.setTitle("select start time"); 
-        builder.setPositiveButton("Confirm", new DialogInterface.OnClickListener() { 
-
-            @Override 
-            public void onClick(DialogInterface dialog, int which) { 
-
-            	int year, month, day, hour, min;
-            	year = datePicker.getYear();
-            	month = datePicker.getMonth();
-            	day  = datePicker.getDayOfMonth();
-            	hour = timePicker.getCurrentHour();
-            	min = timePicker.getCurrentMinute();
-            	
-            	String strHour = String.format("%02d", hour);
-                String strMin = String.format("%02d", min);
-                
-            	StringBuffer sb = new StringBuffer(); 
-                sb.append(String.format("%d-%02d-%02d",  
-                        year, month, day)); 
-                sb.append(" ");
-                sb.append(strHour).append(":").append(strMin); 
-                
-                String strTime;
-                strTime = String.format("%d-%02d-%02d %02d:%02d",
-                		datePicker.getYear(),
-                        datePicker.getMonth(), 
-                        datePicker.getDayOfMonth(),
-                        timePicker.getCurrentHour(),
-                        timePicker.getCurrentMinute());
-                
-                // step1
-                GregorianCalendar gc = new GregorianCalendar(year, month, day, hour, min, 0);
-                mStartTimeSec = gc.getTimeInMillis() / 1000;
-            	
-            	// step2
-            	String strDuration =  etDuration.getText().toString();
-            	mDuration = Integer.parseInt(strDuration);
-            	
-            	Log.i(TAG, String.format("start_time %d sec, duration %d min", mStartTimeSec, mDuration));
-            	
-            	mPlayerLinkSurfix = String.format("&begin_time=%d&end_time=%d", 
-                		mStartTimeSec, mStartTimeSec + mDuration * 60);
-                try {
-                	mPlayerLinkSurfix = URLEncoder.encode(mPlayerLinkSurfix, "utf-8");
-				} catch (UnsupportedEncodingException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
-				}
-                Log.i(TAG, "Java: mPlayerLinkSurfix final: " + mPlayerLinkSurfix);
-                
-                dialog.cancel();
-                Toast.makeText(ClipListActivity.this, 
-                		String.format("toggle to playback mode start %s, duration %d min", 
-                				sb.toString(), mDuration), 
-                		Toast.LENGTH_SHORT).show();
-            } 
-        });
-        
-        builder.setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
-
-			@Override
-			public void onClick(DialogInterface arg0, int arg1) {
-				mPlayerLinkSurfix = "";
-				mStartTimeSec = 0;
-				Toast.makeText(ClipListActivity.this, 
-                		String.format("toggle to live mode"), Toast.LENGTH_SHORT).show();
-			}
-        	
-        });
-        
-        Dialog dialog = builder.create(); 
-        dialog.show();
-    }
-	
 	private void TakeSnapShot() {
 		if (mPlayer == null) {
 			Toast.makeText(this, "play is not playing", 

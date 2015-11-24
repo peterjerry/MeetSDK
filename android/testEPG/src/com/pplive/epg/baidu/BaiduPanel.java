@@ -63,6 +63,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
+import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.FilenameFilter;
 import java.io.IOException;
@@ -103,11 +104,20 @@ public class BaiduPanel extends JPanel {
 	private static String exe_vlc = "D:/Program Files/vlc-3.0.0/vlc.exe";
 	private static String exe_foobar = "D:/Program Files/Foobar2000/foobar2000.exe";
 	private static String exe_ffplay = "D:/Program Files/ffmpeg/ffplay.exe";
+	private static String cookie_BDUSS = "NGYm9lQ3h0MTYxZEJSYXdVNkNDWlZNMXk5" +
+			"Q0ZCc3BKaEk2d1FUci1Lb1JYWHBXQVFBQUFBJCQAAAAAA" +
+			"AAAAAEAAACnC~0Gd25wbGxyem9kaWFjAAAAAAAAAAAAAAAAAAAAAAA" +
+			"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABHQUlYR0FJWcF";
 	
 	private final String BAIDU_PCS_PREFIX = "https://pcs.baidu.com/rest/2.0/pcs";
 	private final String BAIDU_PCS_FILE_PREFIX = BAIDU_PCS_PREFIX + "/file";
 	private final String BAIDU_PCS_THUMBNAIL_PREFIX = BAIDU_PCS_PREFIX + "/thumbnail";
 	private final String BAIDU_PCS_SERVICE_PREFIX = BAIDU_PCS_PREFIX + "/services/cloud_dl";
+	
+	private final String BAIDU_PCS_DOWNLOAD_V2 = "http://c.pcs.baidu.com/rest/2.0/pcs/file" + 
+			"?method=download" +
+			"&app_id=250528" + 
+			"&path=";
 	
 	private final static String ApiKey = "4YchBAkgxfWug3KRYCGOv8EK"; // from es explorer
 	
@@ -225,6 +235,10 @@ public class BaiduPanel extends JPanel {
 					mUploadBlockSize = Integer.valueOf(value);
 					System.out.println("Java: set mUploadBlockSize to " + mUploadBlockSize);
 				}
+				else if (key.equals("BDUSS")) {
+					cookie_BDUSS = value;
+					System.out.println("Java: set cookie_BDUSS to " + cookie_BDUSS);
+				}
 				else {
 					System.out.println("Java: unknown key " + key);
 				}
@@ -239,9 +253,10 @@ public class BaiduPanel extends JPanel {
 				"?method=meta" +
 				"&access_token=" + mbOauth + 
 				"&path=";
-		BAIDU_PCS_DOWNLOAD = BAIDU_PCS_FILE_PREFIX + 
+		BAIDU_PCS_DOWNLOAD = BAIDU_PCS_FILE_PREFIX +  
 				"?method=download" +
-				"&access_token=" + mbOauth + 
+				"&app_id=250528" + 
+				"&access_token=" + mbOauth +
 				"&path=";
 		BAIDU_PCS_UPLOAD = BAIDU_PCS_FILE_PREFIX + 
 				"?method=upload" +
@@ -407,7 +422,7 @@ public class BaiduPanel extends JPanel {
 				try {
 					String encoded_path = URLEncoder.encode(mOperatePath, "utf-8");
 
-					String url = BAIDU_PCS_DOWNLOAD + encoded_path;
+					String url = BAIDU_PCS_DOWNLOAD_V2 + encoded_path;
 					System.out.println("get download url: " + url);
 					Clipboard clipboard = getToolkit().getSystemClipboard();//获取系统剪贴板;
 					StringSelection text = new StringSelection(url);
@@ -755,7 +770,7 @@ public class BaiduPanel extends JPanel {
 					try {
 						String encoded_path = URLEncoder.encode(path, "utf-8");
 
-						String url = BAIDU_PCS_DOWNLOAD + encoded_path;
+						String url = BAIDU_PCS_DOWNLOAD_V2 + encoded_path;
 						System.out.println("ready to download url: " + url);
 						lblInfo.setText("ready to download url: " + url);
 						
@@ -1156,6 +1171,9 @@ public class BaiduPanel extends JPanel {
 			URL url = new URL(path);
 			URLConnection urlCon = url.openConnection();
 
+			urlCon.setRequestProperty("Cookie", 
+					"BDUSS=" + cookie_BDUSS);
+			
 			// 显示下载信息
 			System.out.println("文件下载信息: ");
 			System.out.println("host : " + url.getHost());

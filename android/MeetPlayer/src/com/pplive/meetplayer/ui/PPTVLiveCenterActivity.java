@@ -1,11 +1,8 @@
 package com.pplive.meetplayer.ui;
 
-import java.io.UnsupportedEncodingException;
-import java.net.URLEncoder;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Date;
-import java.util.GregorianCalendar;
 import java.util.List;
 
 import com.pplive.common.pptv.CDNItem;
@@ -13,6 +10,7 @@ import com.pplive.common.pptv.EPGUtil;
 import com.pplive.common.pptv.LiveStream;
 import com.pplive.common.pptv.PlayLink2;
 import com.pplive.common.pptv.PlayLinkUtil;
+import com.pplive.common.util.PlayBackTime;
 import com.pplive.meetplayer.R;
 import com.pplive.meetplayer.service.MyHttpService;
 import com.pplive.meetplayer.util.Util;
@@ -29,13 +27,9 @@ import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
 import android.widget.AdapterView;
-import android.widget.ArrayAdapter;
 import android.widget.Button;
-import android.widget.DatePicker;
-import android.widget.EditText;
 import android.widget.ListView;
 import android.widget.TextView;
-import android.widget.TimePicker;
 import android.widget.Toast;
 
 public class PPTVLiveCenterActivity extends Activity {
@@ -60,8 +54,7 @@ public class PPTVLiveCenterActivity extends Activity {
 	private EPGUtil mEPG;
 	private String mLiveId;
 	private int mBwType = 0;
-	private String mLinkSurfix = null;
-	private long StartTimeSec = -1;
+	private PlayBackTime mPlaybackTime;
 	private int dayOffset = 0;
 	
 	private MyPPTVLiveCenterAdapter mAdapter;
@@ -113,6 +106,7 @@ public class PPTVLiveCenterActivity extends Activity {
 		});
 		
 		mBwType = Util.readSettingsInt(this, "live_bwtype");
+		mPlaybackTime = new PlayBackTime(this);
 		
 		Intent intent = getIntent();
 		mLiveId = intent.getStringExtra("livecenter_id");
@@ -132,11 +126,11 @@ public class PPTVLiveCenterActivity extends Activity {
 			int id = v.getId();
 			switch(id) {
 			case R.id.btn_live:
-				mLinkSurfix = null;
+				mPlaybackTime.setLive();
 				Toast.makeText(PPTVLiveCenterActivity.this, "切换为 直播 模式", Toast.LENGTH_SHORT).show();
 				break;
 			case R.id.btn_playback:
-				setPlaybackTime();
+				mPlaybackTime.setPlaybackTime();
 				break;
 			case R.id.btn_nextday:
 				dayOffset++;
@@ -188,114 +182,6 @@ public class PPTVLiveCenterActivity extends Activity {
 		return strDay;
 	}
 	
-	private boolean setPlaybackTime() {
-    	AlertDialog.Builder builder = new AlertDialog.Builder(this);
-        View view = View.inflate(this, R.layout.date_time_dialog, null);
-        final DatePicker datePicker = (DatePicker) view.findViewById(R.id.date_picker);
-        final TimePicker timePicker = (android.widget.TimePicker) view.findViewById(R.id.time_picker);
-        final EditText etDuration = (EditText) view.findViewById(R.id.et_duration);
-        builder.setView(view); 
-
-        Calendar cal = Calendar.getInstance(); 
-        
-        timePicker.setIs24HourView(true);
-        if (StartTimeSec != -1) {
-            cal.setTimeInMillis(StartTimeSec * 1000); 
-        	timePicker.setCurrentHour(cal.get(Calendar.HOUR_OF_DAY)); 
-	        timePicker.setCurrentMinute(cal.get(Calendar.MINUTE)); 
-        }
-        else {
-        	cal.setTimeInMillis(System.currentTimeMillis()); 
-            datePicker.init(
-            		cal.get(Calendar.YEAR), 
-            		cal.get(Calendar.MONTH), 
-            		cal.get(Calendar.DAY_OF_MONTH), 
-            		null);
-	        timePicker.setCurrentHour(18/*cal.get(Calendar.HOUR_OF_DAY)*/); 
-	        timePicker.setCurrentMinute(30/*cal.get(Calendar.MINUTE)*/); 
-        }
- 
-        builder.setTitle("选择开始时间"); 
-        builder.setPositiveButton("确认", new DialogInterface.OnClickListener() { 
-
-            @Override 
-            public void onClick(DialogInterface dialog, int which) { 
-
-            	int year, month, day, hour, min;
-            	year = datePicker.getYear();
-            	month = datePicker.getMonth();
-            	day  = datePicker.getDayOfMonth();
-            	hour = timePicker.getCurrentHour();
-            	min = timePicker.getCurrentMinute();
-            	
-            	String strHour = String.format("%02d", hour);
-                String strMin = String.format("%02d", min);
-                
-            	StringBuffer sb = new StringBuffer(); 
-                sb.append(String.format("%d-%02d-%02d",  
-                        year, month, day)); 
-                sb.append(" ");
-                sb.append(strHour).append(":").append(strMin); 
-                
-                String strTime = String.format("%d-%02d-%02d %02d:%02d",
-                		datePicker.getYear(),
-                        datePicker.getMonth(), 
-                        datePicker.getDayOfMonth(),
-                        timePicker.getCurrentHour(),
-                        timePicker.getCurrentMinute());
-
-                int DurationSec;
-                // step1
-                GregorianCalendar gc = new GregorianCalendar(year, month, day, hour, min, 0);
-                StartTimeSec = gc.getTimeInMillis() / 1000;
-            	
-            	// step2
-            	String strDuration =  etDuration.getText().toString();
-            	DurationSec = Integer.parseInt(strDuration);
-            	
-            	if (DurationSec == 0) {
-            		mLinkSurfix = null;
-            		Toast.makeText(PPTVLiveCenterActivity.this, 
-                    		String.format("时长为0，切换到直播模式"), Toast.LENGTH_SHORT).show();
-            		return;
-            	}
-            	
-            	Log.i(TAG, String.format("start_time %d sec, duration %d min", StartTimeSec, DurationSec));
-            	
-            	mLinkSurfix = String.format("&begin_time=%d&end_time=%d", 
-                		StartTimeSec, StartTimeSec + DurationSec * 60);
-                try {
-                	mLinkSurfix = URLEncoder.encode(mLinkSurfix, "utf-8");
-				} catch (UnsupportedEncodingException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
-				}
-                Log.i(TAG, "Java: mPlayerLinkSurfix final: " + mLinkSurfix);
-            	
-                dialog.cancel();
-                Toast.makeText(PPTVLiveCenterActivity.this, 
-                		String.format("切换为 回看 模式 开始 %s, 时长 %d min", 
-                				sb.toString(), DurationSec), 
-                		Toast.LENGTH_SHORT).show();
-            } 
-        });
-        
-        builder.setNegativeButton("取消", new DialogInterface.OnClickListener() {
-
-			@Override
-			public void onClick(DialogInterface arg0, int arg1) {
-				mLinkSurfix = null;
-				Toast.makeText(PPTVLiveCenterActivity.this, 
-                		String.format("切换到直播模式"), Toast.LENGTH_SHORT).show();
-			}
-        	
-        });
-        
-        Dialog dialog = builder.create(); 
-        dialog.show();
-        return true;
-    }
-	
 	private class EPGTask extends AsyncTask<String, Integer, Boolean> {
 		private List<LiveStream> strmList;
 		private List<CDNItem> itemList;
@@ -334,7 +220,8 @@ public class PPTVLiveCenterActivity extends Activity {
 							http_port = (short)MyHttpService.getPort();
 						
 						play_url = PlayLinkUtil.getPlayUrl(
-								vid, http_port, best_ft/*ft*/, 3/*bw_type*/, mLinkSurfix);
+								vid, http_port, best_ft/*ft*/, 3/*bw_type*/, 
+								mPlaybackTime.getPlaylinkSurfix());
 					}
 					else if (mBwType == 2) {
 						play_url = String.format(live_m3u8_url_fmt, 
@@ -356,8 +243,6 @@ public class PPTVLiveCenterActivity extends Activity {
 					intent.putExtra("title", title);
 					intent.putExtra("ft", best_ft);
 					intent.putExtra("best_ft", best_ft);
-					if (mLinkSurfix == null)
-						intent.putExtra("do_retry", 1);
 					
 					Toast.makeText(PPTVLiveCenterActivity.this, 
 							String.format("start to play %s, playlink %d, ft %d, size %d x %d, bitrate %d",
