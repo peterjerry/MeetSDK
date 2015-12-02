@@ -19,16 +19,23 @@ import javax.swing.ListCellRenderer;
 import javax.swing.ListSelectionModel;
 import javax.swing.SwingWorker;
 
+import org.apache.http.HeaderIterator;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
 import org.apache.http.ParseException;
 import org.apache.http.client.ClientProtocolException;
+import org.apache.http.client.HttpClient;
 import org.apache.http.client.entity.UrlEncodedFormEntity;
+import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
+import org.apache.http.cookie.Cookie;
 import org.apache.http.entity.mime.MultipartEntityBuilder;
 import org.apache.http.entity.mime.content.ByteArrayBody;
 import org.apache.http.entity.mime.content.ContentBody;
+import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.client.DefaultHttpClient;
+import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.message.BasicNameValuePair;
 import org.apache.http.util.EntityUtils;
@@ -869,6 +876,9 @@ public class BaiduPanel extends JPanel {
 		this.add(lblInfo);
 		
 		init_combobox();
+		
+		login("wnpllrzodiac", "daqiao1");
+		//login("shxm.ma@163.com", "Git84hub");
 	}
 	
 	private boolean process_lrc(String lrc_path) {
@@ -2029,6 +2039,71 @@ public class BaiduPanel extends JPanel {
 			}
 
 		return ret;
+	}
+	
+	public boolean login(String username, String password){
+		//是否成功登陆的标记
+		boolean isLogin = false;
+		CloseableHttpClient httpClient;
+		CloseableHttpResponse response;
+		try {
+			HttpClientBuilder httpClientBuilder = HttpClientBuilder.create();
+			httpClient = httpClientBuilder.build();  
+			
+			/**1,BAIDUID**/
+			String baiduId = null;
+			HttpGet get_main = new HttpGet("http://tieba.baidu.com/dc/common/tbs/");
+			response = httpClient.execute(get_main);
+			get_main.abort();
+			HeaderIterator it = response.headerIterator("Set-Cookie");
+			while(it.hasNext())
+				baiduId = it.next().toString();
+			baiduId = HttpUtils.mid(baiduId,":",";");
+			System.out.println("[step 1] BAIDUID: " + baiduId);
+			
+			/**2,token**/
+			HttpGet get_token = new HttpGet("https://passport.baidu.com/v2/api/?getapi&tpl=mn");
+			response = httpClient.execute(get_token);
+			String token = EntityUtils.toString(response.getEntity(),"utf-8");
+			get_token.abort();
+			token = HttpUtils.mid(token,"_token='","'");
+			System.out.println("[step 2] TOKEN: " + token);
+			
+			/**3,Login**/
+			HashMap<String, String> map = new HashMap<String, String>();
+			map.put("username", username);				map.put("password", password);
+			map.put("token", token);					map.put("isPhone", "false");
+			map.put("quick_user", "0");					map.put("tt", System.currentTimeMillis()+"");
+			map.put("loginmerge", "true");				map.put("logintype", "dialogLogin");
+			map.put("splogin", "rate");					map.put("mem_pass", "on");
+			map.put("tpl", "mn");						map.put("apiver", "v3");
+			map.put("u", "http://www.baidu.com/");		map.put("safeflg", "0");
+			map.put("ppui_logintime", "43661");			map.put("charset", "utf-8");
+			
+			//封装
+			HttpEntity entity = HttpUtils.mapToEntity(map);
+			HttpPost http_login = new HttpPost("https://passport.baidu.com/v2/api/?login");
+			http_login.setEntity(entity);
+			response = httpClient.execute(http_login);
+			http_login.abort();
+			
+			it = response.headerIterator();
+			while(it.hasNext()){
+				//这里是根据是否写入的BDUSS-cookie判断是否登录成功
+				String str = it.next().toString();
+				if (str.contains("BDUSS")){
+					System.out.println("str " + str);
+					String BDUSS = HttpUtils.mid(str, "BDUSS=", ";");
+					System.out.println("BDUSS: " + BDUSS);
+					isLogin = true;
+					break;
+				}
+			}
+			System.out.println("[step 3] login status: " + (isLogin ? "OK" : "failed"));
+			return isLogin;
+		} catch (Exception e) {
+			throw new RuntimeException("未知错误");
+		}
 	}
 	
 	private String getFileSize(long size) {

@@ -504,7 +504,20 @@ public class ClipListActivity extends Activity implements
 								}
 							}
 							else {
+								// local file
 								File file = new File(file_path);
+								if (!file.exists()) {
+									mMediaDB.deleteMediaInfo(file_path);
+									
+									List<Map<String, Object>> filelist = mListUtil.getList();
+									filelist.remove(position);
+									mAdapter.updateData(filelist);
+									mAdapter.notifyDataSetChanged();
+									
+									Toast.makeText(ClipListActivity.this, 
+											"clip didn't exist and removed from list", 
+											Toast.LENGTH_SHORT).show();
+								}
 								
 								if (file.isDirectory()) {
 									File[] temp = file.listFiles();  
