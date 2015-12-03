@@ -14,7 +14,7 @@
  * 
  * [Note]
  * 1. need add apache http lib:
- * ¡¾ÒÑ½â¾ö¡¿EclipseµÄjava´úÂë³ö´í£ºThe import org.apache cannot be resolved
+ * ï¿½ï¿½ï¿½Ñ½ï¿½ï¿½ï¿½ï¿½Eclipseï¿½ï¿½javaï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½The import org.apache cannot be resolved
  * http://www.crifan.com/java_eclipse_the_import_org_apache_cannot_be_resolved/
  * 
  * [History]
@@ -30,7 +30,7 @@
  * 1. add http related func and regex related func
  */
 
-//package crifan.com;
+package com.pplive.epg.baidu;
 
 import java.io.File;
 //import java.io.FileNotFoundException;
@@ -117,7 +117,7 @@ public class crifanLib {
 	
 	public crifanLib()
 	{
-		gUserAgent = constUserAgent_IE8_x64;
+		gUserAgent = constUserAgent_Chrome;//constUserAgent_IE8_x64;
 		gCurCookieStore = new BasicCookieStore();
 		
 		calcTimeKeyDict = new HashMap<String, Long>();

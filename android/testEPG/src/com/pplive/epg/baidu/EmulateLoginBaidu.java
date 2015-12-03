@@ -5,7 +5,7 @@
  * [Function]
  * Use Java code to emulate login baidu
  * 
- * ¡¾½Ì³Ì¡¿Ä£ÄâµÇÂ½°Ù¶ÈÖ®Java´úÂë°æ
+ * ã€æ•™ç¨‹ã€‘æ¨¡æ‹Ÿç™»é™†ç™¾åº¦ä¹‹Javaä»£ç ç‰ˆ
  * http://www.crifan.com/emulate_login_baidu_use_java_code
  * 
  * [Version]
@@ -13,7 +13,7 @@
  * 
  * [Note]
  * 1. need add apache http lib:
- * ¡¾ÒÑ½â¾ö¡¿EclipseµÄjava´úÂë³ö´í£ºThe import org.apache cannot be resolved
+ * ã€å·²è§£å†³ã€‘Eclipseçš„javaä»£ç å‡ºé”™ï¼šThe import org.apache cannot be resolved
  * http://www.crifan.com/java_eclipse_the_import_org_apache_cannot_be_resolved/
  * 2.need crifanLib.java
  * http://code.google.com/p/crifanlib/source/browse/trunk/java/crifanLib.java
@@ -22,6 +22,8 @@
  * [v1.0]
  * 1. initial version, finally successfully emulate login baidu using java code.
  */
+
+package com.pplive.epg.baidu;
 
 //import java.io.IOException;
 import java.util.ArrayList;
@@ -50,40 +52,40 @@ import org.apache.http.message.BasicNameValuePair;
  *
  */
 public class EmulateLoginBaidu {
-	static crifanLib crl;
+	private static crifanLib crl;
 
 	/**
 	 * @param args
 	 */
-	public static void main(String[] args) {
+	public static String login(String username, String password) {
 		crl = new crifanLib();
 				
 		// TODO Auto-generated method stub
-		EmulateLoginBaiduUsingJava();
+		return EmulateLoginBaiduUsingJava(username, password);
 	}
 
 	// emulate login baidu using java code	
-	public static void EmulateLoginBaiduUsingJava()
+	public static String EmulateLoginBaiduUsingJava(String strBaiduUsername, String strBaiduPassword)
 	{
-		System.out.println("============ ³ÌĞòËµÃ÷ ============");
-		System.out.println("¹¦ÄÜ£º±¾³ÌĞòÊÇÓÃÀ´ÑİÊ¾Ê¹ÓÃJava´úÂëÈ¥ÊµÏÖÄ£ÄâµÇÂ½°Ù¶È");
-		System.out.println("×¢ÒâÊÂÏî£º²¿·Ö°Ù¶ÈÕË»§£¬ÔÚµÇÂ½Ê±»á³öÏÖ£º");
-		System.out.println("1.²¿·Ö°Ù¶ÈÕË»§£¬ÔÚµÇÂ½Ê±»á³öÏÖ£º");
-		System.out.println("ÏµÍ³¼ì²âµ½ÄúµÄÕÊºÅÒÉËÆ±»µÁ£¬´æÔÚ°²È«·çÏÕ¡£Çë¾¡¿ìĞŞ¸ÄÃÜÂë¡£");
-		System.out.println("´ËÊ±£¬±¾³ÌĞò£¬ÎŞ·¨³É¹¦Ä£ÄâµÇÂ½£¬Çë×ÔĞĞ°´ÕÕÌáÊ¾È¥ĞŞ¸ÄÃÜÂëºó£¬¾Í¿ÉÒÔÁË¡£");
+		System.out.println("============ ç¨‹åºè¯´æ˜ ============");
+		System.out.println("åŠŸèƒ½ï¼šæœ¬ç¨‹åºæ˜¯ç”¨æ¥æ¼”ç¤ºä½¿ç”¨Javaä»£ç å»å®ç°æ¨¡æ‹Ÿç™»é™†ç™¾åº¦");
+		System.out.println("æ³¨æ„äº‹é¡¹ï¼šéƒ¨åˆ†ç™¾åº¦è´¦æˆ·ï¼Œåœ¨ç™»é™†æ—¶ä¼šå‡ºç°ï¼š");
+		System.out.println("1.éƒ¨åˆ†ç™¾åº¦è´¦æˆ·ï¼Œåœ¨ç™»é™†æ—¶ä¼šå‡ºç°ï¼š");
+		System.out.println("ç³»ç»Ÿæ£€æµ‹åˆ°æ‚¨çš„å¸å·ç–‘ä¼¼è¢«ç›—ï¼Œå­˜åœ¨å®‰å…¨é£é™©ã€‚è¯·å°½å¿«ä¿®æ”¹å¯†ç ã€‚");
+		System.out.println("æ­¤æ—¶ï¼Œæœ¬ç¨‹åºï¼Œæ— æ³•æˆåŠŸæ¨¡æ‹Ÿç™»é™†ï¼Œè¯·è‡ªè¡ŒæŒ‰ç…§æç¤ºå»ä¿®æ”¹å¯†ç åï¼Œå°±å¯ä»¥äº†ã€‚");
 		
 		boolean bLoginBaiduOk = false;
 		String BDUSS = null;
 		List<Cookie> curCookieList;
 		
 		//step1: login baidu, got cookie BAIDUID
-		System.out.println("====== ²½Öè1£º»ñµÃBAIDUIDµÄCookie ======");
+		System.out.println("====== æ­¥éª¤1ï¼šè·å¾—BAIDUIDçš„Cookie ======");
 		String strTokenValue = "";
 		boolean bGotCookieBaiduid = false;
 		String strBaiduUrl = "http://www.baidu.com/";
 		HttpResponse baiduResp = crl.getUrlResponse(strBaiduUrl);
 		
-		curCookieList =crl.getCurCookieStore().getCookies(); 
+		curCookieList = crl.getCurCookieStore().getCookies(); 
 		crl.dbgPrintCookies(curCookieList, strBaiduUrl);
 		for(Cookie ck : curCookieList)
 		{
@@ -95,15 +97,15 @@ public class EmulateLoginBaidu {
 		}
         if (bGotCookieBaiduid)
         {
-        	System.out.println("ÕıÈ·£ºÒÑÕÒµ½cookie BAIDUID");
+        	System.out.println("OK: found cookie BAIDUID");
         }
         else 
         {
-        	System.out.println("´íÎó£ºÃ»ÓĞÕÒµ½cookie BAIDUID £¡");
+        	System.out.println("ERROR: failed to get cookie BAIDUID");
         }
 		
 		//step2: login, pass paras, extract resp cookie
-        System.out.println("====== ²½Öè2£ºÌáÈ¡login_token ======");
+        System.out.println("====== æ­¥éª¤2ï¼šæå–login_token ======");
         boolean bExtractTokenValueOK = false;
 		if(bGotCookieBaiduid)
 		{
@@ -121,22 +123,22 @@ public class EmulateLoginBaidu {
 			boolean foundTokenValue = tokenValMatcher.find();
 			if(foundTokenValue)
 			{
-				//strTokenValue = tokenValMatcher.group("tokenVal"); //3cf421493884e0fe9080593d05f4744f
-				strTokenValue = tokenValMatcher.group(1);
-				System.out.println("ÕıÈ·£ºÕÒµ½ bdPass.api.params.login_token=" + strTokenValue);
+				strTokenValue = tokenValMatcher.group("tokenVal"); //3cf421493884e0fe9080593d05f4744f
+				//strTokenValue = tokenValMatcher.group(1);
+				System.out.println("OK: found bdPass.api.params.login_token=" + strTokenValue);
 				
 				bExtractTokenValueOK = true;
 			}
 			else
 			{
-				System.out.println("´íÎó£ºÃ»ÕÒµ½bdPass.api.params.login_token !");
+				System.out.println("ERROR: failed to get bdPass.api.params.login_token !");
 			}
 		}
 		
 		//step3: verify returned cookies
         if (bGotCookieBaiduid && bExtractTokenValueOK)
         {
-        	System.out.println("======²½Öè3£ºµÇÂ½°Ù¶È²¢¼ìÑé·µ»ØµÄCookie ======");
+        	System.out.println("======æ­¥éª¤3ï¼šç™»é™†ç™¾åº¦å¹¶æ£€éªŒè¿”å›çš„Cookie ======");
         	
         	/*
         	//Note:
@@ -196,19 +198,6 @@ public class EmulateLoginBaidu {
             postDict.add(new BasicNameValuePair("loginType", "1"));
             postDict.add(new BasicNameValuePair("tpl", "mn"));
             postDict.add(new BasicNameValuePair("callback", "parent.bdPass.api.login._postCallback"));
-        	
-            //get input baidu username and password
-            String strBaiduUsername = "shxm.ma@163.com";
-        	String strBaiduPassword = "Git84hub";
-            //Scanner inputReader = new Scanner(System.in);
-            System.out.println("Please Enter Your:" );
-            System.out.println("Baidu Username:" );
-            //strBaiduUsername = inputReader.nextLine();
-            //System.out.println("You Entered Username=" + strBaiduUsername);
-            System.out.println("Baidu Password:" );
-            //strBaiduPassword = inputReader.nextLine();
-            //System.out.println("You Entered Password=" + strBaiduPassword);
-            //inputReader.close();
 
             postDict.add(new BasicNameValuePair("username", strBaiduUsername));
             postDict.add(new BasicNameValuePair("password", strBaiduPassword));
@@ -257,15 +246,15 @@ public class EmulateLoginBaidu {
                         
             if (bLoginBaiduOk)
             {
-            	System.out.println("³É¹¦Ä£ÄâµÇÂ½°Ù¶ÈÊ×Ò³£¡" );
+            	System.out.println("æˆåŠŸæ¨¡æ‹Ÿç™»é™†ç™¾åº¦é¦–é¡µï¼" );
             }
             else
             {
-            	System.out.println("Ä£ÄâµÇÂ½°Ù¶ÈÊ×Ò³ Ê§°Ü£¡");
-            	System.out.println("Ëù·µ»ØµÄHTMLÔ´ÂëÎª£º" + loginBaiduRespHtml);
+            	System.out.println("æ¨¡æ‹Ÿç™»é™†ç™¾åº¦é¦–é¡µ å¤±è´¥ï¼");
+            	System.out.println("æ‰€è¿”å›çš„HTMLæºç ä¸ºï¼š" + loginBaiduRespHtml);
             }
         }
 
-		return;
+        return BDUSS;
 	}
 }

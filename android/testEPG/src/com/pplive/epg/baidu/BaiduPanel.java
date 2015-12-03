@@ -877,7 +877,8 @@ public class BaiduPanel extends JPanel {
 		
 		init_combobox();
 		
-		login("wnpllrzodiac", "daqiao1");
+		EmulateLoginBaidu.login("wnpllrzodiac", "daqiao1");
+		//login("wnpllrzodiac", "daqiao1");
 		//login("shxm.ma@163.com", "Git84hub");
 	}
 	
