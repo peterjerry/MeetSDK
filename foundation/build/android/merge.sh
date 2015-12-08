@@ -47,10 +47,10 @@ esac
 
 ASM_OBJ="libavutil/$ARCH/*.o libavcodec/$ARCH/*.o"
 
-USER_ROOT=`pwd`
-FDK_AAC_HOME=$USER_ROOT/thirdparty/fdk-aac
-RTMPDUMP_HOME=$USER_ROOT/thirdparty/rtmpdump
-X264_HOME=$USER_ROOT/thirdparty/x264
+HOME_FOLDER=`pwd`
+FDK_AAC_HOME=$HOME_FOLDER/../thirdparty/fdk-aac
+RTMPDUMP_HOME=$HOME_FOLDER/../thirdparty/rtmpdump
+X264_HOME=$HOME_FOLDER/../thirdparty/x264
 
 if [ $ARCH == 'arm' ]
 then

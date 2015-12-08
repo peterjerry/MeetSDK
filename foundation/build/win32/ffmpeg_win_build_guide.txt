@@ -24,3 +24,16 @@ ms vs2013 build
 1 run msys_vc12.bat for win32 build, run msys_vc12_x64.bat for x64 build
 
 2 run build_ffmpeg_vc12.bat
+
+=======================================
+
+*** missing separator.  Stop.
+
+解决方法
+
+运行
+
+git config --global core.autocrlf false
+#然后运行下面的命令删除ffmpeg代码，并重新获取一下即可
+git rm --cached -r .
+git reset --hard

@@ -31,7 +31,7 @@ echo "begin to building..."
 make clean
 make -j4 install
 
-cp version.h $PREFIX/
+#cp version.h $PREFIX/
 cp config.h $PREFIX/
 
 echo "build ffmepg gcc all done!" 

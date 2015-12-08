@@ -399,6 +399,9 @@ public class VideoPlayerActivity extends Activity implements Callback {
 		case 1:
 			DecMode = DecodeMode.HW_SYSTEM;
 			break;
+		case 2:
+			DecMode = DecodeMode.HW_XOPLAYER;
+			break;
 		case 3:
 			DecMode = DecodeMode.SW;
 			break;
