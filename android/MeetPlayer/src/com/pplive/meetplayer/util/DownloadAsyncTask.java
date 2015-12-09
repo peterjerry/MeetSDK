@@ -25,21 +25,18 @@ public class DownloadAsyncTask extends AsyncTask<String, Integer, Boolean> {
 	protected static final String MSG_DOWNLOAD_SUCCESS = "Download Success!!!";
 	protected static final String MSG_DOWNLOAD_FAILED = "Download Failed!!!";
 	
-	private String installApk_fullpath;
-	
 	@Override
 	protected Boolean doInBackground(String... params) {
 		Log.i(TAG, "doInBackground");
 	
 		String url = params[0];
 		String path = params[1];
-		installApk_fullpath = path;	
+		
 		boolean ret = false;
-
 		OutputStream os = null;
 		InputStream is = null;
 
-		HttpClient client = null;
+		HttpClient client = new DefaultHttpClient();
 		HttpGet httpGet = null;
 
 		File file = new File(path);
@@ -50,8 +47,6 @@ public class DownloadAsyncTask extends AsyncTask<String, Integer, Boolean> {
 				os = new FileOutputStream(file);
 
 				// Http
-				client = new DefaultHttpClient();
-
 				httpGet = new HttpGet(url);
 				HttpResponse rep = client.execute(httpGet);
 
@@ -99,15 +94,12 @@ public class DownloadAsyncTask extends AsyncTask<String, Integer, Boolean> {
 					Log.w(TAG, e.toString());
 				}
 
-				if (httpGet != null) {
-					httpGet.abort();
-					httpGet = null;
-				}
-
 				// Clean
 				if (!ret && file != null) {
 					file.delete();
 				}
+				
+				client.getConnectionManager().shutdown();
 				
 				Log.i(TAG, ret ? MSG_DOWNLOAD_SUCCESS : MSG_DOWNLOAD_FAILED);
 			}

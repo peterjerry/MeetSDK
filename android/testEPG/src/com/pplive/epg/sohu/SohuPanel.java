@@ -514,7 +514,7 @@ public class SohuPanel extends JPanel {
 		if (Desktop.isDesktopSupported()){
             try {
                 //创建一个URI实例
-                URI uri = URI.create("http://172.16.204.106/play.htm"); 
+                URI uri = URI.create("http://172.16.204.106/play.html"); 
                 //获取当前系统桌面扩展
                 Desktop dp = Desktop.getDesktop();
                 //判断系统桌面是否支持要执行的功能

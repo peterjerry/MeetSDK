@@ -47,6 +47,8 @@ extern JavaVM* gs_jvm;
 #define MEDIA_OPEN_TIMEOUT_MSEC							(120 * 1000) // 2 min
 #define MEDIA_READ_TIMEOUT_MSEC							(300 * 1000) // 5 min
 
+//#define ENABLE_RTMP_DROP
+
 static bool getStreamLangTitle(char** langcode, char** langtitle, int index, AVStream* stream);
 
 FFStream::FFStream()
@@ -562,7 +564,7 @@ AVFormatContext* FFStream::open(char* uri)
         LOGI("It is a online live stream with mMinPlayBufferCount:%d", mMinPlayBufferCount);
 	}
 	else if (strncmp(uri, "rtmp", 4) == 0) {
-		mMinPlayBufferCount = mFrameRate / 4; // 250 msec
+		mMinPlayBufferCount = mFrameRate / 2; // 500 msec
         mUrlType = TYPE_BROADCAST;
         LOGI("It is a rtmp stream with mMinPlayBufferCount:%d", mMinPlayBufferCount);
 	}
@@ -1131,12 +1133,15 @@ void FFStream::thread_impl()
             	LOGD("audio Packet->pts:%lld ms", pts);
             	LOGD("audio Packet->dts:%lld ms", dts);
 #endif
+
+#ifdef ENABLE_RTMP_DROP
                 int64_t duration = (int64_t)(mAudioQueue.duration() * 1000 * av_q2d(mAudioStream->time_base));
                 LOGD("audio duration: %lld", duration);
                 if (mUrlType == TYPE_BROADCAST && duration > mMaxPlayBufferMs) {
 					mAudioQueue.flush();
 					LOGW("[liveplatform] flush audio packet");
 				}
+#endif
 
                 mAudioQueue.put(pPacket);
                 mBufferSize += pPacket->size;
@@ -1240,8 +1245,9 @@ void FFStream::thread_impl()
 					}
 				}
 
-				int64_t duration = (int64_t)(mVideoQueue.duration()*1000*av_q2d(mVideoStream->time_base));
-				LOGD("video duration:%lld", duration);
+#ifdef ENABLE_RTMP_DROP
+				int64_t duration = (int64_t)(mVideoQueue.duration() * 1000 * av_q2d(mVideoStream->time_base));
+				LOGD("video duration: %lld msec", duration);
 				if (mUrlType == TYPE_BROADCAST && duration > mMaxPlayBufferMs) {
 					if (!mDelaying) {
 						mDelaying = true;
@@ -1262,6 +1268,7 @@ void FFStream::thread_impl()
 						continue;
 					}
 				}
+#endif
 
                 mVideoQueue.put(pPacket);
                 mBufferSize += pPacket->size;

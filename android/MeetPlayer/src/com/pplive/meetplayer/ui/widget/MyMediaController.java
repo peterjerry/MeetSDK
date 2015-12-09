@@ -337,7 +337,7 @@ public class MyMediaController extends MediaController {
 		
 		@Override
 		public void onStartTrackingTouch(SeekBar seekBar) {
-			show(3600000);
+			show(0);
 			
 			mHandler.removeMessages(UPDATE_PROGRESS);
 		}
@@ -376,7 +376,7 @@ public class MyMediaController extends MediaController {
 		public void onStartTrackingTouch(SeekBar seekBar) {
 			Log.i(TAG, "Java: onStartTrackingTouch()");
 			
-			show(3600000);
+			show(0);
 			mVolumerDragging = true;
 		}
 		

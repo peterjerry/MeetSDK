@@ -35,8 +35,8 @@ public class PPTVPlayerActivity extends VideoPlayerActivity {
 	private List<PlayLink2> mEpisodeList;
 	private String episode_title;
 	private int mEpisodeIndex;
-	private int mVid;
-	private boolean do_retry = false;
+	private int mAlbumId;
+	private int mPlaylink;
 	
 	@Override
 	public void onCreate(Bundle savedInstanceState) {
@@ -44,11 +44,27 @@ public class PPTVPlayerActivity extends VideoPlayerActivity {
 		Log.i(TAG, "Java: onCreate()");
 		
 		Intent intent 	= getIntent();
-		mVid 			= intent.getIntExtra("vid", -1);
+		mPlaylink		= intent.getIntExtra("playlink", -1);
+		mAlbumId 		= intent.getIntExtra("album_id", -1);
 		mEpisodeIndex	= intent.getIntExtra("index", -1);
-		do_retry		= intent.hasExtra("do_retry");
 		
 		mEPG = new EPGUtil();
+	}
+	
+	@Override
+	protected void onPause() {
+		// TODO Auto-generated method stub
+		Log.i(TAG, "Java: onPause()");
+		
+		if (mVideoView.isPlaying()) {
+			int pos = mVideoView.getCurrentPosition();
+			if (mPlaylink != -1 && (mPlaylink < 300000 || mPlaylink > 400000) && pos > 5000) {
+				Util.save_pptvvideo_pos(this, String.valueOf(mPlaylink), pos);
+				Log.i(TAG, String.format("Java: vid %d played pos %d msec saved", mPlaylink, pos));
+			}
+		}
+		
+		super.onPause();
 	}
 	
 	@Override
@@ -58,17 +74,12 @@ public class PPTVPlayerActivity extends VideoPlayerActivity {
 		mEpisodeIndex++;
 		
 		if (mEpisodeList == null) {
-			if (do_retry) {
-				mVideoView.stopPlayback();
-				
-				mVideoView.start();
-			}
-			else if (mVid == -1) {
-				Toast.makeText(this, "mVid is invalid", Toast.LENGTH_SHORT).show();
+			if (mAlbumId == -1) {
+				Toast.makeText(this, "album Id is invalid", Toast.LENGTH_SHORT).show();
 				finish();
 			}
 			else {
-				new EpisodeTask().execute(TASK_DETAIL, mVid);
+				new EpisodeTask().execute(TASK_DETAIL, mAlbumId);
 			}
 		}
 		else {
@@ -96,11 +107,11 @@ public class PPTVPlayerActivity extends VideoPlayerActivity {
 			mEpisodeIndex += incr;
 			
 			if (mEpisodeList == null) {
-				if (mVid == -1) {
-					Toast.makeText(this, "mVid is invalid", Toast.LENGTH_SHORT).show();
+				if (mAlbumId == -1) {
+					Toast.makeText(this, "album id is invalid", Toast.LENGTH_SHORT).show();
 				}
 				else {
-					new EpisodeTask().execute(TASK_DETAIL, mVid);
+					new EpisodeTask().execute(TASK_DETAIL, mAlbumId);
 				}
 			}
 			else {
@@ -151,7 +162,7 @@ public class PPTVPlayerActivity extends VideoPlayerActivity {
         		Toast.makeText(PPTVPlayerActivity.this, info, Toast.LENGTH_SHORT).show();
         		
         		Util.add_pptvvideo_history(PPTVPlayerActivity.this, 
-        				pl.getTitle(), Integer.valueOf(playlink), mFt);
+        				pl.getTitle(), playlink, String.valueOf(mAlbumId), mFt);
         		
         		mTitle = pl.getTitle();
         		
@@ -222,7 +233,8 @@ public class PPTVPlayerActivity extends VideoPlayerActivity {
             		return false;
         		}
         		
-        		Util.add_pptvvideo_history(PPTVPlayerActivity.this, episode_title, vid, ft);
+        		Util.add_pptvvideo_history(PPTVPlayerActivity.this, episode_title, 
+        				String.valueOf(vid), String.valueOf(mAlbumId), ft);
         		
         		Message msg = mHandler.obtainMessage(MSG_PLAY_CDN_FT, ft, ft);
     	        msg.sendToTarget();

@@ -8,8 +8,8 @@ import java.util.Map;
 import com.pplive.common.sohu.AlbumSohu;
 import com.pplive.common.sohu.EpisodeSohu;
 import com.pplive.common.sohu.PlaylinkSohu;
+import com.pplive.common.sohu.PlaylinkSohu.SohuFtEnum;
 import com.pplive.common.sohu.SohuUtil;
-import com.pplive.common.sohu.PlaylinkSohu.SOHU_FT;
 import com.pplive.meetplayer.R;
 import com.pplive.meetplayer.util.Util;
 
@@ -211,18 +211,18 @@ public class SohuEpisodeActivity extends Activity {
             	break;
             case MSG_PLAYLINK_DONE:
             	
-            	SOHU_FT ft = SOHU_FT.SOHU_FT_ORIGIN;
+            	SohuFtEnum ft = SohuFtEnum.SOHU_FT_ORIGIN;
             	String strUrl = mPlaylink.getUrl(ft);
         		if (strUrl == null || strUrl.isEmpty()) {
-        			ft = SOHU_FT.SOHU_FT_SUPER;
+        			ft = SohuFtEnum.SOHU_FT_SUPER;
         			strUrl = mPlaylink.getUrl(ft);
         		}
         		if (strUrl == null || strUrl.isEmpty()) {
-        			ft = SOHU_FT.SOHU_FT_HIGH;
+        			ft = SohuFtEnum.SOHU_FT_HIGH;
         			strUrl = mPlaylink.getUrl(ft);
         		}
         		if (strUrl == null || strUrl.isEmpty()) {
-        			ft = SOHU_FT.SOHU_FT_NORMAL;
+        			ft = SohuFtEnum.SOHU_FT_NORMAL;
         			strUrl = mPlaylink.getUrl(ft);
         		}
         		if (strUrl == null || strUrl.isEmpty()) {
@@ -237,6 +237,7 @@ public class SohuEpisodeActivity extends Activity {
         		intent.putExtra("index", (ep_page_index - 1) * page_size + selected_index);
         		intent.putExtra("aid", selected_aid);
         		intent.putExtra("site", selected_site);
+        		intent.putExtra("ft", ft.value());
         		startActivity(intent);
             	break;
             case MSG_MORELIST_DONE:

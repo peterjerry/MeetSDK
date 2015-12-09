@@ -41,10 +41,11 @@
     <LinearLayout  
         android:layout_width="match_parent"  
         android:layout_height="wrap_content"  
-        android:orientation="horizontal"
+        android:orientation="vertical"
         android:layout_toRightOf="@id/time_picker"
 		android:layout_below="@id/date_picker"
-		android:layout_marginTop="80dp" >	
+		android:layout_marginTop="80dp"
+		android:layout_marginLeft="20dp" >	
 		<TextView 
 			android:id="@+id/tv_duration"
 	        android:layout_width="wrap_content" 
@@ -52,20 +53,13 @@
 	        android:text="duration" 
 	        android:textColor="#FF0000" 
 	        android:textSize="16sp" /> 
-	   
-	    <EditText 
-	        android:id="@+id/et_duration" 
-	        android:layout_width="50dp" 
-	        android:layout_height="wrap_content" 
-	        android:text="60" /> 
-			
-		<TextView 
-			android:id="@+id/tv_duration"
-	        android:layout_width="wrap_content" 
-	        android:layout_height="wrap_content"
-	        android:text="min" 
-	        android:textColor="#FF0000" 
-	        android:textSize="16sp" /> 
+	        
+	   <Spinner     
+	        android:id = "@+id/spinner_duration"     
+	        android:layout_width = "wrap_content"     
+	        android:layout_height ="wrap_content"
+	        android:textSize="24sp" />
+
 	 </LinearLayout>
    
 </RelativeLayout>

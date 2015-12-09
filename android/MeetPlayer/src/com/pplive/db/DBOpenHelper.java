@@ -25,7 +25,7 @@ public class DBOpenHelper extends SQLiteOpenHelper {
     /**
      * The Constant DBNAME.
      */
-    public static final String DB_NAME = "mymedia.db"; // 数据库名称
+    public static final String DB_NAME = "meet.db"; // 数据库名称
 
     /**
      * The Constant VERSION.
@@ -42,6 +42,7 @@ public class DBOpenHelper extends SQLiteOpenHelper {
      */
     private DBOpenHelper(Context context) {
         super(context, DB_NAME, null, DB_VERSION);
+        Log.i(TAG, "Java: DBOpenHelper() constructor");
     }
 
     /**
@@ -77,7 +78,8 @@ public class DBOpenHelper extends SQLiteOpenHelper {
 
     @Override
     public void onCreate(SQLiteDatabase db) {
-        MediaStoreDatabaseHelper.onCreate(db);
+        MediaStoreDatabaseHelper.createDB(db);
+        PPTVPlayhistoryDatabaseHelper.createDB(db);
     }
 
     @Override

@@ -39,7 +39,7 @@
 #define WM_PREPARED_MESSAGE (WM_USER+100)
 #define WM_NOTIFY_MESSAGE (WM_USER+101)
 
-#define PROG_MAX_NUM	64
+#define PROG_MAX_NUM	1024
 #define NORMAL_URL_OFFSET 0
 #define PPTV_RTSP_URL_OFFSET 9
 #define PPTV_HLS_URL_OFFSET (PPTV_RTSP_URL_OFFSET + 12)
@@ -350,7 +350,7 @@ BOOL CtestSDLdlgDlg::OnInitDialog()
 
 	FILE *pFile = NULL;
 	pFile = fopen("tvlist.txt", "r");
-	if(pFile) {
+	if (pFile) {
 		char *data = NULL;
 		fseek(pFile, 0, SEEK_END);
 		int filesize = ftell(pFile);
@@ -377,6 +377,11 @@ BOOL CtestSDLdlgDlg::OnInitDialog()
 
 			p = strtok(NULL, "\n");
 			i++;
+
+			if (i >= PROG_MAX_NUM) {
+				LOGW("exceed max prog number");
+				break;
+			}
 		}
 		mUserAddChnNum = i;
 

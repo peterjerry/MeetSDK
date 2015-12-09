@@ -33,6 +33,7 @@ import android.pplive.media.player.MediaInfo;
 import android.pplive.media.player.TrackInfo;
 import android.util.Log;
 
+import com.pplive.db.PPTVPlayhistoryDatabaseHelper;
 import com.pplive.meetplayer.ui.PPTVEpisodeActivity;
 import com.pplive.sdk.MediaSDK;
 
@@ -40,6 +41,12 @@ public class Util {
 	private final static String TAG = "Util";
 	
 	private final static String PREF_NAME = "settings";
+	
+    private final static int ONE_KILOBYTE 	= 1024;
+	private final static int ONE_MAGABYTE 	= (ONE_KILOBYTE * ONE_KILOBYTE);
+	private final static int ONE_GIGABYTE 	= (ONE_MAGABYTE * ONE_KILOBYTE);
+	
+	private static PPTVPlayhistoryDatabaseHelper mHistoryDB;
 	
 	public static boolean startP2PEngine(Context context) {
 		Log.d("Util", "startP2PEngine()");
@@ -172,43 +179,19 @@ public class Util {
 		writeSettings(ctx, key, sb.toString());
 	}
 	
-	public static void add_pptvvideo_history(Context ctx, String title, int playlink, int ft) {
-		String key = "PPTVPlayHistory";
-		String regularEx = ",";
-		final int save_max_count = 20;
-		String value = readSettings(ctx, key);
+	public static void add_pptvvideo_history(Context ctx, String title, 
+			String playlink, String album_id, int ft) {
+		if (mHistoryDB == null)
+			mHistoryDB = PPTVPlayhistoryDatabaseHelper.getInstance(ctx);
 		
-		List<String> playHistoryList = new ArrayList<String>();
-		StringTokenizer st = new StringTokenizer(value, regularEx, false);
-        while (st.hasMoreElements()) {
-        	String token = st.nextToken();
-        	playHistoryList.add(token);
-        }
-        
-        String new_video = String.format("%s|%d|%d", title, playlink, ft);
-        
-        int count = playHistoryList.size();
-        StringBuffer sb = new StringBuffer();
-        int start = count - save_max_count + 1;
-        if (start < 0)
-        	start = 0;
-        
-        boolean isNewVideo = true;
-        for (int i = start; i<count ; i++) {
-        	String item = playHistoryList.get(i);
-        	if (new_video.contains(item) && isNewVideo)
-        		isNewVideo = false;
-        	
-        	sb.append(item);
-        	sb.append(regularEx);
-        }
-        
-        if (isNewVideo)
-        	sb.append(new_video);
-        else
-        	Log.i(TAG, String.format("Java %s already in history list", new_video));
-        
-		writeSettings(ctx, key, sb.toString());
+		mHistoryDB.saveHistory(title, playlink, album_id, ft);
+	}
+	
+	public static void save_pptvvideo_pos(Context ctx, String playlink, int pos/*msec*/) {
+		if (mHistoryDB == null)
+			mHistoryDB = PPTVPlayhistoryDatabaseHelper.getInstance(ctx);
+		
+		mHistoryDB.savePlayedPosition(playlink, pos);
 	}
 	
 	public static String read_file(String path, String encode) {
@@ -466,6 +449,25 @@ public class Util {
 
 		}
 	}
+	
+	public static String getFileSize(long size) {
+	    String strSize;
+	    if (size < 0)
+	    	return "N/A";
+	    
+	    if (size > ONE_GIGABYTE)
+			strSize = String.format("%.3f GB",
+					(double) size / (double) ONE_GIGABYTE);
+	    else if (size > ONE_MAGABYTE)
+			strSize = String.format("%.3f MB",
+					(double) size / (double) ONE_MAGABYTE);
+		else if (size > ONE_KILOBYTE)
+			strSize = String.format("%.3f kB",
+					(double) size / (double) ONE_KILOBYTE);
+		else
+			strSize = String.format("%d Byte", size);
+		return strSize;
+    }
 	
 	private static String msecToString(long msec) {
 		long msec_, sec, minute, hour, tmp;

@@ -85,6 +85,22 @@
 			android:layout_height="wrap_content"
 			android:layout_alignParentBottom="true" 
 			android:visibility="gone" />
+		<ImageView
+			android:id="@+id/iv_seekbackward"
+			android:layout_width="72dp"
+			android:layout_height="72dp" 
+			android:layout_centerInParent="true" 
+			android:src="@drawable/media_seek_backward"
+			android:scaleType="fitXY" 
+			android:visibility="gone" />
+		<ImageView
+			android:id="@+id/iv_seekforward"
+			android:layout_width="72dp"
+			android:layout_height="72dp" 
+			android:layout_centerInParent="true" 
+			android:src="@drawable/media_seek_forward"
+			android:scaleType="fitXY" 
+			android:visibility="gone" />
 	</RelativeLayout>
 	
 	<LinearLayout  

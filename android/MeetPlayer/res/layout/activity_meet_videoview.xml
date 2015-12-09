@@ -52,6 +52,19 @@
 			android:layout_width="fill_parent"
 			android:layout_height="wrap_content"
 			android:orientation="horizontal" >	
+			<CheckBox 
+			    android:id="@+id/cb_download"
+			    android:layout_width="wrap_content" 
+			    android:layout_height="wrap_content"
+			    android:checked="false"
+			    android:text="save" />
+			<CheckBox 
+			    android:id="@+id/cb_p2p"
+			    android:layout_width="wrap_content" 
+			    android:layout_height="wrap_content"
+			    android:checked="false"
+			    android:enabled="false"
+			    android:text="p2p" />
 			<Button
 				android:id="@+id/btn_player_impl"
 				android:layout_width="wrap_content"
@@ -61,7 +74,8 @@
 				android:id="@+id/btn_movies"
 				android:layout_width="wrap_content"
 				android:layout_height="wrap_content"
-				android:text="movies"/>
+				android:text="movies"
+				android:visibility="gone" />
 			<Button
 				android:id="@+id/btn_tv_series"
 				android:layout_width="wrap_content"
@@ -87,7 +101,8 @@
 				android:id="@+id/btn_next_page"
 				android:layout_width="wrap_content"
 				android:layout_height="fill_parent"
-				android:text="next"/>
+				android:text="next"
+				android:visibility="gone" />
 		</LinearLayout>
 			
 		<ListView	

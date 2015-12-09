@@ -42,10 +42,6 @@ import android.pplive.media.MeetSDK;
 public class MyNanoHTTPD extends NanoHTTPD{  
 	private final static String TAG = "MyNanoHTTPD";
 	
-	private final static int ONE_KILOBYTE = 1024;
-	private final static int ONE_MAGABYTE = (ONE_KILOBYTE * ONE_KILOBYTE);
-	private final static int ONE_GIGABYTE = (ONE_MAGABYTE * ONE_KILOBYTE);
-	
 	private int mPort = 8080;
 	private String mRootDir;
 	private Context mContext;
@@ -197,6 +193,9 @@ public class MyNanoHTTPD extends NanoHTTPD{
 					mimeType = mMimeTypeMap.getMimeTypeFromExtension(extension);
 				else
 					mimeType = "application/octet-stream";
+				// fix ts file cannot download bug
+				if (path.toLowerCase().endsWith(".ts") || path.toLowerCase().endsWith(".mpegts"))
+					mimeType = "video/MP2T";
 			    if (mimeType.contains("text"))
 					mimeType += ";charset=utf-8";
 				Log.i(TAG, String.format("Java: extension %s mime_type: %s", extension, mimeType));
@@ -292,7 +291,7 @@ public class MyNanoHTTPD extends NanoHTTPD{
 				sb_html_context.append(String.format(line_fmt, 
 						icon, altType, href, fileName,
 						dateFormat.format(new Date(modTime)),
-						onefile.isDirectory() ? "-" : getFileSize(filesize)));
+						onefile.isDirectory() ? "-" : Util.getFileSize(filesize)));
 			}
 		}
 		
@@ -535,7 +534,28 @@ public class MyNanoHTTPD extends NanoHTTPD{
 		String httpUrl = String.format(block_url_fmt, mLiveItem.getHost(), mLiveItem.getRid(),
 				time_stamp, mFt, mLiveItem.getKey());
 		Log.i(TAG, "Java: download flv segment: " + httpUrl);
-		int in_size = httpUtil.httpDownloadBuffer(httpUrl, 1400, in_flv);
+		
+		int retry = 3;
+		int in_size = 0;
+		while (retry > 0) {
+			in_size = httpUtil.httpDownloadBuffer(httpUrl, 1400, in_flv);
+			if (in_size > 100)
+				break;
+			
+			try {
+				Thread.sleep(100);
+			} catch (InterruptedException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+			
+			retry--;
+		}
+		
+		if (in_size < 0) {
+			return new myResponse(Status.BAD_REQUEST, null, null, 0, 0, 0);
+		}
+		
 		byte[] out_ts = new byte[1048576];
 		
 		int out_size = MeetSDK.Convert(in_flv, in_size, out_ts, 1, m_first_seg);
@@ -608,25 +628,6 @@ public class MyNanoHTTPD extends NanoHTTPD{
 	    }
 	    return suffix;
 	}
-	
-	private String getFileSize(long size) {
-	    String strSize;
-	    if (size < 0)
-	    	return "N/A";
-	    
-	    if (size > ONE_GIGABYTE)
-			strSize = String.format("%.3f GB",
-					(double) size / (double) ONE_GIGABYTE);
-	    else if (size > ONE_MAGABYTE)
-			strSize = String.format("%.3f MB",
-					(double) size / (double) ONE_MAGABYTE);
-		else if (size > ONE_KILOBYTE)
-			strSize = String.format("%.3f kB",
-					(double) size / (double) ONE_KILOBYTE);
-		else
-			strSize = String.format("%d Byte", size);
-		return strSize;
-    }
 	
 	private class FileComparator implements Comparator<File> {
 		@Override

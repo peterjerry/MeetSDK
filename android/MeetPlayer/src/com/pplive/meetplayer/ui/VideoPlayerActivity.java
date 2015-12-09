@@ -114,6 +114,8 @@ public class VideoPlayerActivity extends Activity implements Callback {
 		mFt = intent.getIntExtra("ft", 0);
 		mBestFt = intent.getIntExtra("best_ft", 3);
 		
+		pre_seek_msec = intent.getIntExtra("preseek_msec", -1);
+		
 		setContentView(R.layout.activity_video_player);
 		
 		this.mController = (MyMediaController) findViewById(R.id.video_controller);
@@ -129,7 +131,6 @@ public class VideoPlayerActivity extends Activity implements Callback {
 		this.mController.setMediaPlayer(mVideoView);
 		
 		Util.initMeetSDK(this);
-		
 	}
 	
 	@Override
@@ -167,6 +168,7 @@ public class VideoPlayerActivity extends Activity implements Callback {
 			break;
 		case R.id.toggle_debug_info:
 			mbShowDebugInfo = !mbShowDebugInfo;
+			
 			if (mbShowDebugInfo)
 				mTextViewDebugInfo.setVisibility(View.VISIBLE);
 			else
@@ -397,6 +399,9 @@ public class VideoPlayerActivity extends Activity implements Callback {
 		case 1:
 			DecMode = DecodeMode.HW_SYSTEM;
 			break;
+		case 2:
+			DecMode = DecodeMode.HW_XOPLAYER;
+			break;
 		case 3:
 			DecMode = DecodeMode.SW;
 			break;
@@ -436,6 +441,8 @@ public class VideoPlayerActivity extends Activity implements Callback {
 		}
 
 		if (pre_seek_msec != -1) {
+			Log.i(TAG, "Java: pre seek to " + pre_seek_msec + " msec");
+			
 			mVideoView.seekTo(pre_seek_msec);
 			pre_seek_msec = -1;
 		}

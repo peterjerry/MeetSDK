@@ -10,7 +10,7 @@ import com.pplive.common.pptv.Episode;
 import com.pplive.common.sohu.AlbumSohu;
 import com.pplive.common.sohu.EpisodeSohu;
 import com.pplive.common.sohu.PlaylinkSohu;
-import com.pplive.common.sohu.PlaylinkSohu.SOHU_FT;
+import com.pplive.common.sohu.PlaylinkSohu.SohuFtEnum;
 import com.pplive.common.sohu.SohuUtil;
 import com.pplive.meetplayer.R;
 import com.pplive.meetplayer.media.FragmentMp4MediaPlayerV2;
@@ -59,6 +59,7 @@ public class PlaySohuActivity extends Activity implements Callback {
 	private int mInfoId, mIndex;
 	private long mAid;
 	private int mSite = -1;
+	private int mFt;
 	
 	private int mVideoWidth, mVideoHeight;
 	private List<String> m_playlink_list;
@@ -169,6 +170,7 @@ public class PlaySohuActivity extends Activity implements Callback {
     		// for sohu
     		mAid				= intent.getLongExtra("aid", -1); 
     		mSite				= intent.getIntExtra("site", -1);
+    		mFt					= intent.getIntExtra("ft", 0);
     		
     		Log.i(TAG, "Java: mDurationListStr " + mDurationListStr);
 		}
@@ -403,8 +405,12 @@ public class PlaySohuActivity extends Activity implements Callback {
 	@Override
 	public boolean onTouchEvent(MotionEvent event) {
 		// TODO Auto-generated method stub
-		if (mPlayer != null && !mController.isShowing())
-			mController.show(MEDIA_CONTROLLER_TIMEOUT);
+		if (mPlayer != null && event.getAction() == MotionEvent.ACTION_UP) {
+			if (mController.isShowing())
+				mController.hide();
+			else
+				mController.show(MEDIA_CONTROLLER_TIMEOUT);
+		}
 		
 		return super.onTouchEvent(event);
 	}
@@ -469,7 +475,8 @@ public class PlaySohuActivity extends Activity implements Callback {
 		
 		mTextViewFileName.setText(mTitle);
 		mController.setFileName(mTitle);
-		Toast.makeText(this, "ready to play video: " + mTitle, Toast.LENGTH_SHORT).show();
+		Toast.makeText(this, String.format("ready to play video: %s (ft %d)", mTitle, mFt), 
+				Toast.LENGTH_SHORT).show();
 		
 		mPlayer = new FragmentMp4MediaPlayerV2();
 		mPlayer.reset();
@@ -663,18 +670,18 @@ public class PlaySohuActivity extends Activity implements Callback {
     		
     		mTitle = l.getTitle();
     		
-			SOHU_FT ft = SOHU_FT.SOHU_FT_ORIGIN;
+    		SohuFtEnum ft = SohuFtEnum.SOHU_FT_ORIGIN;
 			mUrlListStr = l.getUrl(ft);
     		if (mUrlListStr == null || mUrlListStr.isEmpty()) {
-    			ft = SOHU_FT.SOHU_FT_SUPER;
+    			ft = SohuFtEnum.SOHU_FT_SUPER;
     			mUrlListStr = l.getUrl(ft);
     		}
     		if (mUrlListStr == null || mUrlListStr.isEmpty()) {
-    			ft = SOHU_FT.SOHU_FT_HIGH;
+    			ft = SohuFtEnum.SOHU_FT_HIGH;
     			mUrlListStr = l.getUrl(ft);
     		}
     		if (mUrlListStr == null || mUrlListStr.isEmpty()) {
-    			ft = SOHU_FT.SOHU_FT_NORMAL;
+    			ft = SohuFtEnum.SOHU_FT_NORMAL;
     			mUrlListStr = l.getUrl(ft);
     		}
     		if (mUrlListStr == null || mUrlListStr.isEmpty()) {

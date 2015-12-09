@@ -96,7 +96,7 @@ public class MediaStoreDatabaseHelper {
      *            SQLiteDatabase
      * @see [类、类#方法、类#成员]
      */
-    public static void onCreate(SQLiteDatabase db) {
+    public static void createDB(SQLiteDatabase db) {
         createTable(db);
     }
     

@@ -99,10 +99,10 @@ else
 	SYSROOT=$NDK/platforms/android-9/arch-$ARCH
 fi
 
-USER_ROOT=`pwd`
-FDK_AAC_HOME=$USER_ROOT/thirdparty/fdk-aac
-RTMPDUMP_HOME=$USER_ROOT/thirdparty/rtmpdump
-X264_HOME=$USER_ROOT/thirdparty/x264
+HOME_FOLDER=`pwd`
+FDK_AAC_HOME=$HOME_FOLDER/../thirdparty/fdk-aac
+RTMPDUMP_HOME=$HOME_FOLDER/../thirdparty/rtmpdump
+X264_HOME=$HOME_FOLDER/../thirdparty/x264
 
 if [ $ARCH == 'arm' ] 
 then
@@ -110,14 +110,14 @@ then
 	EXTRA_CFLAGS="$EXTRA_CFLAGS -fstack-protector -fstrict-aliasing"
 	OPTFLAGS="-O2"
 	FDK_AAC_LIB=$FDK_AAC_HOME/lib/android/armeabi-v7a
-	RTMPDUMP_LIB=$USER_ROOT/thirdparty/rtmpdump/lib/android/armeabi
+	RTMPDUMP_LIB=$RTMPDUMP_HOME/lib/android/armeabi
 	X264_LIB=$X264_HOME/lib/android/armeabi
 elif [ $ARCH == 'arm64' ] 
 then
 	CROSS_PREFIX=$NDK/toolchains/aarch64-linux-android-4.9/prebuilt/$HOST/bin/aarch64-linux-android-
 	EXTRA_CFLAGS="$EXTRA_CFLAGS -fstack-protector -fstrict-aliasing"
 	OPTFLAGS="-O2"
-	RTMPDUMP_LIB=$USER_ROOT/thirdparty/rtmpdump/lib/android/arm64-v8a
+	RTMPDUMP_LIB=$RTMPDUMP_HOME/lib/android/arm64-v8a
 	X264_LIB=$X264_HOME/lib/android/arm64-v8a
 elif [ $ARCH == 'x86' ] 
 then
@@ -125,7 +125,7 @@ then
 	EXTRA_CFLAGS="$EXTRA_CFLAGS -fstrict-aliasing"
 	OPTFLAGS="-O2 -fno-pic"
 	FDK_AAC_LIB=$FDK_AAC_HOME/lib/android/x86
-	RTMPDUMP_LIB=$USER_ROOT/thirdparty/rtmpdump/lib/android/x86
+	RTMPDUMP_LIB=$RTMPDUMP_HOME/lib/android/x86
 	X264_LIB=$X264_HOME/lib/android/x86
 elif [ $ARCH == 'mips' ] 
 then
@@ -137,7 +137,7 @@ fi
 if [ ${3}x == 'enc'x ]; then
 
 echo "build-in fdk-aac" 
-echo "USER_ROOT: $USER_ROOT"
+echo "HOME_FOLDER: $HOME_FOLDER"
 echo "fdk-aac include: $FDK_AAC_HOME/include"
 echo "fdk-aac lib: $FDK_AAC_LIB"
 
@@ -177,6 +177,7 @@ EXTRA_PARAMETERS="$EXTRA_PARAMETERS \
         --enable-demuxer=h264,mp4,mov,mpegts \
         --disable-parsers \
         --enable-parser=h264,aac_latm,ac3 \
+	--enable-muxer=mpegts,flv,hls \
 	--disable-protocols \
 	--enable-protocol=file,http "
 else

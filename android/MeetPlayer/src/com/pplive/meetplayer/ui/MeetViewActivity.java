@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Random;
 
 import com.pplive.common.pptv.Catalog;
 import com.pplive.common.pptv.Content;
@@ -12,14 +13,22 @@ import com.pplive.common.pptv.PlayLink2;
 import com.pplive.common.pptv.PlayLinkUtil;
 import com.pplive.meetplayer.R;
 import com.pplive.meetplayer.ui.widget.MiniMediaController;
+import com.pplive.meetplayer.util.DownloadClipTask;
 import com.pplive.meetplayer.util.Util;
 import com.pplive.sdk.MediaSDK;
 
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.Dialog;
+import android.app.Notification;
+import android.app.NotificationManager;
+import android.app.PendingIntent;
+import android.app.ProgressDialog;
+import android.content.BroadcastReceiver;
+import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.pm.ActivityInfo;
 import android.content.res.Configuration;
 import android.graphics.Color;
@@ -28,6 +37,7 @@ import android.graphics.drawable.Drawable;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.os.Environment;
 import android.os.Handler;
 import android.os.Message;
 import android.pplive.media.player.MediaPlayer;
@@ -44,10 +54,14 @@ import android.view.Window;
 import android.view.WindowManager;
 import android.widget.AdapterView;
 import android.widget.Button;
+import android.widget.CheckBox;
+import android.widget.CompoundButton;
+import android.widget.CompoundButton.OnCheckedChangeListener;
 import android.widget.LinearLayout;
 import android.widget.ListView;
 import android.widget.ProgressBar;
 import android.widget.RelativeLayout;
+import android.widget.RemoteViews;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -55,6 +69,8 @@ public class MeetViewActivity extends Activity implements OnFocusChangeListener 
 
 	private final static String TAG = "MeetViewActivity";
 	private final static String []mode_desc = {"自适应", "铺满屏幕", "放大裁切", "原始大小"};
+	private final static String STATUS_BAR_COVER_CLICK_ACTION = 
+			"com.pplive.meetplayer.STATUS_BAR_COVER_CLICK_ACTION";
 	
 	private final static String TV_SERIES_LINK = "9037770";
 	
@@ -99,6 +115,9 @@ public class MeetViewActivity extends Activity implements OnFocusChangeListener 
 	private boolean mIsBuffering = false;
 	
 	private int mPlayerImpl = 0;
+	
+	private CheckBox cbDownload;
+	private CheckBox cbP2P;
 	private Button btnPlayerImpl;
 	private Button btnMovies;
 	private Button btnTVSeries;
@@ -108,15 +127,21 @@ public class MeetViewActivity extends Activity implements OnFocusChangeListener 
 	private TextView mTextViewInfo;
 	
 	private boolean mPreviewFocused = false;
-	private boolean mStartFromPortrait = false;
+	private boolean mStartFromPortrait = true;
 	
-	private boolean mSideBarShowed = true;
+	private boolean mSideBarShowed = false;
 	
 	private PPTVAdapter mAdapter;
 	private ListView lv_pptvlist;
 	private List<Map<String, Object>> mPPTVClipList = null;
 	private int mLastPlayItemPos = -1;
+	private String mAlbumId;
 	private String mPlaylink;
+	
+	private NotificationManager mNotifManager;
+	private List<DownloadTask> downloadTaskList;
+	private String mDownloadLocalFolder;
+	private BroadcastReceiver mClickReceiver;
 	
 	@Override
 	public void onCreate(Bundle savedInstanceState) {
@@ -124,11 +149,11 @@ public class MeetViewActivity extends Activity implements OnFocusChangeListener 
 		Log.i(TAG, "Java: onCreate()");
 		
 		Intent intent = getIntent();
-		if (intent.hasExtra("playlink")) {
-			mPlaylink = intent.getStringExtra("playlink");
+		if (intent.hasExtra("album_id")) {
+			mAlbumId = intent.getStringExtra("album_id");
 		}
 		else {
-			mPlaylink = TV_SERIES_LINK;
+			mAlbumId = TV_SERIES_LINK;
 		}
 		
 		// Full Screen
@@ -171,6 +196,18 @@ public class MeetViewActivity extends Activity implements OnFocusChangeListener 
 		mController.setFocusable(true);
 		
 		mBufferingProgressBar = (ProgressBar) findViewById(R.id.progressbar_buffering2);
+		
+		this.cbDownload = (CheckBox) this.findViewById(R.id.cb_download);
+		this.cbDownload.setOnCheckedChangeListener(new OnCheckedChangeListener() {
+
+			@Override
+			public void onCheckedChanged(CompoundButton cb, boolean isChecked) {
+				// TODO Auto-generated method stub
+				cbP2P.setEnabled(isChecked);
+			}
+		});
+		
+		this.cbP2P = (CheckBox) this.findViewById(R.id.cb_p2p);
 		
 		this.btnPlayerImpl = (Button) findViewById(R.id.btn_player_impl);
 		this.btnPlayerImpl.setOnClickListener(new Button.OnClickListener() {
@@ -256,6 +293,8 @@ public class MeetViewActivity extends Activity implements OnFocusChangeListener 
 			}
 		});
 		
+		mPlayerImpl = Util.readSettingsInt(this, "PlayerImpl");
+		
 		mPPTVClipList = new ArrayList<Map<String, Object>>();
 		
 		new ListPPTVTask().execute(mListType, mPageNum);
@@ -271,21 +310,45 @@ public class MeetViewActivity extends Activity implements OnFocusChangeListener 
 				Log.i(TAG, String.format("Java: onItemClick %d %d", position, id));
 				
 				mLastPlayItemPos = position;
-				start_player(mLastPlayItemPos);
+				HashMap<String, Object> item = (HashMap<String, Object>)mAdapter.getItem(mLastPlayItemPos);
+				String title = (String)item.get("title");
+				String vid = (String)item.get("vid");
+				int ft = (Integer)item.get("ft");
+				if (ft  == -1)
+					ft = Integer.valueOf(btnFt.getText().toString());
+				
+				if (cbDownload.isChecked()) {
+					if (mVideoView.isPlaying())
+							mVideoView.pause();
+					
+					String save_path = mDownloadLocalFolder + "/" + title + ".mp4";
+					DownloadTask task = new DownloadTask(MeetViewActivity.this, title, cbP2P.isChecked());
+					task.execute(vid, String.valueOf(ft), save_path);
+					downloadTaskList.add(task);
+				}
+				else {
+					start_player(title, vid, ft);
+				}
 			}
 		});
+		
+		String folder = Util.readSettings(this, "download_folder");
+	    if (folder.isEmpty())
+		    mDownloadLocalFolder = Environment.getExternalStorageDirectory().getAbsolutePath() + 
+					"/test2";
+	    else
+	    	mDownloadLocalFolder = folder;
+	    mNotifManager = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
+	    downloadTaskList = new ArrayList<DownloadTask>();
 	}
 
-	private void start_player(int index) {
-		HashMap<String, Object> item = (HashMap<String, Object>)mAdapter.getItem(index);
-		String title = (String)item.get("title");
-		String vid = (String)item.get("vid");
-		int ft = (Integer)item.get("ft");
-		if (ft  == -1)
-			ft = Integer.valueOf(btnFt.getText().toString());
+	private void start_player(String title, String vid, int ft) {
 		String info = String.format("title %s, vid %s ft %d", title, vid, ft);
 		Log.i(TAG, "Java: " + info);
-		Toast.makeText(this, "play " + info, Toast.LENGTH_SHORT).show();
+		Toast.makeText(this, "[play] " + info, Toast.LENGTH_SHORT).show();
+		
+		mPlaylink = vid;
+		Util.add_pptvvideo_history(MeetViewActivity.this, title, vid, mAlbumId, 0);
 		
 		short http_port = MediaSDK.getPort("http");
 		Log.i(TAG, "Http port is: " + http_port);
@@ -448,7 +511,7 @@ public class MeetViewActivity extends Activity implements OnFocusChangeListener 
 	
 	private boolean fill_list_series() {
 		EPGUtil util = new EPGUtil();
-		boolean ret = util.detail(mPlaylink);
+		boolean ret = util.detail(mAlbumId);
 		if (!ret)
 			return false;
 		
@@ -562,19 +625,19 @@ public class MeetViewActivity extends Activity implements OnFocusChangeListener 
 			case MSG_UPDATE_PLAY_INFO:
 			case MSG_UPDATE_RENDER_INFO:
 				/*if (isLandscape) {
-					mTextViewInfo.setText(String.format("%02d|%03d v-a: %+04d "
-							+ "dec/render %d(%d)/%d(%d) fps/msec bitrate %d kbps", 
-						render_frame_num % 25, decode_drop_frame % 1000, av_latency_msec, 
-						decode_fps, decode_avg_msec, render_fps, render_avg_msec,
-						video_bitrate));
-				}
-				else {*/
-					mTextViewInfo.setText(String.format("%02d|%03d v-a: %+04d\n"
-							+ "dec/render %d(%d)/%d(%d) fps/msec\nbitrate %d kbps", 
-						render_frame_num % 25, decode_drop_frame % 1000, av_latency_msec, 
-						decode_fps, decode_avg_msec, render_fps, render_avg_msec,
-						video_bitrate));
-				//}
+				mTextViewInfo.setText(String.format("%02d|%03d v-a: %+04d "
+						+ "dec/render %d(%d)/%d(%d) fps/msec bitrate %d kbps", 
+					render_frame_num % 25, decode_drop_frame % 1000, av_latency_msec, 
+					decode_fps, decode_avg_msec, render_fps, render_avg_msec,
+					video_bitrate));
+			}
+			else {*/
+				mTextViewInfo.setText(String.format("%02d|%03d v-a: %+04d\n"
+						+ "dec/render %d(%d)/%d(%d) fps/msec\nbitrate %d kbps", 
+					render_frame_num % 25, decode_drop_frame % 1000, av_latency_msec, 
+					decode_fps, decode_avg_msec, render_fps, render_avg_msec,
+					video_bitrate));
+			//}
 				break;
 			default:
 				Log.w(TAG, "unknown msg.what " + msg.what);
@@ -588,6 +651,39 @@ public class MeetViewActivity extends Activity implements OnFocusChangeListener 
 		super.onStart();
 
 		Log.i(TAG, "Java: onStart");
+		
+		// Register receivers
+		mClickReceiver = new BroadcastReceiver() {
+			@Override
+			public void onReceive(Context context, Intent intent) {
+				String action = intent.getAction();
+				Log.i(TAG, "Java: action Action: " + action);
+				if (action.equals(STATUS_BAR_COVER_CLICK_ACTION)) {
+					int notifyId = intent.getIntExtra("notifId", -1);
+					String title = intent.getStringExtra("title");
+					Log.i(TAG, String.format("Java: ready to cancel download job %s, notifyId %d", title, notifyId));
+					
+					for (int i=0;i<downloadTaskList.size();i++) {
+						DownloadTask t = downloadTaskList.get(i);
+						if (t.getNotifId() == notifyId) {
+							t.interrupt();
+							downloadTaskList.remove(i);
+							Toast.makeText(MeetViewActivity.this, 
+									title + " download canceled", Toast.LENGTH_SHORT).show();
+							break;
+						}
+						else {
+							Log.i(TAG, String.format("Java: notifyId %d dismatch", t.getNotifId()));
+						}
+					}
+				}
+			}
+		};
+		
+		IntentFilter filter = new IntentFilter();
+		filter.addAction(STATUS_BAR_COVER_CLICK_ACTION);
+		
+		registerReceiver(mClickReceiver, filter);
 	}
 	
 	void setup_layout(boolean isLandscape) {
@@ -609,7 +705,7 @@ public class MeetViewActivity extends Activity implements OnFocusChangeListener 
 				paramsPreview.height = screen_height;
 				paramsPreview.addRule(RelativeLayout.RIGHT_OF, R.id.layout_ctrl);
 				
-				paramsCtrl.width = screen_width / 4;
+				paramsCtrl.width = screen_width / 3; // LinearLayout.LayoutParams.WRAP_CONTENT
 				paramsCtrl.addRule(RelativeLayout.ALIGN_PARENT_LEFT);
 			}
 		}
@@ -648,20 +744,23 @@ public class MeetViewActivity extends Activity implements OnFocusChangeListener 
 			isLandscape = true;
 		
 		mStartFromPortrait = !isLandscape;
+		mSideBarShowed = isLandscape;
 		setup_layout(isLandscape);
 		
-		if (mVideoView != null)
-			mVideoView.start();
+		mVideoView.start();
 	}
 
 	@Override
 	protected void onPause() {
 		super.onPause();
-
 		Log.i(TAG, "Java: onPause()");
+		
+		Util.writeSettingsInt(this, "PlayerImpl", mPlayerImpl);
 
-		if (mVideoView != null)
+		if (mVideoView.isPlaying()) {
 			mVideoView.pause();
+			Util.save_pptvvideo_pos(this, mPlaylink, mVideoView.getCurrentPosition());
+		}
 	}
 
 	@Override
@@ -670,8 +769,14 @@ public class MeetViewActivity extends Activity implements OnFocusChangeListener 
 
 		Log.i(TAG, "Java: onStop()");
 
-		if (isFinishing() && mVideoView != null)
+		if (isFinishing()) {
 			mVideoView.stopPlayback();
+		}
+		
+		if (mClickReceiver != null) {
+			unregisterReceiver(mClickReceiver);
+			mClickReceiver = null;
+		}
 	}
 
 	private void setupPlayer() {
@@ -722,7 +827,14 @@ public class MeetViewActivity extends Activity implements OnFocusChangeListener 
 			
 			lv_pptvlist.setSelection(mLastPlayItemPos);
 			Log.i(TAG, "play next item pos: " + mLastPlayItemPos);
-			start_player(mLastPlayItemPos);
+			
+			HashMap<String, Object> item = (HashMap<String, Object>)mAdapter.getItem(mLastPlayItemPos);
+			String title = (String)item.get("title");
+			String vid = (String)item.get("vid");
+			int ft = (Integer)item.get("ft");
+			if (ft  == -1)
+				ft = Integer.valueOf(btnFt.getText().toString());
+			start_player(title, vid, ft);
 		}
 	};
 
@@ -867,7 +979,8 @@ public class MeetViewActivity extends Activity implements OnFocusChangeListener 
 	@Override
 	public void onBackPressed() {
 		// TODO Auto-generated method stub
-		if (mSideBarShowed && mVideoView != null) {
+		Log.i(TAG, "Java: onBackPressed()");
+		if (mSideBarShowed && mVideoView.isPlaying()) {
 			showMenu(false);
 			return;
 		}
@@ -878,7 +991,7 @@ public class MeetViewActivity extends Activity implements OnFocusChangeListener 
 	@Override
 	public boolean onKeyDown(int keyCode, KeyEvent event) {
 		
-		Log.d(TAG, "keyCode: " + keyCode);
+		Log.d(TAG, "Java: onKeyDown() keyCode: " + keyCode);
 		
 		//if (!mPreviewFocused)
 		//	return super.onKeyDown(keyCode, event);
@@ -967,4 +1080,100 @@ public class MeetViewActivity extends Activity implements OnFocusChangeListener 
 		}
 	}
 	
+	private class DownloadTask extends DownloadClipTask {
+		private ProgressDialog progressDialog;
+		private Notification mNotif;
+		private int mNotifId;
+		
+		public DownloadTask(Context ctx, String title, boolean isP2P) {
+			super(ctx, title, isP2P);
+			// TODO Auto-generated constructor stub
+		}
+		
+		public int getNotifId() {
+			return mNotifId;
+		}
+		
+		@Override
+		protected void onPreExecute() {
+			// TODO Auto-generated method stub
+			progressDialog = new ProgressDialog(MeetViewActivity.this);
+			progressDialog.setTitle("Downloading...");
+			progressDialog.setMessage("file\nprogress: ");
+			progressDialog.setProgressStyle(ProgressDialog.STYLE_HORIZONTAL);
+			progressDialog.setMax(100);
+			progressDialog.setIndeterminate(false);
+			progressDialog.setCancelable(true);
+	    	/*progressDialog.setOnCancelListener(new DialogInterface.OnCancelListener() {
+				
+				@Override
+				public void onCancel(DialogInterface dialog) {
+					// TODO Auto-generated method stub
+					interrupt();
+					Toast.makeText(getApplicationContext(), 
+							"file " + mSavePath + " download aborted", Toast.LENGTH_SHORT).show();
+					dialog.dismiss();
+				}
+			});*/
+	    	progressDialog.show();
+	    	
+	        Random rand = new Random();
+	        mNotifId = 1000 + rand.nextInt(100);
+	        Log.i(TAG, String.format("Java: download file %s, notifyId %d", mTitle, mNotifId));
+	        mNotif = new Notification();  
+	        mNotif.icon = R.drawable.download;  
+	        mNotif.tickerText = "new download task added";
+	        
+	        //Intent intent = new Intent("android.settings.SETTINGS");
+	    	Intent intent = new Intent(STATUS_BAR_COVER_CLICK_ACTION);
+	    	intent.putExtra("notifId", mNotifId);
+	    	intent.putExtra("title", super.mTitle);
+	        PendingIntent pIntent = PendingIntent.getBroadcast(MeetViewActivity.this, 0, intent, 0);
+	        
+	        //通知栏显示所用到的布局文件   
+	        mNotif.contentView = new RemoteViews(
+	        		MeetViewActivity.this.getPackageName(), R.layout.content_view);
+	        mNotif.contentIntent = pIntent;
+	        String filename = super.mTitle;
+	        if (filename.length() > 16)
+	        	filename = filename.substring(0, 16) + "...";
+	        mNotif.contentView.setTextViewText(R.id.content_view_filename, filename);
+	        mNotifManager.notify(mNotifId, mNotif);
+		}
+		
+		@Override
+		protected void onPostExecute(Boolean result) {
+			// TODO Auto-generated method stub
+			progressDialog.dismiss();
+			
+			mNotifManager.cancel(mNotifId);
+			
+			if (result) {
+				Toast.makeText(MeetViewActivity.this, 
+						String.format("file %s saved to %s(size %s)", 
+								super.mTitle, super.mSavePath, Util.getFileSize(super.mFileSize)),
+						Toast.LENGTH_SHORT).show();
+			}
+			else {
+				Toast.makeText(MeetViewActivity.this, "failed to download file " + mTitle, 
+						Toast.LENGTH_SHORT).show();
+			}
+		}
+		
+		@Override
+		protected void onProgressUpdate(Integer... values) {
+			// TODO Auto-generated method stub
+			int progress = values[0];
+			double speed = (double)values[1] / 1000.0f;
+			progressDialog.setMessage(
+					String.format("%s\nprogress: %d%%\nspeed: %.3f MB/sec\nleft: %s/%s", 
+							super.mSavePath, progress, speed, 
+							Util.getFileSize(super.mDownloadedSize), Util.getFileSize(super.mFileSize)));
+			progressDialog.setProgress(progress);
+			
+			mNotif.contentView.setTextViewText(R.id.content_view_text1, progress + "%");  
+			mNotif.contentView.setProgressBar(R.id.content_view_progress, 100, progress, false);
+	        mNotifManager.notify(mNotifId, mNotif);
+		}
+	};
 }

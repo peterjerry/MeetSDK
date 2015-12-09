@@ -17,4 +17,14 @@
     <string name="format_progress">Progress&#8230;%d%%</string>
     <string name="format_video_duration">Duration: %s</string>
     <string name="format_video_size">Size: %.2fMB</string>
+    
+    <string-array name="duration_array">
+        <item>0 分钟(直播)</item>
+        <item>10 分钟</item>
+        <item>20 分钟</item>
+        <item>30 分钟</item>
+        <item>1 小时</item>
+        <item>2 小时</item>
+        <item>3 小时</item>
+    </string-array>
 </resources>

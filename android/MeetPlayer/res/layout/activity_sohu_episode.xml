@@ -21,7 +21,7 @@
         android:layout_marginRight="1dip"
         android:numColumns="auto_fit"
         android:columnWidth="150dp"
-        android:verticalSpacing="25dp"
+        android:verticalSpacing="5dp"
         android:stretchMode="columnWidth"
         android:cacheColorHint="#00000000">
 	</GridView>

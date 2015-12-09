@@ -198,6 +198,7 @@ enum media_info_type {
 	MEDIA_INFO_TEST_BUFFERING_MSEC	= 2008, // msec
 	MEDIA_INFO_TEST_IO_BITRATE		= 2021, // read from disk or network(maybe zero) kbps
 	MEDIA_INFO_TEST_MEDIA_BITRATE	= 2022, // media bitrate kbps
+	MEDIA_INFO_TEST_RTMP_FLUSH		= 2030, // rtmp flush buffer to keep real-time
 
 	MEDIA_INFO_TEST_PLAYER_TYPE		= 2100,
 };

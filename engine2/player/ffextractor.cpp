@@ -1427,7 +1427,13 @@ void FFExtractor::thread_impl()
 		else if (ret < 0) {
 			char msg[128] = {0};
 			av_make_error_string(msg, 128, ret);
-			LOGE("failed to read frame %d %s", ret, msg);
+			LOGW("failed to read frame %d(%s)", ret, msg);
+
+			if (ret == -11) {
+				LOGW("just read frame later");
+				continue;
+			}
+
 			break;
 		}
 
