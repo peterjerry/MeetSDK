@@ -106,6 +106,7 @@
     <ClCompile Include="..\..\..\player\androidrender.cpp" />
     <ClCompile Include="..\..\..\player\audioplayer.cpp" />
     <ClCompile Include="..\..\..\player\audiorender.cpp" />
+    <ClCompile Include="..\..\..\player\common.cpp" />
     <ClCompile Include="..\..\..\player\converter.c" />
     <ClCompile Include="..\..\..\player\ffextractor.cpp" />
     <ClCompile Include="..\..\..\player\ffplayer.cpp" />

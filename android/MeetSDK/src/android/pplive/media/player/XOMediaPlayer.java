@@ -1330,11 +1330,11 @@ public class XOMediaPlayer extends BaseMediaPlayer {
 
 	@Override
 	public void stop() {
-	    LogUtils.debug("stop() 1");
+	    LogUtils.info("stop()");
 		
 	    PlayState state = getState();
 		if (PlayState.STOPPED == state) {
-		    LogUtils.debug("Already stopped");
+		    LogUtils.warn("Already stopped");
 			return;
 		}
 		

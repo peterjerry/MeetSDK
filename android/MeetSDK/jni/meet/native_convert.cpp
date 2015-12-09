@@ -2,11 +2,10 @@
 #include <jni.h>
 #include <stdlib.h> // for NULL
 #include "player/player.h"
-#include "FFMediaPlayer.h" // for CONVERT_FUN
+#include "libplayer.h" // for CONVERT_FUN
+#include "FFMediaPlayer.h"
 #define LOG_TAG "native_convert"
 #include "pplog.h"
-
-extern CONVERT_FUN convertFun;
 
 /* Header for class _Included_android_pplive_media_MeetSDK */
 

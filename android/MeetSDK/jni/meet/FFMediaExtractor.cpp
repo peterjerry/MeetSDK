@@ -3,12 +3,13 @@
 #include "jniUtils.h"
 #include "player/extractor.h"
 #include "platform/autolock.h"
-#include <stdio.h>
-#include <dlfcn.h> // for dlopen ...
+#include "libplayer.h"
 #define LOG_TAG "JNI-MediaExtractor"
 #include "pplog.h"
+#include <stdio.h>
+#include <dlfcn.h> // for dlopen ...
 
-typedef IExtractor* (*GET_EXTRACTOR_FUN)();
+typedef IExtractor* (*GET_EXTRACTOR_FUN)(void*);
 typedef  void (*RELEASE_EXTRACTOR_FUN)(IExtractor*);
 GET_EXTRACTOR_FUN		getExtractorFun = NULL; // function to NEW ffextractor instance
 RELEASE_EXTRACTOR_FUN	releaseExtractorFun = NULL; // function to DELETE ffextractor instance
@@ -23,47 +24,9 @@ struct fields_t {
 };
 
 static fields_t fields;
+static bool sInited = false;
 
 jobject gs_obj;     // Reference to MediaExtrctor class
-
-/*
- * Throw an exception with the specified class and an optional message.
- *
- * If an exception is currently pending, we log a warning message and
- * clear it.
- *
- * Returns 0 if the specified exception was successfully thrown.  (Some
- * sort of exception will always be pending when this returns.)
- */
-static int jniThrowException(JNIEnv* env, const char* className, const char* msg)
-{
-    jclass exceptionClass;
-
-    if (env->ExceptionCheck()) {
-        /* TODO: consider creating the new exception with this as "cause" */
-        char buf[256];
-
-        jthrowable exception = env->ExceptionOccurred();
-        env->ExceptionClear();
-    }
-
-    exceptionClass = env->FindClass(className);
-    if (exceptionClass == NULL) {
-        PPLOGE("Unable to find exception class %s\n", className);
-        /* ClassNotFoundException now pending */
-        return -1;
-    }
-
-    int result = 0;
-    if (env->ThrowNew(exceptionClass, msg) != JNI_OK) {
-        PPLOGE("Failed throwing '%s' '%s'\n", className, msg);
-        /* an exception, most likely OOM, will now be pending */
-        result = -1;
-    }
-
-    env->DeleteLocalRef(exceptionClass);
-    return result;
-}
 
 // ----------------------------------------------------------------------------
 
@@ -611,6 +574,9 @@ void android_media_MediaExtractor_unselectTrack(JNIEnv *env, jobject thiz, jint 
 // static function called when sdk init
 jboolean android_media_MediaExtractor_init(JNIEnv *env, jobject thiz)
 {
+	if (sInited)
+		return true;
+
 	jclass clazz = env->FindClass("android/pplive/media/player/FFMediaExtractor");
 	if (clazz == NULL) {
 		PPLOGE("Can't find android/pplive/media/player/FFMediaExtractor");
@@ -633,6 +599,17 @@ jboolean android_media_MediaExtractor_init(JNIEnv *env, jobject thiz)
 	if (fields.post_event == NULL)
 		jniThrowException(env, "java/lang/RuntimeException", "Can't find XOMediaPlayer.postEventFromNative");
 
+#ifdef BUILD_ONE_LIB
+	getExtractorFun		= getExtractor;
+	releaseExtractorFun	= releaseExtractor;
+#else
+	if (!loadPlayerLib()) {
+		PPLOGE("failed to load player lib");
+		return false;
+	}
+#endif
+
+	sInited = true;
 	return true;
 }
 
@@ -646,7 +623,7 @@ void android_media_MediaExtractor_setup(JNIEnv *env, jobject thiz, jobject weak_
 		return;
 	}
 
-	IExtractor* extractor = getExtractorFun();
+	IExtractor* extractor = getExtractorFun((void*)gPlatformInfo);
 	if (extractor == NULL) {
 		jniThrowException(env, "java/lang/RuntimeException", "Create IExtractor failed.");
 		return;

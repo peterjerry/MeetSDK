@@ -1,4 +1,5 @@
 #include "ffextractor.h"
+#include "common.h"
 #include "ppffmpeg.h"
 #include "autolock.h"
 #include "utils.h"
@@ -65,8 +66,18 @@ int aac_decode_extradata(ADTSContext *adts, unsigned char *pbuf, int bufsize);
 
 int aac_set_adts_head(ADTSContext *acfg, unsigned char *buf, int size);
 
-extern "C" IExtractor* getExtractor()
+extern "C" IExtractor* getExtractor(void* context)
 {
+#ifdef __ANDROID__
+#ifdef BUILD_ONE_LIB
+	pplog = __pp_log_vprint;
+#else
+    platformInfo = (PlatformInfo*)context;
+    gs_jvm = (JavaVM*)(platformInfo->jvm);
+	pplog = (LogFunc)(platformInfo->pplog_func); 
+#endif
+#endif
+
     return new FFExtractor();
 }
 

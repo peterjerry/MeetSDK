@@ -5,21 +5,20 @@
 #include "FFMediaPlayer.h"
 #include <stdio.h>
 #include <stdlib.h> // for atoi
-#include <fcntl.h> // for access R_OK
 #include <jni.h>
 #include <dlfcn.h> // for dlopen ...
 #include <cpu-features.h>
 #include <sys/system_properties.h> // for __system_property_get
 
-#define LOG_TAG "JNI-MediaPlayer"
-#include "pplog.h"
+#include "libplayer.h"
 #include "version.h" // for auto version
 #include "platform/autolock.h"
 #include "platform/platforminfo.h"
 #include "subtitle.h"
 #include "cpuext.h" // for get_cpu_freq()
-#include "FFMediaExtractor.h" // for extractor
 #include "jniUtils.h"
+#define LOG_TAG "JNI-MediaPlayer"
+#include "pplog.h"
 
 #define USE_NDK_SURFACE_REF
 
@@ -31,8 +30,6 @@
 #define LEVEL_SOFTWARE_HD1				3 // LEVEL_SOFTWARE_GAOQING
 #define LEVEL_SOFTWARE_HD2				4 // LEVEL_SOFTWARE_CHAOQING
 #define LEVEL_SOFTWARE_BD				5 // LEVEL_SOFTWARE_LANGUANG
-
-#define LOG_FATAL_IF(cond, ...) if (cond) { PPLOGE(__VA_ARGS__); return -1;}
 
 class Surface;
 
@@ -48,117 +45,18 @@ struct fields_t {
 	jfieldID    iSubtitle;
 };
 
-// member from jniUtils.cpp
-extern JavaVM *gs_jvm;
-extern pthread_mutex_t sLock;
-
 static fields_t fields;
+static pthread_mutex_t sLock;
 static bool sInited = false;
-static PlatformInfo* gPlatformInfo = NULL;
-static void* player_handle_software = NULL;
 
-// new
 typedef IPlayer* (*GET_PLAYER_FUN) (void*);
 typedef void (*RELEASE_PLAYER_FUN) (IPlayer *);
-
-GET_PLAYER_FUN getPlayerFun = NULL; // function to NEW player instance
-RELEASE_PLAYER_FUN releasePlayerFun = NULL; // function to DELETE player instance
 #ifdef USE_TS_CONVERT
 CONVERT_FUN convertFun = NULL;
 #endif
 
-static int jniThrowException(JNIEnv* env, const char* className, const char* msg);
-
-static void unloadPlayerLib(void** handler);
-
-static bool loadPlayerLib();
-
-static
-const char* getCodecLibName(uint64_t cpuFeatures)
-{
-#if defined(__aarch64__)
-	return "libplayer_neon.so";
-#else
-	const char* codecLibName = NULL;
-	
-	PPLOGI("android_getCpuFamily %d", android_getCpuFamily());
-	
-	char value[PROP_VALUE_MAX];
-	__system_property_get("ro.product.cpu.abi", value);
-	char* occ = strcasestr(value,"x86");
-	if (occ) {
-		// x86 arch
-		PPLOGI("the device is x86 platform");
-		codecLibName = "libplayer_neon.so";
-		return codecLibName;
-	}
-
-	if ((cpuFeatures & ANDROID_CPU_ARM_FEATURE_NEON) != 0)
-	{
-		//neon
-		PPLOGI("the device supports neon");
-		codecLibName = "libplayer_neon.so";
-	}
-	else if((cpuFeatures & ANDROID_CPU_ARM_FEATURE_ARMv7) != 0)
-	{
-		//v7_vfpv3d16
-		PPLOGI("the device supports v7_vfpv3d16");
-		codecLibName = "libplayer_tegra2.so";
-	}
-	/*else if ((cpuFeatures & ANDROID_CPU_ARM_FEATURE_VFP) != 0)
-	{
-		//armv6_vfp
-		PPLOGI("the device supports armv6_vfp");
-		codecLibName = "libplayer_v6_vfp.so";
-	}*/
-	else if((cpuFeatures & ANDROID_CPU_ARM_FEATURE_LDREX_STREX) != 0)
-	{
-		//armv6
-		PPLOGI("the device supports armv6");
-		codecLibName = "libplayer_v6.so";
-	}
-	else
-	{
-		//armv5te or lower
-		PPLOGI("the device supports armv5te");
-		codecLibName = "libplayer_v5te.so";
-	}
-
-	return codecLibName;
-#endif
-}
-
-int jniRegisterNativeMethodsPP(JNIEnv* env, const char* className, const JNINativeMethod* gMethods, int numMethods)
-{
-	jclass clazz;
-
-	PPLOGD("Registering %s natives", className);
-	clazz = env->FindClass(className);
-	if (clazz == NULL) {
-		PPLOGE("Native registration unable to find class '%s'", className);
-		return -1;
-	}
-
-	int result = 0;
-	if (env->RegisterNatives(clazz, gMethods, numMethods) < 0) {
-		PPLOGE("RegisterNatives failed for '%s'", className);
-		result = -1;
-	}
-
-	env->DeleteLocalRef(clazz);
-	return result;
-}
-
-// Returns the Unix file descriptor for a ParcelFileDescriptor object
-int getParcelFileDescriptorFDPP(JNIEnv* env, jobject object)
-{
-	jclass clazz = env->FindClass("java/io/FileDescriptor");
-	LOG_FATAL_IF(clazz == NULL, "Unable to find class java.io.FileDescriptor");
-	jfieldID descriptor = env->GetFieldID(clazz, "descriptor", "I");
-	LOG_FATAL_IF(descriptor == NULL, "Unable to find descriptor field in java.io.FileDescriptor");
-
-	return env->GetIntField(object, descriptor);
-}
+GET_PLAYER_FUN getPlayerFun = NULL;
+RELEASE_PLAYER_FUN releasePlayerFun = NULL;
 
 JNIMediaPlayerListener::JNIMediaPlayerListener(JNIEnv* env, jobject thiz, jobject weak_thiz)
 {
@@ -745,14 +643,6 @@ jboolean android_media_MediaPlayer_native_init(JNIEnv *env, jobject thiz)
 
 	PPLOGI("native_init");
 
-	if (gPlatformInfo)
-		delete gPlatformInfo;
-
-	gPlatformInfo = new PlatformInfo();
-
-    gPlatformInfo->jvm = (void*)gs_jvm;
-	gPlatformInfo->pplog_func = (void*)__pp_log_vprint;
-
 	jclass clazzSDK = env->FindClass("android/pplive/media/MeetSDK");
 	if (clazzSDK == NULL)
 		jniThrowException(env, "java/lang/RuntimeException", "Can't find android/pplive/media/MeetSDK");
@@ -826,118 +716,6 @@ jboolean android_media_MediaPlayer_native_init(JNIEnv *env, jobject thiz)
 #endif
 
 	sInited = true;
-	return true;
-}
-
-static
-void* loadLibrary(const char* libPath)
-{
-	PPLOGD("Before Load lib %s", libPath);
-	void* lib_handle = dlopen(libPath, RTLD_NOW);
-
-	if (lib_handle == NULL) {
-		PPLOGE("Load lib %s error: %s", libPath, dlerror());
-		return NULL;
-	}
-
-	PPLOGI("Load lib %s success", libPath);
-	return lib_handle;
-}
-
-static void unloadPlayerLib(void** handler)
-{
-	PPLOGD("Start unloading player lib");
-	if (*handler != NULL) {
-		dlclose(*handler);
-		*handler = NULL;
-	}
-}
-
-static bool loadPlayerLib()
-{
-	PPLOGI("loadPlayerLib");
-
-	void** player_handle = NULL; // handle to shared library
-	player_handle = &player_handle_software;
-
-	if (NULL == gPlatformInfo) {
-		PPLOGE("PlatformInfo is null");
-		return false;
-	}
-
-	PPLOGI("Before Player Library Load.");
-	char* libPath = NULL;
-
-	// load player lib
-	if (*player_handle == NULL) {
-		PPLOGI("using ffplay");
-		uint64_t cpuFeatures = android_getCpuFeatures();
-		const char* libName = getCodecLibName(cpuFeatures); //libplayer_neon.so
-
-		do {
-			//0. try to load from specified lib path
-			if (strcmp(gPlatformInfo->lib_path, "") != 0) {
-				libPath = vstrcat(gPlatformInfo->lib_path, libName);
-				PPLOGI("Load from specified lib path #0: %s", libPath);
-				*player_handle = loadLibrary(libPath);
-				if (!player_handle)
-					PPLOGW("step0 loadLibrary failed: %s", libPath);
-				free(libPath);
-				if (*player_handle)
-					break;
-			}
-
-			//1. try to load from app lib path
-			libPath = vstrcat(gPlatformInfo->app_path, "lib/", libName);
-			PPLOGI("Load from app lib path #1: %s", libPath);
-			*player_handle = loadLibrary(libPath);
-			if (!player_handle)
-				PPLOGW("step1 loadLibrary failed: %s", libPath);
-			free(libPath);
-			if (*player_handle)
-				break;
-
-			// 2015.6.9 guoliangma added to fix arm64 load error
-			//2. try to load system lib path
-			PPLOGI("Load from system lib path #2: %s", libName);
-			*player_handle = loadLibrary(libName);
-			if (!player_handle)
-				PPLOGW("step2 loadLibrary failed: %s", libPath);
-		}while(0);
-
-		if (NULL == *player_handle) {
-			PPLOGE("oops: all loadlibrary try failed");
-			return false;
-		}
-	}
-
-	PPLOGD("Before init getPlayer()");
-
-	getPlayerFun = (GET_PLAYER_FUN)dlsym(*player_handle, "getPlayer");
-	if (getPlayerFun == NULL) {
-		PPLOGE("Init getPlayer() failed: %s", dlerror());
-		return false;
-	}
-
-	releasePlayerFun = (RELEASE_PLAYER_FUN)dlsym(*player_handle, "releasePlayer");
-	if (releasePlayerFun == NULL) {
-		PPLOGE("Init releasePlayer() failed: %s", dlerror());
-		return false;
-	}
-
-#ifdef USE_TS_CONVERT
-	convertFun = (CONVERT_FUN)dlsym(*player_handle, "my_convert");
-	if (convertFun == NULL) {
-		PPLOGE("Init convert() failed: %s", dlerror());
-		return false;
-	}
-#endif
-
-	if (!setup_extractor(*player_handle))
-		return false;
-
-	PPLOGD("After init getPlayer()");
-
 	return true;
 }
 
@@ -1094,48 +872,6 @@ jint android_media_MediaPlayer_native_checkSoftwareDecodeLevel()
         }
     }
 	return level;
-}
-
-static
-int accessCodec(const char* app_root, const char* lib_name)
-{
-	char* libPath = NULL;
-	int canRead;
-
-	libPath = vstrcat(app_root, "player/lib/", lib_name);
-	canRead = access(libPath, R_OK);
-	free(libPath);
-
-	if (canRead != 0)
-	{
-		libPath = vstrcat(app_root, "lib/" , lib_name);
-		canRead = access(libPath, R_OK);
-		free(libPath);
-	}
-
-	return canRead;
-
-}
-
-static
-jstring android_media_MediaPlayer_getBestCodec(JNIEnv *env, jobject thiz, jstring applicationPath)
-{
-	//char* appPath = (char*)env->GetStringUTFChars(applicationPath, NULL);
-	const char* appPath = NULL;
-	appPath = (char*)env->GetStringUTFChars(applicationPath, NULL);
-	if (appPath == NULL)
-	{
-		appPath = "/"; //for not crash programe
-	}
-
-	uint64_t cpuFeatures = android_getCpuFeatures();
-	const char* codecName = getCodecLibName(cpuFeatures);
-	if (accessCodec(appPath, codecName) == 0)
-	{
-		codecName = "";
-	}
-
-	return env->NewStringUTF(codecName);
 }
 
 static jboolean
@@ -1535,7 +1271,6 @@ static JNINativeMethod gMethods[] = {
 	{"snoop",               "([SI)I",				(void *)android_media_MediaPlayer_snoop},
 	{"native_suspend_resume", "(Z)I",				(void *)android_media_MediaPlayer_native_suspend_resume},
 	{"native_checkCompatibility","(ILandroid/view/Surface;)Z",	(void *)android_media_MediaPlayer_native_checkCompatibility},
-	{"native_getBestCodec",        "(Ljava/lang/String;)Ljava/lang/String;",(void *)android_media_MediaPlayer_getBestCodec},
 	{"native_getMediaInfo",	"(Ljava/lang/String;Landroid/pplive/media/player/MediaInfo;)Z",(void *)android_media_MediaPlayer_native_getMediaInfo},
 	{"native_getMediaDetailInfo",	"(Ljava/lang/String;Landroid/pplive/media/player/MediaInfo;)Z",(void *)android_media_MediaPlayer_native_getMediaDetailInfo},
 	{"native_getThumbnail",	"(Ljava/lang/String;Landroid/pplive/media/player/MediaInfo;)Z",(void *)android_media_MediaPlayer_native_getThumbnail},
@@ -1549,6 +1284,22 @@ static JNINativeMethod gMethods[] = {
 	{"native_getCurrentMediaInfo",	"(Landroid/pplive/media/player/MediaInfo;)Z",(void *)android_media_MediaPlayer_native_getCurrentMediaInfo},
 };
 
+bool setup_player(void *so_handle)
+{
+	getPlayerFun = (GET_PLAYER_FUN)dlsym(so_handle, "getPlayer");
+	if (getPlayerFun == NULL) {
+		PPLOGE("Init getPlayer() failed: %s", dlerror());
+		return false;
+	}
+
+	releasePlayerFun = (RELEASE_PLAYER_FUN)dlsym(so_handle, "releasePlayer");
+	if (releasePlayerFun == NULL) {
+		PPLOGE("Init releasePlayer() failed: %s", dlerror());
+		return false;
+	}
+
+	return true;
+}
 
 // This function only registers the native methods
 int register_android_media_MediaPlayer(JNIEnv *env)
@@ -1556,59 +1307,4 @@ int register_android_media_MediaPlayer(JNIEnv *env)
 	return jniRegisterNativeMethodsPP(env,
 			"android/pplive/media/player/FFMediaPlayer", gMethods, NELEM(gMethods));
 }
-
-void unload_player()
-{
-#ifndef BUILD_ONE_LIB
-	unloadPlayerLib(&player_handle_software);
-#endif
-
-	if (gPlatformInfo != NULL) {
-		delete gPlatformInfo;
-		gPlatformInfo = NULL;
-	}
-}
-
-/*
- * Throw an exception with the specified class and an optional message.
- *
- * If an exception is currently pending, we log a warning message and
- * clear it.
- *
- * Returns 0 if the specified exception was successfully thrown.  (Some
- * sort of exception will always be pending when this returns.)
- */
-static int jniThrowException(JNIEnv* env, const char* className, const char* msg)
-{
-    jclass exceptionClass;
-
-    if (env->ExceptionCheck()) {
-        /* TODO: consider creating the new exception with this as "cause" */
-        char buf[256];
-
-        jthrowable exception = env->ExceptionOccurred();
-        env->ExceptionClear();
-    }
-
-    exceptionClass = env->FindClass(className);
-    if (exceptionClass == NULL) {
-        PPLOGE("Unable to find exception class %s\n", className);
-        /* ClassNotFoundException now pending */
-        return -1;
-    }
-
-    int result = 0;
-    if (env->ThrowNew(exceptionClass, msg) != JNI_OK) {
-        PPLOGE("Failed throwing '%s' '%s'\n", className, msg);
-        /* an exception, most likely OOM, will now be pending */
-        result = -1;
-    }
-
-    env->DeleteLocalRef(exceptionClass);
-    return result;
-}
-
-
-
-
 

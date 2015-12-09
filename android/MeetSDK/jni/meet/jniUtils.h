@@ -3,6 +3,11 @@
 
 #include <jni.h>
 
+struct PlatformInfo;
+
+extern JavaVM *gs_jvm;
+extern PlatformInfo* gPlatformInfo;
+
 #define NELEM(x) ((int) (sizeof(x) / sizeof((x)[0])))
 
 // util method
@@ -19,6 +24,13 @@ JNIEnv* getJNIEnvPP();
 JNIEnv* getAttachedJNIEnv();
 
 void detachJNIEnv();
+
+int jniRegisterNativeMethodsPP(JNIEnv* env, 
+	const char* className, const JNINativeMethod* gMethods, int numMethods);
+
+int jniThrowException(JNIEnv* env, const char* className, const char* msg);
+
+int getParcelFileDescriptorFDPP(JNIEnv* env, jobject object);
 
 bool IsUTF8(const void* pBuffer, long size);
 

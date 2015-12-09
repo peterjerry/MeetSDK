@@ -145,14 +145,17 @@ public class LogUtils {
             writeFile(String.format("%s %s %s: %s", SDF.format(new Date()), getLevelString(level), tag, msg));
         }
 
-        if (level == Log.ERROR)
+        /*if (level == Log.ERROR)
 			Log.e(tag, msg);
 		else if(level == Log.WARN)
 			Log.w(tag, msg);
 		else if(level == Log.INFO)
 			Log.i(tag, msg);
 		else if(level == Log.DEBUG)
-			Log.d(tag, msg);
+			Log.d(tag, msg);*/
+        
+        if (level > Log.DEBUG)
+			Log.e(tag, String.format("[%s] %s", getLevelString(level), msg));
     }
 
     public static void nativeLog(int level, String tag, String msg) {
@@ -174,7 +177,7 @@ public class LogUtils {
             return "E";
         }
 
-        return "";
+        return "U";
     }
 
     public static String getTag() {

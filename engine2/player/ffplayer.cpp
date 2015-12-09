@@ -19,6 +19,7 @@
 
 #define LOG_TAG "Neon-FFPlayer"
 #include "log.h"
+#include "common.h"
 #include "ppffmpeg.h"
 #include "utils.h"
 #ifdef __ANDROID__
@@ -58,19 +59,6 @@
 #endif
 
 #pragma comment(lib, "pthreadVC2")
-#endif
-
-#ifdef __ANDROID__
-#include <jni.h>
-#include "platforminfo.h"
-#ifdef BUILD_ONE_LIB
-extern JavaVM* gs_jvm;
-extern int __pp_log_vprint(int prio, const char *tag, const char *fmt, va_list ap);
-#else
-JavaVM* gs_jvm = NULL;
-#endif
-PlatformInfo* platformInfo = NULL;
-LogFunc pplog = NULL;
 #endif
 
 // unit msec(audio_time - video_time)
