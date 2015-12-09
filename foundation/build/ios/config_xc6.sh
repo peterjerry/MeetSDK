@@ -6,8 +6,8 @@ XCODE_NAME=Xcode
 SDK_VERSION=8.4
 TARGET_VERSION=v8
 
-OPENSSL_INCLUDE=`pwd`/thirdparty/rtmpdump/include
-OPENSSL_LIB=`pwd`/thirdparty/rtmpdump/lib/ios
+OPENSSL_INCLUDE=`pwd`/thirdparty/../rtmpdump/include
+OPENSSL_LIB=`pwd`/thirdparty/../rtmpdump/lib/ios
 
 case $1 in
 	i386)

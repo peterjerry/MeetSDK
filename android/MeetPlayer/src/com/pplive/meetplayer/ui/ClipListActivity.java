@@ -191,7 +191,7 @@ public class ClipListActivity extends Activity implements
 	
 	// list
 	private ListMediaUtil mListUtil;
-	private final static String HTTP_SERVER_URL = "http://172.16.204.106/test/testcase/";
+	private final static String HTTP_SERVER_URL = "http://192.168.1.112:8080/testcase/";
 	
 	private String mPlayUrl;
 	private int mVideoWidth, mVideoHeight;
@@ -299,7 +299,7 @@ public class ClipListActivity extends Activity implements
 	
 	private final static String home_folder		= "";//"/test2";
 	
-	private final static String HTTP_UPDATE_APK_URL = "http://172.16.204.106/test/test/";
+	private final static String HTTP_UPDATE_APK_URL = "http://192.168.1.112:8080/test/";
 	
 	private final String[] from = { "filename", "mediainfo", "folder", "filesize", "resolution", "thumb" };
 	

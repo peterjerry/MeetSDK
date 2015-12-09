@@ -177,6 +177,7 @@ EXTRA_PARAMETERS="$EXTRA_PARAMETERS \
         --enable-demuxer=h264,mp4,mov,mpegts \
         --disable-parsers \
         --enable-parser=h264,aac_latm,ac3 \
+	--enable-muxer=mpegts,flv,hls \
 	--disable-protocols \
 	--enable-protocol=file,http "
 else
