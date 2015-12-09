@@ -7,13 +7,13 @@ BUILD_NATIVEWINDOOW		:= 1
 #BUILD_ONE_LIB			:= 1
 
 ifeq ($(TARGET_ARCH_ABI),armeabi)
-FDK_AAC_PATH	:= ../../../../foundation/foundation_rext/thirdparty/fdk-aac/lib/android/armeabi-v7a
+FDK_AAC_PATH	:= ../../../../foundation/thirdparty/fdk-aac/lib/android/armeabi-v7a
 else
-FDK_AAC_PATH	:= ../../../../foundation/foundation_rext/thirdparty/fdk-aac/lib/android/x86
+FDK_AAC_PATH	:= ../../../../foundation/thirdparty/fdk-aac/lib/android/x86
 endif
 
-RTMPDUMP_PATH	:= ../../../../foundation/foundation_rext/thirdparty/rtmpdump/lib/android/$(TARGET_ARCH_ABI)
-X264_PATH		:= ../../../../foundation/foundation_rext/thirdparty/x264/lib/android/$(TARGET_ARCH_ABI)
+RTMPDUMP_PATH	:= ../../../../foundation/thirdparty/rtmpdump/lib/android/$(TARGET_ARCH_ABI)
+X264_PATH		:= ../../../../foundation/thirdparty/x264/lib/android/$(TARGET_ARCH_ABI)
 
 ifeq ($(TARGET_ARCH_ABI),armeabi)
 LIB_FOLDER		:= neon

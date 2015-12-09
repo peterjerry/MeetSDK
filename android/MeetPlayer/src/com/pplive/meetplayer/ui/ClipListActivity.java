@@ -191,7 +191,6 @@ public class ClipListActivity extends Activity implements
 	
 	// list
 	private ListMediaUtil mListUtil;
-	private final static String HTTP_SERVER_URL = "http://192.168.1.112:8080/testcase/";
 	
 	private String mPlayUrl;
 	private int mVideoWidth, mVideoHeight;
@@ -299,7 +298,9 @@ public class ClipListActivity extends Activity implements
 	
 	private final static String home_folder		= "";//"/test2";
 	
-	private final static String HTTP_UPDATE_APK_URL = "http://192.168.1.112:8080/test/";
+	private final static String HTTP_SERVER_ADDR = "http://192.168.1.112:8088";
+	private final static String HTTP_LIST_MEDIA_URL = HTTP_SERVER_ADDR + "/testcase/";
+	private final static String HTTP_UPDATE_APK_URL = HTTP_SERVER_ADDR + "/test/";
 	
 	private final String[] from = { "filename", "mediainfo", "folder", "filesize", "resolution", "thumb" };
 	
@@ -880,7 +881,7 @@ public class ClipListActivity extends Activity implements
 				String listUrl;
 				if (mListLocalFile) {
 					// switch to http list(maybe failed)
-					listUrl = HTTP_SERVER_URL;
+					listUrl = HTTP_LIST_MEDIA_URL;
 				}
 				else {
 					// http->local always succeed
@@ -2326,7 +2327,7 @@ public class ClipListActivity extends Activity implements
         protected void onPostExecute(Boolean result) {
         	if (result) {
         		if (mPath.startsWith("http://")) {
-        			setTitle(HTTP_SERVER_URL);
+        			setTitle(HTTP_LIST_MEDIA_URL);
     				btnClipLocation.setText("local");
     				mListLocalFile = false;
         		}

@@ -10,7 +10,7 @@ rem copy libs\x86\libplayer_neon.so ..\..\output\android\x86\
 rem copy obj\local\x86\libplayer_neon.so ..\..\output\android\x86\debug\
 
 rem copy ..\..\output\android\armeabi\libplayer_neon.so ..\..\..\android\MeetSDK\libs\armeabi\
-exit
+@pause
 
 cd ..\..\..\android\MeetPlayer
 call ant debug install
