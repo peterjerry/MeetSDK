@@ -52,7 +52,7 @@
     <ClCompile>
       <Optimization>Disabled</Optimization>
       <AdditionalIncludeDirectories>..\..\..\..\engine2;..\..\..\..\subtitle2\output\android\include;..\meet;E:\Software\android-ndk-r10d\platforms\android-9\arch-x86\usr\include;E:\Software\android-ndk-r10d\sources\cpufeatures</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>BUILD_ONE_LIB;WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>USE_TS_CONVERT;BUILD_ONE_LIB;WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <MinimalRebuild>true</MinimalRebuild>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>

@@ -5,8 +5,8 @@
 
 #ifndef BUILD_ONE_LIB
 JavaVM* gs_jvm = NULL;
-#endif
 PlatformInfo* platformInfo = NULL;
+#endif
 LogFunc pplog = NULL;
 
 #endif

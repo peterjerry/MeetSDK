@@ -1139,7 +1139,7 @@ public class ClipListActivity extends Activity implements
 			boolean canPlay = false;
 			
 			if (path.startsWith("/") || path.startsWith("file://")) {
-				/*MediaInfo info = MeetSDK.getMediaDetailInfo(path);
+				MediaInfo info = MeetSDK.getMediaDetailInfo(path);
 				if (info != null) {
 					if (info.getVideoCodecName() != null && 
 					(info.getVideoCodecName().equals("h264") || info.getVideoCodecName().equals("hevc"))) {
@@ -1151,8 +1151,7 @@ public class ClipListActivity extends Activity implements
 								canPlay = true;
 						}
 					}
-				}*/
-				canPlay = true;
+				}
 			}
 			else {
 				// http://, rtmp://, etc...

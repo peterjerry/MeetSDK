@@ -471,7 +471,7 @@ jint android_media_MediaExtractor_readSampleData(JNIEnv *env, jobject thiz, jobj
 
 void android_media_MediaExtractor_stop(JNIEnv *env, jobject thiz)
 {
-	PPLOGI("stop");
+	PPLOGI("stop()");
 
 	IExtractor* extractor = getMediaExtractor(env, thiz);
 	if (extractor == NULL ) {

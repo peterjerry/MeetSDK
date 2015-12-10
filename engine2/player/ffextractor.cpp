@@ -1341,8 +1341,8 @@ void FFExtractor::thread_impl()
 	//notifyListener_l(MEDIA_INFO, MEDIA_INFO_BUFFERING_START);
 
 	while (1) {
-		if (FFEXTRACTOR_STOPPING == m_status || FFEXTRACTOR_STOPPING ==  m_status) {
-            LOGI("FFExtractor is stopping");
+		if (FFEXTRACTOR_STOPPING == m_status || FFEXTRACTOR_STOPPED ==  m_status) {
+            LOGI("work thead break");
             break;
         }
 
@@ -1401,7 +1401,7 @@ void FFExtractor::thread_impl()
 					pthread_cond_timedwait_relative_np(&mCondition, &mLock, &ts);
 #endif
 					if (FFEXTRACTOR_STOPPING == m_status || m_seeking || m_buffering) {
-						LOGI("buffer too much sleep was interrputed by stoping || seek || buffer");
+						LOGI("buffer too much, sleep was interrputed by stoping || seek || buffer");
 						break;
 					}
 				}
@@ -1500,9 +1500,9 @@ void FFExtractor::thread_impl()
 			LOGE("DetachCurrentThread failed %d", status);
 		}
 	}
-#endif
 
-	LOGI("CurrentThread Detached");
+	LOGI("thread detached");
+#endif
 }
 
 static void ff_log_callback(void* avcl, int level, const char* fmt, va_list vl)

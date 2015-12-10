@@ -31,9 +31,6 @@
 #endif
 #include "autolock.h"
 #include "filesource.h"
-#ifdef USE_TS_CONVERT
-#include "apFormatConverter.h" // for ts converter
-#endif
 #ifdef __ANDROID__
 #include <cpu-features.h> // for get cpu core count
 #endif
@@ -77,7 +74,8 @@ int audio_visual	= 0;
 #define AUDIO_VISUAL_WIDTH	640
 #define AUDIO_VISUAL_HEIGHT	480
 
-enum NalUnitType
+// NAL unit types for HEVC
+enum NalUnitType 
 {
   NAL_UNIT_CODED_SLICE_TRAIL_N = 0,   // 0
   NAL_UNIT_CODED_SLICE_TRAIL_R,   // 1
@@ -154,7 +152,7 @@ enum NalUnitType
   NAL_UNIT_INVALID,
 };
 
-// NAL unit types
+// NAL unit types for h264
 enum NALUnitType {
     NAL_SLICE = 1,
     NAL_DPA,
@@ -176,40 +174,6 @@ static int open_codec_context(int *stream_idx,
                               AVFormatContext *fmt_ctx, enum AVMediaType type);
 
 static void ff_log_callback(void* avcl, int level, const char* fmt, va_list vl);
-
-extern "C" IPlayer* getPlayer(void* context)
-{
-#ifdef __ANDROID__
-#ifdef BUILD_ONE_LIB
-	pplog = __pp_log_vprint;
-#else
-    platformInfo = (PlatformInfo*)context;
-    gs_jvm = (JavaVM*)(platformInfo->jvm);
-	pplog = (LogFunc)(platformInfo->pplog_func); 
-#endif
-#endif
-    return new FFPlayer();
-}
-
-extern "C" void releasePlayer(IPlayer* player)
-{
-	if (player) {
-		delete player;
-		player = NULL;
-	}
-}
-
-extern "C" bool my_convert(uint8_t* flv_data, int flv_data_size, uint8_t* ts_data, int *out_size, int process_timestamp, int first_seg)
-{
-	LOGI("my_convert()");
-#ifdef USE_TS_CONVERT
-	apFormatConverter converter;
-	return converter.convert(flv_data, flv_data_size, ts_data, out_size, process_timestamp, first_seg);
-#else
-	LOGW("USE_TS_CONVERT is NOT enabled");
-	return false;
-#endif
-}
 
 FFPlayer::FFPlayer()
 {
@@ -3906,172 +3870,6 @@ bool FFPlayer::getMediaDetailInfo(const char* url, MediaInfo* info)
     return true;
 }
 
-// deprecated
-bool FFPlayer::getThumbnail2(const char* url, MediaInfo* info)
-{
-	LOGI("player op getThumbnail2() %s", url);
-
-	if (url == NULL || info == NULL)
-		return false;
-
-    bool ret = false;
-
-    struct stat buf;
-    int32_t iresult = stat(url, &buf);
-    if (iresult == 0)
-        info->size_byte = buf.st_size;
-    else {
-		LOGE("failed to stat: %s", url);
-        return false;
-	}
-
-
-    AVFormatContext* movieFile = avformat_alloc_context();
-    LOGD("check file %s", url);
-    if(!avformat_open_input(&movieFile, url, NULL, NULL))
-    {
-    	if(avformat_find_stream_info(movieFile, NULL) >= 0)
-        {
-            info->duration_ms = (int32_t)movieFile->duration * 1000 / AV_TIME_BASE;
-            info->format_name = my_strdup(movieFile->iformat->name);
-
-            uint32_t streamsCount = movieFile->nb_streams;
-            LOGD("streamsCount:%d", streamsCount);
-
-            info->audio_channels = 0;
-            info->video_channels = 0;
-        	for (int32_t i = 0; i < (int)streamsCount; i++) {
-        		if (movieFile->streams[i]->codec->codec_type == AVMEDIA_TYPE_AUDIO)
-                {
-                    AVStream* stream = movieFile->streams[i];
-					info->audiocodec_names[info->audio_channels] = my_strdup(avcodec_get_name(stream->codec->codec_id));
-					info->audio_channels++;
-        		}
-                else if(movieFile->streams[i]->codec->codec_type == AVMEDIA_TYPE_VIDEO
-                    && info->video_channels == 0)
-                {
-                    info->video_channels++;
-                    AVStream* stream = movieFile->streams[i];
-                    if(stream == NULL)
-                    {
-                        LOGE("stream is NULL");
-                        continue;
-                    }
-                    AVCodecContext* codec_ctx = stream->codec;
-                    if(codec_ctx == NULL)
-                    {
-                        LOGE("codec_ctx is NULL");
-                        continue;
-                    }
-                    info->width = codec_ctx->width;
-                    info->height = codec_ctx->height;
-
-                	AVCodec* codec = avcodec_find_decoder(codec_ctx->codec_id);
-                	if (codec == NULL)
-                    {
-                        LOGE("avcodec_find_decoder failed");
-                        continue;
-                    }
-
-                    info->videocodec_name = my_strdup(avcodec_get_name(codec_ctx->codec_id));
-                	if (avcodec_open2(codec_ctx, codec, NULL) >= 0)
-                    {
-                        int32_t seekPosition = 15;
-                        if(info->duration_ms > 0 && info->duration_ms < seekPosition * 1000)
-                        {
-                            seekPosition = info->duration_ms / 1000;
-                        }
-                        if(avformat_seek_file(movieFile,
-                            -1,
-                            INT64_MIN,
-                            seekPosition * AV_TIME_BASE, //in AV_TIME_BASE
-                            INT64_MAX,
-                            0) >= 0)
-                        {
-                            bool tryThumbnail = true;
-							AVFrame* videoFrame = av_frame_alloc();
-                            while(tryThumbnail)
-                            {
-                                AVPacket* pPacket = (AVPacket*)av_malloc(sizeof(AVPacket));
-                                memset(pPacket, 0, sizeof(AVPacket));
-                                int32_t readRet = av_read_frame(movieFile, pPacket);
-                                if(readRet != 0)
-                                {
-                                    LOGE("av_read_frame error: %d", readRet);
-                                    return ret;
-                                }
-
-                                if (pPacket->stream_index == i)
-                                {
-                                    
-                                    int32_t gotPicture = 0;
-                                	int len = avcodec_decode_video2(codec_ctx,
-                                        						 videoFrame,
-                                        						 &gotPicture,
-                                        						 pPacket);
-                                    if (len >= 0 && gotPicture != 0)
-                                    {
-                                        LOGD("got picture");
-                                        //todo:get 96x96 argb8888 data.
-                                        info->thumbnail_width = 96;
-                                        info->thumbnail_height = 96;
-                                        info->thumbnail = (int*)malloc(info->thumbnail_width*info->thumbnail_height*4);
-                                        if(generateThumbnail(videoFrame, info->thumbnail, info->thumbnail_width, info->thumbnail_height))
-                                        {
-                                            ret = true;
-                                            LOGD("got thumbnail");
-                                        }
-                                        else
-                                        {
-                                            LOGE("failed to get thumbnail");
-                                        }
-                                        tryThumbnail = false;
-                                	}
-                                }
-                                if(pPacket != NULL)
-                                {
-                                    //free packet resource
-                                    LOGD("av_free_packet");
-                        	        av_free_packet(pPacket);
-                                    av_free(pPacket);
-                                    pPacket = NULL;
-                                }
-                            } // end of while(read_frame)
-							if (videoFrame != NULL) {
-								av_frame_free(&videoFrame);
-							}
-                        }// end of seek_file
-
-                        if(codec_ctx != NULL) {
-                            LOGD("avcodec_close video codec");
-                            avcodec_close(codec_ctx);
-                        }
-                    }
-                }
-        	}
-    	}
-        else
-        {
-            LOGE("failed to avformat_find_stream_info: %s", url);
-        }
-    }
-    else
-    {
-        LOGE("failed to avformat_open_input: %s", url);
-    }
-
-    if (movieFile != NULL) {
-        // Close stream
-        LOGD("avformat_close_input");
-        avformat_close_input(&movieFile);
-    }
-    LOGI("File width %d, height %d", info->width, info->height);
-    LOGI("format name: %s", info->format_name != NULL ? info->format_name : "");
-    LOGI("video name: %s", info->videocodec_name != NULL ? info->videocodec_name : "");
-    LOGI("thumbnail: width %d, height %d, data %p", info->thumbnail_width, info->thumbnail_height, info->thumbnail);
-    return ret;
-}
-
 bool FFPlayer::getThumbnail(const char* url, MediaInfo* info, int width, int height)
 {
 	LOGI("player op getThumbnail() %s", url);
@@ -4379,6 +4177,29 @@ SnapShot * FFPlayer::getSnapShot(int width, int height, int fmt, int msec)
 
 	LOGI("getSnapShot() done! %dx%d(stride %d, fmt %d)", ss->width, ss->height, ss->stride, ss->picture_fmt);
 	return ss;
+}
+
+// interface exported
+extern "C" IPlayer* getPlayer(void* context)
+{
+#ifdef __ANDROID__
+#ifdef BUILD_ONE_LIB
+	pplog = __pp_log_vprint;
+#else
+    platformInfo = (PlatformInfo*)context;
+    gs_jvm = (JavaVM*)(platformInfo->jvm);
+	pplog = (LogFunc)(platformInfo->pplog_func); 
+#endif
+#endif
+    return new FFPlayer();
+}
+
+extern "C" void releasePlayer(IPlayer* player)
+{
+	if (player) {
+		delete player;
+		player = NULL;
+	}
 }
 
 static void ff_log_callback(void* avcl, int level, const char* fmt, va_list vl)

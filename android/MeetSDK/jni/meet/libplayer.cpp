@@ -13,6 +13,10 @@
 #include <cpu-features.h>
 #include <sys/system_properties.h> // for __system_property_get
 
+#ifdef BUILD_TS_CONVERT
+CONVERT_FUN convertFun = NULL;
+#endif
+
 extern JavaVM* gs_jvm;
 extern PlatformInfo* gPlatformInfo;
 
@@ -140,13 +144,16 @@ bool loadPlayerLib()
 		}
 	}
 
-	PPLOGI("Before init getPlayer()");
-
+	PPLOGI("Before init component");
 #ifdef BUILD_FFPLAYER
 	if (!setup_player(*player_handle))
 		return false;
+#endif
 
-#ifdef USE_TS_CONVERT
+#ifdef BUILD_TS_CONVERT
+#ifdef BUILD_ONE_LIB
+	convertFun = my_convert;
+#else
 	convertFun = (CONVERT_FUN)dlsym(*player_handle, "my_convert");
 	if (convertFun == NULL) {
 		PPLOGE("Init convert() failed: %s", dlerror());
@@ -160,7 +167,7 @@ bool loadPlayerLib()
 		return false;
 #endif
 
-	PPLOGI("After init getPlayer()");
+	PPLOGI("After init component");
 
 	return true;
 }

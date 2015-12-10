@@ -3,9 +3,10 @@ LOCAL_PATH := $(call my-dir)
 BUILD_OSLES				:= 1
 BUILD_NATIVEWINDOOW		:= 1
 #BUILD_RENDER_RGB565	:= 1
-BUILD_PCM_DUMP			:= 1
+#BUILD_PCM_DUMP			:= 1
+#BUILD_TS_CONVERT		:= 1
 #BUILD_ONE_LIB			:= 1
-BUILD_FFPLAY			:= 1
+BUILD_FFPLAYER			:= 1
 BUILD_FFEXTRACTOR		:= 1
 
 ifeq ($(TARGET_ARCH_ABI),armeabi)
@@ -76,26 +77,28 @@ ifeq ($(TARGET_ARCH_ABI),arm64-v8a)
 LOCAL_C_INCLUDES		+= $(LOCAL_PATH)/$(PLATFORMPATH)/libyuv/jni/include
 endif	
 	
-LOCAL_CFLAGS    		:= -Wall -DNDK_BUILD=1 -DUSE_NDK_SURFACE_REF -DUSE_AV_FILTER -DTEST_PERFORMANCE -DTEST_PERFORMANCE_BITRATE -DUSE_TS_CONVERT #-DNO_AUDIO_PLAY 
-#ifdef BUILD_FFPLAY
+LOCAL_CFLAGS    		:= -Wall -DNDK_BUILD=1 -DUSE_NDK_SURFACE_REF -DUSE_AV_FILTER -DTEST_PERFORMANCE -DTEST_PERFORMANCE_BITRATE  #-DNO_AUDIO_PLAY
+MY_SRC_PLAYER_FILES 	:= common.cpp ffconverter.cpp
+ifdef BUILD_FFPLAYER
 MY_SRC_PLAYER_FILES 	+= ffstream.cpp audioplayer.cpp audiorender.cpp ffplayer.cpp androidrender.cpp \
-	filesource.cpp apFormatConverter.cpp
-#endif
-#ifdef BUILD_FFEXTRACTOR
+	filesource.cpp
+endif
+ifdef BUILD_FFEXTRACTOR
 MY_SRC_PLAYER_FILES 	+= ffextractor.cpp
-#endif
+endif
+ifdef BUILD_TS_CONVERT
+MY_SRC_PLAYER_FILES 	+= apFormatConverter.cpp
+LOCAL_CFLAGS			+= -DBUILD_TS_CONVERT
+endif
 MY_SRC_PLATFORM_FILES	= log_android.c packetqueue.cpp list.cpp utils.cpp
-#ifdef BUILD_FFPLAY
+ifdef BUILD_FFPLAYER
 MY_SRC_PLATFORM_FILES	+= loop.cpp
-#endif
+endif
 MY_SRC_SOCKET_FILES		:= SimpleSocket.cpp ActiveSocket.cpp
-#ifdef BUILD_PCM_DUMP
+ifdef BUILD_PCM_DUMP
 MY_SRC_PLAYER_FILES 	+= apAudioEncoder.cpp
 MY_SRC_PLATFORM_FILES	+= apProxyUDP.cpp
-#endif
-#ifdef BUILD_ONE_LIB
-MY_SRC_PLAYER_FILES 	+= common.cpp
-#endif
+endif
 ifdef BUILD_RENDER_RGB565
 $(info build render rgb565)
 MY_SRC_YUV2RGB_FILES	= yuv2rgb16tab.c

@@ -1,7 +1,7 @@
 #include "jniUtils.h"
 #define LOG_TAG "JNI-UTILS"
 #include "pplog.h"
-#ifdef BUILD_FFPLAY
+#ifdef BUILD_FFPLAYER
 #include "FFMediaPlayer.h"
 #endif
 #ifdef BUILD_FFEXTRACTOR
@@ -93,7 +93,7 @@ jint JNI_OnLoad(JavaVM* vm, void* reserved)
 		goto bail;
 	}
 
-#ifdef BUILD_FFPLAY
+#ifdef BUILD_FFPLAYER
 	if (register_android_media_MediaPlayer(env) < 0) {
 		AND_LOGE("ERROR: MediaPlayer native registration failed");
 		goto bail;
@@ -128,7 +128,7 @@ bail:
 void JNI_OnUnload(JavaVM* vm, void* reserved)
 {
 	PPLOGI("JNI_OnUnload");
-#if defined(BUILD_FFPLAY) || defined(BUILD_FFEXTRACTOR)
+#if defined(BUILD_FFPLAYER) || defined(BUILD_FFEXTRACTOR)
 	unloadPlayerLib();
 #endif
 

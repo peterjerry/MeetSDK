@@ -6,11 +6,14 @@
 #include <jni.h>
 #include "platforminfo.h"
 #include "log.h"
-extern JavaVM* gs_jvm;
-extern int __pp_log_vprint(int prio, const char *tag, const char *fmt, va_list ap);
 
-extern PlatformInfo* platformInfo;
+// declared in meetsdk jni
+extern int __pp_log_vprint(int prio, const char *tag, const char *fmt, va_list ap);
 extern LogFunc pplog;
+
+// if BUILD_ONELIB gs_jvm, platformInfo declared in meetsdk jni, else decleard in common.cpp
+extern JavaVM* gs_jvm;
+extern PlatformInfo* platformInfo;
 
 #endif
 

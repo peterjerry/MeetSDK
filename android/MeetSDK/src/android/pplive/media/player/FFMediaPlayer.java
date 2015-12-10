@@ -22,9 +22,13 @@ public class FFMediaPlayer extends BaseMediaPlayer {
 
 	private long mNativeContext; // ISubtitle ctx, accessed by native methods
 	private long mListenerContext; // accessed by native methods
+	private static String libPath = "";
 	
 	public static boolean initPlayer(String path) {
 		LogUtils.info("initPlayer()");
+		
+		if (path != null)
+			libPath = path;
 		
 		boolean ret = native_init();
 		if (!ret) {

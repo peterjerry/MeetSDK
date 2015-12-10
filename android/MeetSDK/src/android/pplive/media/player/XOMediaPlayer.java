@@ -198,7 +198,7 @@ public class XOMediaPlayer extends BaseMediaPlayer {
 		mUrl = path;
 		MediaExtractable extractor = 
 				UrlUtil.isUseSystemExtractor(mUrl) ? 
-				new DefaultMediaExtractor() : new FFMediaExtractor(new WeakReference<XOMediaPlayer>(this));
+				new SysMediaExtractor() : new FFMediaExtractor(new WeakReference<XOMediaPlayer>(this));
 		
 		setDataSource(extractor);
 	}
@@ -1010,6 +1010,7 @@ public class XOMediaPlayer extends BaseMediaPlayer {
                     if (mLooping) {
                     	mSawInputEOS = false;
                     	seekTo(0);
+                    	mVideoCodecLock.unlock();
                     	continue;
                     }
                     else {
@@ -1118,6 +1119,7 @@ public class XOMediaPlayer extends BaseMediaPlayer {
     				try {
     					Thread.sleep(schedule_msec);
     				} catch (InterruptedException e) {
+    					e.printStackTrace();
     				}
     			}
 			} else if (res == MediaCodec.INFO_OUTPUT_BUFFERS_CHANGED) {
@@ -1390,6 +1392,11 @@ public class XOMediaPlayer extends BaseMediaPlayer {
 					// TODO Auto-generated catch block
 					e.printStackTrace();
 				}
+			}
+			
+			// 2015.12.10 fix stop stuck in some case
+			if (mExtractor != null) {
+				mExtractor.stop();
 			}
 			
 			if (mReadSampleThr != null ) {

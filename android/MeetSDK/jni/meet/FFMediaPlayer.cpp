@@ -51,9 +51,6 @@ static bool sInited = false;
 
 typedef IPlayer* (*GET_PLAYER_FUN) (void*);
 typedef void (*RELEASE_PLAYER_FUN) (IPlayer *);
-#ifdef USE_TS_CONVERT
-CONVERT_FUN convertFun = NULL;
-#endif
 
 GET_PLAYER_FUN getPlayerFun = NULL;
 RELEASE_PLAYER_FUN releasePlayerFun = NULL;
@@ -705,9 +702,6 @@ jboolean android_media_MediaPlayer_native_init(JNIEnv *env, jobject thiz)
 #ifdef BUILD_ONE_LIB
 	getPlayerFun		= getPlayer;
 	releasePlayerFun	= releasePlayer;
-#ifdef USE_TS_CONVERT
-	convertFun			= my_convert;
-#endif
 #else
 	if (!loadPlayerLib()) {
 		PPLOGE("failed to load player lib");
