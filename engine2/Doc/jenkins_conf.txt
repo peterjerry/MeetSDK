@@ -255,16 +255,13 @@ build_android_arm64=yes
 #build_android_arm64=no
 #fi
 
-#get prebuild subtitle
-if [ ! -d $WORKSPACE/subtitle2/output ]; then 
-mkdir $WORKSPACE/subtitle2/output
-fi
-
 #get prebuilt subtitle2
-rm -rf $WORKSPACE/subtitle2/output/android
-mkdir $WORKSPACE/subtitle2/output/android
+if [ ! -d $WORKSPACE/subtitle2/output ]; then 
+	rm -rf $WORKSPACE/subtitle2/output
+	mkdir -p $WORKSPACE/subtitle2/output/android
+fi
 cd $WORKSPACE/subtitle2/output/android
-curl http://jenkins/view/Meet/job/subtitle2_android_git/26/artifact/subtitle2/build/android/output/subtitle2_1.0.4.26.zip -o subtitle2.zip
+curl http://localhost:8080/job/subtitle_android/1/artifact/subtitle2/build/android/output/subtitle2_1.0.4.1.zip -o subtitle2.zip
 unzip subtitle2.zip
 
 #get prebuilt foundation

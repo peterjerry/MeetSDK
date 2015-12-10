@@ -1,14 +1,23 @@
 #include "jniUtils.h"
 #define LOG_TAG "JNI-UTILS"
 #include "pplog.h"
+#ifdef BUILD_FFPLAYER
 #include "FFMediaPlayer.h"
+#endif
+#ifdef BUILD_FFEXTRACTOR
 #include "FFMediaExtractor.h"
+#endif
+#include "libplayer.h"
+#include "platform/platforminfo.h"
 #include "platform/autolock.h" // for pthread
 
 #include <stdio.h>
 #include <stdlib.h> // for strxxx
 
+#define LOG_FATAL_IF(cond, ...) if (cond) { PPLOGE(__VA_ARGS__); return -1;}
+
 JavaVM *gs_jvm = NULL;
+PlatformInfo* gPlatformInfo = NULL;
 pthread_mutex_t sLock;
 
 char* vstrcat_impl(const char* first, ...)
@@ -84,20 +93,28 @@ jint JNI_OnLoad(JavaVM* vm, void* reserved)
 		goto bail;
 	}
 
+#ifdef BUILD_FFPLAYER
 	if (register_android_media_MediaPlayer(env) < 0) {
 		AND_LOGE("ERROR: MediaPlayer native registration failed");
 		goto bail;
 	}
+#endif
 
-	pthread_mutex_init(&sLock, NULL);
-
+#ifdef BUILD_FFEXTRACTOR
 	if (register_android_media_MediaExtractor(env) < 0) {
 		AND_LOGE("ERROR: MediaExtractor native registration failed");
 		goto bail;
 	}
+#endif
+
+	pthread_mutex_init(&sLock, NULL);
 
 	//save jvm for multiple thread invoking to java application.
 	gs_jvm = vm;
+
+	gPlatformInfo = new PlatformInfo();
+    gPlatformInfo->jvm = (void*)gs_jvm;
+	gPlatformInfo->pplog_func = (void*)__pp_log_vprint;
 
     pplog_init();
 	
@@ -111,10 +128,16 @@ bail:
 void JNI_OnUnload(JavaVM* vm, void* reserved)
 {
 	PPLOGI("JNI_OnUnload");
-
-	unload_player();
+#if defined(BUILD_FFPLAYER) || defined(BUILD_FFEXTRACTOR)
+	unloadPlayerLib();
+#endif
 
 	pthread_mutex_destroy(&sLock);
+
+	if (gPlatformInfo) {
+		delete gPlatformInfo;
+		gPlatformInfo = NULL;
+	}
 
 	pplog_close();
 }
@@ -182,6 +205,77 @@ void detachJNIEnv()
 	}
 	
 	PPLOGI("CurrentThread Detached");
+}
+
+int jniRegisterNativeMethodsPP(JNIEnv* env, const char* className, const JNINativeMethod* gMethods, int numMethods)
+{
+	jclass clazz;
+
+	PPLOGD("Registering %s natives", className);
+	clazz = env->FindClass(className);
+	if (clazz == NULL) {
+		PPLOGE("Native registration unable to find class '%s'", className);
+		return -1;
+	}
+
+	int result = 0;
+	if (env->RegisterNatives(clazz, gMethods, numMethods) < 0) {
+		PPLOGE("RegisterNatives failed for '%s'", className);
+		result = -1;
+	}
+
+	env->DeleteLocalRef(clazz);
+	return result;
+}
+
+/*
+ * Throw an exception with the specified class and an optional message.
+ *
+ * If an exception is currently pending, we log a warning message and
+ * clear it.
+ *
+ * Returns 0 if the specified exception was successfully thrown.  (Some
+ * sort of exception will always be pending when this returns.)
+ */
+int jniThrowException(JNIEnv* env, const char* className, const char* msg)
+{
+    jclass exceptionClass;
+
+    if (env->ExceptionCheck()) {
+        /* TODO: consider creating the new exception with this as "cause" */
+        char buf[256];
+
+        jthrowable exception = env->ExceptionOccurred();
+        env->ExceptionClear();
+    }
+
+    exceptionClass = env->FindClass(className);
+    if (exceptionClass == NULL) {
+        PPLOGE("Unable to find exception class %s\n", className);
+        /* ClassNotFoundException now pending */
+        return -1;
+    }
+
+    int result = 0;
+    if (env->ThrowNew(exceptionClass, msg) != JNI_OK) {
+        PPLOGE("Failed throwing '%s' '%s'\n", className, msg);
+        /* an exception, most likely OOM, will now be pending */
+        result = -1;
+    }
+
+    env->DeleteLocalRef(exceptionClass);
+    return result;
+}
+
+// Returns the Unix file descriptor for a ParcelFileDescriptor object
+int getParcelFileDescriptorFDPP(JNIEnv* env, jobject object)
+{
+	jclass clazz = env->FindClass("java/io/FileDescriptor");
+	LOG_FATAL_IF(clazz == NULL, "Unable to find class java.io.FileDescriptor");
+	jfieldID descriptor = env->GetFieldID(clazz, "descriptor", "I");
+	LOG_FATAL_IF(descriptor == NULL, "Unable to find descriptor field in java.io.FileDescriptor");
+
+	return env->GetIntField(object, descriptor);
 }
 
 bool IsUTF8(const void* pBuffer, long size)  

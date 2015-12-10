@@ -274,7 +274,7 @@ public:
 	virtual ~IExtractor() {}
 };
 
-extern "C" IExtractor* getExtractor();
+extern "C" IExtractor* getExtractor(void *context);
 
 extern "C" void releaseExtractor(IExtractor *extractor);
 

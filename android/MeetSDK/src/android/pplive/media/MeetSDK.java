@@ -40,27 +40,14 @@ public final class MeetSDK {
 	public static final int COMPATIBILITY_HARDWARE_DECODE = 1;
 	public static final int COMPATIBILITY_SOFTWARE_DECODE = 2;
 
-	public static final int LEVEL_SYSTEM					= 1;
-	public static final int LEVEL_SOFTWARE_SD				= 2;
+	public static final int LEVEL_SYSTEM				= 1;
+	public static final int LEVEL_SOFTWARE_SD			= 2;
 	public static final int LEVEL_SOFTWARE_HD1			= 3;
 	public static final int LEVEL_SOFTWARE_HD2			= 4;
-	public static final int LEVEL_SOFTWARE_BD				= 5;
+	public static final int LEVEL_SOFTWARE_BD			= 5;
 	
-	@Deprecated
-	// use LEVEL_SYSTEM
-	public static final int LEVEL_HARDWARE				= 1;
-	@Deprecated
-	// use LEVEL_SOFTWARE_SD
-	public static final int LEVEL_SOFTWARE_LIUCHANG		= 2;
-	@Deprecated
-	// use LEVEL_SOFTWARE_HD1
-	public static final int LEVEL_SOFTWARE_GAOQING		= 3;
-	@Deprecated
-	// use LEVEL_SOFTWARE_HD2
-	public static final int LEVEL_SOFTWARE_CHAOQING		= 4;
-	@Deprecated
-	// use LEVEL_SOFTWARE_BD
-	public static final int LEVEL_SOFTWARE_LANGUANG		= 5;
+	private static String libPath = "";
+	private static boolean libLoaded = false;
 	
 	private static String AppRootDir = null;
 	private static String PPBoxLibName = null;
@@ -93,10 +80,87 @@ public final class MeetSDK {
 	public static boolean initSDK(Context ctx, String path) {
 		AppRootDir = "/data/data/" + ctx.getPackageName() + "/";
 		
+		if (!load_lib(path))
+			return false;
+		
 		boolean retPlayer = FFMediaPlayer.initPlayer(path);
 		boolean retExtrator = FFMediaExtractor.initExtrator();
 		boolean retParser = SimpleSubTitleParser.initParser(path);
 		return (retPlayer && retExtrator && retParser);
+	}
+	
+	private static boolean load_lib(String path) {
+		if (libLoaded)
+			return true;
+		
+		try {
+			if (path != null) {
+				libPath = path;
+				
+				if (!libPath.equals("") && !libPath.endsWith("/"))
+					libPath += "/";
+			}
+			
+			String so_name = "meet";
+			
+			if (libPath != null && !libPath.equals("")) {
+				String full_name;
+				full_name = libPath + "lib" + so_name + ".so";
+				libLoaded = load_lib_local(full_name);
+				
+				// 2015.5.29 guoliangma added to fix launcher failed to load so
+				if (!libLoaded) {
+					LogUtils.warn("failed to load set load-path so, try load so in system path");
+					libLoaded = load_lib_system(so_name);
+				}
+			}
+			else {
+				libLoaded = load_lib_system(so_name);
+			}
+			
+			if (!libLoaded) {
+				LogUtils.error("failed to load meet so");
+				return false;
+			}
+			
+			libLoaded = true;
+		}
+		catch (Throwable t) {
+			t.printStackTrace();
+			LogUtils.error("failed to initPlayer: " + t.toString());
+		}
+		
+		return libLoaded;
+	}
+	
+	private static boolean load_lib_system(String lib_name) {
+		try {
+			LogUtils.info("System.loadLibrary() try load " + lib_name);
+			System.loadLibrary(lib_name);
+			LogUtils.info("System.loadLibrary() " + lib_name + " loaded!");
+			return true;
+		}
+		catch (Throwable t) {
+			t.printStackTrace();
+			LogUtils.error("failed to load system library meet: " + t.toString());
+		}
+		
+		return false;
+	}
+	
+	private static boolean load_lib_local(String path_name) {
+		try {
+			LogUtils.info("System.load() try load: " + path_name);
+			System.load(path_name);
+			LogUtils.info("System.load() " + path_name + " loaded!");
+			return true;
+		}
+		catch (Throwable t) {
+			t.printStackTrace();
+			LogUtils.error("failed to load local library meet: " + t.toString());
+		}
+		
+		return false;
 	}
 
 	@Deprecated

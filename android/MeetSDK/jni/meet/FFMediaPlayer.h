@@ -3,12 +3,10 @@
 #include "player/player.h"
 #include <jni.h>
 
-typedef bool (*CONVERT_FUN) (uint8_t* , int , uint8_t* , int *, int, int);
-
 // This function only registers the native methods
 int register_android_media_MediaPlayer(JNIEnv *env);
 
-void unload_player();
+bool setup_player(void *so_handle);
 
 class JNIMediaPlayerListener: public MediaPlayerListener
 {

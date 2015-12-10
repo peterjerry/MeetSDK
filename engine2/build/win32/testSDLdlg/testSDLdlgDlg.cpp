@@ -331,8 +331,9 @@ BOOL CtestSDLdlgDlg::OnInitDialog()
 	apLog::init("c:\\log\\libplayer.log");
 #endif
 
-	if (!startP2P())
-		return FALSE;
+	if (!startP2P()) {
+		AfxMessageBox("failed to start p2p engine");
+	}
 
 	for (int i=0;i<sizeof(pptv_channel_id) / sizeof(int);i++) {
 		char *new_item = (char *)malloc(256);

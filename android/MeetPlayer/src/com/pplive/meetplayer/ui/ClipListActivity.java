@@ -408,7 +408,7 @@ public class ClipListActivity extends Activity implements
                 mBreakpadRegisterDone = true;
             }
             catch (Exception e) {
-                Log.e(TAG, e.toString());
+                LogUtil.error(TAG, e.toString());
             }
         }
 		
@@ -576,7 +576,7 @@ public class ClipListActivity extends Activity implements
 										mAdapter.notifyDataSetChanged();
 									}
 									else {
-										Log.e(TAG, "failed to delete file: " + file_path);
+										LogUtil.error(TAG, "failed to delete file: " + file_path);
 										Toast.makeText(ClipListActivity.this, "failed to delte file: " + file_path, Toast.LENGTH_SHORT).show();
 									}
 								}
@@ -650,7 +650,7 @@ public class ClipListActivity extends Activity implements
 								}
 							}
 							else {
-								Log.e(TAG, "Java: more action: unknown index " + whichButton);
+								LogUtil.error(TAG, "Java: more action: unknown index " + whichButton);
 							}
 						}
 					})
@@ -751,7 +751,7 @@ public class ClipListActivity extends Activity implements
 				String key = "PlayHistory";
 				String regularEx = ",";
 				String values = Util.readSettings(ClipListActivity.this, key);
-		        Log.d(TAG, "Java: PlayHistory(in PPboxSel) read: " + values);
+		        LogUtil.debug(TAG, "Java: PlayHistory(in PPboxSel) read: " + values);
 		        
 		        String []str = values.split(regularEx);
 		        for (int i=0;i<str.length;i++) {
@@ -933,7 +933,7 @@ public class ClipListActivity extends Activity implements
 			
 			@Override
 			public boolean onFling(MotionEvent e1, MotionEvent e2, float velocityX, float velocityY) {
-				Log.d(TAG, String.format("Java: onFling!!! velocityX %.3f, velocityY %.3f", 
+				LogUtil.debug(TAG, String.format("Java: onFling!!! velocityX %.3f, velocityY %.3f", 
 						velocityX, velocityY));
 				
 				// 1xxx - 4xxx
@@ -1278,8 +1278,11 @@ public class ClipListActivity extends Activity implements
 			}
 			
 			if (succeed) {
-				mBufferingProgressBar.setVisibility(View.VISIBLE);
-				mIsBuffering = true;
+				if (!mPlayUrl.startsWith("/") && !mPlayUrl.startsWith("file://")) {
+					// ONLY network media need buffering
+					mBufferingProgressBar.setVisibility(View.VISIBLE);
+					mIsBuffering = true;
+				}
 			}
 			else {
 				Toast.makeText(this, "Java: failed to play: " + path, Toast.LENGTH_SHORT).show();
@@ -1311,7 +1314,7 @@ public class ClipListActivity extends Activity implements
 				}
 				catch(Exception e){
 			        //probably already released
-			        Log.e(TAG, e.getMessage());
+			        LogUtil.error(TAG, e.getMessage());
 			    }
 				
 				mWifiLock = null;
@@ -1416,7 +1419,7 @@ public class ClipListActivity extends Activity implements
 				pos = 1800 * 1000;
 		}
 		
-		Log.d(TAG, String.format("Java: getCurrentPosition %d %d msec", mPlayer.getCurrentPosition(), pos));
+		LogUtil.debug(TAG, String.format("Java: getCurrentPosition %d %d msec", mPlayer.getCurrentPosition(), pos));
 		
 		return pos;
 	}
@@ -1486,6 +1489,9 @@ public class ClipListActivity extends Activity implements
 			case MSG_CLIP_PLAY_DONE:
 				Toast.makeText(ClipListActivity.this, "clip completed", Toast.LENGTH_SHORT).show();
 				mTextViewInfo.setText("play info");
+				mPlayer.stop();
+				mPlayer.release();
+				mPlayer = null;
 				break;
 			case MSG_DISPLAY_SUBTITLE:
 				mSubtitleTextView.setText(mSubtitleText);
@@ -1560,7 +1566,7 @@ public class ClipListActivity extends Activity implements
 				LogUtil.info(TAG, "Java: set ft to: "+ msg.arg1);
 				break;
 			default:
-				Log.w(TAG, "Java: unknown msg.what " + msg.what);
+				LogUtil.warn(TAG, "Java: unknown msg.what " + msg.what);
 				break;
 			}			 
         }
@@ -2058,7 +2064,7 @@ public class ClipListActivity extends Activity implements
 					ret = mEPG.virtual_channel(info.getTitle(), 
 							info.getInfoId(), mEPGlistCount, info.getSiteId(), 1);
 					if (!ret) {
-						Log.e(TAG, "failed to get virtual_channel");
+						LogUtil.error(TAG, "failed to get virtual_channel");
 						mHandler.sendEmptyMessage(MSG_FAIL_TO_PARSE_EPG_RESULT);
 						return false;
 					}
@@ -2277,7 +2283,7 @@ public class ClipListActivity extends Activity implements
 		    			ret = mEPG.virtual_channel(info.getTitle(), info.getInfoId(), 
 		    					count, info.getSiteId(), start_page);
 		    			if (!ret) {
-		    				Log.e(TAG, "failed to get virtual_channel");
+		    				LogUtil.error(TAG, "failed to get virtual_channel");
 		    				mHandler.sendEmptyMessage(MSG_FAIL_TO_PARSE_EPG_RESULT);
 		    				return false;
 		    			}
@@ -2289,7 +2295,7 @@ public class ClipListActivity extends Activity implements
         		}
         	}
         	else {
-        		Log.w(TAG, "Java: EPGTask invalid type: " + type);
+        		LogUtil.warn(TAG, "Java: EPGTask invalid type: " + type);
         	}
         	
         	return true;
@@ -2465,7 +2471,7 @@ public class ClipListActivity extends Activity implements
 		ArrayList<String> uuid_list = new ArrayList<String>();
 		for (Object obj : IDlnaCallback.mDMRmap.keySet()){
 	          Object name = IDlnaCallback.mDMRmap.get(obj);
-	          Log.d(TAG, "Java: dlna [dlna dev] uuid: " + obj.toString() + " name: " + name.toString());
+	          LogUtil.debug(TAG, "Java: dlna [dlna dev] uuid: " + obj.toString() + " name: " + name.toString());
 	          uuid_list.add(obj.toString());
 	          dev_list.add(name.toString());
 	    }
@@ -2731,7 +2737,7 @@ public class ClipListActivity extends Activity implements
     		startActivity(intent);
 			break;
 		default:
-			Log.w(TAG, "bad menu item selected: " + id);
+			LogUtil.warn(TAG, "bad menu item selected: " + id);
 			return false;
 		}
 		
@@ -2741,7 +2747,7 @@ public class ClipListActivity extends Activity implements
 	@Override
 	public boolean onInfo(MediaPlayer mp, int what, int extra) {
 		// TODO Auto-generated method stub
-		Log.d(TAG, "Java: onInfo: " + what + " " + extra);
+		LogUtil.debug(TAG, "Java: onInfo: " + what + " " + extra);
 		
 		if ((MediaPlayer.MEDIA_INFO_BUFFERING_START == what) && !mIsBuffering) {
 			mBufferingProgressBar.setVisibility(View.VISIBLE);
@@ -2819,7 +2825,7 @@ public class ClipListActivity extends Activity implements
 	@Override
 	public boolean onError(MediaPlayer mp, int framework_err, int impl_err) {
 		// TODO Auto-generated method stub
-		Log.e(TAG, "Java: onError: " + framework_err + "," + impl_err);
+		LogUtil.error(TAG, "Java: onError: " + framework_err + "," + impl_err);
 		Toast.makeText(ClipListActivity.this, String.format("failed to play clip: %d %d", framework_err, impl_err), Toast.LENGTH_SHORT).show();
 		
 		if (mIsBuffering) {
@@ -2843,7 +2849,6 @@ public class ClipListActivity extends Activity implements
 		LogUtil.info(TAG, "onCompletion");
 		mMediaDB.savePlayedPosition(mPlayUrl, 0);
 		
-		mPlayer.stop();
 		mMediaController.hide();
 		mHandler.sendEmptyMessage(MSG_CLIP_PLAY_DONE);
 	}
@@ -2869,8 +2874,10 @@ public class ClipListActivity extends Activity implements
 		mMediaController.setMediaPlayer(this);
         mMediaController.setEnabled(true);
 		
-		mBufferingProgressBar.setVisibility(View.GONE);
-		mIsBuffering = false;
+        if (mIsBuffering) {
+        	mBufferingProgressBar.setVisibility(View.GONE);
+        	mIsBuffering = false;
+        }
 		
 		// audio track(activate track info)
 		MediaInfo info = mp.getMediaInfo();
@@ -2918,7 +2925,7 @@ public class ClipListActivity extends Activity implements
 					subtitle_full_path = tmp + ext;
 					
 					File subfile = new File(subtitle_full_path);
-					//Log.d(TAG, "Java: subtitle: subtitle file: " + subtitle_full_path);
+					//LogUtil.debug(TAG, "Java: subtitle: subtitle file: " + subtitle_full_path);
 			        if (subfile.exists()) {
 			        	subtitle_filename = subtitle_full_path;
 						break;
@@ -2936,7 +2943,7 @@ public class ClipListActivity extends Activity implements
 	@Override
 	public void onBufferingUpdate(MediaPlayer mp, int percent) {
 		// TODO Auto-generated method stub
-		Log.d(TAG, "onBufferingUpdate: " + percent);
+		LogUtil.debug(TAG, "onBufferingUpdate: " + percent);
 		mBufferingPertent = percent;
 	}
 
@@ -3003,7 +3010,7 @@ public class ClipListActivity extends Activity implements
 	
 	private void setupUpdater() {
 		final String apk_name = "MeetPlayer-release.apk";
-		Log.d(TAG, "ready to download apk: " + apk_name);
+		LogUtil.debug(TAG, "ready to download apk: " + apk_name);
 		if (null != apk_name && apk_name.length() > 0) {
 			mDownloadProgressBar = (ProgressBar) findViewById(R.id.progressbar_download);
 			mProgressTextView = (TextView) findViewById(R.id.textview_progress);
@@ -3090,7 +3097,7 @@ public class ClipListActivity extends Activity implements
 		
         File apkfile = new File(apk_fullpath);
         if (!apkfile.exists()) {
-        	Log.e(TAG, "apk file does not exist: " + apk_fullpath);
+        	LogUtil.error(TAG, "apk file does not exist: " + apk_fullpath);
             return;
         }
 			
@@ -3247,7 +3254,7 @@ public class ClipListActivity extends Activity implements
 	    if (start < 0)
 	    	start = 0;
 	    for (int i=0;i<str.length;i++) {
-	    	Log.d(TAG, String.format("Java: PlayHistory #%d %s", i, str[i]));
+	    	LogUtil.debug(TAG, String.format("Java: PlayHistory #%d %s", i, str[i]));
 	    }
 	    
 	    // clip_name|11223,clip_2|34455
@@ -3261,7 +3268,7 @@ public class ClipListActivity extends Activity implements
 	    save_values.append("|");
 	    save_values.append(playlink);
 		
-	    //Log.d(TAG, "Java: PlayHistory write: " + save_values.toString());
+	    //LogUtil.debug(TAG, "Java: PlayHistory write: " + save_values.toString());
 	    return Util.writeSettings(this, key, save_values.toString());
 	}
 	
@@ -3275,7 +3282,7 @@ public class ClipListActivity extends Activity implements
 		
 		mDLNA = new DLNASdk();
 		if (!mDLNA.isLibLoadSuccess()) {
-			Log.e(TAG, "Java: dlna failed to load dlna lib");
+			LogUtil.error(TAG, "Java: dlna failed to load dlna lib");
 			return false;
 		}
 		
@@ -3377,7 +3384,7 @@ public class ClipListActivity extends Activity implements
         	if (isDisplay) {
         		seg = mSubtitleParser.next();
         		if (seg == null) {
-        			Log.e(TAG, "Java: subtitle next_segment is null");
+        			LogUtil.error(TAG, "Java: subtitle next_segment is null");
         			break;
         		}
         		
@@ -3408,7 +3415,7 @@ public class ClipListActivity extends Activity implements
             	
             	try {
 					wait(SLEEP_MSEC);
-					//Log.d(TAG, "Java: subtitle wait");
+					//LogUtil.debug(TAG, "Java: subtitle wait");
 				} catch (InterruptedException e) {
 					// TODO Auto-generated catch block
 					LogUtil.info(TAG, "Java: subtitle interrupted");
@@ -3474,7 +3481,7 @@ public class ClipListActivity extends Activity implements
 	    // TODO Auto-generated method stub
 		int action = event.getAction();
 		int keyCode = event.getKeyCode();
-		Log.d(TAG, "Java: dispatchKeyEvent action " + action + " ,keyCode: " + keyCode);
+		LogUtil.debug(TAG, "Java: dispatchKeyEvent action " + action + " ,keyCode: " + keyCode);
 		
 		if (mPreviewFocused && action == KeyEvent.ACTION_DOWN) {
 			if (keyCode == KeyEvent.KEYCODE_ENTER ||
@@ -3491,7 +3498,7 @@ public class ClipListActivity extends Activity implements
 	
 	@Override
 	public boolean onKeyDown(int keyCode, KeyEvent event) {
-		Log.d(TAG, "Java: keyCode: " + keyCode);
+		LogUtil.debug(TAG, "Java: keyCode: " + keyCode);
 		
 		if (keyCode == KeyEvent.KEYCODE_MENU) {
 			openOptionsMenu();
