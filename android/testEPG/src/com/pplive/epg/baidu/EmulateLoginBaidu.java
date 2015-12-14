@@ -57,7 +57,7 @@ public class EmulateLoginBaidu {
 	/**
 	 * @param args
 	 */
-	public static String login(String username, String password) {
+	public static LoginInfo login(String username, String password) {
 		crl = new crifanLib();
 				
 		// TODO Auto-generated method stub
@@ -65,7 +65,7 @@ public class EmulateLoginBaidu {
 	}
 
 	// emulate login baidu using java code	
-	public static String EmulateLoginBaiduUsingJava(String strBaiduUsername, String strBaiduPassword)
+	public static LoginInfo EmulateLoginBaiduUsingJava(String strBaiduUsername, String strBaiduPassword)
 	{
 		System.out.println("============ 程序说明 ============");
 		System.out.println("功能：本程序是用来演示使用Java代码去实现模拟登陆百度");
@@ -255,6 +255,7 @@ public class EmulateLoginBaidu {
             }
         }
 
-        return BDUSS;
+        LoginInfo info = new LoginInfo(strTokenValue, BDUSS);
+        return info;
 	}
 }

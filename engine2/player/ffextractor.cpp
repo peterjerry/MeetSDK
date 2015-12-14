@@ -1465,12 +1465,14 @@ void FFExtractor::thread_impl()
 			m_video_q.put(pPacket);
 		}
 		else if(pPacket->stream_index == m_audio_stream_idx) {
-			if (!m_video_keyframe_sync) {
+			// 2015.12.14 some clip audio/video packet isn't well interleaved written
+			// cannot simply drop audio packet here!
+			/*if (!m_video_keyframe_sync) {
 				LOGW("drop no sync audio pkt");
 				av_free_packet(pPacket);
 				pPacket = NULL;
 				continue;
-			}
+			}*/
 
 			m_audio_q.put(pPacket);
 

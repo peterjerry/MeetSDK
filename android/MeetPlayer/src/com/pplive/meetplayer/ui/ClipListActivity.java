@@ -191,7 +191,7 @@ public class ClipListActivity extends Activity implements
 	
 	// list
 	private ListMediaUtil mListUtil;
-	private final static String HTTP_SERVER_URL = "http://192.168.1.112:8080/testcase/";
+	private final static String HTTP_SERVER_URL = "http://192.168.1.112:8088/testcase/";
 	
 	private String mPlayUrl;
 	private int mVideoWidth, mVideoHeight;
@@ -299,7 +299,7 @@ public class ClipListActivity extends Activity implements
 	
 	private final static String home_folder		= "";//"/test2";
 	
-	private final static String HTTP_UPDATE_APK_URL = "http://192.168.1.112:8080/test/";
+	private final static String HTTP_UPDATE_APK_URL = "http://192.168.1.112:8088/test/";
 	
 	private final String[] from = { "filename", "mediainfo", "folder", "filesize", "resolution", "thumb" };
 	
@@ -3157,6 +3157,10 @@ public class ClipListActivity extends Activity implements
 		super.onPause();
 		LogUtil.info(TAG, "Java: onPause()");
 
+		if (mPlayer != null && mPlayer.getDecodeMode() == DecodeMode.HW_XOPLAYER) {
+			Log.i(TAG, "XOPlayer did not support HOME and resume");
+			stop_player();
+		}
 		if (mPlayer != null && mPlayer.isPlaying()) {
 			mPlayer.pause();
 		}
@@ -3187,23 +3191,7 @@ public class ClipListActivity extends Activity implements
 		}
 		
 		if (isFinishing()) {
-			if (mPlayer != null) {
-				mSubtitleStoped = true;
-				
-				if (mIsSubtitleUsed) {
-					mSubtitleThread.interrupt();
-					
-					try {
-						mSubtitleThread.join();
-					} catch (InterruptedException e) {
-						// TODO Auto-generated catch block
-						e.printStackTrace();
-					}
-				}
-				
-				mMediaDB.savePlayedPosition(mPlayUrl, mPlayer.getCurrentPosition());
-				mPlayer.stop();
-			}
+			stop_player();
 		}
 		else {
 			mHomed = true;

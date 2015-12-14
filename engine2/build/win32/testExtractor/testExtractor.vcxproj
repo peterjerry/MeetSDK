@@ -53,12 +53,12 @@
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>SAVE_LOG_FILE;_CRT_SECURE_NO_WARNINGS;WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <SDLCheck>true</SDLCheck>
-      <AdditionalIncludeDirectories>..\testSDLdlg\ppbox\include;..\..\..\player;..\..\..\platform;..\testEPG;..\..\..\..\foundation\output\win32\full\include;..\..\..\..\subtitle2\output\android\include;D:\Archive\SDK\pthread\pthreads-w32-2-9-1-release\Pre-built.2\include;D:\Archive\SDK\SDL\SDL-1.2.15\include;D:\Archive\SDK\pthread\pthreads-w32-2-9-1-release\Pre-built.2\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\testSDLdlg\ppbox\include;..\..\..\player;..\..\..\platform;..\testEPG;..\..\..\..\foundation\output\win32\full\include;..\..\..\..\subtitle2\output\android\include;E:\work\SDK\pthread\pthreads-w32-2-9-1-release\Pre-built.2\include;E:\work\SDK\SDL\SDL-1.2.15\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>..\testSDLdlg\ppbox;..\..\..\..\foundation\output\win32\full\bin;D:\Archive\SDK\pthread\pthreads-w32-2-9-1-release\Pre-built.2\lib\x86;D:\Archive\SDK\SDL\SDL-1.2.15\lib\x86%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>..\testSDLdlg\ppbox;..\..\..\..\foundation\output\win32\full\bin;E:\work\SDK\pthread\pthreads-w32-2-9-1-release\Pre-built.2\lib\x86;E:\work\SDK\SDL\SDL-1.2.15\lib\x86;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">

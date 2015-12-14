@@ -180,7 +180,7 @@ public class PlayerPolicy {
 			if (url.toLowerCase().endsWith("mp4") || url.toLowerCase().endsWith("3gp") || 
 					url.toLowerCase().endsWith("ts") || url.toLowerCase().endsWith("mkv") || 
 					formatName.equals("mpegts")) {
-				if ((null == videoCodecName || videoCodecName.equals("h263") || videoCodecName.equals("h264")) && 
+				if ((null == videoCodecName || videoCodecName.equals("h263") || videoCodecName.equals("h264") || videoCodecName.equals("mpeg4video")) && 
 					(null == audioCodecName || audioCodecName.equals("aac"))) {
 					return DecodeMode.HW_SYSTEM;
 				}
