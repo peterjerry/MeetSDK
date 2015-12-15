@@ -32,15 +32,16 @@ public class UrlUtil {
 	}
 	
 	public static boolean isUseSystemExtractor(String url) {
-		return false;
-		/*String url_lower = url.toLowerCase();
-		if (url_lower.startsWith("http://")) {
-			if (url_lower.indexOf(".m3u8") != -1)
-				return false;
+		//return false;
+		String url_lower = url.toLowerCase();
+		if (url_lower.startsWith("file://") || url_lower.startsWith("/")) {
+			if (url_lower.endsWith("flv") || url_lower.endsWith("mkv") ||
+					url_lower.endsWith("mp4")) {
+				return true;
+			}
 		}
 		
-		return true;*/
-		//return null == url ? false : sRegNuMediaPlaySupportUrl.matcher(url.trim()).matches();
+		return false;
 	}
 	
 	public static boolean isOnlinePlayUrl(String url) {

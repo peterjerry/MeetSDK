@@ -48,15 +48,13 @@ public class FFMediaExtractor implements MediaExtractable {
 	@Override
 	public MediaFormat getTrackFormat(int index) {
 		MediaFormat mediaformat = new MediaFormat();
-		ByteBuffer buf1 = ByteBuffer.allocate(128);
-		ByteBuffer buf2 = ByteBuffer.allocate(64);
 
 		/*getTrackFormatNative(index, mediaformat, buf1, buf2);
 		if (index == 1)
 			mediaformat.setInteger(MediaFormat.KEY_IS_ADTS, 1);
 		return mediaformat;*/
 		
-		return getTrackFormatNative(index, mediaformat, buf1, buf2) ? mediaformat : null;
+		return getTrackFormatNative(index, mediaformat) ? mediaformat : null;
 		
 		/*if (index == 0) {			
 			The MTK H264 decoder need the parameter csd-0 and csd-1 to init the decoder(You can get some information at http://developer.android.com/reference/android/media/MediaCodec.html). csd-0 and csd-1 stands for SPS and PPS of H264.I have asked a MTK engineer and he said that we can use the code below to set these two parameters.
@@ -78,7 +76,7 @@ public class FFMediaExtractor implements MediaExtractable {
 	}
 	
 	private native boolean getTrackFormatNative(int index, 
-			MediaFormat mediaformat, ByteBuffer buf1, ByteBuffer buf2);
+			MediaFormat mediaformat);
 
 	@Override
 	public native boolean hasCachedReachedEndOfStream();

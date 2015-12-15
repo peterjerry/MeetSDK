@@ -23,7 +23,7 @@
 #define URL_SURFIX "%3Fft%3D2%26bwtype%3D3%26platform%3Dandroid3" \
 	"%26type%3Dphone.android.vip%26sv%3D4.1.3%26param%3DuserTypeD1&mux.M3U8.segment_duration=5"
 
-#define LOCAL_FILE "E:\\Archive\\media\\test\\coolpad\\coolpad_VID_20151214_151546.mp4"
+#define LOCAL_FILE "E:\\Archive\\media\\test\\coolpad\\coolpad_CoolShow01.mp4"
 
 #define MAX_PKT_SIZE (65536 * 10)
 
@@ -70,8 +70,8 @@ int _tmain(int argc, _TCHAR* argv[])
 		return 1;
 	}
 
-	if (!startP2P())
-		return 1;
+	//if (!startP2P())
+	//	return 1;
 
 	MyMediaPlayerListener listener;
 
@@ -161,7 +161,7 @@ int _tmain(int argc, _TCHAR* argv[])
 		return 1;
 	}
 
-	SDL_AudioSpec wanted_spec, spec;
+	/*SDL_AudioSpec wanted_spec, spec;
 	memset(&wanted_spec, 0, sizeof(SDL_AudioSpec));
 	memset(&spec, 0, sizeof(SDL_AudioSpec));
 	wanted_spec.freq = fmt.sample_rate;
@@ -180,6 +180,7 @@ int _tmain(int argc, _TCHAR* argv[])
 	SDL_PauseAudio(0);
 
 	LOGI("SDL_AudioSpec got: chn %d, fmt 0x%x, freq %d", spec.channels, spec.format, spec.freq);
+	*/
 
 	while (!quit){
 		while (SDL_PollEvent(&e)) { // would block!
@@ -228,10 +229,14 @@ int _tmain(int argc, _TCHAR* argv[])
 			break;
 		}
 
-		printf("read sample count %I64d stream #%d size %d time %I64d msec\n", 
-			total_count, index, sample_size, time_usec / 1000);
-		LOGI("read sample count %I64d stream #%d size %d time %I64d msec\n", 
-			total_count, index, sample_size, time_usec / 1000);
+		printf("read sample count #%I64d, stream #%d [%s] size %d, time %I64d msec, data 0x%02x %02x %02x %02x %02x\n", 
+			total_count, index, index == video_stream_idx ? "video" : "audio",
+			sample_size, time_usec / 1000,
+			pkt_data[0], pkt_data[1], pkt_data[2], pkt_data[3], pkt_data[4]);
+		LOGI("read sample count #%I64d, stream #%d [%s] size %d, time %I64d msec, data 0x%02x %02x %02x %02x %02x\n", 
+			total_count, index, index == video_stream_idx ? "video" : "audio",
+			sample_size, time_usec / 1000,
+			pkt_data[0], pkt_data[1], pkt_data[2], pkt_data[3], pkt_data[4]);
 		total_count++;
 
 		if (index == audio_stream_idx) {
@@ -266,7 +271,7 @@ int _tmain(int argc, _TCHAR* argv[])
 			break;
 		}
 
-		SDL_Delay(40);
+		SDL_Delay(100);
 	}
 
 	return 0;

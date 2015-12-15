@@ -177,74 +177,8 @@ jint android_media_MediaExtractor_getTrackCount(JNIEnv *env, jobject thiz)
 	return -1;
 }
 
-int fill_bytebuffer(JNIEnv *env, jobject thiz, jobject byteBuf, uint8_t* data, uint32_t len)
-{
-	if (data == NULL || len == 0) {
-		PPLOGE("extra data is null");
-		return -1;
-	}
-
-	void *dst = env->GetDirectBufferAddress(byteBuf);
-
-	jlong dstSize;
-	jbyteArray byteArray = NULL;
-
-    if (dst == NULL) {
-        jclass byteBufClass = env->FindClass("java/nio/ByteBuffer");
-        if (byteBufClass == NULL) {
-			PPLOGE("failed to find class: java/nio/ByteBuffer");
-			return -1;
-		}
-
-        jmethodID arrayID =
-            env->GetMethodID(byteBufClass, "array", "()[B");
-        if (arrayID == NULL) {
-			PPLOGE("failed to GetMethodID: array");
-			return -1;
-		}
-
-        byteArray = (jbyteArray)env->CallObjectMethod(byteBuf, arrayID);
-
-        if (byteArray == NULL) {
-            return -1;
-        }
-
-        jboolean isCopy;
-        dst = env->GetByteArrayElements(byteArray, &isCopy);
-
-        dstSize = env->GetArrayLength(byteArray);
-    } else {
-        dstSize = env->GetDirectBufferCapacity(byteBuf);
-    }
-
-	if (len > dstSize) {
-		if (byteArray != NULL) {
-            env->ReleaseByteArrayElements(byteArray, (jbyte *)dst, 0);
-        }
-
-		PPLOGE("dstSize is less than offset %d.%d", dstSize, len);
-        return -1;
-	}
-
-	memcpy(dst, data, len);
-
-	jclass byteBufClass = env->FindClass("java/nio/ByteBuffer");
-    if (byteBufClass == NULL) {
-		PPLOGE("failed to find class: java/nio/ByteBuffer");
-		return -1;
-	}
-	jmethodID limitID = env->GetMethodID(byteBufClass, "limit", "(I)Ljava/nio/Buffer;");
-    if (limitID == NULL) {
-		PPLOGE("failed to GetMethodID: limit");
-		return -1;
-	}
-	env->CallObjectMethod(byteBuf, limitID, len);
-
-	return 0;
-}
-
 jboolean android_media_MediaExtractor_getTrackFormatNative(JNIEnv *env, jobject thiz, jint index, 
-														   jobject mediaformat, jobject buf1, jobject buf2)
+														   jobject mediaformat)
 {
 	PPLOGI("getTrackFormatNative() stream #%d", index);
 
@@ -323,11 +257,17 @@ jboolean android_media_MediaExtractor_getTrackFormatNative(JNIEnv *env, jobject 
 		env->CallVoidMethod(mediaformat, midSetLong, env->NewStringUTF("durationUs"), native_format.duration_us);
 		env->CallVoidMethod(mediaformat, midSetFloat, env->NewStringUTF("frame-rate"), native_format.frame_rate);
 
-		fill_bytebuffer(env, thiz, buf1, native_format.csd_0, native_format.csd_0_size);
-		env->CallVoidMethod(mediaformat, midSetByteBuffer, env->NewStringUTF("csd-0"), buf1); // sps
+		// 2015.12.15 guoliangma fix alloc bytebuffer from c side
+		// Notice local variable is released out of the function scope!
+		uint8_t *csd_0 = (uint8_t *)malloc(native_format.csd_0_size);
+		memcpy(csd_0, native_format.csd_0, native_format.csd_0_size);
+		jobject bb_csd0 = env->NewDirectByteBuffer(csd_0, native_format.csd_0_size);
+		env->CallVoidMethod(mediaformat, midSetByteBuffer, env->NewStringUTF("csd-0"), bb_csd0); // sps
 
-		fill_bytebuffer(env, thiz, buf2, native_format.csd_1, native_format.csd_1_size);
-		env->CallVoidMethod(mediaformat, midSetByteBuffer, env->NewStringUTF("csd-1"), buf2); // pps
+		uint8_t *csd_1 = (uint8_t *)malloc(native_format.csd_1_size);
+		memcpy(csd_1, native_format.csd_1, native_format.csd_1_size);
+		jobject bb_csd1 = env->NewDirectByteBuffer(csd_1, native_format.csd_1_size);
+		env->CallVoidMethod(mediaformat, midSetByteBuffer, env->NewStringUTF("csd-1"), bb_csd1); // pps
 	}
 	else if (PPMEDIA_TYPE_AUDIO == native_format.media_type) {
 		PPLOGI("begin to fill audio media format: chn %d, sample_rate %d", native_format.channels, native_format.sample_rate);
@@ -374,8 +314,13 @@ jboolean android_media_MediaExtractor_getTrackFormatNative(JNIEnv *env, jobject 
 		env->CallVoidMethod(mediaformat, midSetInteger, env->NewStringUTF("sample-rate"), native_format.sample_rate);
 		env->CallVoidMethod(mediaformat, midSetInteger, env->NewStringUTF("bitrate"), native_format.bitrate);
 		env->CallVoidMethod(mediaformat, midSetLong, env->NewStringUTF("durationUs"), native_format.duration_us);
-		fill_bytebuffer(env, thiz, buf1, native_format.csd_0, native_format.csd_0_size);
-		env->CallVoidMethod(mediaformat, midSetByteBuffer, env->NewStringUTF("csd-0"), buf1);
+
+		// 2015.12.15 guoliangma fix alloc bytebuffer from c side
+		// Notice local variable is released out of the function scope!
+		uint8_t *csd_0 = (uint8_t *)malloc(native_format.csd_0_size);
+		memcpy(csd_0, native_format.csd_0, native_format.csd_0_size);
+		jobject bb_csd0 = env->NewDirectByteBuffer(csd_0, native_format.csd_0_size);
+		env->CallVoidMethod(mediaformat, midSetByteBuffer, env->NewStringUTF("csd-0"), bb_csd0); // sps
 	}
 	else {
 		PPLOGW("unknown media type: %d" + native_format.media_type);
@@ -451,7 +396,7 @@ jint android_media_MediaExtractor_readSampleData(JNIEnv *env, jobject thiz, jobj
 	}
 
 	int sample_size = 0;
-	status_t err = extractor->readSampleData((unsigned char *)dst, &sample_size);
+	status_t err = extractor->readSampleData((unsigned char *)dst + offset, &sample_size);
 
     if (byteArray != NULL) {
         env->ReleaseByteArrayElements(byteArray, (jbyte *)dst, 0);
@@ -644,7 +589,7 @@ static JNINativeMethod gExtractorMethods[] = {
 	{"getSampleTime",       "()J",		(void *)android_media_MediaExtractor_getSampleTime},
 	{"getSampleTrackIndex",       "()I",		(void *)android_media_MediaExtractor_getSampleTrackIndex},
 	{"getTrackCount",       "()I",		(void *)android_media_MediaExtractor_getTrackCount},
-	{"getTrackFormatNative",       "(ILandroid/media/MediaFormat;Ljava/nio/ByteBuffer;Ljava/nio/ByteBuffer;)Z",
+	{"getTrackFormatNative",       "(ILandroid/media/MediaFormat;)Z",
 		(void *)android_media_MediaExtractor_getTrackFormatNative},
 	{"hasCachedReachedEndOfStream",       "()Z",		(void *)android_media_MediaExtractor_hasCachedReachedEndOfStream},
 	{"readSampleData",       "(Ljava/nio/ByteBuffer;I)I",		(void *)android_media_MediaExtractor_readSampleData},

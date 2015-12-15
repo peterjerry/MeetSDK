@@ -7,12 +7,14 @@ import android.media.MediaExtractor;
 import android.media.MediaFormat;
 import android.pplive.media.util.LogUtils;
 
-class SysMediaExtractor implements MediaExtractable {
+class SystemMediaExtractor implements MediaExtractable {
 	
 	private MediaExtractor mExtractor;
+	private boolean mSeeking = false;
+	private boolean mGetVideoFlushPkt = false;
 	
-	SysMediaExtractor() {
-		mExtractor = new MediaExtractor();
+	SystemMediaExtractor() {
+		this.mExtractor = new MediaExtractor();
 	}
 
 	@Override
@@ -37,6 +39,13 @@ class SysMediaExtractor implements MediaExtractable {
 
 	@Override
 	public int getSampleTrackIndex() {
+		if (mSeeking) {
+			if (!mGetVideoFlushPkt)
+				return 0;
+			else
+				return 1;
+		}
+		
 		return mExtractor.getSampleTrackIndex();
 	}
 
@@ -57,6 +66,24 @@ class SysMediaExtractor implements MediaExtractable {
 
 	@Override
 	public int readSampleData(ByteBuffer byteBuf, int offset) {
+		if (mSeeking) {
+			String str_flush = "FLUSH";
+			byte [] flush_pkt = str_flush.getBytes();
+			byteBuf.position(offset);
+			byteBuf.put(flush_pkt);
+			byteBuf.flip();
+			
+			// 关于flp: 将limit属性设置为当前的位置
+			// 关于rewind: 是在limit属性已经被设置合适的情况下使用的。
+			// 也就是说这两个方法虽然都能够使指针返回到缓冲区的第一个位置，但是flip在调整指针之前，
+			
+			if (!mGetVideoFlushPkt)
+				mGetVideoFlushPkt = true;
+			else
+				mSeeking = false;
+			return 5;
+		}
+		
 		return mExtractor.readSampleData(byteBuf, offset);
 	}
 
@@ -68,6 +95,9 @@ class SysMediaExtractor implements MediaExtractable {
 	@Override
 	public void seekTo(long timeUs, int mode) {
 		mExtractor.seekTo(timeUs, mode);
+		
+		mSeeking = true;
+		mGetVideoFlushPkt = false;
 	}
 
 	@Override

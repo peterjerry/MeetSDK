@@ -820,7 +820,7 @@ public class BaiduPanel extends JPanel {
 				String folder_path = mbRootPath + "/" + editPath.getText();
 				if (mkdir(folder_path)) {
 					try {
-						Thread.sleep(500);
+						Thread.sleep(100);
 					} catch (InterruptedException e1) {
 						// TODO Auto-generated catch block
 						e1.printStackTrace();

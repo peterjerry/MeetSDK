@@ -113,7 +113,6 @@ enum DATASOURCE_TYPE
 	int					m_video_dst_bufsize;
 	int					m_framerate;
 	int64_t				m_video_clock_msec; // sec
-	AVBitStreamFilterContext*	m_pBsfc_h264;
 	bool				m_video_keyframe_sync;
 	uint8_t *			m_sps_data;
 	uint32_t			m_sps_size;
@@ -157,6 +156,11 @@ enum DATASOURCE_TYPE
 	bool				m_buffering;
 	bool				m_seeking;
 	bool				m_eof;
+
+	// AVCC for flv,mp4,mkv video codec extra_data
+	int					m_NALULengthSizeMinusOne;
+	int					m_num_of_sps;
+	int					m_num_of_pps;
 };
 
 #endif // FF_EXTRACTOR_H_
