@@ -128,4 +128,10 @@ class SystemMediaExtractor implements MediaExtractable {
 		
 	}
 
+	@Override
+	public boolean isSystemExtractor() {
+		// TODO Auto-generated method stub
+		return true;
+	}
+
 }

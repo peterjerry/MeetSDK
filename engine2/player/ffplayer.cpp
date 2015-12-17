@@ -243,7 +243,9 @@ FFPlayer::FFPlayer()
 	//snapshot
 	mSnapshotPic	= NULL;
 	mSnapShotFrame	= NULL;
+#ifdef USE_SWSCALE
 	mSwsCtx			= NULL;
+#endif
 
 #ifdef PCM_DUMP
 	mDumpUrl		= NULL;
@@ -2309,23 +2311,8 @@ status_t FFPlayer::prepareVideo_l()
 		codec_ctx->debug |= FF_DEBUG_BUGS; // gather x264 encoder config from SEI
 	}*/
 
-	AVCodec* codec = NULL;
-	codec = avcodec_find_decoder(codec_ctx->codec_id);
-
-	/*
-	// for strongene decoder test
-	if (AV_CODEC_ID_HEVC == codec_ctx->codec_id) {
-		if (strcmp(mMediaFile->iformat->name, "mpegts") == 0 || strcmp(mMediaFile->iformat->name, "flv") == 0) {
-			LOGI("force to use liblenthevc");
-			codec = avcodec_find_decoder_by_name("liblenthevc");//liblenthevc
-		}
-		else {
-			codec = avcodec_find_decoder(codec_ctx->codec_id);
-		}
-	}
-	else {
-		codec = avcodec_find_decoder(codec_ctx->codec_id);
-	}*/
+	AVCodec *codec = avcodec_find_decoder(codec_ctx->codec_id);
+	//codec = avcodec_find_decoder_by_name("liblenthevc");
 
     if (codec == NULL) {
 		LOGE("failed to find video codec: id: %d, name: %s", codec_ctx->codec_id, avcodec_get_name(codec_ctx->codec_id));
@@ -2370,12 +2357,8 @@ status_t FFPlayer::prepareVideo_l()
     else {
         mVideoFrameRate = 25;//give a guessed value.
     }
-	mVideoGapMs = 1000 / mVideoFrameRate;
 
-	/*if (!FixInterlace(mVideoStream)) {
-		LOGE("failed to fix interlaced video");
-		return ERROR;
-	}*/
+	mVideoGapMs = 1000 / mVideoFrameRate;
 
 	// would change width and height
 	if (!FixRotateVideo(mVideoStream)) {
@@ -2395,23 +2378,33 @@ status_t FFPlayer::prepareVideo_l()
 	mVideoFrame = av_frame_alloc();
     mIsVideoFrameDirty = true;
 
+	float aspect_ratio;
+	AVRational sar = av_guess_sample_aspect_ratio(mMediaFile, mVideoStream, NULL);
+	LOGI("video sar %d / %d", sar.num, sar.den);
+	if (sar.num == 0)
+        aspect_ratio = 0;
+    else
+        aspect_ratio = av_q2d(sar);
+
+	if (aspect_ratio <= 0.0)
+        aspect_ratio = 1.0;
+    aspect_ratio *= (float)mVideoWidth / (float)mVideoHeight;
+
 	uint32_t render_w, render_h;
 	render_w = mVideoWidth;
-	render_h = mVideoHeight;
+	render_h = (uint32_t)((float)render_w / aspect_ratio);
 #ifdef _MSC_VER
 #ifdef SDL_EMBEDDED_WINDOW
 	if (render_w > MAX_DISPLAY_WIDTH) {
-		double ratio	= (double)render_w / MAX_DISPLAY_WIDTH;
 		render_w		= MAX_DISPLAY_WIDTH;
-		render_h		= (int32_t)(render_h / ratio);
+		render_h		= (int32_t)((float)render_h / aspect_ratio);
 		LOGI("video resolution %d x %d, display resolution switch to %d x %d", 
 			mVideoWidth, mVideoHeight, render_w, render_h);
 	}
 
 	if (render_h > MAX_DISPLAY_HEIGHT) {
-		double ratio	= (double)render_h / MAX_DISPLAY_HEIGHT;
 		render_h		= MAX_DISPLAY_HEIGHT;
-		render_w		= (int32_t)(render_w / ratio);
+		render_w		= (int32_t)((float)render_w / aspect_ratio);
 		LOGI("video resolution %d x %d, display resolution switch to %d x %d",
 			mVideoWidth, mVideoHeight, render_w, render_h);
 	}
@@ -2561,11 +2554,12 @@ status_t FFPlayer::stop_l()
 		av_freep(mSnapshotPic);
 	if (mSnapShotFrame != NULL)
 		av_frame_free(&mSnapShotFrame);
+#ifdef USE_SWSCALE
 	if (mSwsCtx != NULL) {
 		sws_freeContext(mSwsCtx);
 		mSwsCtx = NULL;
 	}
-
+#endif
 #ifdef USE_AV_FILTER
 	if (mVideoFiltFrame != NULL) {
 		av_frame_free(&mVideoFiltFrame);
@@ -3400,6 +3394,7 @@ bool generateThumbnail(AVFrame* videoFrame,
     int32_t* thumbnail,
     int32_t width , int32_t height)
 {
+#ifdef USE_SWSCALE
     //int32_t srcWidth = (width < height) ? width : height;
     //int32_t srcHeight = srcWidth;
 	
@@ -3491,6 +3486,10 @@ bool generateThumbnail(AVFrame* videoFrame,
     }
     */
     return result;
+#else
+	LOGE("swscale NOT built-in, not support generateThumbnail");
+	return false;
+#endif
 }
 
 bool getStreamLangTitle(char** langcode, char** langtitle, int index, AVStream* stream)
@@ -4099,6 +4098,7 @@ SnapShot * FFPlayer::getSnapShot(int width, int height, int fmt, int msec)
 		SrcFrame->data[0], SrcFrame->data[1], SrcFrame->data[2], 
 		SrcFrame->linesize[0], SrcFrame->linesize[1], SrcFrame->linesize[2]);
 
+#ifdef USE_AV_SWSCALE
 	const int swsFlags = SWS_POINT;
 	int ret;
 	
@@ -4177,6 +4177,10 @@ SnapShot * FFPlayer::getSnapShot(int width, int height, int fmt, int msec)
 
 	LOGI("getSnapShot() done! %dx%d(stride %d, fmt %d)", ss->width, ss->height, ss->stride, ss->picture_fmt);
 	return ss;
+#else
+	LOGE("swscale NOT built-in, not support snapshot");
+	return NULL;
+#endif
 }
 
 // interface exported

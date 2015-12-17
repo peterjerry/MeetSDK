@@ -27,7 +27,9 @@ private:
 	ANativeWindow*		mWindow;
 	bool				mForceSW;
 	bool				mDoOnce;
+#ifdef USE_SWSCALE
 	struct SwsContext*	mConvertCtx;
+#endif
 	AVFrame*			mSurfaceFrame;
 };
 

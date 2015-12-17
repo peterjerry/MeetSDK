@@ -234,8 +234,9 @@ private:
 	// snapshot
 	uint8_t*			mSnapshotPic;
 	AVFrame*			mSnapShotFrame;
+#ifdef USE_SWSCALE
 	SwsContext*			mSwsCtx;
-
+#endif
     int64_t		mDurationMs;
     int32_t		mVideoWidth, mVideoHeight;
     int32_t		mVideoFormat;

@@ -72,7 +72,7 @@
       <PrecompiledHeader>Use</PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
-      <PreprocessorDefinitions>PROTOCOL_RTMP;SDL_EMBEDDED_WINDOW;_TEST_SUBTITLE;MARKUP_STL;CURL_STATICLIB;DEBUG_LOG_LEVEL__;SAVE_LOG_FILE;USE_AV_FILTER;TEST_PERFORMANCE;TEST_PERFORMANCE_BITRATE;NDEBUG;_CRT_SECURE_NO_WARNINGS;WIN32;_WINDOWS;_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>PROTOCOL_RTMP;SDL_EMBEDDED_WINDOW;_TEST_SUBTITLE;MARKUP_STL;CURL_STATICLIB;DEBUG_LOG_LEVEL__;SAVE_LOG_FILE;USE_SWSCALE;USE_AV_FILTER;TEST_PERFORMANCE;TEST_PERFORMANCE_BITRATE;NDEBUG;_CRT_SECURE_NO_WARNINGS;WIN32;_WINDOWS;_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <SDLCheck>true</SDLCheck>
       <AdditionalIncludeDirectories>.\;..\..\..\platform\clsocket;..\..\..\..\subtitle2\build\win32\TestSubtitle\libass\include;..\..\..\..\subtitle2\src\subtitle;..\..\..\..\subtitle2\src\tinyxml2;.\ppbox\include;..\testEPG;..\..\..\player;..\..\..\platform;..\testEPG\libjsoncpp\include;..\testEPG\libcurl\include;..\..\..\..\foundation\output\win32\lite\include;E:\work\SDK\pthread\pthreads-w32-2-9-1-release\Pre-built.2\include;E:\work\SDK\SDL\SDL-1.2.15\include;E:\work\SDK\Visual Leak Detector\include</AdditionalIncludeDirectories>
     </ClCompile>

@@ -343,6 +343,9 @@ status_t FFExtractor::setDataSource(const char *path)
 
 	m_open_stream_start_msec = 0;
 
+	if (strncmp(m_url, "rtmp", 4) == 0)
+		m_fmt_ctx->flags |= AVFMT_FLAG_NOBUFFER;
+
 	/* retrieve stream information */
     if (avformat_find_stream_info(m_fmt_ctx, NULL) < 0) {
         LOGE("Could not find stream information");
@@ -550,7 +553,7 @@ status_t FFExtractor::getTrackFormat(int32_t index, MediaFormat *format)
 			format->csd_1_size	= m_pps_size;
 		}
 		else {
-			LOGE("unsupported media format %s", m_fmt_ctx->iformat->name);
+			LOGE("unsupported media format: %s", m_fmt_ctx->iformat->name);
 			return ERROR;
 		}
 

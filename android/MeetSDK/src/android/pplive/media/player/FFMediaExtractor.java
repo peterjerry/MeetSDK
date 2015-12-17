@@ -47,13 +47,9 @@ public class FFMediaExtractor implements MediaExtractable {
 
 	@Override
 	public MediaFormat getTrackFormat(int index) {
-		MediaFormat mediaformat = new MediaFormat();
-
-		/*getTrackFormatNative(index, mediaformat, buf1, buf2);
-		if (index == 1)
-			mediaformat.setInteger(MediaFormat.KEY_IS_ADTS, 1);
-		return mediaformat;*/
+		//mediaformat.setInteger(MediaFormat.KEY_IS_ADTS, 1);
 		
+		MediaFormat mediaformat = new MediaFormat();
 		return getTrackFormatNative(index, mediaformat) ? mediaformat : null;
 		
 		/*if (index == 0) {			
@@ -73,6 +69,12 @@ public class FFMediaExtractor implements MediaExtractable {
 			LogUtils.info(String.format("Java: getTrackFormat() #%d %s", index, mediaformat.toString()));
 			return mediaformat;
 		}*/
+	}
+	
+	@Override
+	public boolean isSystemExtractor() {
+		// TODO Auto-generated method stub
+		return false;
 	}
 	
 	private native boolean getTrackFormatNative(int index, 

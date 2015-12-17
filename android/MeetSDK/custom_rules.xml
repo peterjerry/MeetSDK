@@ -65,7 +65,7 @@
 	<target name="-pre-build" depends="-gen_version, -ndk-build"> 
 	</target> 
 	
-	<target name="-ndk-build"> 
+	<target name="-ndk-build" if="need-build-ndk"> 
 		<condition property="ndk-build-command" value="${NDK_HOME}/ndk-build.cmd" else="ndk-build">
 			<os family="windows" />
 		</condition>
@@ -78,6 +78,10 @@
 	
 	<target name="-set-custom-debug-mode">
 		<property name="debug" value="true" />
+	</target>
+	
+	<target name="-set-build-ndk">
+		<property name="need-build-ndk" value="true" />
 	</target>
 	
 	<target name="-post-build">
@@ -110,11 +114,24 @@
 	
 	<target
         name="debug"
-        depends="-set-custom-debug-mode, android_rules.debug" />
+        depends="-set-custom-debug-mode, -set-build-ndk, android_rules.debug"
+		description="compile c and java source for debug" />
 
     <target
         name="release"
-        depends="android_rules.release, -symbol" />
+        depends="-set-build-ndk, android_rules.release, -symbol"
+		description="compile c and java source, gen symbol file for release" />
+		
+	<target
+        name="java"
+        depends="android_rules.debug"
+		description="compile java source for test" >
+		<copy 
+			file="${out.absolute.dir}/classes.jar" 
+			tofile="../MeetPlayer/libs/MeetSDK.jar"
+			overwrite="true" >
+		</copy>
+	</target>
 	
 	<target name="-pre-clean" >
 		<delete dir="${obj.dir}" />
