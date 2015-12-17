@@ -9,9 +9,13 @@ import android.pplive.media.util.LogUtils;
 
 class SystemMediaExtractor implements MediaExtractable {
 	
+	private final static long SEEK_GAP_USEC = 3000000L; // 3 sec
+	
 	private MediaExtractor mExtractor;
+	private int mSampleTrackIndex = -1;
 	private boolean mSeeking = false;
 	private boolean mGetVideoFlushPkt = false;
+	private boolean mGetAudioFlushPkt = false;
 	
 	SystemMediaExtractor() {
 		this.mExtractor = new MediaExtractor();
@@ -19,6 +23,15 @@ class SystemMediaExtractor implements MediaExtractable {
 
 	@Override
 	public boolean advance() {
+		if (mSeeking) {
+			if (mGetVideoFlushPkt && mGetAudioFlushPkt) {
+				LogUtils.error("set mSeeking false");
+				mSeeking = false;
+			}
+			
+			return true;
+		}
+		
 		return mExtractor.advance();
 	}
 
@@ -41,12 +54,15 @@ class SystemMediaExtractor implements MediaExtractable {
 	public int getSampleTrackIndex() {
 		if (mSeeking) {
 			if (!mGetVideoFlushPkt)
-				return 0;
+				mSampleTrackIndex = 0; // video
 			else
-				return 1;
+				mSampleTrackIndex = 1; // audio
+		}
+		else {
+			mSampleTrackIndex = mExtractor.getSampleTrackIndex();
 		}
 		
-		return mExtractor.getSampleTrackIndex();
+		return mSampleTrackIndex;
 	}
 
 	@Override
@@ -73,14 +89,17 @@ class SystemMediaExtractor implements MediaExtractable {
 			byteBuf.put(flush_pkt);
 			byteBuf.flip();
 			
+			if (mSampleTrackIndex == 0 && mGetVideoFlushPkt == false) {
+				mGetVideoFlushPkt = true;
+			}
+					
+			if (mSampleTrackIndex == 1 && mGetAudioFlushPkt == false) {
+				mGetAudioFlushPkt = true;
+			}
+			
 			// 关于flp: 将limit属性设置为当前的位置
 			// 关于rewind: 是在limit属性已经被设置合适的情况下使用的。
-			// 也就是说这两个方法虽然都能够使指针返回到缓冲区的第一个位置，但是flip在调整指针之前，
-			
-			if (!mGetVideoFlushPkt)
-				mGetVideoFlushPkt = true;
-			else
-				mSeeking = false;
+			// 也就是说这两个方法虽然都能够使指针返回到缓冲区的第一个位置，但是flip在调整指针之前
 			return 5;
 		}
 		
@@ -95,9 +114,21 @@ class SystemMediaExtractor implements MediaExtractable {
 	@Override
 	public void seekTo(long timeUs, int mode) {
 		mExtractor.seekTo(timeUs, mode);
+		/*while (true) {
+			long SampleTimeUs = mExtractor.getSampleTime();
+			long diff = Math.abs(SampleTimeUs - timeUs);
+			if (diff <= SEEK_GAP_USEC)
+				break;
+			
+			LogUtils.error(String.format("Java: drop mis-match sample: %d, diff %d", 
+					SampleTimeUs, diff));
+			if (!mExtractor.advance())
+				break;
+		}*/
 		
 		mSeeking = true;
 		mGetVideoFlushPkt = false;
+		mGetAudioFlushPkt = false;
 	}
 
 	@Override

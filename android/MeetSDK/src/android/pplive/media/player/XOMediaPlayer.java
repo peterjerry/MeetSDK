@@ -75,6 +75,7 @@ public class XOMediaPlayer extends BaseMediaPlayer {
 	private MediaCodec mVideoCodec = null;
 
 	private byte[] mAudioData = null;
+	private ByteBuffer mAudioCacheBuffer = null;
 
 	// common
 	private long mDurationUsec = 0L; // getduration()
@@ -109,6 +110,7 @@ public class XOMediaPlayer extends BaseMediaPlayer {
 	private long mAveAudioPktMsec = 0L;
 	private long mLastAudioPktMSec = 0L;
 	private long mAudioLatencyMsec = 0L;
+	private int mAudioDataLen = 0;
 
 	private final static boolean NO_AUDIO = false;
 
@@ -194,9 +196,14 @@ public class XOMediaPlayer extends BaseMediaPlayer {
 		}
 
 		mUrl = path;
-		MediaExtractable extractor = UrlUtil.isUseSystemExtractor(mUrl) ? new SystemMediaExtractor()
+		MediaExtractable extractor = 
+				UrlUtil.isUseSystemExtractor(mUrl) 
+				? new SystemMediaExtractor()
 				: new FFMediaExtractor(new WeakReference<XOMediaPlayer>(this));
 
+		if (extractor == null)
+			throw new IllegalStateException("cannot create MediaExtractor");
+		
 		setDataSource(extractor);
 	}
 
@@ -375,6 +382,11 @@ public class XOMediaPlayer extends BaseMediaPlayer {
 		for (int index = 0; index < trackCount; index++) {
 			LogUtils.info("Java: MediaFormat get # " + index + " trackinfo");
 			MediaFormat format = mExtractor.getTrackFormat(index);
+			if (format == null) {
+				LogUtils.error("fail to get track format");
+				return false;
+			}
+			
 			LogUtils.info("Java: MediaFormat: " + format.toString());
 
 			if (format.containsKey("csd-0")) {
@@ -500,15 +512,21 @@ public class XOMediaPlayer extends BaseMediaPlayer {
 				: AudioFormat.CHANNEL_OUT_STEREO;
 
 		int sampleRate = mAudioFormat.getInteger(MediaFormat.KEY_SAMPLE_RATE);
-
+		// fixme!!! AAC LC
+		if (mExtractor.isSystemExtractor() == true && sampleRate == 22050) {
+			LogUtils.info("force double sample rate: " + sampleRate);
+			sampleRate *= 2;
+		}
+		
 		int minSize = AudioTrack.getMinBufferSize(sampleRate, channelConfig,
 				AudioFormat.ENCODING_PCM_16BIT);
 
 		mAudioLatencyMsec = minSize * 1000
 				/ (sampleRate * channelCount * 2/* s16 */);
-
-		LogUtils.info(String
-				.format("audio format: channels %d, channel_cfg %d, sample_rate %d, minbufsize %d, latency %d",
+		mAudioDataLen = sampleRate * channelCount * 2/* s16 */;
+		
+		LogUtils.error(String
+				.format("Java: audio format: channels %d, channel_cfg %d, sample_rate %d, minbufsize %d, latency %d",
 						channelCount, channelConfig, sampleRate, minSize,
 						mAudioLatencyMsec));
 
@@ -833,10 +851,10 @@ public class XOMediaPlayer extends BaseMediaPlayer {
 					String strPkt = new String(byte_ctx);
 					if (str_flush.equals(strPkt)) {
 						is_flush_pkt = true;
-						LogUtils.info("Java: found flush pkt");
+						LogUtils.error("Java: found flush pkt");
 
 						if (trackIndex == mVideoTrackIndex) {
-							LogUtils.info("Java: flush video");
+							LogUtils.error("Java: flush video");
 
 							mVideoListLock.lock();
 							mVideoPktList.clear();
@@ -844,18 +862,21 @@ public class XOMediaPlayer extends BaseMediaPlayer {
 
 							ResetStatics();
 							mCurrentTimeMsec = mSeekingTimeMsec;
+							
+							mEventHandler.sendEmptyMessage(MediaPlayer.MEDIA_SEEK_COMPLETE);
 						} else {
-							LogUtils.info("Java: flush audio");
+							LogUtils.error("Java: flush audio");
 
 							mAudioListLock.lock();
 							mAudioPktList.clear();
+							if (mAudioCacheBuffer != null)
+								mAudioCacheBuffer.clear();
 							mAudioListLock.unlock();
 
 							mAudioTrack.pause();
 							mAudioTrack.flush();
 							mAudioTrack.play();
 							mAudioStartMsec = mSeekingTimeMsec;
-							mSeeking = false;
 						}
 
 						codec.flush();
@@ -956,14 +977,14 @@ public class XOMediaPlayer extends BaseMediaPlayer {
 			if (sampleSize < 0) {
 				mSawInputEOS = true;
 				sampleSize = 0;
-				LogUtils.info("saw video Input EOS.");
+				LogUtils.error("saw video Input EOS.");
 			}
 
 			codec.queueInputBuffer(inputBufIndex, 0 /* offset */, sampleSize,
 					presentationTimeUs,
 					mSawInputEOS ? MediaCodec.BUFFER_FLAG_END_OF_STREAM : 0);
 
-			LogUtils.debug(String
+			LogUtils.error(String
 					.format("queueInputBuffer track #%d(%s): size %d, pts %d msec, flags %d",
 							trackIndex, isVideo ? "video" : "audio",
 							sampleSize, presentationTimeUs / 1000, flags));
@@ -1030,6 +1051,7 @@ public class XOMediaPlayer extends BaseMediaPlayer {
 			int res;
 			try {
 				mVideoCodecLock.lock();
+				LogUtils.error("before video dequeueOutputBuffer");
 				res = mVideoCodec.dequeueOutputBuffer(info, TIMEOUT);
 
 				if (res >= 0) {
@@ -1085,14 +1107,13 @@ public class XOMediaPlayer extends BaseMediaPlayer {
 						mTotalStartMsec = System.currentTimeMillis();
 						mFrameTimerMsec = System.currentTimeMillis();
 						mVideoFirstFrame = true;
+						mSeeking = false;
 					}
 
 					long video_clock_msec = info.presentationTimeUs / 1000;
 
 					long delay_msec = video_clock_msec - mLastVideoFrameMsec; // always
-																				// 1000
-																				// /
-																				// framerate(40
+														// framerate(40
 																				// msec)
 					if (delay_msec < 0 || delay_msec > 1000) {
 						// fix invalid pts
@@ -1172,12 +1193,12 @@ public class XOMediaPlayer extends BaseMediaPlayer {
 					}
 				} else if (res == MediaCodec.INFO_OUTPUT_BUFFERS_CHANGED) {
 					// codecOutputBuffers = codec.getOutputBuffers();
-					LogUtils.info("output buffers have changed.");
+					LogUtils.error("output buffers have changed.");
 				} else if (res == MediaCodec.INFO_OUTPUT_FORMAT_CHANGED) {
 					MediaFormat oformat = mVideoCodec.getOutputFormat();
-					LogUtils.info("output format has changed to " + oformat);
+					LogUtils.error("output format has changed to " + oformat);
 				} else {
-					LogUtils.info("video no output: " + res);
+					LogUtils.error("video no output: " + res);
 				}
 			} catch (IllegalStateException e) {
 				e.printStackTrace();
@@ -1263,22 +1284,59 @@ public class XOMediaPlayer extends BaseMediaPlayer {
 					}
 
 					if (!NO_AUDIO) {
+						ByteBuffer outputBuf = mAudioCodec.getOutputBuffers()[outputBufIndex];
+						
 						int bufSize = info.size;
 						if (mAudioData == null || mAudioData.length < bufSize) {
 							// Allocate a new buffer.
 							mAudioData = new byte[bufSize];
 						}
-
-						ByteBuffer outputBuf = mAudioCodec.getOutputBuffers()[outputBufIndex];
+						
 						outputBuf.get(mAudioData);
-
-						// would block
-						mAudioTrack.write(mAudioData, 0, bufSize);
-
-						// update audio clock
-						mAudioStartMsec = System.currentTimeMillis();
-
-						mAudioPositionMsec = info.presentationTimeUs / 1000;
+						
+						//if (mVideoFirstFrame) {
+							/*if (mAudioCacheBuffer != null && mAudioCacheBuffer.remaining() > 0) {
+								mAudioCacheBuffer.flip();
+								int size = mAudioCacheBuffer.remaining();
+								LogUtils.error("Java: remaining " + size);
+								int left = size;
+								int written = 0;
+								final int chunksize = 4096;
+								byte []data = new byte[chunksize];
+								while (left > 0) {
+									mAudioCacheBuffer.get(data);
+									// would block
+									int write_size = chunksize;
+									if (left < chunksize)
+										write_size = left;
+									mAudioTrack.write(data, 0, write_size);
+									LogUtils.error("write audio data " + write_size);
+									
+									left -= write_size;
+									written += write_size;
+									// update time
+									mAudioPositionMsec = mAudioStartMsec + 1000 * written / mAudioDataLen;
+								}
+								
+								mAudioCacheBuffer.clear();
+							}*/
+							
+							// would block
+							mAudioTrack.write(mAudioData, 0, bufSize);
+	
+							// update audio clock
+							mAudioStartMsec = System.currentTimeMillis();
+	
+							mAudioPositionMsec = info.presentationTimeUs / 1000;
+						//}
+						/*else {
+							if (mAudioCacheBuffer == null) {
+								mAudioCacheBuffer = ByteBuffer.allocate(1048576);
+							}
+							
+							mAudioCacheBuffer.put(mAudioData);
+							LogUtils.error("add audio buffer " + info.size);
+						}*/
 					}
 
 					// only audio output buffer will be released here!
@@ -1544,7 +1602,7 @@ public class XOMediaPlayer extends BaseMediaPlayer {
 	}
 
 	private void onSeekToEvent() {
-	    LogUtils.info("onSeekToEvent()");
+	    LogUtils.error("onSeekToEvent() " + mSeekingTimeMsec);
 	    
 		mExtractor.seekTo(mSeekingTimeMsec * 1000, MediaExtractor.SEEK_TO_CLOSEST_SYNC);
 	}

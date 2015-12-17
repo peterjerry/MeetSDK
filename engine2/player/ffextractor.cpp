@@ -1070,13 +1070,23 @@ status_t FFExtractor::readSampleData(unsigned char *data, int32_t *sampleSize)
 	}
 
 	if (m_video_stream_idx == m_sample_pkt->stream_index) {
-		int nalu_len_size = m_NALULengthSizeMinusOne + 1;
-		memcpy(data, nalu_header + 4 - nalu_len_size, nalu_len_size);
-		memcpy(data + nalu_len_size, m_sample_pkt->data + nalu_len_size, m_sample_pkt->size - nalu_len_size);
+		if (strncmp((const char *)m_sample_pkt->data, "FLUSH", 5) != 0) {
+			// video pkt
+			int nalu_len_size = m_NALULengthSizeMinusOne + 1;
+			memcpy(data, nalu_header + 4 - nalu_len_size, nalu_len_size);
+			memcpy(data + nalu_len_size, 
+				m_sample_pkt->data + nalu_len_size, 
+				m_sample_pkt->size - nalu_len_size);
+		}
+		else {
+			// flush pkt
+			memcpy(data, m_sample_pkt->data, m_sample_pkt->size);
+		}
+
 		*sampleSize = m_sample_pkt->size;
 	}
 	else if (m_audio_stream_idx == m_sample_pkt->stream_index) {
-		if (m_sample_pkt->data && strncmp((const char *)m_sample_pkt->data, "FLUSH", 5) != 0 && m_pBsfc_aac) {
+		if (strncmp((const char *)m_sample_pkt->data, "FLUSH", 5) != 0 && m_pBsfc_aac) {
 			// Apply aac adts to asc filter on buffer
 			int isKeyFrame = m_sample_pkt->flags & AV_PKT_FLAG_KEY;
 			//int origin_size = m_sample_pkt->size;
@@ -1098,7 +1108,7 @@ status_t FFExtractor::readSampleData(unsigned char *data, int32_t *sampleSize)
 
 bool FFExtractor::is_packet_valid()
 {
-	return (NULL != m_sample_pkt);
+	return (m_sample_pkt && m_sample_pkt->data);
 }
 
 status_t FFExtractor::getSampleTrackIndex(int32_t *trackIndex)

@@ -13,7 +13,9 @@ import java.net.InetAddress;
 import java.net.NetworkInterface;
 import java.net.SocketException;
 import java.net.URLDecoder;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.Enumeration;
 import java.util.Iterator;
 import java.util.List;
@@ -27,13 +29,17 @@ import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.net.wifi.WifiInfo;
 import android.net.wifi.WifiManager;
+import android.os.AsyncTask;
 import android.os.Environment;
 import android.pplive.media.MeetSDK;
 import android.pplive.media.player.MediaInfo;
 import android.pplive.media.player.TrackInfo;
 import android.util.Log;
+import android.widget.Toast;
 
+import com.pplive.common.util.LogUtil;
 import com.pplive.db.PPTVPlayhistoryDatabaseHelper;
+import com.pplive.meetplayer.ui.ClipListActivity;
 import com.pplive.meetplayer.ui.PPTVEpisodeActivity;
 import com.pplive.sdk.MediaSDK;
 
@@ -410,6 +416,25 @@ public class Util {
     	}
 
 		return sbInfo.toString();
+	}
+	
+	public static void upload_crash_report(Context ctx, int type) {  
+        MeetSDK.makePlayerlog();
+        Util.copyFile(ctx.getCacheDir().getAbsolutePath() + "/meetplayer.log", 
+        		Environment.getExternalStorageDirectory().getAbsolutePath() + "/meetplayer.txt");
+        
+        String ip = Util.getIpAddr(ctx);
+        if (ip == null) {
+        	Toast.makeText(ctx, "network is un-available, cannot send crash report", Toast.LENGTH_SHORT).show();
+        	return;
+        }
+        
+        new UploadLogTask(ctx).execute("");
+        
+    	/*String URL = "http://172.16.10.137/crashapi/api/crashreport/launcher";
+    	FeedBackFactory fbf = new FeedBackFactory(
+			 Integer.toString(type), "123456", true, false);
+    	fbf.asyncFeedBack(URL);*/
 	}
 	
 	public void copyFolder(String oldPath, String newPath) {

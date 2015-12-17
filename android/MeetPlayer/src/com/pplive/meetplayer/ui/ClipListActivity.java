@@ -100,6 +100,7 @@ import com.pplive.meetplayer.util.IDlnaCallback;
 import com.pplive.meetplayer.util.ListMediaUtil;
 import com.pplive.meetplayer.util.LoadPlayLinkUtil;
 import com.pplive.meetplayer.util.LogcatHelper;
+import com.pplive.meetplayer.util.NetworkSpeed;
 import com.pplive.meetplayer.util.Util;
 import com.pplive.sdk.MediaSDK;
 import com.pplive.thirdparty.BreakpadUtil;
@@ -260,12 +261,15 @@ public class ClipListActivity extends Activity implements
 	private int decode_drop_frame				= 0;
 	private int av_latency_msec				= 0;
 	private int video_bitrate					= 0;
+	private int rx_speed 					= 0;
+	private int tx_speed 					= 0;
 	
 	private int preview_height;
 	
 	private boolean mIsLivePlay = false;
 	
 	private String mAudioDst;
+	private NetworkSpeed mSpeed;
 
 	final static int ONE_MAGEBYTE 				= 1048576;
 	final static int ONE_KILOBYTE 				= 1024;
@@ -292,6 +296,8 @@ public class ClipListActivity extends Activity implements
 	private static final int MSG_PUSH_CDN_CLIP					= 601;
 	private static final int MSG_PLAY_CDN_URL						= 602;
 	private static final int MSG_PLAY_CDN_FT						= 603;
+	
+	private static final int MSG_UPDATE_NETWORK_SPEED				= 701;
 	
 	private ProgressDialog progDlg 				= null;
 	
@@ -418,9 +424,6 @@ public class ClipListActivity extends Activity implements
 		initFeedback();
 		
 		mEPG = new EPGUtil();
-		
-		//CrashHandler crashHandler = CrashHandler.getInstance();  
-        //crashHandler.init(this);
 		
 		if (Util.initMeetSDK(this) == false) {
 			Toast.makeText(this, "failed to load meet lib", 
@@ -1282,6 +1285,9 @@ public class ClipListActivity extends Activity implements
 					// ONLY network media need buffering
 					mBufferingProgressBar.setVisibility(View.VISIBLE);
 					mIsBuffering = true;
+					
+					mSpeed = new NetworkSpeed();
+					mHandler.sendEmptyMessage(MSG_UPDATE_NETWORK_SPEED);
 				}
 			}
 			else {
@@ -1294,6 +1300,8 @@ public class ClipListActivity extends Activity implements
 	
 	void stop_player() {
 		if (mPlayer != null) {
+			mHandler.removeMessages(MSG_UPDATE_NETWORK_SPEED);
+			
 			mMediaController.hide();
 			
 			stop_subtitle();
@@ -1467,23 +1475,32 @@ public class ClipListActivity extends Activity implements
 	private Handler mHandler = new Handler(){  
   
         @Override  
-        public void handleMessage(Message msg) {  
+        public void handleMessage(Message msg) {
             switch(msg.what) {
+            case MSG_UPDATE_NETWORK_SPEED:
+            	int[] speed = mSpeed.currentSpeed();
+            	if (speed != null) {
+            		rx_speed = speed[0];
+            		tx_speed = speed[1];
+            		this.sendEmptyMessageDelayed(MSG_UPDATE_NETWORK_SPEED, 1000);
+            	}
 			case MSG_UPDATE_PLAY_INFO:
 			case MSG_UPDATE_RENDER_INFO:
 				if (isLandscape) {
 					mTextViewInfo.setText(String.format("%02d|%03d v-a: %+04d "
-							+ "dec/render %d(%d)/%d(%d) fps/msec bitrate %d kbps", 
+							+ "dec/render %d(%d)/%d(%d) fps/msec bitrate %d kbps\nrx %d kB/s, tx %d kB/s", 
 						render_frame_num % 25, decode_drop_frame % 1000, av_latency_msec, 
 						decode_fps, decode_avg_msec, render_fps, render_avg_msec,
-						video_bitrate));
+						video_bitrate,
+						rx_speed, tx_speed));
 				}
 				else {
 					mTextViewInfo.setText(String.format("%02d|%03d v-a: %+04d\n"
-							+ "dec/render %d(%d)/%d(%d) fps/msec\nbitrate %d kbps", 
+							+ "dec/render %d(%d)/%d(%d) fps/msec\nbitrate %d kbps\nrx %d kB/s, tx %d kB/s", 
 						render_frame_num % 25, decode_drop_frame % 1000, av_latency_msec, 
 						decode_fps, decode_avg_msec, render_fps, render_avg_msec,
-						video_bitrate));
+						video_bitrate,
+						rx_speed, tx_speed));
 				}
 				break;
 			case MSG_CLIP_PLAY_DONE:
@@ -2392,67 +2409,6 @@ public class ClipListActivity extends Activity implements
 		startActivity(intent);
 	}
 	
-	private void upload_crash_report(int type) {  
-        MeetSDK.makePlayerlog();
-        Util.copyFile(getCacheDir().getAbsolutePath() + "/meetplayer.log", 
-        		Environment.getExternalStorageDirectory().getAbsolutePath() + "/meetplayer.txt");
-        
-        String ip = Util.getIpAddr(this);
-        if (ip == null) {
-        	Toast.makeText(this, "network is un-available, cannot send crash report", Toast.LENGTH_SHORT).show();
-        	return;
-        }
-        
-        if (ip.startsWith("192.168.")) {
-        	String URL = "http://172.16.10.137/crashapi/api/crashreport/launcher";
-        	FeedBackFactory fbf = new FeedBackFactory(
-   				 Integer.toString(type), "123456", true, false);
-        	fbf.asyncFeedBack(URL);
-        }
-        else {
-        	new UploadLogTask().execute("");
-        }
-	}
-	
-	private class UploadLogTask extends AsyncTask<String, Integer, Boolean> {
-
-		@Override
-		protected void onPostExecute(Boolean result) {
-			// TODO Auto-generated method stub
-			if (result) {
-				Toast.makeText(ClipListActivity.this, "log uploaded to iloveaya", Toast.LENGTH_SHORT).show();
-			}
-		}
-		
-		@Override
-		protected Boolean doInBackground(String... params) {
-			// TODO Auto-generated method stub
-			try {
-				SimpleDateFormat df = new SimpleDateFormat("yyyy_MM_dd_HH_mm_ss");
-				String filename = df.format(new Date()) + ".zip";
-				LogUtil.info(TAG, "Java: log zipfile name: " + filename);
-				
-				LogcatHelper.getInstance().zipLogFiles(filename);
-				
-    			HttpPostUtil u = new HttpPostUtil("http://www.iloveyaya.zz.vc/upload.php");
-    			u.addFileParameter(
-    					"file", 
-    					new File(getCacheDir() + File.separator + filename));
-    			u.addTextParameter("tag", "chinese");
-    			byte[] b = u.send();
-    			String result = new String(b);
-    			LogUtil.info(TAG, "Java: HttpPostUtil result: " + result);
-    			return true;
-    		} catch (Exception e) {
-    			// TODO Auto-generated catch block
-    			e.printStackTrace();
-    		}
-			
-			return false;
-		}
-		
-	}
-	
 	private void push_to_dmr() {
 		if (mPlayUrl == null || mPlayUrl.equals("")) {
 			Toast.makeText(this, "no url is set", Toast.LENGTH_SHORT).show();
@@ -2600,7 +2556,7 @@ public class ClipListActivity extends Activity implements
 			startService(intent);
 			break;
 		case R.id.upload_crash_report:
-			upload_crash_report(3);
+			Util.upload_crash_report(ClipListActivity.this, 3);
 			break;
 		case R.id.update_apk:
 			setupUpdater();
@@ -2838,7 +2794,7 @@ public class ClipListActivity extends Activity implements
 		mPlayer = null;
 		
 		if (android.os.Build.VERSION.SDK_INT >= Build.VERSION_CODES.ICE_CREAM_SANDWICH)
-			upload_crash_report(2);
+			Util.upload_crash_report(ClipListActivity.this, 2);
 		
 		return true;
 	}
@@ -2913,7 +2869,7 @@ public class ClipListActivity extends Activity implements
 		}
 		
 		// subtitle
-		if (mPlayUrl.startsWith("/")) {
+		if (mPlayUrl.startsWith("/") || mPlayUrl.startsWith("file://")) {
 			// local file
 			if (subtitle_filename == null) {
 				String subtitle_full_path;
