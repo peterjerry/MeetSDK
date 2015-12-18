@@ -213,6 +213,9 @@ jboolean android_media_MediaExtractor_getTrackFormatNative(JNIEnv *env, jobject 
 
 	MediaFormat native_format;
 	memset(&native_format, 0, sizeof(native_format));
+	native_format.media_type	= PPMEDIA_TYPE_UNKNOWN;
+	native_format.codec_id		= PPMEDIA_CODEC_ID_NONE;
+
 	status_t stat = extractor->getTrackFormat(index, &native_format);
 	if (stat != OK) {
 		PPLOGE("failed to getTrackFormat #%d", index);
@@ -322,8 +325,15 @@ jboolean android_media_MediaExtractor_getTrackFormatNative(JNIEnv *env, jobject 
 		jobject bb_csd0 = env->NewDirectByteBuffer(csd_0, native_format.csd_0_size);
 		env->CallVoidMethod(mediaformat, midSetByteBuffer, env->NewStringUTF("csd-0"), bb_csd0); // sps
 	}
+	else if (PPMEDIA_TYPE_SUBTITLE == native_format.media_type) {
+		env->CallVoidMethod(mediaformat, midSetString, env->NewStringUTF("mime"), env->NewStringUTF("subtitle/unknown"));
+	}
+	else if (PPMEDIA_TYPE_DATA == native_format.media_type) {
+		env->CallVoidMethod(mediaformat, midSetString, env->NewStringUTF("mime"), env->NewStringUTF("data/unknown"));
+	}
 	else {
 		PPLOGW("unknown media type: %d" + native_format.media_type);
+		env->CallVoidMethod(mediaformat, midSetString, env->NewStringUTF("mime"), env->NewStringUTF("unknown/unknown"));
 	}
 
 	PPLOGI("getTrackFormatNative #%d all done!", index);

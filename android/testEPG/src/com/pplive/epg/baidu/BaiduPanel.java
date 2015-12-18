@@ -93,6 +93,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.Random;
 import java.util.StringTokenizer;
 
 
@@ -103,6 +104,8 @@ public class BaiduPanel extends JPanel {
 	private String mbRootPath 	=  "/我的视频";
 	private String mChildPath;
 	private String mOperatePath;
+	private String[] mOperatePaths;
+	private int mPort = 8080;
 	//private String mBaiduToken;
 	//private String mBDUSS;
 	private boolean mIsCopy	= false;
@@ -131,7 +134,7 @@ public class BaiduPanel extends JPanel {
 			"&app_id=250528" + 
 			"&path=";
 	
-	private final String BAIDU_PCS_DOWNLOAD_PROXY = "http://127.0.0.1:8080/rest/2.0/pcs/file" + 
+	private final String BAIDU_PCS_DOWNLOAD_PROXY_FMT = "http://127.0.0.1:%d/rest/2.0/pcs/file" + 
 			"?method=download" +
 			"&app_id=250528" + 
 			"&new_api=1" +
@@ -359,6 +362,10 @@ public class BaiduPanel extends JPanel {
 				"?method=search" +
 				"&access_token=" + mbOauth;
 		
+		Random rand = new Random();
+		mPort = 8080 + rand.nextInt(100);
+		System.out.println("http port: " + mPort);
+		
 		// Action
 		lblRootPath.setFont(f);
 		lblRootPath.setBounds(20, 40, 300, 30);
@@ -386,7 +393,7 @@ public class BaiduPanel extends JPanel {
 		menuItemCut.setFont(f);
 		menuItemCut.addMouseListener(new MouseAdapter() {
 			public void mouseReleased(MouseEvent e) {
-				mOperatePath = getOperatePath();
+				mOperatePaths = getOperatePaths();
 				mIsCopy = false;
 				System.out.println("cut");
 			}
@@ -397,7 +404,7 @@ public class BaiduPanel extends JPanel {
 		menuItemCopy.setFont(f);
 		menuItemCopy.addMouseListener(new MouseAdapter() {
 			public void mouseReleased(MouseEvent e) {
-				mOperatePath = getOperatePath();
+				mOperatePaths = getOperatePaths();
 				mIsCopy = true;
 				System.out.println("copy");
 			}
@@ -715,16 +722,30 @@ public class BaiduPanel extends JPanel {
 		this.add(btnPaste);
 		btnPaste.addActionListener(new AbstractAction() {
 			public void actionPerformed(ActionEvent e) {
-				int pos = mOperatePath.lastIndexOf("/");
-				if (pos > -1) {
-					String to = mbRootPath + "/" + mOperatePath.substring(pos + 1);
-					if (move_copy(mOperatePath, to, mIsCopy)) {
-						init_combobox();
-						
-						lblInfo.setText(String.format("%s 成功 %s至 %s", 
-										mOperatePath, mIsCopy ? "复制" : "移动", to));
+				if (mOperatePaths == null || mOperatePaths.length == 0) {
+					JOptionPane.showMessageDialog(
+							null, "未选择源文件", "复制任务", 
+							JOptionPane.ERROR_MESSAGE);
+					return;
+				}
+				
+				for (int i=0;i<mOperatePaths.length;i++) {
+					String path = mOperatePaths[i];
+					
+					int pos = path.lastIndexOf("/");
+					if (pos > -1) {
+						String to = mbRootPath + "/" + path.substring(pos + 1);
+						if (!move_copy(path, to, mIsCopy)) {
+							lblInfo.setText(String.format("%s %s 至 %s 失败", 
+								mOperatePath, mIsCopy ? "复制" : "移动", to));
+						}
 					}
 				}
+				
+				init_combobox();
+				
+				lblInfo.setText(String.format("%s(等文件) 成功 %s 至 %s", 
+						mOperatePaths[0], mIsCopy ? "复制" : "移动", mbRootPath));
 			}
 		});
 		
@@ -1185,11 +1206,28 @@ public class BaiduPanel extends JPanel {
 		return (String) fileinfo.get("path");
 	}
 	
+	private String[] getOperatePaths() {
+		int []indices = listItem.getSelectedIndices();
+		if (indices == null || indices.length == 0)
+			return null;
+		
+		List<String>pathList = new ArrayList<String>();
+		for (int i=0;i<indices.length;i++) {
+			Map<String, Object> fileinfo = mFileList.get(indices[i]);
+			String path = (String) fileinfo.get("path");
+			pathList.add(path);
+			System.out.println("add select path: " + path);
+		}
+		
+		return pathList.toArray(new String [indices.length]);
+	}
+	
 	private void play_url(String path) {
 		try {
 			String encoded_path = URLEncoder.encode(path, "utf-8");
 
-			String url = BAIDU_PCS_DOWNLOAD_PROXY + encoded_path;
+			String url = String.format(BAIDU_PCS_DOWNLOAD_PROXY_FMT, mPort);
+			url += encoded_path;
 			System.out.println("ready to play url: " + url);
 			lblInfo.setText("ready to play url: " + url);
 			
@@ -2400,7 +2438,7 @@ public class BaiduPanel extends JPanel {
 		@Override
 		public void run() {
 			// TODO Auto-generated method stub
-			MyNanoHTTPD httpd = new MyNanoHTTPD(8080, null);
+			MyNanoHTTPD httpd = new MyNanoHTTPD(mPort, null);
 			httpd.setBDUSS(cookie_BDUSS);
 			try {
 				httpd.start();

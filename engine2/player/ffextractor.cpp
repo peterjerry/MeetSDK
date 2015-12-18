@@ -343,8 +343,8 @@ status_t FFExtractor::setDataSource(const char *path)
 
 	m_open_stream_start_msec = 0;
 
-	if (strncmp(m_url, "rtmp", 4) == 0)
-		m_fmt_ctx->flags |= AVFMT_FLAG_NOBUFFER;
+	//if (strncmp(m_url, "rtmp", 4) == 0)
+	//	m_fmt_ctx->flags |= AVFMT_FLAG_NOBUFFER;
 
 	/* retrieve stream information */
     if (avformat_find_stream_info(m_fmt_ctx, NULL) < 0) {
@@ -687,8 +687,16 @@ status_t FFExtractor::getTrackFormat(int32_t index, MediaFormat *format)
 		}
 	}
 	else if (AVMEDIA_TYPE_SUBTITLE == type) {
-		// to do
 		format->media_type	= PPMEDIA_TYPE_SUBTITLE;
+		format->codec_id		= (int32_t)codec_id;
+	}
+	else if (AVMEDIA_TYPE_DATA == type) {
+		format->media_type	= PPMEDIA_TYPE_DATA;
+		format->codec_id		= (int32_t)codec_id;
+	}
+	else {
+		format->media_type	= PPMEDIA_TYPE_UNKNOWN;
+		format->codec_id		= PPMEDIA_CODEC_ID_NONE;
 	}
 
 	return OK;

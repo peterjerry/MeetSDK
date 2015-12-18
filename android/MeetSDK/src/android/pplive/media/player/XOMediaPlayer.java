@@ -514,7 +514,7 @@ public class XOMediaPlayer extends BaseMediaPlayer {
 		int sampleRate = mAudioFormat.getInteger(MediaFormat.KEY_SAMPLE_RATE);
 		// fixme!!! AAC LC
 		if (mExtractor.isSystemExtractor() == true && sampleRate == 22050) {
-			LogUtils.info("force double sample rate: " + sampleRate);
+			LogUtils.warn("force double sample rate: " + sampleRate);
 			sampleRate *= 2;
 		}
 		

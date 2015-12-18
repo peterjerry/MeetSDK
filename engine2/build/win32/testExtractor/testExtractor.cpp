@@ -19,7 +19,7 @@
 #define PLAYLINK	17493573
 #define FT			1
 #define URL_FMT		"http://127.0.0.1:%d/record.m3u8?type=ppvod2&playlink=%d"
-
+#define RTMP_URL "rtmp://liveplayer.livevip.com.cn/live/100601"
 #define URL_SURFIX "%3Fft%3D2%26bwtype%3D3%26platform%3Dandroid3" \
 	"%26type%3Dphone.android.vip%26sv%3D4.1.3%26param%3DuserTypeD1&mux.M3U8.segment_duration=5"
 
@@ -85,7 +85,7 @@ int _tmain(int argc, _TCHAR* argv[])
 	strcat(url, URL_SURFIX);
 
 	ext.setListener(&listener);
-	stat = ext.setDataSource(/*url*/LOCAL_FILE);
+	stat = ext.setDataSource(RTMP_URL/*LOCAL_FILE*/);
 
 	int32_t count;
 	stat = ext.getTrackCount(&count);
