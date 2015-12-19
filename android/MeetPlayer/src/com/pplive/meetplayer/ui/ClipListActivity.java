@@ -178,6 +178,7 @@ public class ClipListActivity extends Activity implements
 	private boolean mIsFlinging				= false;
 	
 	private int mBufferingPertent				= 0;
+	private boolean mPrepared					= false;
 	private boolean mIsBuffering 				= false;
 	private boolean mSubtitleStoped			= false;
 	private boolean mHomed						= false;
@@ -967,7 +968,7 @@ public class ClipListActivity extends Activity implements
 			@Override
 			public boolean onSingleTapConfirmed(MotionEvent e) {
 				LogUtil.info(TAG, "Java: onSingleTapConfirmed!!!");
-				if (mPlayer != null) {
+				if (mPlayer != null && mPrepared) {
 					if (mMediaController.isShowing())
 						mMediaController.hide();
 					else
@@ -1261,6 +1262,7 @@ public class ClipListActivity extends Activity implements
 			mSubtitleStoped 	= false;
 			mHomed 				= false;
 			mBufferingPertent 	= 0;
+			mPrepared			= false;
 			mDMRcontrolling		= false;
 			imageDMR.setVisibility(View.GONE);
 			
@@ -2834,6 +2836,8 @@ public class ClipListActivity extends Activity implements
         	mBufferingProgressBar.setVisibility(View.GONE);
         	mIsBuffering = false;
         }
+        
+        mPrepared = true;
 		
 		// audio track(activate track info)
 		MediaInfo info = mp.getMediaInfo();
@@ -3430,9 +3434,11 @@ public class ClipListActivity extends Activity implements
 		if (mPreviewFocused && action == KeyEvent.ACTION_DOWN) {
 			if (keyCode == KeyEvent.KEYCODE_ENTER ||
 					keyCode == KeyEvent.KEYCODE_DPAD_CENTER) {
-				if (mPlayer != null && !mMediaController.isShowing()) {
-					mMediaController.show(5000);
-					return true;
+				if (mPlayer != null && mPrepared) {
+					if (!mMediaController.isShowing()) {
+						mMediaController.show(5000);
+						return true;
+					}
 				}
 			}
 		}

@@ -201,6 +201,7 @@ elif [[ $2 = 'gotye' ]]; then
 echo "gotye build"
 EXTRA_PARAMETERS="$EXTRA_PARAMETERS \
 	--disable-decoders \
+	--enable-decoder=aac_latm \
 	--disable-demuxers \
 	--enable-demuxer=flv \
 	--disable-parsers \

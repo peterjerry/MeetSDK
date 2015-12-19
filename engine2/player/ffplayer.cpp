@@ -4238,6 +4238,8 @@ static void ff_log_callback(void* avcl, int level, const char* fmt, va_list vl)
 		case AV_LOG_VERBOSE:
             LOGV("%s", log);
 			break;
+		case AV_LOG_MAX_OFFSET:
+			break;
 		default:
 			LOGI("%s", log);
 			break;

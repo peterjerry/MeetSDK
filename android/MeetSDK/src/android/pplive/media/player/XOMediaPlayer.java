@@ -371,9 +371,9 @@ public class XOMediaPlayer extends BaseMediaPlayer {
 		try {
 			// would block
 			mExtractor.setDataSource(mUrl);
-		} catch (Exception e) {
+		} catch (IOException e) {
 			e.printStackTrace();
-			LogUtils.error("IOException", e);
+			LogUtils.error("setDataSource() IOException", e);
 			return false;
 		}
 
@@ -984,7 +984,7 @@ public class XOMediaPlayer extends BaseMediaPlayer {
 					presentationTimeUs,
 					mSawInputEOS ? MediaCodec.BUFFER_FLAG_END_OF_STREAM : 0);
 
-			LogUtils.error(String
+			LogUtils.debug(String
 					.format("queueInputBuffer track #%d(%s): size %d, pts %d msec, flags %d",
 							trackIndex, isVideo ? "video" : "audio",
 							sampleSize, presentationTimeUs / 1000, flags));
@@ -1009,6 +1009,7 @@ public class XOMediaPlayer extends BaseMediaPlayer {
 
 		int noOutputCounter = 0;
 		boolean sawOutputEOS = false;
+		int videoAheadMax = 0;
 		MediaCodec.BufferInfo info = new MediaCodec.BufferInfo();
 
 		while (getState() != PlayState.STOPPING) {
@@ -1051,7 +1052,7 @@ public class XOMediaPlayer extends BaseMediaPlayer {
 			int res;
 			try {
 				mVideoCodecLock.lock();
-				LogUtils.error("before video dequeueOutputBuffer");
+				LogUtils.debug("before video dequeueOutputBuffer");
 				res = mVideoCodec.dequeueOutputBuffer(info, TIMEOUT);
 
 				if (res >= 0) {
@@ -1149,6 +1150,12 @@ public class XOMediaPlayer extends BaseMediaPlayer {
 							delay_msec = 2 * delay_msec;
 						} else if (av_diff_msec >= (sync_threshold_msec * 2)) {
 							delay_msec = av_diff_msec; // for seek case
+							
+							if (videoAheadMax > 50) {
+								videoAheadMax -= 50;
+								mExtractor.setVideoAhead(videoAheadMax);
+								LogUtils.error("Java: setVideoAhead(too early) " + videoAheadMax);
+							}
 						}
 					}
 
@@ -1157,6 +1164,14 @@ public class XOMediaPlayer extends BaseMediaPlayer {
 
 					if (av_diff_msec < -sync_threshold_msec * 2) {
 						render = false;
+						
+						if (av_diff_msec > -sync_threshold_msec * 4 &&
+								av_diff_msec < -videoAheadMax) {
+							videoAheadMax = (int)-av_diff_msec;
+							mExtractor.setVideoAhead(videoAheadMax);
+							LogUtils.error("Java: setVideoAhead(too late) " + videoAheadMax);
+						}
+						
 						msg = mEventHandler
 								.obtainMessage(MediaPlayer.MEDIA_INFO);
 						msg.arg1 = MediaPlayer.MEDIA_INFO_TEST_DROP_FRAME;

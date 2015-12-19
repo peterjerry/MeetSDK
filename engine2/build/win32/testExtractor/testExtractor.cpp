@@ -23,7 +23,8 @@
 #define URL_SURFIX "%3Fft%3D2%26bwtype%3D3%26platform%3Dandroid3" \
 	"%26type%3Dphone.android.vip%26sv%3D4.1.3%26param%3DuserTypeD1&mux.M3U8.segment_duration=5"
 
-#define LOCAL_FILE "E:\\Archive\\media\\test\\coolpad\\coolpad_CoolShow01.mp4"
+//#define LOCAL_FILE "E:\\Archive\\media\\test\\coolpad\\coolpad_CoolShow01.mp4"
+#define LOCAL_FILE "E:\\Archive\\media\\141154398.ts"
 
 #define MAX_PKT_SIZE (65536 * 10)
 
@@ -70,8 +71,8 @@ int _tmain(int argc, _TCHAR* argv[])
 		return 1;
 	}
 
-	//if (!startP2P())
-	//	return 1;
+	if (!startP2P())
+		return 1;
 
 	MyMediaPlayerListener listener;
 
@@ -84,11 +85,22 @@ int _tmain(int argc, _TCHAR* argv[])
 	_snprintf(url, 4096, URL_FMT, httpPort, PLAYLINK);
 	strcat(url, URL_SURFIX);
 
+	strcpy(url, LOCAL_FILE);
+
 	ext.setListener(&listener);
-	stat = ext.setDataSource(RTMP_URL/*LOCAL_FILE*/);
+	stat = ext.setDataSource(LOCAL_FILE);
+	if (stat != OK) {
+		printf("failed to open media: %s", url);
+		return 1;
+	}
 
 	int32_t count;
 	stat = ext.getTrackCount(&count);
+	if (stat != OK) {
+		printf("failed to get track count");
+		return 1;
+	}
+
 	int64_t duration_msec;
 
 	bool video_selected = false;
