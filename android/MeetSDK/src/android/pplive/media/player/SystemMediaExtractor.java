@@ -144,7 +144,7 @@ class SystemMediaExtractor implements MediaExtractable {
 		}
 		catch (Exception e){
             e.printStackTrace();
-            LogUtils.error("Java: setDataSource() Exception" + path + ", e: " + e.getMessage());
+            LogUtils.error("Java: setDataSource() Exception" + path + ", error: " + e.getMessage());
 		}
 	}
 
@@ -163,6 +163,12 @@ class SystemMediaExtractor implements MediaExtractable {
 	public boolean isSystemExtractor() {
 		// TODO Auto-generated method stub
 		return true;
+	}
+
+	@Override
+	public void setVideoAhead(int msec) {
+		// TODO Auto-generated method stub
+		
 	}
 
 }

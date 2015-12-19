@@ -56,6 +56,8 @@ public:
 
 	status_t stop();
 
+	status_t setVideoAhead(int32_t msec);
+
 private:
 	int open_codec_context(int *stream_idx, int media_type);
 
@@ -108,9 +110,6 @@ enum DATASOURCE_TYPE
 	AVStream *			m_video_stream;
 	int					m_video_stream_idx;
 	AVCodecContext*		m_video_dec_ctx;
-	uint8_t *			m_video_dst_data[4];
-	int					m_video_dst_linesize[4];
-	int					m_video_dst_bufsize;
 	int					m_framerate;
 	int64_t				m_video_clock_msec; // sec
 	bool				m_video_keyframe_sync;
@@ -118,14 +117,13 @@ enum DATASOURCE_TYPE
 	uint32_t			m_sps_size;
 	uint8_t *			m_pps_data;
 	uint32_t			m_pps_size;
+	int32_t				m_video_ahead_msec;
 
 	AVStream *			m_audio_stream;
 	int					m_audio_stream_idx;
 	AVCodecContext*		m_audio_dec_ctx;
 	int64_t				m_audio_clock_msec; // sec
 	AVBitStreamFilterContext*	m_pBsfc_aac;
-
-	AVFrame*			m_frame;
 
 	int64_t				m_video_frame_count;
 	int64_t				m_audio_frame_count;

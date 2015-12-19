@@ -104,6 +104,9 @@ public class FFMediaExtractor implements MediaExtractable {
 	@Override
 	public native void unselectTrack(int index);
 	
+	@Override
+	public native void setVideoAhead(int msec);
+	
 	private native void setup(Object mediaplayer_this);
 	
 	private long mNativeContext;

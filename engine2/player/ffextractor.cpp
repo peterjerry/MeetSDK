@@ -30,8 +30,6 @@ extern JavaVM* gs_jvm;
 #define MEDIA_OPEN_TIMEOUT_MSEC		(120 * 1000) // 2 min
 #define MEDIA_READ_TIMEOUT_MSEC		(300 * 1000) // 5 min
 
-#define VIDOE_POP_AHEAD_MSEC 0//200
-
 static const uint8_t nalu_header[4] = {0x00, 0x00, 0x00, 0x01};
 
 // NAL unit types
@@ -117,12 +115,6 @@ FFExtractor::FFExtractor()
 	m_video_stream_idx	= -1;
 	m_video_dec_ctx		= NULL;
 
-	for (int i=0;i<4;i++) {
-		m_video_dst_data[i] = NULL;
-		m_video_dst_linesize[i] = 0;
-	}
-
-	m_video_dst_bufsize		= 0;
 	m_framerate				= 0;
 	m_video_clock_msec		= 0;
 	m_video_keyframe_sync	= false;
@@ -130,14 +122,13 @@ FFExtractor::FFExtractor()
 	m_sps_size				= 0;
 	m_pps_data				= NULL;
 	m_pps_size				= 0;
+	m_video_ahead_msec		= 0;
 
 	m_audio_stream			= NULL;
 	m_audio_stream_idx		= -1;
 	m_audio_dec_ctx			= NULL;
 	m_audio_clock_msec		= 0;
 	m_pBsfc_aac				= NULL;
-
-	m_frame					= NULL;
 
 	m_video_frame_count		= 0;
 	m_audio_frame_count		= 0;
@@ -240,6 +231,13 @@ status_t FFExtractor::stop()
 	return OK;
 }
 
+status_t FFExtractor::setVideoAhead(int32_t msec)
+{
+	m_video_ahead_msec = msec;
+	m_min_play_buf_count = m_video_ahead_msec * m_framerate / 1000;
+	return OK;
+}
+
 void FFExtractor::close()
 {
 	if (FFEXTRACTOR_STOPPED == m_status)
@@ -279,10 +277,6 @@ void FFExtractor::close()
 		m_fmt_ctx->interrupt_callback.opaque = NULL;
 		avformat_close_input(&m_fmt_ctx);
 	}
-	if (m_frame)
-		av_frame_free(&m_frame);
-	if (m_video_dst_data[0])
-		av_free(m_video_dst_data[0]);
 
 	if (m_url) {
 		delete m_url;
@@ -367,9 +361,9 @@ status_t FFExtractor::setDataSource(const char *path)
 #else
     if(strncmp(m_url, "/", 1) == 0 || strstr(m_url, "file://") != NULL)
 #endif    
-		m_min_play_buf_count = 1; // m_framerate * FF_PLAYER_MIN_BUFFER_SECONDS_LOCAL_FILE;
+		m_min_play_buf_count = 1;
 	else
-		m_min_play_buf_count = 25 * 4;
+		m_min_play_buf_count = 25 * 4; // 4 sec
 
 	LOGI("setDataSource done");
 	m_status = FFEXTRACTOR_PREPARED;
@@ -1034,7 +1028,7 @@ status_t FFExtractor::advance()
 	LOGD("v_a msec %lld %lld", video_msec, audio_msec);
 #endif
 
-	if (video_msec - audio_msec < VIDOE_POP_AHEAD_MSEC)
+	if (video_msec - audio_msec < m_video_ahead_msec)
 		m_sample_pkt = m_video_q.get();
 	else
 		m_sample_pkt = m_audio_q.get();
@@ -1204,11 +1198,8 @@ int FFExtractor::open_codec_context(int *stream_idx, int media_type)
 
 int FFExtractor::open_codec_context_idx(int stream_idx)
 {
-    int ret;
     AVStream *st = NULL;
     AVCodecContext *dec_ctx = NULL;
-    AVCodec *dec = NULL;
-    AVDictionary *opts = NULL;
 
 	if (stream_idx < 0 || stream_idx >= (int)m_fmt_ctx->nb_streams) {
 		LOGE("stream id #%d is invalid, nb_streams %d", stream_idx, m_fmt_ctx->nb_streams);
@@ -1218,22 +1209,9 @@ int FFExtractor::open_codec_context_idx(int stream_idx)
 	st = m_fmt_ctx->streams[stream_idx];
 	st->discard = AVDISCARD_NONE;
 
-    /* find decoder for the stream */
     dec_ctx = st->codec;
+
 	AVMediaType type = dec_ctx->codec_type;
-    dec = avcodec_find_decoder(dec_ctx->codec_id);
-    if (!dec) {
-        LOGE("Failed to find %s codec", av_get_media_type_string(type));
-        return AVERROR(EINVAL);
-    }
-
-    /* Init the decoders, with or without reference counting */
-    av_dict_set(&opts, "refcounted_frames", "1", 0);
-    if ((ret = avcodec_open2(dec_ctx, dec, &opts)) < 0) {
-        LOGE("Failed to open %s codec", av_get_media_type_string(type));
-        return ret;
-    }
-
 	if (AVMEDIA_TYPE_VIDEO == type) {
 		m_video_stream		= st;
 		m_video_stream_idx	= stream_idx;
@@ -1241,16 +1219,6 @@ int FFExtractor::open_codec_context_idx(int stream_idx)
 
 		if (m_video_dec_ctx->extradata)
 			LOGI("extradata %p, extradata_size %d", m_video_dec_ctx->extradata, m_video_dec_ctx->extradata_size);
-
-        // allocate image where the decoded image will be put
-        ret = av_image_alloc(m_video_dst_data, m_video_dst_linesize,
-                             m_video_dec_ctx->width, m_video_dec_ctx->height,
-                             m_video_dec_ctx->pix_fmt, 1);
-        if (ret < 0) {
-            LOGE("Could not allocate raw video buffer");
-			return ERROR;
-        }
-        m_video_dst_bufsize = ret;
 
 		m_framerate = 25;//default
 		AVRational fr;
@@ -1262,9 +1230,6 @@ int FFExtractor::open_codec_context_idx(int stream_idx)
 		}
 
 		LOGI("media framerate: %d", m_framerate);
-
-		if (strncmp(m_url, "/", 1) != 0 && strstr(m_url, "file://") == NULL)  
-			m_min_play_buf_count = m_framerate * 4;
 	}
 	else if (AVMEDIA_TYPE_AUDIO == type) {
 		m_audio_stream		= st;
@@ -1351,12 +1316,6 @@ int FFExtractor::start()
 
 	if (!m_audio_stream && !m_video_stream) {
 		LOGE("both audio and video stream was not set, aborting");
-		return -1;
-	}
-
-	m_frame = av_frame_alloc();
-	if (!m_frame) {
-		LOGE("Could not allocate frame");
 		return -1;
 	}
 

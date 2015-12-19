@@ -48,5 +48,7 @@ public interface MediaExtractable {
 	public abstract void unselectTrack(int index);
 	
 	public abstract boolean isSystemExtractor();
+	
+	public abstract void setVideoAhead(int msec);
 
 }
