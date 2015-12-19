@@ -424,6 +424,20 @@ jint android_media_MediaExtractor_readSampleData(JNIEnv *env, jobject thiz, jobj
 	return sample_size;
 }
 
+void android_media_MediaExtractor_setVideoAhead(JNIEnv *env, jobject thiz, jint msec)
+{
+	PPLOGI("setVideoAhead()");
+
+	IExtractor* extractor = getMediaExtractor(env, thiz);
+	if (extractor == NULL ) {
+		PPLOGE("failed to get ffextractor");
+		jniThrowException(env, "java/lang/IllegalStateException", "failed to get ffextractor");
+		return;
+	}
+
+	extractor->setVideoAhead(msec);
+}
+
 void android_media_MediaExtractor_stop(JNIEnv *env, jobject thiz)
 {
 	PPLOGI("stop()");
@@ -493,7 +507,7 @@ void android_media_MediaExtractor_setDataSource(JNIEnv *env, jobject thiz, jstri
 	}
 
 	if (path == NULL) {
-		jniThrowException(env, "java/lang/Exception", "Path is NULL.");
+		jniThrowException(env, "java/lang/IOException", "Path is NULL.");
 		PPLOGE("Path is NULL");
 		return;
 	}
@@ -508,7 +522,7 @@ void android_media_MediaExtractor_setDataSource(JNIEnv *env, jobject thiz, jstri
 
 	status_t ret = extractor->setDataSource(pathStr);
 	if (ret != OK) {
-		jniThrowException(env, "java/lang/Exception", "failed to open media");
+		jniThrowException(env, "java/lang/IOException", "failed to open media");
 		return;
 	}
 
@@ -603,6 +617,7 @@ static JNINativeMethod gExtractorMethods[] = {
 		(void *)android_media_MediaExtractor_getTrackFormatNative},
 	{"hasCachedReachedEndOfStream",       "()Z",		(void *)android_media_MediaExtractor_hasCachedReachedEndOfStream},
 	{"readSampleData",       "(Ljava/nio/ByteBuffer;I)I",		(void *)android_media_MediaExtractor_readSampleData},
+	{"setVideoAhead",	"(I)V",		(void *)android_media_MediaExtractor_setVideoAhead},
 
 	{"release",       "()V",		(void *)android_media_MediaExtractor_release},
 	{"stop",       "()V",		(void *)android_media_MediaExtractor_stop},

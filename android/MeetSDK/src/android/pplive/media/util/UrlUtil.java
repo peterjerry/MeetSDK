@@ -32,16 +32,16 @@ public class UrlUtil {
 	}
 	
 	public static boolean isUseSystemExtractor(String url) {
-		//return false;
-		String url_lower = url.toLowerCase();
+		return false;
+		/*String url_lower = url.toLowerCase();
 		if (url_lower.startsWith("file://") || url_lower.startsWith("/")) {
-			if (url_lower.endsWith("flv") || url_lower.endsWith("mkv") ||
-					url_lower.endsWith("mp4")) {
+			// some system MediaExtractor didn't support "flv"
+			if (url_lower.endsWith("mkv") || url_lower.endsWith("mp4")) {
 				return true;
 			}
 		}
 		
-		return false;
+		return false;*/
 	}
 	
 	public static boolean isOnlinePlayUrl(String url) {
