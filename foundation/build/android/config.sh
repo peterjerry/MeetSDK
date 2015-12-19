@@ -1,7 +1,7 @@
 #!/bin/bash
 
 if [ $# == 0 ] ; then 
-echo "USAGE: $0 <abi(x86 neon arm64-v8a)> [config(full lite micro)] [has_encoder(enc)]" 
+echo "USAGE: $0 <abi(x86 neon arm64-v8a)> [config(full lite micro tiny gotye)] [has_encoder(enc)]" 
 echo " e.g.: $0 neon"
 echo " e.g.: $0 neon lite"
 echo " e.g.: $0 neon lite enc" 
@@ -174,12 +174,44 @@ EXTRA_PARAMETERS="$EXTRA_PARAMETERS \
         --disable-decoders \
         --enable-decoder=h264,aac \
         --disable-demuxers \
-        --enable-demuxer=h264,mp4,mov,mpegts \
+        --enable-demuxer=h264,mp4,mov,mpegts,flv,hls \
         --disable-parsers \
-        --enable-parser=h264,aac_latm,ac3 \
+        --enable-parser=h264,aac_latm \
 	--enable-muxer=mpegts,flv,hls \
 	--disable-protocols \
-	--enable-protocol=file,http "
+	--enable-protocol=file,http,rtmp,hls "
+elif [[ $2 = 'tiny' ]]; then
+echo "tiny build"
+EXTRA_PARAMETERS="$EXTRA_PARAMETERS \
+	--disable-decoders \
+	--enable-decoder=h264,aac \
+	--disable-demuxers \
+	--enable-demuxer=h264,mp4,mov,mpegts,flv,hls \
+	--disable-parsers \
+	--enable-parser=h264,aac_latm \
+	--disable-protocols \
+	--enable-protocol=file,http,rtmp,hls \
+	--disable-bsfs \
+	--disable-swscale \
+	--disable-avfilter \
+	--disable-postproc \
+	--enable-small "
+#       --enable-bsf=ac_adtstoasc,h264_mp4toannexb \
+elif [[ $2 = 'gotye' ]]; then
+echo "gotye build"
+EXTRA_PARAMETERS="$EXTRA_PARAMETERS \
+	--disable-decoders \
+	--disable-demuxers \
+	--enable-demuxer=flv \
+	--disable-parsers \
+	--disable-protocols \
+	--enable-protocol=rtmp \
+	--disable-bsfs \
+	--disable-swscale \
+	--disable-swresample \
+	--disable-avfilter \
+	--disable-postproc \
+	--enable-small "
 else
 echo "full build"
 fi
@@ -197,9 +229,24 @@ EXTRA_PARAMETERS="$EXTRA_PARAMETERS \
 #	--enable-librtmp \	
 fi
 
+if [ ${2}x != 'tiny'x ] && [ ${2}x != 'gotye'x ]; then
+EXTRA_PARAMETERS="$EXTRA_PARAMETERS \
+	--enable-filter=rotate,transpose,hflip,vflip,yadif,showspectrum,showwaves,aresample,scale"
+fi
+
 #liblenthevcdec
 #EXTRA_CFLAGS="$EXTRA_CFLAGS -Ithirdparty/lenthevcdec/ "
 #EXTRA_PARAMETERS="$EXTRA_PARAMETERS --enable-liblenthevcdec "
+
+# delete old files
+make clean
+OBJ_FOLDERS="libavutil libavformat libavcodec libswscale libswresample libavfilter compat"
+for OBJ in OBJ_FOLDERS
+do
+	if [ "`echo $OBJ/*.o`" != "$OBJ/*.o" ]; then
+		rm $OBJ/*.o
+	fi
+done
 
 ./configure \
 --prefix=$PREFIX \
@@ -227,7 +274,6 @@ fi
 --disable-muxers \
 --disable-devices \
 --disable-filters \
---enable-filter=rotate,transpose,hflip,vflip,yadif,showspectrum,showwaves,aresample,scale \
 --disable-vfp \
 $EXTRA_PARAMETERS
 
