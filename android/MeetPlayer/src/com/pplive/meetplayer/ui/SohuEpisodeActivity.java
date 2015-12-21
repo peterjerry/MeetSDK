@@ -160,7 +160,7 @@ public class SohuEpisodeActivity extends Activity {
 			public void onScroll(AbsListView view, int firstVisibleItem,
 		            int visibleItemCount, int totalItemCount) {
 				// TODO Auto-generated method stub
-				Log.i(TAG, String.format("Java: onScroll first %d, visible %d, total %d", 
+				Log.d(TAG, String.format("Java: onScroll first %d, visible %d, total %d", 
 						firstVisibleItem, visibleItemCount, totalItemCount));
 				
 				int lastInScreen = firstVisibleItem + visibleItemCount;

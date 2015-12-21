@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.Map;
 
 import com.pplive.common.pptv.PlayLink2;
+import com.pplive.common.util.LogUtil;
 import com.pplive.common.util.PicCacheUtil;
 import com.pplive.meetplayer.R;
 import com.pplive.meetplayer.ui.widget.AsyncImageView;
@@ -109,10 +110,17 @@ public class MyPPTVLiveAdapter extends BaseAdapter {
 		holder.willplay.setText("即将播放: " + willplay);
 		
 		String img_url = item.getImgUrl();
-		if (img_url.startsWith("http://")) {
-			holder.img_icon.setImageResource(R.drawable.clip);
-			holder.img_icon.setTag(img_url);
-			new LoadInfoTask().execute(holder, img_url);
+		if (img_url != null && img_url.startsWith("http://")) {
+			String key = PicCacheUtil.hashKeyForDisk(img_url);
+			Bitmap bmp = PicCacheUtil.getThumbnailFromDiskCache(key);
+			if (bmp != null) {
+				holder.img_icon.setImageBitmap(bmp);
+			}
+			else {
+				holder.img_icon.setTag(img_url);
+				holder.img_icon.setImageResource(R.drawable.loading);
+				new LoadInfoTask().execute(holder, img_url);
+			}
 		}
 		
 		// 注意 默认为返回null,必须得返回convertView视图
@@ -140,18 +148,14 @@ public class MyPPTVLiveAdapter extends BaseAdapter {
 			mHolder = (ViewHolder)params[0];
 			mImgUrl = (String)params[1];
 			
-			String key = PicCacheUtil.hashKeyForDisk(mImgUrl);
-			Bitmap bmp = PicCacheUtil.getThumbnailFromDiskCache(key);
+			Bitmap bmp = ImgUtil.getHttpBitmap(mImgUrl);
 			if (bmp == null) {
-				bmp = ImgUtil.getHttpBitmap(mImgUrl);
-				if (bmp == null) {
-					Log.e(TAG, "Java: failed to getHttpBitmap " + mImgUrl);
-					return null;
-				}
-				
-				PicCacheUtil.addThumbnailToDiskCache(key, bmp);
+				Log.e(TAG, "Java: failed to getHttpBitmap " + mImgUrl);
+				return null;
 			}
 			
+			String key = PicCacheUtil.hashKeyForDisk(mImgUrl);
+			PicCacheUtil.addThumbnailToDiskCache(key, bmp);
 			return bmp;
 		}
 	}
