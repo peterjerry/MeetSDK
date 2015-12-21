@@ -201,9 +201,6 @@ public class XOMediaPlayer extends BaseMediaPlayer {
 				? new SystemMediaExtractor()
 				: new FFMediaExtractor(new WeakReference<XOMediaPlayer>(this));
 
-		if (extractor == null)
-			throw new IllegalStateException("cannot create MediaExtractor");
-		
 		setDataSource(extractor);
 	}
 
@@ -453,7 +450,7 @@ public class XOMediaPlayer extends BaseMediaPlayer {
 		}
 
 		if (!mHaveAudio || !mHaveVideo) {
-			LogUtils.error("Java: both video and audio stream was not found");
+			LogUtils.error("Java: ONLY support play media which has both video and audio stream");
 			return false;
 		}
 
@@ -525,7 +522,7 @@ public class XOMediaPlayer extends BaseMediaPlayer {
 				/ (sampleRate * channelCount * 2/* s16 */);
 		mAudioDataLen = sampleRate * channelCount * 2/* s16 */;
 		
-		LogUtils.error(String
+		LogUtils.info(String
 				.format("Java: audio format: channels %d, channel_cfg %d, sample_rate %d, minbufsize %d, latency %d",
 						channelCount, channelConfig, sampleRate, minSize,
 						mAudioLatencyMsec));
@@ -834,10 +831,9 @@ public class XOMediaPlayer extends BaseMediaPlayer {
 						.readSampleData(dstBuf, 0 /* offset */);
 				long presentationTimeUs = 0;
 				if (sampleSize < 0) {
-					// if (mExtractor.hasCachedReachedEndOfStream()) {
+					// mExtractor.hasCachedReachedEndOfStream()
 					LogUtils.info("Java: saw input EOS.");
 					sawInputEOS = true;
-					// }
 				} else {
 					presentationTimeUs = mExtractor.getSampleTime();
 					sawInputEOS = false;
@@ -848,6 +844,7 @@ public class XOMediaPlayer extends BaseMediaPlayer {
 					String str_flush = "FLUSH";
 					byte[] byte_ctx = new byte[5];
 					dstBuf.get(byte_ctx);
+					dstBuf.rewind();
 					String strPkt = new String(byte_ctx);
 					if (str_flush.equals(strPkt)) {
 						is_flush_pkt = true;
@@ -885,6 +882,14 @@ public class XOMediaPlayer extends BaseMediaPlayer {
 
 				if (!is_flush_pkt) {
 					// normal packet(except flush pkt, including eos pkt)
+					/*byte[] byte_ctx = new byte[5];
+					dstBuf.get(byte_ctx);
+					dstBuf.rewind();
+					LogUtils.info(String.format("Java: readsample [%s] size %d, %02x %02x %02x %02x %02x",
+							trackIndex == mVideoTrackIndex ? "video" : "audio",
+							sampleSize,
+							byte_ctx[0], byte_ctx[1], byte_ctx[2], byte_ctx[3], byte_ctx[4]));*/
+					
 					int flags = mExtractor.getSampleFlags();
 
 					PacketBuf buf = new PacketBuf();
@@ -1113,9 +1118,7 @@ public class XOMediaPlayer extends BaseMediaPlayer {
 
 					long video_clock_msec = info.presentationTimeUs / 1000;
 
-					long delay_msec = video_clock_msec - mLastVideoFrameMsec; // always
-														// framerate(40
-																				// msec)
+					long delay_msec = video_clock_msec - mLastVideoFrameMsec/*framerate 40msec*/;
 					if (delay_msec < 0 || delay_msec > 1000) {
 						// fix invalid pts
 						delay_msec = mLastDelayMsec;

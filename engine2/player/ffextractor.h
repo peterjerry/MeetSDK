@@ -112,6 +112,7 @@ enum DATASOURCE_TYPE
 	AVCodecContext*		m_video_dec_ctx;
 	int					m_framerate;
 	int64_t				m_video_clock_msec; // sec
+	AVBitStreamFilterContext*	m_pBsfc_h264;
 	bool				m_video_keyframe_sync;
 	uint8_t *			m_sps_data;
 	uint32_t			m_sps_size;

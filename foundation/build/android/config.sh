@@ -168,7 +168,7 @@ EXTRA_PARAMETERS="$EXTRA_PARAMETERS \
 	--enable-parser=h263,h264,hevc,mpegaudio,mpegvideo,aac_latm,mpeg4video,dca,aac,ac3,eac3,flac,png,bmp,rv30,rv40,cavsvideo,vc1,vorbis,mjpeg,vp3,vp8,vp9,cook "
 
 # hevc,liblenthevchm91,liblenthevchm10,liblenthevc
-elif [[ $2 = 'micro' ]]; then
+elif [ ${2}x == 'micro'x ]; then
 echo "micro build"
 EXTRA_PARAMETERS="$EXTRA_PARAMETERS \
         --disable-decoders \
@@ -180,7 +180,7 @@ EXTRA_PARAMETERS="$EXTRA_PARAMETERS \
 	--enable-muxer=mpegts,flv,hls \
 	--disable-protocols \
 	--enable-protocol=file,http,rtmp,hls "
-elif [[ $2 = 'tiny' ]]; then
+elif [ ${2}x == 'tiny'x ]; then
 echo "tiny build"
 EXTRA_PARAMETERS="$EXTRA_PARAMETERS \
 	--disable-decoders \
@@ -196,8 +196,8 @@ EXTRA_PARAMETERS="$EXTRA_PARAMETERS \
 	--disable-avfilter \
 	--disable-postproc \
 	--enable-small "
-#       --enable-bsf=ac_adtstoasc,h264_mp4toannexb \
-elif [[ $2 = 'gotye' ]]; then
+#       --enable-bsf=ac_adtstoasc,h264_mp4toannexb
+elif [ ${2}x == 'gotye'x ]; then
 echo "gotye build"
 EXTRA_PARAMETERS="$EXTRA_PARAMETERS \
 	--disable-decoders \
@@ -208,6 +208,7 @@ EXTRA_PARAMETERS="$EXTRA_PARAMETERS \
 	--disable-protocols \
 	--enable-protocol=rtmp \
 	--disable-bsfs \
+	--enable-bsf=h264_mp4toannexb \
 	--disable-swscale \
 	--disable-swresample \
 	--disable-avfilter \
@@ -242,7 +243,7 @@ fi
 # delete old files
 make clean
 OBJ_FOLDERS="libavutil libavformat libavcodec libswscale libswresample libavfilter compat"
-for OBJ in OBJ_FOLDERS
+for OBJ in $OBJ_FOLDERS
 do
 	if [ "`echo $OBJ/*.o`" != "$OBJ/*.o" ]; then
 		rm $OBJ/*.o

@@ -5,28 +5,34 @@ FFMPEG_HOME=$USER_ROOT/../../foundation_rext
 MS_INT_TYPES_HOME=$USER_ROOT/msinttypes
 PREFIX=$USER_ROOT/../../output/win32
 
-if [ ${1}x == 'lite'x ]
-then
-echo "lite build"
-PREFIX=$PREFIX/lite
-cp config/lite/config.h $FFMPEG_HOME
-cp config/lite/config.mak $FFMPEG_HOME
-else
-echo "full build"
+if [ -z $1 ]; then
 PREFIX=$PREFIX/full
-cp config/config.h $FFMPEG_HOME
-cp config/config.mak $FFMPEG_HOME
+echo "full build(default)"
+cp config/full/config.h $FFMPEG_HOME
+cp config/full/config.mak $FFMPEG_HOME
+else
+echo "${1} build"
+PREFIX="$PREFIX/${1}"
+cp config/${1}/config.h $FFMPEG_HOME
+cp config/${1}/config.mak $FFMPEG_HOME
 fi
 
 rm -rf $PREFIX
-
-
 
 cd $FFMPEG_HOME
 
 echo "begin to building..."
 
+# delete old files
 make clean
+OBJ_FOLDERS="libavutil libavformat libavcodec libswscale libswresample libavfilter compat"
+for OBJ in $OBJ_FOLDERS
+do
+	if [ "`echo $OBJ/*.o`" != "$OBJ/*.o" ]; then
+		rm $OBJ/*.o
+	fi
+done
+
 make -j4 install
 
 echo "copy pdb files..."

@@ -117,6 +117,7 @@ FFExtractor::FFExtractor()
 
 	m_framerate				= 0;
 	m_video_clock_msec		= 0;
+	m_pBsfc_h264			= NULL;
 	m_video_keyframe_sync	= false;
 	m_sps_data				= NULL;
 	m_sps_size				= 0;
@@ -260,6 +261,10 @@ void FFExtractor::close()
 		m_buffered_size = 0;
 	}
 
+	if (m_pBsfc_h264) {
+		av_bitstream_filter_close(m_pBsfc_h264);
+		m_pBsfc_h264 = NULL;
+	}
 	if (m_pBsfc_aac) {
 		av_bitstream_filter_close(m_pBsfc_aac);
 		m_pBsfc_aac = NULL;
@@ -958,8 +963,10 @@ status_t FFExtractor::advance()
 
 		m_buffering = true;
 
-		LOGI("notifyListener_l MEDIA_INFO_BUFFERING_START");
-		notifyListener_l(MEDIA_INFO, MEDIA_INFO_BUFFERING_START);
+		if (m_sorce_type != TYPE_LOCAL_FILE) {
+			LOGI("notifyListener_l MEDIA_INFO_BUFFERING_START");
+			notifyListener_l(MEDIA_INFO, MEDIA_INFO_BUFFERING_START);
+		}
 
 		LOGI("start to buffering");
 		while (m_buffering) {
@@ -970,8 +977,10 @@ status_t FFExtractor::advance()
 			}
 		}
 
-		LOGI("notifyListener_l MEDIA_INFO_BUFFERING_END");
-		notifyListener_l(MEDIA_INFO, MEDIA_INFO_BUFFERING_END);
+		if (m_sorce_type != TYPE_LOCAL_FILE) {
+			LOGI("notifyListener_l MEDIA_INFO_BUFFERING_END");
+			notifyListener_l(MEDIA_INFO, MEDIA_INFO_BUFFERING_END);
+		}
 	}
 
 	int64_t video_msec, audio_msec;
@@ -1072,19 +1081,23 @@ status_t FFExtractor::readSampleData(unsigned char *data, int32_t *sampleSize)
 	}
 
 	if (m_video_stream_idx == m_sample_pkt->stream_index) {
-		if (strncmp((const char *)m_sample_pkt->data, "FLUSH", 5) != 0) {
-			// video pkt
-			int nalu_len_size = m_NALULengthSizeMinusOne + 1;
-			memcpy(data, nalu_header + 4 - nalu_len_size, nalu_len_size);
-			memcpy(data + nalu_len_size, 
-				m_sample_pkt->data + nalu_len_size, 
-				m_sample_pkt->size - nalu_len_size);
-		}
-		else {
-			// flush pkt
-			memcpy(data, m_sample_pkt->data, m_sample_pkt->size);
+		if (strncmp((const char *)m_sample_pkt->data, "FLUSH", 5) != 0 && m_pBsfc_h264) {
+			// ONLY video pkt NEED do this job
+			// flush pkt just copy
+
+			// Apply MP4 to H264 Annex B filter on buffer
+			//int origin_size = m_sample_pkt->size;
+			int isKeyFrame = m_sample_pkt->flags & AV_PKT_FLAG_KEY;
+			av_bitstream_filter_filter(m_pBsfc_h264, m_video_stream->codec, NULL, &m_sample_pkt->data, &m_sample_pkt->size, 
+				m_sample_pkt->data, m_sample_pkt->size, isKeyFrame);
 		}
 
+		// in some case
+		// CANNOT only replace 1st nalu_size to nalu_start_code simplely
+		// because maybe more than 1 nalu units exist in avpacket
+		// SHOULD look up for all nalu units
+
+		memcpy(data, m_sample_pkt->data, m_sample_pkt->size);
 		*sampleSize = m_sample_pkt->size;
 	}
 	else if (m_audio_stream_idx == m_sample_pkt->stream_index) {
@@ -1219,6 +1232,23 @@ int FFExtractor::open_codec_context_idx(int stream_idx)
 
 		if (m_video_dec_ctx->extradata)
 			LOGI("extradata %p, extradata_size %d", m_video_dec_ctx->extradata, m_video_dec_ctx->extradata_size);
+
+		// mpegets format: (00) 00 00 01 nalu_header1 + nalu_payload1 | (00) 00 00 01 nalu_header2 + nalu_payload2
+		// mkv,mp4,flv format: nalu_size1 nalu_header1 + nalu_payload1 | nalu_size2 nalu_header2 + nalu_payload2
+		if (strstr(m_fmt_ctx->iformat->name, "matroska") != NULL ||
+				strstr(m_fmt_ctx->iformat->name, "mp4") != NULL ||
+				strstr(m_fmt_ctx->iformat->name, "flv") != NULL)
+		{
+			// Retrieve required h264_mp4toannexb filter
+			// this filter will do two job:
+			// 1) add sps+pps before IDR(iskeyframe)
+			// 2) replace 4 byte nalu size(big endian) to nalu_start_code (00) 00 00 01
+			m_pBsfc_h264 = av_bitstream_filter_init("h264_mp4toannexb");
+			if (!m_pBsfc_h264) {
+				LOGE("Could not aquire h264_mp4toannexb filter");
+				return ERROR;
+			}
+		}
 
 		m_framerate = 25;//default
 		AVRational fr;
@@ -1373,9 +1403,6 @@ void FFExtractor::thread_impl()
 
 	LOGI("FFExtractor start to demux media");
 	
-	// fix MEDIA_INFO_BUFFERING_END sent before MEDIA_INFO_BUFFERING_START problem
-	//notifyListener_l(MEDIA_INFO, MEDIA_INFO_BUFFERING_START);
-
 	while (1) {
 		if (FFEXTRACTOR_STOPPING == m_status || FFEXTRACTOR_STOPPED ==  m_status) {
             LOGI("work thead break");
@@ -1463,8 +1490,11 @@ void FFExtractor::thread_impl()
 			// 2014.8.25 guoliangma added, to fix cannot play clip which duration is less than 3sec
 			if (m_buffering) {
 				m_buffering = false;
-				LOGI("MEDIA_INFO_BUFFERING_END because of stream end");
-				notifyListener_l(MEDIA_INFO, MEDIA_INFO_BUFFERING_END);
+
+				if (m_sorce_type != TYPE_LOCAL_FILE) {
+					LOGI("MEDIA_INFO_BUFFERING_END because of stream end");
+					notifyListener_l(MEDIA_INFO, MEDIA_INFO_BUFFERING_END);
+				}
 			}
 
 			// continue for seek back
