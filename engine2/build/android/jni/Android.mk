@@ -9,22 +9,10 @@ BUILD_NATIVEWINDOOW		:= 1
 BUILD_FFPLAYER			:= 1
 BUILD_FFEXTRACTOR		:= 1
 
-ifeq ($(TARGET_ARCH_ABI),armeabi)
-FDK_AAC_PATH	:= ../../../../foundation/thirdparty/fdk-aac/lib/android/armeabi-v7a
-else
-FDK_AAC_PATH	:= ../../../../foundation/thirdparty/fdk-aac/lib/android/x86
-endif
-
+FDK_AAC_PATH	:= ../../../../foundation/thirdparty/fdk-aac/lib/android/$(TARGET_ARCH_ABI)
 RTMPDUMP_PATH	:= ../../../../foundation/thirdparty/rtmpdump/lib/android/$(TARGET_ARCH_ABI)
 X264_PATH		:= ../../../../foundation/thirdparty/x264/lib/android/$(TARGET_ARCH_ABI)
-
-ifeq ($(TARGET_ARCH_ABI),armeabi)
-LIB_FOLDER		:= neon
-else
-LIB_FOLDER		:= $(TARGET_ARCH_ABI)
-endif
-
-FFMPEG_PATH		:= ../../../../foundation/output/android/$(LIB_FOLDER)
+FFMPEG_PATH		:= ../../../../foundation/output/android/$(TARGET_ARCH_ABI)
 
 PLAYERPATH		:= ../../../player
 EXTRACTORPATH	:= ../../../extractor
@@ -102,14 +90,14 @@ endif
 ifdef BUILD_RENDER_RGB565
 $(info build render rgb565)
 MY_SRC_YUV2RGB_FILES	= yuv2rgb16tab.c
-ifeq ($(TARGET_ARCH_ABI),armeabi)
+ifeq ($(TARGET_ARCH_ABI),armeabi-v7a)
 MY_SRC_YUV2RGB_FILES	+= yuv420rgb565.s.arm yuv2rgb565.cpp
 else
 MY_SRC_YUV2RGB_FILES	+= yuv420rgb565c.c
 endif
 LOCAL_CFLAGS    		+=-DRENDER_RGB565 -DARCH_ARM=1 -DHAVE_NEON=1
 endif
-ifeq ($(TARGET_ARCH_ABI),armeabi)
+ifeq ($(TARGET_ARCH_ABI),armeabi-v7a)
 MY_SRC_PLATFORM_FILES	+= i420_rgb.S.arm nv12_rgb.S.arm nv21_rgb.S.arm
 endif
 ifdef BUILD_OSLES

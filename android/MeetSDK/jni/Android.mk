@@ -10,18 +10,13 @@ BUILD_FFPLAYER		:= 1
 BUILD_FFEXTRACTOR	:= 1
 #BUILD_TS_CONVERT	:= 1
 
-ifeq ($(TARGET_ARCH_ABI),armeabi)
+ifeq ($(TARGET_ARCH_ABI),armeabi-v7a)
 FFMPEG_PATH		:= ../../../foundation/output/android/neon
 else
 FFMPEG_PATH		:= ../../../foundation/output/android/x86
 endif
 
-ifeq ($(TARGET_ARCH_ABI),armeabi)
-FDK_AAC_PATH	:= ../../../foundation/thirdparty/fdk-aac/lib/android/armeabi-v7a
-else
-FDK_AAC_PATH	:= ../../../foundation/thirdparty/fdk-aac/lib/android/x86
-endif
-
+FDK_AAC_PATH	:= ../../../foundation/thirdparty/fdk-aac/lib/android/$(TARGET_ARCH_ABI)
 RTMPDUMP_PATH	:= ../../../foundation/thirdparty/rtmpdump/lib/android/$(TARGET_ARCH_ABI)
 X264_PATH		:= ../../../foundation/thirdparty/x264/lib/android/$(TARGET_ARCH_ABI)
 

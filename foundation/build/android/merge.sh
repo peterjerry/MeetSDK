@@ -27,9 +27,9 @@ case $1 in
 		TARGET1=../output/android/x86
 		ARCH=x86
 		;;
-	neon)
-		CONFIG_SRC=../build/android/config_neon
-		TARGET1=../output/android/neon
+	armeabi-v7a)
+		CONFIG_SRC=../build/android/config_armeabi-v7a
+		TARGET1=../output/android/armeabi-v7a
 		;;
 	arm64-v8a)
 		CONFIG_SRC=../build/android/config_arm64-v8a
@@ -50,14 +50,15 @@ FDK_AAC_HOME=$HOME_FOLDER/../thirdparty/fdk-aac
 RTMPDUMP_HOME=$HOME_FOLDER/../thirdparty/rtmpdump
 X264_HOME=$HOME_FOLDER/../thirdparty/x264
 
+FDK_AAC_LIB=$FDK_AAC_HOME/lib/android/$1
+RTMPDUMP_LIB=$RTMPDUMP_HOME/lib/android/$1
+X264_LIB=$X264_HOME/lib/android/$1
+
 if [ $ARCH == 'arm' ]; then
 	PLATFORM=$NDK/platforms/android-9/arch-arm
 	PREBUILT=$NDK/toolchains/arm-linux-androideabi-4.8/prebuilt/$HOST
 	CROSS_PREFIX=$PREBUILT/bin/arm-linux-androideabi-
 	EXTRA_CFLAGS="$EXTRA_CFLAGS -fstack-protector -fstrict-aliasing"
-	FDK_AAC_LIB=$FDK_AAC_HOME/lib/android/armeabi-v7a
-	RTMPDUMP_LIB=$RTMPDUMP_HOME/lib/android/armeabi
-	X264_LIB=$X264_HOME/lib/android/armeabi
 	OPTFLAGS="-O2"
 elif [ $ARCH == 'aarch64' ]
 then
@@ -65,8 +66,6 @@ then
 	PREBUILT=$NDK/toolchains/aarch64-linux-android-4.9/prebuilt/$HOST
 	CROSS_PREFIX=$PREBUILT/bin/aarch64-linux-android-
 	EXTRA_CFLAGS="$EXTRA_CFLAGS -fstrict-aliasing"
-	RTMPDUMP_LIB=$RTMPDUMP_HOME/lib/android/arm64-v8a
-	X264_LIB=$X264_HOME/lib/android/arm64-v8a
 	OPTFLAGS="-O2 -fno-pic"
 elif [ $ARCH == 'x86' ]
 then
@@ -75,9 +74,6 @@ then
 	CROSS_PREFIX=$PREBUILT/bin/i686-linux-android-
 	EXTRA_CFLAGS="$EXTRA_CFLAGS -fstrict-aliasing"
 	OPTFLAGS="-O2 -fno-pic"
-	FDK_AAC_LIB=$FDK_AAC_HOME/lib/android/x86
-	RTMPDUMP_LIB=$RTMPDUMP_HOME/lib/android/x86
-	X264_LIB=$X264_HOME/lib/android/x86
 elif [ $ARCH == 'mips' ]
 then
 	PLATFORM=$NDK/platforms/android-9/arch-mips

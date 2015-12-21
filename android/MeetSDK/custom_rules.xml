@@ -44,8 +44,8 @@
 	
 	<target name="-symbol">
 		<mkdir dir="${symbol.dir}" />
-		<copy todir="${symbol.dir}/armeabi" overwrite="true" verbose="true">
-			<fileset dir="${obj.dir}/local/armeabi">
+		<copy todir="${symbol.dir}/armeabi-v7a" overwrite="true" verbose="true">
+			<fileset dir="${obj.dir}/local/armeabi-v7a">
 				<filename name="**/*.so" />
 			</fileset>
 		</copy>
@@ -139,7 +139,7 @@
 	
 	<target name="-pre-clean" >
 		<delete dir="${obj.dir}" />
-		<delete dir="${libs.dir}/armeabi" />
+		<delete dir="${libs.dir}/armeabi-v7a" />
 		<delete dir="${libs.dir}/x86" />
 		<delete dir="${libs.dir}/arm64-v8a" />
 		<delete dir="${output.dir}" />

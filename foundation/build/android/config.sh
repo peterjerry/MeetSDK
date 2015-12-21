@@ -1,10 +1,10 @@
 #!/bin/bash
 
 if [ $# == 0 ] ; then 
-echo "USAGE: $0 <abi(x86 neon arm64-v8a)> [config(full lite micro tiny gotye)] [has_encoder(enc)]" 
-echo " e.g.: $0 neon"
-echo " e.g.: $0 neon lite"
-echo " e.g.: $0 neon lite enc" 
+echo "USAGE: $0 <abi(armeabi-v7a x86 arm64-v8a)> [config(full lite micro tiny gotye)] [has_encoder(enc)]" 
+echo " e.g.: $0 armeabi-v7a"
+echo " e.g.: $0 armeabi-v7a lite"
+echo " e.g.: $0 armeabi-v7a lite enc" 
 exit 1; 
 fi
 
@@ -36,7 +36,7 @@ case $1 in
 		#EXTRA_LDFLAGS="-Lthirdparty/lenthevcdec/lib/x86"
 		EXTRA_PARAMETERS="--cpu=$CPU --disable-debug --disable-fast-unaligned"
 		;;
-	neon)
+	armeabi-v7a)
 		ARCH=arm
 		CPU=armv7-a
 		EXTRA_CFLAGS="-mfloat-abi=softfp -mfpu=neon -mtune=cortex-a8 -mvectorize-with-neon-quad"
@@ -104,29 +104,25 @@ FDK_AAC_HOME=$HOME_FOLDER/../thirdparty/fdk-aac
 RTMPDUMP_HOME=$HOME_FOLDER/../thirdparty/rtmpdump
 X264_HOME=$HOME_FOLDER/../thirdparty/x264
 
+FDK_AAC_LIB=$FDK_AAC_HOME/lib/android/$1
+RTMPDUMP_LIB=$RTMPDUMP_HOME/lib/android/$1
+X264_LIB=$X264_HOME/lib/android/$1
+
 if [ $ARCH == 'arm' ] 
 then
 	CROSS_PREFIX=$NDK/toolchains/arm-linux-androideabi-4.8/prebuilt/$HOST/bin/arm-linux-androideabi-
 	EXTRA_CFLAGS="$EXTRA_CFLAGS -fstack-protector -fstrict-aliasing"
 	OPTFLAGS="-O2"
-	FDK_AAC_LIB=$FDK_AAC_HOME/lib/android/armeabi-v7a
-	RTMPDUMP_LIB=$RTMPDUMP_HOME/lib/android/armeabi
-	X264_LIB=$X264_HOME/lib/android/armeabi
 elif [ $ARCH == 'arm64' ] 
 then
 	CROSS_PREFIX=$NDK/toolchains/aarch64-linux-android-4.9/prebuilt/$HOST/bin/aarch64-linux-android-
 	EXTRA_CFLAGS="$EXTRA_CFLAGS -fstack-protector -fstrict-aliasing"
 	OPTFLAGS="-O2"
-	RTMPDUMP_LIB=$RTMPDUMP_HOME/lib/android/arm64-v8a
-	X264_LIB=$X264_HOME/lib/android/arm64-v8a
 elif [ $ARCH == 'x86' ] 
 then
 	CROSS_PREFIX=$NDK/toolchains/x86-4.8/prebuilt/$HOST/bin/i686-linux-android-
 	EXTRA_CFLAGS="$EXTRA_CFLAGS -fstrict-aliasing"
 	OPTFLAGS="-O2 -fno-pic"
-	FDK_AAC_LIB=$FDK_AAC_HOME/lib/android/x86
-	RTMPDUMP_LIB=$RTMPDUMP_HOME/lib/android/x86
-	X264_LIB=$X264_HOME/lib/android/x86
 elif [ $ARCH == 'mips' ] 
 then
 	CROSS_PREFIX=$NDK/toolchains/mipsel-linux-android-4.8/prebuilt/$HOST/bin/mipsel-linux-android-
