@@ -514,7 +514,7 @@ public class SohuPanel extends JPanel {
 		if (Desktop.isDesktopSupported()){
             try {
                 //创建一个URI实例
-                URI uri = URI.create("http://172.16.204.106/play.html"); 
+                URI uri = URI.create("http://192.168.1.112:8088/sohu/play.htm"); 
                 //获取当前系统桌面扩展
                 Desktop dp = Desktop.getDesktop();
                 //判断系统桌面是否支持要执行的功能
@@ -588,7 +588,7 @@ public class SohuPanel extends JPanel {
         // 输出company_list.xml文件
         try {
         	XMLOutputter XMLOut = new XMLOutputter();
-			XMLOut.output(Doc, new FileOutputStream("\\\\172.16.204.106\\web\\list.xml"));
+			XMLOut.output(Doc, new FileOutputStream("\\\\192.168.1.112\\share\\www\\sohu\\list.xml"));
 		} catch (FileNotFoundException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();

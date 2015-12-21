@@ -7,6 +7,7 @@ import javax.swing.ImageIcon;
 import javax.swing.JButton;
 import javax.swing.JCheckBox;
 import javax.swing.JComboBox;
+import javax.swing.JFileChooser;
 import javax.swing.JLabel;
 import javax.swing.JList;
 import javax.swing.JMenuItem;
@@ -18,6 +19,7 @@ import javax.swing.JTextPane;
 import javax.swing.ListCellRenderer;
 import javax.swing.ListSelectionModel;
 import javax.swing.SwingWorker;
+import javax.swing.filechooser.FileNameExtensionFilter;
 
 import org.apache.http.HeaderIterator;
 import org.apache.http.HttpEntity;
@@ -51,6 +53,7 @@ import com.pplive.epg.util.LrcDownloadUtil;
 import com.pplive.epg.util.LrcInfo;
 import com.pplive.epg.util.LrcParser;
 import com.pplive.epg.util.LrcParser2;
+import com.pplive.epg.util.MyNanoHTTPD;
 import com.pplive.epg.util.SeparatorUtils;
 import com.pplive.epg.util.TimeLrc;
 import com.pplive.epg.util.Util;
@@ -90,6 +93,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.Random;
 import java.util.StringTokenizer;
 
 
@@ -100,6 +104,10 @@ public class BaiduPanel extends JPanel {
 	private String mbRootPath 	=  "/我的视频";
 	private String mChildPath;
 	private String mOperatePath;
+	private String[] mOperatePaths;
+	private int mPort = 8080;
+	//private String mBaiduToken;
+	//private String mBDUSS;
 	private boolean mIsCopy	= false;
 	private String list_by 		= "time"; // "name" "size"
 	private String list_order 	= "desc"; // "asc"
@@ -125,6 +133,47 @@ public class BaiduPanel extends JPanel {
 			"?method=download" +
 			"&app_id=250528" + 
 			"&path=";
+	
+	private final String BAIDU_PCS_DOWNLOAD_PROXY_FMT = "http://127.0.0.1:%d/rest/2.0/pcs/file" + 
+			"?method=download" +
+			"&app_id=250528" + 
+			"&new_api=1" +
+			"&path=";
+
+	private final String BAIDU_PCS_CLOUD_DL_V2 = "http://pan.baidu.com/rest/2.0/services/cloud_dl" +
+			"?method=add_task" +
+			"&app_id=250528" +
+			//"&bdstoken=%s" +
+			"&channel=chunlei" +
+			"&clienttype=0" +
+			"&web=0";
+	
+	private final String BAIDU_PCS_CLOUD_LIST_TASK = "http://pan.baidu.com/rest/2.0/services/cloud_dl" +
+			"?method=list_task" +
+			"&app_id=250528" +
+			"&channel=chunlei" +
+			"&clienttype=0" +
+			"&web=0" +
+			"&need_task_info=1" +
+			"&start=0" +
+			"&limit=10" +
+			"&task_ids=";
+	
+	private final String BAIDU_PCS_CLOUD_QUERY_TASK = "http://pan.baidu.com/rest/2.0/services/cloud_dl" +
+			"?method=query_task" +
+			"&app_id=250528" +
+			"&channel=chunlei" +
+			"&clienttype=0" +
+			"&web=0" +
+			"&op_type=1" + // 0 查信息, 1 查进度
+			"&task_ids=";
+	
+	private final String BAIDU_PCS_CLOUD_CLEAR_TASK = "http://pan.baidu.com/rest/2.0/services/cloud_dl" +
+			"?method=clear_task" +
+			"&app_id=250528" +
+			"&channel=chunlei" +
+			"&clienttype=0" +
+			"&web=1";
 	
 	private final static String ApiKey = "4YchBAkgxfWug3KRYCGOv8EK"; // from es explorer
 	
@@ -171,6 +220,7 @@ public class BaiduPanel extends JPanel {
 	JScrollPane scrollPane				= null;
 	
 	JPopupMenu jPopupMenu				= null;
+	JMenuItem menuItemDownload			= null;
 	JMenuItem menuItemCut				= null;
 	JMenuItem menuItemCopy				= null;
 	JMenuItem menuItemRename			= null;
@@ -312,17 +362,38 @@ public class BaiduPanel extends JPanel {
 				"?method=search" +
 				"&access_token=" + mbOauth;
 		
+		Random rand = new Random();
+		mPort = 8080 + rand.nextInt(100);
+		System.out.println("http port: " + mPort);
+		
 		// Action
 		lblRootPath.setFont(f);
 		lblRootPath.setBounds(20, 40, 300, 30);
 		this.add(lblRootPath);
 		
 		jPopupMenu = new JPopupMenu();
+		
+		menuItemDownload = new JMenuItem("下载");
+		menuItemDownload.setFont(f);
+		menuItemDownload.addMouseListener(new MouseAdapter() {
+			public void mouseReleased(MouseEvent e) {
+				if (bDownloading) {
+					JOptionPane.showMessageDialog(
+							null, "已有任务在下载中", "下载任务", 
+							JOptionPane.INFORMATION_MESSAGE); 
+					return;
+				}
+				
+				download();
+			}
+		});
+		jPopupMenu.add(menuItemDownload);
+		
 		menuItemCut = new JMenuItem("剪切");
 		menuItemCut.setFont(f);
 		menuItemCut.addMouseListener(new MouseAdapter() {
 			public void mouseReleased(MouseEvent e) {
-				mOperatePath = getOperatePath();
+				mOperatePaths = getOperatePaths();
 				mIsCopy = false;
 				System.out.println("cut");
 			}
@@ -333,7 +404,7 @@ public class BaiduPanel extends JPanel {
 		menuItemCopy.setFont(f);
 		menuItemCopy.addMouseListener(new MouseAdapter() {
 			public void mouseReleased(MouseEvent e) {
-				mOperatePath = getOperatePath();
+				mOperatePaths = getOperatePaths();
 				mIsCopy = true;
 				System.out.println("copy");
 			}
@@ -539,6 +610,21 @@ public class BaiduPanel extends JPanel {
 		btnAuth.addActionListener(new AbstractAction() {
 			public void actionPerformed(ActionEvent e) {
 				authorize();
+				
+				String user_name = JOptionPane.showInputDialog(null, 
+						"输入用户名", "wnpllrzodiac");
+				String passwd = JOptionPane.showInputDialog(null, 
+						"输入密码", "daqiao1");
+				LoginInfo info = EmulateLoginBaidu.login(user_name, passwd);
+				cookie_BDUSS = info.getBDUSS();
+				
+				Clipboard clipboard = getToolkit().getSystemClipboard();//获取系统剪贴板;
+				StringSelection text = new StringSelection(cookie_BDUSS);
+				clipboard.setContents(text, null);
+				JOptionPane.showMessageDialog(null,"BDUSS 已复制至剪贴板");
+				
+				//login("wnpllrzodiac", "daqiao1");
+				//login("shxm.ma@163.com", "Git84hub");
 			}
 		});
 		
@@ -636,16 +722,30 @@ public class BaiduPanel extends JPanel {
 		this.add(btnPaste);
 		btnPaste.addActionListener(new AbstractAction() {
 			public void actionPerformed(ActionEvent e) {
-				int pos = mOperatePath.lastIndexOf("/");
-				if (pos > -1) {
-					String to = mbRootPath + "/" + mOperatePath.substring(pos + 1);
-					if (move_copy(mOperatePath, to, mIsCopy)) {
-						init_combobox();
-						
-						lblInfo.setText(String.format("%s 成功 %s至 %s", 
-										mOperatePath, mIsCopy ? "复制" : "移动", to));
+				if (mOperatePaths == null || mOperatePaths.length == 0) {
+					JOptionPane.showMessageDialog(
+							null, "未选择源文件", "复制任务", 
+							JOptionPane.ERROR_MESSAGE);
+					return;
+				}
+				
+				for (int i=0;i<mOperatePaths.length;i++) {
+					String path = mOperatePaths[i];
+					
+					int pos = path.lastIndexOf("/");
+					if (pos > -1) {
+						String to = mbRootPath + "/" + path.substring(pos + 1);
+						if (!move_copy(path, to, mIsCopy)) {
+							lblInfo.setText(String.format("%s %s 至 %s 失败", 
+								mOperatePath, mIsCopy ? "复制" : "移动", to));
+						}
 					}
 				}
+				
+				init_combobox();
+				
+				lblInfo.setText(String.format("%s(等文件) 成功 %s 至 %s", 
+						mOperatePaths[0], mIsCopy ? "复制" : "移动", mbRootPath));
 			}
 		});
 		
@@ -668,12 +768,13 @@ public class BaiduPanel extends JPanel {
 				}
 				
 				try {
-					Thread.sleep(500);
+					Thread.sleep(100);
 				} catch (InterruptedException e1) {
 					// TODO Auto-generated catch block
 					e1.printStackTrace();
 				}
 				
+				mChildPath = "";
 				init_combobox();
 				
 				if (count == 1)
@@ -728,10 +829,10 @@ public class BaiduPanel extends JPanel {
 		});
 
 		editPath.setBounds(20, 450, 200, 40);
+		editPath.setFont(f);
 		editPath.setText("新建文件夹");
 	    this.add(editPath);
 	    
-	    btnCreateFolder.setFont(f);
 	    btnCreateFolder.setBounds(230, 450, 80, 40);
 	    btnCreateFolder.setFont(f);
 		this.add(btnCreateFolder);
@@ -740,7 +841,7 @@ public class BaiduPanel extends JPanel {
 				String folder_path = mbRootPath + "/" + editPath.getText();
 				if (mkdir(folder_path)) {
 					try {
-						Thread.sleep(500);
+						Thread.sleep(100);
 					} catch (InterruptedException e1) {
 						// TODO Auto-generated catch block
 						e1.printStackTrace();
@@ -761,34 +862,13 @@ public class BaiduPanel extends JPanel {
 			public void actionPerformed(ActionEvent e) {
 				if (bDownloading) {
 					bInterrupt = true;
+					JOptionPane.showMessageDialog(
+							null, "下载已取消", "下载任务", 
+							JOptionPane.ERROR_MESSAGE);
 					return;
 				}
 				
-				int index = listItem.getSelectedIndex();
-				Map<String, Object> fileinfo = mFileList.get(index);
-				boolean isdir = (Boolean) fileinfo.get("isdir");
-				if (isdir) {
-					System.out.println("cannot download folder");
-					lblInfo.setText("cannot download folder");
-				}
-				else {
-					String path = (String) fileinfo.get("path");
-					
-					try {
-						String encoded_path = URLEncoder.encode(path, "utf-8");
-
-						String url = BAIDU_PCS_DOWNLOAD_V2 + encoded_path;
-						System.out.println("ready to download url: " + url);
-						lblInfo.setText("ready to download url: " + url);
-						
-						int pos = path.lastIndexOf("/");
-						String filename = path.substring(pos + 1);
-						downloadFile(url, filename);
-					} catch (UnsupportedEncodingException e1) {
-						// TODO Auto-generated catch block
-						e1.printStackTrace();
-					}
-				}
+				download();
 			}
 		});
 		
@@ -798,9 +878,46 @@ public class BaiduPanel extends JPanel {
 		this.add(btnYunDownload);
 		btnYunDownload.addActionListener(new AbstractAction() {
 			public void actionPerformed(ActionEvent e) {
-				//"http://dlsw.baidu.com/sw-search-sp/soft/cc/13478/npp_V6.8.2_Installer.1440141668.exe"
-				String download_url = editPath.getText();
-				add_cloud_dl(download_url);
+				//String default_path = "http://dlsw.baidu.com/sw-search-sp/soft/cc/13478/npp_V6.8.2_Installer.1440141668.exe";
+				String default_path = "ed2k://|file|[www.ed2kers.com]" +
+						"TLF-VIDEO-04.12.14.The.Maze.Runner" +
+						".(2014).iNT.BDRip.720p.AC3.X264" +
+						"-TLF.mkv|2094704851|E30B41" +
+						"BAFE4D3056AF027232A7FEF3A6|h=JD2TWIEK" +
+						"2PLEMO3ENWF3FCS5RF6W5MBF|/";
+				String download_url = JOptionPane.showInputDialog(null, 
+						"输入下载地址", default_path);
+				if (download_url == null || download_url.equals(""))
+					return;
+				
+				System.out.println("Java: download url: " + download_url);
+				String save_path = mbRootPath;
+				save_path += "/";
+				
+				int pos1, pos2;
+				if (download_url.startsWith("ed2k://")) {
+					pos1 = download_url.indexOf("|file|");
+					pos2 = download_url.indexOf("|", pos1 + "|file|".length());
+					save_path += download_url.substring(pos1 + "|file|".length(), pos2);
+				}
+				else {
+					pos1 = download_url.lastIndexOf("/");
+					pos2 = download_url.lastIndexOf("?");
+					if (pos2 == -1)
+						pos2 = download_url.length();
+					if (pos2 <= pos1 + 1)
+						save_path += "default.mp4";
+					else
+						save_path += download_url.substring(pos1 + 1, pos2);
+				}
+				
+				if (!add_cloud_dl_v2(download_url, save_path)) {
+					JOptionPane.showMessageDialog(
+							null, "添加任务失败", "云任务", 
+							JOptionPane.ERROR_MESSAGE);
+				}
+				
+				lblInfo.setText("离线下载任务添加成功!");
 			}
 		});
 		
@@ -810,14 +927,16 @@ public class BaiduPanel extends JPanel {
 		this.add(btnUpload);
 		btnUpload.addActionListener(new AbstractAction() {
 			public void actionPerformed(ActionEvent e) {
-				// 弹出"选择上传文件"对话框
-				FileDialog fload = new FileDialog(new Frame(), "选择上传文件",
-						FileDialog.LOAD);
-
-				fload.setVisible(true);
-
-				String upload_path = fload.getDirectory() + fload.getFile();
-				String save_path = mbRootPath + "/" + fload.getFile();
+				String upload_path = SelUploadFile();
+				if (upload_path == null)
+					return;
+				
+				int pos = upload_path.lastIndexOf(SeparatorUtils.getFileSeparator());
+				if (pos == -1)
+					return;
+				
+				String filename = upload_path.substring(pos + 1);
+				String save_path = mbRootPath + "/" + filename;
 				System.out.println("file upload src path: " + upload_path + " save_path: " + save_path);
 				
 				UploadWorker worker = new UploadWorker(upload_path, save_path);
@@ -875,11 +994,43 @@ public class BaiduPanel extends JPanel {
 		lblInfo.setBounds(100, 500, 500, 20);
 		this.add(lblInfo);
 		
-		init_combobox();
+		//LoginInfo info = EmulateLoginBaidu.login("wnpllrzodiac", "daqiao1");
+		//mBDUSS = info.getBDUSS();
+		//mBaiduToken = info.getToken();
 		
-		EmulateLoginBaidu.login("wnpllrzodiac", "daqiao1");
-		//login("wnpllrzodiac", "daqiao1");
-		//login("shxm.ma@163.com", "Git84hub");
+		HttpServiceThread myThread = new HttpServiceThread();
+		Thread t = new Thread(myThread);
+		t.start();
+		
+		File f = new File("e:/dump/test2");
+		
+		init_combobox();
+	}
+	
+	private String SelUploadFile() {
+		// 弹出"选择上传文件"对话框
+		FileDialog fload = new FileDialog(new Frame(), "选择上传文件",
+				FileDialog.LOAD);
+
+		fload.setVisible(true);
+
+		return fload.getDirectory() + fload.getFile();
+	}
+	
+	private String SelUploadFile2() {
+		JFileChooser chooser = new JFileChooser();
+		FileNameExtensionFilter filter = new FileNameExtensionFilter(
+				"JPG & GIF Images", "jpg", "gif");
+		//chooser.setFileFilter(filter);
+		chooser.setFileSelectionMode(JFileChooser.FILES_AND_DIRECTORIES);
+		int returnVal = chooser.showOpenDialog(null);
+		if (returnVal == JFileChooser.APPROVE_OPTION) {
+			String path = chooser.getSelectedFile().getAbsolutePath();
+			System.out.println("You choose to open this file: " + path);
+			return path;
+		}
+		
+		return null;
 	}
 	
 	private boolean process_lrc(String lrc_path) {
@@ -1055,11 +1206,28 @@ public class BaiduPanel extends JPanel {
 		return (String) fileinfo.get("path");
 	}
 	
+	private String[] getOperatePaths() {
+		int []indices = listItem.getSelectedIndices();
+		if (indices == null || indices.length == 0)
+			return null;
+		
+		List<String>pathList = new ArrayList<String>();
+		for (int i=0;i<indices.length;i++) {
+			Map<String, Object> fileinfo = mFileList.get(indices[i]);
+			String path = (String) fileinfo.get("path");
+			pathList.add(path);
+			System.out.println("add select path: " + path);
+		}
+		
+		return pathList.toArray(new String [indices.length]);
+	}
+	
 	private void play_url(String path) {
 		try {
 			String encoded_path = URLEncoder.encode(path, "utf-8");
 
-			String url = BAIDU_PCS_DOWNLOAD + encoded_path;
+			String url = String.format(BAIDU_PCS_DOWNLOAD_PROXY_FMT, mPort);
+			url += encoded_path;
 			System.out.println("ready to play url: " + url);
 			lblInfo.setText("ready to play url: " + url);
 			
@@ -1177,7 +1345,99 @@ public class BaiduPanel extends JPanel {
         }
 	}
 	
-	private void downloadFile(String path, String filename) {
+	private void downloadFolder(final String folder, final String save_path) {
+		Runnable r = new Runnable() {
+			public void run() {
+				File f = new File(save_path);
+				if (!f.exists()) {
+					f.mkdirs();
+				}
+				
+				List<Map<String, Object>> fileList = list(folder);
+				
+				for (int i=0;i<fileList.size();i++) {
+					Map<String, Object>fileinfo = fileList.get(i);
+					boolean isdir = (Boolean) fileinfo.get("isdir");
+					String path = (String) fileinfo.get("path");
+					String filename = (String) fileinfo.get("filename");
+					
+					if (isdir) {
+						downloadFolder(path, save_path + "/" + filename);
+					}
+					else {
+						try {
+							String encoded_path = URLEncoder.encode(path, "utf-8");
+
+							String url = BAIDU_PCS_DOWNLOAD_V2 + encoded_path;
+							System.out.println("ready to download url: " + url);
+							lblInfo.setText("ready to download url: " + url);
+							
+							downloadFile(url, filename, 
+									save_path + "/" + filename, false);
+						} catch (UnsupportedEncodingException e1) {
+							// TODO Auto-generated catch block
+							e1.printStackTrace();
+						}
+					}
+				}
+			}
+		};
+
+		Thread t = new Thread(r);
+		t.start();
+	}
+	
+	private void download() {
+		int index = listItem.getSelectedIndex();
+		Map<String, Object> fileinfo = mFileList.get(index);
+		boolean isdir = (Boolean) fileinfo.get("isdir");
+		String path = (String) fileinfo.get("path");
+		if (isdir) {
+			downloadFolder(path, "e:/test2");
+		}
+		else {
+			try {
+				String encoded_path = URLEncoder.encode(path, "utf-8");
+
+				String url = BAIDU_PCS_DOWNLOAD_V2 + encoded_path;
+				System.out.println("ready to download url: " + url);
+				lblInfo.setText("ready to download url: " + url);
+				
+				int pos = path.lastIndexOf("/");
+				String filename = path.substring(pos + 1);
+				
+				// 弹出"保存文件"对话框
+				FileDialog fsave = new FileDialog(new Frame(), "保存文件",
+						FileDialog.SAVE);
+			
+				FilenameFilter ff = new FilenameFilter() {
+					public boolean accept(File dir, String name) {
+						if (name.endsWith("flac")) {
+							return true;
+						}
+						return false;
+					}
+				};
+				
+				//fsave.setFilenameFilter(ff);
+				fsave.setFile(filename);
+				fsave.setVisible(true);
+				if (fsave.getFile() == null || fsave.getDirectory() == null)
+					return;
+			
+				final String save_path = fsave.getDirectory() + fsave.getFile();
+				System.out.println("file save path: " + save_path);
+				
+				downloadFile(url, filename, save_path, true);
+			} catch (UnsupportedEncodingException e1) {
+				// TODO Auto-generated catch block
+				e1.printStackTrace();
+			}
+		}
+	}
+	
+	private void downloadFile(String path, String filename, 
+			final String save_path, final boolean bSingleFile) {
 		try {
 			URL url = new URL(path);
 			URLConnection urlCon = url.openConnection();
@@ -1191,28 +1451,6 @@ public class BaiduPanel extends JPanel {
 			System.out.println("port :" + url.getPort());
 			System.out.println("Contenttype : " + urlCon.getContentType());
 			System.out.println("Contentlength : " + urlCon.getContentLength());
-
-			// 弹出"保存文件"对话框
-			FileDialog fsave = new FileDialog(new Frame(), "保存文件",
-					FileDialog.SAVE);
-		
-			FilenameFilter ff = new FilenameFilter() {
-				public boolean accept(File dir, String name) {
-					if (name.endsWith("flac")) {
-						return true;
-					}
-					return false;
-				}
-			};
-			
-			//fsave.setFilenameFilter(ff);
-			fsave.setFile(filename);
-			fsave.setVisible(true);
-			if (fsave.getFile() == null || fsave.getDirectory() == null)
-				return;
-			
-			final String save_path = fsave.getDirectory() + fsave.getFile();
-			System.out.println("file save path: " + save_path);
 			
 			final FileOutputStream fos = new FileOutputStream(save_path);
 			
@@ -1251,7 +1489,8 @@ public class BaiduPanel extends JPanel {
 		              
 		              bInterrupt = false;
 		              bDownloading = false;
-		              btnDownload.setText("下载");
+		              if (bSingleFile)
+		            	  btnDownload.setText("下载");
 		          }
 		          catch (Exception ex) {
 		        	  ex.printStackTrace();
@@ -1263,7 +1502,8 @@ public class BaiduPanel extends JPanel {
 		  Thread t = new Thread(r);
 		  t.start();
 		  
-		  btnDownload.setText("取消");
+		  if (bSingleFile)
+			  btnDownload.setText("取消");
 		  
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -1777,9 +2017,6 @@ public class BaiduPanel extends JPanel {
 		params.add(new BasicNameValuePair("access_token", mbOauth));
 		params.add(new BasicNameValuePair("source_url", source_url));
 		
-		// ed2k://|file|[www.ed2kers.com]TLF-VIDEO-04.12.14.The.Maze.Runner.(2014).iNT
-		// .BDRip.720p.AC3.X264-TLF.mkv|2094704851|E30B41BAFE4D3056AF027232A7FEF3A6
-		// |h=JD2TWIEK2PLEMO3ENWF3FCS5RF6W5MBF|/
 		String save_path = "/apps/pcstest_oauth/";
 		if (source_url.startsWith("ed2k://")) {
 			int pos = source_url.indexOf("|file|");
@@ -1808,30 +2045,12 @@ public class BaiduPanel extends JPanel {
 				"&type=0";*/
 
 		System.out.println("Java: add_cloud_dl() " + url);
-
-		// 把请求的数据，添加到NameValuePair中
-		/*NameValuePair nameValuePair1 = new BasicNameValuePair("method",
-				"add_task");
-		NameValuePair nameValuePair2 = new BasicNameValuePair("source_url",
-				"http://dlsw.baidu.com/sw-search-sp/soft/da/17519/BaiduYunGuanjia_5.2.7_setup.1430884921.exe");
-		NameValuePair nameValuePair3 = new BasicNameValuePair("save_path", "/apps/pcstest_oauth/123.exe");
-		NameValuePair nameValuePair4 = new BasicNameValuePair("type", "0");
-		NameValuePair nameValuePair5 = new BasicNameValuePair("access_token", mbOauth);
-
-		List<NameValuePair> list = new ArrayList<NameValuePair>();
-		list.add(nameValuePair1);
-		list.add(nameValuePair2);
-		list.add(nameValuePair3);
-		list.add(nameValuePair4);
-		list.add(nameValuePair5);*/
 		
 		HttpResponse response;
 		
 		try {
-			//HttpEntity requesthttpEntity = new UrlEncodedFormEntity(list);
-			
 			HttpPost httppost = new HttpPost(url);
-			//httppost.setEntity(requesthttpEntity);
+			httppost.setHeader("Cookie", "BDUSS=" + cookie_BDUSS);
 			
 			response = HttpClients.createDefault().execute(httppost);
 			if (response.getStatusLine().getStatusCode() != 200){
@@ -1842,21 +2061,94 @@ public class BaiduPanel extends JPanel {
 			}
 			
 			String result = EntityUtils.toString(response.getEntity());
+			System.out.println("result: " + result);
 			JSONTokener jsonParser = new JSONTokener(result);
 			JSONObject root = (JSONObject) jsonParser.nextValue();
 			if (root.has("error_code")) {
 				int error_code = root.getInt("error_code");
 				String error_msg = root.getString("error_msg");
-				int request_id = root.getInt("request_id");
+				long request_id = root.getLong("request_id");
 				System.out.println(String.format("Java: failed to add cloud job: %d(%s), request_id %d",
 						error_code, error_msg, request_id));
 				return false;
 			}
 			
 			int task_id = root.getInt("task_id");
-			int request_id = root.getInt("request_id");
+			long request_id = root.getLong("request_id");
 			System.out.println(String.format("Java: new cloud job added: taskid: %d, request_id: %d",
 					task_id, request_id));
+		}
+		catch (ClientProtocolException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (JSONException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+		return false;
+	}
+	
+	private boolean add_cloud_dl_v2(String source_url, String save_path) {
+		String encoded_source_url = null;
+		String encoded_save_path = null;
+		
+		try {
+			encoded_source_url = URLEncoder.encode(source_url, "utf-8");
+			encoded_save_path = URLEncoder.encode(save_path, "utf-8");
+		}
+		catch (UnsupportedEncodingException e) {
+			e.printStackTrace();
+			return false;
+		}
+		
+		String url = BAIDU_PCS_CLOUD_DL_V2;
+		url += "&source_url=";
+		url += encoded_source_url;
+		url += "&save_path=";
+		url += encoded_save_path;
+		System.out.println("Java: add_cloud_dl() " + url);
+		
+		HttpResponse response;
+		
+		try {
+			HttpPost httppost = new HttpPost(url);
+			httppost.setHeader("Cookie", "BDUSS=" + cookie_BDUSS);
+
+			response = HttpClients.createDefault().execute(httppost);
+			if (response.getStatusLine().getStatusCode() != 200){
+				System.out.println(String.format("Java: response is not ok: %d %s",
+						response.getStatusLine().getStatusCode(),
+						EntityUtils.toString(response.getEntity())));
+				return false;
+			}
+			
+			String result = EntityUtils.toString(response.getEntity());
+			
+			JSONTokener jsonParser = new JSONTokener(result);
+			JSONObject root = (JSONObject) jsonParser.nextValue();
+			if (root.has("error_code")) {
+				System.out.println("result: " + result);
+				int error_code = root.getInt("error_code");
+				String error_msg = root.getString("error_msg");
+				long request_id = root.getLong("request_id");
+				System.out.println(String.format("Java: failed to add cloud job: %d(%s), request_id %d",
+						error_code, error_msg, request_id));
+				return false;
+			}
+			
+			int task_id = root.getInt("task_id");
+			long request_id = root.getLong("request_id");
+			System.out.println(String.format("Java: new cloud job added: taskid: %d, request_id: %d",
+					task_id, request_id));
+			
+			CheckCloudTaskWorker worker = new CheckCloudTaskWorker(task_id);
+			worker.execute();
+			
+			return true;
 		}
 		catch (ClientProtocolException e) {
 			// TODO Auto-generated catch block
@@ -1899,8 +2191,9 @@ public class BaiduPanel extends JPanel {
 			JSONObject root = (JSONObject) jsonParser.nextValue();
 			
 			//"request_id":4043312866
-			int request_id = root.getInt("request_id");
-			System.out.println(String.format("Java: %s deleted", path));
+			long request_id = root.getLong("request_id");
+			System.out.println(String.format("Java: file %s deleted(request_id %d)", 
+					path, request_id));
 			return true;
 		}
 		catch (ClientProtocolException e) {
@@ -2139,6 +2432,133 @@ public class BaiduPanel extends JPanel {
 			showInfo(mIndex);
 		}
 		
+	};
+	
+	private class HttpServiceThread implements Runnable {		
+		@Override
+		public void run() {
+			// TODO Auto-generated method stub
+			MyNanoHTTPD httpd = new MyNanoHTTPD(mPort, null);
+			httpd.setBDUSS(cookie_BDUSS);
+			try {
+				httpd.start();
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		}
+		
+	};
+	
+	private class CheckCloudTaskWorker extends SwingWorker<Boolean, Integer> {
+		private int mTaskId;
+		
+		private final static int TASK_STATUS_OK 			= 0;
+		private final static int TASK_STATUS_DOWNLOADING	= 1;
+		private final static int TASK_STATUS_ERROR			= 100;
+		
+		public CheckCloudTaskWorker(int task_id) {
+			mTaskId	= task_id;
+		}
+		
+		private int getCloudStatus(int task_id) {
+			String strTaskId = String.valueOf(task_id);
+			
+			String url = BAIDU_PCS_CLOUD_QUERY_TASK;
+			url += strTaskId;
+			HttpGet request = new HttpGet(url);
+			request.setHeader("Cookie", "BDUSS=" + cookie_BDUSS);
+			
+			HttpResponse response;
+			try {
+				response = HttpClients.createDefault().execute(request);
+				
+				String result = EntityUtils.toString(response.getEntity());
+				
+				
+				if (response.getStatusLine().getStatusCode() != 200){
+					System.out.println("Java: code not 200: " + 
+							response.getStatusLine().getStatusCode());
+					System.out.println("result: " + result);
+					return TASK_STATUS_ERROR;
+				}
+				
+				JSONTokener jsonParser = new JSONTokener(result);
+				JSONObject root = (JSONObject) jsonParser.nextValue();
+				int error_code = root.getInt("error_code");
+				long request_id = root.getLong("request_id");
+				if (error_code != 0) {
+					System.out.println(String.format("Java: failed to query cloud job: %d, request_id %d",
+							error_code, request_id));
+					return TASK_STATUS_ERROR;
+				}
+				
+				JSONObject task_list = root.getJSONObject("task_info");
+				JSONObject info = task_list.getJSONObject(strTaskId);
+				
+				// 0查询成功，结果有效，1要查询的task_id不存在
+				int info_result = info.getInt("result");
+				if (info_result != 0)
+					return TASK_STATUS_ERROR;
+				
+				// "status":1 (0下载成功，1下载进行中 2系统错误，
+				// 3资源不存在，4下载超时，5资源存在但下载失败 6存储空间不足 7目标地址数据已存在 8任务取消)
+				int info_status = info.getInt("status");
+				
+				System.out.println(String.format("result: %d, status %d", 
+						info_result, info_status));
+				
+				if (info_result == 0)
+					return TASK_STATUS_OK;
+				else if (info_result == 1)
+					return TASK_STATUS_DOWNLOADING;
+				else
+					return TASK_STATUS_ERROR;
+			}
+			catch (ClientProtocolException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (JSONException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+			
+			return TASK_STATUS_ERROR;
+		}
+		
+		@Override
+		protected Boolean doInBackground() throws Exception {
+			// TODO Auto-generated method stub
+			int ret;
+			while (true) {
+				ret = getCloudStatus(mTaskId);
+				if (TASK_STATUS_ERROR == ret || TASK_STATUS_OK == ret)
+					break;
+				
+				try {
+					Thread.sleep(3000);
+				} catch (InterruptedException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+			}
+			
+			if (TASK_STATUS_OK == ret) {
+				System.out.println("file cloud download done!");
+				return true;
+			}
+			
+			return false;
+		}
+	
+		@Override
+		protected void done() {
+			// TODO Auto-generated method stub
+			init_combobox();
+		}
 	};
 	
 	private void openExe(String... params) {

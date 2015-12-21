@@ -94,13 +94,13 @@ const char* url_desc[PROG_MAX_NUM] = {
 };
 
 const char* url_list[PROG_MAX_NUM] = {
-	_T("E:\\Work\\HEVC\\Transformers3-720p.mp4"),
+	_T("E:\\archive\\linux_vm\\web\\testcase\\Transformers3-720p.mp4"),
 	_T("http://172.16.204.106/test/hls/600000/index.m3u8"),
 	_T("http://172.16.204.106/test/hls/600000/noend.m3u8"),
 	//_T("D:\\Archive\\media\\[圣斗士星矢Ω].[hysub]Saint.Seiya.Omega_11_[GB_mp4][480p].mp4"),
 	//_T("E:\\BaiduYunDownload\\第三季第八集.mkv"),
 	_T("E:\\BaiduYunDownload\\红猪.Porco.Rosso.1992.D9.3Audio.MiniSD-TLF.mkv"),
-	_T("D:\\Archive\\media\\mv\\G.NA_Secret.mp4"),
+	_T("E:\\Archive\\media\\mv\\G.NA_Secret.mp4"),
 
 	_T("http://zb.v.qq.com:1863/?progid=1975434150"),
 	_T("http://zb.v.qq.com:1863/?progid=3900155972"),
@@ -331,8 +331,9 @@ BOOL CtestSDLdlgDlg::OnInitDialog()
 	apLog::init("c:\\log\\libplayer.log");
 #endif
 
-	if (!startP2P())
-		return FALSE;
+	if (!startP2P()) {
+		AfxMessageBox("failed to start p2p engine");
+	}
 
 	for (int i=0;i<sizeof(pptv_channel_id) / sizeof(int);i++) {
 		char *new_item = (char *)malloc(256);
@@ -396,7 +397,7 @@ BOOL CtestSDLdlgDlg::OnInitDialog()
 		mComboURL.AddString(url_desc[i]);
 	}
 
-	mComboURL.SetCurSel(3/*PPTV_HLS_URL_OFFSET + 3*/);
+	mComboURL.SetCurSel(0/*PPTV_HLS_URL_OFFSET + 3*/);
 	mProgress.SetRange(0, PROGRESS_RANGE);
 
 	//mCheckLooping.SetCheck(TRUE);
@@ -791,9 +792,9 @@ bool CtestSDLdlgDlg::start_player(const char *url)
 	LOGI("host_name %s, ip address %s", name, ip_addr);
 
 	char opt[128]  ={0};
-	sprintf(opt, "-dump_url %s/9891\nbuffer_sec 30\n-test2 bb", ip_addr);
+	sprintf(opt, "-dump_url %s/9891\n-buffering_sec 30", ip_addr);
 	LOGI("player option %s", opt);
-	mPlayer->set_opt(opt);
+	//mPlayer->set_opt(opt);
 
 #ifdef ENABLE_SUBTITLE
 	if (!ISubtitles::create(&mSubtitleParser)) {
@@ -828,6 +829,13 @@ bool CtestSDLdlgDlg::start_player(const char *url)
 
 void CtestSDLdlgDlg::stop_player()
 {
+	if (mSubtitleParser) {
+		delete mSubtitleParser;
+		mSubtitleParser = NULL;
+
+		mSubtitleStartTime = mSubtitleStopTime = 0;
+	}
+
 	if (mPlayer) {
 		KillTimer(0);
 
@@ -836,32 +844,25 @@ void CtestSDLdlgDlg::stop_player()
 		LOGI("after call player stop");
 		delete mPlayer;
 		mPlayer = NULL;
-	}
-
-	if (mSubtitleParser) {
-		delete mSubtitleParser;
-		mSubtitleParser = NULL;
-
-		mSubtitleStartTime = mSubtitleStopTime = 0;
-	}
 
 #ifdef USE_SDL2
-	if (mWindow)
-		SDL_DestroyWindow(mWindow);
-	if (mRenderer)
-		SDL_DestroyRenderer(mRenderer);
-	if (mTexture)
-		SDL_DestroyTexture(mTexture);
+		if (mWindow)
+			SDL_DestroyWindow(mWindow);
+		if (mRenderer)
+			SDL_DestroyRenderer(mRenderer);
+		if (mTexture)
+			SDL_DestroyTexture(mTexture);
 #else
-	if (mSurface2) {
-		LOGI("free sdl surface");
-		SDL_FreeSurface(mSurface2);
-		mSurface2 = NULL;
-	}
+		if (mSurface2) {
+			LOGI("free sdl surface");
+			SDL_FreeSurface(mSurface2);
+			mSurface2 = NULL;
+		}
 #endif
 
-	LOGI("SDL_Quit()");
-	SDL_Quit();
+		LOGI("SDL_Quit()");
+		SDL_Quit();
+	}
 }
 
 void CtestSDLdlgDlg::notify(int msg, int ext1, int ext2)

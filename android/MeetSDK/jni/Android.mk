@@ -5,22 +5,15 @@ JNI_BASE 		:= meet
 ENGINE_BASE 	:= ../../engine2
 SUBTITLE_BASE	:= ../../subtitle2
 
-#BUILD_ONE_LIB	:= 1
+#BUILD_ONE_LIB		:= 1
+BUILD_FFPLAYER		:= 1
+BUILD_FFEXTRACTOR	:= 1
+#BUILD_TS_CONVERT	:= 1
 
-ifeq ($(TARGET_ARCH_ABI),armeabi)
-FFMPEG_PATH		:= ../../../foundation/output/android/neon
-else
-FFMPEG_PATH		:= ../../../foundation/output/android/x86
-endif
-
-ifeq ($(TARGET_ARCH_ABI),armeabi)
-FDK_AAC_PATH	:= ../../../foundation/foundation_rext/thirdparty/fdk-aac/lib/android/armeabi-v7a
-else
-FDK_AAC_PATH	:= ../../../foundation/foundation_rext/thirdparty/fdk-aac/lib/android/x86
-endif
-
-RTMPDUMP_PATH	:= ../../../foundation/foundation_rext/thirdparty/rtmpdump/lib/android/$(TARGET_ARCH_ABI)
-X264_PATH		:= ../../../foundation/foundation_rext/thirdparty/x264/lib/android/$(TARGET_ARCH_ABI)
+FFMPEG_PATH		:= ../../../foundation/output/android/$(TARGET_ARCH_ABI)
+FDK_AAC_PATH	:= ../../../foundation/thirdparty/fdk-aac/lib/android/$(TARGET_ARCH_ABI)
+RTMPDUMP_PATH	:= ../../../foundation/thirdparty/rtmpdump/lib/android/$(TARGET_ARCH_ABI)
+X264_PATH		:= ../../../foundation/thirdparty/x264/lib/android/$(TARGET_ARCH_ABI)
 
 ########################[libpplog]########################
 include $(CLEAR_VARS)
@@ -79,9 +72,19 @@ LOCAL_C_INCLUDES 		:= meet $(ENGINE_BASE) $(SUBTITLE_BASE)/output/android/includ
 ifdef BUILD_ONE_LIB
 LOCAL_CFLAGS    		+= -DBUILD_ONE_LIB
 endif
-#LOCAL_CFLAGS    		+= -DUSE_TS_CONVERT
-MY_SRC_FILES 			:= cpuext.cpp jniUtils.cpp FFMediaExtractor.cpp FFMediaPlayer.cpp
-#MY_SRC_FILES			+= native_convert.cpp
+MY_SRC_FILES 			:= cpuext.cpp jniUtils.cpp libplayer.cpp
+ifdef BUILD_FFPLAYER
+MY_SRC_FILES 			+= FFMediaPlayer.cpp
+LOCAL_CFLAGS    		+= -DBUILD_FFPLAYER
+endif
+ifdef BUILD_FFEXTRACTOR
+MY_SRC_FILES 			+= FFMediaExtractor.cpp
+LOCAL_CFLAGS    		+= -DBUILD_FFEXTRACTOR
+endif
+ifdef BUILD_TS_CONVERT
+LOCAL_CFLAGS    		+= -DBUILD_TS_CONVERT
+MY_SRC_FILES			+= native_convert.cpp
+endif
 LOCAL_SRC_FILES 		:= $(addprefix $(JNI_BASE)/, $(MY_SRC_FILES))
 LOCAL_STATIC_LIBRARIES 	:= pplog cpufeatures
 LOCAL_LDLIBS 			:= -llog

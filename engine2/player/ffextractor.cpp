@@ -1,4 +1,5 @@
 #include "ffextractor.h"
+#include "common.h"
 #include "ppffmpeg.h"
 #include "autolock.h"
 #include "utils.h"
@@ -29,7 +30,7 @@ extern JavaVM* gs_jvm;
 #define MEDIA_OPEN_TIMEOUT_MSEC		(120 * 1000) // 2 min
 #define MEDIA_READ_TIMEOUT_MSEC		(300 * 1000) // 5 min
 
-#define VIDOE_POP_AHEAD_MSEC 200
+static const uint8_t nalu_header[4] = {0x00, 0x00, 0x00, 0x01};
 
 // NAL unit types
 enum NALUnitType {
@@ -57,16 +58,39 @@ typedef struct
 	int channel_conf;
 }ADTSContext;
 
+union bigedian_size {
+	int size;
+	uint8_t uc[4];
+};
+
 #define ADTS_HEADER_SIZE 7
 
 static void ff_log_callback(void* avcl, int level, const char* fmt, va_list vl);
 
-int aac_decode_extradata(ADTSContext *adts, unsigned char *pbuf, int bufsize);
+static int aac_decode_extradata(ADTSContext *adts, unsigned char *pbuf, int bufsize);
 
-int aac_set_adts_head(ADTSContext *acfg, unsigned char *buf, int size);
+static int aac_set_adts_head(ADTSContext *acfg, unsigned char *buf, int size);
 
-extern "C" IExtractor* getExtractor()
+static int get_size(uint8_t *s, int len);
+
+extern "C" IExtractor* getExtractor(void* context)
 {
+#ifdef __ANDROID__
+#ifdef BUILD_ONE_LIB
+	pplog = __pp_log_vprint;
+#else
+    platformInfo = (PlatformInfo*)context;
+    gs_jvm = (JavaVM*)(platformInfo->jvm);
+	pplog = (LogFunc)(platformInfo->pplog_func); 
+#endif
+
+	if (0) {
+		// dead code
+		aac_decode_extradata(NULL, NULL, 0);
+		aac_set_adts_head(NULL, NULL, 0);
+	}
+#endif
+
     return new FFExtractor();
 }
 
@@ -91,12 +115,6 @@ FFExtractor::FFExtractor()
 	m_video_stream_idx	= -1;
 	m_video_dec_ctx		= NULL;
 
-	for (int i=0;i<4;i++) {
-		m_video_dst_data[i] = NULL;
-		m_video_dst_linesize[i] = 0;
-	}
-
-	m_video_dst_bufsize		= 0;
 	m_framerate				= 0;
 	m_video_clock_msec		= 0;
 	m_pBsfc_h264			= NULL;
@@ -105,14 +123,13 @@ FFExtractor::FFExtractor()
 	m_sps_size				= 0;
 	m_pps_data				= NULL;
 	m_pps_size				= 0;
+	m_video_ahead_msec		= 0;
 
 	m_audio_stream			= NULL;
 	m_audio_stream_idx		= -1;
 	m_audio_dec_ctx			= NULL;
 	m_audio_clock_msec		= 0;
 	m_pBsfc_aac				= NULL;
-
-	m_frame					= NULL;
 
 	m_video_frame_count		= 0;
 	m_audio_frame_count		= 0;
@@ -140,6 +157,9 @@ FFExtractor::FFExtractor()
 	m_seeking				= false;
 	m_eof					= false;
 
+	m_NALULengthSizeMinusOne= 4; // default
+	m_num_of_sps			= 0;
+	m_num_of_pps			= 0;
 	/* register all formats and codecs */
 	av_register_all();
 
@@ -212,6 +232,15 @@ status_t FFExtractor::stop()
 	return OK;
 }
 
+status_t FFExtractor::setVideoAhead(int32_t msec)
+{
+	m_video_ahead_msec = msec;
+	m_min_play_buf_count = m_video_ahead_msec * m_framerate / 1000;
+	LOGI("setVideoAhead() video_ahead_msec %d, min_play_buf_count %d", 
+		m_video_ahead_msec, m_min_play_buf_count);
+	return OK;
+}
+
 void FFExtractor::close()
 {
 	if (FFEXTRACTOR_STOPPED == m_status)
@@ -255,10 +284,6 @@ void FFExtractor::close()
 		m_fmt_ctx->interrupt_callback.opaque = NULL;
 		avformat_close_input(&m_fmt_ctx);
 	}
-	if (m_frame)
-		av_frame_free(&m_frame);
-	if (m_video_dst_data[0])
-		av_free(m_video_dst_data[0]);
 
 	if (m_url) {
 		delete m_url;
@@ -298,9 +323,15 @@ status_t FFExtractor::setDataSource(const char *path)
 	m_url = new char[len];
 	strcpy(m_url, path);
 
-	if (strncmp(m_url, "/", 1) == 0 || strncmp(m_url, "file://", 7) == 0)
+#if defined(__CYGWIN__)
+	if (strstr(m_url, ":/") != NULL) // cygwin local file is like "e:/folder/1.mov"
+#elif defined(_MSC_VER)
+	if (strstr(m_url, ":\\") != NULL) // win32 local file is like "e:\folder\1.mov"
+#else
+    if (strncmp(m_url, "/", 1) == 0 || strncmp(m_url, "file://", 7) == 0)
+#endif
 		m_sorce_type = TYPE_LOCAL_FILE;
-	else if(strstr(m_url, "type=pplive"))
+	else if(strstr(m_url, "type=pplive") || strncmp(m_url, "rtmp://", 7) == 0)
 		m_sorce_type = TYPE_LIVE;
 	else
 		m_sorce_type = TYPE_VOD;
@@ -319,6 +350,9 @@ status_t FFExtractor::setDataSource(const char *path)
 
 	m_open_stream_start_msec = 0;
 
+	if (strncmp(m_url, "rtmp://", 7) == 0)
+		m_fmt_ctx->flags |= AVFMT_FLAG_NOBUFFER;
+
 	/* retrieve stream information */
     if (avformat_find_stream_info(m_fmt_ctx, NULL) < 0) {
         LOGE("Could not find stream information");
@@ -333,16 +367,12 @@ status_t FFExtractor::setDataSource(const char *path)
 	/* dump input information to stderr */
 	av_dump_format(m_fmt_ctx, 0, m_url, 0);
 
-#if defined(__CYGWIN__)
-	if(strstr(m_url, ":/") != NULL) // cygwin local file is like "e:/folder/1.mov"
-#elif defined(_MSC_VER)
-	if(strstr(m_url, ":\\") != NULL) // win32 local file is like "e:\folder\1.mov"
-#else
-    if(strncmp(m_url, "/", 1) == 0 || strstr(m_url, "file://") != NULL)
-#endif    
-		m_min_play_buf_count = 1; // m_framerate * FF_PLAYER_MIN_BUFFER_SECONDS_LOCAL_FILE;
+	if (TYPE_LOCAL_FILE == m_sorce_type)  
+		m_min_play_buf_count = 1;
+	else if (TYPE_LIVE == m_sorce_type)
+		m_min_play_buf_count = 25 / 5; // 200 msec for guess
 	else
-		m_min_play_buf_count = 25 * 4;
+		m_min_play_buf_count = 25 * 4; // 4 sec for vod "smooth" play 
 
 	LOGI("setDataSource done");
 	m_status = FFEXTRACTOR_PREPARED;
@@ -395,11 +425,72 @@ status_t FFExtractor::getTrackFormat(int32_t index, MediaFormat *format)
 			strstr(m_fmt_ctx->iformat->name, "mp4") != NULL ||
 			strstr(m_fmt_ctx->iformat->name, "flv") != NULL)
 		{
+			/*
+			bits    
+			8   version ( always 0x01 )
+			8   avc profile ( sps[0][1] )
+			8   avc compatibility ( sps[0][2] )
+			8   avc level ( sps[0][3] )
+			6   reserved ( all bits on )
+			2   NALULengthSizeMinusOne
+			3   reserved ( all bits on )
+			5   number of SPS NALUs (usually 1)
+			repeated once per SPS:
+			  16     SPS size
+			  variable   SPS NALU data
+			8   number of PPS NALUs (usually 1)
+			repeated once per PPS
+			  16    PPS size
+			  variable PPS NALU data
+			*/
+
+			uint8_t *data = c->extradata;
+			LOGI("avc profile 0x%02x", data++);
+			LOGI("avc profile 0x%02x", data++);
+			LOGI("avc compatibility 0x%02x", data++);
+			LOGI("avc level 0x%02x", data++);
+			m_NALULengthSizeMinusOne = (*data & 0x03);
+			LOGI("NALULengthSizeMinusOne %d", m_NALULengthSizeMinusOne);
+			data++;
+			m_num_of_sps = (*data & 0x1F);
+			LOGI("number of SPS NALUs %d", m_num_of_sps);
+			data++;
+			for (int i=0;i<m_num_of_sps;i++) {
+				short sps_len = get_size(data, 2);
+				LOGI("#%d SPS size %d", i, sps_len);
+				data += 2;
+				if (i == 0) {
+					format->csd_0_size	= sps_len + m_NALULengthSizeMinusOne + 1;
+					format->csd_0 = new uint8_t[format->csd_0_size];
+					memcpy(format->csd_0, nalu_header, m_NALULengthSizeMinusOne + 1);
+					memcpy(format->csd_0 + m_NALULengthSizeMinusOne + 1, data, sps_len);
+				}
+				data += sps_len;
+			}
+
+			m_num_of_pps = *data;
+			LOGI("number of PPS NALUs %d", m_num_of_pps);
+			data++;
+			for (int i=0;i<m_num_of_pps;i++) {
+				short pps_len = get_size(data, 2);
+				LOGI("#%d PPS size %d", i, pps_len);
+				data += 2;
+				if (i == 0) {
+					format->csd_1_size	= pps_len + m_NALULengthSizeMinusOne + 1;
+					format->csd_1 = new uint8_t[format->csd_1_size];
+					memcpy(format->csd_1, nalu_header, m_NALULengthSizeMinusOne + 1);
+					memcpy(format->csd_1 + m_NALULengthSizeMinusOne + 1, data, pps_len);
+				}
+				data += pps_len;
+			}
+
+			// old method(NOT compatible with some mp4 file)
+			
+			/*
 			uint8_t unit_nb;
 			const uint8_t *extradata = c->extradata+4;  //jump first 4 bytes
-			static const uint8_t nalu_header[4] = {0, 0, 0, 1};
-			/* retrieve sps and pps unit(s) */  
-			unit_nb = *extradata++ & 0x1f; /* number of sps unit(s) */  
+			// retrieve sps and pps unit(s)  
+			unit_nb = *extradata++ & 0x1f; // number of sps unit(s) 
 			// sps
 			format->csd_0_size	= unit_nb;
 			format->csd_0 = new uint8_t[unit_nb];
@@ -412,6 +503,7 @@ status_t FFExtractor::getTrackFormat(int32_t index, MediaFormat *format)
 			memset(format->csd_1, 0, 9);
 			memcpy(format->csd_1, nalu_header, 4);
 			memcpy(format->csd_1 + 4, extradata + unit_nb + 3, 5);
+			*/
 		}
 		else if (strstr(m_fmt_ctx->iformat->name, "mpegts") != NULL ||
 			strstr(m_fmt_ctx->iformat->name, "hls,applehttp") != NULL) 
@@ -464,7 +556,7 @@ status_t FFExtractor::getTrackFormat(int32_t index, MediaFormat *format)
 			format->csd_1_size	= m_pps_size;
 		}
 		else {
-			LOGE("unsupported media format %s", m_fmt_ctx->iformat->name);
+			LOGE("unsupported media format: %s", m_fmt_ctx->iformat->name);
 			return ERROR;
 		}
 
@@ -598,8 +690,16 @@ status_t FFExtractor::getTrackFormat(int32_t index, MediaFormat *format)
 		}
 	}
 	else if (AVMEDIA_TYPE_SUBTITLE == type) {
-		// to do
 		format->media_type	= PPMEDIA_TYPE_SUBTITLE;
+		format->codec_id		= (int32_t)codec_id;
+	}
+	else if (AVMEDIA_TYPE_DATA == type) {
+		format->media_type	= PPMEDIA_TYPE_DATA;
+		format->codec_id		= (int32_t)codec_id;
+	}
+	else {
+		format->media_type	= PPMEDIA_TYPE_UNKNOWN;
+		format->codec_id		= PPMEDIA_CODEC_ID_NONE;
 	}
 
 	return OK;
@@ -860,13 +960,17 @@ status_t FFExtractor::advance()
 	if (m_video_q.count() == 0 || m_audio_q.count() == 0) {
 		if (m_eof) {
 			LOGI("advance meet eof");
+			m_sample_pkt = NULL;
+			m_sample_track_idx = -1;
 			return OK;
 		}
 
 		m_buffering = true;
 
-		LOGI("notifyListener_l MEDIA_INFO_BUFFERING_START");
-		notifyListener_l(MEDIA_INFO, MEDIA_INFO_BUFFERING_START);
+		if (m_sorce_type != TYPE_LOCAL_FILE) {
+			LOGI("notifyListener_l MEDIA_INFO_BUFFERING_START");
+			notifyListener_l(MEDIA_INFO, MEDIA_INFO_BUFFERING_START);
+		}
 
 		LOGI("start to buffering");
 		while (m_buffering) {
@@ -877,8 +981,10 @@ status_t FFExtractor::advance()
 			}
 		}
 
-		LOGI("notifyListener_l MEDIA_INFO_BUFFERING_END");
-		notifyListener_l(MEDIA_INFO, MEDIA_INFO_BUFFERING_END);
+		if (m_sorce_type != TYPE_LOCAL_FILE) {
+			LOGI("notifyListener_l MEDIA_INFO_BUFFERING_END");
+			notifyListener_l(MEDIA_INFO, MEDIA_INFO_BUFFERING_END);
+		}
 	}
 
 	int64_t video_msec, audio_msec;
@@ -935,7 +1041,7 @@ status_t FFExtractor::advance()
 	LOGD("v_a msec %lld %lld", video_msec, audio_msec);
 #endif
 
-	if (video_msec - audio_msec < VIDOE_POP_AHEAD_MSEC)
+	if (video_msec - audio_msec < m_video_ahead_msec)
 		m_sample_pkt = m_video_q.get();
 	else
 		m_sample_pkt = m_audio_q.get();
@@ -979,20 +1085,27 @@ status_t FFExtractor::readSampleData(unsigned char *data, int32_t *sampleSize)
 	}
 
 	if (m_video_stream_idx == m_sample_pkt->stream_index) {
-		if (m_sample_pkt->data && strncmp((const char *)m_sample_pkt->data, "FLUSH", 5) != 0 && m_pBsfc_h264) {
+		if (strncmp((const char *)m_sample_pkt->data, "FLUSH", 5) != 0 && m_pBsfc_h264) {
+			// ONLY video pkt NEED do this job
+			// flush pkt just copy
+
 			// Apply MP4 to H264 Annex B filter on buffer
 			//int origin_size = m_sample_pkt->size;
 			int isKeyFrame = m_sample_pkt->flags & AV_PKT_FLAG_KEY;
 			av_bitstream_filter_filter(m_pBsfc_h264, m_video_stream->codec, NULL, &m_sample_pkt->data, &m_sample_pkt->size, 
 				m_sample_pkt->data, m_sample_pkt->size, isKeyFrame);
-			//LOGD("readSampleData_flt(video) pkt size %d, outbuf size %d", origin_size, m_sample_pkt->size);
 		}
+
+		// in some case
+		// CANNOT only replace 1st nalu_size to nalu_start_code simplely
+		// because maybe more than 1 nalu units exist in avpacket
+		// SHOULD look up for all nalu units
 
 		memcpy(data, m_sample_pkt->data, m_sample_pkt->size);
 		*sampleSize = m_sample_pkt->size;
 	}
 	else if (m_audio_stream_idx == m_sample_pkt->stream_index) {
-		if (m_sample_pkt->data && strncmp((const char *)m_sample_pkt->data, "FLUSH", 5) != 0 && m_pBsfc_aac) {
+		if (strncmp((const char *)m_sample_pkt->data, "FLUSH", 5) != 0 && m_pBsfc_aac) {
 			// Apply aac adts to asc filter on buffer
 			int isKeyFrame = m_sample_pkt->flags & AV_PKT_FLAG_KEY;
 			//int origin_size = m_sample_pkt->size;
@@ -1014,7 +1127,7 @@ status_t FFExtractor::readSampleData(unsigned char *data, int32_t *sampleSize)
 
 bool FFExtractor::is_packet_valid()
 {
-	return (NULL != m_sample_pkt);
+	return (m_sample_pkt && m_sample_pkt->data);
 }
 
 status_t FFExtractor::getSampleTrackIndex(int32_t *trackIndex)
@@ -1102,11 +1215,8 @@ int FFExtractor::open_codec_context(int *stream_idx, int media_type)
 
 int FFExtractor::open_codec_context_idx(int stream_idx)
 {
-    int ret;
     AVStream *st = NULL;
     AVCodecContext *dec_ctx = NULL;
-    AVCodec *dec = NULL;
-    AVDictionary *opts = NULL;
 
 	if (stream_idx < 0 || stream_idx >= (int)m_fmt_ctx->nb_streams) {
 		LOGE("stream id #%d is invalid, nb_streams %d", stream_idx, m_fmt_ctx->nb_streams);
@@ -1116,22 +1226,9 @@ int FFExtractor::open_codec_context_idx(int stream_idx)
 	st = m_fmt_ctx->streams[stream_idx];
 	st->discard = AVDISCARD_NONE;
 
-    /* find decoder for the stream */
     dec_ctx = st->codec;
+
 	AVMediaType type = dec_ctx->codec_type;
-    dec = avcodec_find_decoder(dec_ctx->codec_id);
-    if (!dec) {
-        LOGE("Failed to find %s codec", av_get_media_type_string(type));
-        return AVERROR(EINVAL);
-    }
-
-    /* Init the decoders, with or without reference counting */
-    av_dict_set(&opts, "refcounted_frames", "1", 0);
-    if ((ret = avcodec_open2(dec_ctx, dec, &opts)) < 0) {
-        LOGE("Failed to open %s codec", av_get_media_type_string(type));
-        return ret;
-    }
-
 	if (AVMEDIA_TYPE_VIDEO == type) {
 		m_video_stream		= st;
 		m_video_stream_idx	= stream_idx;
@@ -1140,27 +1237,22 @@ int FFExtractor::open_codec_context_idx(int stream_idx)
 		if (m_video_dec_ctx->extradata)
 			LOGI("extradata %p, extradata_size %d", m_video_dec_ctx->extradata, m_video_dec_ctx->extradata_size);
 
+		// mpegets format: (00) 00 00 01 nalu_header1 + nalu_payload1 | (00) 00 00 01 nalu_header2 + nalu_payload2
+		// mkv,mp4,flv format: nalu_size1 nalu_header1 + nalu_payload1 | nalu_size2 nalu_header2 + nalu_payload2
 		if (strstr(m_fmt_ctx->iformat->name, "matroska") != NULL ||
 				strstr(m_fmt_ctx->iformat->name, "mp4") != NULL ||
 				strstr(m_fmt_ctx->iformat->name, "flv") != NULL)
 		{
 			// Retrieve required h264_mp4toannexb filter
+			// this filter will do two job:
+			// 1) add sps+pps before IDR(iskeyframe)
+			// 2) replace 4 byte nalu size(big endian) to nalu_start_code (00) 00 00 01
 			m_pBsfc_h264 = av_bitstream_filter_init("h264_mp4toannexb");
 			if (!m_pBsfc_h264) {
 				LOGE("Could not aquire h264_mp4toannexb filter");
 				return ERROR;
 			}
 		}
-
-        // allocate image where the decoded image will be put
-        ret = av_image_alloc(m_video_dst_data, m_video_dst_linesize,
-                             m_video_dec_ctx->width, m_video_dec_ctx->height,
-                             m_video_dec_ctx->pix_fmt, 1);
-        if (ret < 0) {
-            LOGE("Could not allocate raw video buffer");
-			return ERROR;
-        }
-        m_video_dst_bufsize = ret;
 
 		m_framerate = 25;//default
 		AVRational fr;
@@ -1172,9 +1264,6 @@ int FFExtractor::open_codec_context_idx(int stream_idx)
 		}
 
 		LOGI("media framerate: %d", m_framerate);
-
-		if (strncmp(m_url, "/", 1) != 0 && strstr(m_url, "file://") == NULL)  
-			m_min_play_buf_count = m_framerate * 4;
 	}
 	else if (AVMEDIA_TYPE_AUDIO == type) {
 		m_audio_stream		= st;
@@ -1264,12 +1353,6 @@ int FFExtractor::start()
 		return -1;
 	}
 
-	m_frame = av_frame_alloc();
-	if (!m_frame) {
-		LOGE("Could not allocate frame");
-		return -1;
-	}
-
 	pthread_create(&mThread, NULL, demux_thread, this);
 
 	m_buffering = true;
@@ -1280,9 +1363,7 @@ int FFExtractor::start()
 }
 
 void FFExtractor::find_sps_pps(AVPacket *pPacket)
-{
-	static const uint8_t nalu_header[4] = {0x00, 0x00, 0x00, 0x01};
-				
+{		
 	int32_t last_nalu_start = 0;
 	for(int32_t offset=0; offset < pPacket->size; offset++ ) {
 		if (memcmp(pPacket->data + offset, nalu_header, 4) == 0) {
@@ -1326,12 +1407,9 @@ void FFExtractor::thread_impl()
 
 	LOGI("FFExtractor start to demux media");
 	
-	// fix MEDIA_INFO_BUFFERING_END sent before MEDIA_INFO_BUFFERING_START problem
-	//notifyListener_l(MEDIA_INFO, MEDIA_INFO_BUFFERING_START);
-
 	while (1) {
-		if (FFEXTRACTOR_STOPPING == m_status || FFEXTRACTOR_STOPPING ==  m_status) {
-            LOGI("FFExtractor is stopping");
+		if (FFEXTRACTOR_STOPPING == m_status || FFEXTRACTOR_STOPPED ==  m_status) {
+            LOGI("work thead break");
             break;
         }
 
@@ -1390,7 +1468,7 @@ void FFExtractor::thread_impl()
 					pthread_cond_timedwait_relative_np(&mCondition, &mLock, &ts);
 #endif
 					if (FFEXTRACTOR_STOPPING == m_status || m_seeking || m_buffering) {
-						LOGI("buffer too much sleep was interrputed by stoping || seek || buffer");
+						LOGI("buffer too much, sleep was interrputed by stoping || seek || buffer");
 						break;
 					}
 				}
@@ -1416,8 +1494,11 @@ void FFExtractor::thread_impl()
 			// 2014.8.25 guoliangma added, to fix cannot play clip which duration is less than 3sec
 			if (m_buffering) {
 				m_buffering = false;
-				LOGI("MEDIA_INFO_BUFFERING_END because of stream end");
-				notifyListener_l(MEDIA_INFO, MEDIA_INFO_BUFFERING_END);
+
+				if (m_sorce_type != TYPE_LOCAL_FILE) {
+					LOGI("MEDIA_INFO_BUFFERING_END because of stream end");
+					notifyListener_l(MEDIA_INFO, MEDIA_INFO_BUFFERING_END);
+				}
 			}
 
 			// continue for seek back
@@ -1454,12 +1535,14 @@ void FFExtractor::thread_impl()
 			m_video_q.put(pPacket);
 		}
 		else if(pPacket->stream_index == m_audio_stream_idx) {
-			if (!m_video_keyframe_sync) {
+			// 2015.12.14 some clip audio/video packet isn't well interleaved written
+			// cannot simply drop audio packet here!
+			/*if (!m_video_keyframe_sync) {
 				LOGW("drop no sync audio pkt");
 				av_free_packet(pPacket);
 				pPacket = NULL;
 				continue;
-			}
+			}*/
 
 			m_audio_q.put(pPacket);
 
@@ -1489,9 +1572,9 @@ void FFExtractor::thread_impl()
 			LOGE("DetachCurrentThread failed %d", status);
 		}
 	}
-#endif
 
-	LOGI("CurrentThread Detached");
+	LOGI("thread detached");
+#endif
 }
 
 static void ff_log_callback(void* avcl, int level, const char* fmt, va_list vl)
@@ -1526,13 +1609,15 @@ static void ff_log_callback(void* avcl, int level, const char* fmt, va_list vl)
 		case AV_LOG_VERBOSE:
             LOGV("%s", log);
 			break;
+		case AV_LOG_MAX_OFFSET:
+			break;
 		default:
 			LOGI("%s", log);
 			break;
 	}
 }
 
-int aac_decode_extradata(ADTSContext *adts, unsigned char *pbuf, int bufsize)
+static int aac_decode_extradata(ADTSContext *adts, unsigned char *pbuf, int bufsize)
 {
 	int aot, aotext, samfreindex;
 	int channelconfig;
@@ -1571,7 +1656,7 @@ int aac_decode_extradata(ADTSContext *adts, unsigned char *pbuf, int bufsize)
 	return 0;
 }
 
-int aac_set_adts_head(ADTSContext *acfg, unsigned char *buf, int size)
+static int aac_set_adts_head(ADTSContext *acfg, unsigned char *buf, int size)
 {       
 	unsigned char byte;
 
@@ -1601,4 +1686,16 @@ int aac_set_adts_head(ADTSContext *acfg, unsigned char *buf, int size)
 	buf[6] = byte;
 
 	return 0;
+}
+
+static int get_size(uint8_t *s, int len)
+{
+	bigedian_size b_size;
+	memset(&b_size, 0, sizeof(b_size));
+
+	int offset = 0;
+	for (int i=len - 1;i>=0;i--,offset++) {
+		b_size.uc[i] = s[offset];
+	}
+	return b_size.size;
 }

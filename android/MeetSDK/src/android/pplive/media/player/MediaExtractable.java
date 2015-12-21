@@ -5,46 +5,50 @@ import java.nio.ByteBuffer;
 
 import android.media.MediaFormat;
 
-interface MediaExtractable {
+public interface MediaExtractable {
 	
-	boolean advance();
+	public abstract boolean advance();
 	
-	long getCachedDuration();
+	public abstract long getCachedDuration();
 	
-//	boolean getSampleCryptoInfo(MediaCodec.CryptoInfo info);
+//	public abstract boolean getSampleCryptoInfo(MediaCodec.CryptoInfo info);
 	
-	int getSampleFlags();
+	public abstract int getSampleFlags();
 	
-	long getSampleTime();
+	public abstract long getSampleTime();
 	
-	int getSampleTrackIndex();
+	public abstract int getSampleTrackIndex();
 	
-	int getTrackCount();
+	public abstract int getTrackCount();
 	
-	MediaFormat getTrackFormat(int index);
+	public abstract MediaFormat getTrackFormat(int index);
 	
-	boolean hasCachedReachedEndOfStream();
+	public abstract boolean hasCachedReachedEndOfStream();
 	
-	int readSampleData(ByteBuffer byteBuf, int offset);
+	public abstract int readSampleData(ByteBuffer byteBuf, int offset);
 	
-	void release();
+	public abstract void release();
 	
-	void stop();
+	public abstract void stop();
 	
-	void seekTo(long timeUs, int mode);
+	public abstract void seekTo(long timeUs, int mode);
 	
-	void selectTrack(int index);
+	public abstract void selectTrack(int index);
 	
-	void setDataSource(String path) throws IOException;
+	public abstract void setDataSource(String path) throws IOException;
 	
-//	void setDataSource(String path, Map<String, String> headers);
+//	public abstract void setDataSource(String path, Map<String, String> headers);
 	
-//	void setDataSource(FileDescriptor fd);
+//	public abstract void setDataSource(FileDescriptor fd);
 	
-//	void setDataSource(FileDescriptor fd, long offset, long length);
+//	public abstract void setDataSource(FileDescriptor fd, long offset, long length);
 	
-//	void setDataSource(Context context, Uri uri, Map<String, String> headers);
+//	public abstract void setDataSource(Context context, Uri uri, Map<String, String> headers);
 	
-	void unselectTrack(int index);
+	public abstract void unselectTrack(int index);
+	
+	public abstract boolean isSystemExtractor();
+	
+	public abstract void setVideoAhead(int msec);
 
 }

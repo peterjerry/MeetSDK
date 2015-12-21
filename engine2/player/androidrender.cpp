@@ -22,8 +22,9 @@ extern "C" {
 #define LOG_TAG "AndroidRender"
 #include "log.h"
 
+#ifdef USE_SWSCALE
 static int s_swsFlag = SWS_POINT; // high speed
-
+#endif
 extern JavaVM* gs_jvm;
 
 static void saveFrameRGB(void* data, int stride, int height, char* path);
@@ -38,7 +39,11 @@ static int I420ToABGR(const uint8_t* src_y, int src_stride_y,
 #endif
 
 AndroidRender::AndroidRender()
-	:mWindow(NULL), mForceSW(false), mDoOnce(true), mConvertCtx(NULL), mSurfaceFrame(NULL)
+	:mWindow(NULL), mForceSW(false), mDoOnce(true), 
+#ifdef USE_SWSCALE
+	mConvertCtx(NULL),
+#endif
+	mSurfaceFrame(NULL)
 {
 }
 
@@ -186,10 +191,12 @@ bool AndroidRender::render(AVFrame* frame)
 
 void AndroidRender::close()
 {
+#ifdef USE_SWSCALE
 	if (mConvertCtx != NULL) {
 		sws_freeContext(mConvertCtx);
 		mConvertCtx = NULL;
 	}
+#endif
 	if (mSurfaceFrame != NULL) {
 		av_frame_free(&mSurfaceFrame);
 	}
@@ -284,7 +291,7 @@ bool AndroidRender::sws_arm64(AVFrame *frame, ANativeWindow_Buffer *buffer)
 bool AndroidRender::sws_sw(AVFrame *frame, ANativeWindow_Buffer *buffer)
 {
 	LOGD("sws_sw");
-
+#ifdef USE_SWSCALE
 	if (mConvertCtx == NULL) {
 		//just do color format conversion
 		//avoid doing scaling as it cost lots of cpu
@@ -345,6 +352,10 @@ bool AndroidRender::sws_sw(AVFrame *frame, ANativeWindow_Buffer *buffer)
 	}
 
 	return true;
+#else
+	LOGE("swscale NOT built-in, not support sws_sw");
+	return false;
+#endif
 }
 
 #if defined(__aarch64__)

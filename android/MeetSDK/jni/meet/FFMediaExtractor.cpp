@@ -3,12 +3,13 @@
 #include "jniUtils.h"
 #include "player/extractor.h"
 #include "platform/autolock.h"
-#include <stdio.h>
-#include <dlfcn.h> // for dlopen ...
+#include "libplayer.h"
 #define LOG_TAG "JNI-MediaExtractor"
 #include "pplog.h"
+#include <stdio.h>
+#include <dlfcn.h> // for dlopen ...
 
-typedef IExtractor* (*GET_EXTRACTOR_FUN)();
+typedef IExtractor* (*GET_EXTRACTOR_FUN)(void*);
 typedef  void (*RELEASE_EXTRACTOR_FUN)(IExtractor*);
 GET_EXTRACTOR_FUN		getExtractorFun = NULL; // function to NEW ffextractor instance
 RELEASE_EXTRACTOR_FUN	releaseExtractorFun = NULL; // function to DELETE ffextractor instance
@@ -23,47 +24,9 @@ struct fields_t {
 };
 
 static fields_t fields;
+static bool sInited = false;
 
 jobject gs_obj;     // Reference to MediaExtrctor class
-
-/*
- * Throw an exception with the specified class and an optional message.
- *
- * If an exception is currently pending, we log a warning message and
- * clear it.
- *
- * Returns 0 if the specified exception was successfully thrown.  (Some
- * sort of exception will always be pending when this returns.)
- */
-static int jniThrowException(JNIEnv* env, const char* className, const char* msg)
-{
-    jclass exceptionClass;
-
-    if (env->ExceptionCheck()) {
-        /* TODO: consider creating the new exception with this as "cause" */
-        char buf[256];
-
-        jthrowable exception = env->ExceptionOccurred();
-        env->ExceptionClear();
-    }
-
-    exceptionClass = env->FindClass(className);
-    if (exceptionClass == NULL) {
-        PPLOGE("Unable to find exception class %s\n", className);
-        /* ClassNotFoundException now pending */
-        return -1;
-    }
-
-    int result = 0;
-    if (env->ThrowNew(exceptionClass, msg) != JNI_OK) {
-        PPLOGE("Failed throwing '%s' '%s'\n", className, msg);
-        /* an exception, most likely OOM, will now be pending */
-        result = -1;
-    }
-
-    env->DeleteLocalRef(exceptionClass);
-    return result;
-}
 
 // ----------------------------------------------------------------------------
 
@@ -214,74 +177,8 @@ jint android_media_MediaExtractor_getTrackCount(JNIEnv *env, jobject thiz)
 	return -1;
 }
 
-int fill_bytebuffer(JNIEnv *env, jobject thiz, jobject byteBuf, uint8_t* data, uint32_t len)
-{
-	if (data == NULL || len == 0) {
-		PPLOGE("extra data is null");
-		return -1;
-	}
-
-	void *dst = env->GetDirectBufferAddress(byteBuf);
-
-	jlong dstSize;
-	jbyteArray byteArray = NULL;
-
-    if (dst == NULL) {
-        jclass byteBufClass = env->FindClass("java/nio/ByteBuffer");
-        if (byteBufClass == NULL) {
-			PPLOGE("failed to find class: java/nio/ByteBuffer");
-			return -1;
-		}
-
-        jmethodID arrayID =
-            env->GetMethodID(byteBufClass, "array", "()[B");
-        if (arrayID == NULL) {
-			PPLOGE("failed to GetMethodID: array");
-			return -1;
-		}
-
-        byteArray = (jbyteArray)env->CallObjectMethod(byteBuf, arrayID);
-
-        if (byteArray == NULL) {
-            return -1;
-        }
-
-        jboolean isCopy;
-        dst = env->GetByteArrayElements(byteArray, &isCopy);
-
-        dstSize = env->GetArrayLength(byteArray);
-    } else {
-        dstSize = env->GetDirectBufferCapacity(byteBuf);
-    }
-
-	if (len > dstSize) {
-		if (byteArray != NULL) {
-            env->ReleaseByteArrayElements(byteArray, (jbyte *)dst, 0);
-        }
-
-		PPLOGE("dstSize is less than offset %d.%d", dstSize, len);
-        return -1;
-	}
-
-	memcpy(dst, data, len);
-
-	jclass byteBufClass = env->FindClass("java/nio/ByteBuffer");
-    if (byteBufClass == NULL) {
-		PPLOGE("failed to find class: java/nio/ByteBuffer");
-		return -1;
-	}
-	jmethodID limitID = env->GetMethodID(byteBufClass, "limit", "(I)Ljava/nio/Buffer;");
-    if (limitID == NULL) {
-		PPLOGE("failed to GetMethodID: limit");
-		return -1;
-	}
-	env->CallObjectMethod(byteBuf, limitID, len);
-
-	return 0;
-}
-
 jboolean android_media_MediaExtractor_getTrackFormatNative(JNIEnv *env, jobject thiz, jint index, 
-														   jobject mediaformat, jobject buf1, jobject buf2)
+														   jobject mediaformat)
 {
 	PPLOGI("getTrackFormatNative() stream #%d", index);
 
@@ -316,6 +213,9 @@ jboolean android_media_MediaExtractor_getTrackFormatNative(JNIEnv *env, jobject 
 
 	MediaFormat native_format;
 	memset(&native_format, 0, sizeof(native_format));
+	native_format.media_type	= PPMEDIA_TYPE_UNKNOWN;
+	native_format.codec_id		= PPMEDIA_CODEC_ID_NONE;
+
 	status_t stat = extractor->getTrackFormat(index, &native_format);
 	if (stat != OK) {
 		PPLOGE("failed to getTrackFormat #%d", index);
@@ -360,11 +260,17 @@ jboolean android_media_MediaExtractor_getTrackFormatNative(JNIEnv *env, jobject 
 		env->CallVoidMethod(mediaformat, midSetLong, env->NewStringUTF("durationUs"), native_format.duration_us);
 		env->CallVoidMethod(mediaformat, midSetFloat, env->NewStringUTF("frame-rate"), native_format.frame_rate);
 
-		fill_bytebuffer(env, thiz, buf1, native_format.csd_0, native_format.csd_0_size);
-		env->CallVoidMethod(mediaformat, midSetByteBuffer, env->NewStringUTF("csd-0"), buf1); // sps
+		// 2015.12.15 guoliangma fix alloc bytebuffer from c side
+		// Notice local variable is released out of the function scope!
+		uint8_t *csd_0 = (uint8_t *)malloc(native_format.csd_0_size);
+		memcpy(csd_0, native_format.csd_0, native_format.csd_0_size);
+		jobject bb_csd0 = env->NewDirectByteBuffer(csd_0, native_format.csd_0_size);
+		env->CallVoidMethod(mediaformat, midSetByteBuffer, env->NewStringUTF("csd-0"), bb_csd0); // sps
 
-		fill_bytebuffer(env, thiz, buf2, native_format.csd_1, native_format.csd_1_size);
-		env->CallVoidMethod(mediaformat, midSetByteBuffer, env->NewStringUTF("csd-1"), buf2); // pps
+		uint8_t *csd_1 = (uint8_t *)malloc(native_format.csd_1_size);
+		memcpy(csd_1, native_format.csd_1, native_format.csd_1_size);
+		jobject bb_csd1 = env->NewDirectByteBuffer(csd_1, native_format.csd_1_size);
+		env->CallVoidMethod(mediaformat, midSetByteBuffer, env->NewStringUTF("csd-1"), bb_csd1); // pps
 	}
 	else if (PPMEDIA_TYPE_AUDIO == native_format.media_type) {
 		PPLOGI("begin to fill audio media format: chn %d, sample_rate %d", native_format.channels, native_format.sample_rate);
@@ -411,11 +317,23 @@ jboolean android_media_MediaExtractor_getTrackFormatNative(JNIEnv *env, jobject 
 		env->CallVoidMethod(mediaformat, midSetInteger, env->NewStringUTF("sample-rate"), native_format.sample_rate);
 		env->CallVoidMethod(mediaformat, midSetInteger, env->NewStringUTF("bitrate"), native_format.bitrate);
 		env->CallVoidMethod(mediaformat, midSetLong, env->NewStringUTF("durationUs"), native_format.duration_us);
-		fill_bytebuffer(env, thiz, buf1, native_format.csd_0, native_format.csd_0_size);
-		env->CallVoidMethod(mediaformat, midSetByteBuffer, env->NewStringUTF("csd-0"), buf1);
+
+		// 2015.12.15 guoliangma fix alloc bytebuffer from c side
+		// Notice local variable is released out of the function scope!
+		uint8_t *csd_0 = (uint8_t *)malloc(native_format.csd_0_size);
+		memcpy(csd_0, native_format.csd_0, native_format.csd_0_size);
+		jobject bb_csd0 = env->NewDirectByteBuffer(csd_0, native_format.csd_0_size);
+		env->CallVoidMethod(mediaformat, midSetByteBuffer, env->NewStringUTF("csd-0"), bb_csd0); // sps
+	}
+	else if (PPMEDIA_TYPE_SUBTITLE == native_format.media_type) {
+		env->CallVoidMethod(mediaformat, midSetString, env->NewStringUTF("mime"), env->NewStringUTF("subtitle/unknown"));
+	}
+	else if (PPMEDIA_TYPE_DATA == native_format.media_type) {
+		env->CallVoidMethod(mediaformat, midSetString, env->NewStringUTF("mime"), env->NewStringUTF("data/unknown"));
 	}
 	else {
 		PPLOGW("unknown media type: %d" + native_format.media_type);
+		env->CallVoidMethod(mediaformat, midSetString, env->NewStringUTF("mime"), env->NewStringUTF("unknown/unknown"));
 	}
 
 	PPLOGI("getTrackFormatNative #%d all done!", index);
@@ -488,7 +406,7 @@ jint android_media_MediaExtractor_readSampleData(JNIEnv *env, jobject thiz, jobj
 	}
 
 	int sample_size = 0;
-	status_t err = extractor->readSampleData((unsigned char *)dst, &sample_size);
+	status_t err = extractor->readSampleData((unsigned char *)dst + offset, &sample_size);
 
     if (byteArray != NULL) {
         env->ReleaseByteArrayElements(byteArray, (jbyte *)dst, 0);
@@ -506,9 +424,23 @@ jint android_media_MediaExtractor_readSampleData(JNIEnv *env, jobject thiz, jobj
 	return sample_size;
 }
 
+void android_media_MediaExtractor_setVideoAhead(JNIEnv *env, jobject thiz, jint msec)
+{
+	PPLOGI("setVideoAhead()");
+
+	IExtractor* extractor = getMediaExtractor(env, thiz);
+	if (extractor == NULL ) {
+		PPLOGE("failed to get ffextractor");
+		jniThrowException(env, "java/lang/IllegalStateException", "failed to get ffextractor");
+		return;
+	}
+
+	extractor->setVideoAhead(msec);
+}
+
 void android_media_MediaExtractor_stop(JNIEnv *env, jobject thiz)
 {
-	PPLOGI("stop");
+	PPLOGI("stop()");
 
 	IExtractor* extractor = getMediaExtractor(env, thiz);
 	if (extractor == NULL ) {
@@ -575,7 +507,7 @@ void android_media_MediaExtractor_setDataSource(JNIEnv *env, jobject thiz, jstri
 	}
 
 	if (path == NULL) {
-		jniThrowException(env, "java/lang/Exception", "Path is NULL.");
+		jniThrowException(env, "java/io/IOException", "Path is NULL.");
 		PPLOGE("Path is NULL");
 		return;
 	}
@@ -590,7 +522,7 @@ void android_media_MediaExtractor_setDataSource(JNIEnv *env, jobject thiz, jstri
 
 	status_t ret = extractor->setDataSource(pathStr);
 	if (ret != OK) {
-		jniThrowException(env, "java/lang/Exception", "failed to open media");
+		jniThrowException(env, "java/io/IOException", "failed to open media");
 		return;
 	}
 
@@ -611,6 +543,9 @@ void android_media_MediaExtractor_unselectTrack(JNIEnv *env, jobject thiz, jint 
 // static function called when sdk init
 jboolean android_media_MediaExtractor_init(JNIEnv *env, jobject thiz)
 {
+	if (sInited)
+		return true;
+
 	jclass clazz = env->FindClass("android/pplive/media/player/FFMediaExtractor");
 	if (clazz == NULL) {
 		PPLOGE("Can't find android/pplive/media/player/FFMediaExtractor");
@@ -633,6 +568,17 @@ jboolean android_media_MediaExtractor_init(JNIEnv *env, jobject thiz)
 	if (fields.post_event == NULL)
 		jniThrowException(env, "java/lang/RuntimeException", "Can't find XOMediaPlayer.postEventFromNative");
 
+#ifdef BUILD_ONE_LIB
+	getExtractorFun		= getExtractor;
+	releaseExtractorFun	= releaseExtractor;
+#else
+	if (!loadPlayerLib()) {
+		PPLOGE("failed to load player lib");
+		return false;
+	}
+#endif
+
+	sInited = true;
 	return true;
 }
 
@@ -646,7 +592,7 @@ void android_media_MediaExtractor_setup(JNIEnv *env, jobject thiz, jobject weak_
 		return;
 	}
 
-	IExtractor* extractor = getExtractorFun();
+	IExtractor* extractor = getExtractorFun((void*)gPlatformInfo);
 	if (extractor == NULL) {
 		jniThrowException(env, "java/lang/RuntimeException", "Create IExtractor failed.");
 		return;
@@ -667,10 +613,11 @@ static JNINativeMethod gExtractorMethods[] = {
 	{"getSampleTime",       "()J",		(void *)android_media_MediaExtractor_getSampleTime},
 	{"getSampleTrackIndex",       "()I",		(void *)android_media_MediaExtractor_getSampleTrackIndex},
 	{"getTrackCount",       "()I",		(void *)android_media_MediaExtractor_getTrackCount},
-	{"getTrackFormatNative",       "(ILandroid/media/MediaFormat;Ljava/nio/ByteBuffer;Ljava/nio/ByteBuffer;)Z",
+	{"getTrackFormatNative",       "(ILandroid/media/MediaFormat;)Z",
 		(void *)android_media_MediaExtractor_getTrackFormatNative},
 	{"hasCachedReachedEndOfStream",       "()Z",		(void *)android_media_MediaExtractor_hasCachedReachedEndOfStream},
 	{"readSampleData",       "(Ljava/nio/ByteBuffer;I)I",		(void *)android_media_MediaExtractor_readSampleData},
+	{"setVideoAhead",	"(I)V",		(void *)android_media_MediaExtractor_setVideoAhead},
 
 	{"release",       "()V",		(void *)android_media_MediaExtractor_release},
 	{"stop",       "()V",		(void *)android_media_MediaExtractor_stop},

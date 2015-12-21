@@ -371,6 +371,9 @@ AVFormatContext* FFStream::open(char* uri)
 		mMovieFile->max_analyze_duration = AV_TIME_BASE * 10; // 10 sec for wrong header ts(more than 10 sec)
 #endif
 	}
+
+	if (strncmp(uri, "rtmp://", 7) == 0)
+		mMovieFile->flags |= AVFMT_FLAG_NOBUFFER;
 	
 	// Retrieve stream information after disable variant streams, like m3u8
 	if (avformat_find_stream_info(mMovieFile, NULL) < 0) {

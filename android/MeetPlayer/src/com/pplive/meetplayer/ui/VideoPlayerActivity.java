@@ -30,6 +30,7 @@ import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.pplive.common.util.LogUtil;
 import com.pplive.meetplayer.R;
 import com.pplive.meetplayer.ui.widget.MyMediaController;
 import com.pplive.meetplayer.util.FileFilterTest;
@@ -98,17 +99,17 @@ public class VideoPlayerActivity extends Activity implements Callback {
 	@Override
 	public void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
-		Log.i(TAG, "Java: onCreate()");
+		LogUtil.info(TAG, "Java: onCreate()");
 		
 		Intent intent = getIntent();
 		mUri = intent.getData();
-		Log.i(TAG, "Java: mUri " + mUri.toString());
+		LogUtil.info(TAG, "Java: mUri " + mUri.toString());
 		
 		if (intent.hasExtra("impl"))
 			mPlayerImpl = intent.getIntExtra("impl", 0);
 		else
 			mPlayerImpl = Util.readSettingsInt(this, "PlayerImpl");
-		Log.i(TAG, "Java player impl: " + mPlayerImpl);
+		LogUtil.info(TAG, "Java player impl: " + mPlayerImpl);
 		
 		mTitle = intent.getStringExtra("title");
 		mFt = intent.getIntExtra("ft", 0);
@@ -143,7 +144,7 @@ public class VideoPlayerActivity extends Activity implements Callback {
     @Override
 	public boolean onOptionsItemSelected(MenuItem item) {
 		int id = item.getItemId();
-		Log.i(TAG, "Java: onOptionsItemSelected " + id);
+		LogUtil.info(TAG, "Java: onOptionsItemSelected " + id);
 		
 		switch (id) {
 		case R.id.select_player_impl:
@@ -175,7 +176,7 @@ public class VideoPlayerActivity extends Activity implements Callback {
 				mTextViewDebugInfo.setVisibility(View.GONE);
 			break;
 		default:
-			Log.w(TAG, "unknown menu id " + id);
+			LogUtil.warn(TAG, "unknown menu id " + id);
 			break;
 		}
 		
@@ -186,14 +187,14 @@ public class VideoPlayerActivity extends Activity implements Callback {
 	protected void onStart() {
 		super.onStart();
 
-		Log.i(TAG, "Java: onStart");
+		LogUtil.info(TAG, "Java: onStart");
 	}
 	
 	@Override
 	protected void onResume() {
 		super.onResume();
 
-		Log.i(TAG, "Java: onResume");
+		LogUtil.info(TAG, "Java: onResume");
 		
 		setupPlayer();
 	}
@@ -202,7 +203,7 @@ public class VideoPlayerActivity extends Activity implements Callback {
 	protected void onPause() {
 		super.onPause();
 
-		Log.i(TAG, "Java: onPause()");
+		LogUtil.info(TAG, "Java: onPause()");
 
 		mVideoView.pause();
 	}
@@ -211,7 +212,7 @@ public class VideoPlayerActivity extends Activity implements Callback {
 	protected void onStop() {
 		super.onStop();
 
-		Log.i(TAG, "Java: onStop()");
+		LogUtil.info(TAG, "Java: onStop()");
 
 		mVideoView.stopPlayback();
 		stop_subtitle();
@@ -298,7 +299,7 @@ public class VideoPlayerActivity extends Activity implements Callback {
 		.setSingleChoiceItems(player_desc, mPlayerImpl, /*default selection item number*/
 			new DialogInterface.OnClickListener(){
 				public void onClick(DialogInterface dialog, int whichButton){
-					Log.i(TAG, "select player impl: " + whichButton);
+					LogUtil.info(TAG, "select player impl: " + whichButton);
 					
 					if (mPlayerImpl != whichButton) {
 						mPlayerImpl = whichButton;
@@ -345,7 +346,7 @@ public class VideoPlayerActivity extends Activity implements Callback {
 					stop_subtitle();
 					
 					subtitle_filename = sub_folder + "/" + str_file_list[whichButton];
-					Log.i(TAG, "Load subtitle file: " + subtitle_filename);
+					LogUtil.info(TAG, "Load subtitle file: " + subtitle_filename);
 					Toast.makeText(VideoPlayerActivity.this, 
 							"Load subtitle file: " + subtitle_filename, Toast.LENGTH_SHORT).show();
 					start_subtitle(subtitle_filename);
@@ -356,7 +357,7 @@ public class VideoPlayerActivity extends Activity implements Callback {
 	}
 	
 	private boolean start_subtitle(String filename) {
-		Log.i(TAG, "Java: subtitle start_subtitle " + filename);
+		LogUtil.info(TAG, "Java: subtitle start_subtitle " + filename);
 		
 		mSubtitleParser = new SimpleSubTitleParser();
 		mSubtitleParser.setOnPreparedListener(this);
@@ -368,14 +369,14 @@ public class VideoPlayerActivity extends Activity implements Callback {
 	}
 	
 	private void stop_subtitle() {
-		Log.i(TAG, "Java: subtitle stop_subtitle");
+		LogUtil.info(TAG, "Java: subtitle stop_subtitle");
 		
 		if (mIsSubtitleUsed) {
 			mSubtitleStoped = true;
 			mSubtitleThread.interrupt();
 			
 			try {
-				Log.i(TAG, "Java subtitle before join");
+				LogUtil.info(TAG, "Java subtitle before join");
 				mSubtitleThread.join();
 			} catch (InterruptedException e) {
 				// TODO Auto-generated catch block
@@ -389,7 +390,7 @@ public class VideoPlayerActivity extends Activity implements Callback {
 	}
 	
 	protected void setupPlayer() {
-		Log.i(TAG,"Step: setupPlayer()");
+		LogUtil.info(TAG,"Step: setupPlayer()");
 
 		DecodeMode DecMode;
 		switch (mPlayerImpl) {
@@ -406,7 +407,7 @@ public class VideoPlayerActivity extends Activity implements Callback {
 			DecMode = DecodeMode.SW;
 			break;
 		default:
-			Log.w(TAG, String.format("Java: unknown DecodeMode: %d", mPlayerImpl));
+			LogUtil.warn(TAG, String.format("Java: unknown DecodeMode: %d", mPlayerImpl));
 			DecMode = DecodeMode.SW;
 			break;
 		}
@@ -441,7 +442,7 @@ public class VideoPlayerActivity extends Activity implements Callback {
 		}
 
 		if (pre_seek_msec != -1) {
-			Log.i(TAG, "Java: pre seek to " + pre_seek_msec + " msec");
+			LogUtil.info(TAG, "Java: pre seek to " + pre_seek_msec + " msec");
 			
 			mVideoView.seekTo(pre_seek_msec);
 			pre_seek_msec = -1;
@@ -501,7 +502,7 @@ public class VideoPlayerActivity extends Activity implements Callback {
 	
 	private MediaPlayer.OnCompletionListener mCompletionListener = new MediaPlayer.OnCompletionListener() {
 		public void onCompletion(MediaPlayer mp) {
-			Log.i(TAG, "MEDIA_PLAYBACK_COMPLETE");
+			LogUtil.info(TAG, "MEDIA_PLAYBACK_COMPLETE");
 			
 			mVideoView.stopPlayback();
 			onComplete();
@@ -510,7 +511,7 @@ public class VideoPlayerActivity extends Activity implements Callback {
 
 	private MediaPlayer.OnErrorListener mErrorListener = new MediaPlayer.OnErrorListener() {
 		public boolean onError(MediaPlayer mp, int framework_err, int impl_err) {
-			Log.e(TAG, "Error: " + framework_err + "," + impl_err);
+			LogUtil.error(TAG, "Error: " + framework_err + "," + impl_err);
 			
 			mBufferingProgressBar.setVisibility(View.GONE);
 			mVideoView.stopPlayback();
@@ -523,7 +524,7 @@ public class VideoPlayerActivity extends Activity implements Callback {
 		
 		@Override
 		public boolean onInfo(MediaPlayer mp, int what, int extra) {
-			Log.d(TAG, "Java: onInfo: " + what + " " + extra);
+			LogUtil.debug(TAG, "Java: onInfo: " + what + " " + extra);
 			
 			if ((what == MediaPlayer.MEDIA_INFO_BUFFERING_START) && !mIsBuffering) {
 				mBufferingProgressBar.setVisibility(View.VISIBLE);
@@ -594,7 +595,7 @@ public class VideoPlayerActivity extends Activity implements Callback {
 
 		@Override
 		public void onPrepared(MediaPlayer mp) {
-			Log.i(TAG, "Java: OnPrepared");
+			LogUtil.info(TAG, "Java: OnPrepared");
 			mController.show();
 			mVideoWidth = mp.getVideoWidth();
 			mVideoHeight = mp.getVideoHeight();
@@ -631,7 +632,7 @@ public class VideoPlayerActivity extends Activity implements Callback {
 		@Override
 		public boolean onSingleTapConfirmed(MotionEvent e) {
 			
-			Log.i(TAG, "onSingleTapConfirmed!!!");
+			LogUtil.info(TAG, "onSingleTapConfirmed!!!");
 			toggleMediaControlsVisiblity();
 			
 			return true;
@@ -639,14 +640,14 @@ public class VideoPlayerActivity extends Activity implements Callback {
 		
 		@Override
 		public boolean onDoubleTap(MotionEvent event) {
-			Log.i(TAG, "onDoubleTap!!!");
+			LogUtil.info(TAG, "onDoubleTap!!!");
 			switchDisplayMode(1);
 			return true;
 		}
 		
 		@Override
 		public void onLongPress(MotionEvent e) {
-			Log.i(TAG, "onLongPress!!!");
+			LogUtil.info(TAG, "onLongPress!!!");
 		}
 	});
 	
@@ -665,7 +666,7 @@ public class VideoPlayerActivity extends Activity implements Callback {
 	
 	@Override
 	public boolean onTouchEvent(MotionEvent event) {
-		Log.i(TAG, "onTouchEvent(): " + event.toString());
+		LogUtil.info(TAG, "onTouchEvent(): " + event.toString());
 		
 		return mGestureDetector.onTouchEvent(event);
 	}
@@ -673,7 +674,7 @@ public class VideoPlayerActivity extends Activity implements Callback {
 	@Override
 	public boolean onKeyDown(int keyCode, KeyEvent event) {
 		
-		Log.d(TAG, "keyCode: " + keyCode);
+		LogUtil.debug(TAG, "keyCode: " + keyCode);
 		int incr;
 		
 		switch (keyCode) {
@@ -692,7 +693,7 @@ public class VideoPlayerActivity extends Activity implements Callback {
 	
 				int pos = mVideoView.getCurrentPosition();
 				int step = mVideoView.getDuration() / 100 + 1000;
-				Log.i(TAG, String.format("Java pos %d, step %s", pos, step));
+				LogUtil.info(TAG, String.format("Java pos %d, step %s", pos, step));
 				if (step > 30000)
 					step = 30000;
 				pos += (incr * step);
@@ -748,7 +749,7 @@ public class VideoPlayerActivity extends Activity implements Callback {
 	@Override
 	public void onPrepared(boolean success, String msg) {
 		// TODO Auto-generated method stub
-		Log.i(TAG, String.format("Java: subtitle onPrepared() %s, %s", success?"done":"failed", msg));
+		LogUtil.info(TAG, String.format("Java: subtitle onPrepared() %s, %s", success?"done":"failed", msg));
 		
 		if (success) {
 			mSubtitleThread = new Thread(new Runnable(){
@@ -776,12 +777,12 @@ public class VideoPlayerActivity extends Activity implements Callback {
 	@Override
 	public void onSeekComplete() {
 		// TODO Auto-generated method stub
-		Log.i(TAG, "Java: subtitle onSeekComplete");
+		LogUtil.info(TAG, "Java: subtitle onSeekComplete");
 		mSubtitleSeeking = false;
 	}
 	
 	private synchronized void display_subtitle_thr() {
-        Log.i(TAG, "Java: subtitle thread started");
+        LogUtil.info(TAG, "Java: subtitle thread started");
 
         final int SLEEP_MSEC = 50;
         SubTitleSegment seg;
@@ -812,7 +813,7 @@ public class VideoPlayerActivity extends Activity implements Callback {
         	if (isDisplay) {
         		seg = mSubtitleParser.next();
         		if (seg == null) {
-        			Log.e(TAG, "Java: subtitle next_segment is null");
+        			LogUtil.error(TAG, "Java: subtitle next_segment is null");
         			break;
         		}
         		
@@ -820,7 +821,7 @@ public class VideoPlayerActivity extends Activity implements Callback {
                 from_msec = seg.getFromTime();
                 to_msec = seg.getToTime();
                 hold_msec = to_msec - from_msec;
-                Log.i(TAG, String.format("Java: subtitle frome %d, to %d, hold %d, %s", 
+                LogUtil.info(TAG, String.format("Java: subtitle frome %d, to %d, hold %d, %s", 
                 	seg.getFromTime(), seg.getToTime(), hold_msec,
                 	seg.getData()));
                 target_msec = from_msec;
@@ -843,16 +844,16 @@ public class VideoPlayerActivity extends Activity implements Callback {
             	
             	try {
 					wait(SLEEP_MSEC);
-					//Log.d(TAG, "Java: subtitle wait");
+					//LogUtil.debug(TAG, "Java: subtitle wait");
 				} catch (InterruptedException e) {
 					// TODO Auto-generated catch block
-					Log.i(TAG, "Java: subtitle interrupted");
+					LogUtil.info(TAG, "Java: subtitle interrupted");
 					e.printStackTrace();
 					break;
 				}
             }
             
-            Log.i(TAG, "Java: subtitle mSubtitleSeeking: " + mSubtitleSeeking);
+            LogUtil.info(TAG, "Java: subtitle mSubtitleSeeking: " + mSubtitleSeeking);
             if (isDropItem == true) {
         		// drop last subtitle item
         		isDisplay = true;
@@ -874,7 +875,7 @@ public class VideoPlayerActivity extends Activity implements Callback {
         mHandler.sendEmptyMessage(MSG_HIDE_SUBTITLE);
         mSubtitleParser.close();
         mSubtitleParser = null;
-        Log.i(TAG, "Java: subtitle thread exited");
+        LogUtil.info(TAG, "Java: subtitle thread exited");
     }
 	
 	private Handler mHandler = new Handler(){  
@@ -899,7 +900,7 @@ public class VideoPlayerActivity extends Activity implements Callback {
 				mSubtitleTextView.setText("");
 				break;
 			default:
-				Log.w(TAG, "Java: unknown msg.what " + msg.what);
+				LogUtil.warn(TAG, "Java: unknown msg.what " + msg.what);
 				break;
 			}			 
         }

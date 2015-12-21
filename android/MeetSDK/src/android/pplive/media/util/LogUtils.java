@@ -174,7 +174,7 @@ public class LogUtils {
             return "E";
         }
 
-        return "";
+        return "U";
     }
 
     public static String getTag() {

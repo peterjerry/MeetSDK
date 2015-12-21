@@ -7,11 +7,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.StringTokenizer;
 
-import org.jdom2.Document;
-import org.jdom2.Element;
-import org.jdom2.JDOMException;
-import org.jdom2.input.SAXBuilder;
-
 import android.net.Uri;
 import android.pplive.media.player.MediaPlayer.DecodeMode;
 import android.pplive.media.util.DeviceInfoUtil;
@@ -30,14 +25,14 @@ public class PlayerPolicy {
 	
 	public static void setPlayerPolicy(String xml) {
 		LogUtils.info("setPlayerPolicy()");
-		if (xml != null && !xml.isEmpty()) {
+		/*if (xml != null && !xml.isEmpty()) {
 			String tmp = xml;
 			if (tmp.length() > 32)
 				tmp = tmp.substring(0, 32).replace("\n", "");
 			LogUtils.info("setPlayerPolicy xml context: " + tmp);
 			
 			sPlayerPolicy = xml;
-		}
+		}*/
 	}
 
 	public static DecodeMode getDeviceCapabilities(Uri uri) {
@@ -127,6 +122,7 @@ public class PlayerPolicy {
 	}
 	
 	private static boolean is_supported_protocol(String url) {
+		/*
 		SAXBuilder builder = new SAXBuilder();
 		Reader returnQuote = new StringReader(sPlayerPolicy);  
         Document doc;
@@ -153,7 +149,7 @@ public class PlayerPolicy {
 			e.printStackTrace();
 			LogUtils.error("Java: PlayerPolicy xml IOException " + e.getMessage());
 		}
-        
+        */
 		return false;
 	}
 	
@@ -180,7 +176,7 @@ public class PlayerPolicy {
 			if (url.toLowerCase().endsWith("mp4") || url.toLowerCase().endsWith("3gp") || 
 					url.toLowerCase().endsWith("ts") || url.toLowerCase().endsWith("mkv") || 
 					formatName.equals("mpegts")) {
-				if ((null == videoCodecName || videoCodecName.equals("h263") || videoCodecName.equals("h264")) && 
+				if ((null == videoCodecName || videoCodecName.equals("h263") || videoCodecName.equals("h264") || videoCodecName.equals("mpeg4video")) && 
 					(null == audioCodecName || audioCodecName.equals("aac"))) {
 					return DecodeMode.HW_SYSTEM;
 				}
@@ -393,6 +389,7 @@ public class PlayerPolicy {
 	
 	private static DecodeMode getDeviceCapabilitiesCustomized(
 			String url, String formatName, String videoCodecName, String audioCodecName) {
+		/*
 		SAXBuilder builder = new SAXBuilder();
 		Reader returnQuote = new StringReader(sPlayerPolicy);  
         Document doc;
@@ -494,7 +491,8 @@ public class PlayerPolicy {
 			e.printStackTrace();
 			LogUtils.error("Java: PlayerPolicy xml IOException " + e.getMessage());
 		}
-        
+        */
+		
 		return DecodeMode.SW;
 	}
 }

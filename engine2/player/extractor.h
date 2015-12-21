@@ -271,10 +271,12 @@ public:
 
 	virtual status_t stop() = 0;
 
+	virtual status_t setVideoAhead(int32_t msec) = 0;
+
 	virtual ~IExtractor() {}
 };
 
-extern "C" IExtractor* getExtractor();
+extern "C" IExtractor* getExtractor(void *context);
 
 extern "C" void releaseExtractor(IExtractor *extractor);
 

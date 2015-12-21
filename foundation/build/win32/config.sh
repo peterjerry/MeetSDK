@@ -3,13 +3,14 @@
 USER_ROOT=`pwd`
 FFMPEG_HOME=$USER_ROOT/../../foundation_rext
 MS_INT_TYPES_HOME=$USER_ROOT/msinttypes
-PREFIX=$USER_ROOT/../../output/win32
+PREFIX=$USER_ROOT/../../output/win32/$1
 
 if [ ! -n "$1" ] ; then
-	echo "Usage: ${0} full/lite"
+	echo "Usage: ${0} full/lite/micro/tiny/gotye"
 	exit
 fi
 
+echo "PREFIX=$PREFIX"
 cd $FFMPEG_HOME
 
 if [ ${1}x == 'lite'x ]
@@ -22,11 +23,58 @@ EXTRA_FF_BUILD_OPTION="\
 	--enable-demuxer=rm,mpegvideo,mjpeg,avi,h263,h264,hevc,matroska,dts,dtshd,aac,flv,mpegts,mpegps,mp4,m4v,mov,ape,hls,flac,rawvideo,realtext,rtsp,vc1,mp3,wav,asf,ogg \
 	--disable-parsers \
 	--enable-parser=h263,h264,hevc,mpegaudio,mpegvideo,aac_latm,mpeg4video,dca,aac,ac3,eac3,flac,png,bmp,rv30,rv40,cavsvideo,vc1,vorbis,mjpeg,vp3,vp8,vp9,cook "
-PREFIX=$PREFIX/lite
+elif [ ${1}x == 'micro'x ]; then
+echo "micro build"
+EXTRA_FF_BUILD_OPTION="\
+	--disable-decoders \
+	--enable-decoder=h264,aac \
+	--disable-demuxers \
+	--enable-demuxer=h264,mp4,mov,mpegts,flv,hls \
+	--disable-parsers \
+	--enable-parser=h264,aac_latm \
+	--enable-muxer=mpegts,flv,hls \
+	--disable-protocols \
+	--enable-protocol=file,http,rtmp,hls \
+	--disable-filters \
+	--disable-avfilter"
+elif [ ${1}x == 'tiny'x ]; then
+echo "tiny build"
+EXTRA_FF_BUILD_OPTION="\
+	--disable-decoders \
+	--enable-decoder=h264,aac \
+	--disable-demuxers \
+	--enable-demuxer=h264,mp4,mov,mpegts,flv,hls \
+	--disable-parsers \
+	--enable-parser=h264,aac_latm \
+	--disable-protocols \
+	--enable-protocol=file,http,rtmp,hls \
+	--disable-bsfs \
+	--disable-filters \
+	--disable-swscale \
+	--disable-avfilter \
+	--disable-postproc \
+	--enable-small "
+elif [ ${1}x == 'gotye'x ]; then
+echo "gotye build"
+EXTRA_FF_BUILD_OPTION="\
+	--disable-decoders \
+	--disable-demuxers \
+	--enable-demuxer=flv \
+	--disable-parsers \
+	--disable-protocols \
+	--enable-protocol=rtmp \
+	--disable-bsfs \
+	--disable-filters \
+	--disable-swscale \
+	--disable-swresample \
+	--disable-avfilter \
+	--disable-postproc \
+	--enable-small "
 else
 echo "full build"
-PREFIX=$PREFIX/full
 fi
+
+#	--enable-decoder=aac_latm
 
 rm -rf $PREFIX
 
@@ -54,8 +102,18 @@ echo "run configure"
 	--disable-symver $EXTRA_FF_BUILD_OPTION
 
 echo "begin to building..."
+read n
 
+# delete old files
 make clean
+OBJ_FOLDERS="libavutil libavformat libavcodec libswscale libswresample libavfilter compat"
+for OBJ in $OBJ_FOLDERS
+do
+	if [ "`echo $OBJ/*.o`" != "$OBJ/*.o" ]; then
+		rm $OBJ/*.o
+	fi
+done
+
 make -j4 install
 
 echo "copy pdb files..."

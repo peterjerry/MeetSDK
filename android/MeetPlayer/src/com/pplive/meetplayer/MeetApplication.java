@@ -3,9 +3,11 @@ package com.pplive.meetplayer;
 import com.nostra13.universalimageloader.core.ImageLoader;
 import com.nostra13.universalimageloader.core.ImageLoaderConfiguration;
 import com.nostra13.universalimageloader.core.assist.QueueProcessingType;
+import com.nullwire.trace.ExceptionHandler;
 
 import com.pplive.meetplayer.service.MediaScannerService;
 import com.pplive.meetplayer.service.MyHttpService;
+import com.pplive.meetplayer.util.CrashHandler;
 import com.pplive.meetplayer.util.Util;
 
 import android.app.ActivityManager;
@@ -34,6 +36,10 @@ public class MeetApplication extends Application {
            .build();
    
 		ImageLoader.getInstance().init(config);*/
+		
+		ExceptionHandler.register(this, "http://iloveyaya.zz.vc/crash/crash.php"); 
+		 
+        //CrashHandler.getInstance().init(this);
 		
 		IntentFilter filter = new IntentFilter(Intent.ACTION_TIME_TICK); 
 		MyBroadcastReceiver receiver = new MyBroadcastReceiver(); 

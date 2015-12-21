@@ -1,11 +1,10 @@
 #include "log_android.h"
+#include "common.h"
 #include <stdio.h> // for NULL
 
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-extern LogFunc pplog;
 
 int __pp_log_print(int prio, const char *tag,  const char *fmt, ...)
 {

@@ -44,8 +44,8 @@
 	
 	<target name="-symbol">
 		<mkdir dir="${symbol.dir}" />
-		<copy todir="${symbol.dir}/armeabi" overwrite="true" verbose="true">
-			<fileset dir="${obj.dir}/local/armeabi">
+		<copy todir="${symbol.dir}/armeabi-v7a" overwrite="true" verbose="true">
+			<fileset dir="${obj.dir}/local/armeabi-v7a">
 				<filename name="**/*.so" />
 			</fileset>
 		</copy>
@@ -65,7 +65,7 @@
 	<target name="-pre-build" depends="-gen_version, -ndk-build"> 
 	</target> 
 	
-	<target name="-ndk-build"> 
+	<target name="-ndk-build" if="need-build-ndk" > 
 		<condition property="ndk-build-command" value="${NDK_HOME}/ndk-build.cmd" else="ndk-build">
 			<os family="windows" />
 		</condition>
@@ -80,7 +80,15 @@
 		<property name="debug" value="true" />
 	</target>
 	
-	<target name="-post-build">
+	<target name="-set-build-ndk">
+		<property name="need-build-ndk" value="true" />
+	</target>
+	
+	<target name="-set-dist">
+		<property name="need-dist" value="true" />
+	</target>
+	
+	<target name="-post-build" if="need-dist" >
 		<mkdir dir="${output.dir}" />
 		<condition property="jar.filename" value="${bin.dir}/proguard/obfuscated.jar" else="${out.absolute.dir}/classes.jar" >
 			<isfalse value="${debug}" />
@@ -110,15 +118,28 @@
 	
 	<target
         name="debug"
-        depends="-set-custom-debug-mode, android_rules.debug" />
+        depends="-set-dist, -set-custom-debug-mode, -set-build-ndk, android_rules.debug"
+		description="compile c and java source for debug" />
 
     <target
         name="release"
-        depends="android_rules.release, -symbol" />
+        depends="-set-dist, -set-build-ndk, android_rules.release, -symbol"
+		description="compile c and java source, gen symbol file for release" />
+		
+	<target
+        name="java"
+        depends="android_rules.debug"
+		description="compile java source for test" >
+		<copy 
+			file="${out.absolute.dir}/classes.jar" 
+			tofile="../MeetPlayer/libs/MeetSDK.jar"
+			overwrite="true" >
+		</copy>
+	</target>
 	
 	<target name="-pre-clean" >
 		<delete dir="${obj.dir}" />
-		<delete dir="${libs.dir}/armeabi" />
+		<delete dir="${libs.dir}/armeabi-v7a" />
 		<delete dir="${libs.dir}/x86" />
 		<delete dir="${libs.dir}/arm64-v8a" />
 		<delete dir="${output.dir}" />
