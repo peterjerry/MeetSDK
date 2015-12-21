@@ -372,8 +372,8 @@ AVFormatContext* FFStream::open(char* uri)
 #endif
 	}
 
-	//if (strncmp(uri, "rtmp", 4) == 0)
-	//	mMovieFile->flags |= AVFMT_FLAG_NOBUFFER;
+	if (strncmp(uri, "rtmp://", 7) == 0)
+		mMovieFile->flags |= AVFMT_FLAG_NOBUFFER;
 	
 	// Retrieve stream information after disable variant streams, like m3u8
 	if (avformat_find_stream_info(mMovieFile, NULL) < 0) {

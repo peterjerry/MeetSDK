@@ -1061,9 +1061,13 @@ public class XOMediaPlayer extends BaseMediaPlayer {
 				res = mVideoCodec.dequeueOutputBuffer(info, TIMEOUT);
 
 				if (res >= 0) {
-					if (info.size > 0) {
-						noOutputCounter = 0;
-					}
+					// 20151221 guoliang.ma fixed
+					// some device info.size is always 0
+					// will cause play "stucked" after several seconds
+					noOutputCounter = 0;
+					//if (info.size > 0) {
+						//noOutputCounter = 0;
+					//}
 
 					int outputBufIndex = res;
 					boolean render = true;

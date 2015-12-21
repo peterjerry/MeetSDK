@@ -236,6 +236,8 @@ status_t FFExtractor::setVideoAhead(int32_t msec)
 {
 	m_video_ahead_msec = msec;
 	m_min_play_buf_count = m_video_ahead_msec * m_framerate / 1000;
+	LOGI("setVideoAhead() video_ahead_msec %d, min_play_buf_count %d", 
+		m_video_ahead_msec, m_min_play_buf_count);
 	return OK;
 }
 
@@ -321,9 +323,15 @@ status_t FFExtractor::setDataSource(const char *path)
 	m_url = new char[len];
 	strcpy(m_url, path);
 
-	if (strncmp(m_url, "/", 1) == 0 || strncmp(m_url, "file://", 7) == 0)
+#if defined(__CYGWIN__)
+	if (strstr(m_url, ":/") != NULL) // cygwin local file is like "e:/folder/1.mov"
+#elif defined(_MSC_VER)
+	if (strstr(m_url, ":\\") != NULL) // win32 local file is like "e:\folder\1.mov"
+#else
+    if (strncmp(m_url, "/", 1) == 0 || strncmp(m_url, "file://", 7) == 0)
+#endif
 		m_sorce_type = TYPE_LOCAL_FILE;
-	else if(strstr(m_url, "type=pplive"))
+	else if(strstr(m_url, "type=pplive") || strncmp(m_url, "rtmp://", 7) == 0)
 		m_sorce_type = TYPE_LIVE;
 	else
 		m_sorce_type = TYPE_VOD;
@@ -342,8 +350,8 @@ status_t FFExtractor::setDataSource(const char *path)
 
 	m_open_stream_start_msec = 0;
 
-	//if (strncmp(m_url, "rtmp", 4) == 0)
-	//	m_fmt_ctx->flags |= AVFMT_FLAG_NOBUFFER;
+	if (strncmp(m_url, "rtmp://", 7) == 0)
+		m_fmt_ctx->flags |= AVFMT_FLAG_NOBUFFER;
 
 	/* retrieve stream information */
     if (avformat_find_stream_info(m_fmt_ctx, NULL) < 0) {
@@ -359,16 +367,12 @@ status_t FFExtractor::setDataSource(const char *path)
 	/* dump input information to stderr */
 	av_dump_format(m_fmt_ctx, 0, m_url, 0);
 
-#if defined(__CYGWIN__)
-	if(strstr(m_url, ":/") != NULL) // cygwin local file is like "e:/folder/1.mov"
-#elif defined(_MSC_VER)
-	if(strstr(m_url, ":\\") != NULL) // win32 local file is like "e:\folder\1.mov"
-#else
-    if(strncmp(m_url, "/", 1) == 0 || strstr(m_url, "file://") != NULL)
-#endif    
+	if (TYPE_LOCAL_FILE == m_sorce_type)  
 		m_min_play_buf_count = 1;
+	else if (TYPE_LIVE == m_sorce_type)
+		m_min_play_buf_count = 25 / 5; // 200 msec for guess
 	else
-		m_min_play_buf_count = 25 * 4; // 4 sec
+		m_min_play_buf_count = 25 * 4; // 4 sec for vod "smooth" play 
 
 	LOGI("setDataSource done");
 	m_status = FFEXTRACTOR_PREPARED;

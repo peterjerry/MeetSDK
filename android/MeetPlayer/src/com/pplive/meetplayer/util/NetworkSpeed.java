@@ -33,8 +33,8 @@ public class NetworkSpeed {
 		if ((rxDiff != 0) && (txDiff != 0)) {
 			double rxBPS = rxDiff / TimeDifference; // total rx bytes per second.
 			double txBPS = txDiff / TimeDifference; // total tx bytes per second.
-		    LogUtil.info(TAG, String.format("rx %.2f kB/s(Total %.0f)", rxBPS, rxDiff));
-		    LogUtil.info(TAG, String.format("tx %.2f kB/s(Total %.0f)", txBPS, txDiff));
+		    //LogUtil.info(TAG, String.format("rx %.2f kB/s(Total %.0f)", rxBPS, rxDiff));
+		    //LogUtil.info(TAG, String.format("tx %.2f kB/s(Total %.0f)", txBPS, txDiff));
 		    
 		    int []values = new int[2];
 		    values[0] = (int)rxBPS;
