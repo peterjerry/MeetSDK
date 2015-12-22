@@ -8,6 +8,7 @@ BUILD_NATIVEWINDOOW		:= 1
 #BUILD_ONE_LIB			:= 1
 BUILD_FFPLAYER			:= 1
 BUILD_FFEXTRACTOR		:= 1
+#BUILD_OMXPLAYER			:= 1
 
 FDK_AAC_PATH	:= ../../../../foundation/thirdparty/fdk-aac/lib/android/$(TARGET_ARCH_ABI)
 RTMPDUMP_PATH	:= ../../../../foundation/thirdparty/rtmpdump/lib/android/$(TARGET_ARCH_ABI)
@@ -74,6 +75,9 @@ endif
 ifdef BUILD_FFEXTRACTOR
 MY_SRC_PLAYER_FILES 	+= ffextractor.cpp
 endif
+ifdef BUILD_OMXPLAYER
+MY_SRC_PLAYER_FILES 	+= omxplayer.cpp
+endif
 ifdef BUILD_TS_CONVERT
 MY_SRC_PLAYER_FILES 	+= apFormatConverter.cpp
 LOCAL_CFLAGS			+= -DBUILD_TS_CONVERT
@@ -127,6 +131,9 @@ else
 LOCAL_LDLIBS 			:= -llog -lz -landroid -L$(FFMPEG_PATH)/lib
 ifdef BUILD_OSLES
 LOCAL_LDLIBS			+= -lOpenSLES
+endif
+ifdef BUILD_OMXPLAYER
+LOCAL_LDLIBS			+= -lOpenMAXAL
 endif
 endif
 ifdef BUILD_PCM_DUMP

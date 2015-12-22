@@ -6,6 +6,7 @@
 #include "jniUtils.h" // for vstrcat
 #include "FFMediaPlayer.h" // for player
 #include "FFMediaExtractor.h" // for extractor
+#include "OMXMediaPlayer.h" // for omx player
 #include <stdio.h>
 #include <string.h> // for strcasestr
 #include <jni.h>
@@ -164,6 +165,11 @@ bool loadPlayerLib()
 
 #ifdef BUILD_FFEXTRACTOR
 	if (!setup_extractor(*player_handle))
+		return false;
+#endif
+
+#ifdef BUILD_OMXPLAYER
+	if (!setup_omxplayer(*player_handle))
 		return false;
 #endif
 

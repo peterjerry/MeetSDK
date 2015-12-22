@@ -12,6 +12,7 @@ import android.net.Uri;
 import android.os.Message;
 import android.pplive.media.player.MediaPlayer.DecodeMode;
 import android.pplive.media.subtitle.SimpleSubTitleParser;
+import android.pplive.media.util.LogUtils;
 import android.view.Surface;
 import android.view.SurfaceHolder;
 
@@ -19,6 +20,22 @@ public class OMXMediaPlayer extends BaseMediaPlayer {
 
 	private long mNativeContext; // ISubtitle ctx, accessed by native methods
 	private long mListenerContext; // accessed by native methods
+	private static String libPath = "";
+	
+	public static boolean initPlayer(String path) {
+		LogUtils.info("initPlayer()");
+		
+		if (path != null)
+			libPath = path;
+		
+		boolean ret = native_init();
+		if (!ret) {
+			LogUtils.error("failed to init native omx player");
+			return false;
+		}
+		
+		return ret;
+	}
 	
 	public OMXMediaPlayer(MediaPlayer mp) {
 		super(mp);
@@ -116,33 +133,9 @@ public class OMXMediaPlayer extends BaseMediaPlayer {
 	}
 
 	@Override
-	public void start() throws IllegalStateException {
-		// TODO Auto-generated method stub
-		
-	}
-
-	@Override
-	public void stop() throws IllegalStateException {
-		// TODO Auto-generated method stub
-		
-	}
-
-	@Override
-	public void pause() throws IllegalStateException {
-		// TODO Auto-generated method stub
-		
-	}
-
-	@Override
 	public void reset() {
 		// TODO Auto-generated method stub
 		
-	}
-
-	@Override
-	public boolean isLooping() {
-		// TODO Auto-generated method stub
-		return false;
 	}
 
 	@Override
@@ -221,7 +214,22 @@ public class OMXMediaPlayer extends BaseMediaPlayer {
 		}
 	}
 	
+	private static native final boolean native_init();
+	
 	private native final void native_setup(Object mediaplayer_this);
+	
+	@Override
+	public native void start() throws IllegalStateException;
+	
+	@Override
+	public native void stop() throws IllegalStateException;
+	
+	@Override
+	public native void pause() throws IllegalStateException;
+	
+	//Seeks to specified time position in milliseconds
+	@Override
+	public native void seekTo(int msec) throws IllegalStateException;
 	
 	//Returns the width of the video.
 	@Override
@@ -247,9 +255,9 @@ public class OMXMediaPlayer extends BaseMediaPlayer {
 	//return true if currently playing, false otherwise
 	@Override
 	public native boolean isPlaying() throws IllegalStateException;
-
-	//Seeks to specified time position in milliseconds
-	public native void seekTo(int msec) throws IllegalStateException;
+	
+	@Override
+	public native boolean isLooping() throws IllegalStateException;
 	
 	@Override
 	public native void setOption(String option);

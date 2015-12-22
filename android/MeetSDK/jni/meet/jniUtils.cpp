@@ -7,6 +7,9 @@
 #ifdef BUILD_FFEXTRACTOR
 #include "FFMediaExtractor.h"
 #endif
+#ifdef BUILD_OMXPLAYER
+#include "OMXMediaPlayer.h"
+#endif
 #include "libplayer.h"
 #include "platform/platforminfo.h"
 #include "platform/autolock.h" // for pthread
@@ -107,6 +110,13 @@ jint JNI_OnLoad(JavaVM* vm, void* reserved)
 	}
 #endif
 
+#ifdef BUILD_OMXPLAYER
+	if (register_android_media_omxplayer(env) < 0) {
+		AND_LOGE("ERROR: omxplayer native registration failed");
+		goto bail;
+	}
+#endif
+
 	pthread_mutex_init(&sLock, NULL);
 
 	//save jvm for multiple thread invoking to java application.
@@ -128,7 +138,7 @@ bail:
 void JNI_OnUnload(JavaVM* vm, void* reserved)
 {
 	PPLOGI("JNI_OnUnload");
-#if defined(BUILD_FFPLAYER) || defined(BUILD_FFEXTRACTOR)
+#if defined(BUILD_FFPLAYER) || defined(BUILD_FFEXTRACTOR) || defined(BUILD_OMXPLAYER)
 	unloadPlayerLib();
 #endif
 
