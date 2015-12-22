@@ -34,7 +34,12 @@ case $1 in
 		EXTRA_CFLAGS="-march=i686 -msse4"
 		#  -DANDROID -DPIC -fpic  -std=c99
 		#EXTRA_LDFLAGS="-Lthirdparty/lenthevcdec/lib/x86"
-		EXTRA_PARAMETERS="--cpu=$CPU --disable-debug --disable-fast-unaligned"
+		EXTRA_PARAMETERS="--cpu=$CPU --disable-fast-unaligned"
+		;;
+	armeabi)
+		ARCH=arm
+		EXTRA_CFLAGS="-march=armv5te -mtune=arm9tdmi -msoft-float"
+		EXTRA_PARAMETERS="--disable-fast-unaligned --disable-armv6 --disable-armv6t2 --disable-neon"
 		;;
 	armeabi-v7a)
 		ARCH=arm
@@ -42,18 +47,18 @@ case $1 in
 		EXTRA_CFLAGS="-mfloat-abi=softfp -mfpu=neon -mtune=cortex-a8 -mvectorize-with-neon-quad"
 		# -mthumb to fix hevc image problem
 		EXTRA_LDFLAGS="-Wl,--fix-cortex-a8 -Lthirdparty/lenthevcdec/lib/armeabi-v7a"
-		EXTRA_PARAMETERS="--cpu=$CPU --disable-debug --disable-fast-unaligned --disable-armv6 --disable-armv6t2"
+		EXTRA_PARAMETERS="--cpu=$CPU --disable-fast-unaligned --disable-armv6 --disable-armv6t2"
 		;;
 	arm64-v8a)
 		ARCH=arm64
-		EXTRA_PARAMETERS="--disable-debug --disable-fast-unaligned --disable-armv6 --disable-armv6t2"
+		EXTRA_PARAMETERS="--disable-fast-unaligned --disable-armv6 --disable-armv6t2"
 		;;
 	neon_lgpl)
 		ARCH=arm
 		CPU=armv7-a
 		EXTRA_CFLAGS="-mfloat-abi=softfp -mfpu=neon -mtune=cortex-a8 -mvectorize-with-neon-quad"
 		EXTRA_LDFLAGS="-Wl,--fix-cortex-a8"
-		EXTRA_PARAMETERS="--cpu=$CPU --disable-debug --disable-fast-unaligned --disable-protocols --enable-protocol=http --enable-protocol=hls --enable-protocol=file --disable-parser=dca --disable-demuxer=dts --disable-decoder=dca --disable-parser=ac3 --disable-demuxer=ac3 --disable-decoder=ac3 --disable-demuxer=eac3 --disable-decoder=eac3 --enable-muxer=hls"
+		EXTRA_PARAMETERS="--cpu=$CPU --disable-fast-unaligned --disable-protocols --enable-protocol=http --enable-protocol=hls --enable-protocol=file --disable-parser=dca --disable-demuxer=dts --disable-decoder=dca --disable-parser=ac3 --disable-demuxer=ac3 --disable-decoder=ac3 --disable-demuxer=eac3 --disable-decoder=eac3 --enable-muxer=hls"
 		;;
 	neon_debug)
 		ARCH=arm
@@ -67,25 +72,25 @@ case $1 in
 		CPU=armv7-a
 		EXTRA_CFLAGS="-mfloat-abi=softfp -mfpu=neon -mtune=cortex-a8 -mvectorize-with-neon-quad"
 		EXTRA_LDFLAGS="-Wl,--fix-cortex-a8"
-		EXTRA_PARAMETERS="--cpu=$CPU --disable-debug --disable-fast-unaligned --disable-protocols --enable-protocol=http --disable-demuxers --enable-demuxer=mov --enable-demuxer=hls --enable-demuxer=mpegts --disable-bsfs --enable-bsf=aac_adtstoasc --enable-bsf=h264_mp4toannexb --disable-parsers  --enable-parser=h264 --enable-parser=aac --disable-decoders --enable-decoder=h264 --enable-decoder=aac"
+		EXTRA_PARAMETERS="--cpu=$CPU --disable-fast-unaligned --disable-protocols --enable-protocol=http --disable-demuxers --enable-demuxer=mov --enable-demuxer=hls --enable-demuxer=mpegts --disable-bsfs --enable-bsf=aac_adtstoasc --enable-bsf=h264_mp4toannexb --disable-parsers  --enable-parser=h264 --enable-parser=aac --disable-decoders --enable-decoder=h264 --enable-decoder=aac"
 		;;
 	tegra2)
 		ARCH=arm
 		CPU=armv7-a
 		EXTRA_CFLAGS="-mfloat-abi=softfp -mfpu=vfpv3-d16"
-		EXTRA_PARAMETERS="--cpu=$CPU --disable-debug --disable-fast-unaligned --disable-protocols --enable-protocol=http --enable-protocol=hls --enable-protocol=file"
+		EXTRA_PARAMETERS="--cpu=$CPU --disable-fast-unaligned --disable-protocols --enable-protocol=http --enable-protocol=hls --enable-protocol=file"
 		;;
 	v6_vfp)
 		ARCH=arm
 		CPU=armv6
 		EXTRA_CFLAGS="-mfloat-abi=softfp -mfpu=vfp"
-		EXTRA_PARAMETERS="--cpu=$CPU --disable-debug --disable-fast-unaligned --disable-protocols --enable-protocol=http --enable-protocol=hls --enable-protocol=file"
+		EXTRA_PARAMETERS="--cpu=$CPU --disable-fast-unaligned --disable-protocols --enable-protocol=http --enable-protocol=hls --enable-protocol=file"
 		;;
 	v6_vfp_cut)
 		ARCH=arm
 		CPU=armv6
 		EXTRA_CFLAGS="-mfloat-abi=softfp -mfpu=vfp"
-		EXTRA_PARAMETERS="--cpu=$CPU --disable-debug --disable-fast-unaligned --disable-protocols --enable-protocol=http --enable-protocol=file --disable-demuxers --enable-demuxer=mov --enable-demuxer=hls --enable-demuxer=mpegts --disable-bsfs --enable-bsf=aac_adtstoasc --enable-bsf=h264_mp4toannexb --disable-parsers  --enable-parser=h264 --enable-parser=aac --disable-decoders --enable-decoder=h264 --enable-decoder=aac"
+		EXTRA_PARAMETERS="--cpu=$CPU --disable-fast-unaligned --disable-protocols --enable-protocol=http --enable-protocol=file --disable-demuxers --enable-demuxer=mov --enable-demuxer=hls --enable-demuxer=mpegts --disable-bsfs --enable-bsf=aac_adtstoasc --enable-bsf=h264_mp4toannexb --disable-parsers  --enable-parser=h264 --enable-parser=aac --disable-decoders --enable-decoder=h264 --enable-decoder=aac"
 		;;
 	*)
 		echo Unknown target: $1
@@ -247,33 +252,34 @@ do
 done
 
 ./configure \
---prefix=$PREFIX \
---arch=$ARCH \
---target-os=linux \
---enable-optimizations \
---enable-cross-compile \
---cross-prefix=$CROSS_PREFIX \
---sysroot=$SYSROOT \
---extra-cflags="-DNDEBUG -mandroid -ftree-vectorize -ffunction-sections -funwind-tables -fomit-frame-pointer -funswitch-loops -finline-limit=300 -finline-functions -fpredictive-commoning -fgcse-after-reload -fipa-cp-clone $EXTRA_CFLAGS" \
---extra-ldflags="$EXTRA_LDFLAGS" \
---optflags="$OPTFLAGS" \
---enable-zlib \
---enable-pic \
---disable-doc \
---disable-symver \
---disable-ffmpeg \
---disable-ffplay \
---disable-ffprobe \
---disable-ffserver \
---disable-avdevice \
---disable-postproc \
---disable-swscale-alpha \
---disable-encoders \
---disable-muxers \
---disable-devices \
---disable-filters \
---disable-vfp \
-$EXTRA_PARAMETERS
+	--prefix=$PREFIX \
+	--arch=$ARCH \
+	--target-os=linux \
+	--disable-debug \
+	--enable-optimizations \
+	--enable-cross-compile \
+	--cross-prefix=$CROSS_PREFIX \
+	--sysroot=$SYSROOT \
+	--extra-cflags="-DNDEBUG -mandroid -ftree-vectorize -ffunction-sections -funwind-tables -fomit-frame-pointer -funswitch-loops -finline-limit=300 -finline-functions -fpredictive-commoning -fgcse-after-reload -fipa-cp-clone $EXTRA_CFLAGS" \
+	--extra-ldflags="$EXTRA_LDFLAGS" \
+	--optflags="$OPTFLAGS" \
+	--enable-zlib \
+	--enable-pic \
+	--disable-doc \
+	--disable-symver \
+	--disable-ffmpeg \
+	--disable-ffplay \
+	--disable-ffprobe \
+	--disable-ffserver \
+	--disable-avdevice \
+	--disable-postproc \
+	--disable-swscale-alpha \
+	--disable-encoders \
+	--disable-muxers \
+	--disable-devices \
+	--disable-filters \
+	--disable-vfp \
+	$EXTRA_PARAMETERS
 
 #--cpu=$CPU \
 
