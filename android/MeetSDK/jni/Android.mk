@@ -28,7 +28,7 @@ LOCAL_SRC_FILES := $(JNI_BASE)/pplog.cpp
 LOCAL_MODULE := pplog
 include $(BUILD_STATIC_LIBRARY)
 
-########################[libffplayer_neon]########################
+########################[libffplayer]########################
 include $(CLEAR_VARS)
 #ifeq ($(NDK_DEBUG),1)
 MY_SO_PREFIX := debug/
@@ -37,8 +37,8 @@ MY_SO_PREFIX := debug/
 #endif
 
 ifdef BUILD_ONE_LIB
-LOCAL_SRC_FILES := ../$(ENGINE_BASE)/output/android/$(TARGET_ARCH_ABI)/$(MY_SO_PREFIX)libplayer_neon.a
-LOCAL_MODULE := player_neon
+LOCAL_SRC_FILES := ../$(ENGINE_BASE)/output/android/$(TARGET_ARCH_ABI)/$(MY_SO_PREFIX)libplayer.a
+LOCAL_MODULE := player
 include $(PREBUILT_STATIC_LIBRARY)
 
 include $(CLEAR_VARS)
@@ -67,8 +67,8 @@ LOCAL_SRC_FILES := $(X264_PATH)/libx264.a
 include $(PREBUILT_STATIC_LIBRARY)
 
 else
-LOCAL_SRC_FILES := ../$(ENGINE_BASE)/output/android/$(TARGET_ARCH_ABI)/$(MY_SO_PREFIX)libplayer_neon.so
-LOCAL_MODULE := player_neon
+LOCAL_SRC_FILES := ../$(ENGINE_BASE)/output/android/$(TARGET_ARCH_ABI)/$(MY_SO_PREFIX)libplayer.so
+LOCAL_MODULE := player
 include $(PREBUILT_SHARED_LIBRARY)
 endif
 
@@ -99,7 +99,7 @@ LOCAL_SRC_FILES 		:= $(addprefix $(JNI_BASE)/, $(MY_SRC_FILES))
 LOCAL_STATIC_LIBRARIES 	:= pplog cpufeatures
 LOCAL_LDLIBS 			:= -llog
 ifdef BUILD_ONE_LIB
-LOCAL_STATIC_LIBRARIES 	+= player_neon ffmpeg fdk-aac x264 ssl crypto
+LOCAL_STATIC_LIBRARIES 	+= player ffmpeg fdk-aac x264 ssl crypto
 LOCAL_LDLIBS 			+= -lz -landroid -lOpenSLES -L../$(ENGINE_BASE)/output/android/$(TARGET_ARCH_ABI)/$(MY_SO_PREFIX) \
 	-L$(FFMPEG_PATH)/lib -L$(FDK_AAC_PATH) -L$(RTMPDUMP_PATH) -L$(X264_PATH)
 endif

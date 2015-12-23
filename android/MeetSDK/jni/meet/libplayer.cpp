@@ -25,9 +25,9 @@ static void* player_handle_software = NULL;
 
 static const char* getCodecLibName(uint64_t cpuFeatures)
 {
-#if defined(__aarch64__)
-	return "libplayer_neon.so";
-#else
+	return "libplayer.so";
+
+	/*
 	const char* codecLibName = NULL;
 	
 	PPLOGI("android_getCpuFamily %d", android_getCpuFamily());
@@ -38,7 +38,7 @@ static const char* getCodecLibName(uint64_t cpuFeatures)
 	if (occ) {
 		// x86 arch
 		PPLOGI("the device is x86 platform");
-		codecLibName = "libplayer_neon.so";
+		codecLibName = "libplayer.so";
 		return codecLibName;
 	}
 
@@ -54,12 +54,12 @@ static const char* getCodecLibName(uint64_t cpuFeatures)
 		PPLOGI("the device supports v7_vfpv3d16");
 		codecLibName = "libplayer_tegra2.so";
 	}
-	/*else if ((cpuFeatures & ANDROID_CPU_ARM_FEATURE_VFP) != 0)
+	else if ((cpuFeatures & ANDROID_CPU_ARM_FEATURE_VFP) != 0)
 	{
 		//armv6_vfp
 		PPLOGI("the device supports armv6_vfp");
 		codecLibName = "libplayer_v6_vfp.so";
-	}*/
+	}
 	else if((cpuFeatures & ANDROID_CPU_ARM_FEATURE_LDREX_STREX) != 0)
 	{
 		//armv6
@@ -73,8 +73,7 @@ static const char* getCodecLibName(uint64_t cpuFeatures)
 		codecLibName = "libplayer_v5te.so";
 	}
 
-	return codecLibName;
-#endif
+	return codecLibName;*/
 }
 
 static
@@ -106,7 +105,7 @@ bool loadPlayerLib()
 	if (*player_handle == NULL) {
 		PPLOGI("using ffplay");
 		uint64_t cpuFeatures = android_getCpuFeatures();
-		const char* libName = getCodecLibName(cpuFeatures); //libplayer_neon.so
+		const char* libName = getCodecLibName(cpuFeatures); //libplayer.so
 
 		do {
 			//0. try to load from specified lib path

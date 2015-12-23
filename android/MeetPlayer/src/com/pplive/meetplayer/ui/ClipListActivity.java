@@ -2826,7 +2826,7 @@ public class ClipListActivity extends Activity implements
 	@Override
 	public void onPrepared(MediaPlayer mp) {
 		// TODO Auto-generated method stub
-		LogUtil.info(TAG, "onPrepared");
+		LogUtil.info(TAG, "Java: onPrepared");
 		
 		render_frame_num = 0;
 		decode_drop_frame = 0;
@@ -2922,7 +2922,7 @@ public class ClipListActivity extends Activity implements
 	@Override
 	public void onVideoSizeChanged(MediaPlayer mp, int w, int h) {
 		// TODO Auto-generated method stub
-		LogUtil.info(TAG, String.format("onVideoSizeChanged(%d %d)", w, h));
+		LogUtil.info(TAG, String.format("Java: onVideoSizeChanged(%d %d)", w, h));
 		
 		if (w == 0 || h == 0) {
 			mVideoWidth		= 640;
