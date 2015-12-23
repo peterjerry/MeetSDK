@@ -388,11 +388,11 @@ public class XOMediaPlayer extends BaseMediaPlayer {
 
 			if (format.containsKey("csd-0")) {
 				ByteBuffer bb = format.getByteBuffer("csd-0");
-				LogUtils.info("Java: MediaFormat csd-0(0): " + bb.toString());
+				LogUtils.info("Java: MediaFormat csd-0(a): " + bb.toString());
 				byte[] content = new byte[bb.limit()];
 				bb.get(content);
 				bb.rewind();
-				LogUtils.info("Java: MediaFormat csd-0(1): "
+				LogUtils.info("Java: MediaFormat csd-0(b): "
 						+ content.toString());
 				StringBuffer sbHex = new StringBuffer();
 				StringBuffer sbInt = new StringBuffer();
@@ -400,16 +400,16 @@ public class XOMediaPlayer extends BaseMediaPlayer {
 					sbHex.append(String.format("0x%02x ", content[j]));
 					sbInt.append(String.format("%d, ", content[j]));
 				}
-				LogUtils.info("Java: MediaFormat csd-0(2): hex: "
+				LogUtils.info("Java: MediaFormat csd-0(c): hex: "
 						+ sbHex.toString());
 			}
 			if (format.containsKey("csd-1")) {
 				ByteBuffer bb = format.getByteBuffer("csd-1");
-				LogUtils.info("Java: MediaFormat csd-1(0): " + bb.toString());
+				LogUtils.info("Java: MediaFormat csd-1(a): " + bb.toString());
 				byte[] content = new byte[bb.limit()];
 				bb.get(content);
 				bb.rewind();
-				LogUtils.info("Java: MediaFormat csd-1(1): "
+				LogUtils.info("Java: MediaFormat csd-1(b): "
 						+ content.toString());
 				StringBuffer sbHex = new StringBuffer();
 				StringBuffer sbInt = new StringBuffer();
@@ -417,8 +417,12 @@ public class XOMediaPlayer extends BaseMediaPlayer {
 					sbHex.append(String.format("0x%02x ", content[j]));
 					sbInt.append(String.format("%d, ", content[j]));
 				}
-				LogUtils.info("Java: MediaFormat csd-1(2): hex: "
+				LogUtils.info("Java: MediaFormat csd-1(c): hex: "
 						+ sbHex.toString());
+			}
+			if (format.containsKey("csd-2")) {
+				ByteBuffer bb = format.getByteBuffer("csd-2");
+				LogUtils.info("Java: MediaFormat csd-2(a): " + bb.toString());
 			}
 
 			String mime = format.getString(MediaFormat.KEY_MIME);
@@ -1631,18 +1635,21 @@ public class XOMediaPlayer extends BaseMediaPlayer {
 
 	@Override
 	public void release() {
-		mLock.lock();
+		super.release();
+		
 		LogUtils.info("release()");
-
+		
+		mLock.lock();
 		stayAwake(false);
-
 		release_l();
 		mLock.unlock();
 	}
 
 	private void release_l() {
 		LogUtils.info("release_l()");
-
+		
+		reset();
+		
 		removeAllEvents();
 		LogUtils.info("after removeAllEvents()");
 
@@ -1689,8 +1696,16 @@ public class XOMediaPlayer extends BaseMediaPlayer {
 	}
 
 	@Override
-	public final void reset() {
-
+	public void reset() {
+		stayAwake(false);
+		
+		PlayState state = getState();
+		if (state != PlayState.IDLE && state != PlayState.INITIALIZED)
+			stop();
+		
+		removeAllEvents();
+		
+		setState(PlayState.IDLE);
 	}
 
 	@Override

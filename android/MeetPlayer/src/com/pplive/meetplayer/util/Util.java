@@ -1,14 +1,20 @@
 package com.pplive.meetplayer.util;
 
 import java.io.BufferedReader;
+import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
+import java.io.FileReader;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.io.UnsupportedEncodingException;
+import java.io.Writer;
 import java.net.InetAddress;
 import java.net.NetworkInterface;
 import java.net.SocketException;
@@ -46,6 +52,16 @@ import com.pplive.sdk.MediaSDK;
 public class Util {
 	private final static String TAG = "Util";
 	
+	public static final String player_log_path = 
+			Environment.getExternalStorageDirectory().getAbsolutePath() + 
+			"/meetplayer/player.log";
+	public static final String log_path = 
+			Environment.getExternalStorageDirectory().getAbsolutePath() + 
+			"/meetplayer/meetplayer.log";
+	public static final String upload_log_path = 
+			Environment.getExternalStorageDirectory().getAbsolutePath() + 
+			"/meetplayer/upload.log";
+	
 	private final static String PREF_NAME = "settings";
 	
     private final static int ONE_KILOBYTE 	= 1024;
@@ -53,6 +69,13 @@ public class Util {
 	private final static int ONE_GIGABYTE 	= (ONE_MAGABYTE * ONE_KILOBYTE);
 	
 	private static PPTVPlayhistoryDatabaseHelper mHistoryDB;
+	
+	public static boolean initLog(Context ctx) {
+		String log_folder = ctx.getCacheDir().getParent();
+		LogUtil.init(log_path, log_folder);
+		
+		return true;
+	}
 	
 	public static boolean startP2PEngine(Context context) {
 		Log.d("Util", "startP2PEngine()");
@@ -116,7 +139,7 @@ public class Util {
 		}
 		
 		MeetSDK.setLogPath(
-				ctx.getCacheDir().getAbsolutePath() + "/meetplayer.log", 
+				player_log_path, 
 				ctx.getCacheDir().getParentFile().getAbsolutePath() + "/");
 		// /data/data/com.svox.pico/
 		return MeetSDK.initSDK(ctx, "");
@@ -473,6 +496,108 @@ public class Util {
 			e.printStackTrace();
 
 		}
+	}
+	
+	/**
+	 * 
+	 * @param ex
+	 * 将崩溃写入文件系统
+	 */
+	public static void makeUploadLog(String stacktrace) {
+		Log.i(TAG, "Java: makeUploadLog()");
+		
+		StringBuffer sb = new StringBuffer();
+		if (stacktrace != null)
+			sb.append(stacktrace);
+		
+		LogUtil.makeUploadLog();
+		MeetSDK.makePlayerlog();
+		
+		BufferedReader bf1 = null;
+		BufferedReader bf2 = null;
+		String content = null;
+		try {
+			sb.append("==============MeetSDK log==============\n");
+			
+			File file = new File(Util.player_log_path);
+			if (file.exists()) {
+				bf1 = new BufferedReader(new FileReader(file));
+				while (true) {
+					content = bf1.readLine();
+					if (content == null)
+						break;
+					
+					sb.append(content);
+					sb.append("\n");
+				}
+			}
+			
+			sb.append("==============MeetPlayer log==============\n");
+			
+			File file2 = new File(Util.log_path);
+			if (file2.exists()) {
+				bf2 = new BufferedReader(new FileReader(file2));
+				while (true) {
+					content = bf2.readLine();
+					if (content == null)
+						break;
+					
+					sb.append(content);
+					sb.append("\n");
+				}
+			}
+
+			writeLog(sb.toString(), Util.upload_log_path);
+		} catch (FileNotFoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} finally {
+			try {
+				if (bf1 != null) {
+					bf1.close();
+				}
+				if (bf2 != null) {
+					bf2.close();
+				}
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		}
+	}
+	
+	/**
+	 * 
+	 * @param log
+	 * @param name
+	 * @return 返回写入的文件路径
+	 * 写入Log信息的方法，写入到SD卡里面
+	 */
+	private static boolean writeLog(String log, String filename) {
+		File file = new File(filename);
+		
+		if (!file.getParentFile().exists())
+			file.getParentFile().mkdirs();
+			
+		try  {
+			file.createNewFile();
+			FileWriter fw = new FileWriter(file, false);   
+			BufferedWriter bw = new BufferedWriter(fw);
+			//写入相关Log到文件
+			bw.write(log);
+			bw.newLine();
+			bw.close();
+			fw.close();
+			return true;
+		} catch (IOException e) {
+			Log.e(TAG, "an error occured while writing file: " + e);
+			e.printStackTrace();
+		}
+		
+		return false;
 	}
 	
 	public static String getFileSize(long size) {

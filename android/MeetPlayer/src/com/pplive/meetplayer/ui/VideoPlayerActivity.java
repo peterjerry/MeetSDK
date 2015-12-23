@@ -34,6 +34,7 @@ import com.pplive.common.util.LogUtil;
 import com.pplive.meetplayer.R;
 import com.pplive.meetplayer.ui.widget.MyMediaController;
 import com.pplive.meetplayer.util.FileFilterTest;
+import com.pplive.meetplayer.util.UploadLogTask;
 import com.pplive.meetplayer.util.Util;
 
 import android.pplive.media.player.MediaPlayer;
@@ -515,6 +516,12 @@ public class VideoPlayerActivity extends Activity implements Callback {
 			
 			mBufferingProgressBar.setVisibility(View.GONE);
 			mVideoView.stopPlayback();
+			
+			Util.makeUploadLog("failed to play: " + mUri.toString() + "\n\n");
+			
+			UploadLogTask task = new UploadLogTask(VideoPlayerActivity.this);
+			task.execute(Util.upload_log_path, "failed to play");
+			
 			finish();
 			return true;
 		}

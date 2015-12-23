@@ -14,6 +14,7 @@ import com.pplive.common.pptv.PlayLinkUtil;
 import com.pplive.meetplayer.R;
 import com.pplive.meetplayer.ui.widget.MiniMediaController;
 import com.pplive.meetplayer.util.DownloadClipTask;
+import com.pplive.meetplayer.util.UploadLogTask;
 import com.pplive.meetplayer.util.Util;
 import com.pplive.sdk.MediaSDK;
 
@@ -846,6 +847,12 @@ public class MeetViewActivity extends Activity implements OnFocusChangeListener 
 			mVideoView.stopPlayback();
 			mBufferingProgressBar.setVisibility(View.INVISIBLE);
 			mIsBuffering = false;
+			
+			Util.makeUploadLog("failed to play: " + mUri.toString() + "\n\n");
+			
+			UploadLogTask task = new UploadLogTask(MeetViewActivity.this);
+			task.execute(Util.upload_log_path, "failed to play");
+			
 			return true;
 		}
 	};

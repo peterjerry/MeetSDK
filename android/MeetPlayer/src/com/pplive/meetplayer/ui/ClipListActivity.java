@@ -101,6 +101,7 @@ import com.pplive.meetplayer.util.ListMediaUtil;
 import com.pplive.meetplayer.util.LoadPlayLinkUtil;
 import com.pplive.meetplayer.util.LogcatHelper;
 import com.pplive.meetplayer.util.NetworkSpeed;
+import com.pplive.meetplayer.util.UploadLogTask;
 import com.pplive.meetplayer.util.Util;
 import com.pplive.sdk.MediaSDK;
 import com.pplive.thirdparty.BreakpadUtil;
@@ -114,12 +115,9 @@ import java.io.UnsupportedEncodingException;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.URLDecoder;
-import java.net.URLEncoder;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Calendar;
 import java.util.Date;
-import java.util.GregorianCalendar;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
@@ -320,10 +318,6 @@ public class ClipListActivity extends Activity implements
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
-		
-		LogUtil.init(
-				Environment.getExternalStorageDirectory().getAbsolutePath() + "/test2/meet.log", 
-				this.getCacheDir().getAbsolutePath());
 		
 		LogUtil.info(TAG, "Java: onCreate()");
 		
@@ -712,8 +706,6 @@ public class ClipListActivity extends Activity implements
 		this.btnPlayerImpl.setOnClickListener(new Button.OnClickListener() {
 			@Override
 			public void onClick(View view) {
-				//LogUtil.info(TAG, "Java: getCount " + binder.getCount());
-				
 				final String[] PlayerImpl = {"Auto", "System", "XOPlayer", "FFPlayer", "OMXPlayer"};
 				
 				Dialog choose_player_impl_dlg = new AlertDialog.Builder(ClipListActivity.this)
@@ -2570,7 +2562,10 @@ public class ClipListActivity extends Activity implements
 			startService(intent);
 			break;
 		case R.id.upload_crash_report:
-			Util.upload_crash_report(ClipListActivity.this, 3);
+			Util.makeUploadLog("manual upload\n\n");
+			
+			UploadLogTask task = new UploadLogTask(this);
+			task.execute(Util.upload_log_path, "common");
 			break;
 		case R.id.update_apk:
 			setupUpdater();
@@ -2807,8 +2802,10 @@ public class ClipListActivity extends Activity implements
 		mPlayer.release();
 		mPlayer = null;
 		
-		if (android.os.Build.VERSION.SDK_INT >= Build.VERSION_CODES.ICE_CREAM_SANDWICH)
-			Util.upload_crash_report(ClipListActivity.this, 2);
+		Util.makeUploadLog("failed to play: " + mPlayUrl + "\n\n");
+		
+		UploadLogTask task = new UploadLogTask(this);
+		task.execute(Util.upload_log_path, "failed to play");
 		
 		return true;
 	}

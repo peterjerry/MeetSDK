@@ -1,7 +1,13 @@
 package com.pplive.common.util;
 
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.OutputStreamWriter;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 
@@ -14,7 +20,7 @@ public class LogUtil {
 	private static final String TAG = "LogUtil";
 	
     private static final SimpleDateFormat SDF = 
-    		new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+    		new SimpleDateFormat("yyyy-MM-dd HH:mm:ss SSS");
     
     private static String outputfile;
 
@@ -22,7 +28,7 @@ public class LogUtil {
 
     private static String infopath;
 
-    private static int fileLimit = 100 * 1024;
+    private static int fileLimit = 100 * 1024; // 100k
 
     private static long offset = 0;
 
@@ -64,7 +70,7 @@ public class LogUtil {
     }
     
 	private static void log(int level, String tag, String msg) {
-        if (level >= Log.DEBUG) {
+        if (level >= Log.INFO) {
             writeFile(String.format("%s [%s] %s: %s", 
             		SDF.format(new Date()), getLevelString(level), tag, msg));
         }
@@ -79,8 +85,44 @@ public class LogUtil {
 			Log.d(tag, msg);
     }
 	
+	public static void makeUploadLog() {
+        if (!inited) {
+        	Log.w(TAG, "Java: log is not inited");
+            return;
+        }
+        
+        try {
+        	Log.i(TAG, "Java: begin to write log file: " + outputfile);
+            BufferedWriter bw = new BufferedWriter(
+            		new OutputStreamWriter(new FileOutputStream(outputfile)));
+            String line = "";
+            File logfile = new File(logpath);
+            if (logfile.exists()) {
+                bw.write("-----------------\n");
+                BufferedReader br = new BufferedReader(
+                		new InputStreamReader(new FileInputStream(logfile)));
+                while ((line = br.readLine()) != null) {
+                    bw.write(line);
+                    bw.write('\n');
+                }
+                br.close();
+            }
+            bw.flush();
+            bw.close();
+            
+            braf.flush();
+            braf.close();
+            braf = null;
+            logfile.delete();
+            Log.i(TAG, "Java: end write log file");
+        } catch (IOException e) {
+        	e.printStackTrace();
+        }
+    }
+	
 	public static synchronized void writeFile(String msg) {
         if (!inited) {
+        	Log.w(TAG, "Java: log is not inited");
             return;
         }
 
@@ -90,10 +132,12 @@ public class LogUtil {
                 braf = new BufferedRandomAccessFile(logpath, "rw");
                 try {
                     offset = braf.length();
+                    Log.i(TAG, "Java: offset: " + offset);
                     if (offset >= fileLimit) {
                         String firstline = braf.readLine();
                         int index = firstline.indexOf('#');
                         offset = (index == -1) ? 0 : Integer.parseInt(firstline.substring(0, index));
+                        Log.i(TAG, String.format("Java: offset exceed fileLimit, set to : %d(index %d)", offset, index));
                     }
                 } catch (Exception e) {
                 	e.printStackTrace();
@@ -102,16 +146,16 @@ public class LogUtil {
             }
             
             msg += '\n';
-            try {
-                braf.seek(offset);
-                braf.write(msg.getBytes());
-                offset = (offset + msg.length()) >= fileLimit ? 0 : offset + msg.length();
-                braf.seek(0);
-                braf.write((offset + "#").getBytes());
-                braf.flush();
-            } catch (IOException e) {
-            	e.printStackTrace();
-            }
+            braf.seek(offset);
+            braf.write(msg.getBytes());
+            offset = (offset + msg.length()) >= fileLimit ? 0 : offset + msg.length();
+            
+            // update new file offset
+            braf.seek(0);
+            braf.write((offset + "#").getBytes());
+            braf.flush();
+        } catch (IOException e) {
+        	e.printStackTrace();
         } catch (Exception e) {
         	e.printStackTrace();
         }
@@ -135,7 +179,7 @@ public class LogUtil {
         return "U";
     }
     
-    static boolean makePath(String path) {
+    static private boolean makePath(String path) {
         if (TextUtils.isEmpty(path)) {
             return false;
         }
@@ -146,7 +190,7 @@ public class LogUtil {
             return true;
     }
 
-    static boolean makeParentPath(String filename) {
+    static private boolean makeParentPath(String filename) {
         if (TextUtils.isEmpty(filename)) {
             return false;
         }
