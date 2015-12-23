@@ -8,6 +8,7 @@ BUILD_NATIVEWINDOOW		:= 1
 #BUILD_ONE_LIB			:= 1
 BUILD_FFPLAYER			:= 1
 BUILD_FFEXTRACTOR		:= 1
+#BUILD_OMXPLAYER			:= 1
 
 FDK_AAC_PATH	:= ../../../../foundation/thirdparty/fdk-aac/lib/android/$(TARGET_ARCH_ABI)
 RTMPDUMP_PATH	:= ../../../../foundation/thirdparty/rtmpdump/lib/android/$(TARGET_ARCH_ABI)
@@ -57,7 +58,7 @@ LOCAL_SRC_FILES := $(FFMPEG_PATH)/lib/liblenthevcdec.so
 #include $(PREBUILT_SHARED_LIBRARY)
 
 include $(CLEAR_VARS)
-LOCAL_MODULE			:= player_neon
+LOCAL_MODULE			:= player
 LOCAL_C_INCLUDES		:= $(LOCAL_PATH)/$(FFMPEG_PATH)/include $(LOCAL_PATH)/$(SUBTITLEPATH)/include \
 	$(LOCAL_PATH)/$(PLATFORMPATH) $(LOCAL_PATH)/$(PLATFORMPATH)/yuv2rgb $(LOCAL_PATH)/$(PLATFORMPATH)/clsocket \
 	$(LOCAL_PATH)/$(PLAYERPATH) $(LOCAL_PATH)/$(EXTRACTORPATH) 
@@ -73,6 +74,9 @@ MY_SRC_PLAYER_FILES 	+= ffstream.cpp audioplayer.cpp audiorender.cpp ffplayer.cp
 endif
 ifdef BUILD_FFEXTRACTOR
 MY_SRC_PLAYER_FILES 	+= ffextractor.cpp
+endif
+ifdef BUILD_OMXPLAYER
+MY_SRC_PLAYER_FILES 	+= omxplayer.cpp
 endif
 ifdef BUILD_TS_CONVERT
 MY_SRC_PLAYER_FILES 	+= apFormatConverter.cpp
@@ -127,6 +131,9 @@ else
 LOCAL_LDLIBS 			:= -llog -lz -landroid -L$(FFMPEG_PATH)/lib
 ifdef BUILD_OSLES
 LOCAL_LDLIBS			+= -lOpenSLES
+endif
+ifdef BUILD_OMXPLAYER
+LOCAL_LDLIBS			+= -lOpenMAXAL
 endif
 endif
 ifdef BUILD_PCM_DUMP

@@ -1188,7 +1188,19 @@ public class ClipListActivity extends Activity implements
 			mDecMode = DecodeMode.SW;
 		}
 		else if (4 == mPlayerImpl) {
-			//mDecMode = DecodeMode.HW_OMX;
+			boolean canPlay = false;
+			if (path.startsWith("/") || path.startsWith("file://")) {
+				if (path.endsWith(".ts") || path.endsWith(".mpegts"));
+					canPlay = true;
+			}
+			
+			if (canPlay == false) {
+				Toast.makeText(ClipListActivity.this, "OMXPlayer cannot play: " + path, 
+					Toast.LENGTH_SHORT).show();
+				return -1;
+			}
+			
+			mDecMode = DecodeMode.HW_OMX;
 		}
 		else {
 			Toast.makeText(ClipListActivity.this, "invalid player implement: " + Integer.toString(mPlayerImpl), 
@@ -2728,8 +2740,8 @@ public class ClipListActivity extends Activity implements
 			else if(MediaPlayer.PLAYER_IMPL_TYPE_FF_PLAYER == extra) {
 				short_type = "ff";
 			}
-			else if(MediaPlayer.PLAYER_IMPL_TYPE_PP_PLAYER == extra) {
-				short_type = "pp";
+			else if(MediaPlayer.PLAYER_IMPL_TYPE_OMX_PLAYER == extra) {
+				short_type = "omx";
 			}
 			else {
 				short_type = "un";
@@ -2814,7 +2826,7 @@ public class ClipListActivity extends Activity implements
 	@Override
 	public void onPrepared(MediaPlayer mp) {
 		// TODO Auto-generated method stub
-		LogUtil.info(TAG, "onPrepared");
+		LogUtil.info(TAG, "Java: onPrepared");
 		
 		render_frame_num = 0;
 		decode_drop_frame = 0;
@@ -2910,7 +2922,7 @@ public class ClipListActivity extends Activity implements
 	@Override
 	public void onVideoSizeChanged(MediaPlayer mp, int w, int h) {
 		// TODO Auto-generated method stub
-		LogUtil.info(TAG, String.format("onVideoSizeChanged(%d %d)", w, h));
+		LogUtil.info(TAG, String.format("Java: onVideoSizeChanged(%d %d)", w, h));
 		
 		if (w == 0 || h == 0) {
 			mVideoWidth		= 640;

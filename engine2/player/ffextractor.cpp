@@ -543,9 +543,14 @@ status_t FFExtractor::getTrackFormat(int32_t index, MediaFormat *format)
 				return ERROR;
 			}
 
-			if (av_seek_frame(m_fmt_ctx, -1, 0, AVSEEK_FLAG_BACKWARD) < 0) {
-				LOGE("failed to seekback to head");
-				return ERROR;
+			// fixme
+			// 2015.12.12 michael.ma
+			// workaround to fix XOPlayer cannot play hls due to seek back will fail
+			if ( m_sorce_type == TYPE_LOCAL_FILE) {
+				if (av_seek_frame(m_fmt_ctx, -1, 0, AVSEEK_FLAG_BACKWARD) < 0) {
+					LOGE("failed to seekback to head");
+					return ERROR;
+				}
 			}
 
 			m_fmt_ctx->streams[index]->discard = AVDISCARD_ALL;

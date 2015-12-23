@@ -49,6 +49,16 @@ extern "C" {
 #include "libavfilter/buffersink.h"
 #endif
 
+#ifdef _MSC_VER
+inline long rint(double x)
+{
+	if(x >= 0.)
+		return (long)(x + 0.5);
+	else
+		return (long)(x - 0.5);
+}
+#endif
+
 #ifdef __cplusplus
 } // end of extern C
 #endif

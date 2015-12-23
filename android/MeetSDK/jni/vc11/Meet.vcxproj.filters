@@ -59,6 +59,9 @@
     <ClCompile Include="..\meet\libplayer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\meet\OMXMediaPlayer.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\meet\pplivelog.h">

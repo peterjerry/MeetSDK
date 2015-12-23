@@ -52,7 +52,7 @@
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>BUILD_TS_CONVERT;USE_NDK_SURFACE_REF;TEST_PERFORMANCE;__ANDROID__;NDK_NATIVE_WINDOW_IMPL;__arm__;OSLES_IMPL;WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <SDLCheck>true</SDLCheck>
-      <AdditionalIncludeDirectories>..\..\..\player;..\..\..\platform\yuv2rgb;..\..\..\..\foundation\output\android\neon\include;..\..\..\platform;E:\Software\android-ndk-r10d\platforms\android-9\arch-arm\usr\include;E:\Software\android-ndk-r10d\sources\cpufeatures;E:\work\SDK\SDL\SDL-1.2.15\include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\..\..\player;..\..\..\platform\yuv2rgb;..\..\..\..\foundation\output\android\armeabi-v7a\include;..\..\..\platform;E:\Software\android-ndk-r10d\platforms\android-21\arch-arm\usr\include;E:\Software\android-ndk-r10d\sources\cpufeatures;E:\work\SDK\SDL\SDL-1.2.15\include</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -112,6 +112,7 @@
     <ClCompile Include="..\..\..\player\ffextractor.cpp" />
     <ClCompile Include="..\..\..\player\ffplayer.cpp" />
     <ClCompile Include="..\..\..\player\ffstream.cpp" />
+    <ClCompile Include="..\..\..\player\omxplayer.cpp" />
     <ClCompile Include="..\..\..\player\ppHttpd.cpp" />
   </ItemGroup>
   <ItemGroup>

@@ -213,7 +213,7 @@ public class MeetViewActivity extends Activity implements OnFocusChangeListener 
 		this.btnPlayerImpl.setOnClickListener(new Button.OnClickListener() {
 			@Override
 			public void onClick(View view) {
-				final String[] PlayerImpl = {"Auto", "System", "NuPlayer", "FFPlayer"};
+				final String[] PlayerImpl = {"Auto", "System", "XOPlayer", "FFPlayer", "OMXPlayer"};
 				
 				Dialog choose_player_impl_dlg = new AlertDialog.Builder(MeetViewActivity.this)
 				.setTitle("select player impl")
@@ -870,8 +870,8 @@ public class MeetViewActivity extends Activity implements OnFocusChangeListener 
 					str_player_type = "XO Player";
 				else if(MediaPlayer.PLAYER_IMPL_TYPE_FF_PLAYER == extra)
 					str_player_type = "FF Player";
-				else if(MediaPlayer.PLAYER_IMPL_TYPE_PP_PLAYER == extra)
-					str_player_type = "PP Player";
+				else if(MediaPlayer.PLAYER_IMPL_TYPE_OMX_PLAYER == extra)
+					str_player_type = "OMX Player";
 				else
 					str_player_type = "Unknown Player";
 				Toast.makeText(MeetViewActivity.this, str_player_type, Toast.LENGTH_SHORT).show();

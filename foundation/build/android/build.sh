@@ -7,6 +7,10 @@ case $1 in
 		CONFIG_SRC=../build/android/config_x86
 		TARGET1=../output/android/x86
 		;;
+	armeabi)
+		CONFIG_SRC=../build/android/config_armeabi
+		TARGET1=../output/android/armeabi
+		;;
 	armeabi-v7a)
 		CONFIG_SRC=../build/android/config_armeabi-v7a
 		TARGET1=../output/android/armeabi-v7a

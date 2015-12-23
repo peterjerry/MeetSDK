@@ -61,7 +61,7 @@ public class MediaPlayer implements MediaPlayerInterface {
 	public static final int PLAYER_IMPL_TYPE_SYSTEM_PLAYER	= 10001;
 	public static final int PLAYER_IMPL_TYPE_XO_PLAYER		= 10002;
 	public static final int PLAYER_IMPL_TYPE_FF_PLAYER		= 10003;
-	public static final int PLAYER_IMPL_TYPE_PP_PLAYER		= 10004;
+	public static final int PLAYER_IMPL_TYPE_OMX_PLAYER		= 10004;
 	
 	/**
 	 * @author guoliangma

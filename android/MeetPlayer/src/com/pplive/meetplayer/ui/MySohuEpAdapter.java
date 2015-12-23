@@ -3,6 +3,7 @@ package com.pplive.meetplayer.ui;
 import java.util.List;
 import java.util.Map;
 
+import com.pplive.common.util.LogUtil;
 import com.pplive.common.util.PicCacheUtil;
 import com.pplive.meetplayer.R;
 import com.pplive.meetplayer.ui.widget.AsyncImageView;
@@ -11,6 +12,7 @@ import com.pplive.meetplayer.util.ImgUtil;
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.os.AsyncTask;
+import android.pplive.media.util.LogUtils;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -127,9 +129,17 @@ public class MySohuEpAdapter extends BaseAdapter {
 		holder.getTip().setText(tip);
 
 		if (img_url != null && img_url.startsWith("http://")) {
-			holder.getImg().setTag(img_url);
-			holder.getImg().setImageResource(R.drawable.loading);
-			new LoadPicTask().execute(holder, img_url);
+			String key = PicCacheUtil.hashKeyForDisk(img_url);
+			Bitmap bmp = PicCacheUtil.getThumbnailFromDiskCache(key);
+			if (bmp != null) {
+				holder.getImg().setImageBitmap(bmp);
+				//LogUtil.info(TAG, "set http bitmap from getThumbnailFromDiskCache");
+			}
+			else {
+				holder.getImg().setTag(img_url);
+				holder.getImg().setImageResource(R.drawable.loading);
+				new LoadPicTask().execute(holder, img_url);
+			}
 		}
 		
 		// 注意 默认为返回null,必须得返回convertView视图
@@ -168,18 +178,14 @@ public class MySohuEpAdapter extends BaseAdapter {
 			mHolder = (ViewHolder)params[0];
 			mImgUrl = (String)params[1];
 			
-			String key = PicCacheUtil.hashKeyForDisk(mImgUrl);
-			Bitmap bmp = PicCacheUtil.getThumbnailFromDiskCache(key);
+			Bitmap bmp = ImgUtil.getHttpBitmap(mImgUrl);
 			if (bmp == null) {
-				bmp = ImgUtil.getHttpBitmap(mImgUrl);
-				if (bmp == null) {
-					Log.e(TAG, "Java: failed to getHttpBitmap " + mImgUrl);
-					return null;
-				}
-				
-				PicCacheUtil.addThumbnailToDiskCache(key, bmp);
+				Log.e(TAG, "Java: failed to getHttpBitmap " + mImgUrl);
+				return null;
 			}
 			
+			String key = PicCacheUtil.hashKeyForDisk(mImgUrl);
+			PicCacheUtil.addThumbnailToDiskCache(key, bmp);
 			return bmp;
 		}
 	}

@@ -19,6 +19,7 @@ import android.os.Environment;
 import android.pplive.media.config.Config;
 import android.pplive.media.player.FFMediaExtractor;
 import android.pplive.media.player.MediaPlayer.DecodeMode;
+import android.pplive.media.player.OMXMediaPlayer;
 import android.pplive.media.player.TrackInfo;
 import android.pplive.media.player.MediaInfo;
 import android.pplive.media.player.MeetPlayerHelper;
@@ -85,8 +86,9 @@ public final class MeetSDK {
 		
 		boolean retPlayer = FFMediaPlayer.initPlayer(path);
 		boolean retExtrator = FFMediaExtractor.initExtrator();
+		//boolean retOMXPlayer = OMXMediaPlayer.initPlayer(path);
 		boolean retParser = SimpleSubTitleParser.initParser(path);
-		return (retPlayer && retExtrator && retParser);
+		return (retPlayer && /*retOMXPlayer &&*/ retExtrator && retParser);
 	}
 	
 	private static boolean load_lib(String path) {

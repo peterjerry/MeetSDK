@@ -540,8 +540,8 @@ public class VideoPlayerActivity extends Activity implements Callback {
 					str_player_type = "XO Player";
 				else if(MediaPlayer.PLAYER_IMPL_TYPE_FF_PLAYER == extra)
 					str_player_type = "FF Player";
-				else if(MediaPlayer.PLAYER_IMPL_TYPE_PP_PLAYER == extra)
-					str_player_type = "PP Player";
+				else if(MediaPlayer.PLAYER_IMPL_TYPE_OMX_PLAYER == extra)
+					str_player_type = "OMX Player";
 				else
 					str_player_type = "Unknown Player";
 				Toast.makeText(VideoPlayerActivity.this, str_player_type, Toast.LENGTH_SHORT).show();

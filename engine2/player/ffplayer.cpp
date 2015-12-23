@@ -2378,7 +2378,9 @@ status_t FFPlayer::prepareVideo_l()
 	mVideoFrame = av_frame_alloc();
     mIsVideoFrameDirty = true;
 
-	float aspect_ratio;
+	uint32_t render_w, render_h;
+#ifdef _MSC_VER
+	double aspect_ratio;
 	AVRational sar = av_guess_sample_aspect_ratio(mMediaFile, mVideoStream, NULL);
 	LOGI("video sar %d / %d", sar.num, sar.den);
 	if (sar.num == 0)
@@ -2388,23 +2390,22 @@ status_t FFPlayer::prepareVideo_l()
 
 	if (aspect_ratio <= 0.0)
         aspect_ratio = 1.0;
-    aspect_ratio *= (float)mVideoWidth / (float)mVideoHeight;
+    aspect_ratio *= (double)mVideoWidth / (double)mVideoHeight;
 
-	uint32_t render_w, render_h;
 	render_w = mVideoWidth;
-	render_h = (uint32_t)((float)render_w / aspect_ratio);
-#ifdef _MSC_VER
+	render_h = ((uint32_t)rint(render_w / aspect_ratio)) & ~1; // & ~1 up to 2^n
+
 #ifdef SDL_EMBEDDED_WINDOW
 	if (render_w > MAX_DISPLAY_WIDTH) {
 		render_w		= MAX_DISPLAY_WIDTH;
-		render_h		= (int32_t)((float)render_h / aspect_ratio);
+		render_h		= ((uint32_t)rint(render_h / aspect_ratio)) & ~1;
 		LOGI("video resolution %d x %d, display resolution switch to %d x %d", 
 			mVideoWidth, mVideoHeight, render_w, render_h);
 	}
 
 	if (render_h > MAX_DISPLAY_HEIGHT) {
 		render_h		= MAX_DISPLAY_HEIGHT;
-		render_w		= (int32_t)((float)render_w / aspect_ratio);
+		render_w		= ((uint32_t)rint(render_w / aspect_ratio)) & ~1;
 		LOGI("video resolution %d x %d, display resolution switch to %d x %d",
 			mVideoWidth, mVideoHeight, render_w, render_h);
 	}
@@ -2412,6 +2413,9 @@ status_t FFPlayer::prepareVideo_l()
 	render_w = 1920; // fix me!
 	render_h = 1080;
 #endif
+#else
+	render_w = mVideoWidth;
+	render_h = mVideoHeight;
 #endif
 
 	bool force_sw = false;
