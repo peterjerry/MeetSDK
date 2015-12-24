@@ -1373,7 +1373,8 @@ public class BaiduPanel extends JPanel {
 							lblInfo.setText("ready to download url: " + url);
 							
 							downloadFile(url, filename, 
-									save_path + "/" + filename, false);
+									save_path + "/" + filename, false,
+									0);
 						} catch (UnsupportedEncodingException e1) {
 							// TODO Auto-generated catch block
 							e1.printStackTrace();
@@ -1428,7 +1429,7 @@ public class BaiduPanel extends JPanel {
 				final String save_path = fsave.getDirectory() + fsave.getFile();
 				System.out.println("file save path: " + save_path);
 				
-				downloadFile(url, filename, save_path, true);
+				downloadFile(url, filename, save_path, true, 0);
 			} catch (UnsupportedEncodingException e1) {
 				// TODO Auto-generated catch block
 				e1.printStackTrace();
@@ -1437,13 +1438,20 @@ public class BaiduPanel extends JPanel {
 	}
 	
 	private void downloadFile(String path, String filename, 
-			final String save_path, final boolean bSingleFile) {
+			final String save_path, final boolean bSingleFile,
+			long from) {
 		try {
 			URL url = new URL(path);
 			URLConnection urlCon = url.openConnection();
 
 			urlCon.setRequestProperty("Cookie", 
 					"BDUSS=" + cookie_BDUSS);
+			
+			if (from > 0) {
+				// Range: bytes=500-999
+				urlCon.setRequestProperty("RANGE", String.format("bytes=%d-", from));
+				System.out.println(String.format("set range: bytes=%d-", from));
+			}
 			
 			// 显示下载信息
 			System.out.println("文件下载信息: ");

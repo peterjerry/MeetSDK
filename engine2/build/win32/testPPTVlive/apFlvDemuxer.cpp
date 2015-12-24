@@ -103,7 +103,7 @@ bool apFlvDemuxer::setSource(char *data, int data_len)
         return false;
 	}
 
-	m_fmt_ctx->max_analyze_duration2 = AV_TIME_BASE * 10;
+	m_fmt_ctx->max_analyze_duration = AV_TIME_BASE * 10;
 
 	// Retrieve stream information after disable variant streams, like m3u8
 	if (avformat_find_stream_info(m_fmt_ctx, NULL) < 0) {

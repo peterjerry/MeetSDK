@@ -118,6 +118,7 @@ FFExtractor::FFExtractor()
 	m_framerate				= 0;
 	m_video_clock_msec		= 0;
 	m_pBsfc_h264			= NULL;
+	m_nalu_convert			= false;
 	m_video_keyframe_sync	= false;
 	m_sps_data				= NULL;
 	m_sps_size				= 0;
@@ -445,10 +446,10 @@ status_t FFExtractor::getTrackFormat(int32_t index, MediaFormat *format)
 			*/
 
 			uint8_t *data = c->extradata;
-			LOGI("avc profile 0x%02x", data++);
-			LOGI("avc profile 0x%02x", data++);
-			LOGI("avc compatibility 0x%02x", data++);
-			LOGI("avc level 0x%02x", data++);
+			LOGI("avc version 0x%02x", *(data++));
+			LOGI("avc profile 0x%02x", *(data++));
+			LOGI("avc compatibility 0x%02x", *(data++));
+			LOGI("avc level 0x%02x", *(data++));
 			m_NALULengthSizeMinusOne = (*data & 0x03);
 			LOGI("NALULengthSizeMinusOne %d", m_NALULengthSizeMinusOne);
 			data++;
@@ -456,13 +457,13 @@ status_t FFExtractor::getTrackFormat(int32_t index, MediaFormat *format)
 			LOGI("number of SPS NALUs %d", m_num_of_sps);
 			data++;
 			for (int i=0;i<m_num_of_sps;i++) {
-				short sps_len = get_size(data, 2);
+				int sps_len = get_size(data, 2);
 				LOGI("#%d SPS size %d", i, sps_len);
 				data += 2;
 				if (i == 0) {
 					format->csd_0_size	= sps_len + m_NALULengthSizeMinusOne + 1;
 					format->csd_0 = new uint8_t[format->csd_0_size];
-					memcpy(format->csd_0, nalu_header, m_NALULengthSizeMinusOne + 1);
+					memcpy(format->csd_0, nalu_header + (3 - m_NALULengthSizeMinusOne), m_NALULengthSizeMinusOne + 1);
 					memcpy(format->csd_0 + m_NALULengthSizeMinusOne + 1, data, sps_len);
 				}
 				data += sps_len;
@@ -472,13 +473,13 @@ status_t FFExtractor::getTrackFormat(int32_t index, MediaFormat *format)
 			LOGI("number of PPS NALUs %d", m_num_of_pps);
 			data++;
 			for (int i=0;i<m_num_of_pps;i++) {
-				short pps_len = get_size(data, 2);
+				int pps_len = get_size(data, 2);
 				LOGI("#%d PPS size %d", i, pps_len);
 				data += 2;
 				if (i == 0) {
 					format->csd_1_size	= pps_len + m_NALULengthSizeMinusOne + 1;
 					format->csd_1 = new uint8_t[format->csd_1_size];
-					memcpy(format->csd_1, nalu_header, m_NALULengthSizeMinusOne + 1);
+					memcpy(format->csd_1, nalu_header + (3 - m_NALULengthSizeMinusOne), m_NALULengthSizeMinusOne + 1);
 					memcpy(format->csd_1 + m_NALULengthSizeMinusOne + 1, data, pps_len);
 				}
 				data += pps_len;
@@ -509,7 +510,7 @@ status_t FFExtractor::getTrackFormat(int32_t index, MediaFormat *format)
 			strstr(m_fmt_ctx->iformat->name, "hls,applehttp") != NULL) 
 		{	
 			// mpegts and hls has no extra data
-			m_fmt_ctx->streams[index]->discard = AVDISCARD_NONE;
+			m_fmt_ctx->streams[index]->discard = AVDISCARD_DEFAULT;
 
 			AVPacket pkt;
 			av_init_packet(&pkt);
@@ -518,7 +519,6 @@ status_t FFExtractor::getTrackFormat(int32_t index, MediaFormat *format)
 
 			int ret;
 			while (m_sps_data == NULL || m_pps_data == NULL) {
-				LOGI("read frame");
 				ret = av_read_frame(m_fmt_ctx, &pkt);
 				if (ret == AVERROR_EOF) {
 					LOGE("find sps and pps: av_read_frame() eof");
@@ -532,6 +532,18 @@ status_t FFExtractor::getTrackFormat(int32_t index, MediaFormat *format)
 				}
 
 				if (pkt.stream_index == index) {
+					// just drop audio pkt because its stream_id is unknown till NOW
+					AVPacket* pPacket = (AVPacket*)av_malloc(sizeof(AVPacket));
+					memset(pPacket, 0, sizeof(AVPacket));
+					av_copy_packet(pPacket, &pkt);
+					m_video_q.put(pPacket);
+					LOGI("add video pkt to queue in getTrackFormat()");
+
+					if (!m_video_keyframe_sync && pkt.flags & AV_PKT_FLAG_KEY) {
+						LOGI("video sync(pre-read) done!");
+						m_video_keyframe_sync = true;
+					}
+
 					find_sps_pps(&pkt);
 				}
 
@@ -546,12 +558,15 @@ status_t FFExtractor::getTrackFormat(int32_t index, MediaFormat *format)
 			// fixme
 			// 2015.12.12 michael.ma
 			// workaround to fix XOPlayer cannot play hls due to seek back will fail
-			if ( m_sorce_type == TYPE_LOCAL_FILE) {
-				if (av_seek_frame(m_fmt_ctx, -1, 0, AVSEEK_FLAG_BACKWARD) < 0) {
+			/*if ( m_sorce_type == TYPE_LOCAL_FILE) {
+				int64_t seek_min = INT64_MIN;
+				int64_t seek_max = INT64_MAX;
+				if (avformat_seek_file(m_fmt_ctx, index, seek_min, 0, seek_max, AVSEEK_FLAG_BACKWARD) < 0) {
+				//if (av_seek_frame(m_fmt_ctx, -1, 0, AVSEEK_FLAG_BACKWARD) < 0) {
 					LOGE("failed to seekback to head");
 					return ERROR;
 				}
-			}
+			}*/
 
 			m_fmt_ctx->streams[index]->discard = AVDISCARD_ALL;
 
@@ -629,7 +644,7 @@ status_t FFExtractor::getTrackFormat(int32_t index, MediaFormat *format)
 
 			/*
 			// method 2
-			m_fmt_ctx->streams[index]->discard = AVDISCARD_NONE;
+			m_fmt_ctx->streams[index]->discard = AVDISCARD_DEFAULT;
 
 			m_pBsfc_aac =  av_bitstream_filter_init("aac_adtstoasc");
 			if (!m_pBsfc_aac) {
@@ -906,8 +921,11 @@ bool FFExtractor::seek_l()
 	seek_target= av_rescale_q(seek_target, AV_TIME_BASE_Q, m_fmt_ctx->streams[stream_index]->time_base);
 #endif
 
-    if (av_seek_frame(m_fmt_ctx, stream_index, seek_target, m_seek_flag) < 0) {
-        LOGE("failed to seek to: %lld msec", m_seek_time_msec);
+	int64_t seek_min = INT64_MIN;
+	int64_t seek_max = INT64_MAX;
+    //if (av_seek_frame(m_fmt_ctx, stream_index, seek_target, m_seek_flag) < 0) {
+    if (avformat_seek_file(m_fmt_ctx, stream_index, seek_min, seek_target, seek_max, m_seek_flag) < 0) {
+		LOGE("failed to seek to: %lld msec", m_seek_time_msec);
 		return false;
     }
 				
@@ -1090,15 +1108,27 @@ status_t FFExtractor::readSampleData(unsigned char *data, int32_t *sampleSize)
 	}
 
 	if (m_video_stream_idx == m_sample_pkt->stream_index) {
-		if (strncmp((const char *)m_sample_pkt->data, "FLUSH", 5) != 0 && m_pBsfc_h264) {
+		// 2015.12.24 use "h264_mp4toannexb" will cause read_sample error after seek
+		// missing picture in access unit with size xxx
+		// cannot get new video packet
+		/*if (strncmp((const char *)m_sample_pkt->data, "FLUSH", 5) != 0 && m_pBsfc_h264) {
 			// ONLY video pkt NEED do this job
 			// flush pkt just copy
 
 			// Apply MP4 to H264 Annex B filter on buffer
 			//int origin_size = m_sample_pkt->size;
 			int isKeyFrame = m_sample_pkt->flags & AV_PKT_FLAG_KEY;
-			av_bitstream_filter_filter(m_pBsfc_h264, m_video_stream->codec, NULL, &m_sample_pkt->data, &m_sample_pkt->size, 
-				m_sample_pkt->data, m_sample_pkt->size, isKeyFrame);
+			//av_bitstream_filter_filter(m_pBsfc_h264, m_video_stream->codec, NULL, &m_sample_pkt->data, &m_sample_pkt->size, 
+			//	m_sample_pkt->data, m_sample_pkt->size, isKeyFrame);
+		}*/
+
+		if (m_nalu_convert && strncmp((const char *)m_sample_pkt->data, "FLUSH", 5) != 0) {
+			int offset = 0;
+			while (offset < m_sample_pkt->size) {
+				int nalu_size = get_size(m_sample_pkt->data + offset, m_NALULengthSizeMinusOne + 1);
+				memcpy(m_sample_pkt->data + offset, nalu_header + (3 - m_NALULengthSizeMinusOne), m_NALULengthSizeMinusOne + 1);
+				offset += (m_NALULengthSizeMinusOne + 1 + nalu_size);
+			}
 		}
 
 		// in some case
@@ -1229,7 +1259,7 @@ int FFExtractor::open_codec_context_idx(int stream_idx)
 	}
     
 	st = m_fmt_ctx->streams[stream_idx];
-	st->discard = AVDISCARD_NONE;
+	st->discard = AVDISCARD_DEFAULT;
 
     dec_ctx = st->codec;
 
@@ -1252,11 +1282,14 @@ int FFExtractor::open_codec_context_idx(int stream_idx)
 			// this filter will do two job:
 			// 1) add sps+pps before IDR(iskeyframe)
 			// 2) replace 4 byte nalu size(big endian) to nalu_start_code (00) 00 00 01
-			m_pBsfc_h264 = av_bitstream_filter_init("h264_mp4toannexb");
+			
+			/*m_pBsfc_h264 = av_bitstream_filter_init("h264_mp4toannexb");
 			if (!m_pBsfc_h264) {
 				LOGE("Could not aquire h264_mp4toannexb filter");
 				return ERROR;
-			}
+			}*/
+
+			m_nalu_convert = true;
 		}
 
 		m_framerate = 25;//default
@@ -1369,10 +1402,17 @@ int FFExtractor::start()
 
 void FFExtractor::find_sps_pps(AVPacket *pPacket)
 {		
-	int32_t last_nalu_start = 0;
+	int32_t last_nalu_start = -1;
 	for(int32_t offset=0; offset < pPacket->size; offset++ ) {
+		if (m_sps_data && m_pps_data) {
+			LOGI("sps and pps found!");
+			break;
+		}
+
 		if (memcmp(pPacket->data + offset, nalu_header, 4) == 0) {
-			if (last_nalu_start != 0 || offset == pPacket->size - 1) {
+			//LOGI("find start code: %d", offset);
+
+			if (last_nalu_start != -1 || offset == pPacket->size - 1) {
 				uint8_t* pNAL = NULL;
 				int32_t sizeNAL = 0;
 

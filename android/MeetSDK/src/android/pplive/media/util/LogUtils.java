@@ -141,7 +141,7 @@ public class LogUtils {
     }
 
     private static void log(int level, String tag, String msg) {
-        if (level >= Log.DEBUG) {
+        if (level >= Log.INFO) {
             writeFile(String.format("%s %s %s: %s", SDF.format(new Date()), getLevelString(level), tag, msg));
         }
 

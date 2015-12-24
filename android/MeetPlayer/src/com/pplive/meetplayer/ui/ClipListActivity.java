@@ -912,7 +912,7 @@ public class ClipListActivity extends Activity implements
 		
 		@Override
 		public boolean onTouch(View v, MotionEvent event) {
-			LogUtil.info(TAG, "Java: onTouch(): " + event.getAction());
+			//LogUtil.debug(TAG, "Java: onTouch(): " + event.getAction());
 			
 			return mGestureDetector.onTouchEvent(event);
 		}
@@ -923,7 +923,7 @@ public class ClipListActivity extends Activity implements
 		new GestureDetector(getApplication(), new GestureDetector.SimpleOnGestureListener() {
 			@Override
 			public boolean onDown(MotionEvent e) {
-				LogUtil.info(TAG, "Java: onDown!!!");
+				//LogUtil.debug(TAG, "Java: onDown!!!");
 				return true;
 			};
 			
@@ -1964,9 +1964,17 @@ public class ClipListActivity extends Activity implements
 	}
 	
 	private void popupAudioTrackDialog() {
-		MediaInfo info = mPlayer.getMediaInfo();
-		if (info == null || info.getAudioChannels() == 0) {
-			Toast.makeText(this, "Cannot get audio track", Toast.LENGTH_SHORT).show();
+		MediaInfo info = null;
+		try {
+			info = mPlayer.getMediaInfo();
+			if (info == null || info.getAudioChannels() == 0) {
+				Toast.makeText(this, "Cannot get audio track", Toast.LENGTH_SHORT).show();
+				return;
+			}
+		}
+		catch (IllegalStateException e) {
+			e.printStackTrace();
+			Toast.makeText(this, "getMediaInfo exception: " + e.getMessage(), Toast.LENGTH_SHORT).show();
 			return;
 		}
 		
@@ -2849,36 +2857,41 @@ public class ClipListActivity extends Activity implements
         mPrepared = true;
 		
 		// audio track(activate track info)
-		MediaInfo info = mp.getMediaInfo();
-		if (info != null) {
-			ArrayList<TrackInfo> audioTrackList = info.getAudioChannelsInfo();
-			if (audioTrackList != null && audioTrackList.size() > 0) {
-				for (TrackInfo trackInfo : audioTrackList) {
-					LogUtil.info(TAG, String.format("Java: audio Trackinfo: streamindex #%d id %d, codec %s, lang %s, title %s", 
+        try {
+			MediaInfo info = mp.getMediaInfo();
+			if (info != null) {
+				ArrayList<TrackInfo> audioTrackList = info.getAudioChannelsInfo();
+				if (audioTrackList != null && audioTrackList.size() > 0) {
+					for (TrackInfo trackInfo : audioTrackList) {
+						LogUtil.info(TAG, String.format("Java: audio Trackinfo: streamindex #%d id %d, codec %s, lang %s, title %s", 
+							trackInfo.getStreamIndex(), 
+							trackInfo.getId(), 
+							trackInfo.getCodecName(), 
+							trackInfo.getLanguage(),
+							trackInfo.getTitle()));
+					}
+					
+					mAudioFirstTrack		= audioTrackList.get(0).getStreamIndex();
+					mAudioSelectedTrack		= mAudioFirstTrack;
+					mAudioTrackCount		= info.getAudioChannels();
+					
+					if (audioTrackList.size() > 1)
+						btnSelectAudioTrack.setVisibility(View.VISIBLE);
+				}
+				
+				ArrayList<TrackInfo> subtitleTrackList = info.getSubtitleChannelsInfo();
+				for (TrackInfo trackInfo : subtitleTrackList) {
+					LogUtil.info(TAG, String.format("Java: subtitle Trackinfo: streamindex #%d id %d, codec %s, lang %s, title %s", 
 						trackInfo.getStreamIndex(), 
 						trackInfo.getId(), 
 						trackInfo.getCodecName(), 
 						trackInfo.getLanguage(),
 						trackInfo.getTitle()));
 				}
-				
-				mAudioFirstTrack		= audioTrackList.get(0).getStreamIndex();
-				mAudioSelectedTrack		= mAudioFirstTrack;
-				mAudioTrackCount		= info.getAudioChannels();
-				
-				if (audioTrackList.size() > 1)
-					btnSelectAudioTrack.setVisibility(View.VISIBLE);
 			}
-			
-			ArrayList<TrackInfo> subtitleTrackList = info.getSubtitleChannelsInfo();
-			for (TrackInfo trackInfo : subtitleTrackList) {
-				LogUtil.info(TAG, String.format("Java: subtitle Trackinfo: streamindex #%d id %d, codec %s, lang %s, title %s", 
-					trackInfo.getStreamIndex(), 
-					trackInfo.getId(), 
-					trackInfo.getCodecName(), 
-					trackInfo.getLanguage(),
-					trackInfo.getTitle()));
-			}
+        } catch (IllegalStateException e) {
+			e.printStackTrace();
+			Toast.makeText(this, "getMediaInfo exception: " + e.getMessage(), Toast.LENGTH_SHORT).show();
 		}
 		
 		// subtitle

@@ -13,8 +13,10 @@
         android:id="@+id/et_crashinfo"
         android:layout_width="fill_parent"
         android:layout_height="wrap_content"
+        android:singleLine="false"
+        android:gravity="top"
         android:lines="5"
-        android:hint="请输入crash的详细信息，以便分析。例如： 播放过程中切换播放器crash" />
+        android:hint="@string/crash_description_hint" />
     <Button
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"

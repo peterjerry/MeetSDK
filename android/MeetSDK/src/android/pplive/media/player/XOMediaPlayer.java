@@ -993,10 +993,10 @@ public class XOMediaPlayer extends BaseMediaPlayer {
 					presentationTimeUs,
 					mSawInputEOS ? MediaCodec.BUFFER_FLAG_END_OF_STREAM : 0);
 
-			LogUtils.debug(String
-					.format("queueInputBuffer track #%d(%s): size %d, pts %d msec, flags %d",
-							trackIndex, isVideo ? "video" : "audio",
-							sampleSize, presentationTimeUs / 1000, flags));
+			//LogUtils.debug(String
+			//		.format("queueInputBuffer track #%d(%s): size %d, pts %d msec, flags %d",
+			//				trackIndex, isVideo ? "video" : "audio",
+			//				sampleSize, presentationTimeUs / 1000, flags));
 
 			list.remove(0);
 			notFullCond.signal();
@@ -1090,9 +1090,9 @@ public class XOMediaPlayer extends BaseMediaPlayer {
 						}
 					}
 
-					LogUtils.debug(String
-							.format("[DecodeVideoBuffer] presentationTimeUs: %d, flags: %d",
-									info.presentationTimeUs, info.flags));
+					//LogUtils.debug(String
+					//		.format("[DecodeVideoBuffer] presentationTimeUs: %d, flags: %d",
+					//				info.presentationTimeUs, info.flags));
 
 					mDecodedFrameCnt++;
 
@@ -1140,9 +1140,9 @@ public class XOMediaPlayer extends BaseMediaPlayer {
 					long av_diff_msec = video_clock_msec - audio_clock_msec;
 					if (NO_AUDIO)
 						av_diff_msec = 0;
-					LogUtils.info(String.format(
-							"video %d, audio %d, diff_msec %d msec",
-							video_clock_msec, audio_clock_msec, av_diff_msec));
+					//LogUtils.debug(String.format(
+					//		"video %d, audio %d, diff_msec %d msec",
+					//		video_clock_msec, audio_clock_msec, av_diff_msec));
 
 					Message msg = mEventHandler
 							.obtainMessage(MediaPlayer.MEDIA_INFO);
@@ -1170,7 +1170,7 @@ public class XOMediaPlayer extends BaseMediaPlayer {
 						}
 					}
 
-					LogUtils.debug("delay_msec: " + delay_msec);
+					//LogUtils.debug("delay_msec: " + delay_msec);
 					mFrameTimerMsec += delay_msec;
 
 					if (av_diff_msec < -sync_threshold_msec * 2) {
@@ -1208,7 +1208,7 @@ public class XOMediaPlayer extends BaseMediaPlayer {
 
 					long schedule_msec = mFrameTimerMsec
 							- System.currentTimeMillis();
-					LogUtils.debug("schedule_msec: " + schedule_msec);
+					//LogUtils.debug("schedule_msec: " + schedule_msec);
 
 					if (schedule_msec >= 10 && !NO_AUDIO) {
 						try {

@@ -42,6 +42,7 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <LinkIncremental>true</LinkIncremental>
+    <OutDir>..\bin\$(Configuration)\</OutDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>false</LinkIncremental>
@@ -53,12 +54,12 @@
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>SAVE_LOG_FILE;_CRT_SECURE_NO_WARNINGS;CURL_STATICLIB;MARKUP_STL;WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <SDLCheck>true</SDLCheck>
-      <AdditionalIncludeDirectories>..\..\..\player;..\testSDLdlg;..\testEPG\libjsoncpp\include;..\testEPG\libcurl\include;..\testEPG;..\..\..\platform;D:\Archive\SDK\FFMPEG\ffmpeg-20140613-git-1c5aa64-win32\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\..\..\player;..\testSDLdlg;..\testEPG\libjsoncpp\include;..\testEPG\libcurl\include;..\testEPG;..\..\..\platform;..\..\..\..\foundation\output\android\armeabi-v7a\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>D:\Archive\SDK\FFMPEG\ffmpeg-20140613-git-1c5aa64-win32\lib;..\testEPG\libcurl\lib\vc11\x86\static;..\testEPG\libjsoncpp\lib\vc11;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>..\..\..\..\foundation\output\win32\full\bin;..\testEPG\libcurl\lib\vc11\x86\static;..\testEPG\libjsoncpp\lib\vc11;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
