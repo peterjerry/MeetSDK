@@ -1409,10 +1409,12 @@ void FFExtractor::find_sps_pps(AVPacket *pPacket)
 			break;
 		}
 
-		if (memcmp(pPacket->data + offset, nalu_header, 4) == 0) {
+		if (memcmp(pPacket->data + offset, nalu_header, 4) == 0 || 
+			memcmp(pPacket->data + offset, nalu_header + 1, 3) == 0 || 
+			offset == pPacket->size - 1) {
 			//LOGI("find start code: %d", offset);
 
-			if (last_nalu_start != -1 || offset == pPacket->size - 1) {
+			if (last_nalu_start != -1) {
 				uint8_t* pNAL = NULL;
 				int32_t sizeNAL = 0;
 
@@ -1421,7 +1423,11 @@ void FFExtractor::find_sps_pps(AVPacket *pPacket)
 				sizeNAL = offset - last_nalu_start;
 
 				//int32_t nal_ref_idc   = pNAL[4] >> 5;
-				int32_t nal_unit_type = pNAL[4] & 0x1F;
+				int32_t nal_unit_type = 0;
+				if (pNAL[2] == 0x01)
+					nal_unit_type = pNAL[3] & 0x1F;
+				else
+					nal_unit_type = pNAL[4] & 0x1F;
 				LOGI("nalType: %d", nal_unit_type);
 				if (nal_unit_type == NAL_SPS) {
 					if (m_sps_data == NULL) {
@@ -1442,6 +1448,11 @@ void FFExtractor::find_sps_pps(AVPacket *pPacket)
 			}
 
 			last_nalu_start = offset;
+
+			if (memcmp(pPacket->data + offset, nalu_header, 4) == 0)
+				offset += 3; // +1 by for()
+			else
+				offset += 2; // +1 by for()
 		}
 	}
 }
@@ -1744,3 +1755,5 @@ static int get_size(uint8_t *s, int len)
 	}
 	return b_size.size;
 }
+
+

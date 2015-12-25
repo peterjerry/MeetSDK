@@ -20,9 +20,11 @@ echo "run configure"
 	--extra-cflags="-DNDEBUG -march=i686 -msse4" \
 	--optflags="-O2" \
 	--disable-doc \
-	--disable-programs \
 	--disable-avdevice \
 	--disable-swscale-alpha \
+	--disable-encoders \
+	--disable-muxers \
+	--disable-devices \
 	--disable-symver $EXTRA_FF_BUILD_OPTION
 
 echo "begin to building..."
@@ -32,6 +34,7 @@ make -j4 install
 
 #cp version.h $PREFIX/
 cp config.h $PREFIX/
+cp dep/*.dll $PREFIX/bin/
 
 echo "build ffmepg gcc all done!" 
 exit
