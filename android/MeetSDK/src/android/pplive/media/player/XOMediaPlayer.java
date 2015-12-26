@@ -1061,7 +1061,7 @@ public class XOMediaPlayer extends BaseMediaPlayer {
 			int res;
 			try {
 				mVideoCodecLock.lock();
-				LogUtils.debug("before video dequeueOutputBuffer");
+				//LogUtils.debug("before video dequeueOutputBuffer");
 				res = mVideoCodec.dequeueOutputBuffer(info, TIMEOUT);
 
 				if (res >= 0) {
@@ -1296,9 +1296,9 @@ public class XOMediaPlayer extends BaseMediaPlayer {
 						break;
 					}
 
-					LogUtils.debug(String
-							.format("[DecodeAudioBuffer] presentationTimeUs: %d, flags: %d",
-									info.presentationTimeUs, info.flags));
+					//LogUtils.debug(String
+					//		.format("[DecodeAudioBuffer] presentationTimeUs: %d, flags: %d",
+					//				info.presentationTimeUs, info.flags));
 
 					// update audio average duration
 					if (mLastAudioPktMSec != 0) {

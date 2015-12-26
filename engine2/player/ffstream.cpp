@@ -722,7 +722,11 @@ status_t FFStream::getPacket(int32_t streamIndex, AVPacket** packet)
                 return FFSTREAM_ERROR_FLUSHING;
             }
             else {
-                mBufferSize-=pPacket->size;
+                mBufferSize -= pPacket->size;
+				// 20151226 michael.ma added to avoid nagative buffer size
+				if (mBufferSize < 0)
+					mBufferSize = 0;
+
                 *packet = pPacket;
                 return FFSTREAM_OK;
             }
@@ -975,7 +979,7 @@ void FFStream::thread_impl()
 			}
 
             LOGD("mBufferSize:%d", mBufferSize);
-            if (mBufferSize > mMaxBufferSize)
+            if (mBufferSize > (int32_t)mMaxBufferSize)
             {
                 LOGD("Buffering reaches max size %d %d, vQueueSize %d, aQueueSize %d", 
 					mBufferSize, mMaxBufferSize, mVideoQueue.count(), mAudioQueue.count());
@@ -986,7 +990,7 @@ void FFStream::thread_impl()
                 }
                 else {
 					// too much data to decode, just wait for decoder consuming some data
-					while (mBufferSize > mMaxBufferSize ) {
+					while (mBufferSize > (int32_t)mMaxBufferSize ) {
 						struct timespec ts;
 						ts.tv_sec = 0;
 						ts.tv_nsec = 100000000ll; // 100 msec

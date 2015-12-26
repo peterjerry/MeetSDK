@@ -139,7 +139,10 @@ enum DATASOURCE_TYPE
     pthread_mutex_t		mLock;
 	pthread_mutex_t		mLockNotify;
 
-	uint32_t			m_buffered_size;
+	// 20151226 michael.ma change from uint32_t to int32_t
+	// unsigned type will cause nagative treated as very big value
+	// < 0 contidtion is always false!
+	int32_t				m_buffered_size;
 	uint32_t			m_max_buffersize;
 	uint32_t			m_min_play_buf_count;
 	int64_t				m_cached_duration_msec;

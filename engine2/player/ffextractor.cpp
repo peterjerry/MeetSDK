@@ -251,6 +251,7 @@ void FFExtractor::close()
 
 	if (m_status == FFEXTRACTOR_STARTED || m_status == FFEXTRACTOR_PAUSED) {
 		m_status = FFEXTRACTOR_STOPPING;
+		m_buffering = false;
 		pthread_cond_signal(&mCondition);
 
 		LOGI("stop(): before pthread_join %p", mThread);
@@ -965,6 +966,7 @@ void FFExtractor::flush_l()
 {
 	m_video_q.flush();
 	m_audio_q.flush();
+
     m_buffered_size = 0;
 	m_cached_duration_msec = m_seek_time_msec;
 }
@@ -1080,6 +1082,13 @@ status_t FFExtractor::advance()
 	m_sample_track_idx		= m_sample_pkt->stream_index;
 	m_buffered_size			-= m_sample_pkt->size;
 	m_cached_duration_msec	-= get_packet_duration(m_sample_pkt);
+
+	// 20151226 michael.ma added to fix m_buffered_size<0 bug 
+	// cause m_max_buffersize dead-loop for "Double max buffer size"
+	if (m_buffered_size < 0)
+		m_buffered_size = 0;
+	if (m_cached_duration_msec < 0)
+		m_cached_duration_msec = 0;
 	
 	if (m_video_stream_idx == m_sample_track_idx)
 		m_sample_clock_msec = m_video_clock_msec;
@@ -1498,7 +1507,7 @@ void FFExtractor::thread_impl()
 			}
 		}
 
-		if (m_buffered_size > m_max_buffersize) {
+		if (m_buffered_size > (int32_t)m_max_buffersize) {
             LOGD("Buffering reaches max size %d %d, vQueueSize %d, aQueueSize %d", 
 				m_buffered_size, m_max_buffersize, m_video_q.count(), m_audio_q.count());
 				
@@ -1508,7 +1517,7 @@ void FFExtractor::thread_impl()
             }
             else {
 				// too much data to decode, just wait for decoder consuming some data
-				while (m_buffered_size > m_max_buffersize) {
+				while (m_buffered_size > (int32_t)m_max_buffersize) {
 					struct timespec ts;
 					ts.tv_sec = 0;
 					ts.tv_nsec = 100000000ll; // 100 msec
