@@ -29,10 +29,13 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.StringTokenizer;
 
+import so.cym.crashhandlerdemo.UploadLogTask;
+
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
+import android.net.Uri;
 import android.net.wifi.WifiInfo;
 import android.net.wifi.WifiManager;
 import android.os.AsyncTask;
@@ -222,6 +225,21 @@ public class Util {
 		
 		mHistoryDB.savePlayedPosition(playlink, pos);
 	}
+	
+	public static String getUriPath(Uri uri) {
+    	String urlPath;
+		String scheme = uri.getScheme();
+		if (scheme == null || scheme.equals("file")) {
+			//local file
+			urlPath = uri.getPath();
+		}
+		else {
+			//network path
+			urlPath = uri.toString();
+		}
+		
+    	return urlPath;
+    }
 	
 	public static String read_file(String path, String encode) {
 		if (path == null || encode == null)

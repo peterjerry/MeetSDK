@@ -1,12 +1,8 @@
-package com.pplive.meetplayer.util;
+package so.cym.crashhandlerdemo;
 
 import java.io.File;
-import java.text.SimpleDateFormat;
-import java.util.Date;
 
-import so.cym.crashhandlerdemo.UploadUtil2;
 
-import com.pplive.common.util.LogUtil;
 import com.pplive.meetplayer.MeetApplication;
 
 import android.content.Context;

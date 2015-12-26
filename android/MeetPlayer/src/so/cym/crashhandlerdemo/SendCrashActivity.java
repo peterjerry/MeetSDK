@@ -1,24 +1,15 @@
 package so.cym.crashhandlerdemo;
 
-import java.io.File;
-import java.io.FileWriter;
+import so.cym.crashhandlerdemo.UploadLogTask.OnTask;
 
-import com.pplive.meetplayer.MeetApplication;
 import com.pplive.meetplayer.R;
-import com.pplive.meetplayer.util.UploadLogTask;
-import com.pplive.meetplayer.util.UploadLogTask.OnTask;
 import com.pplive.meetplayer.util.Util;
 
 import android.app.Activity;
-import android.os.AsyncTask;
 import android.os.Bundle;
-import android.os.Environment;
-import android.util.Log;
-import android.view.Menu;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
-import android.widget.Toast;
 
 public class SendCrashActivity extends Activity implements OnTask {
 

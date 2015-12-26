@@ -101,7 +101,6 @@ import com.pplive.meetplayer.util.ListMediaUtil;
 import com.pplive.meetplayer.util.LoadPlayLinkUtil;
 import com.pplive.meetplayer.util.LogcatHelper;
 import com.pplive.meetplayer.util.NetworkSpeed;
-import com.pplive.meetplayer.util.UploadLogTask;
 import com.pplive.meetplayer.util.Util;
 import com.pplive.sdk.MediaSDK;
 import com.pplive.thirdparty.BreakpadUtil;
@@ -121,6 +120,8 @@ import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
+
+import so.cym.crashhandlerdemo.UploadLogTask;
 
 public class ClipListActivity extends Activity implements
 		MediaPlayer.OnPreparedListener, MediaPlayer.OnCompletionListener,
@@ -1202,6 +1203,18 @@ public class ClipListActivity extends Activity implements
 		
 		stop_player();
 		
+		mSubtitleStoped 	= false;
+		mHomed 				= false;
+		mBufferingPertent 	= 0;
+		mPrepared			= false;
+		mDMRcontrolling		= false;
+		rx_speed 			= 0;
+		tx_speed 			= 0;
+		
+		imageDMR.setVisibility(View.GONE);
+		imageForward.setVisibility(View.GONE);
+		imageBackward.setVisibility(View.GONE);
+		
 		mPlayUrl = path;
 		tv_title.setText(path);
 		LogUtil.info(TAG, "Java: clipname: " + mPlayUrl);
@@ -1262,13 +1275,6 @@ public class ClipListActivity extends Activity implements
 
 				mWifiLock.acquire();
 			}
-
-			mSubtitleStoped 	= false;
-			mHomed 				= false;
-			mBufferingPertent 	= 0;
-			mPrepared			= false;
-			mDMRcontrolling		= false;
-			imageDMR.setVisibility(View.GONE);
 			
 			boolean succeed = false;
 			try {
@@ -1974,7 +1980,7 @@ public class ClipListActivity extends Activity implements
 		}
 		catch (IllegalStateException e) {
 			e.printStackTrace();
-			Toast.makeText(this, "getMediaInfo exception: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+			LogUtil.error(TAG, "getMediaInfo exception: " + e.getMessage());
 			return;
 		}
 		
@@ -2710,7 +2716,7 @@ public class ClipListActivity extends Activity implements
     		startActivity(intent);
 			break;
 		default:
-			LogUtil.warn(TAG, "bad menu item selected: " + id);
+			LogUtil.warn(TAG, "invalid menu item selected: " + id);
 			return false;
 		}
 		
@@ -2806,7 +2812,13 @@ public class ClipListActivity extends Activity implements
 			mIsBuffering = false;
 		}
 		
-		mPlayer.stop();
+		try {
+			mPlayer.stop();
+		}
+		catch (IllegalStateException e) {
+			e.printStackTrace();
+		}
+		
 		mPlayer.release();
 		mPlayer = null;
 		
@@ -2891,7 +2903,7 @@ public class ClipListActivity extends Activity implements
 			}
         } catch (IllegalStateException e) {
 			e.printStackTrace();
-			Toast.makeText(this, "getMediaInfo exception: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+			LogUtil.error(TAG, "getMediaInfo exception: " + e.getMessage());
 		}
 		
 		// subtitle

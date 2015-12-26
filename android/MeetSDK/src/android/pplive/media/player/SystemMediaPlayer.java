@@ -358,11 +358,17 @@ public class SystemMediaPlayer extends android.media.MediaPlayer implements
 		if (Build.VERSION.SDK_INT < Build.VERSION_CODES.JELLY_BEAN)
 			return null;
 		
-		TrackInfo []trackinfos = super.getTrackInfo();
-		if (trackinfos == null || trackinfos.length == 0)
-			return null;
-				
-		return fillMediaInfo(trackinfos);
+		// 2015.12.26 michael.ma fix huawei tvbox MAY throw RuntimeException
+		try {
+			TrackInfo []trackinfos = super.getTrackInfo();
+			if (trackinfos != null && trackinfos.length > 0)
+				return fillMediaInfo(trackinfos);
+		}
+		catch (Throwable t) {
+			t.printStackTrace();
+		}
+		
+		return null;
 	}
 	
 	private MediaInfo fillMediaInfo(TrackInfo []trackinfos) {
