@@ -271,7 +271,7 @@ AVStream * apAudioEncoder::add_audiostream(int channels, int sample_rate, int sa
 	AVCodec*		codec = NULL;
 	int				ret;
 
-	codec = avcodec_find_encoder(CODEC_ID_AAC);
+	codec = avcodec_find_encoder(AV_CODEC_ID_AAC);
 	if (!codec) {
 		LOGE("Could not find codec.");
 		return NULL;

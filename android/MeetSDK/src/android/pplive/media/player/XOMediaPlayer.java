@@ -1874,7 +1874,37 @@ public class XOMediaPlayer extends BaseMediaPlayer {
 	@Override
 	public MediaInfo getMediaInfo() throws IllegalStateException {
 		// TODO Auto-generated method stub
-		return null;
+
+		//dragon_trainer_4audio|/storage/usbotg/usbotg-sda1/dragon_trainer_4audio.mkv
+		//|6115243|0|1280x720|null|
+		//{language=und, height=720, width=1280, mime=video/avc}
+		//|{sample-rate=24000, channel-count=2, language=und, mime=audio/mp4a-latm}
+		//(null,und)|{sample-rate=24000, channel-count=2, language=chi, mime=audio/mp4a-latm}
+		//(null,chi)|{sample-rate=24000, channel-count=2, language=chi, mime=audio/mp4a-latm}
+		//(null,chi)|{sample-rate=24000, channel-count=2, language=chi, mime=audio/mp4a-latm}
+		//(null,chi)|
+
+		MediaInfo mediaInfo = new MediaInfo(mUrl);
+		if (mVideoFormat != null) {
+			String mime = mVideoFormat.getString(MediaFormat.KEY_MIME);
+			int pos = mime.indexOf("/");
+			if (pos != -1)
+				mime = mime.substring(pos + 1);
+			mediaInfo.setVideoInfo(
+					mVideoWidth, mVideoHeight, mime, 
+					(int)(mDurationUsec / 1000));
+		}
+		if (mAudioFormat != null) {
+			String mime = mAudioFormat.getString(MediaFormat.KEY_MIME);
+			int pos = mime.indexOf("/");
+			if (pos != -1)
+				mime = mime.substring(pos + 1);
+			mediaInfo.setAudioChannels(1);
+			mediaInfo.setAudioChannelsInfo(
+					0, mAudioTrackIndex, mime, null, "N/A", "N/A");
+		}
+		
+		return mediaInfo;
 	}
 
 	@Override

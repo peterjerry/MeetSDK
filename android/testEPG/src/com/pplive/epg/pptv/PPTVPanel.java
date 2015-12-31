@@ -20,8 +20,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.StringTokenizer;
 
+import com.pplive.epg.TestEPG;
+import com.pplive.epg.baidu.BaiduPanel;
 import com.pplive.epg.sohu.PlaylinkSohu;
 import com.pplive.epg.sohu.SohuUtil;
+import com.pplive.epg.util.MyNanoHTTPD;
 import com.pplive.epg.util.Util;
 
 @SuppressWarnings("serial")
@@ -608,15 +611,30 @@ public class PPTVPanel extends JPanel {
 	                System.out.println("Java: mPlayerLinkSurfix final: " + link_surfix);
 				}
 				
-				String play_url = m3u8Url;
-				String play_exe = exe_ffplay;
+				String play_url = null;
+				String play_exe = null;
 				
-				if (link_surfix != null) {
-					play_url = PlayLinkUtil.getPlayUrl(
-						Integer.valueOf(vid), 5054, 1, 3, link_surfix);
-					play_exe = exe_vlc;
+				if (link_surfix == null) {
+					// live mode use cdn m3u8
+					play_url = m3u8Url;
+					play_exe = exe_ffplay;
 				}
-				
+				else {
+					// fake-live mode use proxy m3u8
+					int bw_type = comboBwType.getSelectedIndex();
+					if (bw_type == 4) {
+						play_url = PlayLinkUtil.getPlayUrl(
+								Integer.valueOf(vid), 9006, 1, 3, link_surfix);
+						play_url = play_url.replace(":9006", ":" + TestEPG.getHttpPort());
+						play_exe = exe_ffplay;
+					}
+					else {
+						play_url = PlayLinkUtil.getPlayUrl(
+							Integer.valueOf(vid), 5054, 1, 3, link_surfix);
+						play_exe = exe_vlc;
+					}
+				}
+
 				String[] cmd = new String[] {play_exe, play_url};
 				openExe(cmd);
 			}
@@ -740,10 +758,8 @@ public class PPTVPanel extends JPanel {
 		
 		listModel.clear();
 		
-		for (int i=0;i<size;i++) {
-			System.out.println(mModuleList.get(i).toString());
+		for (int i=0;i<size;i++)
 			listModel.addElement(mModuleList.get(i).getTitle());
-		}
 		
 		mState = EPG_STATE.EPG_STATE_FRONTPAGE;
 	}
@@ -760,10 +776,8 @@ public class PPTVPanel extends JPanel {
 		mModuleList = mEPG.getModule();
 		int size = mModuleList.size();
 		
-		for (int i=0;i<size;i++) {
-			System.out.println(mModuleList.get(i).toString());
+		for (int i=0;i<size;i++)
 			listModel.addElement(mModuleList.get(i).getTitle());
-		}
 		
 		mState = EPG_STATE.EPG_STATE_CONTENT_LIST;
 	}

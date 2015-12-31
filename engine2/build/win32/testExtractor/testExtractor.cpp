@@ -26,7 +26,7 @@
 #define URL_PPTV_LIVE "http://127.0.0.1:9006/play.m3u8?type=pplive3&playlink=300151%3Fft%3D1%26bwtype%3D3%26platform%3Dandroid3%26type%3Dphone.android.vip&m3u8seekback=true"
 
 //#define LOCAL_FILE "E:\\Archive\\media\\test\\coolpad\\coolpad_CoolShow01.mp4"
-#define LOCAL_FILE "E:\\dump\\1450939205.ts"
+#define LOCAL_FILE "E:\\UHD__VO_1080p.webm"
 
 #define MAX_PKT_SIZE (65536 * 10)
 

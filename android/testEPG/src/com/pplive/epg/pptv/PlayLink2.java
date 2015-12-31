@@ -14,6 +14,7 @@ public class PlayLink2 {
 	private int mWidth, mHeight;
 	private int mDurationSec;
 	
+	private String mOnlineTime;
 	private String mImgUrl;
 	
 	private String mExtTitle;
@@ -25,20 +26,20 @@ public class PlayLink2 {
 	
 	public PlayLink2(String title, String id, String desc) {
 		this(title, "", id, desc, 
-				"", "", "", 
+				"", "", "", "", 
 				"", "",
 				"", 0, "");
 	}
 	
 	public PlayLink2(String title, String id, String desc, String imgUrl) {
 		this(title, "", id, desc, 
-				"", "", "", 
+				"", "", "", "", 
 				"", "",
 				"", 0, imgUrl);
 	}
 
 	public PlayLink2(String title, String ext_title, String id, String desc, 
-			String mark, String director, String act, 
+			String mark, String oneline_time, String director, String act, 
 			String year, String area,
 			String resolution, int duration_sec, String imgUrl) {
 		mTitle 			= title;
@@ -46,6 +47,7 @@ public class PlayLink2 {
 		mId				= id;
 		mDescription	= desc;
 		
+		mOnlineTime		= oneline_time;
 		mMark			= mark;
 		mDirector		= director;
 		mAct			= act;
@@ -131,6 +133,8 @@ public class PlayLink2 {
 		sb.append(mDescription);
 		sb.append(", mark: ");
 		sb.append(mMark);
+		sb.append(", 上线时间: ");
+		sb.append(mOnlineTime);
 		sb.append(", 导演: ");
 		sb.append(mDirector);
 		sb.append(", 主演: ");

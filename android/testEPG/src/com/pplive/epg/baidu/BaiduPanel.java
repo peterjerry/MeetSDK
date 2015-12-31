@@ -46,6 +46,7 @@ import org.json.JSONException;
 import org.json.JSONObject;
 import org.json.JSONTokener;
 
+import com.pplive.epg.TestEPG;
 import com.pplive.epg.shooter.DetailItem;
 import com.pplive.epg.shooter.SearchItem;
 import com.pplive.epg.shooter.ShooterUtil;
@@ -105,7 +106,6 @@ public class BaiduPanel extends JPanel {
 	private String mChildPath;
 	private String mOperatePath;
 	private String[] mOperatePaths;
-	private int mPort = 8080;
 	//private String mBaiduToken;
 	//private String mBDUSS;
 	private boolean mIsCopy	= false;
@@ -294,6 +294,7 @@ public class BaiduPanel extends JPanel {
 				}
 				else if (key.equals("BDUSS")) {
 					cookie_BDUSS = value;
+					TestEPG.httpd.setBDUSS(cookie_BDUSS);
 					System.out.println("Java: set cookie_BDUSS to " + cookie_BDUSS);
 				}
 				else {
@@ -361,10 +362,6 @@ public class BaiduPanel extends JPanel {
 		BAIDU_PCS_SEARCH = BAIDU_PCS_FILE_PREFIX + 
 				"?method=search" +
 				"&access_token=" + mbOauth;
-		
-		Random rand = new Random();
-		mPort = 8080 + rand.nextInt(100);
-		System.out.println("http port: " + mPort);
 		
 		// Action
 		lblRootPath.setFont(f);
@@ -617,6 +614,7 @@ public class BaiduPanel extends JPanel {
 						"输入密码", "daqiao1");
 				LoginInfo info = EmulateLoginBaidu.login(user_name, passwd);
 				cookie_BDUSS = info.getBDUSS();
+				TestEPG.httpd.setBDUSS(cookie_BDUSS);
 				
 				Clipboard clipboard = getToolkit().getSystemClipboard();//获取系统剪贴板;
 				StringSelection text = new StringSelection(cookie_BDUSS);
@@ -998,10 +996,6 @@ public class BaiduPanel extends JPanel {
 		//mBDUSS = info.getBDUSS();
 		//mBaiduToken = info.getToken();
 		
-		HttpServiceThread myThread = new HttpServiceThread();
-		Thread t = new Thread(myThread);
-		t.start();
-		
 		File f = new File("e:/dump/test2");
 		
 		init_combobox();
@@ -1226,7 +1220,8 @@ public class BaiduPanel extends JPanel {
 		try {
 			String encoded_path = URLEncoder.encode(path, "utf-8");
 
-			String url = String.format(BAIDU_PCS_DOWNLOAD_PROXY_FMT, mPort);
+			String url = String.format(BAIDU_PCS_DOWNLOAD_PROXY_FMT, 
+					TestEPG.getHttpPort());
 			url += encoded_path;
 			System.out.println("ready to play url: " + url);
 			lblInfo.setText("ready to play url: " + url);
@@ -2442,21 +2437,7 @@ public class BaiduPanel extends JPanel {
 		
 	};
 	
-	private class HttpServiceThread implements Runnable {		
-		@Override
-		public void run() {
-			// TODO Auto-generated method stub
-			MyNanoHTTPD httpd = new MyNanoHTTPD(mPort, null);
-			httpd.setBDUSS(cookie_BDUSS);
-			try {
-				httpd.start();
-			} catch (IOException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
-		}
-		
-	};
+	
 	
 	private class CheckCloudTaskWorker extends SwingWorker<Boolean, Integer> {
 		private int mTaskId;

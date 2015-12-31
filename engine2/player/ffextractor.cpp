@@ -416,14 +416,14 @@ status_t FFExtractor::getTrackFormat(int32_t index, MediaFormat *format)
 
 	if (AVMEDIA_TYPE_VIDEO == type) {
 		format->media_type	= PPMEDIA_TYPE_VIDEO;
-		format->codec_id	= (int32_t)codec_id;
+		format->codec_id		= (int32_t)codec_id;
 		format->width		= c->width;
 		format->height		= c->height;
 		format->ar			= av_q2d(c->sample_aspect_ratio);
 		format->duration_us	= m_fmt_ctx->duration;
 
 		// get pps and sps
-		if (strstr(m_fmt_ctx->iformat->name, "matroska") != NULL ||
+		if (strstr(m_fmt_ctx->iformat->name, "matroska,webm") != NULL ||
 			strstr(m_fmt_ctx->iformat->name, "mp4") != NULL ||
 			strstr(m_fmt_ctx->iformat->name, "flv") != NULL)
 		{
@@ -445,6 +445,11 @@ status_t FFExtractor::getTrackFormat(int32_t index, MediaFormat *format)
 			  16    PPS size
 			  variable PPS NALU data
 			*/
+
+			if (c->extradata == NULL) {
+				LOGE("codec extra data is null");
+				return ERROR;
+			}
 
 			uint8_t *data = c->extradata;
 			LOGI("avc version 0x%02x", *(data++));
@@ -556,19 +561,6 @@ status_t FFExtractor::getTrackFormat(int32_t index, MediaFormat *format)
 				return ERROR;
 			}
 
-			// fixme
-			// 2015.12.12 michael.ma
-			// workaround to fix XOPlayer cannot play hls due to seek back will fail
-			/*if ( m_sorce_type == TYPE_LOCAL_FILE) {
-				int64_t seek_min = INT64_MIN;
-				int64_t seek_max = INT64_MAX;
-				if (avformat_seek_file(m_fmt_ctx, index, seek_min, 0, seek_max, AVSEEK_FLAG_BACKWARD) < 0) {
-				//if (av_seek_frame(m_fmt_ctx, -1, 0, AVSEEK_FLAG_BACKWARD) < 0) {
-					LOGE("failed to seekback to head");
-					return ERROR;
-				}
-			}*/
-
 			m_fmt_ctx->streams[index]->discard = AVDISCARD_ALL;
 
 			format->csd_0		= m_sps_data;
@@ -615,12 +607,12 @@ status_t FFExtractor::getTrackFormat(int32_t index, MediaFormat *format)
 #define FF_PROFILE_MPEG2_AAC_LOW 128
 #define FF_PROFILE_MPEG2_AAC_HE  131
 */
-		if (CODEC_ID_AAC == codec_id)
+		if (AV_CODEC_ID_AAC == codec_id)
 			LOGI("aac profile %d", c->profile);
 
 		format->media_type		= PPMEDIA_TYPE_AUDIO;
-		format->codec_id		= (int32_t)codec_id;
-		format->channels		= c->channels;
+		format->codec_id			= (int32_t)codec_id;
+		format->channels			= c->channels;
 		format->channel_layout	= c->channel_layout;
 		format->sample_rate		= c->sample_rate;
 		format->sample_fmt		= (int)c->sample_fmt;

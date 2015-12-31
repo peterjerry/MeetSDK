@@ -5,6 +5,8 @@ import java.awt.Font;
 import java.awt.Toolkit;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
+import java.io.IOException;
+import java.util.Random;
 import java.util.StringTokenizer;
 
 import javax.swing.JFrame;
@@ -13,6 +15,8 @@ import javax.swing.JLabel;
 import com.pplive.epg.boxcontroller.Code;
 import com.pplive.epg.boxcontroller.MyActionEvent;
 import com.pplive.epg.boxcontroller.MyBoxController;
+import com.pplive.epg.pptv.NativeMedia;
+import com.pplive.epg.util.MyNanoHTTPD;
 import com.pplive.epg.util.Util;
 
 public class TestEPG { 
@@ -21,8 +25,36 @@ public class TestEPG {
 	
 	private static MyBoxController con;
 	
+	public static MyNanoHTTPD httpd;
+	private static int mPort = 8080;
+	
 	public static void main(String[] args) {
+		Random rand = new Random();
+		mPort = 8080 + rand.nextInt(100);
+		System.out.println("http port: " + mPort);
+		
+		Thread t = new Thread(new Runnable() {
+			
+			@Override
+			public void run() {
+				// TODO Auto-generated method stub
+				httpd = new MyNanoHTTPD(mPort, null);
+				//httpd.setBDUSS(cookie_BDUSS);
+				try {
+					httpd.start();
+				} catch (IOException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+			}
+		});
+		t.start();
+		
 		createAndShowGUI();
+	}
+	
+	public static int getHttpPort() {
+		return mPort;
 	}
 	
 	public static void createAndShowGUI() {
@@ -39,6 +71,9 @@ public class TestEPG {
 			x = (screen_width - APP_WIDTH) / 2;
 			y = (screen_height - APP_HEIGHT) / 2;
 		}
+		
+		System.out.println("Java: NativeMedia.test() " + 
+				NativeMedia.test("abcde"));
 		
 		JFrame frame = new JFrame("电视鸭");
 		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);

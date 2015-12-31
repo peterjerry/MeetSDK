@@ -28,6 +28,7 @@ import com.pplive.sdk.MediaSDK;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.Dialog;
+import android.app.ProgressDialog;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.DialogInterface;
@@ -429,7 +430,8 @@ public class PPTVEpisodeActivity extends Activity {
     				
     				episode.put("title", al.getTitle());
     				episode.put("img_url", al.getImgUrl());
-    				episode.put("tip", "评分: " + al.getMark());
+    				episode.put("onlinetime", al.getOnlineTime());
+    				episode.put("tip", "评分 " + al.getMark());
     				episode.put("vid", al.getId());
     				episode.put("desc", al.getDescription());
     				listData.add(episode);
@@ -552,9 +554,22 @@ public class PPTVEpisodeActivity extends Activity {
 	
 	private class PPTVEpgTask extends AsyncTask<Integer, Integer, Boolean> {
 
+		private ProgressDialog progDlg = null;
+		
+		@Override
+		protected void onPreExecute() {
+			// TODO Auto-generated method stub
+			progDlg = new ProgressDialog(PPTVEpisodeActivity.this);
+			progDlg.setMessage("数据请求中...");
+			progDlg.setCancelable(true);
+			progDlg.show();
+		}
+		
 		@Override
 		protected void onPostExecute(Boolean result) {
 			// TODO Auto-generated method stub
+			progDlg.dismiss();
+			
 			if (!result) {
 				Log.e(TAG, "failed to get episode");
 				Toast.makeText(PPTVEpisodeActivity.this, "failed to get episode", Toast.LENGTH_SHORT).show();
@@ -646,9 +661,22 @@ public class PPTVEpisodeActivity extends Activity {
 	
 	private class SetDataTask extends AsyncTask<Integer, Integer, List<Map<String, Object>>> {
 		
+		private ProgressDialog progDlg = null;
+		
+		@Override
+		protected void onPreExecute() {
+			// TODO Auto-generated method stub
+			progDlg = new ProgressDialog(PPTVEpisodeActivity.this);
+			progDlg.setMessage("数据请求中...");
+			progDlg.setCancelable(true);
+			progDlg.show();
+		}
+		
 		@Override
 		protected void onPostExecute(List<Map<String, Object>> result) {
 			// TODO Auto-generated method stub
+			progDlg.dismiss();
+			
 			if (result == null) {
 				Log.e(TAG, "Java: failed to get data");
 				return;
@@ -690,10 +718,11 @@ public class PPTVEpisodeActivity extends Activity {
 			for (int i=0;i<c;i++) {
 				HashMap<String, Object> episode = new HashMap<String, Object>();
 				PlayLink2 al = mAlbumList.get(i);
-				
+
 				episode.put("title", al.getTitle());
 				episode.put("img_url", al.getImgUrl());
-				episode.put("tip", "评分: " + al.getMark());
+				episode.put("onlinetime", al.getOnlineTime());
+				episode.put("tip", "评分 " + al.getMark());
 				episode.put("vid", al.getId());
 				episode.put("desc", al.getDescription());
 				items.add(episode);
