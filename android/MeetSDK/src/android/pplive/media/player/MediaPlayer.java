@@ -5,7 +5,6 @@ import android.graphics.Bitmap;
 import android.graphics.PixelFormat;
 import android.media.MediaPlayer.TrackInfo;
 import android.net.Uri;
-import android.os.Build;
 import android.pplive.media.MeetSDK;
 import android.pplive.media.subtitle.SimpleSubTitleParser;
 import android.pplive.media.util.LogUtils;
@@ -129,10 +128,12 @@ public class MediaPlayer implements MediaPlayerInterface {
 	private MediaPlayerInterface mPlayer = null;
 	private DecodeMode mDecodeMode = DecodeMode.SW;
 	private String mPath = null;
+	private Uri mUri = null;
+	private Map<String, String> mHeaders = null;
 	private Surface mSurface = null;
 	private SurfaceHolder mHolder = null;
 	private boolean mScreenOn = false;
-	private int mWakeMode;
+	private int mWakeMode = -1;
 	private String mOption;
 
 	/**
@@ -177,6 +178,12 @@ public class MediaPlayer implements MediaPlayerInterface {
 	public void setDataSource(Context context, Uri uri, Map<String, String> headers)
 		throws IllegalStateException, IOException,
 			IllegalArgumentException, SecurityException {
+        if (headers != null) {
+        	mContext = context;
+            mUri = uri;
+            mHeaders = headers;
+        }
+
 		mPath = MeetSDK.Uri2String(context, uri);
 	}
 	
@@ -264,7 +271,10 @@ public class MediaPlayer implements MediaPlayerInterface {
 		setLooping();
 		
 		try {
-			mPlayer.setDataSource(mPath);
+            if (mContext != null && mUri != null && mHeaders != null)
+                mPlayer.setDataSource(mContext, mUri, mHeaders);
+            else
+			    mPlayer.setDataSource(mPath);
 		} catch (IllegalArgumentException e) {
 		    LogUtils.error("IllegalArgumentException", e);
 			throw new IllegalStateException(e);
@@ -987,7 +997,7 @@ public class MediaPlayer implements MediaPlayerInterface {
 	}
 	
 	private void setWakeMode() {
-		if (mPlayer != null && mContext != null) {
+		if (mPlayer != null && mContext != null && mWakeMode != -1) {
 			mPlayer.setWakeMode(mContext, mWakeMode);
 		}
 	}
