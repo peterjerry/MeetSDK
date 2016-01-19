@@ -16,7 +16,6 @@ import com.pplive.meetplayer.util.Util;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.Dialog;
-import android.app.ProgressDialog;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.os.AsyncTask;
@@ -354,22 +353,10 @@ public class SohuEpisodeActivity extends Activity {
 	}
 	
 	private class SohuEpgTask extends AsyncTask<Long, Integer, Boolean> {
-
-		private ProgressDialog progDlg = null;
-		
-		@Override
-		protected void onPreExecute() {
-			// TODO Auto-generated method stub
-			progDlg = new ProgressDialog(SohuEpisodeActivity.this);
-			progDlg.setMessage("数据请求中...");
-			progDlg.setCancelable(true);
-			progDlg.show();
-		}
 		
 		@Override
 		protected void onPostExecute(Boolean result) {
 			// TODO Auto-generated method stub
-			progDlg.dismiss();
 			
 			if (!result) {
 				Log.e(TAG, "failed to get episode");
@@ -458,21 +445,9 @@ public class SohuEpisodeActivity extends Activity {
 	
 	private class SetDataTask extends AsyncTask<Integer, Integer, Boolean> {
 		
-		private ProgressDialog progDlg = null;
-		
-		@Override
-		protected void onPreExecute() {
-			// TODO Auto-generated method stub
-			progDlg = new ProgressDialog(SohuEpisodeActivity.this);
-			progDlg.setMessage("数据请求中...");
-			progDlg.setCancelable(true);
-			progDlg.show();
-		}
-		
 		@Override
 		protected void onPostExecute(Boolean result) {
 			// TODO Auto-generated method stub
-			progDlg.dismiss();
 			
 			if (!result) {
 				Log.e(TAG, "Java: failed to get sub channel");

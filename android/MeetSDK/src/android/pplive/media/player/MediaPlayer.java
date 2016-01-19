@@ -318,6 +318,8 @@ public class MediaPlayer implements MediaPlayerInterface {
 
 	@Override
 	public void prepareAsync() throws IllegalStateException {
+		LogUtils.info("prepareAsync");
+		
 		setupMediaPlayer();
 		
 		if (mPlayer != null) {

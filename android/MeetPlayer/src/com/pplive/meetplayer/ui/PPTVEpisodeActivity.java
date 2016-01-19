@@ -28,7 +28,6 @@ import com.pplive.sdk.MediaSDK;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.Dialog;
-import android.app.ProgressDialog;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.DialogInterface;
@@ -553,22 +552,10 @@ public class PPTVEpisodeActivity extends Activity {
 	}
 	
 	private class PPTVEpgTask extends AsyncTask<Integer, Integer, Boolean> {
-
-		private ProgressDialog progDlg = null;
-		
-		@Override
-		protected void onPreExecute() {
-			// TODO Auto-generated method stub
-			progDlg = new ProgressDialog(PPTVEpisodeActivity.this);
-			progDlg.setMessage("数据请求中...");
-			progDlg.setCancelable(true);
-			progDlg.show();
-		}
 		
 		@Override
 		protected void onPostExecute(Boolean result) {
 			// TODO Auto-generated method stub
-			progDlg.dismiss();
 			
 			if (!result) {
 				Log.e(TAG, "failed to get episode");
@@ -661,21 +648,9 @@ public class PPTVEpisodeActivity extends Activity {
 	
 	private class SetDataTask extends AsyncTask<Integer, Integer, List<Map<String, Object>>> {
 		
-		private ProgressDialog progDlg = null;
-		
-		@Override
-		protected void onPreExecute() {
-			// TODO Auto-generated method stub
-			progDlg = new ProgressDialog(PPTVEpisodeActivity.this);
-			progDlg.setMessage("数据请求中...");
-			progDlg.setCancelable(true);
-			progDlg.show();
-		}
-		
 		@Override
 		protected void onPostExecute(List<Map<String, Object>> result) {
 			// TODO Auto-generated method stub
-			progDlg.dismiss();
 			
 			if (result == null) {
 				Log.e(TAG, "Java: failed to get data");

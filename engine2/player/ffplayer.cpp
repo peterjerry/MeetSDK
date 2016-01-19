@@ -3533,7 +3533,7 @@ bool getStreamLangTitle(char** langcode, char** langtitle, int index, AVStream* 
 			*langtitle ? *langcode : "N/A");
 	}
 	else {
-		LOGW("%s stream index: #d lang and title are both empty", stream_type, index);
+		LOGW("%s stream index: #%d lang and title are both empty", stream_type, index);
 	}
     return gotlanguage;
 }

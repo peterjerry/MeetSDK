@@ -1318,9 +1318,18 @@ void FFStream::thread_impl()
 										AV_TIME_BASE_Q, mSubtitleStream->time_base);
 #endif
 							if (SUBTITLE_ASS == (*(mAVSubtitle->rects))->type) {
+#ifdef _MSC_VER
+								for (int i=0;i<mAVSubtitle->num_rects;i++) {
+									if (mAVSubtitle->rects[i]->ass) {
+										mISubtitle->addEmbeddingSubtitleEntity(0, start_time, stop_time - start_time, 
+											mAVSubtitle->rects[i]->ass, strlen(mAVSubtitle->rects[i]->ass));
+									}
+								}
+#else
 								mISubtitle->addEmbeddingSubtitleEntity(mSubtitleTrackIndex, 
 									start_time, stop_time - start_time, 
 									(const char*)pPacket->data, pPacket->size);
+#endif
 							}
 							else {
 								mISubtitle->addEmbeddingSubtitleEntity(mSubtitleTrackIndex, 

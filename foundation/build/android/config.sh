@@ -1,7 +1,7 @@
 #!/bin/bash
 
 if [ $# == 0 ] ; then 
-echo "USAGE: $0 <abi(armeabi-v7a x86 arm64-v8a)> [config(full lite micro tiny gotye)] [has_encoder(enc)]" 
+echo "USAGE: $0 <abi(armeabi-v7a x86 arm64-v8a)> [config(full lite micro tiny gotye)] [component(enc mux librtmp openssl)]" 
 echo " e.g.: $0 armeabi-v7a"
 echo " e.g.: $0 armeabi-v7a lite"
 echo " e.g.: $0 armeabi-v7a lite enc" 
@@ -104,15 +104,6 @@ else
 	SYSROOT=$NDK/platforms/android-9/arch-$ARCH
 fi
 
-HOME_FOLDER=`pwd`
-FDK_AAC_HOME=$HOME_FOLDER/../thirdparty/fdk-aac
-RTMPDUMP_HOME=$HOME_FOLDER/../thirdparty/rtmpdump
-X264_HOME=$HOME_FOLDER/../thirdparty/x264
-
-FDK_AAC_LIB=$FDK_AAC_HOME/lib/android/$1
-RTMPDUMP_LIB=$RTMPDUMP_HOME/lib/android/$1
-X264_LIB=$X264_HOME/lib/android/$1
-
 if [ $ARCH == 'arm' ] 
 then
 	CROSS_PREFIX=$NDK/toolchains/arm-linux-androideabi-4.8/prebuilt/$HOST/bin/arm-linux-androideabi-
@@ -135,102 +126,123 @@ then
 	OPTFLAGS="-O2"
 fi
 
-if [ ${3}x == 'enc'x ]; then
-
-echo "build-in fdk-aac" 
-echo "HOME_FOLDER: $HOME_FOLDER"
-echo "fdk-aac include: $FDK_AAC_HOME/include"
-echo "fdk-aac lib: $FDK_AAC_LIB"
-
-echo "rtmpdump include: $RTMPDUMP_HOME/include"
-echo "rtmpdump lib: $RTMPDUMP_LIB"
-
-echo "x264 include: $X264_HOME/include"
-echo "x264 lib: $X264_LIB"
-
-EXTRA_CFLAGS="$EXTRA_CFLAGS -I$FDK_AAC_HOME/include -I$RTMPDUMP_HOME/include -I$X264_HOME/include"
-EXTRA_LDFLAGS="$EXTRA_LDFLAGS -L$FDK_AAC_LIB -L$X264_LIB"
-EXTRA_LDFLAGS="$EXTRA_LDFLAGS -L$RTMPDUMP_LIB -lssl -lcrypto -lz"
+if [ $# == 1 ]; then
+	echo "full build"
 fi
+
+for arg in $*
+do
+	if [ ${arg}x == 'enc'x ]; then
+		HOME_FOLDER=`pwd`
+		FDK_AAC_HOME=$HOME_FOLDER/../thirdparty/fdk-aac
+		X264_HOME=$HOME_FOLDER/../thirdparty/x264
+		FDK_AAC_LIB=$FDK_AAC_HOME/lib/android/$1
+		X264_LIB=$X264_HOME/lib/android/$1
+		echo "build-in fdk-aac & libx264"
+		echo "================="
+		echo "HOME_FOLDER: $HOME_FOLDER"
+		echo "fdk-aac include: $FDK_AAC_HOME/include"
+		echo "fdk-aac lib: $FDK_AAC_LIB"
+		echo "x264 include: $X264_HOME/include"
+		echo "x264 lib: $X264_LIB"
+		echo "================="
+
+		EXTRA_CFLAGS="$EXTRA_CFLAGS -I$FDK_AAC_HOME/include -I$X264_HOME/include"
+		EXTRA_LDFLAGS="$EXTRA_LDFLAGS -L$FDK_AAC_LIB -L$X264_LIB"
+		
+		EXTRA_PARAMETERS="$EXTRA_PARAMETERS \
+			--enable-nonfree \
+			--enable-encoder=libfdk_aac \
+			--enable-libfdk-aac \
+			--enable-openssl \
+			--enable-gpl \
+			--enable-libx264 \
+			--enable-encoder=libx264"
+	elif [ ${arg}x == 'mux'x ]; then
+		EXTRA_PARAMETERS="$EXTRA_PARAMETERS --enable-muxer=mpegts,flv,mp4,hls"
+	elif [ ${arg}x == 'openssl'x ]; then
+		HOME_FOLDER=`pwd`
+		OPENSSL_HOME=$HOME_FOLDER/../thirdparty/rtmpdump
+		OPENSSL_LIB=$OPENSSL_HOME/lib/android/$1
+		echo "build-in openssl"
+		echo "================="
+		echo "openssl include: $OPENSSL_HOME/include"
+		echo "openssl lib: $OPENSSL_LIB"
+		echo "================="
+		EXTRA_CFLAGS="$EXTRA_CFLAGS -I$OPENSSL_HOME/include"
+		EXTRA_LDFLAGS="$EXTRA_LDFLAGS -L$OPENSSL_LIB -lssl -lcrypto -lz"
+	elif [ ${arg}x == 'librtmp'x ]; then
+		HOME_FOLDER=`pwd`
+		RTMPDUMP_HOME=$HOME_FOLDER/../thirdparty/rtmpdump
+		RTMPDUMP_LIB=$RTMPDUMP_HOME/lib/android/$1
+		echo "build-in librtmp"
+		echo "================="
+		echo "librtmp include: $RTMPDUMP_HOME/include"
+		echo "librtmp lib: $RTMPDUMP_LIB"
+		echo "================="
+		EXTRA_PARAMETERS="$EXTRA_PARAMETERS --enable-librtmp"
+	elif [ ${arg}x == 'lite'x ]; then
+		echo "lite build"
+		EXTRA_PARAMETERS="$EXTRA_PARAMETERS \
+			--disable-decoders \
+			--enable-decoder=h263,h264,hevc,vp3,vp5,vp6,vp6a,vp6f,vp7,vp8,vp9,flv,mpeg1video,mpeg2video,mpegvideo,mpeg4,dca,ac3,eac3,aac,mp1,mp2,mp3,rv30,rv40,cook,wmv1,wmv2,wmv3,wmv3image,vorbis,ape,flac,wmav1,wmav2,wmapro,mjpeg,msmpeg4v1,msmpeg4v2,msmpeg4v3,tscc,gsm,gsm_ms,amrnb,amrwb,pcm_s16be,pcm_s16be_planar,pcm_s16le,pcm_s16le_planar,ass,dvbsub,dvdsub,mov_text,sami,srt,ssa,subrip,text \
+			--disable-demuxers \
+			--enable-demuxer=rm,mpegvideo,mjpeg,avi,h263,h264,hevc,matroska,dts,dtshd,aac,flv,mpegts,mpegps,mp4,m4v,mov,ape,hls,flac,rawvideo,realtext,rtsp,vc1,mp3,wav,asf,ogg \
+			--disable-parsers \
+			--enable-parser=h263,h264,hevc,mpegaudio,mpegvideo,aac_latm,mpeg4video,dca,aac,ac3,eac3,flac,png,bmp,rv30,rv40,cavsvideo,vc1,vorbis,mjpeg,vp3,vp8,vp9,cook "
+
+		# hevc,liblenthevchm91,liblenthevchm10,liblenthevc
+	elif [ ${arg}x == 'micro'x ]; then
+		echo "micro build"
+		EXTRA_PARAMETERS="$EXTRA_PARAMETERS \
+				--disable-decoders \
+				--enable-decoder=h264,aac \
+				--disable-demuxers \
+				--enable-demuxer=h264,mp4,mov,mpegts,flv,hls \
+				--disable-parsers \
+				--enable-parser=h264,aac_latm \
+			--enable-muxer=mpegts,flv,hls \
+			--disable-protocols \
+			--enable-protocol=file,http,rtmp,hls "
+	elif [ ${arg}x == 'tiny'x ]; then
+		echo "tiny build"
+		EXTRA_PARAMETERS="$EXTRA_PARAMETERS \
+			--disable-decoders \
+			--enable-decoder=h264,aac \
+			--disable-demuxers \
+			--enable-demuxer=h264,mp4,mov,mpegts,flv,hls \
+			--disable-parsers \
+			--enable-parser=h264,aac_latm \
+			--disable-protocols \
+			--enable-protocol=file,http,rtmp,hls \
+			--disable-bsfs \
+			--disable-swscale \
+			--disable-avfilter \
+			--disable-postproc \
+			--enable-small "
+		#       --enable-bsf=ac_adtstoasc,h264_mp4toannexb
+	elif [ ${arg}x == 'gotye'x ]; then
+		echo "gotye build"
+		EXTRA_PARAMETERS="$EXTRA_PARAMETERS \
+			--disable-decoders \
+			--enable-decoder=aac_latm \
+			--disable-demuxers \
+			--enable-demuxer=flv \
+			--disable-parsers \
+			--disable-protocols \
+			--enable-protocol=rtmp \
+			--disable-bsfs \
+			--enable-bsf=h264_mp4toannexb \
+			--disable-swscale \
+			--disable-swresample \
+			--disable-avfilter \
+			--disable-postproc \
+			--enable-small "
+	fi
+done
 
 #remove ac3 eac3
 #EXTRA_PARAMETERS="$EXTRA_PARAMETERS --disable-decoder=ac3,eac3 --disable-parser=ac3 --disable-demuxer=ac3,eac3 "
-
-#lite build
-#if [[ $2 = 'lite' ]]
-if [ ${2}x == 'lite'x ]; then
-echo "lite build"
-EXTRA_PARAMETERS="$EXTRA_PARAMETERS \
-	--disable-decoders \
-	--enable-decoder=h263,h264,hevc,vp3,vp5,vp6,vp6a,vp6f,vp7,vp8,vp9,flv,mpeg1video,mpeg2video,mpegvideo,mpeg4,dca,ac3,eac3,aac,mp1,mp2,mp3,rv30,rv40,cook,wmv1,wmv2,wmv3,wmv3image,vorbis,ape,flac,wmav1,wmav2,wmapro,mjpeg,msmpeg4v1,msmpeg4v2,msmpeg4v3,tscc,gsm,gsm_ms,amrnb,amrwb,pcm_s16be,pcm_s16be_planar,pcm_s16le,pcm_s16le_planar,ass,dvbsub,dvdsub,mov_text,sami,srt,ssa,subrip,text \
-	--disable-demuxers \
-	--enable-demuxer=rm,mpegvideo,mjpeg,avi,h263,h264,hevc,matroska,dts,dtshd,aac,flv,mpegts,mpegps,mp4,m4v,mov,ape,hls,flac,rawvideo,realtext,rtsp,vc1,mp3,wav,asf,ogg \
-	--disable-parsers \
-	--enable-parser=h263,h264,hevc,mpegaudio,mpegvideo,aac_latm,mpeg4video,dca,aac,ac3,eac3,flac,png,bmp,rv30,rv40,cavsvideo,vc1,vorbis,mjpeg,vp3,vp8,vp9,cook "
-
-# hevc,liblenthevchm91,liblenthevchm10,liblenthevc
-elif [ ${2}x == 'micro'x ]; then
-echo "micro build"
-EXTRA_PARAMETERS="$EXTRA_PARAMETERS \
-        --disable-decoders \
-        --enable-decoder=h264,aac \
-        --disable-demuxers \
-        --enable-demuxer=h264,mp4,mov,mpegts,flv,hls \
-        --disable-parsers \
-        --enable-parser=h264,aac_latm \
-	--enable-muxer=mpegts,flv,hls \
-	--disable-protocols \
-	--enable-protocol=file,http,rtmp,hls "
-elif [ ${2}x == 'tiny'x ]; then
-echo "tiny build"
-EXTRA_PARAMETERS="$EXTRA_PARAMETERS \
-	--disable-decoders \
-	--enable-decoder=h264,aac \
-	--disable-demuxers \
-	--enable-demuxer=h264,mp4,mov,mpegts,flv,hls \
-	--disable-parsers \
-	--enable-parser=h264,aac_latm \
-	--disable-protocols \
-	--enable-protocol=file,http,rtmp,hls \
-	--disable-bsfs \
-	--disable-swscale \
-	--disable-avfilter \
-	--disable-postproc \
-	--enable-small "
-#       --enable-bsf=ac_adtstoasc,h264_mp4toannexb
-elif [ ${2}x == 'gotye'x ]; then
-echo "gotye build"
-EXTRA_PARAMETERS="$EXTRA_PARAMETERS \
-	--disable-decoders \
-	--enable-decoder=aac_latm \
-	--disable-demuxers \
-	--enable-demuxer=flv \
-	--disable-parsers \
-	--disable-protocols \
-	--enable-protocol=rtmp \
-	--disable-bsfs \
-	--enable-bsf=h264_mp4toannexb \
-	--disable-swscale \
-	--disable-swresample \
-	--disable-avfilter \
-	--disable-postproc \
-	--enable-small "
-else
-echo "full build"
-fi
-
-if [ ${3}x == 'enc'x ]; then
-EXTRA_PARAMETERS="$EXTRA_PARAMETERS \
-	--enable-nonfree \
-	--enable-encoder=libfdk_aac \
-	--enable-libfdk-aac \
-	--enable-muxer=mpegts,flv,hls \
-	--enable-openssl \
-	--enable-gpl \
-	--enable-libx264 \
-	--enable-encoder=libx264"
-#	--enable-librtmp \	
-fi
 
 if [ ${2}x != 'tiny'x ] && [ ${2}x != 'gotye'x ]; then
 EXTRA_PARAMETERS="$EXTRA_PARAMETERS \
@@ -282,6 +294,11 @@ done
 	$EXTRA_PARAMETERS
 
 #--cpu=$CPU \
+
+if [[ $? -ne 0 ]]; then
+	echo -e "\033[31m \n\nfailed to config ffmpeg \033[0m"
+    exit 1
+fi
 
 
 

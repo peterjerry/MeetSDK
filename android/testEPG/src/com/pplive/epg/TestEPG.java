@@ -72,9 +72,6 @@ public class TestEPG {
 			y = (screen_height - APP_HEIGHT) / 2;
 		}
 		
-		System.out.println("Java: NativeMedia.test() " + 
-				NativeMedia.test("abcde"));
-		
 		JFrame frame = new JFrame("电视鸭");
 		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 

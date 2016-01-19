@@ -53,12 +53,13 @@
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>_TEST_SUBTITLE;_CRT_SECURE_NO_WARNINGS;WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <SDLCheck>true</SDLCheck>
-      <AdditionalIncludeDirectories>D:\Archive\SDK\FFMPEG\ffmpeg-20140613-git-1c5aa64-win32\include;libass\include;..\..\..\..\engine2\platform;e;..\..\..\..\engine2\player;..\..\..\src\subtitle;..\..\..\src\tinyxml2;D:\Archive\SDK\pthread\pthreads-w32-2-9-1-release\Pre-built.2\include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>E:\work\SDK\ffmpeg\ffmpeg-20150131-git-f5722ba-win32\include;libass_smp\include;..\..\..\..\engine2\platform;..\..\..\..\engine2\player;..\..\..\src\subtitle;..\..\..\src\tinyxml2;E:\work\SDK\pthread\pthreads-w32-2-9-1-release\Pre-built.2\include</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>D:\Archive\SDK\FFMPEG\ffmpeg-20140613-git-1c5aa64-win32\lib;libass\lib;D:\Archive\SDK\pthread\pthreads-w32-2-9-1-release\Pre-built.2\lib\x86</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>E:\work\SDK\ffmpeg\ffmpeg-20150131-git-f5722ba-win32\lib;libass_smp\lib\x86;E:\work\SDK\pthread\pthreads-w32-2-9-1-release\Pre-built.2\lib\x86</AdditionalLibraryDirectories>
+      <IgnoreSpecificDefaultLibraries>msvcrt.lib</IgnoreSpecificDefaultLibraries>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
