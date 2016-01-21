@@ -41,6 +41,7 @@ import com.pplive.meetplayer.util.Util;
 
 import android.pplive.media.player.MediaPlayer;
 import android.pplive.media.player.MeetVideoView;
+import android.pplive.media.player.MeetGLVideoView;
 import android.pplive.media.player.MediaPlayer.DecodeMode;
 import android.pplive.media.subtitle.SimpleSubTitleParser;
 import android.pplive.media.subtitle.SubTitleSegment;
@@ -52,7 +53,7 @@ public class VideoPlayerActivity extends Activity implements Callback {
 	
 	private final static String []mode_desc = {"自适应", "铺满屏幕", "放大裁切", "原始大小"};
 
-	protected MeetVideoView mVideoView = null; // protected for child access
+	protected MeetGLVideoView mVideoView = null; // protected for child access
 	protected MyMediaController mController;
 	private int mVideoWidth;
 	private int mVideoHeight;
@@ -127,7 +128,7 @@ public class VideoPlayerActivity extends Activity implements Callback {
 		setContentView(R.layout.activity_video_player);
 		
 		this.mController = (MyMediaController) findViewById(R.id.video_controller);
-		this.mVideoView = (MeetVideoView) findViewById(R.id.video_view);
+		this.mVideoView = (MeetGLVideoView) findViewById(R.id.video_view);
 		this.mSubtitleTextView = (TextView) findViewById(R.id.textview_subtitle);
 		this.mBufferingProgressBar = (ProgressBar) findViewById(R.id.progressbar_buffering);
 		this.mTextViewDebugInfo = (TextView) findViewById(R.id.tv_debuginfo);

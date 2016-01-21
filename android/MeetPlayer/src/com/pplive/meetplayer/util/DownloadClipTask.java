@@ -20,12 +20,6 @@ import com.pplive.db.MediaStoreDatabaseHelper;
 import com.pplive.meetplayer.R;
 import com.pplive.sdk.MediaSDK;
 
-/**
- * @param[0] playlink
- * @param[1] ft 码流
- * @param[2] savepath 保存路径
- *
- */
 public class DownloadClipTask extends AsyncTask<String, Integer, Boolean> {
 	private static final String TAG = "DownloadClipTask";
 	
@@ -60,7 +54,13 @@ public class DownloadClipTask extends AsyncTask<String, Integer, Boolean> {
 			db.saveMediaInfo(mSavePath, mTitle, info);
 		}
 	}
-	
+
+	/**
+	 * @params[0] playlink
+	 * @params[1] ft 码流
+	 * @params[2] savepath 保存路径
+	 *
+	 */
 	@Override
 	protected Boolean doInBackground(String... params) {
 		if (params.length < 3) {

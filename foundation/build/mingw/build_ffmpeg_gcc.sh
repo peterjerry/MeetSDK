@@ -34,7 +34,7 @@ make -j4 install
 
 #cp version.h $PREFIX/
 cp config.h $PREFIX/
-cp dep/*.dll $PREFIX/bin/
+cp ../build/mingw/dep/*.dll $PREFIX/bin/
 
 echo "build ffmepg gcc all done!" 
 exit
