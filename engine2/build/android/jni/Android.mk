@@ -37,7 +37,7 @@ ifdef BUILD_LIBRTMP
 include $(CLEAR_VARS)
 LOCAL_MODULE 	:= rtmp
 LOCAL_SRC_FILES := $(RTMPDUMP_PATH)/librtmp.a
-#include $(PREBUILT_STATIC_LIBRARY)
+include $(PREBUILT_STATIC_LIBRARY)
 
 include $(CLEAR_VARS)
 LOCAL_MODULE 	:= ssl
