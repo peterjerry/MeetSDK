@@ -149,7 +149,7 @@ private:
 	uint32_t mFrameRate;
 	uint32_t mStreamsCount;
     MediaPlayerListener* mListener;
-	uint32_t mBufferSize; // current video+audio packet total byte size
+	int32_t mBufferSize; // current video+audio packet total byte size
 	uint32_t mMinPlayBufferCount; // minimum package count to play
 	int64_t mMaxPlayBufferMs; // minimum pakcage duration to play
 	uint32_t mMaxBufferSize;

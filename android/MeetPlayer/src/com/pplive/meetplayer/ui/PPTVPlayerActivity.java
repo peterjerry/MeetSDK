@@ -15,6 +15,7 @@ import android.widget.Toast;
 import com.pplive.common.pptv.EPGUtil;
 import com.pplive.common.pptv.PlayLink2;
 import com.pplive.common.pptv.PlayLinkUtil;
+import com.pplive.common.util.LogUtil;
 import com.pplive.meetplayer.util.Util;
 import com.pplive.sdk.MediaSDK;
 
@@ -71,8 +72,6 @@ public class PPTVPlayerActivity extends VideoPlayerActivity {
 	protected void onComplete() {
 		mVideoView.stopPlayback();
 		
-		mEpisodeIndex++;
-		
 		if (mEpisodeList == null) {
 			if (mAlbumId == -1) {
 				Toast.makeText(this, "album Id is invalid", Toast.LENGTH_SHORT).show();
@@ -83,6 +82,7 @@ public class PPTVPlayerActivity extends VideoPlayerActivity {
 			}
 		}
 		else {
+			mEpisodeIndex++;
 			mHandler.sendEmptyMessage(MSG_EPISODE_DONE);
 		}
 	}
@@ -131,6 +131,7 @@ public class PPTVPlayerActivity extends VideoPlayerActivity {
             switch(msg.what) {
             case MSG_EPISODE_DONE:
             	if (mEpisodeList.size() < 2) {
+            		LogUtil.info(TAG, "episode list size is ONLY 1");
             		finish();
             		return;
             	}

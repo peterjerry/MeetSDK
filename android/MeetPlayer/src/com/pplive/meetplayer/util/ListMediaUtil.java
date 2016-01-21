@@ -386,7 +386,6 @@ public class ListMediaUtil {
 				String string_res = String.format("%dx%d %s", 
 						info.getWidth(), info.getHeight(), msecToString(info.getDuration()));
 				map.put("resolution", string_res);
-				Log.i(TAG, "Java: media info: " + string_res);
 				
 				map.put("fullpath", file.getAbsolutePath());
 				map.put("thumb", file.getAbsolutePath()/*R.drawable.clip*/);

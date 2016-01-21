@@ -114,15 +114,14 @@ import java.io.UnsupportedEncodingException;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.URLDecoder;
-import java.net.URLEncoder;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Calendar;
 import java.util.Date;
-import java.util.GregorianCalendar;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
+
+import so.cym.crashhandlerdemo.UploadLogTask;
 
 public class ClipListActivity extends Activity implements
 		MediaPlayer.OnPreparedListener, MediaPlayer.OnCompletionListener,
@@ -320,10 +319,6 @@ public class ClipListActivity extends Activity implements
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
-		
-		LogUtil.init(
-				Environment.getExternalStorageDirectory().getAbsolutePath() + "/test2/meet.log", 
-				this.getCacheDir().getAbsolutePath());
 		
 		LogUtil.info(TAG, "Java: onCreate()");
 		
@@ -712,8 +707,6 @@ public class ClipListActivity extends Activity implements
 		this.btnPlayerImpl.setOnClickListener(new Button.OnClickListener() {
 			@Override
 			public void onClick(View view) {
-				//LogUtil.info(TAG, "Java: getCount " + binder.getCount());
-				
 				final String[] PlayerImpl = {"Auto", "System", "XOPlayer", "FFPlayer", "OMXPlayer"};
 				
 				Dialog choose_player_impl_dlg = new AlertDialog.Builder(ClipListActivity.this)
@@ -852,7 +845,7 @@ public class ClipListActivity extends Activity implements
 				}
 				
 				if (ppbox_bw_type == 4) {// dlna
-					new EPGTask().execute(EPG_ITEM_CDN, ppbox_playid, 0); // 3rd params for MSG_PLAY_CDN_URL
+					new EPGTask().execute(EPG_ITEM_CDN, ppbox_playid, ppbox_ft, 1); // 3rd params for MSG_PLAY_CDN_URL
 					return;
 				}
 				
@@ -920,7 +913,7 @@ public class ClipListActivity extends Activity implements
 		
 		@Override
 		public boolean onTouch(View v, MotionEvent event) {
-			LogUtil.info(TAG, "Java: onTouch(): " + event.getAction());
+			//LogUtil.debug(TAG, "Java: onTouch(): " + event.getAction());
 			
 			return mGestureDetector.onTouchEvent(event);
 		}
@@ -931,7 +924,7 @@ public class ClipListActivity extends Activity implements
 		new GestureDetector(getApplication(), new GestureDetector.SimpleOnGestureListener() {
 			@Override
 			public boolean onDown(MotionEvent e) {
-				LogUtil.info(TAG, "Java: onDown!!!");
+				//LogUtil.debug(TAG, "Java: onDown!!!");
 				return true;
 			};
 			
@@ -1099,8 +1092,9 @@ public class ClipListActivity extends Activity implements
 		begin_time = System.currentTimeMillis();
 		String save_folder = Environment.getExternalStorageDirectory().getPath() + "/test2/snapshot/";
 		File folder = new File(save_folder);
-		if (!folder.exists()) {
-			folder.mkdir();
+		if (!folder.exists() && !folder.mkdirs()) {
+			Toast.makeText(this, "create snapshot folder failed: " + save_folder, Toast.LENGTH_SHORT).show();
+			return;
 		}
 		
 		Date date = new Date(begin_time);
@@ -1210,6 +1204,18 @@ public class ClipListActivity extends Activity implements
 		
 		stop_player();
 		
+		mSubtitleStoped 	= false;
+		mHomed 				= false;
+		mBufferingPertent 	= 0;
+		mPrepared			= false;
+		mDMRcontrolling		= false;
+		rx_speed 			= 0;
+		tx_speed 			= 0;
+		
+		imageDMR.setVisibility(View.GONE);
+		imageForward.setVisibility(View.GONE);
+		imageBackward.setVisibility(View.GONE);
+		
 		mPlayUrl = path;
 		tv_title.setText(path);
 		LogUtil.info(TAG, "Java: clipname: " + mPlayUrl);
@@ -1270,13 +1276,6 @@ public class ClipListActivity extends Activity implements
 
 				mWifiLock.acquire();
 			}
-
-			mSubtitleStoped 	= false;
-			mHomed 				= false;
-			mBufferingPertent 	= 0;
-			mPrepared			= false;
-			mDMRcontrolling		= false;
-			imageDMR.setVisibility(View.GONE);
 			
 			boolean succeed = false;
 			try {
@@ -1972,9 +1971,17 @@ public class ClipListActivity extends Activity implements
 	}
 	
 	private void popupAudioTrackDialog() {
-		MediaInfo info = mPlayer.getMediaInfo();
-		if (info == null || info.getAudioChannels() == 0) {
-			Toast.makeText(this, "Cannot get audio track", Toast.LENGTH_SHORT).show();
+		MediaInfo info = null;
+		try {
+			info = mPlayer.getMediaInfo();
+			if (info == null || info.getAudioChannels() == 0) {
+				Toast.makeText(this, "Cannot get audio track", Toast.LENGTH_SHORT).show();
+				return;
+			}
+		}
+		catch (IllegalStateException e) {
+			e.printStackTrace();
+			LogUtil.error(TAG, "getMediaInfo exception: " + e.getMessage());
 			return;
 		}
 		
@@ -2231,16 +2238,23 @@ public class ClipListActivity extends Activity implements
         	}
         	else if (EPG_ITEM_CDN == type) {
         		LogUtil.info(TAG, "Java: EPGTask start to getCDNUrl");
-        		mDLNAPushUrl = mEPG.getCDNUrl(String.valueOf(id), btn_ft.getText().toString(), false, mIsNoVideo);
+				if (params.length < 4) {
+					LogUtil.error(TAG, "Java: EPG_ITEM_CDN params is invalid");
+					return false;
+				}
+
+				int ft = params[2];
+        		mDLNAPushUrl = mEPG.getCDNUrl(String.valueOf(id), String.valueOf(ft), false, mIsNoVideo);
         		if (mDLNAPushUrl == null) {
             		mHandler.sendEmptyMessage(MSG_FAIL_TO_CONNECT_EPG_SERVER);
             		return false;
             	}
-        		
-        		if (params.length > 2)
+
+				int isPushUrl = params[3];
+        		if (isPushUrl > 0)
+					push_cdn_clip();
+				else
         			mHandler.sendEmptyMessage(MSG_PLAY_CDN_URL);
-        		else
-        			push_cdn_clip();
         	}
         	else if (EPG_ITEM_FT == type) {
         		LogUtil.info(TAG, "Java: EPGTask start to getCDNUrl");
@@ -2460,7 +2474,8 @@ public class ClipListActivity extends Activity implements
 				
 				if (mPlayUrl.startsWith("http://127.0.0.1")) {
 					int link = Integer.valueOf(et_playlink.getText().toString());
-					new EPGTask().execute(EPG_ITEM_CDN, link);
+					int ft = Integer.valueOf(btn_ft.getText().toString());
+					new EPGTask().execute(EPG_ITEM_CDN, link, ft, 0);
 					dialog.cancel();
 					return;
 				}
@@ -2570,7 +2585,10 @@ public class ClipListActivity extends Activity implements
 			startService(intent);
 			break;
 		case R.id.upload_crash_report:
-			Util.upload_crash_report(ClipListActivity.this, 3);
+			Util.makeUploadLog("manual upload\n\n");
+			
+			UploadLogTask task = new UploadLogTask(this);
+			task.execute(Util.upload_log_path, "common");
 			break;
 		case R.id.update_apk:
 			setupUpdater();
@@ -2707,7 +2725,7 @@ public class ClipListActivity extends Activity implements
     		startActivity(intent);
 			break;
 		default:
-			LogUtil.warn(TAG, "bad menu item selected: " + id);
+			LogUtil.warn(TAG, "invalid menu item selected: " + id);
 			return false;
 		}
 		
@@ -2803,12 +2821,20 @@ public class ClipListActivity extends Activity implements
 			mIsBuffering = false;
 		}
 		
-		mPlayer.stop();
+		try {
+			mPlayer.stop();
+		}
+		catch (IllegalStateException e) {
+			e.printStackTrace();
+		}
+		
 		mPlayer.release();
 		mPlayer = null;
 		
-		if (android.os.Build.VERSION.SDK_INT >= Build.VERSION_CODES.ICE_CREAM_SANDWICH)
-			Util.upload_crash_report(ClipListActivity.this, 2);
+		Util.makeUploadLog("failed to play: " + mPlayUrl + "\n\n");
+		
+		UploadLogTask task = new UploadLogTask(this);
+		task.execute(Util.upload_log_path, "failed to play");
 		
 		return true;
 	}
@@ -2852,36 +2878,41 @@ public class ClipListActivity extends Activity implements
         mPrepared = true;
 		
 		// audio track(activate track info)
-		MediaInfo info = mp.getMediaInfo();
-		if (info != null) {
-			ArrayList<TrackInfo> audioTrackList = info.getAudioChannelsInfo();
-			if (audioTrackList != null && audioTrackList.size() > 0) {
-				for (TrackInfo trackInfo : audioTrackList) {
-					LogUtil.info(TAG, String.format("Java: audio Trackinfo: streamindex #%d id %d, codec %s, lang %s, title %s", 
+        try {
+			MediaInfo info = mp.getMediaInfo();
+			if (info != null) {
+				ArrayList<TrackInfo> audioTrackList = info.getAudioChannelsInfo();
+				if (audioTrackList != null && audioTrackList.size() > 0) {
+					for (TrackInfo trackInfo : audioTrackList) {
+						LogUtil.info(TAG, String.format("Java: audio Trackinfo: streamindex #%d id %d, codec %s, lang %s, title %s", 
+							trackInfo.getStreamIndex(), 
+							trackInfo.getId(), 
+							trackInfo.getCodecName(), 
+							trackInfo.getLanguage(),
+							trackInfo.getTitle()));
+					}
+					
+					mAudioFirstTrack		= audioTrackList.get(0).getStreamIndex();
+					mAudioSelectedTrack		= mAudioFirstTrack;
+					mAudioTrackCount		= info.getAudioChannels();
+					
+					if (audioTrackList.size() > 1)
+						btnSelectAudioTrack.setVisibility(View.VISIBLE);
+				}
+				
+				ArrayList<TrackInfo> subtitleTrackList = info.getSubtitleChannelsInfo();
+				for (TrackInfo trackInfo : subtitleTrackList) {
+					LogUtil.info(TAG, String.format("Java: subtitle Trackinfo: streamindex #%d id %d, codec %s, lang %s, title %s", 
 						trackInfo.getStreamIndex(), 
 						trackInfo.getId(), 
 						trackInfo.getCodecName(), 
 						trackInfo.getLanguage(),
 						trackInfo.getTitle()));
 				}
-				
-				mAudioFirstTrack		= audioTrackList.get(0).getStreamIndex();
-				mAudioSelectedTrack		= mAudioFirstTrack;
-				mAudioTrackCount		= info.getAudioChannels();
-				
-				if (audioTrackList.size() > 1)
-					btnSelectAudioTrack.setVisibility(View.VISIBLE);
 			}
-			
-			ArrayList<TrackInfo> subtitleTrackList = info.getSubtitleChannelsInfo();
-			for (TrackInfo trackInfo : subtitleTrackList) {
-				LogUtil.info(TAG, String.format("Java: subtitle Trackinfo: streamindex #%d id %d, codec %s, lang %s, title %s", 
-					trackInfo.getStreamIndex(), 
-					trackInfo.getId(), 
-					trackInfo.getCodecName(), 
-					trackInfo.getLanguage(),
-					trackInfo.getTitle()));
-			}
+        } catch (IllegalStateException e) {
+			e.printStackTrace();
+			LogUtil.error(TAG, "getMediaInfo exception: " + e.getMessage());
 		}
 		
 		// subtitle

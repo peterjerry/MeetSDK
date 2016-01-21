@@ -1,5 +1,7 @@
 package com.pplive.meetplayer;
 
+import so.cym.crashhandlerdemo.CrashHandler;
+
 import com.nostra13.universalimageloader.core.ImageLoader;
 import com.nostra13.universalimageloader.core.ImageLoaderConfiguration;
 import com.nostra13.universalimageloader.core.assist.QueueProcessingType;
@@ -7,7 +9,6 @@ import com.nullwire.trace.ExceptionHandler;
 
 import com.pplive.meetplayer.service.MediaScannerService;
 import com.pplive.meetplayer.service.MyHttpService;
-import com.pplive.meetplayer.util.CrashHandler;
 import com.pplive.meetplayer.util.Util;
 
 import android.app.ActivityManager;
@@ -23,6 +24,10 @@ public class MeetApplication extends Application {
 	
 	private final static String TAG = "MeetApplication";
 	
+	public static final String CRASH_HOST = "http://iloveyaya.zz.vc"; //31.220.16.178
+    //public static final String CRASH_HOST = "http://192.168.1.114:8088";
+    public static final String UPLOAD_URL = CRASH_HOST + "/crash/crash.php";
+	
 	@Override
 	public void onCreate() {
 		// TODO Auto-generated method stub
@@ -37,9 +42,11 @@ public class MeetApplication extends Application {
    
 		ImageLoader.getInstance().init(config);*/
 		
-		ExceptionHandler.register(this, "http://iloveyaya.zz.vc/crash/crash.php"); 
-		 
-        //CrashHandler.getInstance().init(this);
+		//ExceptionHandler.register(this, "http://iloveyaya.zz.vc/crash/crash.php");
+		
+		Util.initLog(this);
+        
+        CrashHandler.getInstance().init(this, UPLOAD_URL);
 		
 		IntentFilter filter = new IntentFilter(Intent.ACTION_TIME_TICK); 
 		MyBroadcastReceiver receiver = new MyBroadcastReceiver(); 

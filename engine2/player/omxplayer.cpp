@@ -88,12 +88,6 @@ static XAresult AndroidBufferQueueCallback(
         const XAAndroidBufferItem *pItems,/* input */
         XAuint32 itemsLength           /* input */);
 
-static void StreamChangeCallback(XAStreamInformationItf caller,
-        XAuint32 eventId,
-        XAuint32 streamIndex,
-        void * pEventData,
-        void * pContext );
-
 extern "C" IPlayer* getOMXPlayer(void* context)
 {
 #ifdef __ANDROID__
@@ -309,7 +303,9 @@ void OMXPlayer::onPrepareImpl()
 	// start the playback
 	LOGI("before start playback()");
     res = (*playerPlayItf)->SetPlayState(playerPlayItf, XA_PLAYSTATE_PLAYING);
-        assert(XA_RESULT_SUCCESS == res);
+    assert(XA_RESULT_SUCCESS == res);
+
+	(XA_RESULT_SUCCESS == res);
 
 	LOGI("before notifyListener_l()");
 	notifyListener_l(MEDIA_INFO, MEDIA_INFO_TEST_PLAYER_TYPE, FF_PLAYER);
@@ -391,6 +387,7 @@ status_t OMXPlayer::seekTo(int32_t msec)
         // set the player's state
 		res = (*playerPlayItf)->SetMarkerPosition(playerPlayItf, msec);
         assert(XA_RESULT_SUCCESS == res);
+		(XA_RESULT_SUCCESS == res);
 		return OK;
     }
 
@@ -418,6 +415,7 @@ status_t OMXPlayer::getCurrentPosition(int32_t* msec)
 		XAmillisecond pos_msec;
 		res = (*playerPlayItf)->GetPosition(playerPlayItf, &pos_msec);
         assert(XA_RESULT_SUCCESS == res);
+		(XA_RESULT_SUCCESS == res);
 		*msec = pos_msec;
 		return OK;
     }
@@ -434,6 +432,7 @@ status_t OMXPlayer::getDuration(int32_t* msec)
 		XAmillisecond duration_msec;
 		res = (*playerPlayItf)->GetDuration(playerPlayItf, &duration_msec);
         assert(XA_RESULT_SUCCESS == res);
+		(XA_RESULT_SUCCESS == res);
 		*msec = duration_msec;
 		return OK;
     }
@@ -489,6 +488,7 @@ bool OMXPlayer::isPlaying()
 		XAuint32 state;
 		res = (*playerPlayItf)->GetPlayState(playerPlayItf, &state);
         assert(XA_RESULT_SUCCESS == res);
+		(XA_RESULT_SUCCESS == res);
 
 		return (state == XA_PLAYSTATE_PLAYING);
     }
@@ -569,11 +569,13 @@ void OMXPlayer::StreamChangeCallback(XAStreamInformationItf caller,
             fprintf(stderr, "Unexpected domain %u\n", domain);
             break;
         }
+		(XA_RESULT_SUCCESS == res);
       } break;
       default:
         fprintf(stderr, "Unexpected stream event ID %u\n", eventId);
         break;
     }
+
 }
 
 //////////////////////////////////////////////////////////////////
@@ -608,7 +610,7 @@ static void createEngine()
     // realize the output mix
     res = (*outputMixObject)->Realize(outputMixObject, XA_BOOLEAN_FALSE);
     assert(XA_RESULT_SUCCESS == res);
-
+	(XA_RESULT_SUCCESS == res);
 }
 
 // AndroidBufferQueueItf callback to supply MPEG-2 TS packets to the media player
@@ -673,7 +675,7 @@ static XAresult AndroidBufferQueueCallback(
         goto exit;
     }
 
-    size_t nbRead;
+    //size_t nbRead;
     // note we do call fread from multiple threads, but never concurrently
     size_t bytesRead;
     bytesRead = fread(pBufferData, 1, BUFFER_SIZE, file);
@@ -707,6 +709,8 @@ static XAresult AndroidBufferQueueCallback(
 exit:
     ok = pthread_mutex_unlock(&mutex);
     assert(0 == ok);
+	(0 == ok);
+	(XA_RESULT_SUCCESS == res);
     return XA_RESULT_SUCCESS;
 }
 
@@ -759,6 +763,7 @@ static jboolean enqueueInitialBuffers(jboolean discontinuity)
                     dataCache + i*BUFFER_SIZE, bufferSize, NULL, 0);
         }
         assert(XA_RESULT_SUCCESS == res);
+		(XA_RESULT_SUCCESS == res);
         packetsRead -= packetsThisBuffer;
     }
 
@@ -779,7 +784,7 @@ void OMXPlayer::setPlaying(bool isPlaying)
         res = (*playerPlayItf)->SetPlayState(playerPlayItf, isPlaying ?
             XA_PLAYSTATE_PLAYING : XA_PLAYSTATE_PAUSED);
         assert(XA_RESULT_SUCCESS == res);
-
+		(XA_RESULT_SUCCESS == res);
     }
 
 }

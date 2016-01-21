@@ -20,12 +20,6 @@ import com.pplive.db.MediaStoreDatabaseHelper;
 import com.pplive.meetplayer.R;
 import com.pplive.sdk.MediaSDK;
 
-/**
- * @param[0] playlink
- * @param[1] ft 码流
- * @param[2] savepath 保存路径
- *
- */
 public class DownloadClipTask extends AsyncTask<String, Integer, Boolean> {
 	private static final String TAG = "DownloadClipTask";
 	
@@ -60,7 +54,13 @@ public class DownloadClipTask extends AsyncTask<String, Integer, Boolean> {
 			db.saveMediaInfo(mSavePath, mTitle, info);
 		}
 	}
-	
+
+	/**
+	 * @params[0] playlink
+	 * @params[1] ft 码流
+	 * @params[2] savepath 保存路径
+	 *
+	 */
 	@Override
 	protected Boolean doInBackground(String... params) {
 		if (params.length < 3) {
@@ -192,10 +192,15 @@ public class DownloadClipTask extends AsyncTask<String, Integer, Boolean> {
 				conn.setConnectTimeout(3000);
 				conn.setReadTimeout(3000);
 
+                // 2016.1.18 Michael.Ma added to fix cannot get Content-Length problem
+                //conn.setRequestProperty("RANGE", "bytes=0-");
+
 				InputStream inStream = conn.getInputStream();
 				FileOutputStream fs = new FileOutputStream(mSavePath);
 
-				mFileSize = Long.parseLong(conn.getHeaderField("Content-Length"));
+                mFileSize = -1;
+                if (conn.getHeaderField("Content-Length") != null)
+				    mFileSize = Long.parseLong(conn.getHeaderField("Content-Length"));
 				
 				int byteread = 0;
 				byte[] buffer = new byte[1024];
@@ -216,7 +221,10 @@ public class DownloadClipTask extends AsyncTask<String, Integer, Boolean> {
 					long curr = System.currentTimeMillis();
 					if (curr - start > 500) {
 						int speed = (int)(mDownloadedSize / (curr - total_start));
-						publishProgress((int)(mDownloadedSize * 100 / mFileSize), speed/* kB/sec */);
+                        int progress = 0; // 0 - 100
+                        if (mFileSize != -1)
+                            progress = (int)(mDownloadedSize * 100 / mFileSize);
+						publishProgress(progress, speed/* kB/sec */);
 						start = curr;
 					}
 				}

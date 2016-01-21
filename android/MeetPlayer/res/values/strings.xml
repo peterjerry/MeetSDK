@@ -9,6 +9,12 @@
     
     <string name="title_activity_sohu_video">搜狐视频</string>
     <string name="title_activity_pptv_video">PPTV视频</string>
+	
+	<string name="action_settings">Settings</string>
+    <string name="generateCrash">产生崩溃</string>
+    <string name="title_activity_send_crash">发送错误日志</string>
+    <string name="send_crash">发送崩溃信息</string>
+    <string name="crash_description_hint">请输入crash的详细信息，以便分析。例如： 播放过程中切换播放器crash</string>
     
     <!-- MENU -->
     <string name="menu_search">Search</string>

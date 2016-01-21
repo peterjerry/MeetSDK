@@ -3533,7 +3533,7 @@ bool getStreamLangTitle(char** langcode, char** langtitle, int index, AVStream* 
 			*langtitle ? *langcode : "N/A");
 	}
 	else {
-		LOGW("%s stream index: #d lang and title are both empty", stream_type, index);
+		LOGW("%s stream index: #%d lang and title are both empty", stream_type, index);
 	}
     return gotlanguage;
 }
@@ -4102,7 +4102,7 @@ SnapShot * FFPlayer::getSnapShot(int width, int height, int fmt, int msec)
 		SrcFrame->data[0], SrcFrame->data[1], SrcFrame->data[2], 
 		SrcFrame->linesize[0], SrcFrame->linesize[1], SrcFrame->linesize[2]);
 
-#ifdef USE_AV_SWSCALE
+#ifdef USE_SWSCALE
 	const int swsFlags = SWS_POINT;
 	int ret;
 	

@@ -1,5 +1,7 @@
 package com.pplive.epg.baidu;
 
+import javafx.stage.FileChooser;
+
 import javax.imageio.ImageIO;
 import javax.swing.AbstractAction;
 import javax.swing.DefaultListModel;
@@ -19,6 +21,8 @@ import javax.swing.JTextPane;
 import javax.swing.ListCellRenderer;
 import javax.swing.ListSelectionModel;
 import javax.swing.SwingWorker;
+import javax.swing.UIManager;
+import javax.swing.filechooser.FileFilter;
 import javax.swing.filechooser.FileNameExtensionFilter;
 
 import org.apache.http.HeaderIterator;
@@ -46,6 +50,7 @@ import org.json.JSONException;
 import org.json.JSONObject;
 import org.json.JSONTokener;
 
+import com.pplive.epg.TestEPG;
 import com.pplive.epg.shooter.DetailItem;
 import com.pplive.epg.shooter.SearchItem;
 import com.pplive.epg.shooter.ShooterUtil;
@@ -79,6 +84,7 @@ import java.io.FilenameFilter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.RandomAccessFile;
 import java.io.UnsupportedEncodingException;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
@@ -95,6 +101,7 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.Random;
 import java.util.StringTokenizer;
+import java.util.prefs.Preferences;
 
 
 @SuppressWarnings("serial")
@@ -105,7 +112,6 @@ public class BaiduPanel extends JPanel {
 	private String mChildPath;
 	private String mOperatePath;
 	private String[] mOperatePaths;
-	private int mPort = 8080;
 	//private String mBaiduToken;
 	//private String mBDUSS;
 	private boolean mIsCopy	= false;
@@ -294,6 +300,7 @@ public class BaiduPanel extends JPanel {
 				}
 				else if (key.equals("BDUSS")) {
 					cookie_BDUSS = value;
+					TestEPG.httpd.setBDUSS(cookie_BDUSS);
 					System.out.println("Java: set cookie_BDUSS to " + cookie_BDUSS);
 				}
 				else {
@@ -361,10 +368,6 @@ public class BaiduPanel extends JPanel {
 		BAIDU_PCS_SEARCH = BAIDU_PCS_FILE_PREFIX + 
 				"?method=search" +
 				"&access_token=" + mbOauth;
-		
-		Random rand = new Random();
-		mPort = 8080 + rand.nextInt(100);
-		System.out.println("http port: " + mPort);
 		
 		// Action
 		lblRootPath.setFont(f);
@@ -617,6 +620,7 @@ public class BaiduPanel extends JPanel {
 						"输入密码", "daqiao1");
 				LoginInfo info = EmulateLoginBaidu.login(user_name, passwd);
 				cookie_BDUSS = info.getBDUSS();
+				TestEPG.httpd.setBDUSS(cookie_BDUSS);
 				
 				Clipboard clipboard = getToolkit().getSystemClipboard();//获取系统剪贴板;
 				StringSelection text = new StringSelection(cookie_BDUSS);
@@ -998,10 +1002,6 @@ public class BaiduPanel extends JPanel {
 		//mBDUSS = info.getBDUSS();
 		//mBaiduToken = info.getToken();
 		
-		HttpServiceThread myThread = new HttpServiceThread();
-		Thread t = new Thread(myThread);
-		t.start();
-		
 		File f = new File("e:/dump/test2");
 		
 		init_combobox();
@@ -1226,7 +1226,8 @@ public class BaiduPanel extends JPanel {
 		try {
 			String encoded_path = URLEncoder.encode(path, "utf-8");
 
-			String url = String.format(BAIDU_PCS_DOWNLOAD_PROXY_FMT, mPort);
+			String url = String.format(BAIDU_PCS_DOWNLOAD_PROXY_FMT, 
+					TestEPG.getHttpPort());
 			url += encoded_path;
 			System.out.println("ready to play url: " + url);
 			lblInfo.setText("ready to play url: " + url);
@@ -1373,7 +1374,8 @@ public class BaiduPanel extends JPanel {
 							lblInfo.setText("ready to download url: " + url);
 							
 							downloadFile(url, filename, 
-									save_path + "/" + filename, false);
+									save_path + "/" + filename, false,
+									0);
 						} catch (UnsupportedEncodingException e1) {
 							// TODO Auto-generated catch block
 							e1.printStackTrace();
@@ -1389,6 +1391,11 @@ public class BaiduPanel extends JPanel {
 	
 	private void download() {
 		int index = listItem.getSelectedIndex();
+		if (index < 0) {
+			System.out.println("Java: no download file selected");
+			return;
+		}
+		
 		Map<String, Object> fileinfo = mFileList.get(index);
 		boolean isdir = (Boolean) fileinfo.get("isdir");
 		String path = (String) fileinfo.get("path");
@@ -1406,6 +1413,48 @@ public class BaiduPanel extends JPanel {
 				int pos = path.lastIndexOf("/");
 				String filename = path.substring(pos + 1);
 				
+				//String userDirLocation = System.getProperty("user.dir");
+				//File userDir = new File(userDirLocation);
+				JFileChooser fc = new JFileChooser();
+				fc.setSelectedFile(new File(filename));
+				int i = fc.showSaveDialog(null);
+                if (i== JFileChooser.APPROVE_OPTION) { //打开文件
+                    String file_path = fc.getSelectedFile().getAbsolutePath();
+                    String file_name = fc.getSelectedFile().getName();
+                    
+                    fc.setCurrentDirectory(fc.getCurrentDirectory());
+                    
+                    File f = new File(file_path);
+    				long from = 0L;
+    				if (f.exists()) {
+    					int res = JOptionPane.showConfirmDialog(
+    							fc, 
+    							file_name + " 文件已经存在, 是否续传?", 
+    							"文件存在", 
+    							JOptionPane.YES_NO_OPTION, 
+    							JOptionPane.WARNING_MESSAGE);
+    					
+						if (res == JOptionPane.YES_OPTION) {
+							from = f.length();
+							System.out.println("Java: resume download from " + from);
+						}
+						/*else if (res == JOptionPane.NO_OPTION)
+							System.out.println ("Result=No");
+						else if (res == JOptionPane.CANCEL_OPTION)
+							System.out.println("Result=Cancel");
+						else if (res == JOptionPane.CLOSED_OPTION)
+							System.out.println("Result=Closed Window");
+						else
+							System.out.println ("Unknow Result="+res);*/
+    				}
+    				
+    				downloadFile(url, filename, file_path, true, from);
+                } else {
+                    System.out.println("NO file selected");
+                    return;
+                }
+				
+				/*
 				// 弹出"保存文件"对话框
 				FileDialog fsave = new FileDialog(new Frame(), "保存文件",
 						FileDialog.SAVE);
@@ -1415,6 +1464,7 @@ public class BaiduPanel extends JPanel {
 						if (name.endsWith("flac")) {
 							return true;
 						}
+						
 						return false;
 					}
 				};
@@ -1428,22 +1478,39 @@ public class BaiduPanel extends JPanel {
 				final String save_path = fsave.getDirectory() + fsave.getFile();
 				System.out.println("file save path: " + save_path);
 				
-				downloadFile(url, filename, save_path, true);
-			} catch (UnsupportedEncodingException e1) {
+				File f = new File(save_path);
+				long from = 0L;
+				if (f.exists()) {
+					from = f.length();
+					System.out.println("Java: resume download from " + from);
+				}
+				
+				downloadFile(url, filename, save_path, true, from);*/
+			} catch (UnsupportedEncodingException e) {
 				// TODO Auto-generated catch block
-				e1.printStackTrace();
+				e.printStackTrace();
+			} catch (Exception e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
 			}
 		}
 	}
 	
 	private void downloadFile(String path, String filename, 
-			final String save_path, final boolean bSingleFile) {
+			final String save_path, final boolean bSingleFile,
+			final long from) {
 		try {
 			URL url = new URL(path);
 			URLConnection urlCon = url.openConnection();
 
 			urlCon.setRequestProperty("Cookie", 
 					"BDUSS=" + cookie_BDUSS);
+			
+			if (from > 0) {
+				// Range: bytes=500-999
+				urlCon.setRequestProperty("RANGE", String.format("bytes=%d-", from));
+				System.out.println(String.format("set range: bytes=%d-", from));
+			}
 			
 			// 显示下载信息
 			System.out.println("文件下载信息: ");
@@ -1452,14 +1519,20 @@ public class BaiduPanel extends JPanel {
 			System.out.println("Contenttype : " + urlCon.getContentType());
 			System.out.println("Contentlength : " + urlCon.getContentLength());
 			
-			final FileOutputStream fos = new FileOutputStream(save_path);
+			//final FileOutputStream fos = new FileOutputStream(save_path);
+			
+			final RandomAccessFile randomFile = new RandomAccessFile(save_path, "rw");
+			if (from > 0) {
+				randomFile.seek(from);
+				System.out.println("Java: seek file to " + from);
+			}
 			
 			final InputStream is = urlCon.getInputStream();
 		    Runnable r = new Runnable()
 		    {
 		    	public void run() {
 		          try {
-		        	  long downloaded = 0;
+		        	  long downloaded = from;
 		        	  int readed;
 		        	  byte []buf= new byte[4096];
 		        	  long start_msec = System.currentTimeMillis();
@@ -1467,7 +1540,8 @@ public class BaiduPanel extends JPanel {
 		        	  
 		        	  bDownloading = true;
 		              while((readed = is.read(buf))!=-1 && !bInterrupt) {
-		            	  fos.write(buf, 0, readed);
+		            	  //fos.write(buf, 0, readed);
+		            	  randomFile.write(buf, 0, readed);
 		            	  downloaded += readed;
 		            	  
 		            	  long cur_msec = System.currentTimeMillis();
@@ -1480,8 +1554,8 @@ public class BaiduPanel extends JPanel {
 		            	  }
 		              }
 		              
-		              fos.close();
-		              is.close();
+		              //fos.close();
+		              
 		              if (bInterrupt)
 		            	  lblInfo.setText("文件 " + save_path + " 下载取消");
 		              else
@@ -1495,6 +1569,17 @@ public class BaiduPanel extends JPanel {
 		          catch (Exception ex) {
 		        	  ex.printStackTrace();
 		              lblInfo.setText("下载失败: " + ex.getMessage());
+		          }
+		          finally {
+		        	  try {
+		        		  if (is != null)
+		        			  is.close();
+		        		  if (randomFile != null)
+		        			  randomFile.close();
+		        	  } catch (IOException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+		        	  }
 		          }
 		      }
 		  };
@@ -1689,7 +1774,7 @@ public class BaiduPanel extends JPanel {
 		try {
 			response = HttpClients.createDefault().execute(request);
 			if (response.getStatusLine().getStatusCode() != 200){
-				System.out.println("Java: code not 200: " + 
+				System.out.println("Java: failed to get streaming file, code not 200: " + 
 						response.getStatusLine().getStatusCode());
 				return false;
 			}
@@ -2434,21 +2519,7 @@ public class BaiduPanel extends JPanel {
 		
 	};
 	
-	private class HttpServiceThread implements Runnable {		
-		@Override
-		public void run() {
-			// TODO Auto-generated method stub
-			MyNanoHTTPD httpd = new MyNanoHTTPD(mPort, null);
-			httpd.setBDUSS(cookie_BDUSS);
-			try {
-				httpd.start();
-			} catch (IOException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
-		}
-		
-	};
+	
 	
 	private class CheckCloudTaskWorker extends SwingWorker<Boolean, Integer> {
 		private int mTaskId;

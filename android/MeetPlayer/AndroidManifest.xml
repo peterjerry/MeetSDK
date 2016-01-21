@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.pplive.meetplayer"
-    android:versionCode="241"
-    android:versionName="2.4.1" >
+    android:versionCode="242"
+    android:versionName="2.4.2" >
 
     <uses-sdk
         android:minSdkVersion="10"
@@ -115,6 +115,10 @@
                 <data android:mimeType="application/octet-stream" android:scheme="file" />
 				<data android:mimeType="application/octet-stream" android:scheme="http" />
             </intent-filter>
+        </activity>
+		<activity
+            android:name="so.cym.crashhandlerdemo.SendCrashActivity"
+            android:label="@string/title_activity_send_crash" >
         </activity>
         
         <!-- Services -->

@@ -22,6 +22,18 @@
         android:textSize="14sp"
         android:singleLine="true"
         tools:context=".SohuEpisoActivity" />
+	<TextView
+        android:id="@+id/gridview_onlinetime"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_above="@id/gridview_tip"
+        android:layout_alignRight="@id/gridview_img"
+        android:layout_marginRight="5dip"
+        android:gravity="right"
+        android:textColor="#FFF"
+        android:textSize="14sp"
+        android:singleLine="true"
+        tools:context=".SohuEpisoActivity" />
     <TextView
         android:id="@+id/gridview_title"
         android:layout_width="match_parent"

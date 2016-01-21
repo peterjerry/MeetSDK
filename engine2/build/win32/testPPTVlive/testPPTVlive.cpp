@@ -35,7 +35,7 @@ extern "C"
 #pragma comment(lib,"avutil.lib")
 #pragma comment(lib,"swscale.lib")
 
-#define LIVE_PLAYLINK 300355
+#define LIVE_PLAYLINK 300151
 #define LIVE_URL_FMT "http://%s/live/%s/" \
 							"%I64d.block?ft=1&platform=android3" \
 							"&type=phone.android.vip&sdk=1" \
@@ -89,7 +89,7 @@ int _tmain(int argc, _TCHAR* argv[])
 
 		apBlockDownloader downloader(url);
 		char save_filename[64] = {0};
-		sprintf(save_filename, "d:\\dump\\%I64d.flv", segment_time);
+		sprintf(save_filename, "E:\\dump\\%I64d.flv", segment_time);
 		
 		/*if (!downloader.saveAs(save_filename)) {
 			LOGE("failed to download segment %s", url);
@@ -123,7 +123,7 @@ int _tmain(int argc, _TCHAR* argv[])
 			break;
 		}
 
-		sprintf(save_filename, "d:\\dump\\%I64d.ts", segment_time);
+		sprintf(save_filename, "E:\\dump\\%I64d.ts", segment_time);
 		FILE *pFile = fopen(save_filename, "wb");
 		if (pFile) {
 			fwrite(out_ts, 1, out_ts_len, pFile);

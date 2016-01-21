@@ -6,6 +6,8 @@ import java.util.List;
 import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
 
+import so.cym.crashhandlerdemo.UploadLogTask;
+
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.Dialog;
@@ -34,10 +36,12 @@ import com.pplive.common.util.LogUtil;
 import com.pplive.meetplayer.R;
 import com.pplive.meetplayer.ui.widget.MyMediaController;
 import com.pplive.meetplayer.util.FileFilterTest;
+import com.pplive.meetplayer.util.NetworkSpeed;
 import com.pplive.meetplayer.util.Util;
 
 import android.pplive.media.player.MediaPlayer;
 import android.pplive.media.player.MeetVideoView;
+import android.pplive.media.player.MeetGLVideoView;
 import android.pplive.media.player.MediaPlayer.DecodeMode;
 import android.pplive.media.subtitle.SimpleSubTitleParser;
 import android.pplive.media.subtitle.SubTitleSegment;
@@ -49,7 +53,7 @@ public class VideoPlayerActivity extends Activity implements Callback {
 	
 	private final static String []mode_desc = {"自适应", "铺满屏幕", "放大裁切", "原始大小"};
 
-	protected MeetVideoView mVideoView = null; // protected for child access
+	protected MeetGLVideoView mVideoView = null; // protected for child access
 	protected MyMediaController mController;
 	private int mVideoWidth;
 	private int mVideoHeight;
@@ -70,15 +74,18 @@ public class VideoPlayerActivity extends Activity implements Callback {
     // debug info
  	private TextView mTextViewDebugInfo;
  	private boolean mbShowDebugInfo = false;
+ 	private NetworkSpeed mSpeed;
  	
  	private int decode_fps						= 0;
-	private int render_fps 					= 0;
+	private int render_fps 						= 0;
 	private int decode_avg_msec 				= 0;
 	private int render_avg_msec 				= 0;
 	private int render_frame_num				= 0;
 	private int decode_drop_frame				= 0;
-	private int av_latency_msec				= 0;
+	private int av_latency_msec					= 0;
 	private int video_bitrate					= 0;
+	private int rx_speed 						= 0;
+	private int tx_speed 						= 0;
 	
 	// subtitle
 	private SimpleSubTitleParser mSubtitleParser;
@@ -91,10 +98,11 @@ public class VideoPlayerActivity extends Activity implements Callback {
 	private boolean mSubtitleStoped = false;
 	
 	// message
-	private static final int MSG_DISPLAY_SUBTITLE					= 401;
+	private static final int MSG_DISPLAY_SUBTITLE				= 401;
 	private static final int MSG_HIDE_SUBTITLE					= 402;
 	private static final int MSG_UPDATE_PLAY_INFO 				= 403;
 	private static final int MSG_UPDATE_RENDER_INFO				= 404;
+	private static final int MSG_UPDATE_NETWORK_SPEED			= 405;
 	
 	@Override
 	public void onCreate(Bundle savedInstanceState) {
@@ -120,7 +128,7 @@ public class VideoPlayerActivity extends Activity implements Callback {
 		setContentView(R.layout.activity_video_player);
 		
 		this.mController = (MyMediaController) findViewById(R.id.video_controller);
-		this.mVideoView = (MeetVideoView) findViewById(R.id.video_view);
+		this.mVideoView = (MeetGLVideoView) findViewById(R.id.video_view);
 		this.mSubtitleTextView = (TextView) findViewById(R.id.textview_subtitle);
 		this.mBufferingProgressBar = (ProgressBar) findViewById(R.id.progressbar_buffering);
 		this.mTextViewDebugInfo = (TextView) findViewById(R.id.tv_debuginfo);
@@ -214,8 +222,8 @@ public class VideoPlayerActivity extends Activity implements Callback {
 
 		LogUtil.info(TAG, "Java: onStop()");
 
-		mVideoView.stopPlayback();
 		stop_subtitle();
+		stopPlayer();
 	}
 
 	private void popupMediaInfo() {
@@ -412,7 +420,7 @@ public class VideoPlayerActivity extends Activity implements Callback {
 			break;
 		}
 		
-		mVideoView.stopPlayback();
+		stopPlayer();
 		
 		mVideoView.setDecodeMode(DecMode);
 		mVideoView.setVideoURI(mUri);
@@ -448,11 +456,27 @@ public class VideoPlayerActivity extends Activity implements Callback {
 			pre_seek_msec = -1;
 		}
 		
-		mVideoView.start();
+		if (!path.startsWith("/") && !path.startsWith("file://")) {
+			// ONLY network media need buffering
+			mBufferingProgressBar.setVisibility(View.VISIBLE);
+			mIsBuffering = true;
+			
+			mSpeed = new NetworkSpeed();
+			mHandler.sendEmptyMessage(MSG_UPDATE_NETWORK_SPEED);
+		}
 		
-		mBufferingProgressBar.setVisibility(View.VISIBLE);
+		mVideoView.start();
 	}
 
+	protected void stopPlayer() {
+		LogUtil.info(TAG,"stopPlayer()");
+		
+		mBufferingProgressBar.setVisibility(View.GONE);
+		mHandler.removeMessages(MSG_UPDATE_NETWORK_SPEED);
+		
+		mVideoView.stopPlayback();
+	}
+	
 	private String getFileName(String path) {
 		String name = "N/A";
 		if (path.startsWith("/") || path.startsWith("file://")) {
@@ -504,7 +528,7 @@ public class VideoPlayerActivity extends Activity implements Callback {
 		public void onCompletion(MediaPlayer mp) {
 			LogUtil.info(TAG, "MEDIA_PLAYBACK_COMPLETE");
 			
-			mVideoView.stopPlayback();
+			stopPlayer();
 			onComplete();
 		}
 	};
@@ -513,8 +537,17 @@ public class VideoPlayerActivity extends Activity implements Callback {
 		public boolean onError(MediaPlayer mp, int framework_err, int impl_err) {
 			LogUtil.error(TAG, "Error: " + framework_err + "," + impl_err);
 			
-			mBufferingProgressBar.setVisibility(View.GONE);
-			mVideoView.stopPlayback();
+			Toast.makeText(VideoPlayerActivity.this, 
+					String.format("Player onError: what %d extra %d", framework_err, impl_err),
+					Toast.LENGTH_SHORT).show();
+			
+			stopPlayer();
+			
+			Util.makeUploadLog("failed to play: " + mUri.toString() + "\n\n");
+			
+			UploadLogTask task = new UploadLogTask(VideoPlayerActivity.this);
+			task.execute(Util.upload_log_path, "failed to play");
+			
 			finish();
 			return true;
 		}
@@ -883,14 +916,22 @@ public class VideoPlayerActivity extends Activity implements Callback {
         @Override  
         public void handleMessage(Message msg) {  
             switch(msg.what) {
+            case MSG_UPDATE_NETWORK_SPEED:
+            	int[] speed = mSpeed.currentSpeed();
+            	if (speed != null) {
+            		rx_speed = speed[0];
+            		tx_speed = speed[1];
+            		this.sendEmptyMessageDelayed(MSG_UPDATE_NETWORK_SPEED, 1000);
+            	}
 			case MSG_UPDATE_PLAY_INFO:
 			case MSG_UPDATE_RENDER_INFO:
 				if (mbShowDebugInfo) {
 					mTextViewDebugInfo.setText(String.format("%02d|%03d v-a: %+04d "
-							+ "dec/render %d(%d)/%d(%d) fps/msec bitrate %d kbps", 
+							+ "dec/render %d(%d)/%d(%d) fps/msec bitrate %d kbps\nrx %d kB/s, tx %d kB/s", 
 						render_frame_num % 25, decode_drop_frame % 1000, av_latency_msec, 
 						decode_fps, decode_avg_msec, render_fps, render_avg_msec,
-						video_bitrate));
+						video_bitrate,
+						rx_speed, tx_speed));
 				}
 				break;
 			case MSG_DISPLAY_SUBTITLE:

@@ -353,10 +353,11 @@ public class SohuEpisodeActivity extends Activity {
 	}
 	
 	private class SohuEpgTask extends AsyncTask<Long, Integer, Boolean> {
-
+		
 		@Override
 		protected void onPostExecute(Boolean result) {
 			// TODO Auto-generated method stub
+			
 			if (!result) {
 				Log.e(TAG, "failed to get episode");
 				Toast.makeText(SohuEpisodeActivity.this, "failed to get episode", Toast.LENGTH_SHORT).show();
@@ -447,6 +448,7 @@ public class SohuEpisodeActivity extends Activity {
 		@Override
 		protected void onPostExecute(Boolean result) {
 			// TODO Auto-generated method stub
+			
 			if (!result) {
 				Log.e(TAG, "Java: failed to get sub channel");
 				return;

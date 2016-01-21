@@ -6,6 +6,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Random;
 
+import so.cym.crashhandlerdemo.UploadLogTask;
+
 import com.pplive.common.pptv.Catalog;
 import com.pplive.common.pptv.Content;
 import com.pplive.common.pptv.EPGUtil;
@@ -14,6 +16,7 @@ import com.pplive.common.pptv.PlayLinkUtil;
 import com.pplive.meetplayer.R;
 import com.pplive.meetplayer.ui.widget.MiniMediaController;
 import com.pplive.meetplayer.util.DownloadClipTask;
+import com.pplive.meetplayer.util.NetworkSpeed;
 import com.pplive.meetplayer.util.Util;
 import com.pplive.sdk.MediaSDK;
 
@@ -77,9 +80,10 @@ public class MeetViewActivity extends Activity implements OnFocusChangeListener 
 	private final int MAX_DESC_LEN = 30;
 	
 	private static final int MSG_PPTV_CLIP_LIST_DONE	= 1001;
-	private static final int MSG_UPDATE_PLAY_INFO 	= 1002;
-	private static final int MSG_UPDATE_RENDER_INFO	= 1003;
-	private static final int MSG_FAIL_TO_GET_DETAIL	= 2002;
+	private static final int MSG_UPDATE_PLAY_INFO 		= 1002;
+	private static final int MSG_UPDATE_RENDER_INFO		= 1003;
+	private static final int MSG_UPDATE_NETWORK_SPEED	= 1004;
+	private static final int MSG_FAIL_TO_GET_DETAIL		= 2002;
 	
 	private final int LIST_MOVIE 		= 1;
 	private final int LIST_TV_SERIES 	= 2;
@@ -101,13 +105,15 @@ public class MeetViewActivity extends Activity implements OnFocusChangeListener 
 	private MiniMediaController mController;
 	
 	private int decode_fps						= 0;
-	private int render_fps 					= 0;
+	private int render_fps 						= 0;
 	private int decode_avg_msec 				= 0;
 	private int render_avg_msec 				= 0;
 	private int render_frame_num				= 0;
 	private int decode_drop_frame				= 0;
-	private int av_latency_msec				= 0;
+	private int av_latency_msec					= 0;
 	private int video_bitrate					= 0;
+	private int rx_speed 						= 0;
+	private int tx_speed 						= 0;
 
 	private int mBufferingPertent = 0;
 	
@@ -130,6 +136,7 @@ public class MeetViewActivity extends Activity implements OnFocusChangeListener 
 	private boolean mStartFromPortrait = true;
 	
 	private boolean mSideBarShowed = false;
+	private NetworkSpeed mSpeed;
 	
 	private PPTVAdapter mAdapter;
 	private ListView lv_pptvlist;
@@ -622,22 +629,21 @@ public class MeetViewActivity extends Activity implements OnFocusChangeListener 
 			case MSG_FAIL_TO_GET_DETAIL:
 				Toast.makeText(MeetViewActivity.this, "failed to connect to server", Toast.LENGTH_SHORT).show();
 				break;
+			case MSG_UPDATE_NETWORK_SPEED:
+            	int[] speed = mSpeed.currentSpeed();
+            	if (speed != null) {
+            		rx_speed = speed[0];
+            		tx_speed = speed[1];
+            		this.sendEmptyMessageDelayed(MSG_UPDATE_NETWORK_SPEED, 1000);
+            	}
 			case MSG_UPDATE_PLAY_INFO:
 			case MSG_UPDATE_RENDER_INFO:
-				/*if (isLandscape) {
-				mTextViewInfo.setText(String.format("%02d|%03d v-a: %+04d "
-						+ "dec/render %d(%d)/%d(%d) fps/msec bitrate %d kbps", 
-					render_frame_num % 25, decode_drop_frame % 1000, av_latency_msec, 
-					decode_fps, decode_avg_msec, render_fps, render_avg_msec,
-					video_bitrate));
-			}
-			else {*/
 				mTextViewInfo.setText(String.format("%02d|%03d v-a: %+04d\n"
-						+ "dec/render %d(%d)/%d(%d) fps/msec\nbitrate %d kbps", 
+						+ "dec/render %d(%d)/%d(%d) fps/msec\nbitrate %d kbps\nrx %d kB/s, tx %d kB/s", 
 					render_frame_num % 25, decode_drop_frame % 1000, av_latency_msec, 
 					decode_fps, decode_avg_msec, render_fps, render_avg_msec,
-					video_bitrate));
-			//}
+					video_bitrate,
+					rx_speed, tx_speed));
 				break;
 			default:
 				Log.w(TAG, "unknown msg.what " + msg.what);
@@ -770,7 +776,7 @@ public class MeetViewActivity extends Activity implements OnFocusChangeListener 
 		Log.i(TAG, "Java: onStop()");
 
 		if (isFinishing()) {
-			mVideoView.stopPlayback();
+			stopPlayer();
 		}
 		
 		if (mClickReceiver != null) {
@@ -782,7 +788,7 @@ public class MeetViewActivity extends Activity implements OnFocusChangeListener 
 	private void setupPlayer() {
 		Log.i(TAG,"Step: setupPlayer()");
 
-		mVideoView.stopPlayback();
+		stopPlayer();
 		
 		DecodeMode dec_mode = DecodeMode.AUTO;
 		if (0 == mPlayerImpl) {
@@ -791,11 +797,14 @@ public class MeetViewActivity extends Activity implements OnFocusChangeListener 
 		else if (1 == mPlayerImpl) {
 			dec_mode = DecodeMode.HW_SYSTEM;
 		}
+		else if (2 == mPlayerImpl) {
+			dec_mode = DecodeMode.HW_XOPLAYER;
+		}
 		else if (3 == mPlayerImpl) {
 			dec_mode = DecodeMode.SW;
 		}
 		else if (4 == mPlayerImpl) {
-			dec_mode = DecodeMode.SW;
+			dec_mode = DecodeMode.HW_OMX;
 		}
 		else {
 			Toast.makeText(MeetViewActivity.this, "invalid player implement: " + Integer.toString(mPlayerImpl), 
@@ -807,18 +816,36 @@ public class MeetViewActivity extends Activity implements OnFocusChangeListener 
 		mVideoView.setVideoURI(mUri);
 		mVideoView.start();
 		
+		String url = Util.getUriPath(mUri);
+		if (!url.startsWith("/") && !url.startsWith("file://")) {
+			// ONLY network media need buffering
+			mBufferingProgressBar.setVisibility(View.VISIBLE);
+			mIsBuffering = true;
+			
+			mSpeed = new NetworkSpeed();
+			mHandler.sendEmptyMessage(MSG_UPDATE_NETWORK_SPEED);
+		}
+		
 		mController.setMediaPlayer(mVideoView);
 		
 		mBufferingProgressBar.setVisibility(View.VISIBLE);
 		mIsBuffering = true;
 	}
 
+	private void stopPlayer() {
+		mHandler.removeMessages(MSG_UPDATE_NETWORK_SPEED);
+		mBufferingProgressBar.setVisibility(View.INVISIBLE);
+		mIsBuffering = false;
+		
+		mVideoView.stopPlayback();
+	}
+	
 	private MediaPlayer.OnCompletionListener mCompletionListener = new MediaPlayer.OnCompletionListener() {
 		public void onCompletion(MediaPlayer mp) {
 			Log.i(TAG, "MEDIA_PLAYBACK_COMPLETE");
 			Toast.makeText(MeetViewActivity.this, "OnCompletionListener", Toast.LENGTH_SHORT).show();
-					
-			mVideoView.stopPlayback();
+			
+			stopPlayer();
 			
 			// play next clip
 			mLastPlayItemPos++;
@@ -843,9 +870,13 @@ public class MeetViewActivity extends Activity implements OnFocusChangeListener 
 			Log.i(TAG, "Error: " + framework_err + "," + impl_err);
 			Toast.makeText(MeetViewActivity.this, 
 					String.format("onError what: %d, extra %d", framework_err, impl_err), Toast.LENGTH_SHORT).show();
-			mVideoView.stopPlayback();
-			mBufferingProgressBar.setVisibility(View.INVISIBLE);
-			mIsBuffering = false;
+			stopPlayer();
+			
+			Util.makeUploadLog("failed to play: " + mUri.toString() + "\n\n");
+			
+			UploadLogTask task = new UploadLogTask(MeetViewActivity.this);
+			task.execute(Util.upload_log_path, "failed to play");
+			
 			return true;
 		}
 	};

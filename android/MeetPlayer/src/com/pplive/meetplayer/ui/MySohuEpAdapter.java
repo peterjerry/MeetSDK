@@ -65,35 +65,10 @@ public class MySohuEpAdapter extends BaseAdapter {
 	}
 
 	private class ViewHolder {
-
-		private TextView title			= null;
-		private ImageView img			= null;
-		private TextView tip			= null;
-		private boolean imgDownloaded	= false;
-
-		public TextView getTitle() {
-			return title;
-		}
-
-		public void setTitle(TextView title) {
-			this.title = title;
-		}
-		
-		public TextView getTip() {
-			return tip;
-		}
-
-		public void setTip(TextView tip) {
-			this.tip = tip;
-		}
-
-		public void setImg(ImageView img) {
-			this.img = img;
-		}
-		
-		public ImageView getImg() {
-			return img;
-		}
+		public TextView title			= null;
+		public ImageView img			= null;
+		public TextView onlinetime		= null;
+		public TextView tip				= null;
 	}
 
 	@Override
@@ -107,14 +82,15 @@ public class MySohuEpAdapter extends BaseAdapter {
 			holder = new ViewHolder();
 			convertView = inflater.inflate(R.layout.gridview_item, null);
 			
-			holder.setTitle((TextView) convertView.findViewById(R.id.gridview_title));
-			holder.setTip((TextView) convertView.findViewById(R.id.gridview_tip));
-			holder.setImg((ImageView) convertView.findViewById(R.id.gridview_img));
-			
-			 RelativeLayout.LayoutParams params = (LayoutParams) holder.getImg().getLayoutParams();
-			 params.height	= dip2px(context, 200/*dip*/);
-			 holder.getImg().setLayoutParams(params);  
-			
+			holder.title = (TextView) convertView.findViewById(R.id.gridview_title);
+			holder.onlinetime = (TextView) convertView.findViewById(R.id.gridview_onlinetime);
+			holder.tip = (TextView) convertView.findViewById(R.id.gridview_tip);
+			holder.img = (ImageView) convertView.findViewById(R.id.gridview_img);
+
+			RelativeLayout.LayoutParams params = (LayoutParams) holder.img.getLayoutParams();
+			params.height = dip2px(context, 200/* dip */);
+			holder.img.setLayoutParams(params);
+
 			convertView.setTag(holder);
 		} else {
 			holder = (ViewHolder) convertView.getTag();
@@ -123,21 +99,25 @@ public class MySohuEpAdapter extends BaseAdapter {
 		// 为holder中的title tip和img设置内容
 		Map<String, Object> item = data.get(position);
 		String title = (String) item.get("title");
+		String onlinetime = "";
+		if (item.containsKey("onlinetime"))
+			onlinetime = (String) item.get("onlinetime");
 		String tip = (String) item.get("tip");
 		String img_url = (String) item.get("img_url");
-		holder.getTitle().setText(title);
-		holder.getTip().setText(tip);
+		holder.title.setText(title);
+		holder.onlinetime.setText(onlinetime);
+		holder.tip.setText(tip);
 
 		if (img_url != null && img_url.startsWith("http://")) {
 			String key = PicCacheUtil.hashKeyForDisk(img_url);
 			Bitmap bmp = PicCacheUtil.getThumbnailFromDiskCache(key);
 			if (bmp != null) {
-				holder.getImg().setImageBitmap(bmp);
+				holder.img.setImageBitmap(bmp);
 				//LogUtil.info(TAG, "set http bitmap from getThumbnailFromDiskCache");
 			}
 			else {
-				holder.getImg().setTag(img_url);
-				holder.getImg().setImageResource(R.drawable.loading);
+				holder.img.setTag(img_url);
+				holder.img.setImageResource(R.drawable.loading);
 				new LoadPicTask().execute(holder, img_url);
 			}
 		}
@@ -168,9 +148,8 @@ public class MySohuEpAdapter extends BaseAdapter {
 				return;
 			}
 			
-			ImageView thumb	= mHolder.getImg();
-			if (thumb.getTag() != null && thumb.getTag().equals(mImgUrl))
-				thumb.setImageBitmap(bmp);
+			if (mHolder.img.getTag() != null && mHolder.img.getTag().equals(mImgUrl))
+				mHolder.img.setImageBitmap(bmp);
 		}
 		
 		@Override

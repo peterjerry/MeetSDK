@@ -388,11 +388,11 @@ public class XOMediaPlayer extends BaseMediaPlayer {
 
 			if (format.containsKey("csd-0")) {
 				ByteBuffer bb = format.getByteBuffer("csd-0");
-				LogUtils.info("Java: MediaFormat csd-0(0): " + bb.toString());
+				LogUtils.info("Java: MediaFormat csd-0(a): " + bb.toString());
 				byte[] content = new byte[bb.limit()];
 				bb.get(content);
 				bb.rewind();
-				LogUtils.info("Java: MediaFormat csd-0(1): "
+				LogUtils.info("Java: MediaFormat csd-0(b): "
 						+ content.toString());
 				StringBuffer sbHex = new StringBuffer();
 				StringBuffer sbInt = new StringBuffer();
@@ -400,16 +400,16 @@ public class XOMediaPlayer extends BaseMediaPlayer {
 					sbHex.append(String.format("0x%02x ", content[j]));
 					sbInt.append(String.format("%d, ", content[j]));
 				}
-				LogUtils.info("Java: MediaFormat csd-0(2): hex: "
+				LogUtils.info("Java: MediaFormat csd-0(c): hex: "
 						+ sbHex.toString());
 			}
 			if (format.containsKey("csd-1")) {
 				ByteBuffer bb = format.getByteBuffer("csd-1");
-				LogUtils.info("Java: MediaFormat csd-1(0): " + bb.toString());
+				LogUtils.info("Java: MediaFormat csd-1(a): " + bb.toString());
 				byte[] content = new byte[bb.limit()];
 				bb.get(content);
 				bb.rewind();
-				LogUtils.info("Java: MediaFormat csd-1(1): "
+				LogUtils.info("Java: MediaFormat csd-1(b): "
 						+ content.toString());
 				StringBuffer sbHex = new StringBuffer();
 				StringBuffer sbInt = new StringBuffer();
@@ -417,8 +417,12 @@ public class XOMediaPlayer extends BaseMediaPlayer {
 					sbHex.append(String.format("0x%02x ", content[j]));
 					sbInt.append(String.format("%d, ", content[j]));
 				}
-				LogUtils.info("Java: MediaFormat csd-1(2): hex: "
+				LogUtils.info("Java: MediaFormat csd-1(c): hex: "
 						+ sbHex.toString());
+			}
+			if (format.containsKey("csd-2")) {
+				ByteBuffer bb = format.getByteBuffer("csd-2");
+				LogUtils.info("Java: MediaFormat csd-2(a): " + bb.toString());
 			}
 
 			String mime = format.getString(MediaFormat.KEY_MIME);
@@ -989,10 +993,10 @@ public class XOMediaPlayer extends BaseMediaPlayer {
 					presentationTimeUs,
 					mSawInputEOS ? MediaCodec.BUFFER_FLAG_END_OF_STREAM : 0);
 
-			LogUtils.debug(String
-					.format("queueInputBuffer track #%d(%s): size %d, pts %d msec, flags %d",
-							trackIndex, isVideo ? "video" : "audio",
-							sampleSize, presentationTimeUs / 1000, flags));
+			//LogUtils.debug(String
+			//		.format("queueInputBuffer track #%d(%s): size %d, pts %d msec, flags %d",
+			//				trackIndex, isVideo ? "video" : "audio",
+			//				sampleSize, presentationTimeUs / 1000, flags));
 
 			list.remove(0);
 			notFullCond.signal();
@@ -1057,7 +1061,7 @@ public class XOMediaPlayer extends BaseMediaPlayer {
 			int res;
 			try {
 				mVideoCodecLock.lock();
-				LogUtils.debug("before video dequeueOutputBuffer");
+				//LogUtils.debug("before video dequeueOutputBuffer");
 				res = mVideoCodec.dequeueOutputBuffer(info, TIMEOUT);
 
 				if (res >= 0) {
@@ -1086,9 +1090,9 @@ public class XOMediaPlayer extends BaseMediaPlayer {
 						}
 					}
 
-					LogUtils.debug(String
-							.format("[DecodeVideoBuffer] presentationTimeUs: %d, flags: %d",
-									info.presentationTimeUs, info.flags));
+					//LogUtils.debug(String
+					//		.format("[DecodeVideoBuffer] presentationTimeUs: %d, flags: %d",
+					//				info.presentationTimeUs, info.flags));
 
 					mDecodedFrameCnt++;
 
@@ -1136,9 +1140,9 @@ public class XOMediaPlayer extends BaseMediaPlayer {
 					long av_diff_msec = video_clock_msec - audio_clock_msec;
 					if (NO_AUDIO)
 						av_diff_msec = 0;
-					LogUtils.info(String.format(
-							"video %d, audio %d, diff_msec %d msec",
-							video_clock_msec, audio_clock_msec, av_diff_msec));
+					//LogUtils.debug(String.format(
+					//		"video %d, audio %d, diff_msec %d msec",
+					//		video_clock_msec, audio_clock_msec, av_diff_msec));
 
 					Message msg = mEventHandler
 							.obtainMessage(MediaPlayer.MEDIA_INFO);
@@ -1166,7 +1170,7 @@ public class XOMediaPlayer extends BaseMediaPlayer {
 						}
 					}
 
-					LogUtils.debug("delay_msec: " + delay_msec);
+					//LogUtils.debug("delay_msec: " + delay_msec);
 					mFrameTimerMsec += delay_msec;
 
 					if (av_diff_msec < -sync_threshold_msec * 2) {
@@ -1204,7 +1208,7 @@ public class XOMediaPlayer extends BaseMediaPlayer {
 
 					long schedule_msec = mFrameTimerMsec
 							- System.currentTimeMillis();
-					LogUtils.debug("schedule_msec: " + schedule_msec);
+					//LogUtils.debug("schedule_msec: " + schedule_msec);
 
 					if (schedule_msec >= 10 && !NO_AUDIO) {
 						try {
@@ -1292,9 +1296,9 @@ public class XOMediaPlayer extends BaseMediaPlayer {
 						break;
 					}
 
-					LogUtils.debug(String
-							.format("[DecodeAudioBuffer] presentationTimeUs: %d, flags: %d",
-									info.presentationTimeUs, info.flags));
+					//LogUtils.debug(String
+					//		.format("[DecodeAudioBuffer] presentationTimeUs: %d, flags: %d",
+					//				info.presentationTimeUs, info.flags));
 
 					// update audio average duration
 					if (mLastAudioPktMSec != 0) {
@@ -1631,18 +1635,21 @@ public class XOMediaPlayer extends BaseMediaPlayer {
 
 	@Override
 	public void release() {
-		mLock.lock();
+		super.release();
+		
 		LogUtils.info("release()");
-
+		
+		mLock.lock();
 		stayAwake(false);
-
 		release_l();
 		mLock.unlock();
 	}
 
 	private void release_l() {
 		LogUtils.info("release_l()");
-
+		
+		reset();
+		
 		removeAllEvents();
 		LogUtils.info("after removeAllEvents()");
 
@@ -1689,8 +1696,16 @@ public class XOMediaPlayer extends BaseMediaPlayer {
 	}
 
 	@Override
-	public final void reset() {
-
+	public void reset() {
+		stayAwake(false);
+		
+		PlayState state = getState();
+		if (state != PlayState.IDLE && state != PlayState.INITIALIZED)
+			stop();
+		
+		removeAllEvents();
+		
+		setState(PlayState.IDLE);
 	}
 
 	@Override
@@ -1859,7 +1874,37 @@ public class XOMediaPlayer extends BaseMediaPlayer {
 	@Override
 	public MediaInfo getMediaInfo() throws IllegalStateException {
 		// TODO Auto-generated method stub
-		return null;
+
+		//dragon_trainer_4audio|/storage/usbotg/usbotg-sda1/dragon_trainer_4audio.mkv
+		//|6115243|0|1280x720|null|
+		//{language=und, height=720, width=1280, mime=video/avc}
+		//|{sample-rate=24000, channel-count=2, language=und, mime=audio/mp4a-latm}
+		//(null,und)|{sample-rate=24000, channel-count=2, language=chi, mime=audio/mp4a-latm}
+		//(null,chi)|{sample-rate=24000, channel-count=2, language=chi, mime=audio/mp4a-latm}
+		//(null,chi)|{sample-rate=24000, channel-count=2, language=chi, mime=audio/mp4a-latm}
+		//(null,chi)|
+
+		MediaInfo mediaInfo = new MediaInfo(mUrl);
+		if (mVideoFormat != null) {
+			String mime = mVideoFormat.getString(MediaFormat.KEY_MIME);
+			int pos = mime.indexOf("/");
+			if (pos != -1)
+				mime = mime.substring(pos + 1);
+			mediaInfo.setVideoInfo(
+					mVideoWidth, mVideoHeight, mime, 
+					(int)(mDurationUsec / 1000));
+		}
+		if (mAudioFormat != null) {
+			String mime = mAudioFormat.getString(MediaFormat.KEY_MIME);
+			int pos = mime.indexOf("/");
+			if (pos != -1)
+				mime = mime.substring(pos + 1);
+			mediaInfo.setAudioChannels(1);
+			mediaInfo.setAudioChannelsInfo(
+					0, mAudioTrackIndex, mime, null, "N/A", "N/A");
+		}
+		
+		return mediaInfo;
 	}
 
 	@Override

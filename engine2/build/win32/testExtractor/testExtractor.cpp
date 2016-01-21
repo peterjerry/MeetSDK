@@ -23,8 +23,10 @@
 #define URL_SURFIX "%3Fft%3D2%26bwtype%3D3%26platform%3Dandroid3" \
 	"%26type%3Dphone.android.vip%26sv%3D4.1.3%26param%3DuserTypeD1&mux.M3U8.segment_duration=5"
 
+#define URL_PPTV_LIVE "http://127.0.0.1:9006/play.m3u8?type=pplive3&playlink=300151%3Fft%3D1%26bwtype%3D3%26platform%3Dandroid3%26type%3Dphone.android.vip&m3u8seekback=true"
+
 //#define LOCAL_FILE "E:\\Archive\\media\\test\\coolpad\\coolpad_CoolShow01.mp4"
-#define LOCAL_FILE "E:\\Archive\\media\\141154398.ts"
+#define LOCAL_FILE "E:\\UHD__VO_1080p.webm"
 
 #define MAX_PKT_SIZE (65536 * 10)
 
@@ -71,9 +73,6 @@ int _tmain(int argc, _TCHAR* argv[])
 		return 1;
 	}
 
-	if (!startP2P())
-		return 1;
-
 	MyMediaPlayerListener listener;
 
 	FFExtractor ext;
@@ -86,9 +85,17 @@ int _tmain(int argc, _TCHAR* argv[])
 	strcat(url, URL_SURFIX);
 
 	strcpy(url, LOCAL_FILE);
+	//strcpy(url, URL_PPTV_LIVE);
+
+	if (strstr(url, "phone.android.vip")) {
+		if (!startP2P()) {
+			printf("failed to start p2p engine");
+			return 1;
+		}
+	}
 
 	ext.setListener(&listener);
-	stat = ext.setDataSource(LOCAL_FILE);
+	stat = ext.setDataSource(url);
 	if (stat != OK) {
 		printf("failed to open media: %s", url);
 		return 1;
@@ -252,7 +259,7 @@ int _tmain(int argc, _TCHAR* argv[])
 		total_count++;
 
 		if (index == audio_stream_idx) {
-			int len;
+			/*int len;
 			AVPacket avpkt;
 			av_init_packet(&avpkt);
 			avpkt.data = pkt_data;
@@ -274,7 +281,7 @@ int _tmain(int argc, _TCHAR* argv[])
 				avpkt.data += len;
 				avpkt.dts =
 				avpkt.pts = AV_NOPTS_VALUE;
-			}
+			}*/
 		}
 
 		stat = ext.advance();
@@ -282,6 +289,13 @@ int _tmain(int argc, _TCHAR* argv[])
 			printf("failed to advance");
 			break;
 		}
+
+		/*static int seek = 0;
+		if (time_usec > 1000000 && seek == 0) {
+			printf("before seek");
+			ext.seekTo(30 * 1000000, 0);
+			seek = 1;
+		}*/
 
 		SDL_Delay(100);
 	}

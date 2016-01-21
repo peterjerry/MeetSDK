@@ -1,0 +1,10 @@
+*.pp.tpp
+*.cfg
+*.bak
+*.dat
+
+/Debug
+/Release
+/x64
+
+*.suo

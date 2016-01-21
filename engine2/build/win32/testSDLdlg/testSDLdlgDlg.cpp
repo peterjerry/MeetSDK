@@ -30,7 +30,11 @@
 #pragma comment(lib, "sdl")
 #endif
 #pragma comment(lib, "libppbox")
+#ifdef USE_LIBASS_SMP
 #pragma comment(lib, "libass")
+#else
+#pragma comment(lib, "libass")
+#endif
 
 #ifdef _DEBUG
 #define new DEBUG_NEW

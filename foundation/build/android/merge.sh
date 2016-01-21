@@ -49,15 +49,6 @@ case $1 in
 		exit
 esac
 
-HOME_FOLDER=`pwd`
-FDK_AAC_HOME=$HOME_FOLDER/../thirdparty/fdk-aac
-RTMPDUMP_HOME=$HOME_FOLDER/../thirdparty/rtmpdump
-X264_HOME=$HOME_FOLDER/../thirdparty/x264
-
-FDK_AAC_LIB=$FDK_AAC_HOME/lib/android/$1
-RTMPDUMP_LIB=$RTMPDUMP_HOME/lib/android/$1
-X264_LIB=$X264_HOME/lib/android/$1
-
 if [ $ARCH == 'arm' ]; then
 	PLATFORM=$NDK/platforms/android-9/arch-arm
 	PREBUILT=$NDK/toolchains/arm-linux-androideabi-4.8/prebuilt/$HOST
@@ -87,12 +78,28 @@ then
 	OPTFLAGS="-O2"
 fi
 
-if [ ${3}x == 'enc'x ]; then
-	EXTRA_LIB="$FDK_AAC_LIB/libfdk-aac.a"
-	EXTRA_LIB="$EXTRA_LIB $RTMPDUMP_LIB/libssl.a $RTMPDUMP_LIB/libcrypto.a"
-	EXTRA_LIB="$EXTRA_LIB $X264_LIB/libx264.a"
-#	EXTRA_LIB="$EXTRA_LIB $RTMPDUMP_LIB/librtmp.a $RTMPDUMP_LIB/libssl.a $RTMPDUMP_LIB/libcrypto.a"
-fi
+for arg in $*
+do
+	if [ ${arg}x == 'enc'x ]; then
+		HOME_FOLDER=`pwd`
+		FDK_AAC_HOME=$HOME_FOLDER/../thirdparty/fdk-aac
+		X264_HOME=$HOME_FOLDER/../thirdparty/x264
+
+		FDK_AAC_LIB=$FDK_AAC_HOME/lib/android/$1
+		X264_LIB=$X264_HOME/lib/android/$1
+		EXTRA_LIB="$EXTRA_LIB $FDK_AAC_LIB/libfdk-aac.a $X264_LIB/libx264.a"
+	elif [ ${arg}x == 'openssl'x ]; then
+		HOME_FOLDER=`pwd`
+		OPENSSL_HOME=$HOME_FOLDER/../thirdparty/rtmpdump
+		OPENSSL_LIB=$OPENSSL_HOME/lib/android/$1
+		EXTRA_LIB="$EXTRA_LIB $OPENSSL_LIB/libssl.a $OPENSSL_LIB/libcrypto.a"
+	elif [ ${arg}x == 'librtmp'x ]; then
+		HOME_FOLDER=`pwd`
+		RTMPDUMP_HOME=$HOME_FOLDER/../thirdparty/rtmpdump
+		RTMPDUMP_LIB=$RTMPDUMP_HOME/lib/android/$1
+		EXTRA_LIB="$EXTRA_LIB $RTMPDUMP_LIB/librtmp.a"
+	fi
+done
 
 MY_CC=${CROSS_PREFIX}gcc
 MY_AR=${CROSS_PREFIX}ar

@@ -207,7 +207,7 @@ public class PPTVEpisodeActivity extends Activity {
 			public void onScroll(AbsListView view, int firstVisibleItem,
 		            int visibleItemCount, int totalItemCount) {
 				// TODO Auto-generated method stub
-				Log.i(TAG, String.format("Java: onScroll first %d, visible %d, total %d", 
+				Log.d(TAG, String.format("Java: onScroll first %d, visible %d, total %d", 
 						firstVisibleItem, visibleItemCount, totalItemCount));
 				
 				int lastInScreen = firstVisibleItem + visibleItemCount;
@@ -429,7 +429,8 @@ public class PPTVEpisodeActivity extends Activity {
     				
     				episode.put("title", al.getTitle());
     				episode.put("img_url", al.getImgUrl());
-    				episode.put("tip", "评分: " + al.getMark());
+    				episode.put("onlinetime", al.getOnlineTime());
+    				episode.put("tip", "评分 " + al.getMark());
     				episode.put("vid", al.getId());
     				episode.put("desc", al.getDescription());
     				listData.add(episode);
@@ -551,10 +552,11 @@ public class PPTVEpisodeActivity extends Activity {
 	}
 	
 	private class PPTVEpgTask extends AsyncTask<Integer, Integer, Boolean> {
-
+		
 		@Override
 		protected void onPostExecute(Boolean result) {
 			// TODO Auto-generated method stub
+			
 			if (!result) {
 				Log.e(TAG, "failed to get episode");
 				Toast.makeText(PPTVEpisodeActivity.this, "failed to get episode", Toast.LENGTH_SHORT).show();
@@ -649,6 +651,7 @@ public class PPTVEpisodeActivity extends Activity {
 		@Override
 		protected void onPostExecute(List<Map<String, Object>> result) {
 			// TODO Auto-generated method stub
+			
 			if (result == null) {
 				Log.e(TAG, "Java: failed to get data");
 				return;
@@ -690,10 +693,11 @@ public class PPTVEpisodeActivity extends Activity {
 			for (int i=0;i<c;i++) {
 				HashMap<String, Object> episode = new HashMap<String, Object>();
 				PlayLink2 al = mAlbumList.get(i);
-				
+
 				episode.put("title", al.getTitle());
 				episode.put("img_url", al.getImgUrl());
-				episode.put("tip", "评分: " + al.getMark());
+				episode.put("onlinetime", al.getOnlineTime());
+				episode.put("tip", "评分 " + al.getMark());
 				episode.put("vid", al.getId());
 				episode.put("desc", al.getDescription());
 				items.add(episode);

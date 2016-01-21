@@ -195,7 +195,7 @@ bool apFormatConverter::convert(uint8_t* from, int from_size, uint8_t *to, int *
 			audio_stream_idx = i;
 		}
 		else {
-			LOGI("useless stream: #%d %d", i, in_stream->codec->codec_type);
+			LOGI("useless stream: #%d, codec_type %d", i, in_stream->codec->codec_type);
 			continue;
 		}
 

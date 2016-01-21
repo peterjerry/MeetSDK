@@ -15,6 +15,7 @@ import com.pplive.meetplayer.util.Util;
 import android.app.AlertDialog;
 import android.app.Dialog;
 import android.app.ListActivity;
+import android.app.ProgressDialog;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.os.AsyncTask;
@@ -298,8 +299,21 @@ public class SohuVideoActivity extends ListActivity {
 	
 	private class EPGTask extends AsyncTask<Integer, Integer, List<String>> {
 
+		private ProgressDialog progDlg = null;
+		
+		@Override
+		protected void onPreExecute() {
+			// TODO Auto-generated method stub
+			progDlg = new ProgressDialog(SohuVideoActivity.this);
+			progDlg.setMessage("数据请求中...");
+			progDlg.setCancelable(true);
+			progDlg.show();
+		}
+		
 		@Override
         protected void onPostExecute(List<String> result) {
+			progDlg.dismiss();
+			
 			if (result != null && result.size() > 0) {
 				if (mAdapter == null) {
 					mAdapter = new ArrayAdapter<String>(

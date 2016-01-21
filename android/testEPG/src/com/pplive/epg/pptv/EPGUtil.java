@@ -332,7 +332,7 @@ public class EPGUtil {
 		
 		String url = catalog_url_prefix2 + "&location=" + cate;
 		
-		System.out.println(url);
+		System.out.println("Java: contents_list() " + url);
 		
 		HttpGet request = new HttpGet(url);
 		
@@ -727,10 +727,7 @@ public class EPGUtil {
     	String link_act = getXMLNode(v, "act");
     	String link_year = getXMLNode(v, "year");
     	String link_area = getXMLNode(v, "area");
-    	/*String link_director = v.getChild("director").getText();
-    	String link_act = v.getChild("act").getText();
-    	String link_year = v.getChild("year").getText();
-    	String link_area = v.getChild("area").getText();*/
+    	String link_onlinetime = getXMLNode(v, "onlinetime");
     	
     	String str_du;
     	int duration_sec;
@@ -815,7 +812,7 @@ public class EPGUtil {
 	    		imgUrl = img.getText();
 	    	
 	    	PlayLink2 l = new PlayLink2(link_title, ext_title, link_id, link_description, 
-	    			src_mark, link_director, link_act,
+	    			src_mark, link_onlinetime, link_director, link_act,
 	    			link_year, link_area,
 	    			link_resolution, duration_sec, imgUrl);
 	    	mPlayLinkList.add(l);
