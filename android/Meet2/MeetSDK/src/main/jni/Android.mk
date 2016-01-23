@@ -8,7 +8,7 @@ SUBTITLE_BASE	:= ../../../../../subtitle2
 #BUILD_ONE_LIB		:= 1
 BUILD_FFPLAYER		:= 1
 BUILD_FFEXTRACTOR	:= 1
-BUILD_OMXPLAYER		:= 1
+#BUILD_OMXPLAYER		:= 1
 #BUILD_TS_CONVERT	:= 1
 
 ifeq ($(TARGET_ARCH_ABI),armeabi-v7a)
