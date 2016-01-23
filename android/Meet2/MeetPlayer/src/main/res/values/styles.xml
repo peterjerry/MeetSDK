@@ -1,0 +1,37 @@
+<resources xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <style name="AppTheme" parent="android:Theme.Light" />
+    
+    <style name="seek_style">
+        <item name="android:indeterminateOnly">false</item>
+        <item name="android:indeterminate">false</item>
+        <item name="android:minHeight">8dip</item>
+        <item name="android:maxHeight">8dip</item>
+        <item name="android:thumbOffset">0dip</item>
+        <item name="android:thumb">@drawable/player_thumb</item>
+    </style>
+    
+    <style name="MyPlayerTheme">
+        <item name="android:textColor">#FF0000</item>
+    </style>
+	
+	<!-- 播放器进度条 -->
+    <style name="player_progressBarStyleHorizontal">
+        <item name="android:indeterminateOnly">false</item>
+        <item name="android:progressDrawable">@drawable/player_seekbar_horizontal</item>
+        <item name="android:indeterminate">false</item>
+        <item name="android:thumbOffset">0dip</item>
+        <item name="android:maxHeight">2dip</item>
+        <item name="android:thumb">@drawable/player_seek_thumb_large</item>
+    </style>
+    
+        <!-- 半屏播放器进度条 -->
+    <style name="player_progressBarHalf">
+        <item name="android:indeterminateOnly">false</item>
+        <item name="android:progressDrawable">@drawable/player_seekbar_small</item>
+        <item name="android:indeterminate">false</item>
+        <item name="android:thumbOffset">3dip</item>
+        <item name="android:maxHeight">3dip</item>
+        <item name="android:thumb">@drawable/player_seek_thumb</item>
+    </style>
+</resources>

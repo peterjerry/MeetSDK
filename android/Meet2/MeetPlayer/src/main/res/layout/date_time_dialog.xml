@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="utf-8"?> 
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android" 
+    android:layout_width="fill_parent" 
+    android:layout_height="fill_parent" 
+    android:padding="10dip" > 
+   
+    <TextView 
+		android:id="@+id/tv_datepicker"
+        android:layout_width="wrap_content" 
+        android:layout_height="wrap_content"
+		android:layout_alignParentTop="true"
+        android:text="select date" 
+        android:textColor="#FF0000" 
+        android:textSize="16sp" /> 
+   
+    <DatePicker 
+        android:id="@+id/date_picker"
+		android:layout_below="@id/tv_datepicker"
+        android:layout_width="fill_parent" 
+        android:layout_height="wrap_content" 
+		android:layout_marginTop="10dip" /> 
+   
+    <TextView 
+		android:id="@+id/tv_timepicker"
+        android:layout_width="wrap_content" 
+        android:layout_height="wrap_content"
+		android:layout_below="@id/date_picker"
+        android:layout_marginTop="10dip" 
+        android:singleLine="true" 
+        android:text="select time" 
+        android:textColor="#FF0000" 
+        android:textSize="16sp" /> 
+   
+    <TimePicker 
+        android:id="@+id/time_picker" 
+		android:layout_below="@id/tv_timepicker"
+        android:layout_width="wrap_content" 
+        android:layout_height="wrap_content" 
+        android:layout_marginTop="5dip" /> 
+	
+    <LinearLayout  
+        android:layout_width="match_parent"  
+        android:layout_height="wrap_content"  
+        android:orientation="vertical"
+        android:layout_toRightOf="@id/time_picker"
+		android:layout_below="@id/date_picker"
+		android:layout_marginTop="80dp"
+		android:layout_marginLeft="20dp" >	
+		<TextView 
+			android:id="@+id/tv_duration"
+	        android:layout_width="wrap_content" 
+	        android:layout_height="wrap_content"
+	        android:text="duration" 
+	        android:textColor="#FF0000" 
+	        android:textSize="16sp" /> 
+	        
+	   <Spinner     
+	        android:id = "@+id/spinner_duration"     
+	        android:layout_width = "wrap_content"     
+	        android:layout_height ="wrap_content"
+	        android:textSize="24sp" />
+
+	 </LinearLayout>
+   
+</RelativeLayout>
