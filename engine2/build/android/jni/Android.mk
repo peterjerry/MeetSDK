@@ -3,12 +3,13 @@ LOCAL_PATH := $(call my-dir)
 BUILD_OSLES				:= 1
 BUILD_NATIVEWINDOOW		:= 1
 #BUILD_RENDER_RGB565	:= 1
-#BUILD_PCM_DUMP			:= 1
-#BUILD_TS_CONVERT		:= 1
+BUILD_PCM_DUMP			:= 1
+BUILD_LIBRTMP			:= 1
+BUILD_TS_CONVERT		:= 1
 #BUILD_ONE_LIB			:= 1
 BUILD_FFPLAYER			:= 1
 BUILD_FFEXTRACTOR		:= 1
-#BUILD_OMXPLAYER			:= 1
+BUILD_OMXPLAYER			:= 1
 
 FDK_AAC_PATH	:= ../../../../foundation/thirdparty/fdk-aac/lib/android/$(TARGET_ARCH_ABI)
 RTMPDUMP_PATH	:= ../../../../foundation/thirdparty/rtmpdump/lib/android/$(TARGET_ARCH_ABI)
@@ -27,9 +28,16 @@ LOCAL_SRC_FILES := $(FDK_AAC_PATH)/libfdk-aac.a
 include $(PREBUILT_STATIC_LIBRARY)
 
 include $(CLEAR_VARS)
+LOCAL_MODULE 	:= x264
+LOCAL_SRC_FILES := $(X264_PATH)/libx264.a
+include $(PREBUILT_STATIC_LIBRARY)
+endif
+
+ifdef BUILD_LIBRTMP
+include $(CLEAR_VARS)
 LOCAL_MODULE 	:= rtmp
 LOCAL_SRC_FILES := $(RTMPDUMP_PATH)/librtmp.a
-#include $(PREBUILT_STATIC_LIBRARY)
+include $(PREBUILT_STATIC_LIBRARY)
 
 include $(CLEAR_VARS)
 LOCAL_MODULE 	:= ssl
@@ -39,11 +47,6 @@ include $(PREBUILT_STATIC_LIBRARY)
 include $(CLEAR_VARS)
 LOCAL_MODULE 	:= crypto
 LOCAL_SRC_FILES := $(RTMPDUMP_PATH)/libcrypto.a
-include $(PREBUILT_STATIC_LIBRARY)
-
-include $(CLEAR_VARS)
-LOCAL_MODULE 	:= x264
-LOCAL_SRC_FILES := $(X264_PATH)/libx264.a
 include $(PREBUILT_STATIC_LIBRARY)
 endif
 
@@ -66,7 +69,7 @@ ifeq ($(TARGET_ARCH_ABI),arm64-v8a)
 LOCAL_C_INCLUDES		+= $(LOCAL_PATH)/$(PLATFORMPATH)/libyuv/jni/include
 endif	
 	
-LOCAL_CFLAGS    		:= -Wall -DNDK_BUILD=1 -DUSE_NDK_SURFACE_REF -DUSE_AV_FILTER -DUSE_SWSCALE -DTEST_PERFORMANCE -DTEST_PERFORMANCE_BITRATE  #-DNO_AUDIO_PLAY
+LOCAL_CFLAGS    		:= -Wall -DNDK_BUILD=1 -DUSE_NDK_SURFACE_REF -DUSE_AV_FILTER -DUSE_SWSCALE
 MY_SRC_PLAYER_FILES 	:= common.cpp ffconverter.cpp
 ifdef BUILD_FFPLAYER
 MY_SRC_PLAYER_FILES 	+= ffstream.cpp audioplayer.cpp audiorender.cpp ffplayer.cpp androidrender.cpp \
@@ -137,8 +140,10 @@ LOCAL_LDLIBS			+= -lOpenMAXAL
 endif
 endif
 ifdef BUILD_PCM_DUMP
-LOCAL_STATIC_LIBRARIES 	+= fdk-aac x264 ssl crypto
-#rtmp
+LOCAL_STATIC_LIBRARIES 	+= fdk-aac x264
+endif
+ifdef BUILD_LIBRTMP
+LOCAL_STATIC_LIBRARIES 	+= rtmp ssl crypto
 endif
 ifdef BUILD_ONE_LIB
 include $(BUILD_STATIC_LIBRARY)

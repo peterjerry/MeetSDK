@@ -66,7 +66,7 @@ public class MediaPlayer implements MediaPlayerInterface {
 	 * @author guoliangma
 	 *
 	 */
-	@SuppressWarnings("deprecation") // avoid setType warning
+	//@SuppressWarnings("deprecation") // avoid setType warning
     public enum DecodeMode {
         HW_SYSTEM {
             @Override

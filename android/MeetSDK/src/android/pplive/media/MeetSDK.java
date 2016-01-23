@@ -86,9 +86,9 @@ public final class MeetSDK {
 		
 		boolean retPlayer = FFMediaPlayer.initPlayer(path);
 		boolean retExtrator = FFMediaExtractor.initExtrator();
-		//boolean retOMXPlayer = OMXMediaPlayer.initPlayer(path);
+		boolean retOMXPlayer = OMXMediaPlayer.initPlayer(path);
 		boolean retParser = SimpleSubTitleParser.initParser(path);
-		return (retPlayer && /*retOMXPlayer &&*/ retExtrator && retParser);
+		return (retPlayer && retOMXPlayer && retExtrator && retParser);
 	}
 	
 	private static boolean load_lib(String path) {

@@ -308,7 +308,7 @@ void OMXPlayer::onPrepareImpl()
 	(XA_RESULT_SUCCESS == res);
 
 	LOGI("before notifyListener_l()");
-	notifyListener_l(MEDIA_INFO, MEDIA_INFO_TEST_PLAYER_TYPE, FF_PLAYER);
+	notifyListener_l(MEDIA_INFO, MEDIA_INFO_TEST_PLAYER_TYPE, OMX_PLAYER);
 }
 
 void OMXPlayer::notifyListener_l(int msg, int ext1, int ext2)

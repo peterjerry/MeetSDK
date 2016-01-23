@@ -15,6 +15,7 @@ android {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
             ndk {
+                moduleName "meetsdk"
                 abiFilters "armeabi-v7a" // includes ARM SO files only, so no x86 SO file
             }
         }
@@ -58,16 +59,16 @@ task modifyCfgFile << {
 }
 task copyNativeSymbols(type: Copy) {
     from fileTree(dir: 'src/main/obj/local', include: '**/*.so')
-    into  'build/output/symbols'
+    into  'build/dist/symbols'
     exclude '**/objs'
 	includeEmptyDirs = false
 }
 task cleanCopyNativeSymbols(type: Delete) {
-    delete '${buildDir}/output/symbols'
+    delete '${buildDir}/dist/symbols'
 }
 task copyLib(type: Copy) {
     from('build/outputs/aar')
-    into('build/output/aar')
+    into('build/dist/aar')
 	include('*.aar')
 }
 tasks.withType(JavaCompile) { compileTask -> compileTask.dependsOn copyCfgFile,modifyCfgFile,copyNativeSymbols }

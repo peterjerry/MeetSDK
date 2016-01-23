@@ -37,7 +37,7 @@ public class LogUtil {
     private static boolean inited;
     
     public static boolean init(String logfile, String tempPath) {
-    	Log.i(TAG, String.format("Java: init() logfile %s, tempPath %s", logfile, tempPath));
+    	Log.i(TAG, String.format("Java: log init() logfile %s, tempPath %s", logfile, tempPath));
     	
         outputfile = logfile;
         infopath = tempPath + "/deviceinfo";
@@ -45,7 +45,7 @@ public class LogUtil {
         boolean hasLogPath = makeParentPath(outputfile);
         boolean hasTempPath = makePath(tempPath);
         inited = hasLogPath && hasTempPath;
-        
+
         return inited;
     }
 	
