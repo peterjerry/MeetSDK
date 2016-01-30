@@ -320,7 +320,7 @@ public:
 	
 	virtual ~IPlayer() {}
 
-	// rare used
+	// rarely used
 	
 #ifdef __ANDROID__
 	virtual status_t startCompatibilityTest() = 0;

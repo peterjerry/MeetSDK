@@ -44,7 +44,7 @@ public class FFMediaPlayer extends BaseMediaPlayer {
 		
 		native_setup(new WeakReference<FFMediaPlayer>(this)); // always true to use ffplay
 	}
-	
+
 	// capability
 	// TV BOX does not need to call this check.
 	public static boolean checkCompatibility(int checkWhat, Surface surface) {
@@ -58,9 +58,11 @@ public class FFMediaPlayer extends BaseMediaPlayer {
 		
 		return ret;
 	}
+
 	public static int checkSoftwareDecodeLevel() {
 		return native_checkSoftwareDecodeLevel();
 	}
+
 	public static int getCpuArchNumber() {
 		return native_getCpuArchNumber();
 	}
@@ -468,5 +470,7 @@ public class FFMediaPlayer extends BaseMediaPlayer {
 			boolean apply_filter, Parcel reply);
 	
 	private native int native_suspend_resume(boolean isSuspend);
+
+	public native void setNativeSurface(long nativeSurface);
 
 }

@@ -6,16 +6,22 @@ import java.awt.Toolkit;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.Random;
 import java.util.StringTokenizer;
 
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 
+import org.jsoup.Jsoup;
+import org.jsoup.nodes.Document;
+import org.jsoup.nodes.Element;
+
 import com.pplive.epg.boxcontroller.Code;
 import com.pplive.epg.boxcontroller.MyActionEvent;
 import com.pplive.epg.boxcontroller.MyBoxController;
 import com.pplive.epg.pptv.NativeMedia;
+import com.pplive.epg.util.LrcDownloadUtil;
 import com.pplive.epg.util.MyNanoHTTPD;
 import com.pplive.epg.util.Util;
 
@@ -51,6 +57,27 @@ public class TestEPG {
 		t.start();
 		
 		createAndShowGUI();
+		
+		try {
+			String url = "http://musicmini.baidu.com/app/search/searchList.php?qword=%E5%8D%83%E5%8D%83%E9%98%99%E6%AD%8C&ie=utf-8&page=1";
+			Document doc = Jsoup.connect(url).timeout(5000).get();
+			Element test = doc.select("tbody").first();
+			int size = test.childNodeSize();
+			System.out.println("size " + size);
+			for (int i = 2; i < size / 2; i++) {
+				Element song = test.child(i);
+				String id = song.child(0).child(0).child(0).attr("id");
+				String song_name = song.child(2).attr("key");
+				String artist = song.child(3).attr("key");
+				String album = song.child(4).child(0).attr("title");
+				System.out.println(String.format(
+						"song id %s, name: %s, artist %s, album %s", 
+						id, song_name, artist, album));
+			}
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 	}
 	
 	public static int getHttpPort() {

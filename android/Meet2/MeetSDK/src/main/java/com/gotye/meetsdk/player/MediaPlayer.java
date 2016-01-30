@@ -61,6 +61,9 @@ public class MediaPlayer implements MediaPlayerInterface {
 	public static final int PLAYER_IMPL_TYPE_XO_PLAYER		= 10002;
 	public static final int PLAYER_IMPL_TYPE_FF_PLAYER		= 10003;
 	public static final int PLAYER_IMPL_TYPE_OMX_PLAYER		= 10004;
+
+    private static final int INVALID_SURFACE = -1;
+    private static final int INVALID_WAKEMODE = -1;
 	
 	/**
 	 * @author guoliangma
@@ -132,8 +135,9 @@ public class MediaPlayer implements MediaPlayerInterface {
 	private Map<String, String> mHeaders = null;
 	private Surface mSurface = null;
 	private SurfaceHolder mHolder = null;
+    private long mNativeSurface = INVALID_SURFACE;
 	private boolean mScreenOn = false;
-	private int mWakeMode = -1;
+	private int mWakeMode = INVALID_WAKEMODE;
 	private String mOption;
 
 	/**
@@ -228,7 +232,20 @@ public class MediaPlayer implements MediaPlayerInterface {
 		
 		setSurface();
 	}
-	
+
+	public void setNativeSurface(long surface) {
+        mNativeSurface = surface;
+        setNativeSurface();
+    }
+
+    private void setNativeSurface() {
+        LogUtils.info("setNativeSurface 111");
+        if (mPlayer != null && mPlayer instanceof FFMediaPlayer) {
+            LogUtils.info("setNativeSurface 222");
+            ((FFMediaPlayer)mPlayer).setNativeSurface(mNativeSurface);
+        }
+    }
+
 	@Override
 	public void setSurface(Surface surface) {
 		// TODO Auto-generated method stub
@@ -237,11 +254,17 @@ public class MediaPlayer implements MediaPlayerInterface {
 	}
 	
 	private void setSurface() {
+        LogUtils.info("setSurface 111");
 		if (null != mPlayer) {
-			if (mHolder != null)
-				mPlayer.setDisplay(mHolder);
-			else
-				mPlayer.setSurface(mSurface);
+            if (mNativeSurface != INVALID_SURFACE) {
+                setNativeSurface();
+            }
+            else {
+                if (mHolder != null)
+                    mPlayer.setDisplay(mHolder);
+                else
+                    mPlayer.setSurface(mSurface);
+            }
 		}
 	}
 	
@@ -999,7 +1022,7 @@ public class MediaPlayer implements MediaPlayerInterface {
 	}
 	
 	private void setWakeMode() {
-		if (mPlayer != null && mContext != null && mWakeMode != -1) {
+		if (mPlayer != null && mContext != null && mWakeMode != INVALID_WAKEMODE) {
 			mPlayer.setWakeMode(mContext, mWakeMode);
 		}
 	}

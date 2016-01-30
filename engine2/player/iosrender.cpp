@@ -22,18 +22,20 @@ IOSRender::~IOSRender(void)
 	close();
 }
 
-bool IOSRender::init(void* surface, uint32_t frameWidth, uint32_t frameHeight, int32_t format, bool force_sw)
+bool IOSRender::init_render(void* ctx, int w, int h, int pix_fmt, bool force_sw)
 {
-	LOGI("surface %p, frame_resolution %d x %d, format %d", surface, frameWidth, frameHeight, format);
+	(void)force_sw;
+	
+	LOGI("surface %p, frame_resolution %d x %d, format %d", ctx, w, h, format);
 
 	if (surface == NULL) {
 		LOGE("surface is null");
         return false;
 	}
 
-	mSurface	= surface;
-	mWidth		= frameWidth;
-	mHeight		= frameHeight;
+	mSurface	= ctx;
+	mWidth		= w;
+	mHeight		= h;
 	mFormat		= format;
 	
     uint32_t surface_format = mFormat;
@@ -49,7 +51,7 @@ bool IOSRender::init(void* surface, uint32_t frameWidth, uint32_t frameHeight, i
 	return true;
 }
 
-bool IOSRender::render(AVFrame* frame)
+bool IOSRender::render_one_frame(AVFrame* frame, int pix_fmt)
 {
 	LOGD("render");
 	

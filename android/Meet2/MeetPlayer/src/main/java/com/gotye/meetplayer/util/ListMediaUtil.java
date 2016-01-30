@@ -211,8 +211,6 @@ public class ListMediaUtil {
 			map.put("resolution", "N/A");
 			map.put("fullpath", clip_fullpath);
 			map.put("thumb", R.drawable.folder);
-
-			Log.i(TAG, "folder: " + folder + " added to list");
 			mClipList.add(map);
 		}
 		

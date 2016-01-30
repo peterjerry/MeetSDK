@@ -3,23 +3,23 @@ LOCAL_PATH := $(call my-dir)
 JNI_BASE 		:= meet
 
 ENGINE_BASE 	:= ../../../../../engine2
+
 SUBTITLE_BASE	:= ../../../../../subtitle2
 
-#BUILD_ONE_LIB		:= 1
+BUILD_ONE_LIB		:= 1
 BUILD_FFPLAYER		:= 1
 BUILD_FFEXTRACTOR	:= 1
 #BUILD_OMXPLAYER		:= 1
+#BUILD_PCM_DUMP			:= 1
+BUILD_LIBRTMP			:= 1
 #BUILD_TS_CONVERT	:= 1
+BUILD_GLES			:= 1
 
-ifeq ($(TARGET_ARCH_ABI),armeabi-v7a)
-FFMPEG_PATH		:= ../../../../../foundation/output/android/neon
-else
-FFMPEG_PATH		:= ../../../../../foundation/output/android/x86
-endif
-
-FDK_AAC_PATH	:= ../../../../../foundation/thirdparty/fdk-aac/lib/android/$(TARGET_ARCH_ABI)
-RTMPDUMP_PATH	:= ../../../../../foundation/thirdparty/rtmpdump/lib/android/$(TARGET_ARCH_ABI)
-X264_PATH		:= ../../../../../foundation/thirdparty/x264/lib/android/$(TARGET_ARCH_ABI)
+FOUNDATION_BASE	:= ../../../../../../foundation
+FFMPEG_PATH		:= $(FOUNDATION_BASE)/output/android/$(TARGET_ARCH_ABI)
+FDK_AAC_PATH	:= $(FOUNDATION_BASE)/thirdparty/fdk-aac/lib/android/$(TARGET_ARCH_ABI)
+RTMPDUMP_PATH	:= $(FOUNDATION_BASE)/thirdparty/rtmpdump/lib/android/$(TARGET_ARCH_ABI)
+X264_PATH		:= $(FOUNDATION_BASE)/thirdparty/x264/lib/android/$(TARGET_ARCH_ABI)
 
 ########################[libpplog]########################
 include $(CLEAR_VARS)
@@ -37,7 +37,7 @@ MY_SO_PREFIX := debug/
 #endif
 
 ifdef BUILD_ONE_LIB
-LOCAL_SRC_FILES := ../$(ENGINE_BASE)/output/android/$(TARGET_ARCH_ABI)/$(MY_SO_PREFIX)libplayer.a
+LOCAL_SRC_FILES := ../$(ENGINE_BASE)/output/android/$(TARGET_ARCH_ABI)/libplayer.a
 LOCAL_MODULE := player
 include $(PREBUILT_STATIC_LIBRARY)
 
@@ -46,11 +46,19 @@ LOCAL_MODULE 	:= ffmpeg
 LOCAL_SRC_FILES := $(FFMPEG_PATH)/lib/libffmpeg.a
 include $(PREBUILT_STATIC_LIBRARY)
 
+ifdef BUILD_PCM_DUMP
 include $(CLEAR_VARS)
 LOCAL_MODULE 	:= fdk-aac
 LOCAL_SRC_FILES := $(FDK_AAC_PATH)/libfdk-aac.a
 include $(PREBUILT_STATIC_LIBRARY)
 
+include $(CLEAR_VARS)
+LOCAL_MODULE 	:= x264
+LOCAL_SRC_FILES := $(X264_PATH)/libx264.a
+include $(PREBUILT_STATIC_LIBRARY)
+endif
+
+ifdef BUILD_LIBRTMP
 include $(CLEAR_VARS)
 LOCAL_MODULE 	:= ssl
 LOCAL_SRC_FILES := $(RTMPDUMP_PATH)/libssl.a
@@ -62,9 +70,10 @@ LOCAL_SRC_FILES := $(RTMPDUMP_PATH)/libcrypto.a
 include $(PREBUILT_STATIC_LIBRARY)
 
 include $(CLEAR_VARS)
-LOCAL_MODULE 	:= x264
-LOCAL_SRC_FILES := $(X264_PATH)/libx264.a
+LOCAL_MODULE 	:= rtmp
+LOCAL_SRC_FILES := $(RTMPDUMP_PATH)/librtmp.a
 include $(PREBUILT_STATIC_LIBRARY)
+endif
 
 else
 LOCAL_SRC_FILES := ../$(ENGINE_BASE)/output/android/$(TARGET_ARCH_ABI)/$(MY_SO_PREFIX)libplayer.so
@@ -74,7 +83,7 @@ endif
 
 ########################[libmeet]########################
 include $(CLEAR_VARS)
-LOCAL_C_INCLUDES 		:= meet $(ENGINE_BASE) $(SUBTITLE_BASE)/output/android/include
+LOCAL_C_INCLUDES 		:= meet $(ENGINE_BASE) $(ENGINE_BASE)/player $(ENGINE_BASE)/platform $(SUBTITLE_BASE)/output/android/include
 ifdef BUILD_ONE_LIB
 LOCAL_CFLAGS    		+= -DBUILD_ONE_LIB
 endif
@@ -95,13 +104,32 @@ ifdef BUILD_TS_CONVERT
 LOCAL_CFLAGS    		+= -DBUILD_TS_CONVERT
 MY_SRC_FILES			+= native_convert.cpp
 endif
+ifdef BUILD_GLES
+MY_SRC_FILES			+= gles2.cpp
+LOCAL_CFLAGS    		+= -DBUILD_GLES
+endif
 LOCAL_SRC_FILES 		:= $(addprefix $(JNI_BASE)/, $(MY_SRC_FILES))
 LOCAL_STATIC_LIBRARIES 	:= pplog cpufeatures
 LOCAL_LDLIBS 			:= -llog
 ifdef BUILD_ONE_LIB
-LOCAL_STATIC_LIBRARIES 	+= player ffmpeg fdk-aac x264 ssl crypto
+LOCAL_STATIC_LIBRARIES 	+= player ffmpeg
+ifdef BUILD_PCM_DUMP
+LOCAL_STATIC_LIBRARIES 	+= fdk-aac x264
+endif
+ifdef BUILD_LIBRTMP
+LOCAL_STATIC_LIBRARIES 	+= librtmp ssl crypto
+endif
+ifdef BUILD_GLES
+LOCAL_LDLIBS			+= -lGLESv2
+endif
 LOCAL_LDLIBS 			+= -lz -landroid -lOpenSLES -L../$(ENGINE_BASE)/output/android/$(TARGET_ARCH_ABI)/$(MY_SO_PREFIX) \
-	-L$(FFMPEG_PATH)/lib -L$(FDK_AAC_PATH) -L$(RTMPDUMP_PATH) -L$(X264_PATH)
+	-L$(FFMPEG_PATH)/lib
+ifdef BUILD_PCM_DUMP
+LOCAL_LDLIBS 			+= -L$(FDK_AAC_PATH) -L$(X264_PATH)
+endif
+ifdef BUILD_LIBRTMP
+LOCAL_LDLIBS 			+= -L$(RTMPDUMP_PATH)
+endif
 endif
 LOCAL_MODULE 			:= meet
 include $(BUILD_SHARED_LIBRARY)

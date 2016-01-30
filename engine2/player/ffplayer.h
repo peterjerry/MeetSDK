@@ -270,6 +270,7 @@ private:
     MediaPlayerListener*	mListener;
     AudioPlayer*			mAudioPlayer; // audio render setListener()
     RenderBase*				mVideoRenderer; // video render
+	bool					mUseGLESRenderer;
 	void*					mSurface; // native surface
 	AVFrame*				mVideoFrame;
 	// set to true(when "pause", "render first frame"), when decoder got picture, set it to false

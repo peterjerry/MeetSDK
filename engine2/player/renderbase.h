@@ -16,28 +16,40 @@ public:
 
 	virtual ~RenderBase(void){}
 
-	virtual bool init(void* surface, uint32_t frameWidth, uint32_t frameHeight, int32_t format, bool force_sw = false) = 0;
+	// 初始render.
+	virtual bool init_render(void* ctx, int w, int h, int pix_fmt, bool force_sw = false) = 0;
 
-    uint32_t get_width() {
+	// 渲染一帧.
+	virtual bool render_one_frame(AVFrame* frame, int pix_fmt) = 0;
+
+	// 调整大小.
+	virtual void re_size(int width, int height){}
+
+	// 设置宽高比.
+	virtual void aspect_ratio(int srcw, int srch, bool enable_aspect){}
+
+	// 撤销render.
+	virtual void destory_render(){}
+	virtual bool use_overlay(){return false;}
+
+    int get_width() {
 		return mWidth;
 	}
 
-	uint32_t get_height() {
+	int get_height() {
 		return mHeight;
 	}
 
-    uint32_t get_swsMs() {
+    int get_swsMs() {
         return mAveScaleTimeMs;
     }
 
-    virtual bool render(AVFrame* frame) = 0;
-
 protected:
 	void* mSurface;
-	uint32_t mWidth;
-	uint32_t mHeight;
-	int32_t mFormat;
-	uint32_t mAveScaleTimeMs;
+	int mWidth;
+	int mHeight;
+	int mFormat;
+	int mAveScaleTimeMs;
 };
 
 #endif // _RENDER_BASE_H_

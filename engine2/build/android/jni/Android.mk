@@ -5,11 +5,12 @@ BUILD_NATIVEWINDOOW		:= 1
 #BUILD_RENDER_RGB565	:= 1
 #BUILD_PCM_DUMP			:= 1
 BUILD_LIBRTMP			:= 1
-#BUILD_TS_CONVERT		:= 1
-#BUILD_ONE_LIB			:= 1
+BUILD_TS_CONVERT		:= 1
+BUILD_ONE_LIB			:= 1
 BUILD_FFPLAYER			:= 1
 BUILD_FFEXTRACTOR		:= 1
 #BUILD_OMXPLAYER			:= 1
+BUILD_GLES				:= 1
 
 FDK_AAC_PATH	:= ../../../../foundation/thirdparty/fdk-aac/lib/android/$(TARGET_ARCH_ABI)
 RTMPDUMP_PATH	:= ../../../../foundation/thirdparty/rtmpdump/lib/android/$(TARGET_ARCH_ABI)
@@ -89,6 +90,13 @@ MY_SRC_PLATFORM_FILES	= log_android.c packetqueue.cpp list.cpp utils.cpp
 ifdef BUILD_FFPLAYER
 MY_SRC_PLATFORM_FILES	+= loop.cpp
 endif
+ifdef BUILD_GLES
+ifndef BUILD_ONE_LIB
+#$(error "GLES only support in ONE_LIB mode")
+#$(shell uname -m)
+endif
+MY_SRC_PLATFORM_FILES	+= shaders.c android_opengles_render.cpp
+endif
 MY_SRC_SOCKET_FILES		:= SimpleSocket.cpp ActiveSocket.cpp
 ifdef BUILD_PCM_DUMP
 MY_SRC_PLAYER_FILES 	+= apAudioEncoder.cpp
@@ -137,6 +145,9 @@ LOCAL_LDLIBS			+= -lOpenSLES
 endif
 ifdef BUILD_OMXPLAYER
 LOCAL_LDLIBS			+= -lOpenMAXAL
+endif
+ifdef BUILD_GLES
+LOCAL_LDLIBS			+= -lGLESv2
 endif
 endif
 ifdef BUILD_PCM_DUMP

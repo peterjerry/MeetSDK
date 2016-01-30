@@ -2,28 +2,29 @@ package com.gotye.meetsdk.player;
 
 import android.content.Context;
 import android.content.Intent;
+import android.graphics.PixelFormat;
 import android.media.AudioManager;
 import android.net.Uri;
 import android.opengl.GLSurfaceView;
 import android.util.AttributeSet;
 import android.util.Log;
 import android.view.KeyEvent;
-import android.view.SurfaceHolder;
 import android.view.accessibility.AccessibilityEvent;
 import android.view.accessibility.AccessibilityNodeInfo;
+
 import com.gotye.meetsdk.MeetSDK;
-import com.gotye.meetsdk.util.LogUtils;
 import com.gotye.meetsdk.player.MediaController.MediaPlayerControl;
-import com.gotye.meetsdk.player.MediaPlayer;
+import com.gotye.meetsdk.player.MediaPlayer.DecodeMode;
 import com.gotye.meetsdk.player.MediaPlayer.OnCompletionListener;
 import com.gotye.meetsdk.player.MediaPlayer.OnErrorListener;
 import com.gotye.meetsdk.player.MediaPlayer.OnInfoListener;
-import com.gotye.meetsdk.player.MediaPlayer.DecodeMode;
+import com.gotye.meetsdk.util.LogUtils;
 
 import java.io.IOException;
 import java.util.Map;
 
 // 2015.1.13 guoliangma change code from 4.2_r1 android.widget.VideoView
+
 /**
  * Displays a video file.  The VideoView class
  * can load images from various sources (such as resources or content
@@ -31,8 +32,8 @@ import java.util.Map;
  * it can be used in any layout manager, and provides various display options
  * such as scaling and tinting.
  */
-public class MeetGLVideoView extends GLSurfaceView implements MediaPlayerControl {
-    private String TAG = "gotye/VideoView";
+public class MeetGLYUVView extends GLSurfaceView implements MediaPlayerControl {
+    private String TAG = "gotye/MeetGLYUVView";
     // settable by the client
     private Uri         mUri;
     private Map<String, String> mHeaders;
@@ -46,7 +47,7 @@ public class MeetGLVideoView extends GLSurfaceView implements MediaPlayerControl
     private static final int STATE_PLAYING            = 3;
     private static final int STATE_PAUSED             = 4;
     private static final int STATE_PLAYBACK_COMPLETED = 5;
-	
+
 	// mCurrentState is a VideoView object's current state.
     // mTargetState is the state that a method caller intends to reach.
     // For instance, regardless the VideoView object's current state,
@@ -58,19 +59,19 @@ public class MeetGLVideoView extends GLSurfaceView implements MediaPlayerControl
 	// 2015.1.13 guoliangma added
 	// display mode
 	public static final int SCREEN_FIT = 0; // 自适应
-    public static final int SCREEN_STRETCH = 1; // 铺满屏幕 
+    public static final int SCREEN_STRETCH = 1; // 铺满屏幕
     public static final int SCREEN_FILL = 2; // 放大裁切
     public static final int SCREEN_CENTER = 3; // 原始大小
-	
+
 	private int mDisplayMode = SCREEN_FIT;
-	
+
 	private DecodeMode mDecodeMode = DecodeMode.AUTO;
 	private DecodeMode mDecodeModeImpl;
 	private Context mContext;
 	private int mAudioChannel = -1; // default
 	private String mOption;
 	// end of guoliangma added
-	
+
     // All the stuff we need for playing and showing a video
     private MediaPlayer mMediaPlayer = null;
     private int         mVideoWidth;
@@ -86,15 +87,15 @@ public class MeetGLVideoView extends GLSurfaceView implements MediaPlayerControl
     private boolean     mCanPause;
     private boolean     mCanSeekBack;
     private boolean     mCanSeekForward;
-    
-    private VideoRender mRenderer;
 
-    public MeetGLVideoView(Context context) {
+    private YUVRender mRenderer;
+
+    public MeetGLYUVView(Context context) {
         super(context);
         initVideoView(context);
     }
 
-    public MeetGLVideoView(Context context, AttributeSet attrs) {
+    public MeetGLYUVView(Context context, AttributeSet attrs) {
     	super(context, attrs);
         initVideoView(context);
     }
@@ -135,13 +136,13 @@ public class MeetGLVideoView extends GLSurfaceView implements MediaPlayerControl
     @Override
     public void onInitializeAccessibilityEvent(AccessibilityEvent event) {
         super.onInitializeAccessibilityEvent(event);
-        event.setClassName(MeetGLVideoView.class.getName());
+        event.setClassName(MeetGLYUVView.class.getName());
     }
 
     @Override
     public void onInitializeAccessibilityNodeInfo(AccessibilityNodeInfo info) {
         super.onInitializeAccessibilityNodeInfo(info);
-        info.setClassName(MeetGLVideoView.class.getName());
+        info.setClassName(MeetGLYUVView.class.getName());
     }
 
     public int resolveAdjustedSize(int desiredSize, int measureSpec) {
@@ -175,13 +176,14 @@ public class MeetGLVideoView extends GLSurfaceView implements MediaPlayerControl
 
     private void initVideoView(Context context) {
     	mContext = context;
-    	
+
     	setEGLContextClientVersion(2);
-    	
+
         mVideoWidth = 0;
         mVideoHeight = 0;
-        mRenderer = new VideoRender(context);
+        mRenderer = new YUVRender(context);
         setRenderer(mRenderer);
+        //setRenderMode(RENDERMODE_WHEN_DIRTY);
         setFocusable(true);
         setFocusableInTouchMode(true);
         requestFocus();
@@ -196,7 +198,7 @@ public class MeetGLVideoView extends GLSurfaceView implements MediaPlayerControl
     public void setVideoURI(Uri uri) {
         setVideoURI(uri, null);
     }
-    
+
     /**
      * Sets video URI using specific headers.
      *
@@ -237,11 +239,11 @@ public class MeetGLVideoView extends GLSurfaceView implements MediaPlayerControl
         release(false);
 
 		LogUtils.info("openVideo() " + mUri.toString());
-		
+
 		mDecodeModeImpl = mDecodeMode;
         if (DecodeMode.AUTO == mDecodeModeImpl)
         	mDecodeModeImpl = MeetSDK.getPlayerType(mUri);
-		
+
         // Tell the music playback service to pause
         // TODO: these constants need to be published somewhere in the framework.
         Intent i = new Intent("com.android.music.musicservicecommand");
@@ -263,19 +265,21 @@ public class MeetGLVideoView extends GLSurfaceView implements MediaPlayerControl
             mMediaPlayer.setOnBufferingUpdateListener(mBufferingUpdateListener);
             mCurrentBufferPercentage = 0;
             mMediaPlayer.setDataSource(mContext, mUri, mHeaders);
+            mMediaPlayer.setDisplay(getHolder());
             mRenderer.setMediaPlayer(mMediaPlayer);
             mMediaPlayer.setAudioStreamType(AudioManager.STREAM_MUSIC);
             mMediaPlayer.setScreenOnWhilePlaying(true);
+            String option = "-gles 1 ";
             if (mOption != null)
-                mMediaPlayer.setOption(mOption);
+                mOption += option;
+            else
+                mOption = option;
+            mMediaPlayer.setOption(mOption);
             if (mAudioChannel != -1) {
             	mMediaPlayer.selectTrack(mAudioChannel);
             	mAudioChannel = -1;
             	LogUtils.info(String.format("pre-set audio track to #%d", mAudioChannel));
             }
-            mMediaPlayer.prepareAsync();
-            // we don't set the target state here either, but preserve the
-            // target state that was there before.
             mCurrentState = STATE_PREPARING;
         } catch (IOException ex) {
 			LogUtils.error("Unable to open content(IOException): " + mUri);
@@ -300,7 +304,7 @@ public class MeetGLVideoView extends GLSurfaceView implements MediaPlayerControl
 			return;
         }
     }
-    
+
     public void setMediaController(MediaController controller) {
     	if (controller != null) {
     		controller.setMediaPlayer(this);
@@ -313,14 +317,6 @@ public class MeetGLVideoView extends GLSurfaceView implements MediaPlayerControl
             public void onVideoSizeChanged(MediaPlayer mp, int width, int height) {
                 mVideoWidth = mp.getVideoWidth();
                 mVideoHeight = mp.getVideoHeight();
-                if (mVideoWidth != 0 && mVideoHeight != 0) {
-                    getHolder().setFixedSize(mVideoWidth, mVideoHeight);
-                    
-                    // fix SW mode cannot display video problem( surface resolution is 1x1)
-                    mRenderer.getSurfaceTexture().setDefaultBufferSize(mVideoWidth, mVideoHeight);
-                    
-                    requestLayout();
-                }
             }
     };
 
@@ -359,8 +355,8 @@ public class MeetGLVideoView extends GLSurfaceView implements MediaPlayerControl
         }
     };
 
-    private MediaPlayer.OnCompletionListener mCompletionListener =
-        new MediaPlayer.OnCompletionListener() {
+    private OnCompletionListener mCompletionListener =
+        new OnCompletionListener() {
         public void onCompletion(MediaPlayer mp) {
             mCurrentState = STATE_PLAYBACK_COMPLETED;
             mTargetState = STATE_PLAYBACK_COMPLETED;
@@ -369,29 +365,29 @@ public class MeetGLVideoView extends GLSurfaceView implements MediaPlayerControl
             }
         }
     };
-	
-	private MediaPlayer.OnSeekCompleteListener mSeekCompleteListener = 
+
+	private MediaPlayer.OnSeekCompleteListener mSeekCompleteListener =
 		new MediaPlayer.OnSeekCompleteListener() {
         public void onSeekComplete(MediaPlayer mp) {
             LogUtils.info("onSeekCompletion");
             mCurrentState = STATE_PLAYING;
             mTargetState = STATE_PLAYING;
-            
+
             if (mOnSeekCompleteListener != null) {
                 mOnSeekCompleteListener.onSeekComplete(mp);
             }
-        } 
+        }
     };
 
-    private MediaPlayer.OnErrorListener mErrorListener =
-        new MediaPlayer.OnErrorListener() {
+    private OnErrorListener mErrorListener =
+        new OnErrorListener() {
         public boolean onError(MediaPlayer mp, int framework_err, int impl_err) {
-		
+
             Log.e(TAG, "Error: " + framework_err + "," + impl_err);
 			LogUtils.error(String.format("onError: %d %d", framework_err, impl_err));
 			if (framework_err == MediaPlayer.MEDIA_ERROR_SYSTEM_PLAYER_COMMON_ERROR)
                 LogUtils.error("onError: MEDIA_ERROR_SYSTEM_PLAYER_COMMON_ERROR");
-				
+
             mCurrentState = STATE_ERROR;
             mTargetState = STATE_ERROR;
 
@@ -407,7 +403,7 @@ public class MeetGLVideoView extends GLSurfaceView implements MediaPlayerControl
     };
 
     // 2015.1.13 guoliangma added
-    private MediaPlayer.OnInfoListener mInfoListener = new MediaPlayer.OnInfoListener() {
+    private OnInfoListener mInfoListener = new OnInfoListener() {
         public boolean onInfo(MediaPlayer mp, int what, int extra) {
             if (mOnInfoListener != null) {
                 return mOnInfoListener.onInfo(mp, what, extra);
@@ -553,7 +549,7 @@ public class MeetGLVideoView extends GLSurfaceView implements MediaPlayerControl
     }
 
     public void resume() {
-        openVideo();
+        //openVideo();
     }
 
     // cache duration as mDuration for faster access

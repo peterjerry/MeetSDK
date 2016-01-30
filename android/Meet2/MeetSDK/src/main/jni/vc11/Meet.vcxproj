@@ -51,7 +51,7 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
       <Optimization>Disabled</Optimization>
-      <AdditionalIncludeDirectories>..\..\..\..\engine2;..\..\..\..\subtitle2\output\android\include;..\meet;E:\Software\android-ndk-r10d\platforms\android-9\arch-x86\usr\include;E:\Software\android-ndk-r10d\sources\cpufeatures</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\..\..\..\..\..\..\engine2;..\..\..\..\..\..\..\engine2\platform;..\..\..\..\..\..\..\engine2\player;..\..\..\..\..\..\..\subtitle2\output\android\include;..\meet;E:\Software\android-ndk-r10d\platforms\android-9\arch-x86\usr\include;E:\Software\android-ndk-r10d\sources\cpufeatures</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>BUILD_FFPLAYER;BUILD_OMXPLAYER;USE_TS_CONVERT;WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <MinimalRebuild>true</MinimalRebuild>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
@@ -98,6 +98,7 @@
     <ClCompile Include="..\meet\cpuext.cpp" />
     <ClCompile Include="..\meet\FFMediaExtractor.cpp" />
     <ClCompile Include="..\meet\FFMediaPlayer.cpp" />
+    <ClCompile Include="..\meet\gles2.cpp" />
     <ClCompile Include="..\meet\jniUtils.cpp" />
     <ClCompile Include="..\meet\libplayer.cpp" />
     <ClCompile Include="..\meet\native_convert.cpp" />

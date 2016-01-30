@@ -11,9 +11,11 @@ public:
 	AndroidRender();
 	~AndroidRender(void);
 
-	virtual bool init(void* surface, uint32_t frameWidth, uint32_t frameHeight, int32_t format, bool force_sw = false);
+	// ≥ı ºrender.
+	virtual bool init_render(void* ctx, int w, int h, int pix_fmt, bool force_sw = false);
 
-	bool render(AVFrame* frame);
+	// ‰÷»æ“ª÷°.
+	virtual bool render_one_frame(AVFrame* frame, int pix_fmt);
 
 private:
 	void close();

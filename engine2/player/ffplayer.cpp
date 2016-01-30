@@ -24,6 +24,7 @@
 #include "utils.h"
 #ifdef __ANDROID__
 #include "androidrender.h"
+#include "android_opengles_render.h"
 #elif defined(__APPLE__)
 #include "iosrender.h"
 #else
@@ -216,6 +217,7 @@ FFPlayer::FFPlayer()
     mVideoFrame				= NULL;
     mIsVideoFrameDirty		= true;
     mVideoRenderer			= NULL;
+	mUseGLESRenderer		= false;
     mVideoStream			= NULL;
 	mMediaFile				= NULL;
     mReachEndStream			= false;
@@ -566,7 +568,7 @@ int FFPlayer::onAudioFrameImpl(AVFrame *frame)
 #ifdef TEST_PERFORMANCE
 		int64_t begin_render = getNowMs();
 #endif
-		if (!mVideoRenderer->render(mAudioFiltFrame)) {
+		if (!mVideoRenderer->render_one_frame(mAudioFiltFrame, mAudioFiltFrame->format)) {
 			static bool once = true;
 			if (once) {
 				notifyListener_l(MEDIA_ERROR, MEDIA_ERROR_VIDEO_RENDER, 0);
@@ -818,9 +820,23 @@ status_t FFPlayer::selectSubtitleChannel(int32_t index)
 
 status_t FFPlayer::setVideoSurface(void* surface)
 {
-#ifdef __ANDROID__
-	mSurface = surface;
+	LOGI("player op setVideoSurface %p", surface);
 
+	if (mPlayerStatus != MEDIA_PLAYER_IDLE &&
+        mPlayerStatus != MEDIA_PLAYER_INITIALIZED)
+	{
+        return INVALID_OPERATION;
+    }
+
+	if (surface == NULL) {
+		LOGE("mSurface is NULL");
+		return ERROR;
+	}
+
+    mSurface = surface;
+	LOGI("setVideoSurface %p", mSurface);
+
+#ifdef __ANDROID__
 	if (mVideoRenderer) {
 		delete mVideoRenderer;
 
@@ -832,8 +848,11 @@ status_t FFPlayer::setVideoSurface(void* surface)
 			force_sw = true;
 		}
 #endif
-		mVideoRenderer = new AndroidRender();
-        if (!mVideoRenderer->init(mSurface, mVideoWidth, mVideoHeight, mVideoFormat, force_sw)) {
+		if (mUseGLESRenderer)
+			mVideoRenderer = (android_gles_render *)mSurface;
+		else
+			mVideoRenderer = new AndroidRender();
+        if (!mVideoRenderer->init_render(mSurface, mVideoWidth, mVideoHeight, mVideoFormat, force_sw)) {
          	LOGE("Initing video render failed");
             return ERROR;
         }
@@ -845,7 +864,6 @@ status_t FFPlayer::setVideoSurface(void* surface)
 		delete mVideoRenderer;
 
 		// realloc render
-		mSurface = surface;
 		int w, h;
 
 		bool force_sw = false;
@@ -865,7 +883,7 @@ status_t FFPlayer::setVideoSurface(void* surface)
 		h = surf->h;
 #endif
 		mVideoRenderer = new WinRender();
-        if (!mVideoRenderer->init(mSurface, w, h, mVideoFormat)) {
+        if (!mVideoRenderer->init_render(mSurface, w, h, mVideoFormat)) {
          	LOGE("Initing video render failed");
             return ERROR;
         }
@@ -873,13 +891,6 @@ status_t FFPlayer::setVideoSurface(void* surface)
 		LOGI("realloc render");
 	}
 #endif
-    if (mPlayerStatus != MEDIA_PLAYER_IDLE &&
-        mPlayerStatus != MEDIA_PLAYER_INITIALIZED)
-	{
-        return INVALID_OPERATION;
-    }
-
-    mSurface = surface;
     return OK;
 }
 
@@ -1342,7 +1353,7 @@ void FFPlayer::render_impl()
 {
 #ifdef USE_AV_FILTER
 	if (mVideoFiltFrame) {
-		if (!mVideoRenderer->render(mVideoFiltFrame)) {
+		if (!mVideoRenderer->render_one_frame(mVideoFiltFrame, mVideoFiltFrame->format)) {
 			static bool once = true;
 			if (once) {
 				notifyListener_l(MEDIA_ERROR, MEDIA_ERROR_VIDEO_RENDER, 0);
@@ -1354,7 +1365,7 @@ void FFPlayer::render_impl()
 		return;
 	}
 #endif
-	if (!mVideoRenderer->render(mVideoFrame)) {
+	if (!mVideoRenderer->render_one_frame(mVideoFrame, mVideoFrame->format)) {
 		static bool once = true;
 		if (once) {
 			notifyListener_l(MEDIA_ERROR, MEDIA_ERROR_VIDEO_RENDER, 0);
@@ -1638,7 +1649,7 @@ void FFPlayer::onVideoImpl()
 
 void FFPlayer::set_opt(const char *opt)
 {
-	LOGI("set_opt %s", opt);
+	LOGI("player op set_opt %s", opt);
 
 	const char *delim = "\n";
     char *p = strtok((char *)opt, delim);
@@ -1668,6 +1679,10 @@ void FFPlayer::process_opt(char *opt)
 			if (mDataStream) {
 				mDataStream->setBufferingSec(mBufferingSec);
 			}
+		}
+		else if (strcmp(key, "-gles") == 0) {
+			mUseGLESRenderer = true;
+			LOGI("turn on gles render mode");
 		}
 #ifdef PCM_DUMP
 		else if (strcmp(key, "-dump_url") == 0) {
@@ -2266,11 +2281,14 @@ status_t FFPlayer::prepareVideo_l()
 				notifyListener_l(MEDIA_SET_VIDEO_SIZE, AUDIO_VISUAL_WIDTH, AUDIO_VISUAL_HEIGHT);
 
 #ifdef __ANDROID__
-				mVideoRenderer = new AndroidRender();
+				if (mUseGLESRenderer)
+					mVideoRenderer = (android_gles_render *)mSurface;
+				else
+					mVideoRenderer = new AndroidRender();
 #else
 				mVideoRenderer = new WinRender();
 #endif
-				if (!mVideoRenderer->init(mSurface, AUDIO_VISUAL_WIDTH, AUDIO_VISUAL_HEIGHT, AV_PIX_FMT_YUV420P)) {
+				if (!mVideoRenderer->init_render(mSurface, AUDIO_VISUAL_WIDTH, AUDIO_VISUAL_HEIGHT, AV_PIX_FMT_YUV420P)) {
          			LOGE("Initing video render failed");
 					return ERROR;
 				}		
@@ -2426,13 +2444,22 @@ status_t FFPlayer::prepareVideo_l()
 	}
 #endif
 #ifdef __ANDROID__
-    mVideoRenderer = new AndroidRender();
+    if (mUseGLESRenderer) {
+		if (!mSurface) {
+			LOGE("mSurface is NULL");
+			return ERROR;
+		}
+
+		mVideoRenderer = (android_gles_render *)mSurface;
+	}
+	else
+		mVideoRenderer = new AndroidRender();
 #elif defined(__APPLE__)
 	mVideoRenderer = new IOSRender();
 #else
 	mVideoRenderer = new WinRender();
 #endif
-    if (!mVideoRenderer->init(mSurface, render_w, render_h, mVideoFormat, force_sw)) {
+    if (!mVideoRenderer->init_render(mSurface, render_w, render_h, mVideoFormat, force_sw)) {
         LOGE("Initing video render failed");
         return ERROR;
     }
