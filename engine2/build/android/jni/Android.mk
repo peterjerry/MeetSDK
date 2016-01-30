@@ -95,7 +95,7 @@ ifndef BUILD_ONE_LIB
 #$(error "GLES only support in ONE_LIB mode")
 #$(shell uname -m)
 endif
-MY_SRC_PLATFORM_FILES	+= shaders.c android_opengles_render.cpp
+MY_SRC_PLATFORM_FILES	+= android_opengles_render.cpp
 endif
 MY_SRC_SOCKET_FILES		:= SimpleSocket.cpp ActiveSocket.cpp
 ifdef BUILD_PCM_DUMP

@@ -1,13 +1,11 @@
 #ifndef ANDROID_OPENGLES_RENDER_
 #define ANDROID_OPENGLES_RENDER_
 
-#include "shaders.h"
 #include "renderbase.h"
-#include <android/bitmap.h>
-#include <dlfcn.h>
+#include <GLES2/gl2.h>
+#include <GLES2/gl2ext.h>
 #include <pthread.h>
 #include <jni.h>
-#include <android/log.h>
 
 #define TEXTURE_BUFFER_SIZE 3
 
