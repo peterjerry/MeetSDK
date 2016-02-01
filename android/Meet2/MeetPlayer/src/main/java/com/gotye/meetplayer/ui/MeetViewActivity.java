@@ -18,6 +18,7 @@ import com.gotye.meetplayer.ui.widget.MiniMediaController;
 import com.gotye.meetplayer.util.DownloadClipTask;
 import com.gotye.meetplayer.util.NetworkSpeed;
 import com.gotye.meetplayer.util.Util;
+import com.gotye.meetsdk.player.MeetNativeVideoView;
 import com.pplive.sdk.MediaSDK;
 
 import android.app.Activity;
@@ -101,7 +102,7 @@ public class MeetViewActivity extends Activity implements OnFocusChangeListener 
 	private RelativeLayout mPreviewLayout;
 	private LinearLayout mCtrlLayout;
 	private RelativeLayout.LayoutParams mCtrlLayoutParams;
-	private MeetVideoView mVideoView;
+	private MeetNativeVideoView mVideoView;
 	private MiniMediaController mController;
 	
 	private int decode_fps						= 0;
@@ -171,6 +172,8 @@ public class MeetViewActivity extends Activity implements OnFocusChangeListener 
 		requestWindowFeature(Window.FEATURE_NO_TITLE);
 		
 		setContentView(R.layout.activity_meet_videoview);
+
+		getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
 		
 		this.mPreviewLayout = (RelativeLayout) findViewById(R.id.view_preview);
 		this.mCtrlLayout = (LinearLayout) findViewById(R.id.layout_ctrl);
@@ -187,7 +190,7 @@ public class MeetViewActivity extends Activity implements OnFocusChangeListener 
 		Util.initMeetSDK(this);
 		Util.startP2PEngine(this);
 		
-		mVideoView = (MeetVideoView) findViewById(R.id.surface_view2);
+		mVideoView = (MeetNativeVideoView) findViewById(R.id.surface_view2);
 		mVideoView.setOnCompletionListener(mCompletionListener);
 		mVideoView.setOnErrorListener(mErrorListener);
 		mVideoView.setOnInfoListener(mInfoListener);
@@ -752,16 +755,20 @@ public class MeetViewActivity extends Activity implements OnFocusChangeListener 
 		mStartFromPortrait = !isLandscape;
 		mSideBarShowed = isLandscape;
 		setup_layout(isLandscape);
-		
+
+        mVideoView.onResume();
+
 		mVideoView.start();
 	}
 
 	@Override
 	protected void onPause() {
 		super.onPause();
-		Log.i(TAG, "Java: onPause()");
-		
-		Util.writeSettingsInt(this, "PlayerImpl", mPlayerImpl);
+        Log.i(TAG, "Java: onPause()");
+
+        Util.writeSettingsInt(this, "PlayerImpl", mPlayerImpl);
+
+        mVideoView.onPause();
 
 		if (mVideoView.isPlaying()) {
 			mVideoView.pause();

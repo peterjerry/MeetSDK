@@ -32,7 +32,7 @@ public:
 	
 	virtual bool use_overlay();
 
-	void setRequestMethod(JNIEnv *env, jobject clazz, jmethodID mid);
+	void setRequestMethod(JNIEnv *env, jobject clazz);
 
 	// gles
 	bool ogl_init(int w, int h);
@@ -55,7 +55,9 @@ private:
 	GLint m_aPositionHandle;
 	GLint m_aTexCoordHandle;
 	GLint m_uTexHandle[TEXTURE_BUFFER_SIZE];
-	
+	GLfloat m_vertices[20];
+	GLuint m_surface_w;
+	GLuint m_surface_h;
 private:
 	/* about JNI */
 	jboolean m_ogl_ready;

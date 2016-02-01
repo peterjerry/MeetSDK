@@ -869,9 +869,8 @@ jint android_media_MediaPlayer_native_checkSoftwareDecodeLevel()
 }
 
 static void
-android_media_MediaPlayer_setNativeSurface(JNIEnv *env, jobject thiz, jlong nativeContext)
+android_media_MediaPlayer_native_set_renderer(JNIEnv *env, jobject thiz, jlong nativeContext)
 {
-	PPLOGI("android_media_MediaPlayer_setNativeSurface() %lld", nativeContext);
 	IPlayer* mp = getMediaPlayer(env, thiz);
 	if (mp == NULL) {
 		jniThrowException(env, "java/lang/IllegalStateException", NULL);
@@ -1288,7 +1287,7 @@ static JNINativeMethod gMethods[] = {
 	{"native_supportSoftDecode",	"()Z",(void *)android_media_MediaPlayer_native_supportSoftDecode},
 	{"setOption",	"(Ljava/lang/String;)V",(void *)android_media_MediaPlayer_native_set_option},
 	{"native_getCurrentMediaInfo",	"(Lcom/gotye/meetsdk/player/MediaInfo;)Z",(void *)android_media_MediaPlayer_native_getCurrentMediaInfo},
-	{"setNativeSurface",      "(J)V",(void *)android_media_MediaPlayer_setNativeSurface},
+	{"native_setRenderer",      "(J)V",(void *)android_media_MediaPlayer_native_set_renderer},
 };
 
 bool setup_player(void *so_handle)

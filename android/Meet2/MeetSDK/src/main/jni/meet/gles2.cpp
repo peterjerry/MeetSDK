@@ -16,10 +16,10 @@ extern "C" {
 /*
  * Class:     com_gotye_meetsdk_player_YUVRender
  * Method:    nativeInit
- * Signature: (II)J
+ * Signature: (Lcom/gotye/meetsdk/player/MeetGLYUVView;)J
  */
-JNIEXPORT long JNICALL Java_com_gotye_meetsdk_player_YUVRender_nativeInit
-  (JNIEnv * env, jobject thiz, jint width, jint height)
+JNIEXPORT jlong JNICALL Java_com_gotye_meetsdk_player_YUVRender_nativeInit
+  (JNIEnv *env , jobject thiz, jobject obj)
 {
 	PPLOGI("nativeInit()");
 
@@ -28,17 +28,26 @@ JNIEXPORT long JNICALL Java_com_gotye_meetsdk_player_YUVRender_nativeInit
 #endif
 
 	android_gles_render *pRender = getRendererFun();
+	pRender->setRequestMethod(env, obj);
+	return (jlong)pRender;
+}
+
+/*
+ * Class:     com_gotye_meetsdk_player_YUVRender
+ * Method:    nativeResize
+ * Signature: (JII)V
+ */
+JNIEXPORT void JNICALL Java_com_gotye_meetsdk_player_YUVRender_nativeResize
+  (JNIEnv * env, jobject thiz, jlong ptr, jint width, jint height)
+{
+	PPLOGI("nativeResize()");
+
+	if (!ptr)
+		return;
+
+	android_gles_render* pRender = (android_gles_render*) ptr;
 	if (!pRender->ogl_init(width, height))
 		jniThrowException(env, "java/lang/RuntimeException", "failed to init ogl");
-
-	jclass clazzRenderer = env->FindClass("com/gotye/meetsdk/player/YUVRender");
-	if (clazzRenderer == NULL)
-		jniThrowException(env, "java/lang/RuntimeException", "Can't find com/gotye/meetsdk/player/YUVRender");
-	jmethodID midSetNative = env->GetMethodID(clazzRenderer, "requestRender", "()V");
-	if (!midSetNative)
-		jniThrowException(env, "java/lang/RuntimeException", "Can't find midSetNative");
-	pRender->setRequestMethod(env, thiz, midSetNative);
-	return (jlong)pRender;
 }
 
 /*

@@ -20,7 +20,6 @@ import android.os.Bundle;
 import android.os.Environment;
 import android.os.Handler;
 import android.os.Message;
-import android.util.Log;
 import android.view.GestureDetector;
 import android.view.KeyEvent;
 import android.view.Menu;
@@ -28,6 +27,7 @@ import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.MotionEvent;
 import android.view.View;
+import android.view.WindowManager;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -41,9 +41,9 @@ import com.gotye.meetplayer.util.Util;
 
 import com.gotye.meetsdk.player.MediaPlayer;
 import com.gotye.meetsdk.player.MeetGLVideoView;
-import com.gotye.meetsdk.player.MeetGLYUVView;
-import com.gotye.meetsdk.player.MeetVideoView;
 import com.gotye.meetsdk.player.MediaPlayer.DecodeMode;
+import com.gotye.meetsdk.player.MeetNativeVideoView;
+import com.gotye.meetsdk.player.MeetVideoView;
 import com.gotye.meetsdk.subtitle.SimpleSubTitleParser;
 import com.gotye.meetsdk.subtitle.SubTitleSegment;
 import com.gotye.meetsdk.subtitle.SubTitleParser.Callback;
@@ -54,7 +54,7 @@ public class VideoPlayerActivity extends Activity implements Callback {
 	
 	private final static String []mode_desc = {"自适应", "铺满屏幕", "放大裁切", "原始大小"};
 
-	protected MeetGLYUVView mVideoView = null; // protected for child access
+	protected MeetNativeVideoView mVideoView = null; // protected for child access
 	protected MyMediaController mController;
 	private int mVideoWidth;
 	private int mVideoHeight;
@@ -127,9 +127,11 @@ public class VideoPlayerActivity extends Activity implements Callback {
 		pre_seek_msec = intent.getIntExtra("preseek_msec", -1);
 		
 		setContentView(R.layout.activity_video_player);
+
+		getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
 		
 		this.mController = (MyMediaController) findViewById(R.id.video_controller);
-		this.mVideoView = (MeetGLYUVView) findViewById(R.id.video_view);
+		this.mVideoView = (MeetNativeVideoView) findViewById(R.id.video_view);
 		this.mSubtitleTextView = (TextView) findViewById(R.id.textview_subtitle);
 		this.mBufferingProgressBar = (ProgressBar) findViewById(R.id.progressbar_buffering);
 		this.mTextViewDebugInfo = (TextView) findViewById(R.id.tv_debuginfo);

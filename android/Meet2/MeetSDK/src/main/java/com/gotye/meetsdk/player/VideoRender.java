@@ -132,7 +132,6 @@ public class VideoRender implements GLSurfaceView.Renderer, SurfaceTexture.OnFra
         
         @Override
         public void onDrawFrame(GL10 glUnused) {
-        	LogUtils.info("onDrawFrame()");
             synchronized(this) {
                 if (updateSurface) {
                     mSurface.updateTexImage();

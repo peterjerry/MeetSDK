@@ -239,10 +239,8 @@ public class MediaPlayer implements MediaPlayerInterface {
     }
 
     private void setNativeSurface() {
-        LogUtils.info("setNativeSurface 111");
         if (mPlayer != null && mPlayer instanceof FFMediaPlayer) {
-            LogUtils.info("setNativeSurface 222");
-            ((FFMediaPlayer)mPlayer).setNativeSurface(mNativeSurface);
+            ((FFMediaPlayer)mPlayer).setRenderer(mNativeSurface);
         }
     }
 
@@ -254,17 +252,14 @@ public class MediaPlayer implements MediaPlayerInterface {
 	}
 	
 	private void setSurface() {
-        LogUtils.info("setSurface 111");
 		if (null != mPlayer) {
-            if (mNativeSurface != INVALID_SURFACE) {
-                setNativeSurface();
-            }
-            else {
-                if (mHolder != null)
-                    mPlayer.setDisplay(mHolder);
-                else
-                    mPlayer.setSurface(mSurface);
-            }
+            if (mNativeSurface != INVALID_SURFACE)
+				setNativeSurface();
+
+            if (mHolder != null)
+                mPlayer.setDisplay(mHolder);
+            else
+                mPlayer.setSurface(mSurface);
 		}
 	}
 	

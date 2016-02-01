@@ -173,7 +173,7 @@ bool loadPlayerLib()
 		return false;
 #endif
 
-#ifdef BUILD_GLES
+#if defined(BUILD_GLES) && !defined(BUILD_ONE_LIB)
 	if (!setup_renderer(*player_handle))
 		return false;
 #endif

@@ -70,7 +70,7 @@ ifeq ($(TARGET_ARCH_ABI),arm64-v8a)
 LOCAL_C_INCLUDES		+= $(LOCAL_PATH)/$(PLATFORMPATH)/libyuv/jni/include
 endif	
 	
-LOCAL_CFLAGS    		:= -Wall -DNDK_BUILD=1 -DUSE_NDK_SURFACE_REF -DUSE_AV_FILTER -DUSE_SWSCALE
+LOCAL_CFLAGS    		:= -Wall -DNDK_BUILD=1 -DUSE_NDK_SURFACE_REF -DUSE_AV_FILTER -DUSE_SWSCALE -DTEST_PERFORMANCE -DTEST_PERFORMANCE_BITRATE  #-DNO_AUDIO_PLAY
 MY_SRC_PLAYER_FILES 	:= common.cpp ffconverter.cpp
 ifdef BUILD_FFPLAYER
 MY_SRC_PLAYER_FILES 	+= ffstream.cpp audioplayer.cpp audiorender.cpp ffplayer.cpp androidrender.cpp \
@@ -92,7 +92,7 @@ MY_SRC_PLATFORM_FILES	+= loop.cpp
 endif
 ifdef BUILD_GLES
 ifndef BUILD_ONE_LIB
-#$(error "GLES only support in ONE_LIB mode")
+$(error "GLES only support in ONE_LIB mode")
 #$(shell uname -m)
 endif
 MY_SRC_PLATFORM_FILES	+= android_opengles_render.cpp

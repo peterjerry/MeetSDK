@@ -2,7 +2,6 @@ package com.gotye.meetsdk.player;
 
 import android.content.Context;
 import android.content.Intent;
-import android.graphics.PixelFormat;
 import android.media.AudioManager;
 import android.net.Uri;
 import android.opengl.GLSurfaceView;
@@ -32,7 +31,7 @@ import java.util.Map;
  * it can be used in any layout manager, and provides various display options
  * such as scaling and tinting.
  */
-public class MeetGLYUVView extends GLSurfaceView implements MediaPlayerControl {
+public class MeetNativeVideoView extends GLSurfaceView implements MediaPlayerControl {
     private String TAG = "gotye/MeetGLYUVView";
     // settable by the client
     private Uri         mUri;
@@ -90,12 +89,12 @@ public class MeetGLYUVView extends GLSurfaceView implements MediaPlayerControl {
 
     private YUVRender mRenderer;
 
-    public MeetGLYUVView(Context context) {
+    public MeetNativeVideoView(Context context) {
         super(context);
         initVideoView(context);
     }
 
-    public MeetGLYUVView(Context context, AttributeSet attrs) {
+    public MeetNativeVideoView(Context context, AttributeSet attrs) {
     	super(context, attrs);
         initVideoView(context);
     }
@@ -136,13 +135,13 @@ public class MeetGLYUVView extends GLSurfaceView implements MediaPlayerControl {
     @Override
     public void onInitializeAccessibilityEvent(AccessibilityEvent event) {
         super.onInitializeAccessibilityEvent(event);
-        event.setClassName(MeetGLYUVView.class.getName());
+        event.setClassName(MeetNativeVideoView.class.getName());
     }
 
     @Override
     public void onInitializeAccessibilityNodeInfo(AccessibilityNodeInfo info) {
         super.onInitializeAccessibilityNodeInfo(info);
-        info.setClassName(MeetGLYUVView.class.getName());
+        info.setClassName(MeetNativeVideoView.class.getName());
     }
 
     public int resolveAdjustedSize(int desiredSize, int measureSpec) {
@@ -181,9 +180,9 @@ public class MeetGLYUVView extends GLSurfaceView implements MediaPlayerControl {
 
         mVideoWidth = 0;
         mVideoHeight = 0;
-        mRenderer = new YUVRender(context);
+        mRenderer = new YUVRender(this);
         setRenderer(mRenderer);
-        //setRenderMode(RENDERMODE_WHEN_DIRTY);
+        setRenderMode(RENDERMODE_WHEN_DIRTY);
         setFocusable(true);
         setFocusableInTouchMode(true);
         requestFocus();

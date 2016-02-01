@@ -837,7 +837,8 @@ status_t FFPlayer::setVideoSurface(void* surface)
 	LOGI("setVideoSurface %p", mSurface);
 
 #ifdef __ANDROID__
-	if (mVideoRenderer) {
+	// gles NOT support re-set video surface now!!!
+	if (!mUseGLESRenderer && mVideoRenderer) {
 		delete mVideoRenderer;
 
 		// realloc render
@@ -848,10 +849,7 @@ status_t FFPlayer::setVideoSurface(void* surface)
 			force_sw = true;
 		}
 #endif
-		if (mUseGLESRenderer)
-			mVideoRenderer = (android_gles_render *)mSurface;
-		else
-			mVideoRenderer = new AndroidRender();
+		mVideoRenderer = new AndroidRender();
         if (!mVideoRenderer->init_render(mSurface, mVideoWidth, mVideoHeight, mVideoFormat, force_sw)) {
          	LOGE("Initing video render failed");
             return ERROR;
@@ -2555,7 +2553,7 @@ status_t FFPlayer::stop_l()
     }
 	LOGI("after delete mAudioPlayer");
 
-    if (mVideoRenderer != NULL) {
+    if (!mUseGLESRenderer && mVideoRenderer != NULL) {
         delete mVideoRenderer;
         mVideoRenderer = NULL;
     }

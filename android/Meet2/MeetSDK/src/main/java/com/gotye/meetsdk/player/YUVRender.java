@@ -14,32 +14,31 @@ import javax.microedition.khronos.opengles.GL10;
  */
 public class YUVRender implements GLSurfaceView.Renderer {
     private static final String TAG = "YUVRender";
+    private static final int INVALID_HANDLE = -1;
 
-    private Context mContext;
-    private long mNativeContext = -1;
+    private long mNativeContext = INVALID_HANDLE;
     private MediaPlayer mPlayer;
     private boolean mOpened = false;
 
-    public YUVRender(Context context) {
-        mContext = context;
+    public YUVRender(GLSurfaceView glView) {
+        mNativeContext = nativeInit(glView);
     }
 
     public void setMediaPlayer(MediaPlayer mp) {
         mPlayer = mp;
+        mOpened = false;
         openVideo();
-    }
-
-    public void requestRender() {
-        this.requestRender();
     }
 
     @Override
     public void onSurfaceCreated(GL10 gl, EGLConfig config) {
+        LogUtils.info("onSurfaceCreated()");
     }
 
     @Override
     public void onSurfaceChanged(GL10 gl, int width, int height) {
-        mNativeContext = nativeInit(width, height);
+        LogUtils.info("onSurfaceChanged() " + width + " x " + height);
+        nativeResize(mNativeContext, width, height);
         openVideo();
     }
 
@@ -52,18 +51,31 @@ public class YUVRender implements GLSurfaceView.Renderer {
         if (mOpened)
             return;
 
-        if (mNativeContext != -1 && mPlayer != null) {
+        if (mNativeContext != INVALID_HANDLE && mPlayer != null) {
             LogUtils.info("setNativeSurface " + mNativeContext);
             mPlayer.setNativeSurface(mNativeContext);
-            mPlayer.setScreenOnWhilePlaying(true);
-            mPlayer.prepareAsync();
-            mOpened = true;
+            try {
+                mPlayer.prepareAsync();
+                mOpened = true;
+            }
+            catch (IllegalStateException e) {
+                e.printStackTrace();
+            }
+        }
+        else {
+            LogUtils.error("failed to open video");
         }
     }
 
-    public static native long nativeInit(int width, int height);
+    public static native long nativeInit(GLSurfaceView ins);
+
+    public static native void nativeResize(long context, int width, int height);
 
     public static native void nativeRender(long context);
+
+    static {
+        System.loadLibrary("meet");
+    }
 }
 
 

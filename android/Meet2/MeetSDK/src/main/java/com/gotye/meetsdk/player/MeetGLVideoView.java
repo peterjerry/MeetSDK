@@ -259,7 +259,7 @@ public class MeetGLVideoView extends GLSurfaceView implements MediaPlayerControl
             mMediaPlayer.setOnCompletionListener(mCompletionListener);
             mMediaPlayer.setOnSeekCompleteListener(mSeekCompleteListener);
             mMediaPlayer.setOnErrorListener(mErrorListener);
-            mMediaPlayer.setOnInfoListener(/*mOnInfoListener*/mInfoListener);
+            mMediaPlayer.setOnInfoListener(mInfoListener);
             mMediaPlayer.setOnBufferingUpdateListener(mBufferingUpdateListener);
             mCurrentBufferPercentage = 0;
             mMediaPlayer.setDataSource(mContext, mUri, mHeaders);

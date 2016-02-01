@@ -23,6 +23,7 @@ public class FFMediaPlayer extends BaseMediaPlayer {
 	private long mNativeContext; // ISubtitle ctx, accessed by native methods
 	private long mListenerContext; // accessed by native methods
 	private static String libPath = "";
+    private boolean mUseRenderer = false;
 	
 	public static boolean initPlayer(String path) {
 		LogUtils.info("initPlayer()");
@@ -41,7 +42,7 @@ public class FFMediaPlayer extends BaseMediaPlayer {
 	
 	public FFMediaPlayer(MediaPlayer mp) {
 		super(mp);
-		
+        mUseRenderer = false;
 		native_setup(new WeakReference<FFMediaPlayer>(this)); // always true to use ffplay
 	}
 
@@ -195,14 +196,16 @@ public class FFMediaPlayer extends BaseMediaPlayer {
 	@Override
 	public void setDisplay(SurfaceHolder sh) {
 		super.setDisplay(sh);
-		
-		setSurface(sh.getSurface());
+
+        setSurface(sh.getSurface());
 	}
 	
 	@Override
 	public void setSurface(Surface surface) {
 		// TODO Auto-generated method stub
-		_setVideoSurface(surface);
+        if (!mUseRenderer)
+            _setVideoSurface(surface);
+
 		updateSurfaceScreenOn();
 	}
 	
@@ -263,10 +266,16 @@ public class FFMediaPlayer extends BaseMediaPlayer {
 	@Override
 	public void reset() {
 		stayAwake(false);
+        mUseRenderer = false;
 		_reset();
 		// make sure none of the listeners get called anymore
         mEventHandler.removeCallbacksAndMessages(null);
 	}
+
+	public void setRenderer(long renderer) {
+        native_setRenderer(renderer);
+        mUseRenderer = true;
+    }
 	
 	public static native String native_getVersion();
 
@@ -471,6 +480,6 @@ public class FFMediaPlayer extends BaseMediaPlayer {
 	
 	private native int native_suspend_resume(boolean isSuspend);
 
-	public native void setNativeSurface(long nativeSurface);
+	public native void native_setRenderer(long nativeSurface);
 
 }
