@@ -1,0 +1,85 @@
+apply plugin: 'com.android.library'
+
+android {
+    compileSdkVersion 23
+    buildToolsVersion "23.0.2"
+
+    defaultConfig {
+        minSdkVersion 16
+        targetSdkVersion 20
+        versionCode 1
+        versionName "1.0"
+    }
+    buildTypes {
+        release {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            ndk {
+                moduleName "meetsdk"
+                abiFilters "armeabi-v7a" // includes ARM SO files only, so no x86 SO file
+            }
+        }
+        debug {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            ndk {
+                moduleName "meetsdk"
+                abiFilters "armeabi-v7a" // includes ARM SO files only, so no x86 SO file
+            }
+        }
+    }
+	sourceSets {
+        main {
+            jni.srcDirs = [] //disable automatic ndk-build call
+            jniLibs.srcDirs = ['src/main/libs'] //set libs as .so's location instead of jni
+        }
+    }
+}
+
+//task copyTestResources(type: Copy) {
+//    from "${projectDir}/src/main/obj/local/armeabi-v7a"
+//    into "${buildDir}/output/symbols/armeabi-v7a"
+//}
+
+task copyCfgFile(type: Copy) {
+    from('src/main/java/com/gotye/meetsdk/config')
+    into('src/main/java/com/gotye/meetsdk/config')
+    include('Config.java.template')
+    rename ('Config.java.template', 'Config.java')
+}
+task modifyCfgFile << {
+    ant.replace(
+            file: 'src/main/java/com/gotye/meetsdk/config/Config.java',
+            token: "@CONFIG.SDK.VERSION@",
+            value: "${version}")
+    ant.replace(
+            file: 'src/main/java/com/gotye/meetsdk/config/Config.java',
+            token: "@CONFIG.STARTP2P@",
+            value: "false")
+}
+task copyNativeSymbols(type: Copy) {
+    from fileTree(dir: 'src/main/obj/local', include: '**/*.so')
+    into  'build/dist/symbols'
+    exclude '**/objs'
+	includeEmptyDirs = false
+}
+task cleanCopyNativeSymbols(type: Delete) {
+    delete '${buildDir}/dist/symbols'
+}
+task copyLib(type: Copy) {
+    from('build/outputs/aar')
+    into('build/dist/aar')
+	include('*.aar')
+}
+tasks.withType(JavaCompile) { compileTask -> compileTask.dependsOn copyCfgFile,modifyCfgFile,copyNativeSymbols }
+
+clean.dependsOn 'cleanCopyNativeSymbols'
+
+dependencies {
+    compile fileTree(dir: 'libs', include: ['*.jar'])
+    testCompile 'junit:junit:4.12'
+    compile 'com.android.support:appcompat-v7:23.1.1'
+}
+
+//assembleDebug.dependsOn copyTestResources
+

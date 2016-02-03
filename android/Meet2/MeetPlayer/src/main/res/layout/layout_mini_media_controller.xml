@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:paddingLeft="5dp"
+    android:paddingRight="5dp"
+    android:paddingBottom="10dp" >
+    
+	<RelativeLayout
+	    android:id="@+id/layout_mediacontroller"
+	    android:layout_width="wrap_content"
+	    android:layout_height="90dp"
+		android:layout_alignParentBottom="true"
+		android:padding="10dp"
+		android:background="#b0000000" >
+		
+	    <TextView
+	        android:id="@+id/tv_player_impl"
+	        android:layout_width="wrap_content"
+	   		android:layout_height="wrap_content"
+	   		android:layout_above="@+id/layout_seek_panel"
+	   		android:layout_alignParentLeft="true"
+	   		android:text="N/A"
+	   		android:textColor="#f00" />
+		    
+		<LinearLayout 
+			android:id="@+id/layout_player_panel"
+			android:layout_width="wrap_content"
+			android:layout_height="wrap_content"
+			android:layout_above="@+id/layout_seek_panel"
+			android:layout_centerHorizontal="true"
+			android:orientation="horizontal" >
+			
+			<ImageButton
+			    android:id="@+id/player_bf_btn"
+				android:layout_width="wrap_content"
+				android:layout_height="wrap_content"
+				android:src="@drawable/player_bf_btn"
+				android:background="@null" />
+		
+			<ImageButton
+			    android:id="@+id/player_play_pause_btn"
+				android:layout_width="wrap_content"
+				android:layout_height="wrap_content"
+				android:layout_marginLeft="20dp"
+				android:layout_marginRight="20dp"
+				android:src="@drawable/player_pause_btn"
+				android:background="@null" />
+			
+			<ImageButton
+			    android:id="@+id/player_ff_btn"
+				android:layout_width="wrap_content"
+				android:layout_height="wrap_content"
+				android:src="@drawable/player_ff_btn"
+				android:background="@null" />
+		      
+		</LinearLayout>
+		
+		<RelativeLayout
+			android:id="@+id/layout_fullscreen"
+			android:layout_alignParentRight="true"
+			android:layout_width="wrap_content"
+			android:layout_height="wrap_content"
+			android:layout_alignParentTop="true" >
+			<ImageButton
+			    android:id="@+id/player_fullscreen_btn"
+				android:layout_width="32dp"
+				android:layout_height="32dp"
+				android:src="@drawable/player_fullscreen_btn"
+				android:scaleType="fitXY"
+				android:background="@null" />	  
+		</RelativeLayout>
+		  
+		<RelativeLayout 
+			android:id="@+id/layout_seek_panel"
+			android:layout_width="wrap_content"
+			android:layout_height="wrap_content"
+			android:layout_alignParentBottom="true" >
+		  	   
+			<SeekBar 
+			    style="@style/player_progressBarHalf"
+				android:id="@+id/mediacontroller_progress" 
+				android:layout_width="fill_parent"
+				android:layout_height="wrap_content"
+				android:layout_alignParentTop="true"
+				android:layout_marginLeft="5dp"
+				android:layout_marginRight="5dp" />
+			
+			<TextView
+				android:id="@+id/current_time"
+				android:layout_width="wrap_content"
+				android:layout_height="wrap_content"
+				android:layout_centerVertical="true"
+				android:layout_alignParentLeft="true"
+				android:layout_below="@id/mediacontroller_progress"
+				android:textColor="#fff" 
+				android:textSize="12sp" />
+				
+			<TextView
+				android:id="@+id/end_time"
+				android:layout_width="wrap_content"
+				android:layout_height="wrap_content"
+				android:layout_centerVertical="true"
+				android:layout_alignParentRight="true"
+				android:layout_below="@id/mediacontroller_progress"
+				android:textColor="#fff" 
+				android:textSize="12sp" />
+			
+		</RelativeLayout>
+		    
+	</RelativeLayout>
+    
+</RelativeLayout>

@@ -16,7 +16,18 @@ case $OS in
 		exit
 esac
 
-cd ../../foundation_rext
+FFMPEG_SRC_PATH=../../foundation_rext
+
+for arg in $*
+do
+	if [ ${arg:0:5} == "path=" ]; then
+		FFMPEG_SRC_PATH=${arg:5}
+	fi
+done
+
+echo "set ffmpeg source path: $FFMPEG_SRC_PATH"
+
+cd $FFMPEG_SRC_PATH
 
 #default use arm
 ARCH=arm

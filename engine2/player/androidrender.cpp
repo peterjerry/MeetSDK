@@ -52,19 +52,19 @@ AndroidRender::~AndroidRender(void)
 	close();
 }
 
-bool AndroidRender::init(void* surface, uint32_t frameWidth, uint32_t frameHeight, int32_t format, bool force_sw)
+bool AndroidRender::init_render(void* ctx, int w, int h, int pix_fmt, bool force_sw)
 {
-	LOGI("surface %p, frame_resolution %d x %d, format %d", surface, frameWidth, frameHeight, format);
+	LOGI("surface %p, frame_resolution %d x %d, format %d", ctx, w, h, pix_fmt);
 
-	if (surface == NULL) {
+	if (ctx == NULL) {
 		LOGE("surface is null");
         return false;
 	}
 
-	mSurface	= surface;
-	mWidth		= frameWidth;
-	mHeight		= frameHeight;
-	mFormat		= format;
+	mSurface	= ctx;
+	mWidth		= w;
+	mHeight		= h;
+	mFormat		= pix_fmt;
 	mForceSW	= force_sw;
 
 	JNIEnv* env = NULL;
@@ -82,9 +82,9 @@ bool AndroidRender::init(void* surface, uint32_t frameWidth, uint32_t frameHeigh
 	return true;
 }
 
-bool AndroidRender::render(AVFrame* frame)
+bool AndroidRender::render_one_frame(AVFrame* frame, int pix_fmt)
 {
-	LOGD("render");
+	LOGD("render_one_frame");
 	
 	if (!mWindow) {
 		LOGW("native window is null");

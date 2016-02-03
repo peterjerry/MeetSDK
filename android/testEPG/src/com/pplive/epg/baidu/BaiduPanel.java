@@ -502,8 +502,11 @@ public class BaiduPanel extends JPanel {
 				mOperatePath = getOperatePath();
 				try {
 					String encoded_path = URLEncoder.encode(mOperatePath, "utf-8");
-
-					String url = BAIDU_PCS_DOWNLOAD_V2 + encoded_path;
+ 
+					//String url = BAIDU_PCS_DOWNLOAD_V2 + encoded_path;
+					String url = String.format(BAIDU_PCS_DOWNLOAD_PROXY_FMT, 
+							TestEPG.getHttpPort());
+					url += encoded_path;
 					System.out.println("get download url: " + url);
 					Clipboard clipboard = getToolkit().getSystemClipboard();//获取系统剪贴板;
 					StringSelection text = new StringSelection(url);
@@ -1547,7 +1550,7 @@ public class BaiduPanel extends JPanel {
 		            	  long cur_msec = System.currentTimeMillis();
 		            	  if (cur_msec - last_msec > 300) {
 		            		  long elapsed_msec = cur_msec - start_msec;
-		            		  double speed = downloaded / (double)elapsed_msec;
+		            		  double speed = (downloaded - from) / (double)elapsed_msec;
 			            	  lblInfo.setText(String.format("文件下载进度 %s, 速度 %.3f kB/s", 
 			            			  getFileSize(downloaded), speed));  
 			            	  last_msec = cur_msec;

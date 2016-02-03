@@ -1,0 +1,27 @@
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    tools:context="com.gotye.meetplayer.ui.PPTVEpisodeActivity" >
+
+    <item
+        android:id="@+id/settings"
+        android:orderInCategory="1"
+        android:title="settings" >
+        <menu>      
+		    <item
+		        android:id="@+id/pop_sel_ep"
+		        android:title="select episode"
+		        android:checkable="true"
+		        android:checked="true" />
+		    <item
+		        android:id="@+id/p2p_download"
+		        android:title="p2p download"
+		        android:checkable="true" />
+		</menu>
+    </item>
+    <item
+        android:id="@+id/set_download_folder"
+        android:orderInCategory="2"
+        android:title="set download folder" />
+
+</menu>

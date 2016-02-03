@@ -8,9 +8,11 @@ public:
 	IOSRender();
 	~IOSRender(void);
 
-	virtual bool init(void* surface, uint32_t frameWidth, uint32_t frameHeight, int32_t format, bool force_sw = false);
+	// 初始render.
+	virtual bool init_render(void* ctx, int w, int h, int pix_fmt, bool force_sw = false);
 
-	bool render(AVFrame* frame);
+	// 渲染一帧.
+	virtual bool render_one_frame(AVFrame* frame, int pix_fmt);
 
 private:
 	void close();

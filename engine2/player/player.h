@@ -207,7 +207,7 @@ enum PLAYER_IMPL_TYPE {
 	SYSTEM_PLAYER = 10001,
 	XO_PLAYER,
 	FF_PLAYER,
-	PP_PLAYER,
+	OMX_PLAYER,
 };
 
 enum {
@@ -320,7 +320,7 @@ public:
 	
 	virtual ~IPlayer() {}
 
-	// rare used
+	// rarely used
 	
 #ifdef __ANDROID__
 	virtual status_t startCompatibilityTest() = 0;

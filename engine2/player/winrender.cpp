@@ -21,23 +21,23 @@ WinRender::~WinRender(void)
 	close();
 }
 
-bool WinRender::init(void* surface, uint32_t frameWidth, uint32_t frameHeight, int32_t format, bool force_sw)
+bool WinRender::init_render(void* ctx, int w, int h, int pix_fmt, bool force_sw)
 {
 	(void)force_sw;
 
-	LOGI("surface %p, frame_resolution %d x %d, format %d", surface, frameWidth, frameHeight, format);
+	LOGI("surface %p, frame_resolution %d x %d, format %d", ctx, w, h, pix_fmt);
 
-	mSurface	= surface;
-	mWidth		= frameWidth;
-	mHeight		= frameHeight;
-	mFormat		= format;
+	mSurface	= ctx;
+	mWidth		= w;
+	mHeight		= h;
+	mFormat		= pix_fmt;
 
 	return true;
 }
 
-bool WinRender::render(AVFrame* frame)
+bool WinRender::render_one_frame(AVFrame* frame, int pix_fmt)
 {
-	LOGD("render");
+	LOGD("render_one_frame");
 
 	int64_t begin_scale = getNowMs();
 

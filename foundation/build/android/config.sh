@@ -24,8 +24,19 @@ case $OS in
 		exit
 esac
 
+FFMPEG_SRC_PATH=../../foundation_rext
+
+for arg in $*
+do
+	if [ ${arg:0:5} == "path=" ]; then
+		FFMPEG_SRC_PATH=${arg:5}
+	fi
+done
+
+echo "set ffmpeg source path: $FFMPEG_SRC_PATH"
+
 PREFIX=`pwd`/../../output/android/$1
-cd ../../foundation_rext
+cd $FFMPEG_SRC_PATH
 
 case $1 in
 	x86)
@@ -254,7 +265,10 @@ fi
 #EXTRA_PARAMETERS="$EXTRA_PARAMETERS --enable-liblenthevcdec "
 
 # delete old files
-make clean
+if [ -f Makefile ]; then
+	make clean
+fi
+
 OBJ_FOLDERS="libavutil libavformat libavcodec libswscale libswresample libavfilter compat"
 for OBJ in $OBJ_FOLDERS
 do

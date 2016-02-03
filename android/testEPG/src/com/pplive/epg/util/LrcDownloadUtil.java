@@ -1,13 +1,19 @@
 package com.pplive.epg.util;
 
+import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.io.Reader;
 import java.io.StringReader;
 import java.io.UnsupportedEncodingException;
 import java.net.MalformedURLException;
+import java.net.URL;
+import java.net.URLConnection;
 import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.apache.http.HttpResponse;
 import org.apache.http.client.methods.HttpGet;
@@ -21,6 +27,8 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.json.JSONTokener;
+import org.jsoup.Jsoup;
+import org.jsoup.select.Elements;
 
 public class LrcDownloadUtil {
 	private static String API_GECIME_LYRIC_URL = "http://geci.me/api/lyric/";
@@ -30,7 +38,32 @@ public class LrcDownloadUtil {
 			"&count=1" +
 			"&title="; //%B2%BB%B5%C3%B2%BB%B0%AE$$%C5%CB%E7%E2%B0%D8$$$$";
 	private static String BAIDU_LRC_URL_FMT = "http://box.zhangmen.baidu.com/bdlrc/%d/%d.lrc";
-	
+	private static String BAIDU_LRC2_URL_FMT = "http://music.baidu.com/data/music/links?songIds=%d";
+	private static String BAIDU_SONG_SEARCH_URL_FMT = "http://musicmini.baidu.com/app/search/searchList.php?qword=";
+    private static String BAIDU_LRC_HOST = "http://qukufile2.qianqian.com";
+    
+	public static class SongInfo {
+        private String mSongName;
+        private String mArtist;
+        private String mLrcPath;
+        private String mSongPicPath;
+
+        public SongInfo(String songName, String artist, String lrcpath, String songPic) {
+            this.mSongName = songName;
+            this.mArtist = artist;
+            this.mLrcPath = lrcpath;
+            this.mSongPicPath = songPic;
+        }
+
+        public String getLrcPath() {
+            return mLrcPath;
+        }
+
+        public String getSongPicPath() {
+            return mSongPicPath;
+        }
+    };
+    
 	public static List<LrcData> getLyc(String song_name) {
 		return getLyc(song_name, null);
 	}
@@ -178,6 +211,141 @@ public class LrcDownloadUtil {
 		return null;
 	}
 	
+	public static SongInfo getBaiduLrc2(int songIds) {
+        String path = String.format(BAIDU_LRC2_URL_FMT, songIds);
+        System.out.println("Java: getBaiduLrc2() url: " + path);
+        try {
+            URL url = new URL(path);
+            URLConnection conn = url.openConnection();
+            conn.connect();
+            BufferedReader in = new BufferedReader(new InputStreamReader(conn.getInputStream()));
+            String line;
+            StringBuffer sb = new StringBuffer();
+            while((line = in.readLine()) != null){
+                sb.append(line);
+            }
+
+            String result = sb.toString();
+            System.out.println("Java: result: " + result);
+
+            JSONTokener jsonParser = new JSONTokener(result);
+            JSONObject root = (JSONObject) jsonParser.nextValue();
+            JSONObject data = root.getJSONObject("data");
+            JSONArray songlist = data.getJSONArray("songList");
+            int count = songlist.length();
+            for (int i=0;i<count;i++) {
+                /*queryId: "1262598",
+                songId: 1262598,
+                songName: "千千阙歌",
+                artistId: "11699",
+                artistName: "陈慧娴",
+                albumId: 197096,
+                albumName: "千千阙歌",
+                songPicSmall: "http://musicdata.baidu.com/data2/pic/88579378/88579378.jpg",
+                songPicBig: "http://musicdata.baidu.com/data2/pic/88579352/88579352.jpg",
+                songPicRadio: "http://musicdata.baidu.com/data2/pic/88579342/88579342.jpg",
+                lrcLink: "/data2/lrc/240890428/240890428.lrc",
+                version: "",
+                copyType: 1,
+                time: 298,
+                linkCode: 22000,
+                songLink: "http://file.qianqian.com//data2/music/134380688/134380688.mp3?xcode=1e33e62cd60a750b6a37d80a2c02fc5b&src="http%3A%2F%2Fpan.baidu.com%2Fshare%2Flink%3Fshareid%3D1368254163%26uk%3D2605942610"",
+                showLink: "http://pan.baidu.com/share/link?shareid=1368254163&uk=2605942610",
+                format: "mp3",
+                rate: 128,
+                size: 4779264,
+                relateStatus: "0",
+                resourceType: "2",
+                source: "web"*/
+
+                JSONObject song = songlist.getJSONObject(i);
+                String queryId = song.getString("queryId");
+                int songId = song.getInt("songId");
+                String songName = song.getString("songName");
+                String artistName = song.getString("artistName");
+                String artistId = song.getString("artistId");
+                int albumId = song.getInt("albumId");
+                String albumName = song.getString("albumName");
+                String songPic = song.getString("songPicBig");
+                String lrcLink = song.getString("lrcLink");
+                String songLink = song.getString("songLink");
+                String showLink = song.getString("showLink");
+                String format = song.getString("format");
+                int rate = song.getInt("rate");
+                int size = song.getInt("size");
+
+                //歌曲地址里如果有
+                // http://qukufile2.qianqian.com/data2/pic/和
+                // http://c.hiphotos.baidu.com/ting/pic/item/
+                // 那就需要将http://c.hiphotos.baidu.com/ting/pic/item/给去掉
+
+                //歌词地址：http://qukufile2.qianqian.com+获取到的url
+                String lrcPath = BAIDU_LRC_HOST + lrcLink;
+                System.out.println(String.format("Java: queryId %s, songId %d, songName %s, " +
+                                "artistName %s, artistid %s, albumId %d, albumName %s, " +
+                                "lrcPath %s, songLink %s, " +
+                                "songPic %s, " +
+                                "format %s, bitrate %d, filesize %d",
+                        queryId, songId, songName,
+                        artistName, artistId, albumId, albumName,
+                        lrcPath, songLink,
+                        songPic,
+                        format, rate, size));
+                return new SongInfo(songName, artistName, lrcPath, songPic);
+            }
+        } catch (MalformedURLException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+
+        return null;
+    }
+	
+	public static int getBaiduSongId(String keyword) {
+		System.out.println(String.format("Java: getBaiduSongId(): keyword %s", keyword));
+
+		String encoded_str;
+		try {
+			encoded_str = URLEncoder.encode(keyword, "UTF-8");
+			String path = BAIDU_SONG_SEARCH_URL_FMT + encoded_str;
+
+			System.out.println("Java: getBaiduSongId() url: " + path);
+            //String html = getHtmlString(path);
+            //if (html != null) {
+            //}
+            org.jsoup.nodes.Document content = Jsoup.parse(new URL(path), 5000);
+            Elements divs = content.select("#sc-table");
+            org.jsoup.nodes.Document divcontions = Jsoup.parse(divs.toString());
+            Elements element = divcontions.getElementsByTag("th");
+            for (org.jsoup.nodes.Element song : element) {
+                Elements ids = song.getElementsByAttribute("id");
+                String str = ids.toString();
+                if (!str.isEmpty()) {
+                    int pos = str.indexOf("id=");
+                    if (pos > 0) {
+                        int pos2 = str.indexOf("\"", pos + 4);
+                        String id = str.substring(pos + 4, pos2);
+                        if (isNumeric(id)) {
+                            int songId = Integer.valueOf(id);
+                            System.out.println("Java: get lrc id: " + songId);
+                            return songId;
+                        }
+                    }
+                }
+            }
+		} catch (UnsupportedEncodingException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        return -1;
+	}
+	
 	public static String getArtist(int artist_id) {
 		try {
 			String url = API_GECIME_LYRIC_ATRIST + String.valueOf(artist_id);
@@ -216,4 +384,13 @@ public class LrcDownloadUtil {
 		
 		return null;
 	}
+	
+	private static boolean isNumeric(String str){
+        Pattern pattern = Pattern.compile("[0-9]*");
+        Matcher isNum = pattern.matcher(str);
+        if( !isNum.matches() ){
+            return false;
+        }
+        return true;
+    }
 }
