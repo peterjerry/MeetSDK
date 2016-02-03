@@ -6,14 +6,14 @@ ENGINE_BASE 	:= ../../../../../engine2
 
 SUBTITLE_BASE	:= ../../../../../subtitle2
 
-BUILD_ONE_LIB		:= 1
+#BUILD_ONE_LIB		:= 1
 BUILD_FFPLAYER		:= 1
 BUILD_FFEXTRACTOR	:= 1
 #BUILD_OMXPLAYER		:= 1
 #BUILD_PCM_DUMP			:= 1
 BUILD_LIBRTMP			:= 1
 #BUILD_TS_CONVERT	:= 1
-BUILD_GLES			:= 1
+#BUILD_GLES			:= 1
 
 FOUNDATION_BASE	:= ../../../../../../foundation
 FFMPEG_PATH		:= $(FOUNDATION_BASE)/output/android/$(TARGET_ARCH_ABI)

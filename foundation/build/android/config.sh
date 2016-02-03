@@ -265,7 +265,10 @@ fi
 #EXTRA_PARAMETERS="$EXTRA_PARAMETERS --enable-liblenthevcdec "
 
 # delete old files
-make clean
+if [ -f Makefile ]; then
+	make clean
+fi
+
 OBJ_FOLDERS="libavutil libavformat libavcodec libswscale libswresample libavfilter compat"
 for OBJ in $OBJ_FOLDERS
 do

@@ -5,12 +5,12 @@ BUILD_NATIVEWINDOOW		:= 1
 #BUILD_RENDER_RGB565	:= 1
 #BUILD_PCM_DUMP			:= 1
 BUILD_LIBRTMP			:= 1
-BUILD_TS_CONVERT		:= 1
-BUILD_ONE_LIB			:= 1
+#BUILD_TS_CONVERT		:= 1
+#BUILD_ONE_LIB			:= 1
 BUILD_FFPLAYER			:= 1
 BUILD_FFEXTRACTOR		:= 1
 #BUILD_OMXPLAYER			:= 1
-BUILD_GLES				:= 1
+#BUILD_GLES				:= 1
 
 FDK_AAC_PATH	:= ../../../../foundation/thirdparty/fdk-aac/lib/android/$(TARGET_ARCH_ABI)
 RTMPDUMP_PATH	:= ../../../../foundation/thirdparty/rtmpdump/lib/android/$(TARGET_ARCH_ABI)
