@@ -5256,7 +5256,7 @@ enabled libopenjpeg       && { check_lib openjpeg.h opj_version -lopenmj2 -DOPJ_
 enabled libopus           && require_pkg_config opus opus_multistream.h opus_multistream_decoder_create
 enabled libpulse          && require_pkg_config libpulse pulse/pulseaudio.h pa_context_new
 enabled libquvi           && require_pkg_config libquvi quvi/quvi.h quvi_init
-enabled librtmp           && require_pkg_config librtmp librtmp/rtmp.h RTMP_Socket
+enabled librtmp           && require librtmp librtmp/rtmp.h RTMP_Socket -lrtmp -lssl -lcrypto
 enabled libschroedinger   && require_pkg_config schroedinger-1.0 schroedinger/schro.h schro_init
 enabled libshine          && require_pkg_config shine shine/layer3.h shine_encode_buffer
 enabled libsmbclient      && { use_pkg_config smbclient libsmbclient.h smbc_init ||
@@ -5351,10 +5351,7 @@ enabled opengl            && { check_lib GL/glx.h glXGetProcAddress "-lGL" ||
                                check_lib2 ES2/gl.h glGetError "-isysroot=${sysroot} -Wl,-framework,OpenGLES" ||
                                die "ERROR: opengl not found."
                              }
-enabled openssl           && { check_lib openssl/ssl.h SSL_library_init -lssl -lcrypto ||
-                               check_lib openssl/ssl.h SSL_library_init -lssl32 -leay32 ||
-                               check_lib openssl/ssl.h SSL_library_init -lssl -lcrypto -lws2_32 -lgdi32 ||
-                               die "ERROR: openssl not found"; }
+enabled openssl           && require libssl openssl/ssl.h SSL_library_init -lssl -lcrypto
 enabled qtkit_indev      && { check_header_oc QTKit/QTKit.h || disable qtkit_indev; }
 
 if enabled gnutls; then
