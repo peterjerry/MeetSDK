@@ -265,7 +265,7 @@ fi
 #EXTRA_PARAMETERS="$EXTRA_PARAMETERS --enable-liblenthevcdec "
 
 # delete old files
-if [ -f Makefile ]; then
+if [ -f config.mak ]; then
 	make clean
 fi
 
