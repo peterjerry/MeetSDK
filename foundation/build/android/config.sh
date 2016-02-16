@@ -191,7 +191,7 @@ do
 		echo "librtmp include: $RTMPDUMP_HOME/include"
 		echo "librtmp lib: $RTMPDUMP_LIB"
 		echo "================="
-		EXTRA_PARAMETERS="$EXTRA_PARAMETERS --enable-librtmp"
+		EXTRA_PARAMETERS="$EXTRA_PARAMETERS --enable-librtmp --enable-protocol=librtmp"
 	elif [ ${arg}x == 'lite'x ]; then
 		echo "lite build"
 		EXTRA_PARAMETERS="$EXTRA_PARAMETERS \
@@ -226,7 +226,7 @@ do
 			--disable-protocols \
 			--enable-protocol=file,http,rtmp,hls \
 			--disable-bsfs \
-			--enable-bsfs=h264_mp4toannexb,aac_adtstoasc \
+			--enable-bsf=h264_mp4toannexb,aac_adtstoasc \
 			--disable-swscale \
 			--disable-avfilter \
 			--disable-postproc \
