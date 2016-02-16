@@ -206,13 +206,12 @@ do
 	elif [ ${arg}x == 'micro'x ]; then
 		echo "micro build"
 		EXTRA_PARAMETERS="$EXTRA_PARAMETERS \
-				--disable-decoders \
-				--enable-decoder=h264,aac \
-				--disable-demuxers \
-				--enable-demuxer=h264,mp4,mov,mpegts,flv,hls \
-				--disable-parsers \
-				--enable-parser=h264,aac_latm \
-			--enable-muxer=mpegts,flv,hls \
+			--disable-decoders \
+			--enable-decoder=h264,aac \
+			--disable-demuxers \
+			--enable-demuxer=h264,mp4,mov,mpegts,flv,hls \
+			--disable-parsers \
+			--enable-parser=h264,aac_latm \
 			--disable-protocols \
 			--enable-protocol=file,http,rtmp,hls "
 	elif [ ${arg}x == 'tiny'x ]; then
@@ -227,11 +226,11 @@ do
 			--disable-protocols \
 			--enable-protocol=file,http,rtmp,hls \
 			--disable-bsfs \
+			--enable-bsfs=h264_mp4toannexb,aac_adtstoasc \
 			--disable-swscale \
 			--disable-avfilter \
 			--disable-postproc \
 			--enable-small "
-		#       --enable-bsf=ac_adtstoasc,h264_mp4toannexb
 	elif [ ${arg}x == 'gotye'x ]; then
 		echo "gotye build"
 		EXTRA_PARAMETERS="$EXTRA_PARAMETERS \
@@ -243,7 +242,7 @@ do
 			--disable-protocols \
 			--enable-protocol=rtmp \
 			--disable-bsfs \
-			--enable-bsf=h264_mp4toannexb \
+			--enable-bsf=h264_mp4toannexb,aac_adtstoasc \
 			--disable-swscale \
 			--disable-swresample \
 			--disable-avfilter \
