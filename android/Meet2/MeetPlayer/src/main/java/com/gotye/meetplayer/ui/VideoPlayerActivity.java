@@ -20,6 +20,7 @@ import android.os.Bundle;
 import android.os.Environment;
 import android.os.Handler;
 import android.os.Message;
+import android.support.v7.app.AppCompatActivity;
 import android.view.GestureDetector;
 import android.view.KeyEvent;
 import android.view.Menu;
@@ -35,6 +36,7 @@ import android.widget.Toast;
 import com.gotye.common.util.LogUtil;
 import com.gotye.meetplayer.R;
 import com.gotye.meetplayer.ui.widget.MyMediaController;
+import com.gotye.meetplayer.util.Constants;
 import com.gotye.meetplayer.util.FileFilterTest;
 import com.gotye.meetplayer.util.NetworkSpeed;
 import com.gotye.meetplayer.util.Util;
@@ -48,13 +50,13 @@ import com.gotye.meetsdk.subtitle.SimpleSubTitleParser;
 import com.gotye.meetsdk.subtitle.SubTitleSegment;
 import com.gotye.meetsdk.subtitle.SubTitleParser.Callback;
 
-public class VideoPlayerActivity extends Activity implements Callback {
+public class VideoPlayerActivity extends AppCompatActivity implements Callback {
 
 	private final static String TAG = "VideoPlayerActivity";
 	
 	private final static String []mode_desc = {"自适应", "铺满屏幕", "放大裁切", "原始大小"};
 
-	protected MeetNativeVideoView mVideoView = null; // protected for child access
+	protected MeetVideoView mVideoView = null; // protected for child access
 	protected MyMediaController mController;
 	private int mVideoWidth;
 	private int mVideoHeight;
@@ -108,8 +110,9 @@ public class VideoPlayerActivity extends Activity implements Callback {
 	@Override
 	public void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
-		LogUtil.info(TAG, "Java: onCreate()");
-		
+
+        super.getWindow().addFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN);
+
 		Intent intent = getIntent();
 		mUri = intent.getData();
 		LogUtil.info(TAG, "Java: mUri " + mUri.toString());
@@ -119,8 +122,8 @@ public class VideoPlayerActivity extends Activity implements Callback {
 		else
 			mPlayerImpl = Util.readSettingsInt(this, "PlayerImpl");
 		LogUtil.info(TAG, "Java player impl: " + mPlayerImpl);
-		
-		mTitle = intent.getStringExtra("title");
+
+        mTitle = intent.getStringExtra("title");
 		mFt = intent.getIntExtra("ft", 0);
 		mBestFt = intent.getIntExtra("best_ft", 3);
 		
@@ -128,10 +131,10 @@ public class VideoPlayerActivity extends Activity implements Callback {
 		
 		setContentView(R.layout.activity_video_player);
 
-		getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+        getSupportActionBar().hide();
 		
 		this.mController = (MyMediaController) findViewById(R.id.video_controller);
-		this.mVideoView = (MeetNativeVideoView) findViewById(R.id.video_view);
+		this.mVideoView = (MeetVideoView) findViewById(R.id.video_view);
 		this.mSubtitleTextView = (TextView) findViewById(R.id.textview_subtitle);
 		this.mBufferingProgressBar = (ProgressBar) findViewById(R.id.progressbar_buffering);
 		this.mTextViewDebugInfo = (TextView) findViewById(R.id.tv_debuginfo);
@@ -764,12 +767,11 @@ public class VideoPlayerActivity extends Activity implements Callback {
 				onBackPressed();
 			}
 			return true;
-		case KeyEvent.KEYCODE_MENU:
-			openOptionsMenu();
-			return true;
 		default:
-			return super.onKeyDown(keyCode, event);
+			break;
 		}
+
+        return super.onKeyDown(keyCode, event);
 	}
 	
     public void toggleMediaControlsVisiblity() {

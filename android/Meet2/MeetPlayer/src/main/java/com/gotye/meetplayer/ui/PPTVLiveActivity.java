@@ -19,14 +19,16 @@ import android.content.Intent;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.View;
+import android.view.WindowManager;
 import android.widget.AdapterView;
 import android.widget.Button;
 import android.widget.ListView;
 import android.widget.Toast;
 
-public class PPTVLiveActivity extends Activity {
+public class PPTVLiveActivity extends AppCompatActivity {
 	private final static String TAG = "PPTVLiveActivity";
 	
 	private Button btnLive;
@@ -45,8 +47,8 @@ public class PPTVLiveActivity extends Activity {
 	protected void onCreate(Bundle savedInstanceState) {
 		// TODO Auto-generated method stub
 		super.onCreate(savedInstanceState);
-		
-		Log.i(TAG, "Java: onCreate()");
+
+		super.getWindow().addFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN);
 		
 		setContentView(R.layout.activity_pptv_live);
 		
@@ -118,7 +120,7 @@ public class PPTVLiveActivity extends Activity {
 					
 					play_url = PlayLinkUtil.getPlayUrl(
 							Integer.valueOf(playlink), http_port, 1, 3, 
-							mPlaybackTime.getPlaylinkSurfix());
+							mPlaybackTime.getPPTVTimeStr());
 				}
 				else {
 					Toast.makeText(PPTVLiveActivity.this, "invalid bw_type " + mBwType, Toast.LENGTH_SHORT).show();

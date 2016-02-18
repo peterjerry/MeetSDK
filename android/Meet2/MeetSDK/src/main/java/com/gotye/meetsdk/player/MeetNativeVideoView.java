@@ -22,7 +22,6 @@ import com.gotye.meetsdk.util.LogUtils;
 import java.io.IOException;
 import java.util.Map;
 
-// 2015.1.13 guoliangma change code from 4.2_r1 android.widget.VideoView
 
 /**
  * Displays a video file.  The VideoView class
@@ -64,8 +63,6 @@ public class MeetNativeVideoView extends GLSurfaceView implements MediaPlayerCon
 
 	private int mDisplayMode = SCREEN_FIT;
 
-	private DecodeMode mDecodeMode = DecodeMode.AUTO;
-	private DecodeMode mDecodeModeImpl;
 	private Context mContext;
 	private int mAudioChannel = -1; // default
 	private String mOption;
@@ -239,10 +236,6 @@ public class MeetNativeVideoView extends GLSurfaceView implements MediaPlayerCon
 
 		LogUtils.info("openVideo() " + mUri.toString());
 
-		mDecodeModeImpl = mDecodeMode;
-        if (DecodeMode.AUTO == mDecodeModeImpl)
-        	mDecodeModeImpl = MeetSDK.getPlayerType(mUri);
-
         // Tell the music playback service to pause
         // TODO: these constants need to be published somewhere in the framework.
         Intent i = new Intent("com.android.music.musicservicecommand");
@@ -253,7 +246,7 @@ public class MeetNativeVideoView extends GLSurfaceView implements MediaPlayerCon
         // called start() previously
         release(false);
         try {
-            mMediaPlayer = new MediaPlayer(mDecodeModeImpl);
+            mMediaPlayer = new MediaPlayer(DecodeMode.SW);
             mMediaPlayer.setOnPreparedListener(mPreparedListener);
             mMediaPlayer.setOnVideoSizeChangedListener(mSizeChangedListener);
             mDuration = -1;
@@ -638,7 +631,6 @@ public class MeetNativeVideoView extends GLSurfaceView implements MediaPlayerCon
      * param[in]    mode 解码模式
      */
 	public void setDecodeMode(DecodeMode mode) {
-        mDecodeMode = mode;
     }
 
 	/**
@@ -646,11 +638,7 @@ public class MeetNativeVideoView extends GLSurfaceView implements MediaPlayerCon
      * @return     解码模式 DecodeMode
      */
     public DecodeMode getDecodeMode() {
-        if (null != mMediaPlayer) {
-            return mMediaPlayer.getDecodeMode();
-        }
-
-        return DecodeMode.UNKNOWN;
+        return DecodeMode.SW;
     }
     
     /**

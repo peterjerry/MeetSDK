@@ -27,6 +27,8 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
 import com.gotye.meetsdk.player.MediaController.MediaPlayerControl;
+
+import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.SurfaceHolder;
 import android.view.SurfaceHolder.Callback;
@@ -41,7 +43,7 @@ import android.widget.RelativeLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
-public class PlaySohuActivity extends Activity implements Callback {
+public class PlaySohuActivity extends AppCompatActivity implements Callback {
 	private final static String TAG = "PlaySohuActivity";
 	
 	private RelativeLayout mLayout;
@@ -132,14 +134,12 @@ public class PlaySohuActivity extends Activity implements Callback {
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
-		
-		Log.i(TAG, "Java: onCreate()");
-		
-		requestWindowFeature(Window.FEATURE_NO_TITLE);
-		getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN,
-				WindowManager.LayoutParams.FLAG_FULLSCREEN);
+
+		super.getWindow().addFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN);
 		
 		setContentView(R.layout.activity_frag_mp4_player);
+
+		getSupportActionBar().hide();
 		
 		mLayout 				= (RelativeLayout) findViewById(R.id.main_layout);
 		mView 					= (SurfaceView) findViewById(R.id.player_view);
@@ -393,7 +393,7 @@ public class PlaySohuActivity extends Activity implements Callback {
 	@Override
 	protected void onPause() {
 		// TODO Auto-generated method stub
-		super.onStop();
+		super.onPause();
 		
 		if (mPlayer != null) {
 			mPlayer.stop();

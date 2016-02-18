@@ -419,7 +419,7 @@ public final class MeetSDK {
 	 * @return Bitmap, or null on failures
 	 */
 	public synchronized static Bitmap createVideoThumbnail(String filePath, int kind) {
-		LogUtils.info("createVideoThumbnail: " + filePath);
+		LogUtils.debug("createVideoThumbnail: " + filePath);
 		
 		Bitmap bitmap = null;
 
@@ -427,7 +427,7 @@ public final class MeetSDK {
 			String key = UrlUtil.hashKeyForDisk(filePath);
 			bitmap = getThumbnailFromDiskCache(key);
 			if (bitmap != null) {
-				LogUtils.info("createVideoThumbnail from diskcache: " + filePath);
+				LogUtils.debug("createVideoThumbnail from diskcache: " + filePath);
 				return bitmap;
 			}
 			
@@ -435,11 +435,11 @@ public final class MeetSDK {
 				bitmap = ThumbnailUtils.createVideoThumbnail(filePath, MediaStore.Video.Thumbnails.MICRO_KIND);
 			
 			if (bitmap != null) {
-				LogUtils.info("createVideoThumbnail from ThumbnailUtils: " + filePath);
+				LogUtils.debug("createVideoThumbnail from ThumbnailUtils: " + filePath);
 			}
 			else {
 				bitmap = MeetPlayerHelper.createVideoThumbnail(filePath, kind);
-				LogUtils.info("createVideoThumbnail from ffmpeg: " + filePath);
+				LogUtils.debug("createVideoThumbnail from ffmpeg: " + filePath);
 			}
 			
 			if (bitmap != null)

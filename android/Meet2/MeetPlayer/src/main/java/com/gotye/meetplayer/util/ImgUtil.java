@@ -12,6 +12,8 @@ import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.util.Log;
 
+import com.gotye.common.util.LogUtil;
+
 public class ImgUtil {
 	private final static String TAG = "ImgUtil";
 	private final static int TIMEOUT_MSEC = 3000; // 3 sec
@@ -30,7 +32,7 @@ public class ImgUtil {
 	     URL myFileUrl = null;
 	     Bitmap bitmap = null;
 	     try {
-	          Log.i(TAG, "Java: getHttpBitmap " + url);
+	          LogUtil.debug(TAG, "Java: getHttpBitmap " + url);
 	          myFileUrl = new URL(url);
 	     } catch (MalformedURLException e) {
 	          e.printStackTrace();

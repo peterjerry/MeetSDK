@@ -28,16 +28,21 @@ import android.os.Bundle;
 import android.os.Environment;
 import android.os.Handler;
 import android.os.Message;
+
+import com.gotye.meetplayer.util.Constants;
 import com.gotye.meetsdk.MeetSDK;
 import com.gotye.meetsdk.player.MediaController.MediaPlayerControl;
 import com.gotye.meetsdk.player.MediaInfo;
 import com.gotye.meetsdk.player.MediaPlayer;
 import com.gotye.meetsdk.player.MediaPlayer.DecodeMode;
-import com.gotye.meetsdk.player.MediaPlayer.OnSeekCompleteListener;
 import com.gotye.meetsdk.player.TrackInfo;
 import com.gotye.meetsdk.subtitle.SimpleSubTitleParser;
 import com.gotye.meetsdk.subtitle.SubTitleParser;
 import com.gotye.meetsdk.subtitle.SubTitleSegment;
+
+import android.support.v7.app.ActionBar;
+import android.support.v7.app.AppCompatActivity;
+import android.support.v7.widget.AppCompatButton;
 import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.GestureDetector;
@@ -51,21 +56,16 @@ import android.view.SurfaceHolder;
 import android.view.View;
 import android.view.View.MeasureSpec;
 import android.view.View.OnFocusChangeListener;
-import android.view.Window;
 import android.view.WindowManager;
 import android.widget.AdapterView;
-import android.widget.ArrayAdapter;
 import android.widget.Button;
-import android.widget.DatePicker;
 import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ListView;
 import android.widget.ProgressBar;
 import android.widget.RelativeLayout;
-import android.widget.Spinner;
 import android.widget.TextView;
-import android.widget.TimePicker;
 import android.widget.Toast;
 
 import com.gotye.common.pptv.CDNItem;
@@ -121,7 +121,7 @@ import java.util.Random;
 
 import so.cym.crashhandlerdemo.UploadLogTask;
 
-public class ClipListActivity extends Activity implements
+public class ClipListActivity extends AppCompatActivity implements
 		MediaPlayer.OnPreparedListener, MediaPlayer.OnCompletionListener,
 		MediaPlayer.OnErrorListener, MediaPlayer.OnInfoListener,
 		MediaPlayer.OnVideoSizeChangedListener, MediaPlayer.OnBufferingUpdateListener,
@@ -134,14 +134,13 @@ public class ClipListActivity extends Activity implements
     private final static String PORT_RTSP = "rtsp";
     
     private MyMarqueeTextView tv_title;
-	private Button btnPlay;
-	private Button btnSelectTime;
-	private Button btnMenu;
-	private Button btnClipLocation;
-	private Button btnPlayerImpl;
-	private Button btnPPboxSel;
-	private Button btnTakeSnapShot;
-	private Button btnSelectAudioTrack;
+	private AppCompatButton btnPlay;
+	private AppCompatButton btnSelectTime;
+	private AppCompatButton btnClipLocation;
+	private AppCompatButton btnPlayerImpl;
+	private AppCompatButton btnPPboxSel;
+	private AppCompatButton btnTakeSnapShot;
+	private AppCompatButton btnSelectAudioTrack;
 	private MyPreView2 mPreview;
 	private boolean mPreviewFocused = false;
 	private SurfaceHolder mHolder;
@@ -149,8 +148,8 @@ public class ClipListActivity extends Activity implements
 	private RelativeLayout mLayout;
 	private ProgressBar mBufferingProgressBar;
 	private EditText et_playlink;
-	private Button btn_ft;
-	private Button btn_bw_type;
+	private AppCompatButton btn_ft;
+	private AppCompatButton btn_bw_type;
 	private ImageView imageDMR;
 	private ImageView imageNoVideo;
 	private ImageView imageBackward;
@@ -313,18 +312,17 @@ public class ClipListActivity extends Activity implements
 	private boolean USE_BREAKPAD = false;
 	private boolean mBreakpadRegisterDone = false;
 
+	private ActionBar mActionBar;
+
 	@SuppressWarnings("deprecation")
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 		
-		LogUtil.info(TAG, "Java: onCreate()");
-		
 		// 隐藏标题栏
-		requestWindowFeature(Window.FEATURE_NO_TITLE);
+		//requestWindowFeature(Window.FEATURE_NO_TITLE);
 		// 隐藏状态栏
-		getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN,
-				WindowManager.LayoutParams.FLAG_FULLSCREEN);
+        super.getWindow().addFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN);
 		
 		DisplayMetrics dm = new DisplayMetrics(); 
 		getWindowManager().getDefaultDisplay().getMetrics(dm); 
@@ -346,19 +344,20 @@ public class ClipListActivity extends Activity implements
 		else {
 			setContentView(R.layout.list);
 		}
+
+		mActionBar = getSupportActionBar();
 		
 		this.tv_title = (MyMarqueeTextView) this.findViewById(R.id.tv_title);
-		this.btnPlay = (Button) this.findViewById(R.id.btn_play);
-		this.btnSelectTime = (Button) this.findViewById(R.id.btn_select_time);
-		this.btnMenu = (Button) this.findViewById(R.id.btn_menu);
-		this.btnClipLocation = (Button) this.findViewById(R.id.btn_clip_location);
-		this.btnPlayerImpl = (Button) this.findViewById(R.id.btn_player_impl);
-		this.btnPPboxSel = (Button) this.findViewById(R.id.btn_ppbox);
-		this.btnTakeSnapShot = (Button) this.findViewById(R.id.btn_take_snapshot);
-		this.btnSelectAudioTrack = (Button) this.findViewById(R.id.btn_select_audiotrack);
+		this.btnPlay = (AppCompatButton) this.findViewById(R.id.btn_play);
+		this.btnSelectTime = (AppCompatButton) this.findViewById(R.id.btn_select_time);
+		this.btnClipLocation = (AppCompatButton) this.findViewById(R.id.btn_clip_location);
+		this.btnPlayerImpl = (AppCompatButton) this.findViewById(R.id.btn_player_impl);
+		this.btnPPboxSel = (AppCompatButton) this.findViewById(R.id.btn_ppbox);
+		this.btnTakeSnapShot = (AppCompatButton) this.findViewById(R.id.btn_take_snapshot);
+		this.btnSelectAudioTrack = (AppCompatButton) this.findViewById(R.id.btn_select_audiotrack);
 		this.et_playlink = (EditText) this.findViewById(R.id.et_playlink);
-		this.btn_ft = (Button) this.findViewById(R.id.btn_ft);
-		this.btn_bw_type = (Button) this.findViewById(R.id.btn_bw_type);
+		this.btn_ft = (AppCompatButton) this.findViewById(R.id.btn_ft);
+		this.btn_bw_type = (AppCompatButton) this.findViewById(R.id.btn_bw_type);
 		this.imageDMR = (ImageView) this.findViewById(R.id.iv_dlna_dmc);
 		this.imageNoVideo = (ImageView) this.findViewById(R.id.iv_novideo);
 		
@@ -439,7 +438,9 @@ public class ClipListActivity extends Activity implements
 		mMediaDB = MediaStoreDatabaseHelper.getInstance(this);
 		
 		if (Util.IsHaveInternet(this)) {
-			tv_title.setText(tv_title.getText().toString() + " ip: " + Util.getIpAddr(this) + ", http port " + MyHttpService.getPort());
+			tv_title.setText(tv_title.getText().toString() +
+                    " ip: " + Util.getIpAddr(this) +
+                    ", http port " + MyHttpService.getPort());
 		}
 		
 		mPlaybackTime = new PlayBackTime(this);
@@ -452,213 +453,200 @@ public class ClipListActivity extends Activity implements
 		this.lv_filelist = (ListView) findViewById(R.id.lv_filelist);
 		this.lv_filelist
 				.setOnItemClickListener(new ListView.OnItemClickListener() {
-					@SuppressWarnings("unchecked")
-					@Override
-					public void onItemClick(AdapterView<?> arg0, View view,
-							int position, long id) {
-						// TODO Auto-generated method stub
-						LogUtil.info(TAG, String.format("onItemClick %d %d", position, id));
-						
-						Map<String, Object> item = mAdapter.getItem(position);
-						String file_name = (String)item.get("filename");
-						String file_path = (String)item.get("fullpath");
-						LogUtil.info(TAG, String.format("Java: full_path %s", file_path));
-							
-						if (file_name.equals("..")) {
-							// up to parent folder
-							if (mListLocalFile) {
-								File file = new File(mCurrentFolder);
-								String parent_folder = file.getParent();
-								if (parent_folder == null ||parent_folder == mCurrentFolder) {
-									LogUtil.info(TAG, "already at root folder");
-								}
-								else {
-									mCurrentFolder = parent_folder;
-									tv_title.setText(mCurrentFolder);
-									new ListItemTask().execute(mCurrentFolder);
-								}
-							}
-							else {
-								// http parent folder list
-								String url = file_path;
-								int index = url.lastIndexOf('/', url.length() - 1 - 1);
-								url = url.substring(0, index + 1);
-								new ListItemTask().execute(url);
-								tv_title.setText(url);
-							}
-						}
-						else {
-							if (file_path.startsWith("http://")) {
-								LogUtil.info(TAG, "Java: http list file clicked");
-								
-								if (file_path.charAt(file_path.length() - 1) == '/') {
-									LogUtil.info(TAG, "Java: list http folder");
-									tv_title.setText(file_path);
-									new ListItemTask().execute(file_path);		
-								}
-								else {
-									LogUtil.info(TAG, "Java: play http clip");
-									String filename = file_path;
-									int pos = file_path.lastIndexOf('/');
-									if (pos != -1)
-										filename = file_path.substring(pos + 1);
-									start_player(filename, file_path);
-								}
-							}
-							else {
-								// local file
-								File file = new File(file_path);
-								if (!file.exists()) {
-									mMediaDB.deleteMediaInfo(file_path);
-									
-									List<Map<String, Object>> filelist = mListUtil.getList();
-									filelist.remove(position);
-									mAdapter.updateData(filelist);
-									mAdapter.notifyDataSetChanged();
-									
-									Toast.makeText(ClipListActivity.this, 
-											"clip didn't exist and removed from list", 
-											Toast.LENGTH_SHORT).show();
-								}
-								
-								if (file.isDirectory()) {
-									File[] temp = file.listFiles();  
-									if (temp == null || temp.length == 0) {  
-										Toast.makeText(ClipListActivity.this, "folder is not valid or empty", 
-											Toast.LENGTH_SHORT).show();  
-									}
-									else {
-										LogUtil.info(TAG, "Java: list folder: " + file.getAbsolutePath());
-										mCurrentFolder = file_path;
-										tv_title.setText(mCurrentFolder);
-										new ListItemTask().execute(mCurrentFolder);
-									}
-								}
-								else {
-									start_player(file.getName(), file_path);
-								}
-							}
-						}
-					}
+                    @SuppressWarnings("unchecked")
+                    @Override
+                    public void onItemClick(AdapterView<?> arg0, View view,
+                                            int position, long id) {
+                        // TODO Auto-generated method stub
+                        LogUtil.info(TAG, String.format("onItemClick %d %d", position, id));
+
+                        Map<String, Object> item = mAdapter.getItem(position);
+                        String file_name = (String) item.get("filename");
+                        String file_path = (String) item.get("fullpath");
+                        LogUtil.info(TAG, String.format("Java: full_path %s", file_path));
+
+                        if (file_name.equals("..")) {
+                            // up to parent folder
+                            if (mListLocalFile) {
+                                File file = new File(mCurrentFolder);
+                                String parent_folder = file.getParent();
+                                if (parent_folder == null || parent_folder == mCurrentFolder) {
+                                    LogUtil.info(TAG, "already at root folder");
+                                } else {
+                                    mCurrentFolder = parent_folder;
+                                    tv_title.setText(mCurrentFolder);
+                                    new ListItemTask().execute(mCurrentFolder);
+                                }
+                            } else {
+                                // http parent folder list
+                                String url = file_path;
+                                int index = url.lastIndexOf('/', url.length() - 1 - 1);
+                                url = url.substring(0, index + 1);
+                                new ListItemTask().execute(url);
+                                tv_title.setText(url);
+                            }
+                        } else {
+                            if (file_path.startsWith("http://")) {
+                                LogUtil.info(TAG, "Java: http list file clicked");
+
+                                if (file_path.charAt(file_path.length() - 1) == '/') {
+                                    LogUtil.info(TAG, "Java: list http folder");
+                                    tv_title.setText(file_path);
+                                    new ListItemTask().execute(file_path);
+                                } else {
+                                    LogUtil.info(TAG, "Java: play http clip");
+                                    String filename = file_path;
+                                    int pos = file_path.lastIndexOf('/');
+                                    if (pos != -1)
+                                        filename = file_path.substring(pos + 1);
+                                    start_player(filename, file_path);
+                                }
+                            } else {
+                                // local file
+                                File file = new File(file_path);
+                                if (!file.exists()) {
+                                    mMediaDB.deleteMediaInfo(file_path);
+
+                                    List<Map<String, Object>> filelist = mListUtil.getList();
+                                    filelist.remove(position);
+                                    mAdapter.updateData(filelist);
+                                    mAdapter.notifyDataSetChanged();
+
+                                    Toast.makeText(ClipListActivity.this,
+                                            "clip didn't exist and removed from list",
+                                            Toast.LENGTH_SHORT).show();
+                                }
+
+                                if (file.isDirectory()) {
+                                    File[] temp = file.listFiles();
+                                    if (temp == null || temp.length == 0) {
+                                        Toast.makeText(ClipListActivity.this, "folder is not valid or empty",
+                                                Toast.LENGTH_SHORT).show();
+                                    } else {
+                                        LogUtil.info(TAG, "Java: list folder: " + file.getAbsolutePath());
+                                        mCurrentFolder = file_path;
+                                        tv_title.setText(mCurrentFolder);
+                                        new ListItemTask().execute(mCurrentFolder);
+                                    }
+                                } else {
+                                    start_player(file.getName(), file_path);
+                                }
+                            }
+                        }
+                    }
 				});
 		
-		this.lv_filelist.setOnItemLongClickListener(new ListView.OnItemLongClickListener(){
+		this.lv_filelist.setOnItemLongClickListener(new ListView.OnItemLongClickListener() {
 
-			@Override
-			public boolean onItemLongClick(AdapterView<?> arg0, View view,
-					final int position, long id) {
-				// TODO Auto-generated method stub
-				final String[] action = {"delete", "rename", "detail"};
-				Map<String, Object> item = mAdapter.getItem(position);
-				final String file_name = (String)item.get("filename");
-				final String file_path = (String)item.get("fullpath");
+            @Override
+            public boolean onItemLongClick(AdapterView<?> arg0, View view,
+                                           final int position, long id) {
+                // TODO Auto-generated method stub
+                final String[] action = {"delete", "rename", "detail"};
+                Map<String, Object> item = mAdapter.getItem(position);
+                final String file_name = (String) item.get("filename");
+                final String file_path = (String) item.get("fullpath");
 
-				Dialog choose_action_dlg = new AlertDialog.Builder(ClipListActivity.this)
-				.setTitle("select action")
-				.setItems(action, new DialogInterface.OnClickListener(){
-						public void onClick(DialogInterface dialog, int whichButton){
-							if (whichButton == 0) {
-								// delete
-								if (file_path.startsWith("/") || file_path.startsWith("file://")) {
-									File file = new File(file_path);
-									if (file.exists() && file.delete()) {
-										mMediaDB.deleteMediaInfo(file.getAbsolutePath());
-										
-										LogUtil.info(TAG, "file: " + file_path + " deleted");
-										Toast.makeText(ClipListActivity.this, "file " + file_name + " deleted!", Toast.LENGTH_SHORT).show();
-										
-										List<Map<String, Object>> filelist = mListUtil.getList();
-										filelist.remove(position);
-										mAdapter.updateData(filelist);
-										mAdapter.notifyDataSetChanged();
-									}
-									else {
-										LogUtil.error(TAG, "failed to delete file: " + file_path);
-										Toast.makeText(ClipListActivity.this, "failed to delte file: " + file_path, Toast.LENGTH_SHORT).show();
-									}
-								}
-								else {
-									Toast.makeText(ClipListActivity.this, "DELETE only support local file", Toast.LENGTH_SHORT).show();
-								}
-							}
-							else if (whichButton == 1) {
-								final EditText inputFilename = new EditText(ClipListActivity.this);
-								inputFilename.setText(file_name);
-								inputFilename.setHint("input new file name");
-								
-								AlertDialog.Builder builder = new AlertDialog.Builder(
-										ClipListActivity.this);
-						        builder.setTitle("input new file name")
-						        	.setIcon(android.R.drawable.ic_dialog_info)
-						        	.setView(inputFilename)
-						        	.setNegativeButton("Cancel", null);
-						        builder.setPositiveButton("Ok", new DialogInterface.OnClickListener() {
+                Dialog choose_action_dlg = new AlertDialog.Builder(ClipListActivity.this)
+                        .setTitle("select action")
+                        .setItems(action, new DialogInterface.OnClickListener() {
+                            public void onClick(DialogInterface dialog, int whichButton) {
+                                if (whichButton == 0) {
+                                    // delete
+                                    if (file_path.startsWith("/") || file_path.startsWith("file://")) {
+                                        File file = new File(file_path);
+                                        if (file.exists() && file.delete()) {
+                                            mMediaDB.deleteMediaInfo(file.getAbsolutePath());
 
-						            public void onClick(DialogInterface dialog, int which) {
-						            	int pos = file_path.lastIndexOf("/");
-						            	if (pos == -1)
-						            		return;
-						            	
-						            	String newFilename = inputFilename.getText().toString();
-						            	LogUtil.info(TAG, String.format("Java change filename from %s to %s", 
-						            			file_name, newFilename));
-						            	String new_filepath = file_path.substring(0, pos + 1) + 
-						            			inputFilename.getText().toString();
-						            	
-						            	File file = new File(file_path);
-						            	file.renameTo(new File(new_filepath));
-						            	Toast.makeText(ClipListActivity.this, 
-						            			String.format("change filename from %s to %s", 
-								            			file_name, newFilename),
-								            			Toast.LENGTH_SHORT).show();
-						            	
-						            	Map<String, Object> item = mListUtil.getList().get(position);
-						            	item.put("filename", newFilename);
-						            	item.put("fullpath", new_filepath);
-						            	mListUtil.getList().set(position, item);
-						            	
-						            	mAdapter.updateData(mListUtil.getList());
-										mAdapter.notifyDataSetChanged();
-										
-										mMediaDB.updatePath(file_path, new_filepath);
-						             }
-						        });
-						        builder.show();
-							}
-							else if (whichButton == 2) {
-								MediaInfo info = mMediaDB.getMediaInfo(file_path);
-								if (info == null) {
-									Toast.makeText(ClipListActivity.this, "media info is null", Toast.LENGTH_SHORT).show();
-								}
-								else {
-									String strInfo = Util.getMediaInfoDescription(file_path, info);
-							    	if (strInfo == null) {
-							    		Toast.makeText(ClipListActivity.this, "strInfo is null", Toast.LENGTH_SHORT).show();
-							    		return;
-							    	}
-							    	
-							    	AlertDialog.Builder builder = new AlertDialog.Builder(
-							    			ClipListActivity.this)
-									.setTitle("媒体信息")
-									.setMessage(strInfo)
-									.setPositiveButton("确定", null);
+                                            LogUtil.info(TAG, "file: " + file_path + " deleted");
+                                            Toast.makeText(ClipListActivity.this, "file " + file_name + " deleted!", Toast.LENGTH_SHORT).show();
 
-									builder.show();
-								}
-							}
-							else {
-								LogUtil.error(TAG, "Java: more action: unknown index " + whichButton);
-							}
-						}
-					})
-				.setNegativeButton("Cancel", null)
-				.create();
-				choose_action_dlg.show();
-				
-				return true; // already handled
-			}
-			
-		});
+                                            List<Map<String, Object>> filelist = mListUtil.getList();
+                                            filelist.remove(position);
+                                            mAdapter.updateData(filelist);
+                                            mAdapter.notifyDataSetChanged();
+                                        } else {
+                                            LogUtil.error(TAG, "failed to delete file: " + file_path);
+                                            Toast.makeText(ClipListActivity.this, "failed to delte file: " + file_path, Toast.LENGTH_SHORT).show();
+                                        }
+                                    } else {
+                                        Toast.makeText(ClipListActivity.this, "DELETE only support local file", Toast.LENGTH_SHORT).show();
+                                    }
+                                } else if (whichButton == 1) {
+                                    final EditText inputFilename = new EditText(ClipListActivity.this);
+                                    inputFilename.setText(file_name);
+                                    inputFilename.setHint("input new file name");
+
+                                    AlertDialog.Builder builder = new AlertDialog.Builder(
+                                            ClipListActivity.this);
+                                    builder.setTitle("input new file name")
+                                            .setIcon(android.R.drawable.ic_dialog_info)
+                                            .setView(inputFilename)
+                                            .setNegativeButton("Cancel", null);
+                                    builder.setPositiveButton("Ok", new DialogInterface.OnClickListener() {
+
+                                        public void onClick(DialogInterface dialog, int which) {
+                                            int pos = file_path.lastIndexOf("/");
+                                            if (pos == -1)
+                                                return;
+
+                                            String newFilename = inputFilename.getText().toString();
+                                            LogUtil.info(TAG, String.format("Java change filename from %s to %s",
+                                                    file_name, newFilename));
+                                            String new_filepath = file_path.substring(0, pos + 1) +
+                                                    inputFilename.getText().toString();
+
+                                            File file = new File(file_path);
+                                            file.renameTo(new File(new_filepath));
+                                            Toast.makeText(ClipListActivity.this,
+                                                    String.format("change filename from %s to %s",
+                                                            file_name, newFilename),
+                                                    Toast.LENGTH_SHORT).show();
+
+                                            Map<String, Object> item = mListUtil.getList().get(position);
+                                            item.put("filename", newFilename);
+                                            item.put("fullpath", new_filepath);
+                                            mListUtil.getList().set(position, item);
+
+                                            mAdapter.updateData(mListUtil.getList());
+                                            mAdapter.notifyDataSetChanged();
+
+                                            mMediaDB.updatePath(file_path, new_filepath);
+                                        }
+                                    });
+                                    builder.show();
+                                } else if (whichButton == 2) {
+                                    MediaInfo info = mMediaDB.getMediaInfo(file_path);
+                                    if (info == null) {
+                                        Toast.makeText(ClipListActivity.this, "media info is null", Toast.LENGTH_SHORT).show();
+                                    } else {
+                                        String strInfo = Util.getMediaInfoDescription(file_path, info);
+                                        if (strInfo == null) {
+                                            Toast.makeText(ClipListActivity.this, "strInfo is null", Toast.LENGTH_SHORT).show();
+                                            return;
+                                        }
+
+                                        AlertDialog.Builder builder = new AlertDialog.Builder(
+                                                ClipListActivity.this)
+                                                .setTitle("媒体信息")
+                                                .setMessage(strInfo)
+                                                .setPositiveButton("确定", null);
+
+                                        builder.show();
+                                    }
+                                } else {
+                                    LogUtil.error(TAG, "Java: more action: unknown index " + whichButton);
+                                }
+                            }
+                        })
+                        .setNegativeButton("Cancel", null)
+                        .create();
+                choose_action_dlg.show();
+
+                return true; // already handled
+            }
+
+        });
 		
 		this.btn_ft.setOnClickListener(new Button.OnClickListener() {
 
@@ -833,7 +821,7 @@ public class ClipListActivity extends Activity implements
 				LogUtil.info(TAG, "Http port is: " + port);
 				
 				if (ppbox_playid >= 300000 && ppbox_playid < 400000 && 
-						mPlaybackTime.getPlaylinkSurfix() == null) {
+						mPlaybackTime.getPPTVTimeStr() == null) {
 					mIsLivePlay = true;
 					LogUtil.info(TAG, "Java: set mIsLivePlay to true");
 				}
@@ -848,7 +836,7 @@ public class ClipListActivity extends Activity implements
 				}
 				
 				String ppbox_url = PlayLinkUtil.getPlayUrl(ppbox_playid, port, ppbox_ft, ppbox_bw_type, 
-						mPlaybackTime.getPlaylinkSurfix());
+						mPlaybackTime.getPPTVTimeStr());
 				
 				start_player("N/A", ppbox_url);
 				//start_player("N/A", "rtmp://101.71.82.49:1935/live/35df07300b7b445488007903fe0a40ca");
@@ -859,13 +847,6 @@ public class ClipListActivity extends Activity implements
 			@Override
 			public void onClick(View view) {
 				mPlaybackTime.setPlaybackTime();
-			}
-		});
-		
-		this.btnMenu.setOnClickListener(new Button.OnClickListener() {
-			@Override
-			public void onClick(View view) {
-				openOptionsMenu();
 			}
 		});
 		
@@ -982,6 +963,8 @@ public class ClipListActivity extends Activity implements
 								Toast.LENGTH_SHORT).show();
 					}
 					else {
+                        // toggle to full screen play mode
+                        mActionBar.hide();
 						setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
 					}
 				}
@@ -1003,9 +986,9 @@ public class ClipListActivity extends Activity implements
 		mMediaController.updateLandscape(isLandscape);
 		
 		if (isLandscape) {
-    		mLayout.setLayoutParams(new LinearLayout.LayoutParams( 
-    				LinearLayout.LayoutParams.MATCH_PARENT, 
-    				LinearLayout.LayoutParams.MATCH_PARENT));
+    		mLayout.setLayoutParams(new LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT,
+                    LinearLayout.LayoutParams.MATCH_PARENT));
     		tv_title.setVisibility(View.GONE);
     	}
 		else { 
@@ -1218,7 +1201,7 @@ public class ClipListActivity extends Activity implements
 		tv_title.setText(path);
 		LogUtil.info(TAG, "Java: clipname: " + mPlayUrl);
 		
-		btnSelectAudioTrack.setVisibility(View.GONE);
+		btnSelectAudioTrack.setVisibility(View.INVISIBLE);
 		
 		if (!mIsPreview) {
 			Uri uri = Uri.parse(path);
@@ -2437,10 +2420,13 @@ public class ClipListActivity extends Activity implements
 	
 	private void push_to_dmr() {
 		if (mPlayUrl == null || mPlayUrl.equals("")) {
-			Toast.makeText(this, "no url is set", Toast.LENGTH_SHORT).show();
-			return;
+            mPlayUrl = getClipboardText();
+            if (mPlayUrl == null) {
+                Toast.makeText(this, "no url is set", Toast.LENGTH_SHORT).show();
+                return;
+            }
 		}
-		
+
 		int dev_num = IDlnaCallback.mDMRmap.size();
 		
 		if (dev_num == 0) {
@@ -2528,6 +2514,21 @@ public class ClipListActivity extends Activity implements
 			mSubtitleStoped = false;
 		}
 	}
+
+    private String getClipboardText() {
+        ClipboardManager cmb = (ClipboardManager)this.getSystemService(Context.CLIPBOARD_SERVICE);
+        if (cmb.hasPrimaryClip()) {
+            ClipData cd = cmb.getPrimaryClip();
+            int count = cd.getItemCount();
+            if (count > 0) {
+                String strText = (String) cd.getItemAt(0).getText();
+                LogUtil.info(TAG, "Java: clipboard manager: " + strText);
+                return strText;
+            }
+        }
+
+        return null;
+    }
 
 	@Override
 	public boolean onCreateOptionsMenu(Menu menu) {
@@ -2653,15 +2654,8 @@ public class ClipListActivity extends Activity implements
 			push_to_dmr();
 			break;
 		case R.id.bestv_video:
-			ClipboardManager cmb = (ClipboardManager)this.getSystemService(Context.CLIPBOARD_SERVICE);
-			if (cmb.hasPrimaryClip()) {
-				ClipData cd = cmb.getPrimaryClip();
-				int count = cd.getItemCount();
-				if (count == 0)
-					return true;
-				
-				String strText = (String)cd.getItemAt(0).getText();
-				LogUtil.info(TAG, "Java: clipboard manager: " + strText);
+            String url = getClipboardText();
+			if (url != null) {
 				// http://wechat.bestv.com.cn/activity/androidPlay.jsp
 				// ?playUrl=http%3A%2F%2Fwx.live.bestvcdn.com.cn%2Flive%2Fprogram%2Flive991%2Fweixinhddfws%2Findex.m3u8
 				// %3Fse%3Dweixin%26ct%3D1%26starttime%3D1437409560%26endtime%3D1437413340%26_cp
@@ -2669,13 +2663,13 @@ public class ClipListActivity extends Activity implements
 				// &token=&t=%E4%B8%9C%E6%96%B9%E5%8D%AB%E8%A7%86%20%E6%9E%81%E9%99%90%E6%8C%91%E6%88%98%E7%AC%AC%E4%BA%94%E9%9B%86
 				// &seq=1&actcode=&tabIndex=1&topOffset=0&channelAbbr=dfws&type=0&channelCode=Umai:CHAN/1325@BESTV.SMG.SMG
 
-				int pos = strText.indexOf("?playUrl=");
+				int pos = url.indexOf("?playUrl=");
 				if (pos == -1) {
 					Toast.makeText(this, "url is not bestv playlink", Toast.LENGTH_SHORT).show();
 					return true;
 				}
 				
-				String origin_url = strText.substring(pos + "?playUrl=".length());
+				String origin_url = url.substring(pos + "?playUrl=".length());
 				try {
 					String decoded_url = URLDecoder.decode(origin_url, "UTF-8");
 
@@ -3486,29 +3480,18 @@ public class ClipListActivity extends Activity implements
 		
 		return super.dispatchKeyEvent(event);  
 	}
-	
-	@Override
-	public boolean onKeyDown(int keyCode, KeyEvent event) {
-		LogUtil.debug(TAG, "Java: keyCode: " + keyCode);
-		
-		if (keyCode == KeyEvent.KEYCODE_MENU) {
-			openOptionsMenu();
-			return true;
-		}
-		
-		if (!mPreviewFocused) {
-			if (keyCode == KeyEvent.KEYCODE_BACK) {
-				if (!isTVbox && isLandscape) {
-					setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
-					return true;
-				}
-			}
-			
-			return super.onKeyDown(keyCode, event);
-		}
-		
-		return super.onKeyDown(keyCode, event);
-	}
+
+    @Override
+    public void onBackPressed() {
+        if (!mPreviewFocused && !isTVbox && isLandscape) {
+            // restore to portait normal view
+            mActionBar.show();
+            setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
+            return;
+        }
+
+        super.onBackPressed();
+    }
 	
 	static {
 		//System.loadLibrary("lenthevcdec");

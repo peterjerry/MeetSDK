@@ -25,6 +25,8 @@ import org.json.JSONTokener;
 
 import android.util.Log;
 
+import com.gotye.common.util.LogUtil;
+
 public class EPGUtil { 
 	private final static String TAG = "EPGUtil";
 	
@@ -496,7 +498,7 @@ public class EPGUtil {
 			}
 			
 			String result = EntityUtils.toString(response.getEntity());
-			Log.i(TAG, "Java epg result " + result.replace("\n", ""));
+			//LogUtil.debug(TAG, "Java epg result " + result.replace("\n", ""));
 			
 			SAXBuilder builder = new SAXBuilder();
 			Reader returnQuote = new StringReader(result);  

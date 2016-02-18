@@ -393,7 +393,7 @@ public class PlaySohuActivity extends Activity implements Callback {
 	@Override
 	protected void onPause() {
 		// TODO Auto-generated method stub
-		super.onStop();
+		super.onPause();
 		
 		if (mPlayer != null) {
 			mPlayer.stop();

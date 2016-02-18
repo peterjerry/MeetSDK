@@ -10,6 +10,7 @@ import com.gotye.common.sohu.SohuUtil;
 import com.gotye.common.sohu.SubChannelSohu;
 import com.gotye.common.sohu.PlaylinkSohu.SohuFtEnum;
 import com.gotye.meetplayer.R;
+import com.gotye.meetplayer.util.Constants;
 import com.gotye.meetplayer.util.Util;
 
 import android.app.AlertDialog;
@@ -22,19 +23,22 @@ import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
+import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.KeyEvent;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
+import android.view.WindowManager;
+import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.EditText;
 import android.widget.ListView;
 import android.widget.Toast;
 
 
-public class SohuVideoActivity extends ListActivity {
+public class SohuVideoActivity extends AppCompatActivity {
 	private final static String TAG = "SohuVideoActivity";
 	
 	private final static int EPG_TASK_LIST_CHANNEL		= 1;
@@ -57,32 +61,40 @@ public class SohuVideoActivity extends ListActivity {
 	private long mAid;
 	
 	private String mEPGsearchKey;
+
+	private ListView mListView;
 	
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
-		
-		Log.i(TAG, "Java: onCreate()");
-		
-		//this.setTheme(android.R.style.Theme_Black);
+
+		super.getWindow().addFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN);
+
+		mListView = new ListView(this);
+		setContentView(mListView);
+
+		mListView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+
+			@Override
+			public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+				if (mSubChannelSelected) {
+					Intent intent = new Intent(SohuVideoActivity.this, SohuEpisodeActivity.class);
+					intent.putExtra("sub_channel_id", mSubChannelList.get(position).mSubChannelId);
+					startActivity(intent);
+					return;
+				}
+
+				mChannelId = mChannelList.get(position).mChannelId;
+
+				new EPGTask().execute(EPG_TASK_SELECT_CHANNEL);
+			}
+		});
 		
 		mEPG = new SohuUtil();
 		
 		new EPGTask().execute(EPG_TASK_LIST_CHANNEL);
 	}
-	
-	@Override
-	public boolean onKeyDown(int keyCode, KeyEvent event) {
-		Log.d(TAG, "keyCode: " + keyCode);
-		
-		if (keyCode == KeyEvent.KEYCODE_MENU) {
-			openOptionsMenu();
-			return true;
-		}
-		
-		return super.onKeyDown(keyCode, event);
-	}
-	
+
 	@Override
     public boolean onCreateOptionsMenu(Menu menu) {  
         MenuInflater menuInflater = new MenuInflater(getApplication());  
@@ -170,23 +182,6 @@ public class SohuVideoActivity extends ListActivity {
 		}
 		
 		super.onBackPressed();
-	}
-	
-	@Override
-	protected void onListItemClick(ListView l, View v, int position, long id) {
-		// TODO Auto-generated method stub
-		//super.onListItemClick(l, v, position, id);
-		
-		if (mSubChannelSelected) {
-			Intent intent = new Intent(SohuVideoActivity.this, SohuEpisodeActivity.class);
-    		intent.putExtra("sub_channel_id", mSubChannelList.get(position).mSubChannelId);
-    		startActivity(intent);
-			return;
-		}
-		
-		mChannelId = mChannelList.get(position).mChannelId;
-		
-		new EPGTask().execute(EPG_TASK_SELECT_CHANNEL);
 	}
 	
 	private void popupSearch() {
@@ -318,13 +313,13 @@ public class SohuVideoActivity extends ListActivity {
 				if (mAdapter == null) {
 					mAdapter = new ArrayAdapter<String>(
 							SohuVideoActivity.this, android.R.layout.simple_expandable_list_item_1, result);
-					SohuVideoActivity.this.setListAdapter(mAdapter);
+					SohuVideoActivity.this.mListView.setAdapter(mAdapter);
 				}
 				else {
 					mAdapter.clear();
 					mAdapter.addAll(result);
 					mAdapter.notifyDataSetChanged();
-					SohuVideoActivity.this.setSelection(0);
+					SohuVideoActivity.this.mListView.setSelection(0);
 				}
 			}
         }

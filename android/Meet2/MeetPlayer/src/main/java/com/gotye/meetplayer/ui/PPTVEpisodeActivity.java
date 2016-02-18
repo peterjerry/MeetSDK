@@ -13,6 +13,7 @@ import com.gotye.db.PPTVPlayhistoryDatabaseHelper;
 import com.gotye.meetplayer.R;
 import com.gotye.meetplayer.ui.widget.DirChooserDialog;
 import com.gotye.meetplayer.ui.widget.DirChooserDialog.onOKListener;
+import com.gotye.meetplayer.util.Constants;
 import com.gotye.meetplayer.util.Util;
 import com.pplive.sdk.MediaSDK;
 
@@ -29,12 +30,14 @@ import android.os.Bundle;
 import android.os.Environment;
 import android.os.Handler;
 import android.os.Message;
+import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.KeyEvent;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
+import android.view.WindowManager;
 import android.widget.AbsListView;
 import android.widget.AdapterView;
 import android.widget.Button;
@@ -43,7 +46,7 @@ import android.widget.GridView;
 import android.widget.Toast;
 
 
-public class PPTVEpisodeActivity extends Activity {
+public class PPTVEpisodeActivity extends AppCompatActivity {
 	private final static String TAG = "PPTVEpisodeActivity";
 	
 	private Button btnReputation;
@@ -100,9 +103,9 @@ public class PPTVEpisodeActivity extends Activity {
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
-		
-		Log.i(TAG, "Java: onCreate()");
-		
+
+        super.getWindow().addFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN);
+
 		Intent intent = getIntent();
 		if (intent.hasExtra("epg_param")) {
 			epg_param = intent.getStringExtra("epg_param");
@@ -260,18 +263,6 @@ public class PPTVEpisodeActivity extends Activity {
 		super.onPause();
 		
 		Util.writeSettings(this, "download_folder", mDownloadLocalFolder);
-	}
-	
-	@Override
-	public boolean onKeyDown(int keyCode, KeyEvent event) {
-		Log.d(TAG, "keyCode: " + keyCode);
-		
-		if (keyCode == KeyEvent.KEYCODE_MENU) {
-			super.openOptionsMenu();
-			return true;
-		}
-		
-		return super.onKeyDown(keyCode, event);
 	}
 	
 	@Override
