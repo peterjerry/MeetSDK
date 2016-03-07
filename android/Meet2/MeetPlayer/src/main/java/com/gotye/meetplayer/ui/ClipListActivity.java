@@ -117,6 +117,7 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 import java.util.Random;
 
 import so.cym.crashhandlerdemo.UploadLogTask;
@@ -312,8 +313,6 @@ public class ClipListActivity extends AppCompatActivity implements
 	private boolean USE_BREAKPAD = false;
 	private boolean mBreakpadRegisterDone = false;
 
-	private ActionBar mActionBar;
-
 	@SuppressWarnings("deprecation")
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
@@ -345,7 +344,7 @@ public class ClipListActivity extends AppCompatActivity implements
 			setContentView(R.layout.list);
 		}
 
-		mActionBar = getSupportActionBar();
+		getSupportActionBar().hide();
 		
 		this.tv_title = (MyMarqueeTextView) this.findViewById(R.id.tv_title);
 		this.btnPlay = (AppCompatButton) this.findViewById(R.id.btn_play);
@@ -964,7 +963,7 @@ public class ClipListActivity extends AppCompatActivity implements
 					}
 					else {
                         // toggle to full screen play mode
-                        mActionBar.hide();
+                        //mActionBar.hide();
 						setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
 					}
 				}
@@ -2521,7 +2520,7 @@ public class ClipListActivity extends AppCompatActivity implements
             ClipData cd = cmb.getPrimaryClip();
             int count = cd.getItemCount();
             if (count > 0) {
-                String strText = (String) cd.getItemAt(0).getText();
+                String strText = cd.getItemAt(0).getText().toString();
                 LogUtil.info(TAG, "Java: clipboard manager: " + strText);
                 return strText;
             }
@@ -3004,8 +3003,22 @@ public class ClipListActivity extends AppCompatActivity implements
 	}
 	
 	private void setupUpdater() {
-		final String apk_name = "MeetPlayer-release.apk";
-		LogUtil.debug(TAG, "ready to download apk: " + apk_name);
+		String name;
+		Properties props = System.getProperties();
+		String osArch = props.getProperty("os.arch");
+		if (osArch != null && osArch.contains("86"))
+		{
+			name = "x86";
+		}
+		else if (osArch != null && osArch.contains("aarch64"))
+		{
+			name = "arm64";
+		}
+		else {
+			name = "arm";
+		}
+		final String apk_name = "MeetPlayer-" + name + "-release.apk";
+
 		if (null != apk_name && apk_name.length() > 0) {
 			mDownloadProgressBar = (ProgressBar) findViewById(R.id.progressbar_download);
 			mProgressTextView = (TextView) findViewById(R.id.textview_progress);
@@ -3485,7 +3498,7 @@ public class ClipListActivity extends AppCompatActivity implements
     public void onBackPressed() {
         if (!mPreviewFocused && !isTVbox && isLandscape) {
             // restore to portait normal view
-            mActionBar.show();
+            //mActionBar.show();
             setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
             return;
         }

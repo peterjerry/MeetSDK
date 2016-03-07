@@ -20,6 +20,18 @@ android {
         versionCode 251
         versionName "2.51"
     }
+    productFlavors {
+        arm {
+            ndk {
+                abiFilters "armeabi", "armeabi-v7a"
+            }
+        }
+        x86 {
+            ndk {
+                abiFilter "x86"
+            }
+        }
+    }
     buildTypes {
         release {
             minifyEnabled false

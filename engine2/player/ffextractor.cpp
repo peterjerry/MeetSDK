@@ -1404,7 +1404,7 @@ int FFExtractor::start()
 void FFExtractor::find_sps_pps(AVPacket *pPacket)
 {		
 	int32_t last_nalu_start = -1;
-	for(int32_t offset=0; offset < pPacket->size; offset++ ) {
+	for (int32_t offset=0; offset < pPacket->size; offset++ ) {
 		if (m_sps_data && m_pps_data) {
 			LOGI("sps and pps found!");
 			break;
@@ -1421,7 +1421,10 @@ void FFExtractor::find_sps_pps(AVPacket *pPacket)
 
 				// 00 00 00 00 xx data ...
 				pNAL = pPacket->data + last_nalu_start;
-				sizeNAL = offset - last_nalu_start;
+				if (offset == pPacket->size - 1)
+					sizeNAL = pPacket->size - last_nalu_start;
+				else
+					sizeNAL = offset - last_nalu_start;
 
 				//int32_t nal_ref_idc   = pNAL[4] >> 5;
 				int32_t nal_unit_type = 0;

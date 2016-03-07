@@ -1,1 +1,1 @@
-include ':MeetSDK', ':MeetPlayer'
+include ':MeetSDK', ':MeetPlayer', ':SimplePlayer'

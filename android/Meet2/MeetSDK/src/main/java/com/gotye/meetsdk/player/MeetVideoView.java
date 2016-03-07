@@ -458,7 +458,7 @@ public class MeetVideoView extends SurfaceView implements MediaPlayerControl {
      * Register a callback to be invoked when a seek operation has been
      * completed.
      *
-     * @param listener the callback that will be run
+     * @param l the callback that will be run
      */
 	public void setOnSeekCompleteListener(MediaPlayer.OnSeekCompleteListener l)
 	{

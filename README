@@ -1,8 +1,11 @@
 cross-platform player for android IOS win32
 
+foundation thirdparty pre-build lib
+链接: http://pan.baidu.com/s/1o7hMc4a 密码: tvqv
+
 build guide:
 1) android
-i) build ffmpeg 
+i) build ffmpeg
 cd foundation/build/android
 ./config.sh neon
 ./build.sh neon

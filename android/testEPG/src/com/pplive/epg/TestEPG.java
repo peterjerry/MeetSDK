@@ -24,6 +24,7 @@ import com.pplive.epg.pptv.NativeMedia;
 import com.pplive.epg.util.LrcDownloadUtil;
 import com.pplive.epg.util.MyNanoHTTPD;
 import com.pplive.epg.util.Util;
+import com.pplive.epg.youku.youkuUtil;
 
 public class TestEPG { 
 	private final static int APP_WIDTH	= 800;
@@ -58,7 +59,7 @@ public class TestEPG {
 		
 		createAndShowGUI();
 		
-		try {
+		/*try {
 			String url = "http://musicmini.baidu.com/app/search/searchList.php?qword=%E5%8D%83%E5%8D%83%E9%98%99%E6%AD%8C&ie=utf-8&page=1";
 			Document doc = Jsoup.connect(url).timeout(5000).get();
 			Element test = doc.select("tbody").first();
@@ -77,7 +78,7 @@ public class TestEPG {
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
-		}
+		}*/
 	}
 	
 	public static int getHttpPort() {

@@ -66,9 +66,9 @@ public class PPTVPlayerActivity extends VideoPlayerActivity {
 		
 		super.onPause();
 	}
-	
+
 	@Override
-	protected void onComplete() {
+	protected void onCompleteImpl() {
 		mVideoView.stopPlayback();
 		
 		if (mEpisodeList == null) {

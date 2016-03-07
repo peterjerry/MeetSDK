@@ -355,17 +355,17 @@ public class VideoPlayerActivity extends AppCompatActivity implements Callback {
 		
 		Dialog choose_subtitle_dlg = new AlertDialog.Builder(VideoPlayerActivity.this)
 		.setTitle("select subtitle")
-		.setItems(str_file_list, new DialogInterface.OnClickListener(){
-				public void onClick(DialogInterface dialog, int whichButton){
-					stop_subtitle();
-					
-					subtitle_filename = sub_folder + "/" + str_file_list[whichButton];
-					LogUtil.info(TAG, "Load subtitle file: " + subtitle_filename);
-					Toast.makeText(VideoPlayerActivity.this, 
-							"Load subtitle file: " + subtitle_filename, Toast.LENGTH_SHORT).show();
-					start_subtitle(subtitle_filename);
-				}
-			})
+		.setItems(str_file_list, new DialogInterface.OnClickListener() {
+			public void onClick(DialogInterface dialog, int whichButton) {
+				stop_subtitle();
+
+				subtitle_filename = sub_folder + "/" + str_file_list[whichButton];
+				LogUtil.info(TAG, "Load subtitle file: " + subtitle_filename);
+				Toast.makeText(VideoPlayerActivity.this,
+						"Load subtitle file: " + subtitle_filename, Toast.LENGTH_SHORT).show();
+				start_subtitle(subtitle_filename);
+			}
+		})
 		.create();
 		choose_subtitle_dlg.show();
 	}
@@ -526,7 +526,16 @@ public class VideoPlayerActivity extends AppCompatActivity implements Callback {
 		return name;
 	}
 	
-	protected void onComplete() {
+	protected void onCompleteImpl() {
+		finish();
+	}
+
+	protected void onErrorImpl() {
+		Util.makeUploadLog("failed to play: " + mUri.toString() + "\n\n");
+
+		UploadLogTask task = new UploadLogTask(VideoPlayerActivity.this);
+		task.execute(Util.upload_log_path, "failed to play");
+
 		finish();
 	}
 	
@@ -535,7 +544,8 @@ public class VideoPlayerActivity extends AppCompatActivity implements Callback {
 			LogUtil.info(TAG, "MEDIA_PLAYBACK_COMPLETE");
 			
 			stopPlayer();
-			onComplete();
+
+            onCompleteImpl();
 		}
 	};
 
@@ -548,13 +558,8 @@ public class VideoPlayerActivity extends AppCompatActivity implements Callback {
 					Toast.LENGTH_SHORT).show();
 			
 			stopPlayer();
-			
-			Util.makeUploadLog("failed to play: " + mUri.toString() + "\n\n");
-			
-			UploadLogTask task = new UploadLogTask(VideoPlayerActivity.this);
-			task.execute(Util.upload_log_path, "failed to play");
-			
-			finish();
+
+            onErrorImpl();
 			return true;
 		}
 	};
@@ -648,30 +653,25 @@ public class VideoPlayerActivity extends AppCompatActivity implements Callback {
 				
 		@Override
 		public boolean onFling(MotionEvent e1, MotionEvent e2, float velocityX, float velocityY) {
-			int incr = 0;
-			if (velocityX > 10.0f)
-				incr = 1;
-			else if (velocityX < -10.0f)
-				incr = -1;
-			
-			if (incr != 0) {
-				int pos = mVideoView.getCurrentPosition();
-				pos += (3000 * incr);
-				if (pos > mVideoView.getDuration())
-					pos = mVideoView.getDuration();
-				else if (pos < 0)
-					pos = 0;
-				
-				mVideoView.seekTo(pos);
+			if (velocityX > 2000f || velocityX < 2000f) {
+				int incr = (velocityX > 2000f ? 1: -1);
+
+                int pos = mVideoView.getCurrentPosition();
+                pos += (3000 * incr);
+                if (pos > mVideoView.getDuration())
+                    pos = mVideoView.getDuration();
+                else if (pos < 0)
+                    pos = 0;
+
+                mVideoView.seekTo(pos);
+				return true;
 			}
-			
-			return true;
-		};
+
+			return false;
+		}
 		
 		@Override
 		public boolean onSingleTapConfirmed(MotionEvent e) {
-			
-			LogUtil.info(TAG, "onSingleTapConfirmed!!!");
 			toggleMediaControlsVisiblity();
 			
 			return true;
@@ -679,7 +679,6 @@ public class VideoPlayerActivity extends AppCompatActivity implements Callback {
 		
 		@Override
 		public boolean onDoubleTap(MotionEvent event) {
-			LogUtil.info(TAG, "onDoubleTap!!!");
 			switchDisplayMode(1);
 			return true;
 		}
