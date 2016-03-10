@@ -21,7 +21,6 @@ android {
         }
         debug {
             minifyEnabled false
-            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
             ndk {
                 moduleName "meetsdk"
                 abiFilters "armeabi-v7a" // includes ARM SO files only, so no x86 SO file

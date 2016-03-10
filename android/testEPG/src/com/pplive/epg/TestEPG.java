@@ -24,7 +24,6 @@ import com.pplive.epg.pptv.NativeMedia;
 import com.pplive.epg.util.LrcDownloadUtil;
 import com.pplive.epg.util.MyNanoHTTPD;
 import com.pplive.epg.util.Util;
-import com.pplive.epg.youku.youkuUtil;
 
 public class TestEPG { 
 	private final static int APP_WIDTH	= 800;

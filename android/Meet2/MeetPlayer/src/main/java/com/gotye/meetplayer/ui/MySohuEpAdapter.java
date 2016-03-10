@@ -10,7 +10,6 @@ import com.gotye.meetplayer.util.ImgUtil;
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.os.AsyncTask;
-import com.gotye.meetsdk.util.LogUtils;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;

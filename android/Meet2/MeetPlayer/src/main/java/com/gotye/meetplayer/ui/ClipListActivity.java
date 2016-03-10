@@ -40,7 +40,6 @@ import com.gotye.meetsdk.subtitle.SimpleSubTitleParser;
 import com.gotye.meetsdk.subtitle.SubTitleParser;
 import com.gotye.meetsdk.subtitle.SubTitleSegment;
 
-import android.support.v7.app.ActionBar;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.AppCompatButton;
 import android.util.DisplayMetrics;
