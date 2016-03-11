@@ -29,6 +29,7 @@ import android.os.Environment;
 import android.os.Handler;
 import android.os.Message;
 
+import com.gotye.common.youku.YKUtil;
 import com.gotye.meetplayer.util.Constants;
 import com.gotye.meetsdk.MeetSDK;
 import com.gotye.meetsdk.player.MediaController.MediaPlayerControl;
@@ -2098,7 +2099,33 @@ public class ClipListActivity extends AppCompatActivity implements
 		
 		return true;
 	}
-	
+
+    private class ParseVideoTask extends AsyncTask<String, Integer, String> {
+
+        @Override
+        protected void onPostExecute(String play_url) {
+            if (play_url != null) {
+                start_player("N/A", play_url);
+                Toast.makeText(ClipListActivity.this, "parse video url successfully",
+                        Toast.LENGTH_SHORT).show();
+            }
+            else {
+                Toast.makeText(ClipListActivity.this, "no url is set", Toast.LENGTH_SHORT).show();
+            }
+        }
+
+        @Override
+        protected String doInBackground(String... params) {
+            String video_url = params[0];
+
+            if (video_url.contains("youku")) {
+                return YKUtil.getPlayUrl(video_url);
+            }
+
+            return null;
+        }
+    }
+
 	private class EPGTask extends AsyncTask<Integer, Integer, Boolean> {
         @Override
         protected Boolean doInBackground(Integer... params) {
@@ -2560,172 +2587,180 @@ public class ClipListActivity extends AppCompatActivity implements
 
 	@Override
 	public boolean onOptionsItemSelected(MenuItem item) {
-		AlertDialog.Builder builder;
-		
-		int id = item.getItemId();
-		Intent intent = null;
-		
-		switch (id) {
-		case R.id.list_clip:
-			if (mListLocalFile) {
-				if (mMediaDB.getMediaStore() == null) {
-					intent = new Intent(getApplicationContext(), MediaScannerService.class);
-					startService(intent);
-					return true;
-				}
-				
-				new ListItemTask().execute(mCurrentFolder);
-			}
-			break;
-		case R.id.scan_media:
-			intent = new Intent(getApplicationContext(), MediaScannerService.class);
-			startService(intent);
-			break;
-		case R.id.upload_crash_report:
-			Util.makeUploadLog("manual upload\n\n");
-			
-			UploadLogTask task = new UploadLogTask(this);
-			task.execute(Util.upload_log_path, "common");
-			break;
-		case R.id.update_apk:
-			setupUpdater();
-			break;
-		case R.id.quit:
-			this.finish();
-			break;
-		case R.id.preview:
-			mIsPreview = !mIsPreview;
-			item.setChecked(mIsPreview);
-			break;
-		case R.id.loop:
-			mIsLoop = !mIsLoop;
-			item.setChecked(mIsLoop);
-			LogUtil.info(TAG, "set loop to: " + mIsLoop);
-			break;
-		case R.id.no_video:
-			mIsNoVideo = !mIsNoVideo;
-			item.setChecked(mIsNoVideo);
-			imageNoVideo.setVisibility(mIsNoVideo ? View.VISIBLE : View.GONE);
-			break;
-		case R.id.remember_last_pos:
-			mIsRememberPos = !mIsRememberPos;
-			item.setChecked(mIsRememberPos);
-			imageNoVideo.setVisibility(mIsNoVideo ? View.VISIBLE : View.GONE);
-			break;
-		case R.id.list_audio_file:
-			mIsListAudioFile = !mIsListAudioFile;
-			item.setChecked(mIsListAudioFile);
-			break;
-		case R.id.debug_info:
-			mDebugInfo = !mDebugInfo;
-			item.setChecked(mDebugInfo);
-			mTextViewInfo.setVisibility(mDebugInfo ?  View.VISIBLE : View.GONE);
-			break;
-		case R.id.load_subtitle:
-			popupSelectSubtitle();
-			break;
-		case R.id.audio_dst:
-			final EditText inputDst = new EditText(this);
-			String last_ip_port = Util.readSettings(this, "last_audio_ip_port");
-			inputDst.setText(last_ip_port);
-			inputDst.setHint("input ip/port");
-			
-	        builder = new AlertDialog.Builder(this);
-	        builder.setTitle("input ip and port")
-	        	.setIcon(android.R.drawable.ic_dialog_info)
-	        	.setView(inputDst)
-	        	.setNegativeButton("Cancel", null);
-	        builder.setPositiveButton("Ok", new DialogInterface.OnClickListener() {
+        AlertDialog.Builder builder;
 
-	            public void onClick(DialogInterface dialog, int which) {
-	            	mAudioDst = inputDst.getText().toString();
-	            	LogUtil.info(TAG, "Java save last_audio_ip_port: " + mAudioDst);
-	            	Toast.makeText(ClipListActivity.this, "set audio dst to: " + mAudioDst, Toast.LENGTH_SHORT).show();
-	             }
-	        });
-	        builder.show();
-			break;
-		case R.id.clean_media_db:
-			mMediaDB.clearMediaStore();
-			break;
-		case R.id.dlna_dmr:
-			push_to_dmr();
-			break;
-		case R.id.bestv_video:
-            String url = getClipboardText();
-			if (url != null) {
-				// http://wechat.bestv.com.cn/activity/androidPlay.jsp
-				// ?playUrl=http%3A%2F%2Fwx.live.bestvcdn.com.cn%2Flive%2Fprogram%2Flive991%2Fweixinhddfws%2Findex.m3u8
-				// %3Fse%3Dweixin%26ct%3D1%26starttime%3D1437409560%26endtime%3D1437413340%26_cp
-				// %3D1%26_fk%3D4BE9666ECD5CA07A02A52EC9689B81621E354113967482965E8A7CC79F52A526
-				// &token=&t=%E4%B8%9C%E6%96%B9%E5%8D%AB%E8%A7%86%20%E6%9E%81%E9%99%90%E6%8C%91%E6%88%98%E7%AC%AC%E4%BA%94%E9%9B%86
-				// &seq=1&actcode=&tabIndex=1&topOffset=0&channelAbbr=dfws&type=0&channelCode=Umai:CHAN/1325@BESTV.SMG.SMG
+        int id = item.getItemId();
+        Intent intent = null;
 
-				int pos = url.indexOf("?playUrl=");
-				if (pos == -1) {
-					Toast.makeText(this, "url is not bestv playlink", Toast.LENGTH_SHORT).show();
-					return true;
-				}
-				
-				String origin_url = url.substring(pos + "?playUrl=".length());
-				try {
-					String decoded_url = URLDecoder.decode(origin_url, "UTF-8");
+        switch (id) {
+            case R.id.list_clip:
+                if (mListLocalFile) {
+                    if (mMediaDB.getMediaStore() == null) {
+                        intent = new Intent(getApplicationContext(), MediaScannerService.class);
+                        startService(intent);
+                        return true;
+                    }
 
-					int pos1 = decoded_url.indexOf("&t=");
-					int pos2 = decoded_url.indexOf("&seq=");
-					if (pos1 > -1 && pos2 > -1) {
-						String play_url = decoded_url.substring(0, pos1) + decoded_url.substring(pos2);
-						LogUtil.info(TAG, "Java: to play bestv url: " + play_url);
-						start_player("百事通视频", play_url);
-					}
-					else {
-						Toast.makeText(this, "fail to parse bestv playlink", Toast.LENGTH_SHORT).show();
-					}
-				}
-				catch (UnsupportedEncodingException e) {
-					e.printStackTrace();
-				}
-			}
-			break;
-		case R.id.pptv_frontpage:
-			if (!Util.IsHaveInternet(this)) {
-				Toast.makeText(this, "network is not connected", Toast.LENGTH_SHORT).show();
-				return true;
-			}
-			
-			Toast.makeText(this, "loading epg catalog...", Toast.LENGTH_SHORT).show();
-			new EPGTask().execute(EPG_ITEM_FRONTPAGE);
-			break;
-		case R.id.pptv_video:
-			if (!Util.IsHaveInternet(this)) {
-				Toast.makeText(this, "network is not connected", Toast.LENGTH_SHORT).show();
-				return true;
-			}
-			
-			intent = new Intent(ClipListActivity.this, PPTVVideoActivity.class);
-    		startActivity(intent);
-			break;
-		case R.id.sohu_video:
-			if (!Util.IsHaveInternet(this)) {
-				Toast.makeText(this, "network is not connected", Toast.LENGTH_SHORT).show();
-				return true;
-			}
-			
-			intent = new Intent(ClipListActivity.this, SohuVideoActivity.class);
-    		startActivity(intent);
-			break;
-		default:
-			LogUtil.warn(TAG, "invalid menu item selected: " + id);
-			return false;
-		}
-		
-		return true;//super.onOptionsItemSelected(item);
-	}
+                    new ListItemTask().execute(mCurrentFolder);
+                }
+                break;
+            case R.id.scan_media:
+                intent = new Intent(getApplicationContext(), MediaScannerService.class);
+                startService(intent);
+                break;
+            case R.id.upload_crash_report:
+                Util.makeUploadLog("manual upload\n\n");
+
+                UploadLogTask task = new UploadLogTask(this);
+                task.execute(Util.upload_log_path, "common");
+                break;
+            case R.id.update_apk:
+                setupUpdater();
+                break;
+            case R.id.quit:
+                this.finish();
+                break;
+            case R.id.preview:
+                mIsPreview = !mIsPreview;
+                item.setChecked(mIsPreview);
+                break;
+            case R.id.loop:
+                mIsLoop = !mIsLoop;
+                item.setChecked(mIsLoop);
+                LogUtil.info(TAG, "set loop to: " + mIsLoop);
+                break;
+            case R.id.no_video:
+                mIsNoVideo = !mIsNoVideo;
+                item.setChecked(mIsNoVideo);
+                imageNoVideo.setVisibility(mIsNoVideo ? View.VISIBLE : View.GONE);
+                break;
+            case R.id.remember_last_pos:
+                mIsRememberPos = !mIsRememberPos;
+                item.setChecked(mIsRememberPos);
+                imageNoVideo.setVisibility(mIsNoVideo ? View.VISIBLE : View.GONE);
+                break;
+            case R.id.list_audio_file:
+                mIsListAudioFile = !mIsListAudioFile;
+                item.setChecked(mIsListAudioFile);
+                break;
+            case R.id.debug_info:
+                mDebugInfo = !mDebugInfo;
+                item.setChecked(mDebugInfo);
+                mTextViewInfo.setVisibility(mDebugInfo ? View.VISIBLE : View.GONE);
+                break;
+            case R.id.load_subtitle:
+                popupSelectSubtitle();
+                break;
+            case R.id.audio_dst:
+                final EditText inputDst = new EditText(this);
+                String last_ip_port = Util.readSettings(this, "last_audio_ip_port");
+                inputDst.setText(last_ip_port);
+                inputDst.setHint("input ip/port");
+
+                builder = new AlertDialog.Builder(this);
+                builder.setTitle("input ip and port")
+                        .setIcon(android.R.drawable.ic_dialog_info)
+                        .setView(inputDst)
+                        .setNegativeButton("Cancel", null);
+                builder.setPositiveButton("Ok", new DialogInterface.OnClickListener() {
+
+                    public void onClick(DialogInterface dialog, int which) {
+                        mAudioDst = inputDst.getText().toString();
+                        LogUtil.info(TAG, "Java save last_audio_ip_port: " + mAudioDst);
+                        Toast.makeText(ClipListActivity.this, "set audio dst to: " + mAudioDst, Toast.LENGTH_SHORT).show();
+                    }
+                });
+                builder.show();
+                break;
+            case R.id.clean_media_db:
+                mMediaDB.clearMediaStore();
+                break;
+            case R.id.dlna_dmr:
+                push_to_dmr();
+                break;
+            case R.id.bestv_video:
+                String url = getClipboardText();
+                if (url != null) {
+                    // http://wechat.bestv.com.cn/activity/androidPlay.jsp
+                    // ?playUrl=http%3A%2F%2Fwx.live.bestvcdn.com.cn%2Flive%2Fprogram%2Flive991%2Fweixinhddfws%2Findex.m3u8
+                    // %3Fse%3Dweixin%26ct%3D1%26starttime%3D1437409560%26endtime%3D1437413340%26_cp
+                    // %3D1%26_fk%3D4BE9666ECD5CA07A02A52EC9689B81621E354113967482965E8A7CC79F52A526
+                    // &token=&t=%E4%B8%9C%E6%96%B9%E5%8D%AB%E8%A7%86%20%E6%9E%81%E9%99%90%E6%8C%91%E6%88%98%E7%AC%AC%E4%BA%94%E9%9B%86
+                    // &seq=1&actcode=&tabIndex=1&topOffset=0&channelAbbr=dfws&type=0&channelCode=Umai:CHAN/1325@BESTV.SMG.SMG
+
+                    int pos = url.indexOf("?playUrl=");
+                    if (pos == -1) {
+                        Toast.makeText(this, "url is not bestv playlink", Toast.LENGTH_SHORT).show();
+                        return true;
+                    }
+
+                    String origin_url = url.substring(pos + "?playUrl=".length());
+                    try {
+                        String decoded_url = URLDecoder.decode(origin_url, "UTF-8");
+
+                        int pos1 = decoded_url.indexOf("&t=");
+                        int pos2 = decoded_url.indexOf("&seq=");
+                        if (pos1 > -1 && pos2 > -1) {
+                            String play_url = decoded_url.substring(0, pos1) + decoded_url.substring(pos2);
+                            LogUtil.info(TAG, "Java: to play bestv url: " + play_url);
+                            start_player("百事通视频", play_url);
+                        } else {
+                            Toast.makeText(this, "fail to parse bestv playlink", Toast.LENGTH_SHORT).show();
+                        }
+                    } catch (UnsupportedEncodingException e) {
+                        e.printStackTrace();
+                    }
+                }
+                break;
+            case R.id.pptv_frontpage:
+                if (!Util.IsHaveInternet(this)) {
+                    Toast.makeText(this, "network is not connected", Toast.LENGTH_SHORT).show();
+                    return true;
+                }
+
+                Toast.makeText(this, "loading epg catalog...", Toast.LENGTH_SHORT).show();
+                new EPGTask().execute(EPG_ITEM_FRONTPAGE);
+                break;
+            case R.id.pptv_video:
+                if (!Util.IsHaveInternet(this)) {
+                    Toast.makeText(this, "network is not connected", Toast.LENGTH_SHORT).show();
+                    return true;
+                }
+
+                intent = new Intent(ClipListActivity.this, PPTVVideoActivity.class);
+                startActivity(intent);
+                break;
+            case R.id.sohu_video:
+                if (!Util.IsHaveInternet(this)) {
+                    Toast.makeText(this, "network is not connected", Toast.LENGTH_SHORT).show();
+                    return true;
+                }
+
+                intent = new Intent(ClipListActivity.this, SohuVideoActivity.class);
+                startActivity(intent);
+                break;
+            case R.id.parse_url:
+                String video_url = getClipboardText();
+                if (video_url == null) {
+                    Toast.makeText(ClipListActivity.this, "no url is set", Toast.LENGTH_SHORT).show();
+                    return true;
+                }
+
+                mPlayerImpl = 3; // force use ffplay
+                new ParseVideoTask().execute(video_url);
+                break;
+            default:
+                LogUtil.warn(TAG, "invalid menu item selected: " + id);
+                return false;
+        }
+
+        return true;//super.onOptionsItemSelected(item);
+    }
 
 	@Override
 	public boolean onInfo(MediaPlayer mp, int what, int extra) {
 		// TODO Auto-generated method stub
-		LogUtil.debug(TAG, "Java: onInfo: " + what + " " + extra);
+        LogUtil.debug(TAG, "Java: onInfo: " + what + " " + extra);
 		
 		if ((MediaPlayer.MEDIA_INFO_BUFFERING_START == what) && !mIsBuffering) {
 			mBufferingProgressBar.setVisibility(View.VISIBLE);
@@ -2817,14 +2852,14 @@ public class ClipListActivity extends AppCompatActivity implements
 		catch (IllegalStateException e) {
 			e.printStackTrace();
 		}
-		
-		mPlayer.release();
+
+        mPlayer.release();
 		mPlayer = null;
 		
 		Util.makeUploadLog("failed to play: " + mPlayUrl + "\n\n");
 		
 		UploadLogTask task = new UploadLogTask(this);
-		task.execute(Util.upload_log_path, "failed to play");
+        task.execute(Util.upload_log_path, "failed to play");
 		
 		return true;
 	}
@@ -2936,7 +2971,7 @@ public class ClipListActivity extends AppCompatActivity implements
 	@Override
 	public void onBufferingUpdate(MediaPlayer mp, int percent) {
 		// TODO Auto-generated method stub
-		LogUtil.debug(TAG, "onBufferingUpdate: " + percent);
+        LogUtil.debug(TAG, "onBufferingUpdate: " + percent);
 		mBufferingPertent = percent;
 	}
 
@@ -3055,7 +3090,7 @@ public class ClipListActivity extends AppCompatActivity implements
 		
 		String url = HTTP_UPDATE_APK_URL + apk_name;
 		path = Environment.getExternalStorageDirectory().getPath() + "/" + apk_name;
-		LogUtil.info(TAG, "to download apk: " + path);
+        LogUtil.info(TAG, "to download apk: " + path);
 		
 		DownloadAsyncTask downloadTask = new DownloadAsyncTask() {
 
@@ -3100,7 +3135,7 @@ public class ClipListActivity extends AppCompatActivity implements
 	}
 	
 	private void installApk(String apk_fullpath) {
-		LogUtil.info(TAG, "installApk: " + apk_fullpath);
+        LogUtil.info(TAG, "installApk: " + apk_fullpath);
 		
         File apkfile = new File(apk_fullpath);
         if (!apkfile.exists()) {
@@ -3115,10 +3150,10 @@ public class ClipListActivity extends AppCompatActivity implements
 
 	@Override
 	protected void onResume() {
-		super.onResume();
-		LogUtil.info(TAG, "Java: onResume()");
-		
-		readSettings();
+        super.onResume();
+        LogUtil.info(TAG, "Java: onResume()");
+
+        readSettings();
 		
 		if (!isTVbox) {
 			LogUtil.info(TAG, String.format("screen %dx%d, preview height %d", screen_width, screen_height, preview_height));
@@ -3133,7 +3168,7 @@ public class ClipListActivity extends AppCompatActivity implements
 	protected void onStart() {
 		// TODO Auto-generated method stub
 		super.onStart();
-		LogUtil.info(TAG, "Java: onStart()");
+        LogUtil.info(TAG, "Java: onStart()");
 		
 		// Register receivers
 		mScannerReceiver = new BroadcastReceiver() {
@@ -3154,7 +3189,7 @@ public class ClipListActivity extends AppCompatActivity implements
 				
 		IntentFilter filter = new IntentFilter();
 		filter.addAction(MediaScannerService.ACTION_MEDIA_SCANNER_STARTED);
-		filter.addAction(MediaScannerService.ACTION_MEDIA_SCANNER_FINISHED);
+        filter.addAction(MediaScannerService.ACTION_MEDIA_SCANNER_FINISHED);
 		
 		registerReceiver(mScannerReceiver, filter);
 	}
@@ -3171,8 +3206,8 @@ public class ClipListActivity extends AppCompatActivity implements
 		if (mPlayer != null && mPlayer.isPlaying()) {
 			mPlayer.pause();
 		}
-		
-		writeSettings();
+
+        writeSettings();
 			
 		//MeetSDK.closeLog();
 		
@@ -3181,7 +3216,7 @@ public class ClipListActivity extends AppCompatActivity implements
 	
 	@Override
 	protected void onDestroy() {
-		super.onDestroy();
+        super.onDestroy();
 		
 		//unbindService(dlna_conn);
 		LogUtil.info(TAG, "Java: onDestroy()");
