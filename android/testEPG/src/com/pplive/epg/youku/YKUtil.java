@@ -95,21 +95,21 @@ public class YKUtil {
 			"&guid=0b902709fdaba50d69ce66911d4a56e8" +
 			"&ver=5.4.4" +
 			"&network=WIFI" +
-			"&cid=97";
+			"&cid=%d";
 	
 	private final static String youku_album_api = 
 			"http://api.mobile.youku.com/layout/v_5/android/" +
 			"channel/subpage?pid=6f81431b00e5b30a" +
 			"&guid=0b902709fdaba50d69ce66911d4a56e8" +
 			"&ver=5.4.4" +
-			"&_t_=1457601629" +
 			"&network=WIFI" +
-			"&cid=97" +
+			"&cid=%d" +
 			"&sub_channel_id=%d" +
 			"&sub_channel_type=%d" + 
 			"&ob=2" +
 			"&show_game_information=1" +
-			"&pg=1";
+			"&pg=%d" + // index from 1
+			"&pz=%d"; // page size
 	
 	private final static String youku_album_info_api = 
 			"http://api.mobile.youku.com/layout/android5_0/" +
@@ -121,33 +121,79 @@ public class YKUtil {
 			"&id=%s" + 
 			"&area_code=1";
 	
+	private final static String youku_get_episode_api = 
+			"http://api.mobile.youku.com/shows/%s/" +
+			"reverse/videos" +
+			"?pid=6f81431b00e5b30a" +
+			"&guid=0b902709fdaba50d69ce66911d4a56e8" +
+			"&ver=5.4.4" +
+			"&network=WIFI" +
+			"&fields=vid|titl|lim|is_new|pv" +
+			"&pg=%d" +
+			"&pz=%d" +
+			"&area_code=1";
+	
+	private final static String youku_search_api = 
+			"http://api.appsdk.soku.com/u/s?" +
+			"pid=6f81431b00e5b30a" +
+			"&guid=0b902709fdaba50d69ce66911d4a56e8" +
+			"&ver=5.4.4" +
+			"&_t_=1457661257" +
+			"&e=md5" +
+			"&_s_=5f8a9e3cf9f057cd5bc886d9b4d3897d" +
+			"&network=WIFI" +
+			"&format=&cid=&seconds=0&seconds_end=0" +
+			"&ob=0" +
+			"&pg=%d" +
+			"&pz=%d" +
+			"&aaid=145766125936696352155" +
+			"&brand=Coolpad" +
+			"&btype=Coolpad+8297-C00" +
+			"&sdkver=6&kref=2&area_code=1" +
+			"&keyword=" ;//%E7%81%AB%E6%98%9F%E6%95%91%E6%8F%B4
+	
 	public static void main(String[] args) { 
         
 		String url = "http://v.youku.com/v_show/id_XMTQ5NDg3NjQzNg==.html?from=s1.8-1-1.1";
 		
-		List<Catalog> catlogList = getCatalog("d");
+		List<Channel> channelList = getChannel();
+		if (channelList == null)
+			return;
+		
+		for (int i=0;i<channelList.size();i++) {
+			System.out.println(
+					String.format("#%d %s", i, channelList.get(i).toString()));
+		}
+		
+		Channel c = channelList.get(15); // 1电视剧 2电影15游戏
+		List<Catalog> catlogList = getCatalog(c.getChannelId());
 		if (catlogList == null)
 			return;
 		
-		for (int i=0;i<catlogList.size();i++)
-			System.out.println(catlogList.get(i).toString());
+		for (int i=0;i<catlogList.size();i++) {
+			System.out.println(
+					String.format("#%d %s", i, catlogList.get(i).toString()));
+		}
 		
-		Catalog cat = catlogList.get(2);
-		List<Album> alList = getAlbums(cat.getFilter(), 
-				cat.getSubChannelId(), cat.getSubChannelType());
+		Catalog cat = catlogList.get(1); // 1全部 动作
+		List<Album> alList = getAlbums(
+				c.getChannelId(), cat.getFilter(), 
+				cat.getSubChannelId(), cat.getSubChannelType(), 1);
+		//List<Album> alList = search("女医明妃传", 1, 5);
 		if (alList == null)
 			return;
 		
 		for (int i=0;i<alList.size();i++)
 			System.out.println(alList.get(i).toString());
 		
-		Album al = getAlbumInfo(alList.get(0).getTid());
+		Album al = alList.get(0);
+		al = getAlbumInfo(al.getShowId());
 		if (al == null)
 			return;
 		
-		System.out.println("al info: " + al.toString());
+		System.out.println("album info: " + al.toString());
 		
-		List<Episode> list = getEpisodeList(al.getShowId());
+		List<Episode> list = getEpisodeList(al.getShowId(), 1, 100);
 		if (list != null) {
 			for (int i=0;i<list.size();i++)
 				System.out.println(list.get(i).toString());
@@ -168,10 +214,55 @@ public class YKUtil {
         //System.out.println(decString);
 	}
 	
+	public static List<Album> search(String keyword, 
+			int page, int page_size) {
+		System.out.println("search() keyword " + keyword);
+		
+		String url = null;
+		try {
+			String encoded_keyword = URLEncoder.encode(keyword, "UTF-8");
+			url = String.format(youku_search_api, page, page_size) + 
+					encoded_keyword;
+		} catch (UnsupportedEncodingException e) {
+			e.printStackTrace();
+			return null;
+		}
+		
+		System.out.println("search() url: " + url);
+		String result = getHttpPage(url, false, false);
+		if (result == null)
+			return null;
+			
+		try {
+            JSONTokener jsonParser = new JSONTokener(result);
+            JSONObject root = (JSONObject) jsonParser.nextValue();
+            JSONArray results = root.getJSONArray("results");
+            int size = results.length();
+            List<Album> albumList = new ArrayList<Album>();
+            for(int i=0;i<size;i++) {
+            	JSONObject item = results.getJSONObject(i);
+            	if (!item.has("showid"))
+            		continue;
+            	
+            	String title = item.getString("title");
+            	String showid = item.getString("showid");
+            	String videoId = item.getString("videoid");
+            	String pubdate = item.getString("pubdate");
+            	albumList.add(new Album(title, showid, pubdate));
+            }
+            
+            return albumList;
+		} catch (JSONException e1) {
+            e1.printStackTrace();
+        }
+		
+		return null;
+	}
+	
 	public static List<Channel> getChannel() {
 		System.out.println("getChannel: " + youku_channel_api);
 		
-		String result = getHttpPage(youku_channel_api);
+		String result = getHttpPage(youku_channel_api, false, false);
 		if (result == null)
 			return null;
 			
@@ -184,7 +275,7 @@ public class YKUtil {
             
             JSONArray channel_nav = root.getJSONArray("channel_nav");
             int size = channel_nav.length();
-            List<Channel> catalogList = new ArrayList<Channel>();
+            List<Channel> channelList = new ArrayList<Channel>();
             for (int i=0;i<size;i++) {
 //            	{
 //            		channel_id: 1001,
@@ -194,18 +285,14 @@ public class YKUtil {
 //            		},
 
             	
-            	JSONObject item = results.getJSONObject(i);
-            	String filter = "";
-            	if (item.has("filter"))
-            		filter = item.getString("filter");
-	            int sub_channel_type = item.getInt("sub_channel_type");
-	            int sub_channel_id = item.getInt("sub_channel_id");
+            	JSONObject channel = channel_nav.getJSONObject(i);
+	            int channel_id = channel.getInt("channel_id");
+	            String title = channel.getString("title");
 	            
-	            catalogList.add(new Catalog(filter, 
-	            		sub_channel_type, sub_channel_id));
+	            channelList.add(new Channel(title, channel_id));
             }
 
-            return catalogList;
+            return channelList;
         } catch (JSONException e1) {
             e1.printStackTrace();
         }
@@ -213,11 +300,12 @@ public class YKUtil {
         return null;
 	}
 	
-	public static List<Catalog> getCatalog(String cid) {
-		String url = youku_catalog_api;
-		System.out.println("getCatalog: " + url);
+	public static List<Catalog> getCatalog(int channel_id) {
+		System.out.println("getCatalog() channel_id: " + channel_id);
+		String url = String.format(youku_catalog_api, channel_id);
 		
-		String result = getHttpPage(url);
+		System.out.println("getCatalog() url: " + url);
+		String result = getHttpPage(url, true, true);
 		if (result == null)
 			return null;
 			
@@ -243,10 +331,11 @@ public class YKUtil {
             	String filter = "";
             	if (item.has("filter"))
             		filter = item.getString("filter");
+            	String title = item.getString("title");
 	            int sub_channel_type = item.getInt("sub_channel_type");
 	            int sub_channel_id = item.getInt("sub_channel_id");
 	            
-	            catalogList.add(new Catalog(filter, 
+	            catalogList.add(new Catalog(title, filter, 
 	            		sub_channel_type, sub_channel_id));
             }
 
@@ -259,9 +348,13 @@ public class YKUtil {
 	}
 	
 	public static List<Album> getAlbums(
-			String filter, int sub_channel_id, int sub_channel_type) {
+			int channel_id, String filter, 
+			int sub_channel_id, int sub_channel_type,
+			int page) {
 		
-		String url = String.format(youku_album_api, sub_channel_id, sub_channel_type);
+		final int page_size = 30;
+		String url = String.format(youku_album_api, 
+				channel_id, sub_channel_id, sub_channel_type, page, page_size);
 		if (filter != null && !filter.isEmpty()) {
 			try {
 				String encoded_filter = URLEncoder.encode(filter, "UTF-8");
@@ -275,16 +368,24 @@ public class YKUtil {
 		}
 		
 		System.out.println("getAlbums " + url);
-		String result = getHttpPage(url);
+		String result = getHttpPage(url, true, true);
 		if (result == null)
 			return null;
 			
 		try {
             JSONTokener jsonParser = new JSONTokener(result);
             JSONObject root = (JSONObject) jsonParser.nextValue();
-            String status = root.getString("status");
-            if (!status.equals("success"))
+            if (root.has("status")) {
+            	String status = root.getString("status");
+                if (!status.equals("success"))
+                	return null;
+            }
+            
+            if (sub_channel_type == 1) {
             	return null;
+            	//todo
+            	//JSONArray boxes = root.getJSONArray("boxes");
+            }
             
             JSONArray results = root.getJSONArray("results");
             int size = results.length();
@@ -306,7 +407,7 @@ public class YKUtil {
 	            String title = item.getString("title");
 	            String stripe = item.getString("stripe");
 	            String tid = item.getString("tid");
-	            albumList.add(new Album(title, null, stripe, tid));
+	            albumList.add(new Album(title, tid, stripe));
             }
 
             return albumList;
@@ -318,9 +419,11 @@ public class YKUtil {
 	}
 	
 	public static Album getAlbumInfo(String tid) {
+		System.out.println("getAlbumInfo() tid: " + tid);
 		String url = String.format(youku_album_info_api, tid);
 		
-		String result = getHttpPage(url);
+		System.out.println("getAlbumInfo() url: " + url);
+		String result = getHttpPage(url, true, true);
 		if (result == null)
 			return null;
 			
@@ -332,11 +435,36 @@ public class YKUtil {
             	return null;
             
             JSONObject detail = root.getJSONObject("detail");
+            String actor = "N/A";
+            if (detail.has("performer")) {
+            	JSONArray performer = detail.getJSONArray("performer");
+            	int size = performer.length();
+            	StringBuffer sb = new StringBuffer();
+            	for (int i=0;i<size;i++) {
+            		if (i > 0)
+            			sb.append(",");
+            		sb.append(performer.getString(i));
+            	}
+            	actor = sb.toString();
+            }
             String showid = detail.getString("showid");
             String videoid = detail.getString("videoid");
-            String username = detail.getString("username");
+            String title = detail.getString("title");
+            String subtitle = detail.getString("username");
             String img = detail.getString("img");
-            return new Album(username, videoid, showid);
+            String desc = detail.getString("desc");
+            String total_vv = detail.getString("total_vv_fmt");
+            String stripe = detail.getString("stripe_bottom");
+            String showdate = detail.getString("showdate");
+            
+            if (subtitle != null) {
+            	title += "(";
+            	title += subtitle;
+            	title += ")";
+            }
+            return new Album(title, videoid, showid,
+            		stripe, img, total_vv, 
+            		showdate, desc, actor);
         } catch (JSONException e1) {
             e1.printStackTrace();
         }
@@ -344,19 +472,12 @@ public class YKUtil {
         return null;
 	}
 	
-	public static List<Episode> getEpisodeList(String showId) {		
-		String url = "http://api.mobile.youku.com/shows/" +
-				showId + 
-				"/reverse/videos" +
-				"?pid=6f81431b00e5b30a" +
-				"&guid=0b902709fdaba50d69ce66911d4a56e8" +
-				"&ver=5.4.4" +
-				"&network=WIFI" +
-				"&fields=vid|titl|lim|is_new|pv&pg=1&pz=100" +
-				"&area_code=1";
-		
+	public static List<Episode> getEpisodeList(
+			String showId, int page, int page_size) {		
+		String url = String.format(youku_get_episode_api, 
+				showId, page, page_size);
 		System.out.println("url: " + url);
-		String result = getHttpPage(url);
+		String result = getHttpPage(url, true, true);
 		if (result == null)
 			return null;
 			
@@ -421,7 +542,7 @@ public class YKUtil {
         String api_url = String.format(apiurl, ctype, did, vid, vid);
 		System.out.println("Java: api_url " + api_url);
 		
-		String result = getHttpPage(api_url);
+		String result = getHttpPage(api_url, true, true);
 		if (result == null)
 			return null;
 			
@@ -452,7 +573,7 @@ public class YKUtil {
 		return null;
 	}
 	
-	private static String getHttpPage(String url) {
+	private static String getHttpPage(String url, boolean setUserAgent, boolean setEncoding) {
 		URL realUrl = null;
         InputStream is = null;
         ByteArrayOutputStream os = null;
@@ -464,9 +585,12 @@ public class YKUtil {
             conn.setRequestMethod("GET");
             conn.setReadTimeout(5000);// 设置超时的时间
             conn.setConnectTimeout(5000);// 设置链接超时的时间
-            conn.setRequestProperty("User-Agent",
-                    "Youku HD;3.9.4;iPhone OS;7.1.2;iPad4,1");
-            conn.setRequestProperty("Encoding", "gzip, deflate");
+            if (setUserAgent) {
+            	conn.setRequestProperty("User-Agent",
+                        "Youku HD;3.9.4;iPhone OS;7.1.2;iPad4,1");
+            }
+            if (setEncoding)
+            	conn.setRequestProperty("Encoding", "gzip, deflate");
 
             conn.connect();
 

@@ -10,7 +10,6 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
 import android.support.v7.app.AppCompatActivity;
-import android.util.Log;
 import android.view.View;
 import android.view.WindowManager;
 import android.widget.AbsListView;
@@ -86,8 +85,16 @@ public class YoukuEpisodeActivity extends AppCompatActivity {
         channel_id = intent.getIntExtra("channel_id", -1);
 		sub_channel_id = intent.getIntExtra("sub_channel_id", -1);
         sub_channel_type = intent.getIntExtra("sub_channel_type", -1);
-		if (intent.hasExtra("search_key"))
-			search_key = intent.getStringExtra("search_key");
+		if (intent.hasExtra("search_key")) {
+            search_key = intent.getStringExtra("search_key");
+            setTitle(getResources().getString(R.string.title_activity_youku_video) +
+                    "  " + search_key);
+        }
+        else {
+            setTitle(getResources().getString(R.string.title_activity_youku_video) +
+                    "  " + title);
+        }
+
 		if (sub_channel_id == -1 && search_key == null) {
 			Toast.makeText(this, "intent param is wrong", Toast.LENGTH_SHORT).show();
             finish();
@@ -95,8 +102,6 @@ public class YoukuEpisodeActivity extends AppCompatActivity {
 		}
 		
 		setContentView(R.layout.activity_sohu_episode);
-
-        setTitle(getTitle() + "  " + title);
 		
 		this.gridView = (GridView) findViewById(R.id.grid_view);
 		this.gridView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
@@ -109,18 +114,27 @@ public class YoukuEpisodeActivity extends AppCompatActivity {
 				Map<String, Object> item = adapter.getItem(position);
 
 				mShowId = (String)item.get("show_id");
-                int count = (Integer)item.get("episode_total");
-                if (count > 30) {
-                    // " last_count - 1" fix 709 case
-                    episode_page_index = (count + 9) / page_size;
-                    episode_page_incr = -1;
+                if (mShowId == null) {
+                    mVid = (String)item.get("vid");
+                    if (mVid != null)
+                        new EPGTask().execute(TASK_PLAYLINK);
+                    else
+                        Toast.makeText(YoukuEpisodeActivity.this, "video id is null", Toast.LENGTH_LONG).show();
                 }
                 else {
-                    episode_page_index = 1;
-                    episode_page_incr = 1;
-                }
+                    int count = (Integer)item.get("episode_total");
+                    if (count > 30) {
+                        // " last_count - 1" fix 709 case
+                        episode_page_index = (count + 9) / page_size;
+                        episode_page_incr = -1;
+                    }
+                    else {
+                        episode_page_index = 1;
+                        episode_page_incr = 1;
+                    }
 
-				new EPGTask().execute(TASK_EPISODE);
+                    new EPGTask().execute(TASK_EPISODE);
+                }
 			}
 
 		});
@@ -155,7 +169,7 @@ public class YoukuEpisodeActivity extends AppCompatActivity {
             public void onScroll(AbsListView view, int firstVisibleItem,
                                  int visibleItemCount, int totalItemCount) {
                 // TODO Auto-generated method stub
-                LogUtil.info(TAG, String.format("Java: onScroll first %d, visible %d, total %d",
+                LogUtil.debug(TAG, String.format("Java: onScroll first %d, visible %d, total %d",
                         firstVisibleItem, visibleItemCount, totalItemCount));
 
                 int lastInScreen = firstVisibleItem + visibleItemCount;
@@ -302,7 +316,7 @@ public class YoukuEpisodeActivity extends AppCompatActivity {
         HashMap<String, Object> episode = new HashMap<String, Object>();
 
         // get more detail
-        Album detail_album = YKUtil.getAlbumInfo(al.getTid());
+        Album detail_album = YKUtil.getAlbumInfo(al.getShowId());
         if (detail_album == null)
             return null;
 
@@ -310,10 +324,10 @@ public class YoukuEpisodeActivity extends AppCompatActivity {
         episode.put("img_url", detail_album.getImgUrl());
         episode.put("desc", detail_album.getDescription());
         episode.put("tip", detail_album.getStripe());
-        episode.put("tid", detail_album.getTid());
         episode.put("show_id", detail_album.getShowId());
         episode.put("total_vv", detail_album.getTotalVV());
         episode.put("actor", detail_album.getActor());
+        episode.put("vid", detail_album.getVid());
         episode.put("episode_total", detail_album.getEpisodeTotal());
 
         episode.put("is_album", true);
@@ -327,7 +341,7 @@ public class YoukuEpisodeActivity extends AppCompatActivity {
 			// TODO Auto-generated method stub
 			
 			if (!result) {
-				Log.e(TAG, "failed to get episode");
+				LogUtil.error(TAG, "failed to get episode");
 				Toast.makeText(YoukuEpisodeActivity.this, "failed to get episode", Toast.LENGTH_SHORT).show();
 			}
 		}
@@ -336,7 +350,6 @@ public class YoukuEpisodeActivity extends AppCompatActivity {
 		protected Boolean doInBackground(Integer... params) {
 			// TODO Auto-generated method stub
             int action = params[0];
-			Log.i(TAG, "Java: YoukuEpgTask action " + action);
 			
 			if (action == TASK_EPISODE) {
                 mEpisodeList = YKUtil.getEpisodeList(mShowId, episode_page_index, page_size);
@@ -352,7 +365,7 @@ public class YoukuEpisodeActivity extends AppCompatActivity {
                     mTitle = ep.getTitle();
                     mPlayUrl = YKUtil.getPlayUrl(mVid);
                     if (mPlayUrl == null) {
-                        Log.e(TAG, "Java: failed to call getPlayUrl() vid: " + mVid);
+                        LogUtil.error(TAG, "Java: failed to call getPlayUrl() vid: " + mVid);
                         return false;
                     }
 
@@ -369,7 +382,7 @@ public class YoukuEpisodeActivity extends AppCompatActivity {
 
                 mPlayUrl = YKUtil.getPlayUrl(mVid);
 				if (mPlayUrl == null) {
-					Log.e(TAG, "Java: failed to call getPlayUrl() vid: " + mVid);
+                    LogUtil.error(TAG, "Java: failed to call getPlayUrl() vid: " + mVid);
 					return false;
 				}
 
@@ -402,7 +415,7 @@ public class YoukuEpisodeActivity extends AppCompatActivity {
                 mHandler.sendEmptyMessage(MainHandler.MSG_MORELIST_DONE);
 			}
 			else {
-				Log.e(TAG, "Java: invalid action type: " + action);
+                LogUtil.error(TAG, "Java: invalid action type: " + action);
 				return false;
 			}
 
@@ -418,7 +431,7 @@ public class YoukuEpisodeActivity extends AppCompatActivity {
 			// TODO Auto-generated method stub
 			
 			if (!result) {
-				Log.e(TAG, "Java: failed to get sub channel");
+                LogUtil.error(TAG, "Java: failed to get sub channel");
 				return;
 			}
 			
@@ -432,24 +445,25 @@ public class YoukuEpisodeActivity extends AppCompatActivity {
 			int action = params[0];
 			
 			if (action == SET_DATA_SEARCH) {
-				/*if (!mEPG.search(search_key, search_page_index, page_size))
-					return false;
-				
-				mAlbumList = mEPG.getSearchItemList();*/
+                mAlbumList = YKUtil.search(search_key, search_page_index, page_size);
+                if (mAlbumList == null) {
+                    LogUtil.error(TAG, "Java: failed to call subchannel()");
+                    return false;
+                }
 			}
 			else {
                 mAlbumList = YKUtil.getAlbums(channel_id,
                         filter, sub_channel_id, sub_channel_type,
                         album_page_index, page_size);
 				if (mAlbumList == null) {
-					Log.e(TAG, "Java: failed to call subchannel()");
+                    LogUtil.error(TAG, "Java: failed to call subchannel()");
 					return false;
 				}
 			}
 						  
 			data2 = new ArrayList<Map<String, Object>>();
 			int c = mAlbumList.size();
-			Log.i(TAG, "Java album size: " + c);
+            LogUtil.info(TAG, "Java album size: " + c);
 			for (int i=0;i<c;i++) {
                 Album al = mAlbumList.get(i);
                 HashMap<String, Object> episode = fill_episode(al);

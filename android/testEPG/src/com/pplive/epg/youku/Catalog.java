@@ -1,6 +1,9 @@
 package com.pplive.epg.youku;
 
+import org.apache.http.util.TextUtils;
+
 public class Catalog { 
+	private String mTitle;
 	private String mFilter;
 	private int mSubChannelType;
 	private int mSubChannelId;
@@ -10,10 +13,16 @@ public class Catalog {
 		
 	}
 	
-	public Catalog(String filter, int sub_channel_type, int sub_channel_id) {
+	public Catalog(String title, String filter, 
+			int sub_channel_type, int sub_channel_id) {
+		this.mTitle				= title;
 		this.mFilter			= filter;
 		this.mSubChannelType	= sub_channel_type;
 		this.mSubChannelId		= sub_channel_id;
+	}
+	
+	public String getTitle() {
+		return mTitle;
 	}
 	
 	public String getFilter() {
@@ -30,8 +39,12 @@ public class Catalog {
 	
 	public String toString() {
 		StringBuffer sb = new StringBuffer();
-		sb.append("filter: ");
-		sb.append(mFilter);
+		sb.append("title: ");
+		sb.append(mTitle);
+		if (mFilter != null && !mFilter.isEmpty()) {
+			sb.append(", filter: ");
+			sb.append(mFilter);
+		}
 		sb.append(", sub_channel_type: ");
 		sb.append(mSubChannelType);
 		sb.append(", sub_channel_id: ");

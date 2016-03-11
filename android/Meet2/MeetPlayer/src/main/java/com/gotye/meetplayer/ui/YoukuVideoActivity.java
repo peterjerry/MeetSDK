@@ -22,6 +22,7 @@ import android.widget.EditText;
 import android.widget.ListView;
 import android.widget.Toast;
 
+import com.gotye.common.util.LogUtil;
 import com.gotye.common.youku.Catalog;
 import com.gotye.common.youku.Channel;
 import com.gotye.common.youku.YKUtil;
@@ -70,7 +71,7 @@ public class YoukuVideoActivity extends AppCompatActivity {
 			@Override
 			public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
 				if (mSubChannelSelected) {
-					Intent intent = new Intent(YoukuVideoActivity.this, YoukuEpisodeActivity.class);
+                    Intent intent = new Intent(YoukuVideoActivity.this, YoukuEpisodeActivity.class);
                     intent.putExtra("title", mCatalogList.get(position).getTitle());
                     intent.putExtra("channel_id", mChannelId);
                     intent.putExtra("filter", mCatalogList.get(position).getFilter());
@@ -170,7 +171,7 @@ public class YoukuVideoActivity extends AppCompatActivity {
             	Log.i(TAG, "Java save last_key: " + mEPGsearchKey);
             	Util.writeSettings(YoukuVideoActivity.this, "last_searchkey", mEPGsearchKey);
 
-            	Intent intent = new Intent(YoukuVideoActivity.this, SohuEpisodeActivity.class);
+            	Intent intent = new Intent(YoukuVideoActivity.this, YoukuEpisodeActivity.class);
         		intent.putExtra("search_key", mEPGsearchKey);
         		startActivity(intent);
         		

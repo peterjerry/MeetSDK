@@ -76,6 +76,24 @@ public class YKUtil {
                     "&pz=%d" +
                     "&area_code=1";
 
+    private final static String youku_search_api =
+            "http://api.appsdk.soku.com/u/s?pid=6f81431b00e5b30a" +
+                    "&guid=0b902709fdaba50d69ce66911d4a56e8" +
+                    "&ver=5.4.4" +
+                    "&_t_=1457661257" +
+                    "&e=md5" +
+                    "&_s_=5f8a9e3cf9f057cd5bc886d9b4d3897d" +
+                    "&network=WIFI" +
+                    "&format=&cid=&seconds=0&seconds_end=0" +
+                    "&ob=0" +
+                    "&pg=%d" +
+                    "&pz=%d" +
+                    "&aaid=145766125936696352155" +
+                    "&brand=Coolpad" +
+                    "&btype=Coolpad+8297-C00" +
+                    "&sdkver=6&kref=2&area_code=1" +
+                    "&keyword=";
+
     private final static String apiurl =
             "http://i.play.api.3g.youku.com/common/v3/play" +
                     "?audiolang=1" +
@@ -288,16 +306,44 @@ public class YKUtil {
                     return null;
             }
 
-            if (sub_channel_type == 1) {
-                return null;
-                //todo
-                //JSONArray boxes = root.getJSONArray("boxes");
-            }
-
-            JSONArray results = root.getJSONArray("results");
-            int size = results.length();
             List<Album> albumList = new ArrayList<Album>();
-            for (int i=0;i<size;i++) {
+
+            if (channel_id == 95 /*music*/) {
+                JSONArray boxes = root.getJSONArray("boxes");
+                int size = boxes.length();
+                for (int i=0;i<size;i++) {
+                    JSONObject item = boxes.getJSONObject(i);
+                    JSONArray cells = item.getJSONArray("cells");
+                    int size2 = cells.length();
+                    for (int j=0;j<size2;j++) {
+                        JSONObject cell = cells.getJSONObject(j);
+                        JSONArray contents = cell.getJSONArray("contents");
+                        int size3 = contents.length();
+                        for (int k=0;k<size3;k++) {
+                            JSONObject song = contents.getJSONObject(k);
+//                            {
+//                                subtitle: "495",
+//                                        img: "http://r4.ykimg.com/0541010156E2270E641DA4FA18A017DC",
+//                                    title: "Where Went Yesterday 剧情版",
+//                                    url: "",
+//                                    paid: 0,
+//                                    stripe: "05:20",
+//                                    tid: "XMTQ5NjQ1NTc1Ng==",
+//                                    is_vv: 1,
+//                                    type: "1"
+//                            },
+                            String title = song.getString("title");
+                            String tid = song.getString("tid");
+                            String stripe = song.getString("stripe");
+                            albumList.add(new Album(title, tid, stripe));
+                        }
+                    }
+                }
+            }
+            else {
+                JSONArray results = root.getJSONArray("results");
+                int size = results.length();
+                for (int i=0;i<size;i++) {
 //              {
 //            	pay_type: [ ],
 //            	subtitle: "9.7",
@@ -310,11 +356,12 @@ public class YKUtil {
 //            	type: 2
 //            	},
 
-                JSONObject item = results.getJSONObject(i);
-                String title = item.getString("title");
-                String stripe = item.getString("stripe");
-                String tid = item.getString("tid");
-                albumList.add(new Album(title, tid, stripe));
+                    JSONObject item = results.getJSONObject(i);
+                    String title = item.getString("title");
+                    String stripe = item.getString("stripe");
+                    String tid = item.getString("tid");
+                    albumList.add(new Album(title, tid, stripe));
+                }
             }
 
             return albumList;
@@ -353,15 +400,21 @@ public class YKUtil {
                 }
                 actor = sb.toString();
             }
-            String showid = detail.getString("showid");
-            String videoid = detail.getString("videoid");
+            String showid = null;
+            if (detail.has("showid"))
+                showid = detail.getString("showid");
             String title = detail.getString("title");
             String sub_title = detail.getString("username");
             String img = detail.getString("img");
             String desc = detail.getString("desc");
             String total_vv = detail.getString("total_vv_fmt");
             String stripe = detail.getString("stripe_bottom");
-            String showdate = detail.getString("showdate");
+            String showdate = "N/A";
+            if (detail.has("showdate"))
+                showdate = detail.getString("showdate");
+            String videoid = null;
+            if (detail.has("videoid"))
+                videoid = detail.getString("videoid");
             int episode_total = 0;
             if (detail.has("episode_total"))
                 episode_total = detail.getInt("episode_total");
@@ -371,9 +424,9 @@ public class YKUtil {
                 title += sub_title;
                 title += ")";
             }
-            return new Album(title, videoid, showid,
+            return new Album(title, showid,
                     stripe, img, total_vv,
-                    showdate, desc, actor, episode_total);
+                    showdate, desc, actor, videoid, episode_total);
         } catch (JSONException e1) {
             e1.printStackTrace();
         }
@@ -439,13 +492,57 @@ public class YKUtil {
         return null;
     }
 
+    public static List<Album> search(String keyword,
+                                     int page, int page_size) {
+        LogUtil.info(TAG, "Java: search() keyword " + keyword);
+
+        String url;
+        try {
+            String encoded_keyword = URLEncoder.encode(keyword, "UTF-8");
+            url = String.format(youku_search_api, page, page_size) +
+                    encoded_keyword;
+        } catch (UnsupportedEncodingException e) {
+            e.printStackTrace();
+            return null;
+        }
+
+        System.out.println("search() url: " + url);
+        String result = getHttpPage(url, false, false);
+        if (result == null)
+            return null;
+
+        try {
+            JSONTokener jsonParser = new JSONTokener(result);
+            JSONObject root = (JSONObject) jsonParser.nextValue();
+            JSONArray results = root.getJSONArray("results");
+            int size = results.length();
+            List<Album> albumList = new ArrayList<Album>();
+            for(int i=0;i<size;i++) {
+                JSONObject item = results.getJSONObject(i);
+                if (!item.has("showid"))
+                    continue;
+
+                String title = item.getString("title");
+                String showid = item.getString("showid");
+                String videoId = item.getString("videoid");
+                String pubdate = item.getString("pubdate");
+                albumList.add(new Album(title, showid, pubdate));
+            }
+
+            return albumList;
+        } catch (JSONException e1) {
+            e1.printStackTrace();
+        }
+
+        return null;
+    }
+
 	private static String getHttpPage(String url, boolean setUserAgent, boolean setEncoding) {
-		URL realUrl = null;
 		InputStream is = null;
 		ByteArrayOutputStream os = null;
 
 		try {
-			realUrl = new URL(url);
+            URL realUrl = new URL(url);
 			// 打开和URL之间的连接
 			HttpURLConnection conn = (HttpURLConnection)realUrl.openConnection();
 			conn.setRequestMethod("GET");
