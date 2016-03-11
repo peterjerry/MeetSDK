@@ -53,6 +53,14 @@
             android:label="@string/title_activity_sohu_video" >
         </activity>
         <activity
+            android:name=".ui.YoukuVideoActivity"
+            android:label="@string/title_activity_youku_video" >
+        </activity>
+        <activity
+            android:name=".ui.YoukuEpisodeActivity"
+            android:label="@string/title_activity_youku_video" >
+        </activity>
+        <activity
             android:name=".ui.PPTVVideoActivity"
             android:label="@string/title_activity_pptv_video" >
         </activity>

@@ -2119,7 +2119,7 @@ public class ClipListActivity extends AppCompatActivity implements
             String video_url = params[0];
 
             if (video_url.contains("youku")) {
-                return YKUtil.getPlayUrl(video_url);
+                return YKUtil.getPlayUrl(video_url, null);
             }
 
             return null;
@@ -2738,6 +2738,14 @@ public class ClipListActivity extends AppCompatActivity implements
 
                 intent = new Intent(ClipListActivity.this, SohuVideoActivity.class);
                 startActivity(intent);
+                break;
+            case R.id.youku_video:
+                intent = new Intent(ClipListActivity.this, YoukuVideoActivity.class);
+                startActivity(intent);
+                break;
+            case R.id.tudou_video:
+                break;
+            case R.id.iqiyi_video:
                 break;
             case R.id.parse_url:
                 String video_url = getClipboardText();
