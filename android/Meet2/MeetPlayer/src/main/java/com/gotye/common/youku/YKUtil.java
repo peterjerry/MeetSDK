@@ -1,5 +1,7 @@
 package com.gotye.common.youku;
 
+import android.util.Log;
+
 import com.gotye.common.util.CryptAES;
 import com.gotye.common.util.LogUtil;
 
@@ -184,6 +186,79 @@ public class YKUtil {
 		
 		return null;
 	}
+
+    public static class ZGUrl {
+        public String file_type;
+        public String urls;
+        public String durations;
+
+        public ZGUrl(String type, String urls, String durations) {
+            this.file_type = type;
+            this.urls = urls;
+            this.durations = durations;
+        }
+    }
+
+    public static ZGUrl getZGUrls(String vid) {
+        // ApiKey：66c15f2b1b2bd90244dbcc84290395f8
+        // http://zg.yangsifa.com/video?url=[播放地址]&hd=[清晰度]&apikey=[自己的ApiKey]
+        // v.youku.com/v_show/id_
+        String api_key = "66c15f2b1b2bd90244dbcc84290395f8";
+        String api_url = "http://zg.yangsifa.com/video?url=v.youku.com/v_show/id_%s==.html&hd=3";
+        String url = String.format(api_url, vid, api_key);
+        LogUtil.info(TAG, "getZGUrls() url: " + url);
+        String result = getHttpPage(url, false, false);
+        if (result == null)
+            return null;
+
+        try {
+//			hd: "gq",
+//			exe: "mp4",
+//			vtype: "youku",
+//			urls: [
+//			{
+//			url: "http://zg.yangsifa.com/link?url=dbf4LLph7Dxyi7t0EuaiWUYjFk6weeJigT--opEsTx24hzvGp2UEM-K0TGSehsxn29xfsUj2DRKfOkZrMQ"
+//			},
+//			{
+//			url: "http://zg.yangsifa.com/link?url=8248iR0SztTHeaZjC1HZuv9x4G-qSq0ycVcYb1Q2BdNjvxoBqfUiAqf3PPPX0fLSfasv0R1O84Y59fmxtg"
+//			},
+            JSONTokener jsonParser = new JSONTokener(result);
+            JSONObject root = (JSONObject) jsonParser.nextValue();
+            JSONObject pc = root.getJSONObject("pc");
+            String hd = pc.getString("hd");
+            String file_type = pc.getString("exe");
+            String vtype = pc.getString("vtype");
+            JSONArray urls = pc.getJSONArray("urls");
+            int size = urls.length();
+            StringBuffer sbUrl = new StringBuffer();
+            StringBuffer sbDuration = new StringBuffer();
+            for (int i=0;i<size;i++) {
+                if (i > 0) {
+                    sbUrl.append(",");
+                    sbDuration.append(",");
+                }
+
+                JSONObject item = urls.getJSONObject(i);
+                String item_url = item.getString("url");
+                LogUtil.info(TAG, String.format("getZGUrls() url seg #%d %s", i, item_url));
+                sbUrl.append(item_url);
+                sbDuration.append(200);
+            }
+
+            JSONObject mobile = root.getJSONObject("mobile");
+            String mobile_hd = mobile.getString("hd");
+            String mobile_file_type = mobile.getString("exe");
+            String mobile_vtype = mobile.getString("vtype");
+            String mobile_url = mobile.getString("url");
+
+            return new ZGUrl(file_type, sbUrl.toString(), sbDuration.toString());
+        } catch (JSONException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        }
+
+        return null;
+    }
 
     public static List<Channel> getChannel() {
         System.out.println("getChannel: " + youku_channel_api);
@@ -506,8 +581,8 @@ public class YKUtil {
             return null;
         }
 
-        System.out.println("search() url: " + url);
-        String result = getHttpPage(url, false, false);
+        LogUtil.info(TAG, "Java: search() url: " + url);
+        String result = getHttpPage(url, true, false);
         if (result == null)
             return null;
 

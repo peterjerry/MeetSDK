@@ -61,6 +61,8 @@ public class YoukuEpisodeActivity extends AppCompatActivity {
     private String mVid;
     private String mPlayUrl;
     private String mTitle;
+    private int mEpisodeIndex = -1;
+    private YKUtil.ZGUrl mZGUrl;
 
     private String title;
     private int channel_id = -1;
@@ -216,11 +218,22 @@ public class YoukuEpisodeActivity extends AppCompatActivity {
                     activity.popupSelectEpisodeDlg();
                     break;
                 case MSG_PLAYLINK_DONE:
-                    Intent intent = new Intent(activity, VideoPlayerActivity.class);
+                    /*Intent intent = new Intent(activity, VideoPlayerActivity.class);
                     Uri uri = Uri.parse(activity.mPlayUrl);
                     intent.setData(uri);
                     intent.putExtra("title", activity.mTitle);
                     intent.putExtra("impl", 3); // force ffplay
+                    */
+
+                    Intent intent = new Intent(activity, PlayYoukuActivity.class);
+                    intent.putExtra("url_list", activity.mZGUrl.urls);
+                    intent.putExtra("duration_list", activity.mZGUrl.durations);
+                    intent.putExtra("title", activity.mTitle);
+                    intent.putExtra("ft", 2);
+                    intent.putExtra("show_id", activity.mShowId);
+                    intent.putExtra("page_index", activity.episode_page_index);
+                    intent.putExtra("index", activity.mEpisodeIndex);
+
                     activity.startActivity(intent);
                     break;
                 case MSG_MORELIST_DONE:
@@ -258,6 +271,7 @@ public class YoukuEpisodeActivity extends AppCompatActivity {
                         Episode ep = mEpisodeList.get(whichButton);
                         mVid = ep.getVideoId();
                         mTitle = ep.getTitle();
+                        mEpisodeIndex = whichButton;
                         new EPGTask().execute(TASK_PLAYLINK);
                         dialog.dismiss();
                     }
@@ -321,7 +335,8 @@ public class YoukuEpisodeActivity extends AppCompatActivity {
             return null;
 
         episode.put("title", detail_album.getTitle());
-        episode.put("img_url", detail_album.getImgUrl());
+        //episode.put("img_url", detail_album.getImgUrl());
+        episode.put("img_url", "N/A");
         episode.put("desc", detail_album.getDescription());
         episode.put("tip", detail_album.getStripe());
         episode.put("show_id", detail_album.getShowId());
@@ -352,22 +367,43 @@ public class YoukuEpisodeActivity extends AppCompatActivity {
             int action = params[0];
 			
 			if (action == TASK_EPISODE) {
-                mEpisodeList = YKUtil.getEpisodeList(mShowId, episode_page_index, page_size);
-				if (mEpisodeList == null) {
-					LogUtil.error(TAG, "Java: failed to call getEpisodeList()");
+                int retry = 3;
+                while(retry > 0) {
+                    mEpisodeList = YKUtil.getEpisodeList(mShowId, episode_page_index, page_size);
+                    if (mEpisodeList != null)
+                        break;
+
+                    try {
+                        Thread.sleep(500);
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+
+                    retry--;
+                }
+
+                if (mEpisodeList == null) {
+                    LogUtil.error(TAG, "Java: failed to call getEpisodeList()");
                     mHandler.sendEmptyMessage(MainHandler.MSG_FAIL_GET_EPISODE);
-					return true;
-				}
+                    return true;
+                }
 
                 if (mEpisodeList.size() == 1) {
                     Episode ep = mEpisodeList.get(0);
                     mVid = ep.getVideoId();
                     mTitle = ep.getTitle();
-                    mPlayUrl = YKUtil.getPlayUrl(mVid);
+                    mEpisodeIndex = -1;
+
+                    mZGUrl = YKUtil.getZGUrls(mVid);
+                    if (mZGUrl == null) {
+                        LogUtil.error(TAG, "Java: failed to call getZGUrls() vid: " + mVid);
+                        return false;
+                    }
+                    /*mPlayUrl = YKUtil.getPlayUrl(mVid);
                     if (mPlayUrl == null) {
                         LogUtil.error(TAG, "Java: failed to call getPlayUrl() vid: " + mVid);
                         return false;
-                    }
+                    }*/
 
                     mHandler.sendEmptyMessage(MainHandler.MSG_PLAYLINK_DONE);
                 }
@@ -380,11 +416,16 @@ public class YoukuEpisodeActivity extends AppCompatActivity {
                     return false;
                 }
 
-                mPlayUrl = YKUtil.getPlayUrl(mVid);
+                /*mPlayUrl = YKUtil.getPlayUrl(mVid);
 				if (mPlayUrl == null) {
                     LogUtil.error(TAG, "Java: failed to call getPlayUrl() vid: " + mVid);
 					return false;
-				}
+				}*/
+                mZGUrl = YKUtil.getZGUrls(mVid);
+                if (mZGUrl == null) {
+                    LogUtil.error(TAG, "Java: failed to call getZGUrls() vid: " + mVid);
+                    return false;
+                }
 
                 mHandler.sendEmptyMessage(MainHandler.MSG_PLAYLINK_DONE);
 			}

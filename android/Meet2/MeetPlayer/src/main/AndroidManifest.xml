@@ -41,8 +41,7 @@
         </activity>
         <activity
             android:name=".ui.PlaySohuActivity"
-            android:screenOrientation="landscape"
-            android:label="@string/app_name" >
+            android:screenOrientation="landscape">
         </activity>
         <activity
             android:name=".ui.SohuVideoActivity"
@@ -59,6 +58,10 @@
         <activity
             android:name=".ui.YoukuEpisodeActivity"
             android:label="@string/title_activity_youku_video" >
+        </activity>
+        <activity
+            android:name=".ui.PlayYoukuActivity"
+            android:screenOrientation="landscape">
         </activity>
         <activity
             android:name=".ui.PPTVVideoActivity"

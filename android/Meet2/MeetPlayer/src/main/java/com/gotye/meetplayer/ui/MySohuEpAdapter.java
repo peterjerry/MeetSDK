@@ -145,8 +145,9 @@ public class MySohuEpAdapter extends BaseAdapter {
 				return;
 			}
 			
-			if (mHolder.img.getTag() != null && mHolder.img.getTag().equals(mImgUrl))
-				mHolder.img.setImageBitmap(bmp);
+			if (mHolder.img.getTag() != null && mHolder.img.getTag().equals(mImgUrl)) {
+                mHolder.img.setImageBitmap(bmp);
+            }
 		}
 		
 		@Override
