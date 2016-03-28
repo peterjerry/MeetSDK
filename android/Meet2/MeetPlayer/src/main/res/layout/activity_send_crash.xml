@@ -15,16 +15,47 @@
         android:layout_height="wrap_content"
         android:singleLine="false"
         android:gravity="top"
-        android:lines="5"
+        android:lines="2"
         android:hint="@string/crash_description_hint" />
-    <Button
+    <RadioGroup
+        android:id="@+id/crash_rg"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:layout_below="@id/et_crashinfo"
+        android:orientation="vertical">
+        <RadioButton
+            android:id="@+id/common_error"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="通用错误"
+            android:checked="true" />
+        <RadioButton
+            android:id="@+id/fail2open"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="推送失败" />
+        <RadioButton
+            android:id="@+id/dumpcrash"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="推送过程中崩溃" />
+        <RadioButton
+            android:id="@+id/camera_problem"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="摄像头切换崩溃" />
+    </RadioGroup>
+    <Button
+        android:id="@+id/btn_send"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/crash_rg"
         android:text="@string/send_crash"
         android:onClick="sendCrash"/>
-	<TextView
-	    android:id="@+id/tv_crashinfo"
+    <TextView
+        android:id="@+id/tv_crashinfo"
         android:layout_width="match_parent"
-        android:layout_height="match_parent" />		
+        android:layout_height="match_parent"
+        android:layout_below="@id/btn_send"/>
 
 </LinearLayout>

@@ -1,11 +1,14 @@
 package com.gotye.common.youku;
 
+import android.os.Environment;
 import android.util.Log;
 
 import com.gotye.common.util.CryptAES;
 import com.gotye.common.util.LogUtil;
+import com.gotye.common.util.httpUtil;
 
 import java.io.ByteArrayOutputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
@@ -231,18 +234,14 @@ public class YKUtil {
             JSONArray urls = pc.getJSONArray("urls");
             int size = urls.length();
             StringBuffer sbUrl = new StringBuffer();
-            StringBuffer sbDuration = new StringBuffer();
             for (int i=0;i<size;i++) {
-                if (i > 0) {
+                if (i > 0)
                     sbUrl.append(",");
-                    sbDuration.append(",");
-                }
 
                 JSONObject item = urls.getJSONObject(i);
                 String item_url = item.getString("url");
                 LogUtil.info(TAG, String.format("getZGUrls() url seg #%d %s", i, item_url));
                 sbUrl.append(item_url);
-                sbDuration.append(200);
             }
 
             JSONObject mobile = root.getJSONObject("mobile");
@@ -251,7 +250,21 @@ public class YKUtil {
             String mobile_vtype = mobile.getString("vtype");
             String mobile_url = mobile.getString("url");
 
-            return new ZGUrl(file_type, sbUrl.toString(), sbDuration.toString());
+            // get duration list
+            String m3u8_url = getPlayUrl(vid);
+            LogUtil.info(TAG, "m3u8_url: " + m3u8_url);
+            byte []buffer = new byte[65536 * 10];
+            int content_size = httpUtil.httpDownloadBuffer(m3u8_url, 0, buffer);
+            if (content_size < 0) {
+                LogUtil.error(TAG, "failed to download m3u8_context");
+                return null;
+            }
+
+            byte []m3u8_context = new byte[content_size];
+            System.arraycopy(buffer, 0, m3u8_context, 0, content_size);
+
+            ZGUrl tmp = parseM3u8(new String(m3u8_context));
+            return new ZGUrl(file_type, sbUrl.toString(), tmp.durations);
         } catch (JSONException e) {
             // TODO Auto-generated catch block
             e.printStackTrace();
@@ -672,6 +685,152 @@ public class YKUtil {
 
 		return null;
 	}
+
+    public static String generateM3u8(String m3u8_context) {
+        List<String> UrlList = new ArrayList<String>();
+        List<Integer> DurationList = new ArrayList<Integer>();
+
+        // http://[^?]+\?ts_start=0
+        String regSeg = "http://[^?]+\\?ts_start=0";
+        Pattern patternSeg = Pattern.compile(regSeg);
+        Matcher matcherSeg = patternSeg.matcher(m3u8_context);
+
+        // #EXT.+
+        String regExt = "#EXT.+";
+        Pattern patternExt = Pattern.compile(regExt);
+        Matcher matcherExt = patternExt.matcher(m3u8_context);
+
+        while (matcherSeg.find()) {
+            String url = matcherSeg.group(0);
+            int pos = url.lastIndexOf(".ts?ts_start=0");
+
+            UrlList.add(url.substring(0, pos));
+        }
+
+        float duration = 0f;
+        while (matcherExt.find()) {
+            String line = matcherExt.group(0);
+            if (line.startsWith("#EXTINF")) {
+                //#EXTINF:11.72,
+                int pos1, pos2;
+                pos1 = line.indexOf(":");
+                pos2 = line.lastIndexOf(",");
+                String tmp = line.substring(pos1 + 1, pos2);
+                if (pos1 < 0 || pos2 < 0)
+                    continue;
+
+                boolean isFloat = tmp.matches("[\\d]+\\.[\\d]+");
+                if (isFloat)
+                    duration += Float.parseFloat(tmp);
+                else
+                    duration += (float)Integer.parseInt(tmp);
+            }
+            else if (line.contains("#EXT-X-DISCONTINUITY") || line.contains("#EXT-X-ENDLIST")) {
+                DurationList.add((int)duration);
+                duration = 0f;
+            }
+        }
+
+        for (int i=0;i<UrlList.size();i++) {
+            LogUtil.info(TAG, String.format("url #%d %s", i, UrlList.get(i)));
+        }
+        int total_duration = 0;
+        for (int i=0;i<DurationList.size();i++) {
+            total_duration += DurationList.get(i);
+            LogUtil.info(TAG, String.format("duration #%d %d", i, DurationList.get(i)));
+        }
+        LogUtil.info(TAG, String.format("video total duration %d sec(%d min)",
+                total_duration, total_duration / 60));
+
+        StringBuffer sb = new StringBuffer();
+        sb.append("#EXTM3U\n");
+        sb.append("#EXT-X-TARGETDURATION:200\n");
+        sb.append("#EXT-X-VERSION:3\n");
+        for (int i=0;i<UrlList.size();i++) {
+            sb.append("#EXTINF:");
+            sb.append(DurationList.get(i));
+            sb.append(",\n");
+            sb.append(UrlList.get(i));
+            sb.append("\n");
+            sb.append("#EXT-X-DISCONTINUITY\n");
+        }
+        sb.append("#EXT-X-ENDLIST\n");
+        LogUtil.info(TAG, "m3u8 context: " + sb.toString());
+
+        try {
+            String path = Environment.getExternalStorageDirectory().getAbsolutePath() + "/youku.m3u8";
+            FileOutputStream fout = new FileOutputStream(path);
+            byte [] bytes = sb.toString().getBytes();
+            fout.write(bytes);
+            fout.close();
+            LogUtil.info(TAG, "write m3u8 context size " + bytes.length);
+            return path;
+        }
+        catch(Exception e){
+            e.printStackTrace();
+        }
+
+        return null;
+    }
+
+    public static ZGUrl parseM3u8(String m3u8_context) {
+        StringBuffer sbUrl = new StringBuffer();
+        StringBuffer sbDuration = new StringBuffer();
+
+        // http://[^?]+\?ts_start=0
+        String regSeg = "http://[^?]+\\?ts_start=0";
+        Pattern patternSeg = Pattern.compile(regSeg);
+        Matcher matcherSeg = patternSeg.matcher(m3u8_context);
+
+        // #EXT.+
+        String regExt = "#EXT.+";
+        Pattern patternExt = Pattern.compile(regExt);
+        Matcher matcherExt = patternExt.matcher(m3u8_context);
+
+        int index = 0;
+        while (matcherSeg.find()) {
+            String url = matcherSeg.group(0);
+            int pos = url.lastIndexOf(".ts?ts_start=0");
+
+            if (index > 0)
+                sbUrl.append(",");
+            sbUrl.append(url.substring(0, pos));
+            index++;
+        }
+
+        index = 0;
+        float duration = 0f;
+        while (matcherExt.find()) {
+            String line = matcherExt.group(0);
+            if (line.startsWith("#EXTINF")) {
+                //#EXTINF:11.72,
+                int pos1, pos2;
+                pos1 = line.indexOf(":");
+                pos2 = line.lastIndexOf(",");
+                String tmp = line.substring(pos1 + 1, pos2);
+                if (pos1 < 0 || pos2 < 0)
+                    continue;
+
+                boolean isFloat = tmp.matches("[\\d]+\\.[\\d]+");
+                if (isFloat)
+                    duration += Float.parseFloat(tmp);
+                else
+                    duration += (float)Integer.parseInt(tmp);
+            }
+            else if (line.contains("#EXT-X-DISCONTINUITY") || line.contains("#EXT-X-ENDLIST")) {
+                if (index > 0)
+                    sbDuration.append(",");
+                sbDuration.append((int)duration);
+                duration = 0f;
+                index++;
+            }
+        }
+
+        if (!sbUrl.toString().isEmpty() && !sbDuration.toString().isEmpty())
+            return new ZGUrl("flv", sbUrl.toString(), sbDuration.toString());
+
+        return null;
+    }
 
 	private static String getVid(String url) {
 		String strRegex = "(?<=id_)(\\w+)";

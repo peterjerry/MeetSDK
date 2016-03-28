@@ -123,12 +123,14 @@ public class MeetVideoView extends SurfaceView implements MediaPlayerControl {
                 } else if (mVideoWidth * height < width * mVideoHeight) {
                     width = height * mVideoWidth / mVideoHeight;
                 }
+				break;
             case SCREEN_FILL:
                 if (mVideoWidth * height > width * mVideoHeight) {
                     width = height * mVideoWidth / mVideoHeight;
                 } else if (mVideoWidth * height < width * mVideoHeight) {
                     height = width * mVideoHeight / mVideoWidth;
                 }
+				break;
             case SCREEN_STRETCH:
                 /* Do nothing */
                 break;

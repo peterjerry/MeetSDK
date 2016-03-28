@@ -168,6 +168,16 @@ public class MeetViewActivity extends AppCompatActivity implements OnFocusChange
 		
 		// Full Screen
 		super.getWindow().addFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN);
+
+		try {
+			super.getWindow().addFlags(
+					WindowManager.LayoutParams.class.
+							getField("FLAG_NEEDS_MENU_KEY").getInt(null));
+		} catch (NoSuchFieldException e) {
+			// Ignore since this field won't exist in most versions of Android
+		} catch (IllegalAccessException e) {
+			e.printStackTrace();
+		}
 		
 		setContentView(R.layout.activity_meet_videoview);
 

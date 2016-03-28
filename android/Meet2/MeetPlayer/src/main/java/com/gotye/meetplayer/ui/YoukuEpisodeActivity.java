@@ -406,6 +406,7 @@ public class YoukuEpisodeActivity extends AppCompatActivity {
                     }*/
 
                     mHandler.sendEmptyMessage(MainHandler.MSG_PLAYLINK_DONE);
+                    return true;
                 }
 
                 mHandler.sendEmptyMessage(MainHandler.MSG_EPISODE_DONE);

@@ -11,6 +11,7 @@ import com.gotye.common.pptv.Module;
 import com.gotye.common.pptv.PlayLink2;
 import com.gotye.common.pptv.PlayLinkUtil;
 import com.gotye.common.sohu.PlaylinkSohu;
+import com.gotye.common.util.LogUtil;
 import com.gotye.db.PPTVPlayhistoryDatabaseHelper;
 import com.gotye.db.PPTVPlayhistoryDatabaseHelper.ClipInfo;
 import com.gotye.meetplayer.R;
@@ -87,6 +88,7 @@ public class PPTVVideoActivity extends AppCompatActivity {
 	private String mEPGparam;
 	private String mEPGtype;
 	private boolean mListLive;
+    private boolean mbVip = false;
 	
 	private ArrayAdapter<String> mAdapter;
 	private boolean mContentSelected = false;
@@ -150,9 +152,7 @@ public class PPTVVideoActivity extends AppCompatActivity {
 
                         intent.putExtra("epg_param", param);
                         intent.putExtra("epg_type", mContentType);
-                        String info = String.format("Java: ready to start PPTVEpisodeActivity param: %s, type: %s",
-                                param, mContentType);
-                        Log.i(TAG, info);
+						intent.putExtra("epg_is_vip", mbVip);
                     }
 
                     startActivity(intent);
@@ -164,6 +164,11 @@ public class PPTVVideoActivity extends AppCompatActivity {
                         mListLive = true;
                     else
                         mListLive = false;
+
+                    if (title.equals("VIP尊享"))
+                        mbVip = true;
+                    else
+                        mbVip = false;
 
                     mLink = mEPGModuleList.get(position).getLink();
                     mContentType = "";

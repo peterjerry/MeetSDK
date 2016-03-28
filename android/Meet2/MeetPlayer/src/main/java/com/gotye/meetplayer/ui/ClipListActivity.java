@@ -322,7 +322,17 @@ public class ClipListActivity extends AppCompatActivity implements
 		//requestWindowFeature(Window.FEATURE_NO_TITLE);
 		// 隐藏状态栏
         super.getWindow().addFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN);
-		
+
+		try {
+			super.getWindow().addFlags(
+					WindowManager.LayoutParams.class.
+							getField("FLAG_NEEDS_MENU_KEY").getInt(null));
+		} catch (NoSuchFieldException e) {
+			// Ignore since this field won't exist in most versions of Android
+		} catch (IllegalAccessException e) {
+            e.printStackTrace();
+		}
+
 		DisplayMetrics dm = new DisplayMetrics(); 
 		getWindowManager().getDefaultDisplay().getMetrics(dm); 
 		screen_width	= dm.widthPixels; 
@@ -830,7 +840,7 @@ public class ClipListActivity extends AppCompatActivity implements
 				}
 				
 				if (ppbox_bw_type == 4) {// dlna
-					new EPGTask().execute(EPG_ITEM_CDN, ppbox_playid, ppbox_ft, 1); // 3rd params for MSG_PLAY_CDN_URL
+					new EPGTask().execute(EPG_ITEM_CDN, ppbox_playid, ppbox_ft, 0); // 3rd params for MSG_PLAY_CDN_URL
 					return;
 				}
 				
@@ -2102,12 +2112,22 @@ public class ClipListActivity extends AppCompatActivity implements
 
     private class ParseVideoTask extends AsyncTask<String, Integer, String> {
 
+        private String urls;
+        private String durations;
+
         @Override
         protected void onPostExecute(String play_url) {
             if (play_url != null) {
-                start_player("N/A", play_url);
-                Toast.makeText(ClipListActivity.this, "parse video url successfully",
-                        Toast.LENGTH_SHORT).show();
+                //start_player("N/A", play_url);
+                //Toast.makeText(ClipListActivity.this, "parse video url successfully",
+                //        Toast.LENGTH_SHORT).show();
+
+                Intent intent = new Intent(ClipListActivity.this, PlayYoukuActivity.class);
+                intent.putExtra("url_list", urls);
+                intent.putExtra("duration_list", durations);
+                intent.putExtra("title", "N/A");
+                intent.putExtra("ft", 2);
+                startActivity(intent);
             }
             else {
                 Toast.makeText(ClipListActivity.this, "no url is set", Toast.LENGTH_SHORT).show();
@@ -2119,7 +2139,26 @@ public class ClipListActivity extends AppCompatActivity implements
             String video_url = params[0];
 
             if (video_url.contains("youku")) {
-                return YKUtil.getPlayUrl(video_url, null);
+                String m3u8_url = YKUtil.getPlayUrl(video_url, null);
+
+				if (m3u8_url != null) {
+                    // get duration list
+                    LogUtil.info(TAG, "m3u8_url: " + m3u8_url);
+
+                    byte []buffer = new byte[65536 * 10];
+                    int content_size = httpUtil.httpDownloadBuffer(m3u8_url, 0, buffer);
+                    if (content_size > 0) {
+                        byte []m3u8_context = new byte[content_size];
+                        System.arraycopy(buffer, 0, m3u8_context, 0, content_size);
+
+                        YKUtil.ZGUrl tmp = YKUtil.parseM3u8(new String(m3u8_context));
+                        if (tmp != null) {
+                            urls = tmp.urls;
+                            durations = tmp.durations;
+                            return "youku.m3u8";
+                        }
+                    }
+				}
             }
 
             return null;
@@ -2484,7 +2523,7 @@ public class ClipListActivity extends AppCompatActivity implements
 				if (mPlayUrl.startsWith("http://127.0.0.1")) {
 					int link = Integer.valueOf(et_playlink.getText().toString());
 					int ft = Integer.valueOf(btn_ft.getText().toString());
-					new EPGTask().execute(EPG_ITEM_CDN, link, ft, 0);
+					new EPGTask().execute(EPG_ITEM_CDN, link, ft, 1);
 					dialog.cancel();
 					return;
 				}
@@ -2758,8 +2797,7 @@ public class ClipListActivity extends AppCompatActivity implements
                 new ParseVideoTask().execute(video_url);
                 break;
             default:
-                LogUtil.warn(TAG, "invalid menu item selected: " + id);
-                return false;
+                break;
         }
 
         return true;//super.onOptionsItemSelected(item);

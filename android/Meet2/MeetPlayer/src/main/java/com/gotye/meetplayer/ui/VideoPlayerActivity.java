@@ -21,6 +21,7 @@ import android.os.Environment;
 import android.os.Handler;
 import android.os.Message;
 import android.support.v7.app.AppCompatActivity;
+import android.util.Log;
 import android.view.GestureDetector;
 import android.view.KeyEvent;
 import android.view.Menu;
@@ -112,6 +113,16 @@ public class VideoPlayerActivity extends AppCompatActivity implements Callback {
 		super.onCreate(savedInstanceState);
 
         super.getWindow().addFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN);
+
+		try {
+			super.getWindow().addFlags(
+					WindowManager.LayoutParams.class.
+							getField("FLAG_NEEDS_MENU_KEY").getInt(null));
+		} catch (NoSuchFieldException e) {
+			// Ignore since this field won't exist in most versions of Android
+		} catch (IllegalAccessException e) {
+			e.printStackTrace();
+		}
 
 		Intent intent = getIntent();
 		mUri = intent.getData();

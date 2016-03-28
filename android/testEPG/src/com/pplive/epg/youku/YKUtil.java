@@ -25,6 +25,7 @@ import org.json.JSONTokener;
 
 import com.pplive.epg.util.Base64Util;
 import com.pplive.epg.util.CryptAES;
+import com.pplive.epg.util.httpUtil;
 
 public class YKUtil {
 	
@@ -154,7 +155,7 @@ public class YKUtil {
 	
 	public static void main(String[] args) { 
         
-		String url = "http://v.youku.com/v_show/id_XMTQ5NDg3NjQzNg==.html?from=s1.8-1-1.1";
+		//String url = "http://v.youku.com/v_show/id_XMTQ5NDg3NjQzNg==.html?from=s1.8-1-1.1";
 		
 		List<Channel> channelList = getChannel();
 		if (channelList == null)
@@ -165,7 +166,7 @@ public class YKUtil {
 					String.format("#%d %s", i, channelList.get(i).toString()));
 		}
 		
-		Channel c = channelList.get(15); // 1电视剧 2电影15游戏
+		Channel c = channelList.get(1); // 1电视剧 2电影15游戏
 		List<Catalog> catlogList = getCatalog(c.getChannelId());
 		if (catlogList == null)
 			return;
@@ -175,7 +176,7 @@ public class YKUtil {
 					String.format("#%d %s", i, catlogList.get(i).toString()));
 		}
 		
-		Catalog cat = catlogList.get(1); // 1全部 动作
+		Catalog cat = catlogList.get(2); // 1全部 动作
 		List<Album> alList = getAlbums(
 				c.getChannelId(), cat.getFilter(), 
 				cat.getSubChannelId(), cat.getSubChannelType(), 1);
@@ -186,7 +187,7 @@ public class YKUtil {
 		for (int i=0;i<alList.size();i++)
 			System.out.println(alList.get(i).toString());
 		
-		Album al = alList.get(0);
+		Album al = alList.get(3);
 		al = getAlbumInfo(al.getShowId());
 		if (al == null)
 			return;
@@ -199,9 +200,30 @@ public class YKUtil {
 				System.out.println(list.get(i).toString());
 		}
 		
-		//String m3u8Url = getPlayUrl(url);
-		//if (m3u8Url != null)
-		//	System.out.println("Java: toUrl " + m3u8Url);
+		//getZGUrls(list.get(3).getVideoId());
+		
+		String m3u8Url = getPlayUrl_vid(list.get(3).getVideoId());
+		if (m3u8Url == null) {
+			System.out.println("failed to get m3u8");
+			return;
+		}
+		
+		System.out.println("Java: toUrl " + m3u8Url);
+		byte []buffer = new byte[65536];
+		if (!httpUtil.httpDownload(m3u8Url, "1.m3u8")) {
+			System.out.println("failed to download m3u8");
+			return;
+		}
+		
+		int content_size = httpUtil.httpDownloadBuffer(m3u8Url, 0, buffer);
+		if (content_size < 0) {
+			System.out.println("failed to download m3u8_context");
+			return;
+		}
+		
+		byte []m3u8_context = new byte[content_size];
+		System.arraycopy(buffer, 0, m3u8_context, 0, content_size);
+		parseM3u8(new String(m3u8_context));
 		
         //String keyStr = "UITN25LMUQC436IM";  
  
@@ -462,8 +484,8 @@ public class YKUtil {
             	title += subtitle;
             	title += ")";
             }
-            return new Album(title, videoid, showid,
-            		stripe, img, total_vv, 
+            return new Album(title, videoid, stripe,
+            		showid, img, total_vv, 
             		showdate, desc, actor);
         } catch (JSONException e1) {
             e1.printStackTrace();
@@ -476,7 +498,7 @@ public class YKUtil {
 			String showId, int page, int page_size) {		
 		String url = String.format(youku_get_episode_api, 
 				showId, page, page_size);
-		System.out.println("url: " + url);
+		System.out.println("getEpisodeList() url: " + url);
 		String result = getHttpPage(url, true, true);
 		if (result == null)
 			return null;
@@ -644,6 +666,127 @@ public class YKUtil {
 		
 		return getPlayUrl_vid(vid);
 	}
+	
+	private static ZGUrl parseM3u8(String m3u8_context) {
+		List<String> urlList = new ArrayList<String>();
+		List<Integer> durationList = new ArrayList<Integer>();
+		
+		// http://[^?]+\?ts_start=0
+        String regSeg = "http://[^?]+\\?ts_start=0";
+        Pattern patternSeg = Pattern.compile(regSeg);
+        Matcher matcherSeg = patternSeg.matcher(m3u8_context);
+        
+        // #EXT.+
+        String regExt = "#EXT.+";
+        Pattern patternExt = Pattern.compile(regExt);
+        Matcher matcherExt = patternExt.matcher(m3u8_context);
+
+        while (matcherSeg.find()) {
+        	String url = matcherSeg.group(0);
+        	int pos = url.lastIndexOf(".ts?ts_start=0");
+            urlList.add(url.substring(0, pos));
+        }
+        
+        float duration_f = 0;
+        int duration = 0;
+        while (matcherExt.find()) {
+        	String line = matcherExt.group(0);
+        	if (line.startsWith("#EXTINF")) {
+        		//#EXTINF:11.72,
+        		int pos1, pos2;
+        		pos1 = line.indexOf(":");
+        		pos2 = line.lastIndexOf(",");
+        		String tmp = line.substring(pos1 + 1, pos2);
+        		if (pos1 < 0 || pos2 < 0)
+        			continue;
+        		
+        		boolean isFloat = tmp.matches("[\\d]+\\.[\\d]+");
+        		if (isFloat)
+        			duration_f += Float.parseFloat(tmp);
+        		else
+        			duration_f += (float)Integer.parseInt(tmp);
+        	}
+        	else if (line.contains("#EXT-X-DISCONTINUITY")) {
+        		duration = (int)duration_f;
+        		durationList.add(duration);
+        		duration_f = 0;
+        	}
+        }
+        
+        if (urlList.isEmpty())
+        	return null;
+        
+        return new ZGUrl("flv", urlList, durationList);
+    }
+	
+	public static class ZGUrl {
+		public String file_type;
+		public List<String> file_list;
+		public List<Integer> duration_list;
+		
+		public ZGUrl(String type, List<String>file_list, List<Integer>duration_list) {
+			this.file_type = type;
+			this.file_list = file_list;
+			this.duration_list = duration_list;
+		}
+	}
+	
+	public static ZGUrl getZGUrls(String vid) {
+        // ApiKey：66c15f2b1b2bd90244dbcc84290395f8
+        // http://zg.yangsifa.com/video?url=[播放地址]&hd=[清晰度]&apikey=[自己的ApiKey]
+		// v.youku.com/v_show/id_
+		String api_key = "66c15f2b1b2bd90244dbcc84290395f8";
+		String api_url = "http://zg.yangsifa.com/video?url=v.youku.com/v_show/id_%s.html&hd=3";
+        String url = String.format(api_url, vid, api_key);
+        System.out.println("getZGUrls() url: " + url);
+		String result = getHttpPage(url, false, false);
+		if (result == null)
+			return null;
+			
+		try {
+//			hd: "gq",
+//			exe: "mp4",
+//			vtype: "youku",
+//			urls: [
+//			{
+//			url: "http://zg.yangsifa.com/link?url=dbf4LLph7Dxyi7t0EuaiWUYjFk6weeJigT--opEsTx24hzvGp2UEM-K0TGSehsxn29xfsUj2DRKfOkZrMQ"
+//			},
+//			{
+//			url: "http://zg.yangsifa.com/link?url=8248iR0SztTHeaZjC1HZuv9x4G-qSq0ycVcYb1Q2BdNjvxoBqfUiAqf3PPPX0fLSfasv0R1O84Y59fmxtg"
+//			},
+            JSONTokener jsonParser = new JSONTokener(result);
+            JSONObject root = (JSONObject) jsonParser.nextValue();
+            JSONObject pc = root.getJSONObject("pc");
+            String hd = pc.getString("hd");
+            String file_type = pc.getString("exe");
+            String vtype = pc.getString("vtype");
+            JSONArray urls = pc.getJSONArray("urls");
+            int size = urls.length();
+            List<String> urlList = new ArrayList<String>();
+            List<Integer> durationList = new ArrayList<Integer>();
+            for (int i=0;i<size;i++) {
+            	JSONObject item = urls.getJSONObject(i);
+            	String item_url = item.getString("url");
+            	System.out.println("item_url " + item_url);
+            	urlList.add(item_url);
+            	durationList.add(300);
+            }
+            
+            JSONObject mobile = root.getJSONObject("mobile");
+            String mobile_hd = mobile.getString("hd");
+            String mobile_file_type = mobile.getString("exe");
+            String mobile_vtype = mobile.getString("vtype");
+            String mobile_url = mobile.getString("url");
+            System.out.println("mobile_url " + mobile_url);
+            
+            return new ZGUrl(file_type, urlList, durationList);
+		} catch (JSONException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+        return null;
+    }
 	
 	public static String getPlayUrl2(String youku_url) {
 		String vid = getVid(youku_url);

@@ -125,7 +125,7 @@ char * apXmlParser::parseCDN(char *context, unsigned int size, int ft, bool is_m
 				d_ft.c_str(), d_sh.c_str(), d_bh.c_str(), d_st.c_str(), d_key.c_str(), t);
 
 			uint8_t *gen_key = apKey::genKey(t);
-			LOGI("key %s", gen_key);
+			LOGI("gen_key %s", gen_key);
 
 			std::string final_url;
 
@@ -164,6 +164,12 @@ char * apXmlParser::parseCDN(char *context, unsigned int size, int ft, bool is_m
 				final_url += url_rid;
 					
 			final_url += "?w=1&key=" + std::string((char *)gen_key);
+			// fix vip video can ONLY get trailer duration problem 
+			// key cbdcf8c028a5b26f1e12ba4f2fcf440c-2516-1459143765%26segment%3D5319010a_53190026_1459129365
+			std::string::size_type pos = d_key.find("%26segment%3D");
+			if (pos != -1) {
+				d_key = d_key.substr(0, pos);
+			}
 			final_url += "&k=" + d_key;
 			if (novideo)
 				final_url += "&video=false";

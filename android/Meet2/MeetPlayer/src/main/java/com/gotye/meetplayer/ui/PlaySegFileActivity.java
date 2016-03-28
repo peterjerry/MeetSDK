@@ -104,6 +104,7 @@ public class PlaySegFileActivity extends AppCompatActivity
 		super.onCreate(savedInstanceState);
 
 		super.getWindow().addFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN);
+		super.getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
 		
 		setContentView(R.layout.activity_frag_mp4_player);
 

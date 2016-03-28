@@ -70,7 +70,8 @@ public class PlayLinkUtil {
 
     public static final int FT_UNKNOWN = -1;
     
-    public static String getPlayUrl(int playlink, int http_port, int ft, int bwt, String link_surfix) {
+    public static String getPlayUrl(int playlink, int http_port, int ft, int bwt,
+                                    String link_surfix) {
     	String ppbox_url;
 		String str_playlink;
 		str_playlink = addPlaylinkParam(playlink, ft, bwt);

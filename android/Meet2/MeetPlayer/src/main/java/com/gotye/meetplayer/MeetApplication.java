@@ -22,8 +22,9 @@ import android.util.Log;
 public class MeetApplication extends Application {
 	
 	private final static String TAG = "MeetApplication";
-	
-	public static final String CRASH_HOST = "http://iloveyaya.zz.vc"; //31.220.16.178
+
+	public static final String CRASH_HOST = "http://42.62.105.235";
+	//public static final String CRASH_HOST = "http://iloveyaya.zz.vc"; //31.220.16.178
     //public static final String CRASH_HOST = "http://192.168.1.114:8088";
     public static final String UPLOAD_URL = CRASH_HOST + "/crash/crash.php";
 	
