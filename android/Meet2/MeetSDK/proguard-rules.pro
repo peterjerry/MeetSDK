@@ -51,30 +51,56 @@
 -keep class * implements android.os.Parcelable { # 保持 Parcelable 不被混淆  
     public static final android.os.Parcelable$Creator *;
 }
--keepclassmembers class com.gotye.meetsdk.player.FFMediaPlayer { 
-	private *; 
+#不混淆变量
+-keepclassmembers class com.gotye.meetsdk.player.FFMediaPlayer {
+	long mNativeContext;
+	long mListenerContext;
+	java.lang.String libPath;
 }
--keepclassmembers class com.gotye.meetsdk.player.FFMediaExtractor { 
-	private *; 
+-keepclassmembers class com.gotye.meetsdk.player.FFMediaExtractor {
+	long mNativeContext;
 }
--keepclassmembers class com.gotye.meetsdk.player.XOMediaPlayer { 
-	private *; 
+-keepclassmembers class com.gotye.meetsdk.subtitle.SimpleSubTitleParser {
+	long mNativeContext;
 }
--keepclassmembers class com.gotye.meetsdk.player.OMXMediaPlayer { 
-	private *; 
+#不混淆所有属性与方法
+-keepclasseswithmembers class com.gotye.meetsdk.MeetSDK {
+     <fields>;
+     <methods>;
+ }
+-keepclasseswithmembers class com.gotye.meetsdk.player.MediaInfo {
+    <fields>;
+    <methods>;
 }
--keep class com.gotye.meetsdk.player.MediaInfo
--keep class com.gotye.meetsdk.player.TrackInfo
--keep class com.gotye.meetsdk.player.MediaExtractable
--keepclassmembers class com.gotye.meetsdk.player.MediaPlayer {
-	public *; 
+-keepclasseswithmembers class com.gotye.meetsdk.player.MediaPlayerInterface {
+    <fields>;
+    <methods>;
 }
--keep class com.gotye.meetsdk.player.MediaController
--keep class com.gotye.meetsdk.player.MediaController.*
--keep class com.gotye.meetsdk.player.BaseMediaPlayer
--keep class com.gotye.meetsdk.player.MeetVideoView
--keep class com.gotye.meetsdk.player.MeetGLVideoView
--keep class com.gotye.meetsdk.subtitle.SubTitleParser
--keep class com.gotye.meetsdk.subtitle.SimpleSubTitleParser
--keep class com.gotye.meetsdk.util.BufferedRandomAccessFile
--keep class com.gotye.meetsdk.MeetSDK
+-keep public class com.gotye.meetsdk.player.MediaPlayer
+-keep public class com.gotye.meetsdk.subtitle.SimpleSubTitleParser
+-keepclasseswithmembers class com.gotye.meetsdk.player.TrackInfo {
+    <fields>;
+    <methods>;
+}
+-keepclasseswithmembers class com.gotye.meetsdk.player.MediaController {
+    <fields>;
+    <methods>;
+}
+-keepclasseswithmembers class com.gotye.meetsdk.player.MeetVideoView {
+    <fields>;
+    <methods>;
+}
+-keepclasseswithmembers class com.gotye.meetsdk.player.MeetGLVideoView {
+    <fields>;
+    <methods>;
+}
+-keepclasseswithmembers class com.gotye.meetsdk.player.MeetNativeVideoView {
+    <fields>;
+    <methods>;
+}
+#不混淆类名
+-keep class com.gotye.meetsdk.util.LogUtil
+#不混淆方法
+-keepclassmembers class com.gotye.meetsdk.util.LogUtils {
+	public static void nativeLog(int,java.lang.String,java.lang.String);
+}

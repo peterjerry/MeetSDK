@@ -1,9 +1,0 @@
-password 123456
-
-alias Multimedia
-password 666666
-Org Unit PPTV
-Org PPLive
-City Shanghai
-State PuDong
-Code 200000

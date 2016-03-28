@@ -5,7 +5,7 @@
     android:layout_height="fill_parent" 
     android:background="@android:color/black">
 
-    <com.gotye.meetsdk.player.MeetNativeVideoView
+    <com.gotye.meetsdk.player.MeetVideoView
         android:id="@+id/video_view"
         android:layout_width="fill_parent"
         android:layout_height="fill_parent"

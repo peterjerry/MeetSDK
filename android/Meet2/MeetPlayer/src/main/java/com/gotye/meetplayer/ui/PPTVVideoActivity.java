@@ -11,9 +11,11 @@ import com.gotye.common.pptv.Module;
 import com.gotye.common.pptv.PlayLink2;
 import com.gotye.common.pptv.PlayLinkUtil;
 import com.gotye.common.sohu.PlaylinkSohu;
+import com.gotye.common.util.LogUtil;
 import com.gotye.db.PPTVPlayhistoryDatabaseHelper;
 import com.gotye.db.PPTVPlayhistoryDatabaseHelper.ClipInfo;
 import com.gotye.meetplayer.R;
+import com.gotye.meetplayer.util.Constants;
 import com.gotye.meetplayer.util.Util;
 import com.pplive.sdk.MediaSDK;
 
@@ -28,19 +30,22 @@ import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
+import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.KeyEvent;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
+import android.view.WindowManager;
+import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.EditText;
 import android.widget.ListView;
 import android.widget.Toast;
 
 
-public class PPTVVideoActivity extends ListActivity {
+public class PPTVVideoActivity extends AppCompatActivity {
 	private final static String TAG = "PPTVVideoActivity";
 	
 	private final int EPG_ITEM_CATALOG			= 2;
@@ -83,6 +88,7 @@ public class PPTVVideoActivity extends ListActivity {
 	private String mEPGparam;
 	private String mEPGtype;
 	private boolean mListLive;
+    private boolean mbVip = false;
 	
 	private ArrayAdapter<String> mAdapter;
 	private boolean mContentSelected = false;
@@ -92,29 +98,93 @@ public class PPTVVideoActivity extends ListActivity {
 	private String mEPGsearchKey;
 	
 	private PPTVPlayhistoryDatabaseHelper mHistoryDB;
+
+    private ListView mListView;
 	
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
-		
-		Log.i(TAG, "Java: onCreate()");
+
+        super.getWindow().addFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN);
+
+        mListView = new ListView(this);
+		setContentView(mListView);
+
+        mListView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            @Override
+            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+                if (mContentSelected) {
+                    String param = mEPGContentList.get(position).getParam();
+                    if (param.startsWith("type="))
+                        mContentType = "";
+                    Intent intent = null;
+                    if (mListLive) {
+                        if (1 == position || 5 == position) // 体育直播 游戏直播
+                            intent = new Intent(PPTVVideoActivity.this, PPTVLiveCenterActivity.class);
+                        else
+                            intent = new Intent(PPTVVideoActivity.this, PPTVLiveActivity.class);
+
+                        int live_type;
+                        if (1 == position) // 体育直播
+                            live_type = 44;
+                        else if (2 == position) // 卫视
+                            live_type = 164;
+                        else if (3 == position) // 地方台
+                            live_type = 156;
+                        else if (4 == position) // 电台
+                            live_type = 210712;
+                        else if (5 == position) // 游戏
+                            live_type = 44;
+                        else {
+                            Toast.makeText(PPTVVideoActivity.this, "invalid live type: " + position, Toast.LENGTH_SHORT).show();
+                            return;
+                        }
+
+                        if (1 == position) // 体育直播
+                            intent.putExtra("livecenter_id", "44");
+                        else if (5 == position)
+                            intent.putExtra("livecenter_id", "game");
+                        else
+                            intent.putExtra("live_type", live_type);
+                    }
+                    else {
+                        intent = new Intent(PPTVVideoActivity.this, PPTVEpisodeActivity.class);
+
+                        intent.putExtra("epg_param", param);
+                        intent.putExtra("epg_type", mContentType);
+						intent.putExtra("epg_is_vip", mbVip);
+                    }
+
+                    startActivity(intent);
+                    return;
+                }
+                else {
+                    String title = mEPGModuleList.get(position).getTitle();
+                    if (title.equals("直播"))
+                        mListLive = true;
+                    else
+                        mListLive = false;
+
+                    if (title.equals("VIP尊享"))
+                        mbVip = true;
+                    else
+                        mbVip = false;
+
+                    mLink = mEPGModuleList.get(position).getLink();
+                    mContentType = "";
+                    int pos = mLink.indexOf("type=");
+                    if (pos != -1) {
+                        mContentType = mLink.substring(pos, mLink.length());
+                    }
+                    new EPGTask().execute(EPG_ITEM_CONTENT_SURFIX);
+                }
+            }
+        });
 		
 		mHistoryDB = PPTVPlayhistoryDatabaseHelper.getInstance(this);
 		
 		mEPG = new EPGUtil();
 		new EPGTask().execute(EPG_ITEM_CONTENT_LIST);
-	}
-	
-	@Override
-	public boolean onKeyDown(int keyCode, KeyEvent event) {
-		Log.d(TAG, "keyCode: " + keyCode);
-		
-		if (keyCode == KeyEvent.KEYCODE_MENU) {
-			openOptionsMenu();
-			return true;
-		}
-		
-		return super.onKeyDown(keyCode, event);
 	}
 	
 	@Override
@@ -181,75 +251,6 @@ public class PPTVVideoActivity extends ListActivity {
 		}
 		
 		super.onBackPressed();
-	}
-	
-	@Override
-	protected void onListItemClick(ListView l, View v, int position, long id) {
-		// TODO Auto-generated method stub
-		//super.onListItemClick(l, v, position, id);
-		
-		if (mContentSelected) {
-			String param = mEPGContentList.get(position).getParam();
-			if (param.startsWith("type="))
-				mContentType = "";
-			Intent intent = null;
-			if (mListLive) {
-				if (1 == position || 5 == position) // 体育直播 游戏直播
-					intent = new Intent(PPTVVideoActivity.this, PPTVLiveCenterActivity.class);
-				else
-					intent = new Intent(PPTVVideoActivity.this, PPTVLiveActivity.class);
-				
-				int live_type;
-				if (1 == position) // 体育直播
-					live_type = 44;
-				else if (2 == position) // 卫视
-					live_type = 164;
-				else if (3 == position) // 地方台
-					live_type = 156;
-				else if (4 == position) // 电台
-					live_type = 210712;
-				else if (5 == position) // 游戏
-					live_type = 44;
-				else {
-					Toast.makeText(PPTVVideoActivity.this, "invalid live type: " + position, Toast.LENGTH_SHORT).show();
-					return;
-				}
-				
-				if (1 == position) // 体育直播
-					intent.putExtra("livecenter_id", "44");
-				else if (5 == position)
-					intent.putExtra("livecenter_id", "game");
-				else
-					intent.putExtra("live_type", live_type);
-			}
-			else {
-				intent = new Intent(PPTVVideoActivity.this, PPTVEpisodeActivity.class);
-				
-				intent.putExtra("epg_param", param);
-	    		intent.putExtra("epg_type", mContentType);
-	    		String info = String.format("Java: ready to start PPTVEpisodeActivity param: %s, type: %s",
-	    				param, mContentType);
-	    		Log.i(TAG, info);
-			}
-
-    		startActivity(intent);
-			return;
-		}
-		else {
-			String title = mEPGModuleList.get(position).getTitle();
-			if (title.equals("直播"))
-				mListLive = true;
-			else
-				mListLive = false;
-			
-			mLink = mEPGModuleList.get(position).getLink();
-			mContentType = "";
-			int pos = mLink.indexOf("type=");
-			if (pos != -1) {
-				mContentType = mLink.substring(pos, mLink.length());
-			}
-			new EPGTask().execute(EPG_ITEM_CONTENT_SURFIX);
-		}
 	}
 	
 	private void popupSearch() {
@@ -500,13 +501,13 @@ public class PPTVVideoActivity extends ListActivity {
 				if (mAdapter == null) {
 					mAdapter = new ArrayAdapter<String>(
 							PPTVVideoActivity.this, android.R.layout.simple_expandable_list_item_1, result);
-					PPTVVideoActivity.this.setListAdapter(mAdapter);
+					PPTVVideoActivity.this.mListView.setAdapter(mAdapter);
 				}
 				else {
 					mAdapter.clear();
 					mAdapter.addAll(result);
 					mAdapter.notifyDataSetChanged();
-					PPTVVideoActivity.this.setSelection(0);
+					PPTVVideoActivity.this.mListView.setSelection(0);
 				}
 			}
         }

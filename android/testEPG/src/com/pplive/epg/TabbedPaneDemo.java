@@ -16,6 +16,7 @@ import com.pplive.epg.letv.LeTVPanel;
 import com.pplive.epg.pptv.PPTVPanel;
 import com.pplive.epg.sohu.SohuPanel;
 import com.pplive.epg.vst.VstPanel;
+import com.pplive.epg.youku.YoukuPanel;
 
 @SuppressWarnings("serial")
 public class TabbedPaneDemo extends JPanel {
@@ -42,6 +43,7 @@ public class TabbedPaneDemo extends JPanel {
        //BestvPanel bestvPanel = new BestvPanel();
        SohuPanel sohuPanel = new SohuPanel();
        BaiduPanel baiduPanel = new BaiduPanel();
+       YoukuPanel youkuPanel = new YoukuPanel();
        
        //指定标签名，标签图标，panel，和提示信息
        tp.addTab("PPTV", iiPPTV, pptvPanel, "聚力传媒");
@@ -71,6 +73,8 @@ public class TabbedPaneDemo extends JPanel {
        //第六个标签
        tp.addTab("BaiduPan", iiBaidu, baiduPanel, "百度网盘");
        tp.setMnemonicAt(2, KeyEvent.VK_5);
+       
+       tp.addTab("Youku", null, youkuPanel, "优酷视频");
        
        //将tabbedPanel添加到Jpanel中
        add(tp);

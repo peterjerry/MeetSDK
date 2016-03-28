@@ -11,6 +11,7 @@ import com.gotye.common.sohu.PlaylinkSohu;
 import com.gotye.common.sohu.PlaylinkSohu.SohuFtEnum;
 import com.gotye.common.sohu.SohuUtil;
 import com.gotye.meetplayer.R;
+import com.gotye.meetplayer.util.Constants;
 import com.gotye.meetplayer.util.Util;
 
 import android.app.Activity;
@@ -22,9 +23,11 @@ import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
+import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.KeyEvent;
 import android.view.View;
+import android.view.WindowManager;
 import android.widget.AbsListView;
 import android.widget.AdapterView;
 import android.widget.EditText;
@@ -32,7 +35,7 @@ import android.widget.GridView;
 import android.widget.Toast;
 
 
-public class SohuEpisodeActivity extends Activity {
+public class SohuEpisodeActivity extends AppCompatActivity {
 	private final static String TAG = "SohuEpisodeActivity";
 	
 	private GridView gridView = null;  
@@ -76,8 +79,8 @@ public class SohuEpisodeActivity extends Activity {
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
-		
-		Log.i(TAG, "Java: onCreate()");
+
+		super.getWindow().addFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN);
 		
 		Intent intent = getIntent();
 		sub_channel_id = intent.getIntExtra("sub_channel_id", -1);
@@ -179,18 +182,6 @@ public class SohuEpisodeActivity extends Activity {
 	    	new SetDataTask().execute(SET_DATA_SEARCH);
 	    else
 	    	new SetDataTask().execute(SET_DATA_LIST);
-	}
-	
-	@Override
-	public boolean onKeyDown(int keyCode, KeyEvent event) {
-		Log.d(TAG, "keyCode: " + keyCode);
-		
-		if (keyCode == KeyEvent.KEYCODE_MENU) {
-			super.openOptionsMenu();
-			return true;
-		}
-		
-		return super.onKeyDown(keyCode, event);
 	}
 	
 	private Handler mhandler = new Handler(){  

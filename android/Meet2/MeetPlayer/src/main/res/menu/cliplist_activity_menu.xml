@@ -7,16 +7,19 @@
         android:id="@+id/list_clip"
         android:orderInCategory="1"
         android:title="list clip"
+        app:showAsAction="always"
         android:icon="@drawable/list" />
     <item
         android:id="@+id/update_apk"
         android:orderInCategory="2"
         android:title="update"
+        app:showAsAction="never"
         android:icon="@drawable/update" />
     <item
         android:id="@+id/settings"
         android:orderInCategory="3"
         android:title="settings"
+        app:showAsAction="always"
         android:icon="@drawable/settings" >
         <menu>      
             <item
@@ -49,23 +52,12 @@
         android:id="@+id/option"
         android:orderInCategory="4"
         android:title="option"
+        app:showAsAction="always"
         android:icon="@drawable/option" >
     	<menu>      
             <item
 		        android:id="@+id/dlna_dmr"
 		        android:title="dlna dmr"/>
-		    <item
-		        android:id="@+id/bestv_video"
-		        android:title="bestv video"/>
-		    <item
-		        android:id="@+id/pptv_frontpage"
-		        android:title="pptv frontpage"/>
-		    <item
-		        android:id="@+id/pptv_video"
-		        android:title="pptv video"/>
-		    <item
-		        android:id="@+id/sohu_video"
-		        android:title="sohu video"/>
 		    <item
 		        android:id="@+id/load_subtitle"
 		        android:title="load subtitle"/>
@@ -83,10 +75,44 @@
 		        android:title="upload crash report"/>
 		</menu>
 	</item>
+	<item
+		android:id="@+id/video"
+		android:orderInCategory="5"
+		android:title="video"
+        app:showAsAction="always"
+		android:icon="@drawable/option" >
+        <menu>
+            <item
+                android:id="@+id/pptv_frontpage"
+                android:title="pptv frontpage"/>
+            <item
+                android:id="@+id/pptv_video"
+                android:title="pptv video"/>
+            <item
+                android:id="@+id/sohu_video"
+                android:title="sohu video"/>
+            <item
+                android:id="@+id/bestv_video"
+                android:title="bestv video"/>
+            <item
+                android:id="@+id/youku_video"
+                android:title="youku video"/>
+            <item
+                android:id="@+id/tudou_video"
+                android:title="tudou video"/>
+            <item
+                android:id="@+id/iqiyi_video"
+                android:title="iqiyi video"/>
+            <item
+                android:id="@+id/parse_url"
+                android:title="parse url"/>
+        </menu>
+    </item>
     <item
         android:id="@+id/quit"
-        android:orderInCategory="5"
+        android:orderInCategory="6"
         android:title="quit"
+        app:showAsAction="never"
         android:icon="@drawable/quit" />
 
 </menu>

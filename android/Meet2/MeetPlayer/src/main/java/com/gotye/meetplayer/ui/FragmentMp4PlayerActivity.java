@@ -10,6 +10,7 @@ import com.gotye.common.pptv.Episode;
 import com.gotye.common.sohu.PlaylinkSohu;
 import com.gotye.common.sohu.PlaylinkSohu.SohuFtEnum;
 import com.gotye.common.sohu.SohuUtil;
+import com.gotye.common.util.LogUtil;
 import com.gotye.meetplayer.R;
 
 import android.app.Activity;
@@ -22,6 +23,8 @@ import android.os.Handler;
 import android.os.Message;
 import com.gotye.meetsdk.player.MediaPlayer;
 import com.gotye.meetsdk.player.MediaPlayer.DecodeMode;
+
+import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.KeyEvent;
 import android.view.MotionEvent;
@@ -38,9 +41,9 @@ import android.widget.TextView;
 import android.widget.MediaController.MediaPlayerControl;
 import android.widget.Toast;
 
-public class FragmentMp4PlayerActivity extends Activity implements Callback {
+public class FragmentMp4PlayerActivity extends AppCompatActivity implements Callback {
 
-	private final static String TAG = "FragmentMp4PlayerActivity";
+	private final static String TAG = "FragMp4Activity";
 	
 	private RelativeLayout mLayout;
 	private SurfaceView mView;
@@ -114,12 +117,13 @@ public class FragmentMp4PlayerActivity extends Activity implements Callback {
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 		
-		requestWindowFeature(Window.FEATURE_NO_TITLE);
-		getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN,
-				WindowManager.LayoutParams.FLAG_FULLSCREEN);
+		//requestWindowFeature(Window.FEATURE_NO_TITLE);
+		super.getWindow().addFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN);
 		
 		setContentView(R.layout.activity_frag_mp4_player);
-		
+
+		getSupportActionBar().hide();
+
 		mLayout = (RelativeLayout) findViewById(R.id.main_layout);
 		mView = (SurfaceView) findViewById(R.id.player_view);
 		mBufferingProgressBar = (ProgressBar) findViewById(R.id.progressbar_buffering);
@@ -358,7 +362,7 @@ public class FragmentMp4PlayerActivity extends Activity implements Callback {
 	@Override
 	protected void onPause() {
 		// TODO Auto-generated method stub
-		super.onStop();
+		super.onPause();
 		
 		if (mPlayer != null) {
 			mPlayer.stop();
@@ -372,7 +376,7 @@ public class FragmentMp4PlayerActivity extends Activity implements Callback {
 		// TODO Auto-generated method stub
 		if (mPlayer != null) {
 			if (mController.isShowing()) {
-				Log.i(TAG, "Java: to hide");
+				LogUtil.info(TAG, "Java: to hide");
 				mController.hide();
 			}
 			else

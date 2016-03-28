@@ -10,7 +10,8 @@ public class SimpleSubTitleParser implements Handler.Callback, SubTitleParser {
 	private static final int WHAT_LOAD_SUBTILTE = 9001;
 	private static final int WHAT_SEEKTO 		= 9002;
 	private static final int WHAT_CLOSE 		= 9003;
-	
+
+	private long mNativeContext;
 	private static String slibPath = "";
 	private static boolean slibLoaded = false;
 	public static boolean initParser(String path) {
@@ -65,8 +66,7 @@ public class SimpleSubTitleParser implements Handler.Callback, SubTitleParser {
 	}
 	
 	private SubTitleSegment mSegment;
-	
-	private long mNativeContext;
+
 	private Handler mInnerHandler;
 	
 	public SimpleSubTitleParser() {

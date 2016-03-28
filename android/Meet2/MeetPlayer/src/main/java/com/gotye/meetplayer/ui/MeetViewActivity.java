@@ -47,6 +47,8 @@ import android.os.Message;
 import com.gotye.meetsdk.player.MediaPlayer;
 import com.gotye.meetsdk.player.MediaPlayer.DecodeMode;
 import com.gotye.meetsdk.player.MeetVideoView;
+
+import android.support.v7.app.AppCompatActivity;
 import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.GestureDetector;
@@ -69,7 +71,7 @@ import android.widget.RemoteViews;
 import android.widget.TextView;
 import android.widget.Toast;
 
-public class MeetViewActivity extends Activity implements OnFocusChangeListener {
+public class MeetViewActivity extends AppCompatActivity implements OnFocusChangeListener {
 
 	private final static String TAG = "MeetViewActivity";
 	private final static String []mode_desc = {"自适应", "铺满屏幕", "放大裁切", "原始大小"};
@@ -102,7 +104,7 @@ public class MeetViewActivity extends Activity implements OnFocusChangeListener 
 	private RelativeLayout mPreviewLayout;
 	private LinearLayout mCtrlLayout;
 	private RelativeLayout.LayoutParams mCtrlLayoutParams;
-	private MeetNativeVideoView mVideoView;
+	private MeetVideoView mVideoView;
 	private MiniMediaController mController;
 	
 	private int decode_fps						= 0;
@@ -165,11 +167,17 @@ public class MeetViewActivity extends Activity implements OnFocusChangeListener 
 		}
 		
 		// Full Screen
-		getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN, 
-		    WindowManager.LayoutParams.FLAG_FULLSCREEN);
+		super.getWindow().addFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN);
 
-		// No Titlebar
-		requestWindowFeature(Window.FEATURE_NO_TITLE);
+		try {
+			super.getWindow().addFlags(
+					WindowManager.LayoutParams.class.
+							getField("FLAG_NEEDS_MENU_KEY").getInt(null));
+		} catch (NoSuchFieldException e) {
+			// Ignore since this field won't exist in most versions of Android
+		} catch (IllegalAccessException e) {
+			e.printStackTrace();
+		}
 		
 		setContentView(R.layout.activity_meet_videoview);
 
@@ -190,7 +198,7 @@ public class MeetViewActivity extends Activity implements OnFocusChangeListener 
 		Util.initMeetSDK(this);
 		Util.startP2PEngine(this);
 		
-		mVideoView = (MeetNativeVideoView) findViewById(R.id.surface_view2);
+		mVideoView = (MeetVideoView) findViewById(R.id.surface_view2);
 		mVideoView.setOnCompletionListener(mCompletionListener);
 		mVideoView.setOnErrorListener(mErrorListener);
 		mVideoView.setOnInfoListener(mInfoListener);
@@ -756,7 +764,8 @@ public class MeetViewActivity extends Activity implements OnFocusChangeListener 
 		mSideBarShowed = isLandscape;
 		setup_layout(isLandscape);
 
-        mVideoView.onResume();
+        // for MeetNativeVideoView
+        //mVideoView.onResume();
 
 		mVideoView.start();
 	}
@@ -768,7 +777,8 @@ public class MeetViewActivity extends Activity implements OnFocusChangeListener 
 
         Util.writeSettingsInt(this, "PlayerImpl", mPlayerImpl);
 
-        mVideoView.onPause();
+        // for MeetNativeVideoView
+        //mVideoView.onPause();
 
 		if (mVideoView.isPlaying()) {
 			mVideoView.pause();

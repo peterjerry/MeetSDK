@@ -11,6 +11,9 @@ public class FFMediaExtractor implements MediaExtractable {
 	private final static String TAG = "FFMediaExtractor";
 
 	private static boolean inited = false;
+
+	private long mNativeContext;
+
 	public static boolean initExtrator() {
 		if (inited)
 			return true;
@@ -108,6 +111,4 @@ public class FFMediaExtractor implements MediaExtractable {
 	public native void setVideoAhead(int msec);
 	
 	private native void setup(Object mediaplayer_this);
-	
-	private long mNativeContext;
 }

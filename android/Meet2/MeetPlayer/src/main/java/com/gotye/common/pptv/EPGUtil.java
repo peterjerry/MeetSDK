@@ -25,6 +25,8 @@ import org.json.JSONTokener;
 
 import android.util.Log;
 
+import com.gotye.common.util.LogUtil;
+
 public class EPGUtil { 
 	private final static String TAG = "EPGUtil";
 	
@@ -496,7 +498,7 @@ public class EPGUtil {
 			}
 			
 			String result = EntityUtils.toString(response.getEntity());
-			Log.i(TAG, "Java epg result " + result.replace("\n", ""));
+			//LogUtil.debug(TAG, "Java epg result " + result.replace("\n", ""));
 			
 			SAXBuilder builder = new SAXBuilder();
 			Reader returnQuote = new StringReader(result);  
@@ -1055,7 +1057,14 @@ public class EPGUtil {
 						url += rid;
 			        
 					url += "?w=" + 1 + "&key=" + item.generateK();
-					url += "&k=" + item.getKey();
+					String key = item.getKey();
+                    // fix vip video can ONLY get trailer duration problem
+                    // 07f8e9fa6a99dd9f1f9a8d11f9fc0825-6eae-1459144870%26segment%3D98e847e7_98e846cb_1459130470
+					int pos = key.indexOf("%26segment%3D");
+                    if (pos != -1) {
+                        key = key.substring(0, pos);
+                    }
+					url += "&k=" + key;
 					if (novideo)
 						url += "&video=false";
 					url += "&type=phone.android.vip&vvid=877a4382-f0e4-49ed-afea-8d59dbd11df1"

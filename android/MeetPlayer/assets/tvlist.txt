@@ -1,3 +1,0 @@
-bug12334,http://172.16.204.106/test/1.mp4
-test_h265,http://127.0.0.1:9106/record.m3u8?type=pplive3&playlink=300146%3fft%3D2%26type%3dphone.android%26h265%3d2
-

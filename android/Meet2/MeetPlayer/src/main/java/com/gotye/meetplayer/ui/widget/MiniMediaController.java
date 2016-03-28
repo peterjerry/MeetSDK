@@ -3,25 +3,18 @@ package com.gotye.meetplayer.ui.widget;
 import java.util.Formatter;
 import java.util.Locale;
 
-import android.app.Activity;
 import android.content.Context;
 import android.content.pm.ActivityInfo;
-import android.media.AudioManager;
 import android.os.Handler;
 import android.os.Message;
+import android.support.v7.app.AppCompatActivity;
 import android.util.AttributeSet;
 import android.util.Log;
-import android.view.GestureDetector;
-import android.view.GestureDetector.OnGestureListener;
 import android.view.KeyEvent;
 import android.view.LayoutInflater;
 import android.view.MotionEvent;
-import android.view.OrientationEventListener;
 import android.view.View;
-import android.view.ViewGroup;
-import android.view.WindowManager;
 import android.widget.ImageButton;
-import android.widget.ProgressBar;
 import android.widget.SeekBar;
 import android.widget.SeekBar.OnSeekBarChangeListener;
 import android.widget.TextView;
@@ -55,9 +48,9 @@ public class MiniMediaController extends MediaController {
     private ImageButton mRewindBtn;
     private ImageButton	 mFullScreenBtn;
     
-    private Activity mInstance;
+    private AppCompatActivity mInstance;
     
-    public void setInstance(Activity ins) {
+    public void setInstance(AppCompatActivity ins) {
     	mInstance = ins;
     }
     
@@ -375,6 +368,8 @@ public class MiniMediaController extends MediaController {
             		mInstance.setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
             	}
             	else {
+                    // toggle to full screen play mode
+                    mInstance.getSupportActionBar().hide();
             		mInstance.setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
             	}
             	

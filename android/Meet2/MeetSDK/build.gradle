@@ -21,7 +21,6 @@ android {
         }
         debug {
             minifyEnabled false
-            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
             ndk {
                 moduleName "meetsdk"
                 abiFilters "armeabi-v7a" // includes ARM SO files only, so no x86 SO file
@@ -63,7 +62,7 @@ task copyNativeSymbols(type: Copy) {
     exclude '**/objs'
 	includeEmptyDirs = false
 }
-task cleanCopyNativeSymbols(type: Delete) {
+task cleanNativeSymbols(type: Delete) {
     delete '${buildDir}/dist/symbols'
 }
 task copyLib(type: Copy) {
@@ -73,7 +72,7 @@ task copyLib(type: Copy) {
 }
 tasks.withType(JavaCompile) { compileTask -> compileTask.dependsOn copyCfgFile,modifyCfgFile,copyNativeSymbols }
 
-clean.dependsOn 'cleanCopyNativeSymbols'
+clean.dependsOn 'cleanNativeSymbols'
 
 dependencies {
     compile fileTree(dir: 'libs', include: ['*.jar'])

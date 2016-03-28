@@ -42,7 +42,6 @@ public class PPTVPlayerActivity extends VideoPlayerActivity {
 	@Override
 	public void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
-		Log.i(TAG, "Java: onCreate()");
 		
 		Intent intent 	= getIntent();
 		mPlaylink		= intent.getIntExtra("playlink", -1);
@@ -67,9 +66,9 @@ public class PPTVPlayerActivity extends VideoPlayerActivity {
 		
 		super.onPause();
 	}
-	
+
 	@Override
-	protected void onComplete() {
+	protected void onCompleteImpl() {
 		mVideoView.stopPlayback();
 		
 		if (mEpisodeList == null) {

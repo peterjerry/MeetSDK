@@ -9,6 +9,9 @@
     
     <string name="title_activity_sohu_video">搜狐视频</string>
     <string name="title_activity_pptv_video">PPTV视频</string>
+    <string name="title_activity_youku_video">优酷视频</string>
+    <string name="title_activity_tudou_video">土豆视频</string>
+    <string name="title_activity_iqiyi_video">爱奇艺视频</string>
 	
 	<string name="action_settings">Settings</string>
     <string name="generateCrash">产生崩溃</string>

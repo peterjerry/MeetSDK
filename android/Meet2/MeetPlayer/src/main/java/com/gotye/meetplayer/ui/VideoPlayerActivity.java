@@ -20,6 +20,8 @@ import android.os.Bundle;
 import android.os.Environment;
 import android.os.Handler;
 import android.os.Message;
+import android.support.v7.app.AppCompatActivity;
+import android.util.Log;
 import android.view.GestureDetector;
 import android.view.KeyEvent;
 import android.view.Menu;
@@ -35,6 +37,7 @@ import android.widget.Toast;
 import com.gotye.common.util.LogUtil;
 import com.gotye.meetplayer.R;
 import com.gotye.meetplayer.ui.widget.MyMediaController;
+import com.gotye.meetplayer.util.Constants;
 import com.gotye.meetplayer.util.FileFilterTest;
 import com.gotye.meetplayer.util.NetworkSpeed;
 import com.gotye.meetplayer.util.Util;
@@ -48,13 +51,13 @@ import com.gotye.meetsdk.subtitle.SimpleSubTitleParser;
 import com.gotye.meetsdk.subtitle.SubTitleSegment;
 import com.gotye.meetsdk.subtitle.SubTitleParser.Callback;
 
-public class VideoPlayerActivity extends Activity implements Callback {
+public class VideoPlayerActivity extends AppCompatActivity implements Callback {
 
 	private final static String TAG = "VideoPlayerActivity";
 	
 	private final static String []mode_desc = {"自适应", "铺满屏幕", "放大裁切", "原始大小"};
 
-	protected MeetNativeVideoView mVideoView = null; // protected for child access
+	protected MeetVideoView mVideoView = null; // protected for child access
 	protected MyMediaController mController;
 	private int mVideoWidth;
 	private int mVideoHeight;
@@ -108,8 +111,19 @@ public class VideoPlayerActivity extends Activity implements Callback {
 	@Override
 	public void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
-		LogUtil.info(TAG, "Java: onCreate()");
-		
+
+        super.getWindow().addFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN);
+
+		try {
+			super.getWindow().addFlags(
+					WindowManager.LayoutParams.class.
+							getField("FLAG_NEEDS_MENU_KEY").getInt(null));
+		} catch (NoSuchFieldException e) {
+			// Ignore since this field won't exist in most versions of Android
+		} catch (IllegalAccessException e) {
+			e.printStackTrace();
+		}
+
 		Intent intent = getIntent();
 		mUri = intent.getData();
 		LogUtil.info(TAG, "Java: mUri " + mUri.toString());
@@ -119,8 +133,8 @@ public class VideoPlayerActivity extends Activity implements Callback {
 		else
 			mPlayerImpl = Util.readSettingsInt(this, "PlayerImpl");
 		LogUtil.info(TAG, "Java player impl: " + mPlayerImpl);
-		
-		mTitle = intent.getStringExtra("title");
+
+        mTitle = intent.getStringExtra("title");
 		mFt = intent.getIntExtra("ft", 0);
 		mBestFt = intent.getIntExtra("best_ft", 3);
 		
@@ -128,10 +142,10 @@ public class VideoPlayerActivity extends Activity implements Callback {
 		
 		setContentView(R.layout.activity_video_player);
 
-		getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+        getSupportActionBar().hide();
 		
 		this.mController = (MyMediaController) findViewById(R.id.video_controller);
-		this.mVideoView = (MeetNativeVideoView) findViewById(R.id.video_view);
+		this.mVideoView = (MeetVideoView) findViewById(R.id.video_view);
 		this.mSubtitleTextView = (TextView) findViewById(R.id.textview_subtitle);
 		this.mBufferingProgressBar = (ProgressBar) findViewById(R.id.progressbar_buffering);
 		this.mTextViewDebugInfo = (TextView) findViewById(R.id.tv_debuginfo);
@@ -352,17 +366,17 @@ public class VideoPlayerActivity extends Activity implements Callback {
 		
 		Dialog choose_subtitle_dlg = new AlertDialog.Builder(VideoPlayerActivity.this)
 		.setTitle("select subtitle")
-		.setItems(str_file_list, new DialogInterface.OnClickListener(){
-				public void onClick(DialogInterface dialog, int whichButton){
-					stop_subtitle();
-					
-					subtitle_filename = sub_folder + "/" + str_file_list[whichButton];
-					LogUtil.info(TAG, "Load subtitle file: " + subtitle_filename);
-					Toast.makeText(VideoPlayerActivity.this, 
-							"Load subtitle file: " + subtitle_filename, Toast.LENGTH_SHORT).show();
-					start_subtitle(subtitle_filename);
-				}
-			})
+		.setItems(str_file_list, new DialogInterface.OnClickListener() {
+			public void onClick(DialogInterface dialog, int whichButton) {
+				stop_subtitle();
+
+				subtitle_filename = sub_folder + "/" + str_file_list[whichButton];
+				LogUtil.info(TAG, "Load subtitle file: " + subtitle_filename);
+				Toast.makeText(VideoPlayerActivity.this,
+						"Load subtitle file: " + subtitle_filename, Toast.LENGTH_SHORT).show();
+				start_subtitle(subtitle_filename);
+			}
+		})
 		.create();
 		choose_subtitle_dlg.show();
 	}
@@ -523,7 +537,16 @@ public class VideoPlayerActivity extends Activity implements Callback {
 		return name;
 	}
 	
-	protected void onComplete() {
+	protected void onCompleteImpl() {
+		finish();
+	}
+
+	protected void onErrorImpl() {
+		Util.makeUploadLog("failed to play: " + mUri.toString() + "\n\n");
+
+		UploadLogTask task = new UploadLogTask(VideoPlayerActivity.this);
+		task.execute(Util.upload_log_path, "failed to play");
+
 		finish();
 	}
 	
@@ -532,7 +555,8 @@ public class VideoPlayerActivity extends Activity implements Callback {
 			LogUtil.info(TAG, "MEDIA_PLAYBACK_COMPLETE");
 			
 			stopPlayer();
-			onComplete();
+
+            onCompleteImpl();
 		}
 	};
 
@@ -545,13 +569,8 @@ public class VideoPlayerActivity extends Activity implements Callback {
 					Toast.LENGTH_SHORT).show();
 			
 			stopPlayer();
-			
-			Util.makeUploadLog("failed to play: " + mUri.toString() + "\n\n");
-			
-			UploadLogTask task = new UploadLogTask(VideoPlayerActivity.this);
-			task.execute(Util.upload_log_path, "failed to play");
-			
-			finish();
+
+            onErrorImpl();
 			return true;
 		}
 	};
@@ -645,30 +664,25 @@ public class VideoPlayerActivity extends Activity implements Callback {
 				
 		@Override
 		public boolean onFling(MotionEvent e1, MotionEvent e2, float velocityX, float velocityY) {
-			int incr = 0;
-			if (velocityX > 10.0f)
-				incr = 1;
-			else if (velocityX < -10.0f)
-				incr = -1;
-			
-			if (incr != 0) {
-				int pos = mVideoView.getCurrentPosition();
-				pos += (3000 * incr);
-				if (pos > mVideoView.getDuration())
-					pos = mVideoView.getDuration();
-				else if (pos < 0)
-					pos = 0;
-				
-				mVideoView.seekTo(pos);
+			if (velocityX > 2000f || velocityX < 2000f) {
+				int incr = (velocityX > 2000f ? 1: -1);
+
+                int pos = mVideoView.getCurrentPosition();
+                pos += (3000 * incr);
+                if (pos > mVideoView.getDuration())
+                    pos = mVideoView.getDuration();
+                else if (pos < 0)
+                    pos = 0;
+
+                mVideoView.seekTo(pos);
+				return true;
 			}
-			
-			return true;
-		};
+
+			return false;
+		}
 		
 		@Override
 		public boolean onSingleTapConfirmed(MotionEvent e) {
-			
-			LogUtil.info(TAG, "onSingleTapConfirmed!!!");
 			toggleMediaControlsVisiblity();
 			
 			return true;
@@ -676,7 +690,6 @@ public class VideoPlayerActivity extends Activity implements Callback {
 		
 		@Override
 		public boolean onDoubleTap(MotionEvent event) {
-			LogUtil.info(TAG, "onDoubleTap!!!");
 			switchDisplayMode(1);
 			return true;
 		}
@@ -764,12 +777,11 @@ public class VideoPlayerActivity extends Activity implements Callback {
 				onBackPressed();
 			}
 			return true;
-		case KeyEvent.KEYCODE_MENU:
-			openOptionsMenu();
-			return true;
 		default:
-			return super.onKeyDown(keyCode, event);
+			break;
 		}
+
+        return super.onKeyDown(keyCode, event);
 	}
 	
     public void toggleMediaControlsVisiblity() {

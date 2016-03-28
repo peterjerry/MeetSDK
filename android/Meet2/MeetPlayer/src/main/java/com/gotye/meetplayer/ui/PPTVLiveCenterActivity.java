@@ -23,15 +23,17 @@ import android.content.Intent;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.View;
+import android.view.WindowManager;
 import android.widget.AdapterView;
 import android.widget.Button;
 import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
 
-public class PPTVLiveCenterActivity extends Activity {
+public class PPTVLiveCenterActivity extends AppCompatActivity {
 	private final static String TAG = "PPTVLiveCenterActivity";
 	private final static int MAX_DAY = 5;
 	
@@ -62,8 +64,8 @@ public class PPTVLiveCenterActivity extends Activity {
 	protected void onCreate(Bundle savedInstanceState) {
 		// TODO Auto-generated method stub
 		super.onCreate(savedInstanceState);
-		
-		Log.i(TAG, "Java: onCreate()");
+
+		super.getWindow().addFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN);
 		
 		setContentView(R.layout.activity_pptv_livecenter);
 		
@@ -220,7 +222,7 @@ public class PPTVLiveCenterActivity extends Activity {
 						
 						play_url = PlayLinkUtil.getPlayUrl(
 								vid, http_port, best_ft/*ft*/, 3/*bw_type*/, 
-								mPlaybackTime.getPlaylinkSurfix());
+								mPlaybackTime.getPPTVTimeStr());
 					}
 					else if (mBwType == 2) {
 						play_url = String.format(live_m3u8_url_fmt, 

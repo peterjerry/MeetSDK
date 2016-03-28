@@ -17,8 +17,20 @@ android {
         applicationId "com.gotye.meetplayer"
         minSdkVersion 16
         targetSdkVersion 20
-        versionCode 250
-        versionName "2.5"
+        versionCode 251
+        versionName "2.51"
+    }
+    productFlavors {
+        arm {
+            ndk {
+                abiFilters "armeabi", "armeabi-v7a"
+            }
+        }
+        x86 {
+            ndk {
+                abiFilter "x86"
+            }
+        }
     }
     buildTypes {
         release {
@@ -27,6 +39,7 @@ android {
 			signingConfig signingConfigs.release
         }
 		debug {
+            minifyEnabled false
             signingConfig signingConfigs.release
         }
     }

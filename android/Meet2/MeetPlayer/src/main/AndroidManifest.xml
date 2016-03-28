@@ -9,27 +9,26 @@
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
 
-    <uses-permission android:name="android.permission.RECORD_AUDIO" />
-
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"></uses-permission>
     <uses-permission android:name="android.permission.ACCESS_WIFI_STATE"></uses-permission>
     <uses-permission android:name="android.permission.CHANGE_WIFI_STATE"></uses-permission>
-    <uses-permission android:name="android.permission.WAKE_LOCK"></uses-permission>
+
+    <uses-permission android:name="android.permission.CHANGE_CONFIGURATION" />
 
     <application
-        android:name="com.gotye.meetplayer.MeetApplication"
+        android:name=".MeetApplication"
         android:allowBackup="true"
         android:icon="@drawable/ic_launcher"
         android:label="@string/app_name"
         android:supportsRtl="true"
-        android:theme="@style/AppTheme">
+        android:theme="@style/Theme.AppCompat.Light">
 
         <!-- Activities -->
         <activity
             android:name=".ui.ClipListActivity"
             android:label="@string/app_name"
             android:windowSoftInputMode="adjustPan"
-            android:configChanges="orientation|keyboardHidden" >
+            android:configChanges="keyboardHidden|screenSize|orientation|layoutDirection" >
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
@@ -42,8 +41,7 @@
         </activity>
         <activity
             android:name=".ui.PlaySohuActivity"
-            android:screenOrientation="landscape"
-            android:label="@string/app_name" >
+            android:screenOrientation="landscape">
         </activity>
         <activity
             android:name=".ui.SohuVideoActivity"
@@ -52,6 +50,18 @@
         <activity
             android:name=".ui.SohuEpisodeActivity"
             android:label="@string/title_activity_sohu_video" >
+        </activity>
+        <activity
+            android:name=".ui.YoukuVideoActivity"
+            android:label="@string/title_activity_youku_video" >
+        </activity>
+        <activity
+            android:name=".ui.YoukuEpisodeActivity"
+            android:label="@string/title_activity_youku_video" >
+        </activity>
+        <activity
+            android:name=".ui.PlayYoukuActivity"
+            android:screenOrientation="landscape">
         </activity>
         <activity
             android:name=".ui.PPTVVideoActivity"
@@ -72,20 +82,18 @@
         <activity
             android:name=".ui.PPTVPlayerActivity"
             android:label="@string/app_name"
-            android:screenOrientation="landscape"
-            android:theme="@android:style/Theme.NoTitleBar.Fullscreen" >
+            android:screenOrientation="landscape">
         </activity>
         <activity
             android:name=".ui.MeetViewActivity"
-            android:configChanges="keyboardHidden|orientation|screenSize"
+            android:configChanges="keyboardHidden|screenSize|orientation|layoutDirection"
             android:label="@string/app_name" >
         </activity>
         <activity
             android:name=".ui.VideoPlayerActivity"
             android:label="@string/app_name"
             android:process=":Player"
-            android:screenOrientation="landscape"
-            android:theme="@android:style/Theme.NoTitleBar.Fullscreen" >
+            android:screenOrientation="landscape">
 
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />

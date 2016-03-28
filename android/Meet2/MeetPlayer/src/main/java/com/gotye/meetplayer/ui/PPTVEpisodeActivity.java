@@ -9,6 +9,7 @@ import java.util.Map;
 import com.gotye.common.pptv.EPGUtil;
 import com.gotye.common.pptv.PlayLink2;
 import com.gotye.common.pptv.PlayLinkUtil;
+import com.gotye.common.util.LogUtil;
 import com.gotye.db.PPTVPlayhistoryDatabaseHelper;
 import com.gotye.meetplayer.R;
 import com.gotye.meetplayer.ui.widget.DirChooserDialog;
@@ -16,11 +17,8 @@ import com.gotye.meetplayer.ui.widget.DirChooserDialog.onOKListener;
 import com.gotye.meetplayer.util.Util;
 import com.pplive.sdk.MediaSDK;
 
-import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.Dialog;
-import android.content.BroadcastReceiver;
-import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.net.Uri;
@@ -29,12 +27,13 @@ import android.os.Bundle;
 import android.os.Environment;
 import android.os.Handler;
 import android.os.Message;
+import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
-import android.view.KeyEvent;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
+import android.view.WindowManager;
 import android.widget.AbsListView;
 import android.widget.AdapterView;
 import android.widget.Button;
@@ -43,7 +42,7 @@ import android.widget.GridView;
 import android.widget.Toast;
 
 
-public class PPTVEpisodeActivity extends Activity {
+public class PPTVEpisodeActivity extends AppCompatActivity {
 	private final static String TAG = "PPTVEpisodeActivity";
 	
 	private Button btnReputation;
@@ -71,9 +70,6 @@ public class PPTVEpisodeActivity extends Activity {
     
     private final static int page_size = 10;
     private int album_page_index = 1;
-    private int ep_page_index = 1;
-    private int ep_page_incr;
-    private int search_page_index = 1;
     
     private EPGUtil mEPG;
     private String epg_param;
@@ -85,6 +81,8 @@ public class PPTVEpisodeActivity extends Activity {
     // 最受好评, param: order=g|最高人气, param: order=t|最新更新, param: order=n
     private String epg_order = "order=t";
     private String search_key;
+    private String epg_signature;
+    private boolean epg_is_vip = false;
     private List<PlayLink2> mAlbumList;
     private List<PlayLink2> mEpisodeList;
     private boolean is_catalog = false;
@@ -100,16 +98,19 @@ public class PPTVEpisodeActivity extends Activity {
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
-		
-		Log.i(TAG, "Java: onCreate()");
-		
+
+        super.getWindow().addFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN);
+
 		Intent intent = getIntent();
 		if (intent.hasExtra("epg_param")) {
 			epg_param = intent.getStringExtra("epg_param");
 			epg_type = intent.getStringExtra("epg_type");
+            epg_is_vip = intent.getBooleanExtra("epg_is_vip", false);
+            LogUtil.info(TAG, "Java: vip is " + (epg_is_vip ? "ON" : "OFF"));
 		}
-		else if (intent.hasExtra("search_key"))
-			search_key = intent.getStringExtra("search_key");
+		else if (intent.hasExtra("search_key")) {
+            search_key = intent.getStringExtra("search_key");
+        }
 		else {
 			Toast.makeText(this, "intent param is wrong", Toast.LENGTH_SHORT).show();
 			finish();
@@ -260,18 +261,6 @@ public class PPTVEpisodeActivity extends Activity {
 		super.onPause();
 		
 		Util.writeSettings(this, "download_folder", mDownloadLocalFolder);
-	}
-	
-	@Override
-	public boolean onKeyDown(int keyCode, KeyEvent event) {
-		Log.d(TAG, "keyCode: " + keyCode);
-		
-		if (keyCode == KeyEvent.KEYCODE_MENU) {
-			super.openOptionsMenu();
-			return true;
-		}
-		
-		return super.onKeyDown(keyCode, event);
 	}
 	
 	@Override
@@ -455,6 +444,8 @@ public class PPTVEpisodeActivity extends Activity {
 		short port = MediaSDK.getPort("http");
 		int playlink = Integer.valueOf(vid);
 		String url = PlayLinkUtil.getPlayUrl(playlink, port, ft, 3, null);
+        //if (epg_is_vip && epg_signature != null)
+        //    url += epg_signature;
 		
 		Uri uri = Uri.parse(url);
 		
@@ -485,6 +476,8 @@ public class PPTVEpisodeActivity extends Activity {
 		intent.putExtra("ft", ft);
 		intent.putExtra("best_ft", best_ft);
 		intent.putExtra("index", episode_index);
+        if (epg_signature != null)
+            intent.putExtra("sig", epg_signature);
 		
 		if (last_pos > 0) {
 			intent.putExtra("preseek_msec", last_pos);
@@ -511,33 +504,21 @@ public class PPTVEpisodeActivity extends Activity {
 		
 		Dialog choose_episode_dlg = new AlertDialog.Builder(PPTVEpisodeActivity.this)
 		.setTitle("Select episode")
-		.setItems(str_title_list, 
-			new DialogInterface.OnClickListener(){
-			public void onClick(DialogInterface dialog, int whichButton) {
-				String vid = mEpisodeList.get(whichButton).getId();
-				episode_title = mEpisodeList.get(whichButton).getTitle();
-				episode_index = whichButton;
-				new PPTVEpgTask().execute(TASK_DETAIL, Integer.valueOf(vid));
-				dialog.dismiss();
-			}
-		})
-		.setPositiveButton("More...", 
-				new DialogInterface.OnClickListener(){
-					public void onClick(DialogInterface dialog, int whichButton){
-						ep_page_index += ep_page_incr;
-						if (ep_page_index > 0) {
-							//
-						}
-						else
-							Toast.makeText(PPTVEpisodeActivity.this, "No more episode", Toast.LENGTH_SHORT).show();
-						
-						dialog.dismiss();
-					}
-				})
+		.setItems(str_title_list,
+                new DialogInterface.OnClickListener() {
+                    public void onClick(DialogInterface dialog, int whichButton) {
+                        String vid = mEpisodeList.get(whichButton).getId();
+                        episode_title = mEpisodeList.get(whichButton).getTitle();
+                        episode_index = whichButton;
+                        new PPTVEpgTask().execute(TASK_DETAIL, Integer.valueOf(vid));
+                        dialog.dismiss();
+                    }
+                })
 		.setNegativeButton("Cancel",
-			new DialogInterface.OnClickListener(){
-				public void onClick(DialogInterface dialog, int whichButton){
-			}})
+                new DialogInterface.OnClickListener() {
+                    public void onClick(DialogInterface dialog, int whichButton) {
+                    }
+                })
 		.create();
 		choose_episode_dlg.show();
 	}
@@ -621,14 +602,45 @@ public class PPTVEpisodeActivity extends Activity {
             		return false;
         		}
         		
-        		Util.add_pptvvideo_history(PPTVEpisodeActivity.this, episode_title, 
-        				String.valueOf(vid), album_id, ft);
-        		
-        		Message msg = mhandler.obtainMessage(MSG_PLAY_CDN_FT, ft, ft);
+        		Util.add_pptvvideo_history(PPTVEpisodeActivity.this, episode_title,
+						String.valueOf(vid), album_id, ft);
+                if (epg_is_vip) {
+                    // http://114.80.186.137:80/128bf5c96ab61002f4be2ad309820758.mp4
+                    // ?w=1&key=54a3ba32b506b80c6c9f875e25f9ce99
+                    // &k=07f8e9fa6a99dd9f1f9a8d11f9fc0825-6eae-1459144870
+                    // &type=phone.android.vip&vvid=877a4382-f0e4-49ed-afea-8d59dbd11df1
+                    // &sv=4.1.3&platform=android3&ft=2&accessType=wifi
+                    String url = mEPG.getCDNUrl(String.valueOf(vid), String.valueOf(ft),
+                            false, false);
+                    int pos1, pos2;
+                    String rid = null;
+
+                    pos2 = url.indexOf(".mp4");
+                    if (pos2 != -1) {
+                        pos1 = url.lastIndexOf("/", pos2);
+
+                        if (pos1 != -1) {
+                            rid = url.substring(pos1 + 1, pos2);
+                            LogUtil.info(TAG, "rid=" + rid);
+                        }
+                    }
+
+                    pos1 = url.indexOf("?w=1");
+                    pos2 = url.indexOf("&type=");
+                    if (pos1 != -1 && pos2 != -1 && rid != null)
+                        epg_signature = url.substring(pos1, pos2) + "&rid=" + rid;
+                    else
+                        epg_signature = null;
+                }
+                else {
+                    epg_signature = null;
+                }
+
+				Message msg = mhandler.obtainMessage(MSG_PLAY_CDN_FT, ft, ft);
     	        msg.sendToTarget();
         	}
 			else {
-				Log.e(TAG, "Java: invalid action type: " + action);
+                Log.e(TAG, "Java: invalid action type: " + action);
 				return false;
 			}
 
