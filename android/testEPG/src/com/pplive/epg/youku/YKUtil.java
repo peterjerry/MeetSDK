@@ -22,6 +22,9 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.json.JSONTokener;
+import org.jsoup.Jsoup;
+import org.jsoup.nodes.Document;
+import org.jsoup.nodes.Element;
 
 import com.pplive.epg.util.Base64Util;
 import com.pplive.epg.util.CryptAES;
@@ -153,6 +156,9 @@ public class YKUtil {
 			"&sdkver=6&kref=2&area_code=1" +
 			"&keyword=" ;//%E7%81%AB%E6%98%9F%E6%95%91%E6%8F%B4
 	
+	private final static String youku_soku_api = 
+			"http://www.soku.com/m/y/video?q=";
+	
 	public static void main(String[] args) { 
         
 		//String url = "http://v.youku.com/v_show/id_XMTQ5NDg3NjQzNg==.html?from=s1.8-1-1.1";
@@ -209,7 +215,7 @@ public class YKUtil {
 		}
 		
 		System.out.println("Java: toUrl " + m3u8Url);
-		byte []buffer = new byte[65536];
+		/*byte []buffer = new byte[65536];
 		if (!httpUtil.httpDownload(m3u8Url, "1.m3u8")) {
 			System.out.println("failed to download m3u8");
 			return;
@@ -223,7 +229,9 @@ public class YKUtil {
 		
 		byte []m3u8_context = new byte[content_size];
 		System.arraycopy(buffer, 0, m3u8_context, 0, content_size);
-		parseM3u8(new String(m3u8_context));
+		parseM3u8(new String(m3u8_context));*/
+		
+		soku("戏说阿仁", 2);
 		
         //String keyStr = "UITN25LMUQC436IM";  
  
@@ -234,6 +242,51 @@ public class YKUtil {
          
         //System.out.println(encText); 
         //System.out.println(decString);
+	}
+	
+	public static List<Episode> soku(String keyword, int sort_type) {
+		System.out.println("soku() keyword " + keyword);
+		
+		String url = null;
+		try {
+			String encoded_keyword = URLEncoder.encode(keyword, "UTF-8");
+			url = youku_soku_api + encoded_keyword;
+			url += "&od=";
+			url += sort_type;
+			//综合排序 最新发布 最多播放 &od=0,1,2
+		} catch (UnsupportedEncodingException e) {
+			e.printStackTrace();
+			return null;
+		}
+		
+		System.out.println("soku() url: " + url);
+		try {
+			Document doc = Jsoup.connect(url).timeout(5000).get();
+			Element test = doc.select("._sk_content").first(); // yk_result 
+			int size = test.childNodeSize();
+			System.out.println("size " + size);
+			for (int i = 2; i < size / 2 - 1; i++) {
+				if (i % 2 != 0) {
+					Element v = test.child(i);
+					Element meta_data = v.child(1);
+					Element video = meta_data.child(0).child(0);
+					String title = video.attr("title");
+					String href = video.attr("href");
+					String vid = video.attr("_log_vid");
+					Element v_desc = meta_data.child(2);
+					String online_time = v_desc.child(0).child(1).text();
+					String vv = v_desc.child(2).text();
+					System.out.println(
+							String.format("title %s, url: %s, vid %s, stripe %s, vv %s", 
+							title, href, vid, online_time, vv));
+				}
+			}
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+		return null;
 	}
 	
 	public static List<Album> search(String keyword, 
