@@ -2,14 +2,12 @@ package com.gotye.meetplayer.ui;
 
 import android.content.Intent;
 import android.graphics.Color;
+import android.graphics.PixelFormat;
 import android.media.AudioManager;
-import android.media.MediaPlayer;
-import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
 import android.support.v7.app.AppCompatActivity;
-import android.util.Log;
 import android.view.KeyEvent;
 import android.view.MotionEvent;
 import android.view.SurfaceHolder;
@@ -26,6 +24,7 @@ import com.gotye.meetplayer.R;
 import com.gotye.meetplayer.media.FragmentMp4MediaPlayerV2;
 import com.gotye.meetplayer.ui.widget.MyMediaController;
 import com.gotye.meetsdk.player.MediaController.MediaPlayerControl;
+import com.gotye.meetsdk.player.MediaPlayer;
 
 import java.io.IOException;
 import java.lang.ref.WeakReference;
@@ -35,12 +34,13 @@ import java.util.StringTokenizer;
 
 public class PlaySegFileActivity extends AppCompatActivity
 		implements SurfaceHolder.Callback {
-	private final static String TAG = "PlaySohuActivity";
+	private final static String TAG = "PlaySegFileActivity";
 	
 	private RelativeLayout mLayout;
 	private SurfaceView mView;
 	private SurfaceHolder mHolder;
 	private FragmentMp4MediaPlayerV2 mPlayer;
+    private int mPlayerImpl;
 	private MyMediaController mController;
 	private MyMediaPlayerControl mMediaPlayerControl;
 	protected ProgressBar mBufferingProgressBar;
@@ -111,16 +111,17 @@ public class PlaySegFileActivity extends AppCompatActivity
 		getSupportActionBar().hide();
 
         Intent intent = getIntent();
+        mPlayerImpl = intent.getIntExtra("player_impl", 1);
         if (intent.hasExtra("url_list") && intent.hasExtra("duration_list")) {
             mUrlListStr			= intent.getStringExtra("url_list");
             mDurationListStr	= intent.getStringExtra("duration_list");
             mTitle				= intent.getStringExtra("title");
             mFt                 = intent.getIntExtra("ft", 0);
-            Log.i(TAG, "Java: mDurationListStr " + mDurationListStr);
+            LogUtil.info(TAG, "Java: mDurationListStr " + mDurationListStr);
         }
         else {
             // just for test
-            Log.w(TAG, "Java: use test url and duration list");
+            LogUtil.warn(TAG, "Java: use test url and duration list");
 
             mUrlListStr 		= url_list;
             mDurationListStr	= duration_list;
@@ -139,6 +140,10 @@ public class PlaySegFileActivity extends AppCompatActivity
 		mTextViewFileName.setTextSize(24);
 		
 		SurfaceHolder holder = mView.getHolder();
+        if (mPlayerImpl == 3) {
+            holder.setType(SurfaceHolder.SURFACE_TYPE_NORMAL);
+            holder.setFormat(PixelFormat.RGBX_8888/*RGB_565*/);
+        }
 		holder.addCallback(this);
 		
 		m_playlink_list = new ArrayList<String>();
@@ -151,22 +156,20 @@ public class PlaySegFileActivity extends AppCompatActivity
 			@Override
 			public boolean onInfo(MediaPlayer mp, int what, int extra) {
 				// TODO Auto-generated method stub
-				Log.i(TAG, "Java: onInfo what " + what + " , extra " + extra);
+				//LogUtil.debug(TAG, "Java: onInfo what " + what + " , extra " + extra);
 				
 				if ((MediaPlayer.MEDIA_INFO_BUFFERING_START == what) && !mIsBuffering) {
-					Log.i(TAG, "Java: onInfo MEDIA_INFO_BUFFERING_START");
+					LogUtil.info(TAG, "Java: onInfo MEDIA_INFO_BUFFERING_START");
 					mIsBuffering = true;
 					mBufferingProgressBar.setVisibility(View.VISIBLE);
-					Log.i(TAG, "Java: MEDIA_INFO_BUFFERING_START");
 				}
 				else if ((what == MediaPlayer.MEDIA_INFO_BUFFERING_END) && mIsBuffering) {
-					Log.i(TAG, "Java: onInfo MEDIA_INFO_BUFFERING_END");
+                    LogUtil.info(TAG, "Java: onInfo MEDIA_INFO_BUFFERING_END");
 					mIsBuffering = false;
 					mBufferingProgressBar.setVisibility(View.GONE);
-					Log.i(TAG, "Java: MEDIA_INFO_BUFFERING_END");
 				}
 				else if (what == MediaPlayer.MEDIA_INFO_VIDEO_RENDERING_START) {
-					Log.i(TAG, "Java: onInfo MEDIA_INFO_VIDEO_RENDERING_START");
+                    LogUtil.info(TAG, "Java: onInfo MEDIA_INFO_VIDEO_RENDERING_START");
 				}
 				
 				return true;
@@ -178,7 +181,7 @@ public class PlaySegFileActivity extends AppCompatActivity
 			@Override
 			public void onBufferingUpdate(MediaPlayer mp, int pct) {
 				// TODO Auto-generated method stub
-				Log.i(TAG, "Java: onBufferingUpdate " + pct);
+                LogUtil.info(TAG, "Java: onBufferingUpdate " + pct);
 			}
 		};
 		
@@ -200,7 +203,7 @@ public class PlaySegFileActivity extends AppCompatActivity
 			@Override
 			public void onPrepared(MediaPlayer mp) {
 				// TODO Auto-generated method stub
-				Log.i(TAG, "Java: onPrepared()");
+                LogUtil.info(TAG, "Java: onPrepared()");
 				
 				mIsBuffering = false;
 				mBufferingProgressBar.setVisibility(View.GONE);
@@ -217,7 +220,7 @@ public class PlaySegFileActivity extends AppCompatActivity
 			@Override
 			public boolean onError(MediaPlayer mp, int error, int extra) {
 				// TODO Auto-generated method stub
-				Log.e(TAG, "Java: onError what " + error + " , extra " + extra);
+                LogUtil.error(TAG, "Java: onError what " + error + " , extra " + extra);
 				
 				mIsBuffering = false;
 				mBufferingProgressBar.setVisibility(View.GONE);
@@ -308,7 +311,7 @@ public class PlaySegFileActivity extends AppCompatActivity
 
 				int pos = mPlayer.getCurrentPosition();
 				int step = mPlayer.getDuration() / 100 + 1000;
-				Log.i(TAG, String.format("Java pos %d, step %s", pos, step));
+				LogUtil.info(TAG, String.format("Java pos %d, step %s", pos, step));
 				if (step > 30000)
 					step = 30000;
 				pos += (incr * step);
@@ -453,7 +456,7 @@ public class PlaySegFileActivity extends AppCompatActivity
 		Toast.makeText(this, String.format("ready to play video: %s (ft %d)", mTitle, mFt), 
 				Toast.LENGTH_SHORT).show();
 		
-		mPlayer = new FragmentMp4MediaPlayerV2();
+		mPlayer = new FragmentMp4MediaPlayerV2(mPlayerImpl);
 		mPlayer.reset();
 		
 		mPlayer.setDisplay(mHolder);
@@ -497,24 +500,23 @@ public class PlaySegFileActivity extends AppCompatActivity
 	
 	private void toggleDisplayMode(int mode, boolean popToast) {
 		if (mPlayer == null) {
-			Log.w(TAG, "Java: cannot toggleDisplayMode when idle");
+            LogUtil.warn(TAG, "Java: cannot toggleDisplayMode when idle");
 			return;
 		}
 		
 		int width 	= mLayout.getWidth();
 		int height	= mLayout.getHeight();
-		
-		Log.i(TAG, String.format("Java: mLayout res: %d x %d", width, height)); 
+
+        LogUtil.info(TAG, String.format("Java: mLayout res: %d x %d", width, height));
 		
 		RelativeLayout.LayoutParams sufaceviewParams = (RelativeLayout.LayoutParams) mView.getLayoutParams();
 		if (mode == SCREEN_FIT) {
-			if ( mVideoWidth * height > width * mVideoHeight ) { 
-				Log.d(TAG, "surfaceview is too tall, correcting"); 
+			if ( mVideoWidth * height > width * mVideoHeight ) {
+                LogUtil.debug(TAG, "surfaceview is too tall, correcting");
 				sufaceviewParams.height = width * mVideoHeight / mVideoWidth; 
 			}
-			else if ( mVideoWidth * height  < width * mVideoHeight ) 
-			{ 
-				Log.d(TAG, "surfaceview is too wide, correcting"); 
+			else if ( mVideoWidth * height  < width * mVideoHeight ) {
+                LogUtil.debug(TAG, "surfaceview is too wide, correcting");
 				sufaceviewParams.width = height * mVideoWidth / mVideoHeight; 
 			}
 			else {
@@ -533,9 +535,9 @@ public class PlaySegFileActivity extends AppCompatActivity
             	sufaceviewParams.height = width * mVideoHeight / mVideoWidth;
             } 
 		}
-		
-		Log.i(TAG, String.format("Java: surfaceview change res to %d x %d", 
-        		sufaceviewParams.width, sufaceviewParams.height)); 
+
+        LogUtil.info(TAG, String.format("Java: surfaceview change res to %d x %d",
+                sufaceviewParams.width, sufaceviewParams.height));
 		mView.setLayoutParams(sufaceviewParams);
 		
 		if (popToast) {
@@ -554,7 +556,7 @@ public class PlaySegFileActivity extends AppCompatActivity
 		st = new StringTokenizer(mUrlListStr, ",", false);
 		while (st.hasMoreElements()) {
 			String url = st.nextToken();
-			Log.i(TAG, String.format("Java: segment #%d url: %s", i++, url));
+            LogUtil.info(TAG, String.format("Java: segment #%d url: %s", i++, url));
 			m_playlink_list.add(url);
 		}
 		
@@ -562,7 +564,7 @@ public class PlaySegFileActivity extends AppCompatActivity
 		i=0;
 		while (st.hasMoreElements()) {
 			String seg_duration = st.nextToken();
-			Log.i(TAG, String.format("Java: segment #%d duration: %s", i++, seg_duration));
+            LogUtil.info(TAG, String.format("Java: segment #%d duration: %s", i++, seg_duration));
 			int duration_msec = (int)(Double.valueOf(seg_duration) * 1000.0f);
 			m_duration_list.add(duration_msec);
 		}
@@ -631,7 +633,7 @@ public class PlaySegFileActivity extends AppCompatActivity
 		@Override
 		public void seekTo(int msec) {
 			// TODO Auto-generated method stub
-			Log.i(TAG, "Java: seekTo " + msec);
+            LogUtil.info(TAG, "Java: seekTo() " + msec + " msec");
 
 			if (mPlayer != null)
 				mPlayer.seekTo(msec);

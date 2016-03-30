@@ -390,6 +390,11 @@ public class FFMediaPlayer extends BaseMediaPlayer {
 		// TODO Auto-generated method stub
 		return 0;
 	}
+
+	@Override
+	public void setNextMediaPlayer(MediaPlayer next) {
+		
+	}
 	
 	private native void _setDataSource(String path) throws IOException,
 			IllegalArgumentException, IllegalStateException;

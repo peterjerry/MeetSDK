@@ -229,6 +229,7 @@ public class SohuEpisodeActivity extends AppCompatActivity {
         		intent.putExtra("aid", selected_aid);
         		intent.putExtra("site", selected_site);
         		intent.putExtra("ft", ft.value());
+				intent.putExtra("player_impl", 1/*HW_SYSTEM*/);
         		startActivity(intent);
             	break;
             case MSG_MORELIST_DONE:

@@ -822,11 +822,12 @@ status_t FFPlayer::setVideoSurface(void* surface)
 {
 	LOGI("player op setVideoSurface %p", surface);
 
-	if (mPlayerStatus != MEDIA_PLAYER_IDLE &&
+	// should support set surface dynamically
+	/*if (mPlayerStatus != MEDIA_PLAYER_IDLE &&
         mPlayerStatus != MEDIA_PLAYER_INITIALIZED)
 	{
         return INVALID_OPERATION;
-    }
+    }*/
 
 	if (surface == NULL) {
 		LOGE("mSurface is NULL");

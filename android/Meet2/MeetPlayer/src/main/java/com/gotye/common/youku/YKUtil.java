@@ -1,7 +1,6 @@
 package com.gotye.common.youku;
 
 import android.os.Environment;
-import android.util.Log;
 
 import com.gotye.common.util.CryptAES;
 import com.gotye.common.util.LogUtil;
@@ -26,6 +25,11 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.json.JSONTokener;
+
+import org.jsoup.Jsoup;
+import org.jsoup.nodes.Document;
+import org.jsoup.nodes.Element;
+import org.jsoup.select.Elements;
 
 public class YKUtil {
 	private final static String TAG = "YKUtil";
@@ -123,6 +127,9 @@ public class YKUtil {
                     "&vid=%s" + // param2
                     "&pid=87c959fb273378eb" +
                     "&local_vid=%s"; // param3
+
+    private final static String youku_soku_api =
+            "http://www.soku.com/search_video/q_";
 
     private final static String m3u8_url_fmt =
             "http://pl.youku.com/playlist/m3u8" +
@@ -580,6 +587,65 @@ public class YKUtil {
         return null;
     }
 
+    public static List<Episode> soku(String keyword, int orderby, int page) {
+        String url = null;
+        try {
+            String encoded_keyword = URLEncoder.encode(keyword, "UTF-8");
+            url = youku_soku_api + encoded_keyword;
+            // orderby 1-综合排序 2-最新发布 3-最多播放
+            // page base 1
+            // hd 0-不限,1-高清,6-超清,7-1080p
+            // lengthtype 0- 不限，1->0-10min, 2->10-30min, 3->30-60min, 4->60min+
+            url += "?page=";
+            url += page;
+            url += "&orderby=";
+            url += orderby;
+            /*url += "&hd=";
+            url += hd;
+            url += "&lengthtype=";
+            url += lengthtype;*/
+            //综合排序 最新发布 最多播放 &od=0,1,2
+        } catch (UnsupportedEncodingException e) {
+            e.printStackTrace();
+            return null;
+        }
+
+        LogUtil.info(TAG, "soku() url: " + url);
+        String html = getHttpPage(url, false, false);
+        if (html == null) {
+            LogUtil.error(TAG, "failed to get http page: " + url);
+            return null;
+        }
+
+        //Document doc = Jsoup.connect(url).timeout(5000).get();
+        Document doc = Jsoup.parse(html);
+        Elements test = doc.getElementsByClass("v");
+        if (test == null || test.isEmpty()) {
+            LogUtil.error(TAG, "failed to get v tag");
+            return null;
+        }
+
+        int size = test.size();
+        List<Episode> epList = new ArrayList<Episode>();
+        for (int i = 0; i < size; i++) {
+            Element v = test.get(i);
+            Element v_thumb = v.child(0);
+            Element v_link = v.child(1);
+            Element v_meta = v.child(3);
+            Element video = v_link.child(0);
+            String thumb_url = v_thumb.child(0).attr("src");
+            String title = video.attr("title");
+            String href = video.attr("href");
+            String vid = video.attr("_log_vid");
+            String vv = v_meta.child(1).child(1).child(1).text();
+            String online_time = v_meta.child(1).child(2).child(1).text();
+            epList.add(new Episode(title, vid, thumb_url,
+                    online_time, vv, null));
+        }
+
+        return epList;
+    }
+
     public static List<Album> search(String keyword,
                                      int page, int page_size) {
         LogUtil.info(TAG, "Java: search() keyword " + keyword);
@@ -640,6 +706,12 @@ public class YKUtil {
 				conn.setRequestProperty("User-Agent",
 						"Youku HD;3.9.4;iPhone OS;7.1.2;iPad4,1");
 			}
+            else {
+                conn.setRequestProperty("User-Agent",
+                    "Mozilla/5.0 (Windows NT 6.3; Win64; x64) " +
+                            "AppleWebKit/537.36 (KHTML, like Gecko) " +
+                            "Chrome/46.0.2490.86 Safari/537.36");
+            }
 			if (setEncoding)
 				conn.setRequestProperty("Encoding", "gzip, deflate");
 

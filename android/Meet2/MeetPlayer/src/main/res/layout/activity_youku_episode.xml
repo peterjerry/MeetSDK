@@ -1,0 +1,63 @@
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent" >
+
+    <LinearLayout
+        android:id="@+id/layout_ctrl"  
+        android:layout_width="match_parent"  
+        android:layout_height="wrap_content"  
+        android:orientation="horizontal" >
+		<Button
+			android:id="@+id/btn_reputation"
+			android:layout_width="0dp"
+			android:layout_height="wrap_content"
+			android:layout_weight="6"
+			android:text="综合排序"/>
+		<Button
+			android:id="@+id/btn_popularity"
+			android:layout_width="0dp"
+			android:layout_height="wrap_content"
+			android:layout_weight="6"
+			android:text="最多播放"/>
+		<Button
+			android:id="@+id/btn_update"
+			android:layout_width="0dp"
+			android:layout_height="wrap_content"
+			android:layout_weight="6"
+			android:text="最新发布"/>
+		<TextView
+			android:layout_width="0dp"
+			android:layout_height="wrap_content"
+			android:layout_weight="1"
+			android:text="ft" />
+		<Button
+			android:id="@+id/btn_ft"
+			android:layout_width="0dp"
+			android:layout_height="wrap_content"
+			android:layout_weight="3"
+			android:text="0"/>
+		<CheckBox
+			android:id="@+id/cb_is_catalog"
+			android:layout_width="0dp"
+			android:layout_height="wrap_content"
+			android:layout_weight="5"
+			android:text="合集"/>
+	</LinearLayout>
+	
+    <GridView
+        android:id="@+id/grid_view"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_below="@+id/layout_ctrl"
+        android:layout_marginLeft="1dip"
+        android:layout_marginRight="1dip"
+        android:numColumns="auto_fit"
+        android:columnWidth="150dp"
+        android:verticalSpacing="25dp"
+        android:stretchMode="columnWidth"
+        android:cacheColorHint="#00000000">
+	</GridView>
+        
+
+</RelativeLayout>

@@ -1064,6 +1064,17 @@ public class MediaPlayer implements MediaPlayerInterface {
 		
 		return 0;
 	}
+
+	@Override
+	public void setNextMediaPlayer(MediaPlayer next) {
+		if (mPlayer != null) {
+			mPlayer.setNextMediaPlayer(next);
+		}
+	}
+
+	public MediaPlayerInterface getInterface() {
+		return mPlayer;
+	}
 	
 	// event
     /* Do not change these values without updating their counterparts

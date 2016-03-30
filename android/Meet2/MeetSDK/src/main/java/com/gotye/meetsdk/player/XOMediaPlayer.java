@@ -1911,4 +1911,9 @@ public class XOMediaPlayer extends BaseMediaPlayer {
 		return 0;
 	}
 
+	@Override
+	public void setNextMediaPlayer(MediaPlayer next) {
+
+	}
+
 }

@@ -74,6 +74,8 @@ public class MyMediaController extends MediaController {
 	
 	@Override
 	public void onFinishInflate() {
+		super.onFinishInflate();
+
 		initControllerView(mControllerView);
 	}
 	

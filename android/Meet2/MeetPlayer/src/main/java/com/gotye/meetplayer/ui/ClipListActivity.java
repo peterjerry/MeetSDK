@@ -2127,6 +2127,7 @@ public class ClipListActivity extends AppCompatActivity implements
                 intent.putExtra("duration_list", durations);
                 intent.putExtra("title", "N/A");
                 intent.putExtra("ft", 2);
+                intent.putExtra("player_impl", mPlayerImpl);
                 startActivity(intent);
             }
             else {
@@ -2352,7 +2353,7 @@ public class ClipListActivity extends AppCompatActivity implements
         		}
         		
         		Intent intent = new Intent(ClipListActivity.this,
-        				/*FragmentMp4PlayerActivity*/PlaySohuActivity.class);
+        				PlaySohuActivity.class);
         		intent.putExtra("url_list", l.getUrl(SohuFtEnum.SOHU_FT_HIGH));
         		intent.putExtra("duration_list", l.getDuration(SohuFtEnum.SOHU_FT_HIGH));
         		intent.putExtra("title", l.getTitle());
@@ -2793,7 +2794,6 @@ public class ClipListActivity extends AppCompatActivity implements
                     return true;
                 }
 
-                mPlayerImpl = 3; // force use ffplay
                 new ParseVideoTask().execute(video_url);
                 break;
             default:

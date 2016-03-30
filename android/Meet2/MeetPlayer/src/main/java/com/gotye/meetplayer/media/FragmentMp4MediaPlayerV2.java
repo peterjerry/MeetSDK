@@ -3,17 +3,10 @@ package com.gotye.meetplayer.media;
 import java.io.IOException;
 import java.util.List;
 
-import android.media.MediaPlayer;
-import android.media.MediaPlayer.OnBufferingUpdateListener;
-import android.media.MediaPlayer.OnCompletionListener;
-import android.media.MediaPlayer.OnErrorListener;
-import android.media.MediaPlayer.OnInfoListener;
-import android.media.MediaPlayer.OnPreparedListener;
-import android.media.MediaPlayer.OnSeekCompleteListener;
-import android.media.MediaPlayer.OnVideoSizeChangedListener;
-
 import android.util.Log;
 import android.view.SurfaceHolder;
+
+import com.gotye.meetsdk.player.MediaPlayer;
 
 public class FragmentMp4MediaPlayerV2 {
 	private final static String TAG = "FragmentMp4MediaPlayer";
@@ -29,6 +22,7 @@ public class FragmentMp4MediaPlayerV2 {
 	private int m_total_duration_msec;
 	
 	private MediaPlayer mCurrentPlayer, mNextPlayer;
+	private int mPlayerImpl;
 	private SurfaceHolder mHolder;
 	private int mVideoWidth, mVideoHeight;
 	private boolean mLooping = false;
@@ -44,8 +38,8 @@ public class FragmentMp4MediaPlayerV2 {
 	private MediaPlayer.OnInfoListener mOnInfoListener;
 	private MediaPlayer.OnSeekCompleteListener mOnSeekCompleteListener;
 	
-	public FragmentMp4MediaPlayerV2() {
-		
+	public FragmentMp4MediaPlayerV2(int impl) {
+		mPlayerImpl = impl;
 	}
 	
 	public void setDataSource(List<String> urlList, List<Integer>durationList /* msec */)
@@ -227,31 +221,31 @@ public class FragmentMp4MediaPlayerV2 {
 		mStreamType = streamType;
 	}
 
-	public void setOnBufferingUpdateListener(OnBufferingUpdateListener listener) {
+	public void setOnBufferingUpdateListener(MediaPlayer.OnBufferingUpdateListener listener) {
 		mOnBufferingUpdateListener = listener;
 	}
 
-	public void setOnCompletionListener(OnCompletionListener listener) {
+	public void setOnCompletionListener(MediaPlayer.OnCompletionListener listener) {
 		mOnCompletionListener = listener;
 	}
 
-	public void setOnErrorListener(OnErrorListener listener) {
+	public void setOnErrorListener(MediaPlayer.OnErrorListener listener) {
 		mOnErrorListener = listener;
 	}
 
-	public void setOnInfoListener(OnInfoListener listener) {
+	public void setOnInfoListener(MediaPlayer.OnInfoListener listener) {
 		mOnInfoListener = listener;
 	}
 
-	public void setOnPreparedListener(OnPreparedListener listener) {
+	public void setOnPreparedListener(MediaPlayer.OnPreparedListener listener) {
 		mOnPreparedListener = listener;
 	}
 
-	public void setOnSeekCompleteListener(OnSeekCompleteListener listener) {
+	public void setOnSeekCompleteListener(MediaPlayer.OnSeekCompleteListener listener) {
 		mOnSeekCompleteListener = listener;
 	}
 
-	public void setOnVideoSizeChangedListener(OnVideoSizeChangedListener listener) {
+	public void setOnVideoSizeChangedListener(MediaPlayer.OnVideoSizeChangedListener listener) {
 		mOnVideoSizeChangedListener = listener;
 	}
 	
@@ -265,8 +259,10 @@ public class FragmentMp4MediaPlayerV2 {
 			mCurrentPlayer.release();
 			mCurrentPlayer = null;
 		}
-		
-		mCurrentPlayer = new MediaPlayer();
+
+        MediaPlayer.DecodeMode mode = (mPlayerImpl == 3 ?
+                MediaPlayer.DecodeMode.SW : MediaPlayer.DecodeMode.HW_SYSTEM);
+		mCurrentPlayer = new MediaPlayer(mode);
 		mCurrentPlayer.reset();
 		
 		mCurrentPlayer.setDisplay(mHolder);
@@ -301,11 +297,16 @@ public class FragmentMp4MediaPlayerV2 {
 				// TODO Auto-generated method stub
 				if (mNextPlayer != null)
 					mNextPlayer.release();
-				
-				mNextPlayer = new MediaPlayer();
+
+                MediaPlayer.DecodeMode mode = (mPlayerImpl == 3 ?
+                        MediaPlayer.DecodeMode.SW : MediaPlayer.DecodeMode.HW_SYSTEM);
+				mNextPlayer = new MediaPlayer(mode);
 				mNextPlayer.reset();
-				
-				mNextPlayer.setAudioStreamType(mStreamType);
+
+                // ffplayer should set NOW!!!
+                if (mPlayerImpl == 3)
+                    mNextPlayer.setDisplay(mHolder);
+                mNextPlayer.setAudioStreamType(mStreamType);
 				//mNextPlayer.setScreenOnWhilePlaying(mScreenOnWhilePlaying);
 				
 				//mNextPlayer.setOnBufferingUpdateListener(mOnBufferingUpdateListener);
@@ -344,20 +345,28 @@ public class FragmentMp4MediaPlayerV2 {
 			}
 			
 			m_play_pos_offset += m_duration_list.get(m_playlink_now_index++);
-			
-			mp.setDisplay(null);
-			mp.release();
-			if (mNextPlayer == null && mOnErrorListener != null) {
-				mOnErrorListener.onError(mp, MediaPlayer.MEDIA_ERROR_NOT_VALID_FOR_PROGRESSIVE_PLAYBACK, 
-					m_playlink_now_index);
+
+			if (mNextPlayer == null) {
+                if (mOnErrorListener != null) {
+                    mOnErrorListener.onError(mp, MediaPlayer.MEDIA_ERROR_NOT_VALID_FOR_PROGRESSIVE_PLAYBACK,
+                            m_playlink_now_index);
+                }
+
 				return;
 			}
 			
 			mCurrentPlayer = mNextPlayer;
 			mNextPlayer = null;
-			mCurrentPlayer.setDisplay(mHolder);
+            if (mPlayerImpl == 3)
+                mCurrentPlayer.start();
+            if (mPlayerImpl != 3)
+			    mCurrentPlayer.setDisplay(mHolder);
 
-			Log.i(TAG, "Java: switch to next segment #" + m_playlink_now_index);
+            if (mPlayerImpl != 3)
+                mp.setDisplay(null);
+            mp.release();
+
+            Log.i(TAG, "Java: switch to next segment #" + m_playlink_now_index);
 			
 			if (m_playlink_now_index < m_playlink_list.size() - 1) {
 				setupNextPlayer();

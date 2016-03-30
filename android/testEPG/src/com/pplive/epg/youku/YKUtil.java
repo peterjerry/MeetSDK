@@ -25,6 +25,7 @@ import org.json.JSONTokener;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
+import org.jsoup.select.Elements;
 
 import com.pplive.epg.util.Base64Util;
 import com.pplive.epg.util.CryptAES;
@@ -159,6 +160,10 @@ public class YKUtil {
 	private final static String youku_soku_api = 
 			"http://www.soku.com/m/y/video?q=";
 	
+	private final static String youku_soku_api2 = 
+			"http://www.soku.com/search_video/q_";
+			//"_orderby_1_limitdate_0?site=14&page=3";
+	
 	public static void main(String[] args) { 
         
 		//String url = "http://v.youku.com/v_show/id_XMTQ5NDg3NjQzNg==.html?from=s1.8-1-1.1";
@@ -231,7 +236,7 @@ public class YKUtil {
 		System.arraycopy(buffer, 0, m3u8_context, 0, content_size);
 		parseM3u8(new String(m3u8_context));*/
 		
-		soku("戏说阿仁", 2);
+		soku2("阿仁", 1, 1);
 		
         //String keyStr = "UITN25LMUQC436IM";  
  
@@ -280,6 +285,55 @@ public class YKUtil {
 							String.format("title %s, url: %s, vid %s, stripe %s, vv %s", 
 							title, href, vid, online_time, vv));
 				}
+			}
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+		return null;
+	}
+	
+	public static List<Episode> soku2(String keyword, 
+			int orderby, int page) {
+		System.out.println("soku() keyword " + keyword);
+		
+		String url = null;
+		try {
+			String encoded_keyword = URLEncoder.encode(keyword, "UTF-8");
+			url = youku_soku_api2 + encoded_keyword;
+			// orderby 1-综合排序 2-最新发布 3-最多播放
+			String surfix = 
+					String.format("_orderby_%d?page=%d",
+							orderby, page);
+			url += surfix;
+			//综合排序 最新发布 最多播放 &od=0,1,2
+		} catch (UnsupportedEncodingException e) {
+			e.printStackTrace();
+			return null;
+		}
+		
+		System.out.println("soku2() url: " + url);
+		try {
+			Document doc = Jsoup.connect(url).timeout(5000).get();
+			Elements test = doc.getElementsByClass("v"); 
+			int size = test.size();
+			System.out.println("size " + size);
+			for (int i = 0; i < size; i++) {
+				Element v = test.get(i);
+				Element v_thumb = v.child(0);
+				Element v_link = v.child(1);
+				Element v_meta = v.child(3);
+				Element video = v_link.child(0);
+				String thumb_url = v_thumb.child(0).attr("src");
+				String title = video.attr("title");
+				String href = video.attr("href");
+				String vid = video.attr("_log_vid");
+				String vv = v_meta.child(1).child(1).child(1).text();
+				String online_time = v_meta.child(1).child(2).child(1).text();
+				System.out.println(
+						String.format("title %s, thumb %s, url: %s, vid %s, stripe %s, vv %s", 
+						title, thumb_url, href, vid, online_time, vv));
 			}
 		} catch (IOException e) {
 			// TODO Auto-generated catch block

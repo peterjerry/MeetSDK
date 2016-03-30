@@ -10,19 +10,23 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
 import android.support.v7.app.AppCompatActivity;
+import android.util.Log;
 import android.view.View;
 import android.view.WindowManager;
 import android.widget.AbsListView;
 import android.widget.AdapterView;
+import android.widget.Button;
 import android.widget.EditText;
 import android.widget.GridView;
 import android.widget.Toast;
 
 import com.gotye.common.util.LogUtil;
+import com.gotye.common.util.httpUtil;
 import com.gotye.common.youku.Album;
 import com.gotye.common.youku.Episode;
 import com.gotye.common.youku.YKUtil;
 import com.gotye.meetplayer.R;
+import com.gotye.meetplayer.util.Util;
 
 import java.lang.ref.WeakReference;
 import java.util.ArrayList;
@@ -46,13 +50,20 @@ public class YoukuEpisodeActivity extends AppCompatActivity {
     private final static int SET_DATA_LIST		= 1;
     private final static int SET_DATA_SEARCH	= 2;
 
+    private boolean search_mode = false;
+
+    private Button btnReputation;
+    private Button btnPopularity;
+    private Button btnUpdate;
+
     private int album_page_index = 1;
     private int episode_page_index = 1;
+    private int orderby = 2; // orderby 1-综合排序 2-最新发布 3-最多播放
     private int search_page_index = 1;
     private int episode_page_incr = 1;
     private final static int page_size = 10;
-    
-    private List<Map<String, Object>> data2;
+
+    private int mPlayerImpl;
 
     private List<Album> mAlbumList;
     private List<Episode> mEpisodeList;
@@ -103,43 +114,45 @@ public class YoukuEpisodeActivity extends AppCompatActivity {
 			return;
 		}
 		
-		setContentView(R.layout.activity_sohu_episode);
-		
+		setContentView(R.layout.activity_youku_episode);
+
+        findViewById(R.id.btn_reputation).setOnClickListener(mClickListener);
+        findViewById(R.id.btn_popularity).setOnClickListener(mClickListener);
+        findViewById(R.id.btn_update).setOnClickListener(mClickListener);
+
 		this.gridView = (GridView) findViewById(R.id.grid_view);
 		this.gridView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
 
-			@Override
-			public void onItemClick(AdapterView<?> arg0, View v, int position,
-									long id) {
-				// TODO Auto-generated method stub
+            @Override
+            public void onItemClick(AdapterView<?> arg0, View v, int position,
+                                    long id) {
+                // TODO Auto-generated method stub
 
-				Map<String, Object> item = adapter.getItem(position);
+                Map<String, Object> item = adapter.getItem(position);
 
-				mShowId = (String)item.get("show_id");
+                mShowId = (String) item.get("show_id");
                 if (mShowId == null) {
-                    mVid = (String)item.get("vid");
+                    mVid = (String) item.get("vid");
                     if (mVid != null)
                         new EPGTask().execute(TASK_PLAYLINK);
                     else
                         Toast.makeText(YoukuEpisodeActivity.this, "video id is null", Toast.LENGTH_LONG).show();
-                }
-                else {
-                    int count = (Integer)item.get("episode_total");
+                } else {
+                    int count = (Integer) item.get("episode_total");
                     if (count > 30) {
                         // " last_count - 1" fix 709 case
                         episode_page_index = (count + 9) / page_size;
                         episode_page_incr = -1;
-                    }
-                    else {
+                    } else {
                         episode_page_index = 1;
                         episode_page_incr = 1;
                     }
 
                     new EPGTask().execute(TASK_EPISODE);
                 }
-			}
+            }
 
-		});
+        });
 		
 		this.gridView.setOnItemLongClickListener(new AdapterView.OnItemLongClickListener() {
 
@@ -186,11 +199,48 @@ public class YoukuEpisodeActivity extends AppCompatActivity {
 
         mHandler = new MainHandler(this);
 
-	    if (search_key != null)
-	    	new SetDataTask().execute(SET_DATA_SEARCH);
-	    else
-	    	new SetDataTask().execute(SET_DATA_LIST);
+        mPlayerImpl = Util.readSettingsInt(this, "PlayerImpl");
+
+	    if (search_key != null) {
+            search_mode = true;
+            new SetDataTask().execute(SET_DATA_SEARCH);
+        }
+	    else {
+            search_mode = false;
+            new SetDataTask().execute(SET_DATA_LIST);
+        }
 	}
+
+    private View.OnClickListener mClickListener = new View.OnClickListener() {
+
+        @Override
+        public void onClick(View v) {
+            // TODO Auto-generated method stub
+
+            if (search_mode) {
+                search_page_index = 1;
+                // orderby 1-综合排序 2-最新发布 3-最多播放
+
+                switch (v.getId()) {
+                    case R.id.btn_reputation:
+                        orderby = 1;
+                        new SetDataTask().execute(SET_DATA_SEARCH);
+                        break;
+                    case R.id.btn_popularity:
+                        orderby = 3;
+                        new SetDataTask().execute(SET_DATA_SEARCH);
+                        break;
+                    case R.id.btn_update:
+                        orderby = 2;
+                        new SetDataTask().execute(SET_DATA_SEARCH);
+                        break;
+                    default:
+                        Log.w(TAG, "Java unknown view id: " + v.getId());
+                        break;
+                }
+            }
+        }
+    };
 
     private static class MainHandler extends Handler {
         private final static int MSG_EPISODE_DONE	    = 1;
@@ -233,6 +283,7 @@ public class YoukuEpisodeActivity extends AppCompatActivity {
                     intent.putExtra("show_id", activity.mShowId);
                     intent.putExtra("page_index", activity.episode_page_index);
                     intent.putExtra("index", activity.mEpisodeIndex);
+                    intent.putExtra("player_impl", activity.mPlayerImpl);
 
                     activity.startActivity(intent);
                     break;
@@ -394,16 +445,11 @@ public class YoukuEpisodeActivity extends AppCompatActivity {
                     mTitle = ep.getTitle();
                     mEpisodeIndex = -1;
 
-                    mZGUrl = YKUtil.getZGUrls(mVid);
+                    mZGUrl = getPlayUrl(mVid);
                     if (mZGUrl == null) {
                         LogUtil.error(TAG, "Java: failed to call getZGUrls() vid: " + mVid);
                         return false;
                     }
-                    /*mPlayUrl = YKUtil.getPlayUrl(mVid);
-                    if (mPlayUrl == null) {
-                        LogUtil.error(TAG, "Java: failed to call getPlayUrl() vid: " + mVid);
-                        return false;
-                    }*/
 
                     mHandler.sendEmptyMessage(MainHandler.MSG_PLAYLINK_DONE);
                     return true;
@@ -417,12 +463,7 @@ public class YoukuEpisodeActivity extends AppCompatActivity {
                     return false;
                 }
 
-                /*mPlayUrl = YKUtil.getPlayUrl(mVid);
-				if (mPlayUrl == null) {
-                    LogUtil.error(TAG, "Java: failed to call getPlayUrl() vid: " + mVid);
-					return false;
-				}*/
-                mZGUrl = YKUtil.getZGUrls(mVid);
+                mZGUrl = getPlayUrl(mVid);
                 if (mZGUrl == null) {
                     LogUtil.error(TAG, "Java: failed to call getZGUrls() vid: " + mVid);
                     return false;
@@ -431,27 +472,53 @@ public class YoukuEpisodeActivity extends AppCompatActivity {
                 mHandler.sendEmptyMessage(MainHandler.MSG_PLAYLINK_DONE);
 			}
 			else if (action == TASK_MORELIST) {
-				album_page_index++;
-                mAlbumList = YKUtil.getAlbums(channel_id, filter, sub_channel_id, sub_channel_type,
-                        album_page_index, page_size);
-				if (mAlbumList == null || mAlbumList.size() < page_size) {
-                    LogUtil.info(TAG, "Java: no more album");
-					noMoreData = true;
-					return false;
-				}
+                if (search_mode) {
+                    search_page_index++;
+                    mEpisodeList = YKUtil.soku(search_key, orderby, search_page_index);
+                    if (mEpisodeList == null || mEpisodeList.isEmpty()) {
+                        LogUtil.info(TAG, "Java: no more album");
+                        noMoreData = true;
+                        return false;
+                    }
 
-				loadingMore = false;
+                    int c = mEpisodeList.size();
+                    List<Map<String, Object>> listData = adapter.getData();
+                    for (int i=0;i<c;i++) {
+                        HashMap<String, Object> episode = new HashMap<String, Object>();
+                        Episode ep = mEpisodeList.get(i);
+                        episode.put("title", ep.getTitle());
+                        episode.put("img_url", ep.getThumbUrl());
+                        episode.put("desc", "N/A");
+                        episode.put("onlinetime", ep.getOnlineTime());
+                        episode.put("tip", ep.getTotalVV());
+                        episode.put("vid", ep.getVideoId());
+                        episode.put("is_album", false);
+                        listData.add(episode);
+                    }
+                }
+                else {
+                    album_page_index++;
+                    mAlbumList = YKUtil.getAlbums(channel_id, filter, sub_channel_id, sub_channel_type,
+                            album_page_index, page_size);
+                    if (mAlbumList == null || mAlbumList.size() < page_size) {
+                        LogUtil.info(TAG, "Java: no more album");
+                        noMoreData = true;
+                        return false;
+                    }
 
-                List<Map<String, Object>> listData = adapter.getData();
+                    loadingMore = false;
 
-                int c = mAlbumList.size();
-                for (int i=0;i<c;i++) {
-                    Album al = mAlbumList.get(i);
-                    HashMap<String, Object> episode = fill_episode(al);
-                    if (episode == null)
-                        continue;
+                    List<Map<String, Object>> listData = adapter.getData();
 
-                    listData.add(episode);
+                    int c = mAlbumList.size();
+                    for (int i=0;i<c;i++) {
+                        Album al = mAlbumList.get(i);
+                        HashMap<String, Object> episode = fill_episode(al);
+                        if (episode == null)
+                            continue;
+
+                        listData.add(episode);
+                    }
                 }
 
                 mHandler.sendEmptyMessage(MainHandler.MSG_MORELIST_DONE);
@@ -463,59 +530,106 @@ public class YoukuEpisodeActivity extends AppCompatActivity {
 
 			return true;// all done!
 		}
-		
+
+        private YKUtil.ZGUrl getPlayUrl(String vid) {
+            String m3u8_url = YKUtil.getPlayUrl(vid);
+            if (m3u8_url == null) {
+                LogUtil.error(TAG, "Java: failed to call getPlayUrl() vid: " + mVid);
+                return null;
+            }
+            byte []buffer = new byte[65536 * 10];
+            int content_size = httpUtil.httpDownloadBuffer(m3u8_url, 0, buffer);
+            if (content_size <= 0) {
+                LogUtil.error(TAG, "Java: failed to download m3u8 file: " + m3u8_url);
+                return null;
+            }
+            byte []m3u8_context = new byte[content_size];
+            System.arraycopy(buffer, 0, m3u8_context, 0, content_size);
+
+            //return YKUtil.getZGUrls(vid);
+            return YKUtil.parseM3u8(new String(m3u8_context));
+        }
+
 	}
 	
-	private class SetDataTask extends AsyncTask<Integer, Integer, Boolean> {
+	private class SetDataTask extends AsyncTask<Integer, Integer, List<Map<String, Object>>> {
 		
 		@Override
-		protected void onPostExecute(Boolean result) {
+		protected void onPostExecute(List<Map<String, Object>> result) {
 			// TODO Auto-generated method stub
 			
-			if (!result) {
+			if (result == null) {
                 LogUtil.error(TAG, "Java: failed to get sub channel");
 				return;
 			}
 			
-			adapter = new MySohuEpAdapter(YoukuEpisodeActivity.this, data2);
-		    gridView.setAdapter(adapter);  
+			if (adapter == null) {
+                adapter = new MySohuEpAdapter(YoukuEpisodeActivity.this, result);
+                gridView.setAdapter(adapter);
+            }
+            else {
+                List<Map<String, Object>> listData = adapter.getData();
+                listData.clear();
+                listData.addAll(result);
+                adapter.notifyDataSetChanged();
+            }
 		}
 		
 		@Override
-		protected Boolean doInBackground(Integer... params) {
+		protected List<Map<String, Object>> doInBackground(Integer... params) {
 			// TODO Auto-generated method stub
 			int action = params[0];
-			
+            List<Map<String, Object>> items = null;
+
 			if (action == SET_DATA_SEARCH) {
-                mAlbumList = YKUtil.search(search_key, search_page_index, page_size);
+                /*mAlbumList = YKUtil.search(search_key, search_page_index, page_size);
                 if (mAlbumList == null) {
                     LogUtil.error(TAG, "Java: failed to call subchannel()");
                     return false;
+                }*/
+                mEpisodeList = YKUtil.soku(search_key, orderby, search_page_index);
+                if (mEpisodeList == null || mEpisodeList.isEmpty()) {
+                    LogUtil.error(TAG, "Java: failed to call soku()");
+                    return null;
+                }
+
+                int c = mEpisodeList.size();
+                items = new ArrayList<Map<String, Object>>();
+                for (int i=0;i<c;i++) {
+                    HashMap<String, Object> episode = new HashMap<String, Object>();
+                    Episode ep = mEpisodeList.get(i);
+                    LogUtil.info(TAG, "aaaaaa " + ep.toString());
+                    episode.put("title", ep.getTitle());
+                    episode.put("img_url", ep.getThumbUrl());
+                    episode.put("desc", "N/A");
+                    episode.put("onlinetime", ep.getOnlineTime());
+                    episode.put("tip", ep.getTotalVV());
+                    episode.put("vid", ep.getVideoId());
+                    episode.put("is_album", false);
+                    items.add(episode);
                 }
 			}
 			else {
                 mAlbumList = YKUtil.getAlbums(channel_id,
                         filter, sub_channel_id, sub_channel_type,
                         album_page_index, page_size);
-				if (mAlbumList == null) {
+				if (mAlbumList == null || mAlbumList.isEmpty()) {
                     LogUtil.error(TAG, "Java: failed to call subchannel()");
-					return false;
+					return null;
 				}
-			}
-						  
-			data2 = new ArrayList<Map<String, Object>>();
-			int c = mAlbumList.size();
-            LogUtil.info(TAG, "Java album size: " + c);
-			for (int i=0;i<c;i++) {
-                Album al = mAlbumList.get(i);
-                HashMap<String, Object> episode = fill_episode(al);
-                if (episode == null)
-                    continue;
+                items = new ArrayList<Map<String, Object>>();
+                int c = mAlbumList.size();
+                for (int i=0;i<c;i++) {
+                    Album al = mAlbumList.get(i);
+                    HashMap<String, Object> episode = fill_episode(al);
+                    if (episode == null)
+                        continue;
 
-				data2.add(episode);
+                    items.add(episode);
+                }
 			}
-			
-			return true;
+
+			return items;
 		}
 	}
 
