@@ -1,6 +1,7 @@
 package com.gotye.common.youku;
 
 import android.os.Environment;
+import android.util.Log;
 
 import com.gotye.common.util.CryptAES;
 import com.gotye.common.util.LogUtil;
@@ -12,12 +13,15 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
 import java.net.HttpURLConnection;
+import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLEncoder;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.Random;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -33,6 +37,17 @@ import org.jsoup.select.Elements;
 
 public class YKUtil {
 	private final static String TAG = "YKUtil";
+
+    private final static String YOUKU_USER_AGENT =
+            "Youku HD;3.9.4;iPhone OS;7.1.2;iPad4,1";
+
+    private final static String DESKTOP_CHROME_USER_AGENT =
+            "Mozilla/5.0 (Windows NT 6.3; Win64; x64) " +
+                    "AppleWebKit/537.36 (KHTML, like Gecko) " +
+                    "Chrome/46.0.2490.86 Safari/537.36";
+
+    private final static String youku_page =
+            "http://v.youku.com/v_show/id_%s.html";
 
     private final static String youku_channel_api =
             "http://api.mobile.youku.com/layout/android5_0/channel/" +
@@ -159,7 +174,39 @@ public class YKUtil {
         return getPlayUrl(vid_);
     }
 
-	public static String getPlayUrl(String vid) {
+    public static ZGUrl getPlayUrl2(String vid) {
+        String m3u8_url = YKUtil.getPlayUrl(vid);
+        if (m3u8_url == null) {
+            LogUtil.error(TAG, "Java: failed to call getPlayUrl() vid: " + vid);
+            return null;
+        }
+
+        LogUtil.info(TAG, "m3u8_url: " + m3u8_url);
+
+        String ykss = getYKss(null, vid);
+        if (ykss == null) {
+            LogUtil.error(TAG, "failed to get ykss");
+            return null;
+        }
+
+        String Cookies = "__ysuid=" + YKUtil.getPvid(3) +
+                ";xreferrer=http://www.youku.com/" +
+                ";ykss=" + ykss;
+        System.out.println("Cookies: " + Cookies);
+        byte []buffer = new byte[65536 * 10];
+        int content_size = httpUtil.httpDownloadBuffer(m3u8_url, Cookies, 0, buffer);
+        if (content_size <= 0) {
+            LogUtil.error(TAG, "Java: failed to download m3u8 file: " + m3u8_url);
+            return null;
+        }
+        byte []m3u8_context = new byte[content_size];
+        System.arraycopy(buffer, 0, m3u8_context, 0, content_size);
+
+        //return YKUtil.getZGUrls(vid);
+        return YKUtil.parseM3u8(new String(m3u8_context));
+    }
+
+	private static String getPlayUrl(String vid) {
         LogUtil.info(TAG, "Java: getPlayUrl() vid " + vid);
 		
 		String ctype = "20";//指定播放ID 20
@@ -168,7 +215,8 @@ public class YKUtil {
         String tm = String.valueOf(sec);
         
         String api_url = String.format(apiurl, ctype, did, vid, vid);
-        String result = getHttpPage(api_url, true, true);
+        LogUtil.info(TAG, "youku api_url: " + api_url);
+        String result = getHttpPage(api_url, YOUKU_USER_AGENT, true);
         if (result == null)
             return null;
 
@@ -217,7 +265,7 @@ public class YKUtil {
         String api_url = "http://zg.yangsifa.com/video?url=v.youku.com/v_show/id_%s==.html&hd=3";
         String url = String.format(api_url, vid, api_key);
         LogUtil.info(TAG, "getZGUrls() url: " + url);
-        String result = getHttpPage(url, false, false);
+        String result = getHttpPage(url, null, false);
         if (result == null)
             return null;
 
@@ -283,7 +331,7 @@ public class YKUtil {
     public static List<Channel> getChannel() {
         System.out.println("getChannel: " + youku_channel_api);
 
-        String result = getHttpPage(youku_channel_api, false, false);
+        String result = getHttpPage(youku_channel_api, null, false);
         if (result == null)
             return null;
 
@@ -326,7 +374,7 @@ public class YKUtil {
         String url = String.format(youku_catalog_api, channel_id);
 
         LogUtil.info(TAG, "getCatalog() url: " + url);
-        String result = getHttpPage(url, true, true);
+        String result = getHttpPage(url, YOUKU_USER_AGENT, true);
         if (result == null)
             return null;
 
@@ -388,7 +436,7 @@ public class YKUtil {
         }
 
         LogUtil.info(TAG, "getAlbums() url " + url);
-        String result = getHttpPage(url, true, true);
+        String result = getHttpPage(url, YOUKU_USER_AGENT, true);
         if (result == null)
             return null;
 
@@ -471,7 +519,7 @@ public class YKUtil {
         String url = String.format(youku_album_info_api, tid);
 
         LogUtil.debug(TAG, "getAlbumInfo() url: " + url);
-        String result = getHttpPage(url, true, true);
+        String result = getHttpPage(url, YOUKU_USER_AGENT, true);
         if (result == null)
             return null;
 
@@ -533,7 +581,7 @@ public class YKUtil {
         String url = String.format(youku_episode_api, showId, page, page_size);
 
         LogUtil.info(TAG, "getEpisodeList() url: " + url);
-        String result = getHttpPage(url, true, true);
+        String result = getHttpPage(url, YOUKU_USER_AGENT, true);
         if (result == null)
             return null;
 
@@ -611,7 +659,7 @@ public class YKUtil {
         }
 
         LogUtil.info(TAG, "soku() url: " + url);
-        String html = getHttpPage(url, false, false);
+        String html = getHttpPage(url, DESKTOP_CHROME_USER_AGENT, false);
         if (html == null) {
             LogUtil.error(TAG, "failed to get http page: " + url);
             return null;
@@ -629,23 +677,33 @@ public class YKUtil {
         List<Episode> epList = new ArrayList<Episode>();
         for (int i = 0; i < size; i++) {
             Element v = test.get(i);
-            Element v_thumb = v.child(0);
-            Element v_link = v.child(1);
-            Element v_meta = v.child(3);
-            Element video = v_link.child(0);
+            Element v_thumb = v.getElementsByClass("v-thumb").first();
+            Element v_link = v.getElementsByClass("v-link").first();
+            // fix me!
+            // solve http://www.soku.com/detail/show/XMTEwMTU5Mg==?siteId=14
+            if (v_link == null)
+                continue;
+
+            Element v_meta = v.getElementsByClass("v-meta").first();
+            Element video = v_link.getElementsByTag("a").first();
             String thumb_url = v_thumb.child(0).attr("src");
+            String duration = v_thumb.getElementsByClass("v-thumb-tagrb")
+                    .first().child(0).text();
             String title = video.attr("title");
             String href = video.attr("href");
             String vid = video.attr("_log_vid");
-            String vv = v_meta.child(1).child(1).child(1).text();
-            String online_time = v_meta.child(1).child(2).child(1).text();
+            String vv = v_meta.getElementsByClass("v-meta-entry")
+                    .first().child(1).child(1).text();
+            String online_time = v_meta.getElementsByClass("v-meta-entry")
+                    .first().child(2).child(1).text();
             epList.add(new Episode(title, vid, thumb_url,
-                    online_time, vv, null));
+                    online_time, vv, duration, null));
         }
 
         return epList;
     }
 
+    @Deprecated
     public static List<Album> search(String keyword,
                                      int page, int page_size) {
         LogUtil.info(TAG, "Java: search() keyword " + keyword);
@@ -661,7 +719,7 @@ public class YKUtil {
         }
 
         LogUtil.info(TAG, "Java: search() url: " + url);
-        String result = getHttpPage(url, true, false);
+        String result = getHttpPage(url, YOUKU_USER_AGENT, false);
         if (result == null)
             return null;
 
@@ -691,7 +749,7 @@ public class YKUtil {
         return null;
     }
 
-	private static String getHttpPage(String url, boolean setUserAgent, boolean setEncoding) {
+	private static String getHttpPage(String url, String UserAgent, boolean setEncoding) {
 		InputStream is = null;
 		ByteArrayOutputStream os = null;
 
@@ -702,16 +760,8 @@ public class YKUtil {
 			conn.setRequestMethod("GET");
 			conn.setReadTimeout(5000);// 设置超时的时间
 			conn.setConnectTimeout(5000);// 设置链接超时的时间
-			if (setUserAgent) {
-				conn.setRequestProperty("User-Agent",
-						"Youku HD;3.9.4;iPhone OS;7.1.2;iPad4,1");
-			}
-            else {
-                conn.setRequestProperty("User-Agent",
-                    "Mozilla/5.0 (Windows NT 6.3; Win64; x64) " +
-                            "AppleWebKit/537.36 (KHTML, like Gecko) " +
-                            "Chrome/46.0.2490.86 Safari/537.36");
-            }
+            if (UserAgent != null)
+                conn.setRequestProperty("User-Agent", UserAgent);
 			if (setEncoding)
 				conn.setRequestProperty("Encoding", "gzip, deflate");
 
@@ -846,6 +896,8 @@ public class YKUtil {
     }
 
     public static ZGUrl parseM3u8(String m3u8_context) {
+        LogUtil.info(TAG, "parseM3u8()");
+
         StringBuffer sbUrl = new StringBuffer();
         StringBuffer sbDuration = new StringBuffer();
 
@@ -898,10 +950,12 @@ public class YKUtil {
             }
         }
 
-        if (!sbUrl.toString().isEmpty() && !sbDuration.toString().isEmpty())
-            return new ZGUrl("flv", sbUrl.toString(), sbDuration.toString());
+        if (sbUrl.toString().isEmpty()|| sbDuration.toString().isEmpty()) {
+            LogUtil.error(TAG, "url list is null: " + m3u8_context);
+            return null;
+        }
 
-        return null;
+        return new ZGUrl("flv", sbUrl.toString(), sbDuration.toString());
     }
 
 	private static String getVid(String url) {
@@ -959,4 +1013,68 @@ public class YKUtil {
 
 	    return hex.toString();
 	}
+
+    public static String getPvid(int len) {
+        String[] randchar = new String[]{
+                "0", "1", "2", "3", "4", "5", "6", "7", "8", "9",
+                "a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n", "o",
+                "p", "q", "r", "s", "t", "u", "v", "w", "x", "y", "z",
+                "A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O",
+                "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z"};
+
+        int i = 0;
+        String r = "";
+        long seconds = System.currentTimeMillis();
+        /*Calendar cal = java.util.Calendar.getInstance();
+        int zoneOffset = cal.get(java.util.Calendar.ZONE_OFFSET);
+        int dstOffset = cal.get(java.util.Calendar.DST_OFFSET);
+        cal.add(java.util.Calendar.MILLISECOND, -(zoneOffset + dstOffset));
+        long seconds = cal.getTimeInMillis();*/
+        for (i = 0; i < len; i++) {
+            int v = new Random().nextInt(100);
+            int index = (int)(v * Math.pow(10, 6)) % randchar.length;
+            r += randchar[index];
+        }
+
+        return String.valueOf(seconds) + r;
+    }
+
+    private static String getYKss(String httpUrl, String vid) {
+        if (httpUrl == null && vid == null) {
+            LogUtil.error(TAG, "getYKss() invalid params");
+            return null;
+        }
+
+        String html_url = httpUrl;
+        if (html_url == null)
+            html_url = String.format(youku_page, vid);
+        LogUtil.info(TAG, "Java: getYKss() " + html_url);
+
+        try {
+            URL url = new URL(html_url);
+            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+            Map<String, List<String>> map = conn.getHeaderFields();
+            List<String> cookie_list = map.get("Set-Cookie");
+            if (cookie_list != null) {
+                for (int i = 0; i < cookie_list.size(); i++) {
+                    String c = cookie_list.get(i);
+                    if (c.contains("ykss=")) {
+                        int start = c.indexOf("ykss=");
+                        int end = c.indexOf(";");
+                        if (end == -1)
+                            return c.substring(start + 5);
+
+                        return c.substring(start + 5, end);
+                    }
+                }
+            }
+        } catch (MalformedURLException e) {
+            e.printStackTrace();
+            return null;
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        return null;
+    }
 }

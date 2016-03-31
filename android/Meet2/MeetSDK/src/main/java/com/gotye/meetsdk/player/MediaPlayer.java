@@ -258,8 +258,10 @@ public class MediaPlayer implements MediaPlayerInterface {
 
             if (mHolder != null)
                 mPlayer.setDisplay(mHolder);
-            else
+            else if (mSurface != null)
                 mPlayer.setSurface(mSurface);
+            else
+                mPlayer.setDisplay(null); // maybe null via setNextPlayer()
 		}
 	}
 	

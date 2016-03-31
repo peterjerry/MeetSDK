@@ -1,16 +1,22 @@
 package com.pplive.epg.youku;
 
 import java.io.ByteArrayOutputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
 import java.net.HttpURLConnection;
+import java.net.MalformedURLException;
 import java.net.URL;
+import java.net.URLConnection;
 import java.net.URLEncoder;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.List;
+import java.util.Map;
+import java.util.Random;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -33,8 +39,11 @@ import com.pplive.epg.util.httpUtil;
 
 public class YKUtil {
 	
-	private final static String YOUKU_SECURITY_FMT = 
+	private final static String youku_video_json_api = 
 			"http://play.youku.com/play/get.json?vid=%s&ct=12";
+	
+	private final static String youku_page =
+            "http://v.youku.com/v_show/id_%s.html";
 	
 	private final static String apiurl = 
 			"http://i.play.api.3g.youku.com/common/v3/play" +
@@ -195,10 +204,12 @@ public class YKUtil {
 		if (alList == null)
 			return;
 		
-		for (int i=0;i<alList.size();i++)
-			System.out.println(alList.get(i).toString());
+		for (int i=0;i<alList.size();i++) {
+			System.out.println(
+					String.format("#%d %s", i, alList.get(i).toString()));
+		}
 		
-		Album al = alList.get(3);
+		Album al = alList.get(14);
 		al = getAlbumInfo(al.getShowId());
 		if (al == null)
 			return;
@@ -212,21 +223,33 @@ public class YKUtil {
 		}
 		
 		//getZGUrls(list.get(3).getVideoId());
-		
-		String m3u8Url = getPlayUrl_vid(list.get(3).getVideoId());
+		String vid = list.get(9).getVideoId();
+		String m3u8Url = getPlayUrl_vid(vid);
 		if (m3u8Url == null) {
 			System.out.println("failed to get m3u8");
 			return;
 		}
 		
-		System.out.println("Java: toUrl " + m3u8Url);
-		/*byte []buffer = new byte[65536];
-		if (!httpUtil.httpDownload(m3u8Url, "1.m3u8")) {
-			System.out.println("failed to download m3u8");
+		System.out.println("Java: m3u8Url " + m3u8Url);
+		
+		String ykss = getYKss(vid);
+		if (ykss == null) {
+			System.out.println("failed to get ykss");
 			return;
 		}
 		
-		int content_size = httpUtil.httpDownloadBuffer(m3u8Url, 0, buffer);
+		/*if (!httpUtil.httpDownload(m3u8Url, "1.m3u8")) {
+			System.out.println("failed to download m3u8");
+			return;
+		}*/
+		
+		String Cookies = "__ysuid=" + getPvid(3) + 
+				";xreferrer=http://www.youku.com/" + 
+				";ykss=" + ykss;
+		System.out.println("Cookies: " + Cookies);
+		byte []buffer = new byte[65536];
+		int content_size = httpUtil.httpDownloadBuffer(
+				m3u8Url, Cookies, 0, buffer);
 		if (content_size < 0) {
 			System.out.println("failed to download m3u8_context");
 			return;
@@ -234,9 +257,9 @@ public class YKUtil {
 		
 		byte []m3u8_context = new byte[content_size];
 		System.arraycopy(buffer, 0, m3u8_context, 0, content_size);
-		parseM3u8(new String(m3u8_context));*/
+		parseM3u8(new String(m3u8_context));
 		
-		soku2("阿仁", 1, 1);
+		//soku2("公开课", 1, 1);
 		
         //String keyStr = "UITN25LMUQC436IM";  
  
@@ -303,10 +326,10 @@ public class YKUtil {
 			String encoded_keyword = URLEncoder.encode(keyword, "UTF-8");
 			url = youku_soku_api2 + encoded_keyword;
 			// orderby 1-综合排序 2-最新发布 3-最多播放
-			String surfix = 
-					String.format("_orderby_%d?page=%d",
-							orderby, page);
-			url += surfix;
+			url += "?page=";
+            url += page;
+            url += "&orderby=";
+            url += orderby;
 			//综合排序 最新发布 最多播放 &od=0,1,2
 		} catch (UnsupportedEncodingException e) {
 			e.printStackTrace();
@@ -321,19 +344,36 @@ public class YKUtil {
 			System.out.println("size " + size);
 			for (int i = 0; i < size; i++) {
 				Element v = test.get(i);
-				Element v_thumb = v.child(0);
-				Element v_link = v.child(1);
-				Element v_meta = v.child(3);
-				Element video = v_link.child(0);
+				//Element v_thumb = v.child(0);
+				Element v_thumb = v.getElementsByClass("v-thumb").first();
+				Element v_link = v.getElementsByClass("v-link").first();
+				
+				// fix me!
+				// solve http://www.soku.com/detail/show/XMTEwMTU5Mg==?siteId=14
+				if (v_link == null)
+					continue;
+				
+				Element v_meta = v.getElementsByClass("v-meta").first();
+				Element video = v_link.getElementsByTag("a").first();
 				String thumb_url = v_thumb.child(0).attr("src");
+				String duration = v_thumb.getElementsByClass("v-thumb-tagrb")
+						.first().child(0).text();
 				String title = video.attr("title");
 				String href = video.attr("href");
 				String vid = video.attr("_log_vid");
-				String vv = v_meta.child(1).child(1).child(1).text();
-				String online_time = v_meta.child(1).child(2).child(1).text();
+				String vv = v_meta.getElementsByClass("v-meta-entry")
+						.first().child(1).child(1).text();
+				String online_time = v_meta.getElementsByClass("v-meta-entry")
+						.first().child(2).child(1).text();
+				//String vv = v_meta.child(1).child(1).child(1).text();
+				//String online_time = v_meta.child(1).child(2).child(1).text();
 				System.out.println(
-						String.format("title %s, thumb %s, url: %s, vid %s, stripe %s, vv %s", 
-						title, thumb_url, href, vid, online_time, vv));
+						String.format("title %s, thumb %s, " +
+								"url: %s, vid %s, duration %s, " +
+								"stripe %s, vv %s", 
+						title, thumb_url, 
+						href, vid, duration,
+						online_time, vv));
 			}
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
@@ -942,8 +982,8 @@ public class YKUtil {
 	}
 	
 	private static SecurityParam getSecurity(String vid) {
-		String url = String.format(YOUKU_SECURITY_FMT, vid);
-		System.out.println("Java: getSecurity " + url);
+		String url = String.format(youku_video_json_api, vid);
+		System.out.println("Java: getSecurity() " + url);
 		
 		HttpGet request = new HttpGet(url);
 		
@@ -1095,4 +1135,66 @@ public class YKUtil {
 
 	    return hex.toString();
 	}
+	
+	private static String getPvid(int len) {
+        String[] randchar = new String[]{
+                "0", "1", "2", "3", "4", "5", "6", "7", "8", "9",
+                "a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n", "o",
+                "p", "q", "r", "s", "t", "u", "v", "w", "x", "y", "z",
+                "A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O",
+                "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z"};
+
+        int i = 0;
+        String r = "";
+        long seconds = System.currentTimeMillis();
+        /*Calendar cal = java.util.Calendar.getInstance();
+        int zoneOffset = cal.get(java.util.Calendar.ZONE_OFFSET);
+        int dstOffset = cal.get(java.util.Calendar.DST_OFFSET);
+        cal.add(java.util.Calendar.MILLISECOND, -(zoneOffset + dstOffset));
+        long seconds = cal.getTimeInMillis();*/
+        for (i = 0; i < len; i++) {
+            int v = new Random().nextInt(100);
+            int index = (int)(v * Math.pow(10, 6)) % randchar.length;
+            r += randchar[index];
+        }
+
+        return String.valueOf(seconds) + r;
+    }
+	
+	public static String getYKss(String vid) {
+        String httpUrl = String.format(youku_page, vid);
+        System.out.println("getYKss() " + httpUrl);
+        
+        URL url = null;
+		try {
+			url = new URL(httpUrl);
+		} catch (MalformedURLException e1) {
+			// TODO Auto-generated catch block
+			e1.printStackTrace();
+			return null;
+		}
+
+		try {
+			URLConnection conn = url.openConnection();
+			Map<String, List<String>> map = conn.getHeaderFields();
+			List<String> cookie_list = map.get("Set-Cookie");
+			if (cookie_list != null) {
+				for (int i=0;i<cookie_list.size();i++) {
+					String c = cookie_list.get(i);
+					if (c.contains("ykss=")) {
+						int start = c.indexOf("ykss=");
+						int end = c.indexOf(";");
+						if (end == -1)
+							return c.substring(start + 5);
+						
+						return c.substring(start + 5, end);
+					}
+				}
+			}
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		
+        return null;
+    }
 }

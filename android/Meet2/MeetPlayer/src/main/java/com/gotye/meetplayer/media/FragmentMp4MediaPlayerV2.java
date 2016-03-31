@@ -354,22 +354,23 @@ public class FragmentMp4MediaPlayerV2 {
 
 				return;
 			}
-			
-			mCurrentPlayer = mNextPlayer;
-			mNextPlayer = null;
+
+			// SYSTEM player nextplay auto play ok code
+            // must release first???
+			if (mPlayerImpl != 3) // ffplay cannot set null Display now!
+                mp.setDisplay(null);
+			mp.release();
+
+            mCurrentPlayer = mNextPlayer;
+            mNextPlayer = null;
+            mCurrentPlayer.setDisplay(mHolder);
             if (mPlayerImpl == 3)
                 mCurrentPlayer.start();
-            if (mPlayerImpl != 3)
-			    mCurrentPlayer.setDisplay(mHolder);
-
-            if (mPlayerImpl != 3)
-                mp.setDisplay(null);
-            mp.release();
 
             Log.i(TAG, "Java: switch to next segment #" + m_playlink_now_index);
 			
 			if (m_playlink_now_index < m_playlink_list.size() - 1) {
-				setupNextPlayer();
+                setupNextPlayer();
 			}
 		}
 		

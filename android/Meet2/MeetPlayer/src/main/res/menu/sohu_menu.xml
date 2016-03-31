@@ -6,10 +6,18 @@
     <item
         android:id="@+id/search"
         android:orderInCategory="1"
-        android:title="search"/>
+        android:title="搜索"/>
+    <item
+        android:id="@+id/search_history"
+        android:orderInCategory="2"
+        android:title="搜索记录"/>
+    <item
+        android:id="@+id/clean_search_history"
+        android:orderInCategory="3"
+        android:title="清空搜索记录"/>
     <item
         android:id="@+id/play_history"
-        android:orderInCategory="2"
-        android:title="play history"/>
+        android:orderInCategory="4"
+        android:title="播放记录"/>
 
 </menu>

@@ -9,6 +9,7 @@ import com.gotye.meetplayer.util.ImgUtil;
 
 import android.content.Context;
 import android.graphics.Bitmap;
+import android.graphics.Matrix;
 import android.os.AsyncTask;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -66,13 +67,14 @@ public class MySohuEpAdapter extends BaseAdapter {
 		public ImageView img			= null;
 		public TextView onlinetime		= null;
 		public TextView tip				= null;
+		public TextView duration		= null;
 	}
 
 	@Override
 	public View getView(int position, View convertView, ViewGroup parent) {
 		// TODO Auto-generated method stub
 		// 获得holder以及holder对象中tv和img对象的实例
-		Log.d(TAG, "Java: getView() #" + position);
+		//Log.d(TAG, "Java: getView() #" + position);
 		
 		ViewHolder holder;
 		if (convertView == null) {
@@ -82,6 +84,7 @@ public class MySohuEpAdapter extends BaseAdapter {
 			holder.title = (TextView) convertView.findViewById(R.id.gridview_title);
 			holder.onlinetime = (TextView) convertView.findViewById(R.id.gridview_onlinetime);
 			holder.tip = (TextView) convertView.findViewById(R.id.gridview_tip);
+			holder.duration = (TextView) convertView.findViewById(R.id.gridview_duration);
 			holder.img = (ImageView) convertView.findViewById(R.id.gridview_img);
 
 			RelativeLayout.LayoutParams params = (LayoutParams) holder.img.getLayoutParams();
@@ -104,6 +107,10 @@ public class MySohuEpAdapter extends BaseAdapter {
 		holder.title.setText(title);
 		holder.onlinetime.setText(onlinetime);
 		holder.tip.setText(tip);
+		String duration = "";
+		if (item.containsKey("duration"))
+			duration = (String) item.get("duration");
+		holder.duration.setText(duration);
 
 		if (img_url != null && img_url.startsWith("http://")) {
 			String key = PicCacheUtil.hashKeyForDisk(img_url);
@@ -160,10 +167,22 @@ public class MySohuEpAdapter extends BaseAdapter {
 				Log.e(TAG, "Java: failed to getHttpBitmap " + mImgUrl);
 				return null;
 			}
-			
+
 			String key = PicCacheUtil.hashKeyForDisk(mImgUrl);
 			PicCacheUtil.addThumbnailToDiskCache(key, bmp);
 			return bmp;
 		}
-	}
+
+        private Bitmap zoomBitmap(Bitmap bitmap, int w, int h){
+            int width = bitmap.getWidth();
+            int height = bitmap.getHeight();
+            Matrix matrix = new Matrix();
+            float scaleWidht = ((float)w / width);
+            float scaleHeight = ((float)h / height);
+            matrix.postScale(scaleWidht, scaleHeight);
+            Bitmap newbmp = Bitmap.createBitmap(bitmap, 0, 0, width, height, matrix, true);
+            bitmap.recycle();
+            return newbmp;
+        }
+    }
 }

@@ -8,6 +8,7 @@ public class Episode {
 	private String mThumbUrl;
 	private String mOnlineTime;
 	private String mTotalVV;
+	private String mDuration;
 	private List<String> mStrmTypeList;
 	
 	@SuppressWarnings("unused")
@@ -16,16 +17,18 @@ public class Episode {
 	}
 	
 	public Episode(String title, String vid, List<String> strm_type_list) {
-		this(title, vid, null, null, null, strm_type_list);
+		this(title, vid, null, null, null, null, strm_type_list);
 	}
 
 	public Episode(String title, String vid, String thumb_url,
-				   String online_time, String total_vv, List<String> strm_type_list) {
+				   String online_time, String total_vv,
+				   String duration, List<String> strm_type_list) {
 		this.mTitle			= title;
 		this.mVideoId		= vid;
         this.mThumbUrl      = thumb_url;
         this.mOnlineTime    = online_time;
         this.mTotalVV       = total_vv;
+		this.mDuration			= duration;
 		this.mStrmTypeList	= strm_type_list;
 	}
 	
@@ -44,6 +47,10 @@ public class Episode {
     public String getOnlineTime() {
         return mOnlineTime;
     }
+
+	public String getDuration() {
+		return mDuration;
+	}
 
     public String getThumbUrl() {
         return mThumbUrl;
@@ -72,6 +79,10 @@ public class Episode {
             sb.append(", total_vv: ");
             sb.append(mTotalVV);
         }
+		if (mDuration != null) {
+			sb.append(", duration: ");
+			sb.append(mDuration);
+		}
         if (mStrmTypeList != null) {
             sb.append(", stream type: ");
             sb.append(mStrmTypeList.toString());

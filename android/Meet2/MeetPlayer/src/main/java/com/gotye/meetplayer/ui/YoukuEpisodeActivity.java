@@ -62,6 +62,7 @@ public class YoukuEpisodeActivity extends AppCompatActivity {
     private int search_page_index = 1;
     private int episode_page_incr = 1;
     private final static int page_size = 10;
+    private final static int search_page_size = 20;
 
     private int mPlayerImpl;
 
@@ -133,6 +134,7 @@ public class YoukuEpisodeActivity extends AppCompatActivity {
                 mShowId = (String) item.get("show_id");
                 if (mShowId == null) {
                     mVid = (String) item.get("vid");
+                    mTitle = (String) item.get("title");
                     if (mVid != null)
                         new EPGTask().execute(TASK_PLAYLINK);
                     else
@@ -386,8 +388,7 @@ public class YoukuEpisodeActivity extends AppCompatActivity {
             return null;
 
         episode.put("title", detail_album.getTitle());
-        //episode.put("img_url", detail_album.getImgUrl());
-        episode.put("img_url", "N/A");
+        episode.put("img_url", detail_album.getImgUrl());
         episode.put("desc", detail_album.getDescription());
         episode.put("tip", detail_album.getStripe());
         episode.put("show_id", detail_album.getShowId());
@@ -405,7 +406,9 @@ public class YoukuEpisodeActivity extends AppCompatActivity {
 		@Override
 		protected void onPostExecute(Boolean result) {
 			// TODO Auto-generated method stub
-			
+
+            loadingMore = false;
+
 			if (!result) {
 				LogUtil.error(TAG, "failed to get episode");
 				Toast.makeText(YoukuEpisodeActivity.this, "failed to get episode", Toast.LENGTH_SHORT).show();
@@ -438,16 +441,15 @@ public class YoukuEpisodeActivity extends AppCompatActivity {
                     mHandler.sendEmptyMessage(MainHandler.MSG_FAIL_GET_EPISODE);
                     return true;
                 }
-
-                if (mEpisodeList.size() == 1) {
+                else if (episode_page_index == 1 && mEpisodeList.size() == 1) {
                     Episode ep = mEpisodeList.get(0);
                     mVid = ep.getVideoId();
                     mTitle = ep.getTitle();
                     mEpisodeIndex = -1;
 
-                    mZGUrl = getPlayUrl(mVid);
+                    mZGUrl = YKUtil.getPlayUrl2(mVid);
                     if (mZGUrl == null) {
-                        LogUtil.error(TAG, "Java: failed to call getZGUrls() vid: " + mVid);
+                        LogUtil.error(TAG, "Java: failed to call getPlayUrl2()[one ep] vid: " + mVid);
                         return false;
                     }
 
@@ -463,9 +465,9 @@ public class YoukuEpisodeActivity extends AppCompatActivity {
                     return false;
                 }
 
-                mZGUrl = getPlayUrl(mVid);
+                mZGUrl = YKUtil.getPlayUrl2(mVid);
                 if (mZGUrl == null) {
-                    LogUtil.error(TAG, "Java: failed to call getZGUrls() vid: " + mVid);
+                    LogUtil.error(TAG, "Java: failed to call getPlayUrl2()[playlink] vid: " + mVid);
                     return false;
                 }
 
@@ -476,12 +478,16 @@ public class YoukuEpisodeActivity extends AppCompatActivity {
                     search_page_index++;
                     mEpisodeList = YKUtil.soku(search_key, orderby, search_page_index);
                     if (mEpisodeList == null || mEpisodeList.isEmpty()) {
-                        LogUtil.info(TAG, "Java: no more album");
+                        LogUtil.info(TAG, "Java: no more search result");
                         noMoreData = true;
                         return false;
                     }
 
                     int c = mEpisodeList.size();
+                    if (c < search_page_size) {
+                        noMoreData = true;
+                        LogUtil.info(TAG, "Java: meet search end");
+                    }
                     List<Map<String, Object>> listData = adapter.getData();
                     for (int i=0;i<c;i++) {
                         HashMap<String, Object> episode = new HashMap<String, Object>();
@@ -489,10 +495,12 @@ public class YoukuEpisodeActivity extends AppCompatActivity {
                         episode.put("title", ep.getTitle());
                         episode.put("img_url", ep.getThumbUrl());
                         episode.put("desc", "N/A");
-                        episode.put("onlinetime", ep.getOnlineTime());
-                        episode.put("tip", ep.getTotalVV());
+                        episode.put("onlinetime", "发布: " + ep.getOnlineTime());
+                        episode.put("tip", "播放: " + ep.getTotalVV());
+                        episode.put("duration", ep.getDuration());
                         episode.put("vid", ep.getVideoId());
                         episode.put("is_album", false);
+                        episode.put("episode_total", 1);
                         listData.add(episode);
                     }
                 }
@@ -505,8 +513,6 @@ public class YoukuEpisodeActivity extends AppCompatActivity {
                         noMoreData = true;
                         return false;
                     }
-
-                    loadingMore = false;
 
                     List<Map<String, Object>> listData = adapter.getData();
 
@@ -530,25 +536,6 @@ public class YoukuEpisodeActivity extends AppCompatActivity {
 
 			return true;// all done!
 		}
-
-        private YKUtil.ZGUrl getPlayUrl(String vid) {
-            String m3u8_url = YKUtil.getPlayUrl(vid);
-            if (m3u8_url == null) {
-                LogUtil.error(TAG, "Java: failed to call getPlayUrl() vid: " + mVid);
-                return null;
-            }
-            byte []buffer = new byte[65536 * 10];
-            int content_size = httpUtil.httpDownloadBuffer(m3u8_url, 0, buffer);
-            if (content_size <= 0) {
-                LogUtil.error(TAG, "Java: failed to download m3u8 file: " + m3u8_url);
-                return null;
-            }
-            byte []m3u8_context = new byte[content_size];
-            System.arraycopy(buffer, 0, m3u8_context, 0, content_size);
-
-            //return YKUtil.getZGUrls(vid);
-            return YKUtil.parseM3u8(new String(m3u8_context));
-        }
 
 	}
 	
@@ -602,10 +589,12 @@ public class YoukuEpisodeActivity extends AppCompatActivity {
                     episode.put("title", ep.getTitle());
                     episode.put("img_url", ep.getThumbUrl());
                     episode.put("desc", "N/A");
-                    episode.put("onlinetime", ep.getOnlineTime());
-                    episode.put("tip", ep.getTotalVV());
+                    episode.put("onlinetime", "发布: " + ep.getOnlineTime());
+                    episode.put("tip", "播放: " + ep.getTotalVV());
+                    episode.put("duration", ep.getDuration());
                     episode.put("vid", ep.getVideoId());
                     episode.put("is_album", false);
+                    episode.put("episode_total", 1);
                     items.add(episode);
                 }
 			}
