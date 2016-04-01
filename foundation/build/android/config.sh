@@ -179,7 +179,8 @@ do
 		echo "openssl include: $OPENSSL_HOME/include"
 		echo "openssl lib: $OPENSSL_LIB"
 		echo "================="
-		EXTRA_CFLAGS="$EXTRA_CFLAGS --enable-openssl -I$OPENSSL_HOME/include"
+		EXTRA_PARAMETERS="$EXTRA_PARAMETERS --enable-openssl"
+		EXTRA_CFLAGS="$EXTRA_CFLAGS -I$OPENSSL_HOME/include"
 		EXTRA_LDFLAGS="$EXTRA_LDFLAGS -L$OPENSSL_LIB -lssl -lcrypto -lz"
 	elif [ ${arg}x == 'librtmp'x ]; then
 		HOME_FOLDER=`pwd`
