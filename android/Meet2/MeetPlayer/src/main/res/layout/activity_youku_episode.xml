@@ -6,7 +6,8 @@
     <LinearLayout
         android:id="@+id/layout_ctrl"  
         android:layout_width="match_parent"  
-        android:layout_height="wrap_content"  
+        android:layout_height="wrap_content"
+        android:layout_alignParentTop="true"
         android:orientation="horizontal" >
 		<Button
 			android:id="@+id/btn_reputation"
@@ -44,12 +45,27 @@
 			android:layout_weight="5"
 			android:text="合集"/>
 	</LinearLayout>
-	
-    <GridView
+
+	<LinearLayout
+        android:id="@+id/layout_filter"
+        android:layout_width="wrap_content"
+		android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:layout_below="@id/layout_ctrl"
+        android:visibility="gone">
+        <com.gotye.meetplayer.ui.widget.HorizontalTextListView
+            android:id="@+id/htv_filter"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_below="@+id/layout_sort"
+            android:visibility="gone" />
+	</LinearLayout>
+
+	<GridView
         android:id="@+id/grid_view"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:layout_below="@+id/layout_ctrl"
+        android:layout_below="@+id/layout_filter"
         android:layout_marginLeft="1dip"
         android:layout_marginRight="1dip"
         android:numColumns="auto_fit"

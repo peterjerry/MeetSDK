@@ -1,5 +1,6 @@
 package com.gotye.meetplayer.ui;
 
+import android.app.AlertDialog;
 import android.content.Intent;
 import android.graphics.Color;
 import android.graphics.PixelFormat;
@@ -8,12 +9,18 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
 import android.support.v7.app.AppCompatActivity;
+import android.view.GestureDetector;
 import android.view.KeyEvent;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
 import android.view.MotionEvent;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 import android.view.View;
 import android.view.WindowManager;
+import android.widget.ImageButton;
+import android.widget.LinearLayout;
 import android.widget.ProgressBar;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
@@ -22,12 +29,17 @@ import android.widget.Toast;
 import com.gotye.common.util.LogUtil;
 import com.gotye.meetplayer.R;
 import com.gotye.meetplayer.media.FragmentMp4MediaPlayerV2;
-import com.gotye.meetplayer.ui.widget.MyMediaController;
+import com.gotye.meetplayer.ui.widget.MicroMediaController;
+import com.gotye.meetplayer.util.Util;
 import com.gotye.meetsdk.player.MediaController.MediaPlayerControl;
 import com.gotye.meetsdk.player.MediaPlayer;
 
+import org.apache.ivy.Main;
+
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
 import java.lang.ref.WeakReference;
+import java.net.URLDecoder;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.StringTokenizer;
@@ -37,14 +49,17 @@ public class PlaySegFileActivity extends AppCompatActivity
 	private final static String TAG = "PlaySegFileActivity";
 	
 	private RelativeLayout mLayout;
-	private SurfaceView mView;
+	private MyPreView2 mView;
 	private SurfaceHolder mHolder;
 	private FragmentMp4MediaPlayerV2 mPlayer;
     private int mPlayerImpl;
-	private MyMediaController mController;
+    private boolean mPrepared = false;
+	private MicroMediaController mController;
 	private MyMediaPlayerControl mMediaPlayerControl;
+    private LinearLayout mHoodLayout;
+    private TextView mTvTitle;
+    private ImageButton mBtnBack;
 	protected ProgressBar mBufferingProgressBar;
-	private TextView mTextViewFileName;
 
     protected String mUrlListStr;
     protected String mDurationListStr;
@@ -108,7 +123,8 @@ public class PlaySegFileActivity extends AppCompatActivity
 		
 		setContentView(R.layout.activity_frag_mp4_player);
 
-		getSupportActionBar().hide();
+		if (getSupportActionBar() != null)
+            getSupportActionBar().hide();
 
         Intent intent = getIntent();
         mPlayerImpl = intent.getIntExtra("player_impl", 1);
@@ -126,18 +142,32 @@ public class PlaySegFileActivity extends AppCompatActivity
             mUrlListStr 		= url_list;
             mDurationListStr	= duration_list;
         }
-		
-		mLayout 				= (RelativeLayout) findViewById(R.id.main_layout);
-		mView 					= (SurfaceView) findViewById(R.id.player_view);
-		mController 			= (MyMediaController) findViewById(R.id.video_controller);
-		mBufferingProgressBar 	= (ProgressBar) findViewById(R.id.progressbar_buffering);
-		mTextViewFileName 		= (TextView) findViewById(R.id.tv_filename);
-		
+
+		Util.initMeetSDK(this);
+
+        this.mLayout 				= (RelativeLayout) findViewById(R.id.main_layout);
+        this.mView 					= (MyPreView2) findViewById(R.id.player_view);
+        this.mController 			= (MicroMediaController) findViewById(R.id.video_controller);
+        this.mBufferingProgressBar 	= (ProgressBar) findViewById(R.id.progressbar_buffering);
+
+        this.mHoodLayout = (LinearLayout)this.findViewById(R.id.hood_layout);
+        this.mTvTitle = (TextView)this.findViewById(R.id.player_title);
+        this.mBtnBack = (ImageButton)this.findViewById(R.id.player_back_btn);
+
+        mBtnBack.setOnClickListener(new View.OnClickListener() {
+
+            @Override
+            public void onClick(View v) {
+                // TODO Auto-generated method stub
+                finish();
+            }
+        });
+
+        mView.setLongClickable(true); // MUST set to enable double-tap and single-tap-confirm
+        mView.setOnTouchListener(mOnTouchListener);
+
 		mMediaPlayerControl = new MyMediaPlayerControl();
 		mController.setMediaPlayer(mMediaPlayerControl);
-		
-		mTextViewFileName.setTextColor(Color.RED);
-		mTextViewFileName.setTextSize(24);
 		
 		SurfaceHolder holder = mView.getHolder();
         if (mPlayerImpl == 3) {
@@ -192,9 +222,9 @@ public class PlaySegFileActivity extends AppCompatActivity
 				// TODO Auto-generated method stub
 				mVideoWidth		= w;
 				mVideoHeight	= h;
-				
-				mHolder.setFixedSize(w, h);
-				toggleDisplayMode(mDisplayMode, false);
+
+                mHolder.setFixedSize(w, h);
+                mView.SetVideoRes(w, h);
 			}
 		};
 		
@@ -204,14 +234,13 @@ public class PlaySegFileActivity extends AppCompatActivity
 			public void onPrepared(MediaPlayer mp) {
 				// TODO Auto-generated method stub
                 LogUtil.info(TAG, "Java: onPrepared()");
-				
+
+                mPrepared = true;
 				mIsBuffering = false;
 				mBufferingProgressBar.setVisibility(View.GONE);
-				
-				mp.start();
-				
-				if (!mController.isShowing())
-					mController.show(MEDIA_CONTROLLER_TIMEOUT);
+				toggleMediaControlsVisiblity();
+
+                mp.start();
 			}
 		};
 		
@@ -243,6 +272,70 @@ public class PlaySegFileActivity extends AppCompatActivity
 		};
 	}
 
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        MenuInflater menuInflater = new MenuInflater(getApplication());
+        menuInflater.inflate(R.menu.seg_player_menu, menu);
+        return super.onCreateOptionsMenu(menu);
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+
+        int id = item.getItemId();
+        switch (id) {
+            case R.id.select_player_impl:
+                break;
+            case R.id.select_ft:
+                break;
+            case R.id.select_episode:
+                AlertDialog.Builder builder;
+                break;
+            case R.id.next_episode:
+                onSelectEpisode(1);
+                break;
+            case R.id.prev_episode:
+                onSelectEpisode(-1);
+                break;
+            case R.id.show_mediainfo:
+                popupMediaInfo();
+                break;
+            case R.id.toggle_debug_info:
+                break;
+            default:
+                break;
+        }
+
+        return true;
+    }
+
+    private void popupMediaInfo() {
+        if (mPlayer == null) {
+            Toast.makeText(this, "无法获取媒体信息", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        StringBuffer sbInfo = new StringBuffer();
+        sbInfo.append("文件列表 ");
+        sbInfo.append(m_playlink_list.toString());
+        sbInfo.append("\n文件时长列表 ");
+        sbInfo.append(m_duration_list.toString());
+
+        sbInfo.append("\n分辨率 ");
+        sbInfo.append(mVideoWidth);
+        sbInfo.append(" x ");
+        sbInfo.append(mVideoHeight);
+        sbInfo.append("\n时长 ");
+        sbInfo.append(mPlayer.getDuration());
+
+        new AlertDialog.Builder(this)
+                .setTitle("媒体信息")
+                .setMessage(sbInfo.toString())
+                .setPositiveButton("确定", null)
+                .show();
+    }
+
+
     protected void OnComplete() {
         Toast.makeText(PlaySegFileActivity.this, "Play complete", Toast.LENGTH_SHORT).show();
         mIsBuffering = false;
@@ -254,8 +347,85 @@ public class PlaySegFileActivity extends AppCompatActivity
     protected void onSelectEpisode(int incr) {
     }
 
-	
-	@Override
+    private View.OnTouchListener mOnTouchListener = new View.OnTouchListener() {
+
+        @Override
+        public boolean onTouch(View v, MotionEvent event) {
+            return mGestureDetector.onTouchEvent(event);
+        }
+    };
+
+    private GestureDetector mGestureDetector =
+            new GestureDetector(getApplication(), new GestureDetector.SimpleOnGestureListener() {
+
+                @Override
+                public boolean onFling(MotionEvent e1, MotionEvent e2, float velocityX, float velocityY) {
+                    LogUtil.debug(TAG, String.format("Java: onFling!!! velocityX %.3f, velocityY %.3f",
+                            velocityX, velocityY));
+
+                    // 1xxx - 4xxx
+                    if (velocityY < 1000.0f && velocityY > -1000.0f && mPlayer != null) {
+                        if (velocityX > 2000.0f || velocityX < -2000.0f) {
+                            int pos = mPlayer.getCurrentPosition();
+                            int incr = velocityX > 1.0f ? 1 : -1;
+                            pos += incr * 15000; // 15sec
+                            if (pos > mPlayer.getDuration())
+                                pos = mPlayer.getDuration();
+                            else if (pos < 0)
+                                pos = 0;
+
+                            mPlayer.seekTo(pos);
+                        }
+                    }
+
+                    return true;
+                }
+
+                @Override
+                public boolean onSingleTapConfirmed(MotionEvent e) {
+                    LogUtil.info(TAG, "Java: onSingleTapConfirmed!!!");
+
+                    toggleMediaControlsVisiblity();
+                    return true;
+                }
+
+                @Override
+                public boolean onDoubleTap(MotionEvent event) {
+                    SwitchDisplayMode(1);
+                    return true;
+                }
+            });
+
+    private void SwitchDisplayMode(int incr) {
+        mView.switchDisplayMode(incr);
+        Toast.makeText(this, "切换显示模式至 " + mView.getDisplayMode(),
+                Toast.LENGTH_SHORT).show();
+    }
+
+    private void showHood() {
+        showHood(3000);
+    }
+
+    private void showHood(int msec) {
+        mHandler.removeMessages(MainHandler.MSG_HIDE_HOOD);
+        mHoodLayout.setVisibility(View.VISIBLE);
+        if (msec > 0)
+            mHandler.sendEmptyMessageDelayed(MainHandler.MSG_HIDE_HOOD, msec);
+    }
+
+    public void toggleMediaControlsVisiblity() {
+        if (mPlayer != null && mPrepared) {
+            if (mController.isShowing()) {
+                mController.hide();
+                mHoodLayout.setVisibility(View.GONE);
+            } else {
+                mController.show();
+                showHood();
+            }
+        }
+    }
+
+    @Override
 	public boolean onKeyDown(int keyCode, KeyEvent event) {
 		// TODO Auto-generated method stub
 		int incr;
@@ -283,19 +453,10 @@ public class PlaySegFileActivity extends AppCompatActivity
 					}
 					else if (keyCode == KeyEvent.KEYCODE_DPAD_UP ||
 							keyCode == KeyEvent.KEYCODE_DPAD_DOWN) {
-						if (mDisplayMode == SCREEN_FIT)
-							mDisplayMode = SCREEN_STRETCH;
-						else
-							mDisplayMode = SCREEN_FIT;
-						toggleDisplayMode(mDisplayMode, true);
+                        SwitchDisplayMode(keyCode == KeyEvent.KEYCODE_DPAD_UP ? 1: -1);
 					}
 					else {
-						mTextViewFileName.setVisibility(View.VISIBLE);
-						Message msg = mHandler.obtainMessage(MainHandler.MSG_FADE_OUT_TV_FILENAME);
-						mHandler.removeMessages(MainHandler.MSG_FADE_OUT_TV_FILENAME);
-			            mHandler.sendMessageDelayed(msg, MEDIA_CONTROLLER_TIMEOUT);
-			            
-						mController.show(MEDIA_CONTROLLER_TIMEOUT * 2);
+						toggleMediaControlsVisiblity();
 					}
 				}
 				
@@ -397,11 +558,11 @@ public class PlaySegFileActivity extends AppCompatActivity
         private WeakReference<PlaySegFileActivity> mWeakActivity;
 
         protected final static int MSG_PLAY_NEXT_EPISODE 		= 1;
-        protected final static int MSG_FADE_OUT_TV_FILENAME	= 2;
         protected final static int MSG_SHOW_MEDIA_CONTROLLER	= 3;
+        protected final static int MSG_HIDE_HOOD                = 501;
 
         protected final static int MSG_INVALID_EPISODE_INDEX	= 101;
-        protected final static int MSG_FAIL_TO_GET_PLAYLINK	= 102;
+        protected final static int MSG_FAIL_TO_GET_PLAYLINK     = 102;
         protected final static int MSG_FAIL_TO_GET_STREAM		= 103;
         protected final static int MSG_FAIL_TO_GET_ALBUM_INFO	= 104;
 
@@ -418,11 +579,11 @@ public class PlaySegFileActivity extends AppCompatActivity
             }
 
             switch(msg.what) {
+                case MSG_HIDE_HOOD:
+                    activity.mHoodLayout.setVisibility(View.GONE);
+                    break;
                 case MSG_PLAY_NEXT_EPISODE:
                     activity.setupMediaPlayer();
-                    break;
-                case MSG_FADE_OUT_TV_FILENAME:
-                    activity.mTextViewFileName.setVisibility(View.GONE);
                     break;
                 case MSG_SHOW_MEDIA_CONTROLLER:
                     break;
@@ -450,10 +611,9 @@ public class PlaySegFileActivity extends AppCompatActivity
 			mPlayer.release();
 			mPlayer = null;
 		}
-		
-		mTextViewFileName.setText(mTitle);
-		mController.setFileName(mTitle);
-		Toast.makeText(this, String.format("ready to play video: %s (ft %d)", mTitle, mFt), 
+
+        mTvTitle.setText(mTitle);
+        Toast.makeText(this, String.format("ready to play video: %s (ft %d)", mTitle, mFt),
 				Toast.LENGTH_SHORT).show();
 		
 		mPlayer = new FragmentMp4MediaPlayerV2(mPlayerImpl);
@@ -490,60 +650,13 @@ public class PlaySegFileActivity extends AppCompatActivity
 		
 		if (!success)
 			return false;
-		
-		mPlayer.prepareAsync();
-		
-		mIsBuffering = true;
-		mBufferingProgressBar.setVisibility(View.VISIBLE);
+
+        mIsBuffering = true;
+        mPrepared = false;
+        mBufferingProgressBar.setVisibility(View.VISIBLE);
+
+        mPlayer.prepareAsync();
 		return true;
-	}
-	
-	private void toggleDisplayMode(int mode, boolean popToast) {
-		if (mPlayer == null) {
-            LogUtil.warn(TAG, "Java: cannot toggleDisplayMode when idle");
-			return;
-		}
-		
-		int width 	= mLayout.getWidth();
-		int height	= mLayout.getHeight();
-
-        LogUtil.info(TAG, String.format("Java: mLayout res: %d x %d", width, height));
-		
-		RelativeLayout.LayoutParams sufaceviewParams = (RelativeLayout.LayoutParams) mView.getLayoutParams();
-		if (mode == SCREEN_FIT) {
-			if ( mVideoWidth * height > width * mVideoHeight ) {
-                LogUtil.debug(TAG, "surfaceview is too tall, correcting");
-				sufaceviewParams.height = width * mVideoHeight / mVideoWidth; 
-			}
-			else if ( mVideoWidth * height  < width * mVideoHeight ) {
-                LogUtil.debug(TAG, "surfaceview is too wide, correcting");
-				sufaceviewParams.width = height * mVideoWidth / mVideoHeight; 
-			}
-			else {
-	           sufaceviewParams.height= height;
-	           sufaceviewParams.width = width;
-			}
-		}
-		else if (mode == SCREEN_STRETCH) {
-	        sufaceviewParams.width = width;
-	        sufaceviewParams.height= height;
-		}
-		else if (mode == SCREEN_FILL) {
-			if (mVideoWidth * height > width * mVideoHeight) {
-				sufaceviewParams.width = height * mVideoWidth / mVideoHeight;
-            } else if (mVideoWidth * height < width * mVideoHeight) {
-            	sufaceviewParams.height = width * mVideoHeight / mVideoWidth;
-            } 
-		}
-
-        LogUtil.info(TAG, String.format("Java: surfaceview change res to %d x %d",
-                sufaceviewParams.width, sufaceviewParams.height));
-		mView.setLayoutParams(sufaceviewParams);
-		
-		if (popToast) {
-			Toast.makeText(this, "切换显示模式至 " + mode_desc[mode], 
-				Toast.LENGTH_SHORT).show();
-		}
 	}
 
 	protected void buildPlaylinkList() {

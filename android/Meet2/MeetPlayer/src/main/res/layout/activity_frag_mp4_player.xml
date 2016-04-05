@@ -6,13 +6,42 @@
     android:layout_height="fill_parent" 
     android:background="@android:color/black">
 
-    <SurfaceView
+    <com.gotye.meetplayer.ui.MyPreView2
         android:id="@+id/player_view"
-        android:layout_width="fill_parent"
-        android:layout_height="fill_parent"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
         android:layout_centerInParent="true" />
+
+    <LinearLayout
+        android:id="@+id/hood_layout"
+        android:layout_width="fill_parent"
+        android:layout_height="50dp"
+        android:layout_alignParentTop="true"
+        android:orientation="horizontal"
+        android:background="#B0000000"
+        android:visibility="gone" >
+
+        <ImageButton
+            android:id="@+id/player_back_btn"
+            android:layout_width="72dp"
+            android:layout_height="72dp"
+            android:layout_margin="10dp"
+            android:layout_gravity="center_vertical"
+            android:src="@drawable/player_back"
+            android:background="@null" />
+        <TextView
+            android:id="@+id/player_title"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:gravity="center_horizontal"
+            android:singleLine="true"
+            android:textColor="#FF0000"
+            android:textSize="24sp"
+            android:textStyle="bold" />
+
+    </LinearLayout>
     
-    <com.gotye.meetplayer.ui.widget.MyMediaController
+    <com.gotye.meetplayer.ui.widget.MicroMediaController
 		android:id="@+id/video_controller"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
@@ -22,18 +51,9 @@
     
     <ProgressBar 
         android:id="@+id/progressbar_buffering"
-        style="@android:style/Widget.ProgressBar.Large"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_centerInParent="true"
-        android:visibility="gone" />
-
-    <TextView 
-        android:id="@+id/tv_filename"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_alignParentTop="true"
-		android:layout_alignParentRight="true"
         android:visibility="gone" />
 	
 	<TextView

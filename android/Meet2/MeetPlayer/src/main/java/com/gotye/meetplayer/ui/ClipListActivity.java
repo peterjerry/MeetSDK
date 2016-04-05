@@ -965,7 +965,7 @@ public class ClipListActivity extends AppCompatActivity implements
 				if (mPlayer != null) {
 					if (isLandscape) {
 						
-						mPreview.switchDisplayMode();
+						mPreview.switchDisplayMode(1);
 						mLayout.requestLayout(); // force refresh layout
 						
 						Toast.makeText(ClipListActivity.this, "switch to " + mPreview.getDisplayMode(),

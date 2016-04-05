@@ -6,6 +6,7 @@ import android.os.Bundle;
 import android.view.View;
 import android.widget.Toast;
 
+import com.gotye.common.util.LogUtil;
 import com.gotye.common.youku.Episode;
 import com.gotye.common.youku.YKUtil;
 
@@ -48,6 +49,8 @@ public class PlayYoukuActivity extends PlaySegFileActivity {
     protected void onSelectEpisode(int incr) {
         if (mShowId != null && mEpisodeIndex != -1)
             new NextEpisodeTask().execute(incr);
+        else
+            LogUtil.warn(TAG, "NO episode available");
     }
 	
 	private class NextEpisodeTask extends AsyncTask<Integer, Integer, Boolean> {

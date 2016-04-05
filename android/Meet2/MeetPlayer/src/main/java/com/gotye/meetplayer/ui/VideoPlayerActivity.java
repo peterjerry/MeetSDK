@@ -37,15 +37,12 @@ import android.widget.Toast;
 import com.gotye.common.util.LogUtil;
 import com.gotye.meetplayer.R;
 import com.gotye.meetplayer.ui.widget.MyMediaController;
-import com.gotye.meetplayer.util.Constants;
 import com.gotye.meetplayer.util.FileFilterTest;
 import com.gotye.meetplayer.util.NetworkSpeed;
 import com.gotye.meetplayer.util.Util;
 
 import com.gotye.meetsdk.player.MediaPlayer;
-import com.gotye.meetsdk.player.MeetGLVideoView;
 import com.gotye.meetsdk.player.MediaPlayer.DecodeMode;
-import com.gotye.meetsdk.player.MeetNativeVideoView;
 import com.gotye.meetsdk.player.MeetVideoView;
 import com.gotye.meetsdk.subtitle.SimpleSubTitleParser;
 import com.gotye.meetsdk.subtitle.SubTitleSegment;

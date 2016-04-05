@@ -3,9 +3,9 @@ package com.gotye.meetplayer.media;
 import java.io.IOException;
 import java.util.List;
 
-import android.util.Log;
 import android.view.SurfaceHolder;
 
+import com.gotye.common.util.LogUtil;
 import com.gotye.meetsdk.player.MediaPlayer;
 
 public class FragmentMp4MediaPlayerV2 {
@@ -16,8 +16,8 @@ public class FragmentMp4MediaPlayerV2 {
 	private List<Integer> m_duration_list;
 	
 	private int m_playlink_now_index;
-	private int m_play_pos_offset;
-	private int m_pre_seek_pos;
+	private int m_play_pos_offset; // msec
+	private int m_pre_seek_pos; // msec
 	private int m_seek_pos;
 	private int m_total_duration_msec;
 	
@@ -119,8 +119,8 @@ public class FragmentMp4MediaPlayerV2 {
 				if (mOnInfoListener != null)
 					mOnInfoListener.onInfo(mCurrentPlayer, MediaPlayer.MEDIA_INFO_BUFFERING_START, 0);
 				
-				Log.i(TAG, String.format("Java: seekto(back) pos %d, #%d, offset %d", 
-						msec, m_playlink_now_index, m_play_pos_offset));
+				LogUtil.info(TAG, String.format("Java: seekto(back) pos %d, #%d, offset %d",
+                        msec, m_playlink_now_index, m_play_pos_offset));
 				m_pre_seek_pos = msec - m_play_pos_offset;
 				
 				setupPlayer();
@@ -138,8 +138,8 @@ public class FragmentMp4MediaPlayerV2 {
 				if (mOnInfoListener != null)
 					mOnInfoListener.onInfo(mCurrentPlayer, MediaPlayer.MEDIA_INFO_BUFFERING_START, 0);
 				
-				Log.i(TAG, String.format("Java: seekto(forward) pos %d, #%d, offset %d", 
-						msec, m_playlink_now_index, m_play_pos_offset));
+				LogUtil.info(TAG, String.format("Java: seekto(forward) pos %d, #%d, offset %d",
+                        msec, m_playlink_now_index, m_play_pos_offset));
 				m_pre_seek_pos = msec - m_play_pos_offset;
 				
 				setupPlayer();
@@ -148,8 +148,8 @@ public class FragmentMp4MediaPlayerV2 {
 				mCurrentPlayer.seekTo(msec - m_play_pos_offset);
 				mSeeking = false;
 				
-				Log.i(TAG, String.format("Java: seekto(inner) pos %d, #%d, offset %d", 
-						msec, m_playlink_now_index, m_play_pos_offset));
+				LogUtil.info(TAG, String.format("Java: seekto(inner) pos %d, #%d, offset %d",
+                        msec, m_playlink_now_index, m_play_pos_offset));
 			}
 		}
 	}
@@ -254,6 +254,8 @@ public class FragmentMp4MediaPlayerV2 {
 	}
 	
 	private boolean setupPlayer() {
+        LogUtil.info(TAG, "setupPlayer()");
+
 		if (mCurrentPlayer != null) {
 			mCurrentPlayer.stop();
 			mCurrentPlayer.release();
@@ -278,7 +280,9 @@ public class FragmentMp4MediaPlayerV2 {
 		mCurrentPlayer.setOnSeekCompleteListener(mSeekCompleteListener);
 		
 		try {
-			mCurrentPlayer.setDataSource(m_playlink_list.get(m_playlink_now_index));
+            String url = m_playlink_list.get(m_playlink_now_index);
+            LogUtil.info(TAG, "setupPlayer() set_play_url: " + url);
+			mCurrentPlayer.setDataSource(url);
 			mCurrentPlayer.prepareAsync();
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
@@ -290,6 +294,8 @@ public class FragmentMp4MediaPlayerV2 {
 	}
 	
 	private void setupNextPlayer() {
+        LogUtil.info(TAG, "setupNextPlayer()");
+
 		new Thread(new Runnable() {
 
 			@Override
@@ -303,7 +309,7 @@ public class FragmentMp4MediaPlayerV2 {
 				mNextPlayer = new MediaPlayer(mode);
 				mNextPlayer.reset();
 
-                // ffplayer should set NOW!!!
+                // ffplayer MUST set HERE!!!
                 if (mPlayerImpl == 3)
                     mNextPlayer.setDisplay(mHolder);
                 mNextPlayer.setAudioStreamType(mStreamType);
@@ -316,7 +322,9 @@ public class FragmentMp4MediaPlayerV2 {
 				mNextPlayer.setOnSeekCompleteListener(mSeekCompleteListener);
 				
 				try {
-					mNextPlayer.setDataSource(m_playlink_list.get(m_playlink_now_index + 1));
+                    String url = m_playlink_list.get(m_playlink_now_index + 1);
+                    LogUtil.info(TAG, "setupNextPlayer() set_play_url: " + url);
+					mNextPlayer.setDataSource(url);
 					mNextPlayer.prepare(); // must wait for prepare done to call setNextMediaPlayer
 				} catch (Exception e) {
 					// TODO Auto-generated catch block
@@ -337,6 +345,9 @@ public class FragmentMp4MediaPlayerV2 {
 			// TODO Auto-generated method stub	
 			
 			if (m_playlink_now_index == m_playlink_list.size() - 1) {
+				LogUtil.info(TAG, String.format("Java: playlink meet end: m_playlink_now_index %d, list_size %d",
+                        m_playlink_now_index, m_playlink_list.size()));
+
 				// finish!!!
 				if (mOnCompletionListener != null)
 					mOnCompletionListener.onCompletion(mp);
@@ -344,7 +355,11 @@ public class FragmentMp4MediaPlayerV2 {
 				return;
 			}
 			
-			m_play_pos_offset += m_duration_list.get(m_playlink_now_index++);
+			m_play_pos_offset += m_duration_list.get(m_playlink_now_index);
+            m_playlink_now_index++;
+
+            LogUtil.info(TAG, String.format("Java: m_play_pos_offset %d, m_playlink_now_index %d",
+                    m_play_pos_offset, m_playlink_now_index));
 
 			if (mNextPlayer == null) {
                 if (mOnErrorListener != null) {
@@ -352,6 +367,7 @@ public class FragmentMp4MediaPlayerV2 {
                             m_playlink_now_index);
                 }
 
+                LogUtil.error(TAG, "next player is null");
 				return;
 			}
 
@@ -363,15 +379,15 @@ public class FragmentMp4MediaPlayerV2 {
 
             mCurrentPlayer = mNextPlayer;
             mNextPlayer = null;
-            mCurrentPlayer.setDisplay(mHolder);
             if (mPlayerImpl == 3)
-                mCurrentPlayer.start();
+                mCurrentPlayer.start(); // ffplay MUST start manually
+			else
+				mCurrentPlayer.setDisplay(mHolder); // system player set display HERE!
 
-            Log.i(TAG, "Java: switch to next segment #" + m_playlink_now_index);
+            LogUtil.info(TAG, "Java: switch to next segment #" + m_playlink_now_index);
 			
-			if (m_playlink_now_index < m_playlink_list.size() - 1) {
+			if (m_playlink_now_index < m_playlink_list.size() - 1)
                 setupNextPlayer();
-			}
 		}
 		
 	};
@@ -400,9 +416,8 @@ public class FragmentMp4MediaPlayerV2 {
 					mOnInfoListener.onInfo(mCurrentPlayer, MediaPlayer.MEDIA_INFO_BUFFERING_END, 0);
 			}
 			
-			if (m_playlink_now_index < m_playlink_list.size() - 1) {
+			if (m_playlink_now_index < m_playlink_list.size() - 1)
 				setupNextPlayer();
-			}
 		}
 		
 	};

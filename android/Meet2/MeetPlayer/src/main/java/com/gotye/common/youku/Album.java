@@ -17,8 +17,11 @@ public class Album {
 
     }
 
-    public Album(String title, String tid, String stripe) {
-        this(title, tid/*showid*/, stripe, null, null, null, null, null, null, 1);
+    public Album(String title, String tid, String stripe,
+                 String img, String totoal_vv, int total_episode) {
+        this(title, tid/*showid*/, stripe,
+                img, totoal_vv, null,
+                null, null, null, total_episode);
     }
 
     public Album(String title, String show_id, String stripe,
@@ -97,8 +100,12 @@ public class Album {
             sb.append(mImg);
         }
         if (mEpisodeTotal != 0) {
-            sb.append(", total: ");
+            sb.append(", total_ep: ");
             sb.append(mEpisodeTotal);
+        }
+        if (mTotalVV != null) {
+            sb.append(", total_vv: ");
+            sb.append(mTotalVV);
         }
 
         return sb.toString();

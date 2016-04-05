@@ -1,15 +1,14 @@
 package com.gotye.meetplayer.ui.widget;
 
+import java.lang.ref.WeakReference;
 import java.util.Formatter;
 import java.util.Locale;
 
 import android.content.Context;
-import android.content.pm.ActivityInfo;
 import android.os.Handler;
 import android.os.Message;
-import android.support.v7.app.AppCompatActivity;
+import android.support.v7.widget.AppCompatSeekBar;
 import android.util.AttributeSet;
-import android.util.Log;
 import android.view.KeyEvent;
 import android.view.LayoutInflater;
 import android.view.MotionEvent;
@@ -18,68 +17,57 @@ import android.widget.ImageButton;
 import android.widget.SeekBar;
 import android.widget.SeekBar.OnSeekBarChangeListener;
 import android.widget.TextView;
+
+import com.gotye.common.util.LogUtil;
 import com.gotye.meetsdk.player.MediaController;
 
 import com.gotye.meetplayer.R;
 
-public class MiniMediaController extends MediaController {
+public class MicroMediaController extends MediaController {
 	
 	@SuppressWarnings("unused")
-	private final static String TAG = "MiniMediaController";
+	private final static String TAG = "MicroMediaController";
 
 	private Context mContext;
-	private boolean mIsLandscape = false; // 是否是横屏
 	
 	private View mControllerView;
-	private SeekBar mProgressBar;
+	private AppCompatSeekBar mProgressBar;
 	private TextView mEndTime;
 	private TextView mCurrentTime;
-	private TextView mPlayerImpl;
 	StringBuilder mFormatBuilder;
     Formatter mFormatter;  
     
     private final int MAX_RANDGE = 1000;
     
-    private boolean mVolumerDragging = false;
     private boolean mIsShowing = false;
     
     private ImageButton mPauseBtn;
-    private ImageButton mForwardBtn;
-    private ImageButton mRewindBtn;
-    private ImageButton	 mFullScreenBtn;
+
+    // for seek
+    private boolean mIsSeeking = false;
+    private int mSeekStep = 0; // unit msec
+    private int mSeekingPos;
+    private final static int SEEK_TIMEOUT = 2000; // 2 sec
+
+    MyHandler mHandler;
     
-    private AppCompatActivity mInstance;
-    
-    public void setInstance(AppCompatActivity ins) {
-    	mInstance = ins;
-    }
-    
-    public MiniMediaController(Context context) {
+    public MicroMediaController(Context context) {
     	super(context);
+
+        mContext = context;
 	}
     
-	public MiniMediaController(Context context, AttributeSet attr) {
+	public MicroMediaController(Context context, AttributeSet attr) {
 		super(context, attr);
+
+        mContext = context;
 		
 		setFocusable(true);
         setFocusableInTouchMode(true);
 		
 		mControllerView = makeControllerView();
-	}
-	
-	public void setPlayerImplement(String impl) {
-		if (impl != null)
-			mPlayerImpl.setText(impl);
-	}
-	
-	public void updateLandscape(boolean isLandscape) {
-		Log.i(TAG, "Java: updateLandscape" + isLandscape);
-		
-		if (mIsLandscape != isLandscape) {
-			mIsLandscape = isLandscape;
-			updateFullScreen();
-		}
-	}
+        mHandler = new MyHandler(this);
+    }
 	
 	@Override
 	public void onFinishInflate() {
@@ -90,7 +78,7 @@ public class MiniMediaController extends MediaController {
 	
 	protected View makeControllerView() {
 		LayoutInflater inflater = (LayoutInflater) getContext().getSystemService(Context.LAYOUT_INFLATER_SERVICE);
-		View v = inflater.inflate(R.layout.layout_mini_media_controller, this, true);
+		View v = inflater.inflate(R.layout.layout_micro_media_controller, this, true);
 		return v;
 	}
 	
@@ -101,27 +89,9 @@ public class MiniMediaController extends MediaController {
 			mPauseBtn.setOnClickListener(mPlayPauseListener);
         }
 		
-		mRewindBtn = (ImageButton) v.findViewById(R.id.player_bf_btn);
-		if (mRewindBtn != null) {
-			mRewindBtn.setOnClickListener(mBwdListener);
-        }
-		
-		mForwardBtn = (ImageButton) v.findViewById(R.id.player_ff_btn);
-		if (mForwardBtn != null) {
-			mForwardBtn.setOnClickListener(mFwdListener);
-        }
-		
-		mFullScreenBtn = (ImageButton) v.findViewById(R.id.player_fullscreen_btn);
-		if (mFullScreenBtn != null) {
-			mFullScreenBtn.setOnClickListener(mFullScreenListener);
-        }
-		
-		mProgressBar = (SeekBar) v.findViewById(R.id.mediacontroller_progress);
+		mProgressBar = (AppCompatSeekBar) v.findViewById(R.id.mediacontroller_progress);
 		if (mProgressBar != null) {
-			if (mProgressBar instanceof SeekBar) {
-				SeekBar seeker = (SeekBar) mProgressBar;
-				seeker.setOnSeekBarChangeListener(mProgressChangeListener);
-			}
+            mProgressBar.setOnSeekBarChangeListener(mProgressChangeListener);
 			mProgressBar.setMax(MAX_RANDGE);
 		}
 		
@@ -129,8 +99,6 @@ public class MiniMediaController extends MediaController {
 		mCurrentTime = (TextView) v.findViewById(R.id.current_time);
 		mFormatBuilder = new StringBuilder();
         mFormatter = new Formatter(mFormatBuilder, Locale.getDefault());
-        
-        mPlayerImpl = (TextView) v.findViewById(R.id.tv_player_impl);
 	}
 	
 	private String stringForTime(int timeMs) {
@@ -147,12 +115,19 @@ public class MiniMediaController extends MediaController {
             return mFormatter.format("%02d:%02d", minutes, seconds).toString();
         }
     }
-	
+
+    private int getPosition() {
+        if (mIsSeeking)
+            return mSeekingPos;
+
+        return mPlayer.getCurrentPosition();
+    }
+
 	private int setProgress() {
 		if (mPlayer == null)
 			return 0;
 		
-		int position = mPlayer.getCurrentPosition();
+		int position = getPosition();
 		return setProgress(position);
 	}
 	
@@ -188,6 +163,7 @@ public class MiniMediaController extends MediaController {
     private static final int FADE_OUT 			= 1;
     private static final int SHOW 				= 2;
     private static final int UPDATE_PROGRESS 	= 3;
+    private static final int MSG_SEEK           = 4;
 	
     public boolean isShowing() {
     	return mIsShowing;
@@ -209,12 +185,6 @@ public class MiniMediaController extends MediaController {
         try {
             if (mPauseBtn != null && !mPlayer.canPause()) {
             	mPauseBtn.setEnabled(false);
-            }
-            if (mRewindBtn != null && !mPlayer.canSeekBackward()) {
-                mRewindBtn.setEnabled(false);
-            }
-            if (mForwardBtn != null && !mPlayer.canSeekForward()) {
-            	mForwardBtn.setEnabled(false);
             }
         } catch (IncompatibleClassChangeError ex) {
             // We were given an old version of the interface, that doesn't have
@@ -253,48 +223,48 @@ public class MiniMediaController extends MediaController {
             mHandler.sendMessageDelayed(msg, timeout);
         }
     }
-	
-	private Handler mHandler = new Handler() {
-		@Override
+
+    private static class MyHandler extends Handler {
+        WeakReference<MicroMediaController> mController;
+
+        MyHandler(MicroMediaController instance) {
+            mController = new WeakReference<MicroMediaController>(instance);
+        }
+
+        @Override
         public void handleMessage(Message msg) {
-            //Log.d(TAG, "handleMessage: " + msg.what);
-            
-            int pos;
+            MicroMediaController ins = mController.get();
             switch (msg.what) {
                 case FADE_OUT:
-                	mControllerView.setVisibility(View.INVISIBLE);
-                	mIsShowing = false;
+                    ins.mControllerView.setVisibility(View.INVISIBLE);
+                    ins.mIsShowing = false;
                     break;
-                /*case SHOW:
-                	mControllerView.setVisibility(View.VISIBLE);
-                	mHandler.sendEmptyMessage(UPDATE_PROGRESS);
-                	mIsShowing = true;
-                    break;*/
-               case UPDATE_PROGRESS:
-                   pos = setProgress();
-                   // keep UI always show up
-                   if (isShowing() && mPlayer.isPlaying()) {
-                       msg = obtainMessage(UPDATE_PROGRESS);
-                       sendMessageDelayed(msg, 1000 - (pos % 1000));
-                   }
-            	   break;
-               default:
-            	   Log.w(TAG, "unknown msg: " + msg.what);
-            	   break;
+                case UPDATE_PROGRESS:
+                    int pos = ins.setProgress();
+                    // keep UI always show up
+                    if (ins.isShowing() && ins.mPlayer.isPlaying()) {
+                        msg = obtainMessage(UPDATE_PROGRESS);
+                        sendMessageDelayed(msg, 1000 - (pos % 1000));
+                    }
+                    break;
+                case MSG_SEEK:
+                    if (ins.mPlayer != null)
+                        ins.mPlayer.seekTo(ins.mSeekingPos);
+
+                    ins.show();// reset hide time to 3 sec
+                    ins.mIsSeeking = false;
+                    break;
+                default:
+                    LogUtil.warn(TAG, "unknown msg: " + msg.what);
+                    break;
             }
         }
-	};
+    }
 	
 	@Override
     public void setEnabled(boolean enabled) {
         if (mPauseBtn != null) {
         	mPauseBtn.setEnabled(enabled);
-        }
-        if (mForwardBtn != null) {
-            mForwardBtn.setEnabled(enabled);
-        }
-        if (mRewindBtn != null) {
-        	mRewindBtn.setEnabled(enabled);
         }
         if (mProgressBar != null) {
         	mProgressBar.setEnabled(enabled);
@@ -303,7 +273,7 @@ public class MiniMediaController extends MediaController {
         super.setEnabled(enabled);
     }
 	
-	private View.OnClickListener mPlayPauseListener = new View.OnClickListener() {
+	private OnClickListener mPlayPauseListener = new OnClickListener() {
         public void onClick(View v) {
             doPauseResume();
             if (mPlayer.isPlaying())
@@ -330,58 +300,6 @@ public class MiniMediaController extends MediaController {
         	mPauseBtn.setImageResource(R.drawable.player_play_btn);
         }
     }
-    
-    private void updateFullScreen() {
-    	if (mIsLandscape) {
-            mFullScreenBtn.setImageResource(R.drawable.player_window_btn);
-        } else {
-        	mFullScreenBtn.setImageResource(R.drawable.player_fullscreen_btn);
-        }
-    }
-    
-    private View.OnClickListener mBwdListener = new View.OnClickListener() {
-        public void onClick(View v) {
-            int pos = mPlayer.getCurrentPosition();
-            pos -= 15000; // milliseconds
-            mPlayer.seekTo(pos);
-            setProgress();
-
-            show(sDefaultTimeout);
-        }
-    };
-
-    private View.OnClickListener mFwdListener = new View.OnClickListener() {
-        public void onClick(View v) {
-            int pos = mPlayer.getCurrentPosition();
-            pos += 15000; // milliseconds
-            mPlayer.seekTo(pos);
-            setProgress();
-
-            show(sDefaultTimeout);
-        }
-    };
-    
-    
-    
-    private View.OnClickListener mFullScreenListener = new View.OnClickListener() {
-        public void onClick(View v) {
-            if (null != mInstance) {
-            	if (mIsLandscape) {
-            		mInstance.setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
-            	}
-            	else {
-                    // toggle to full screen play mode
-                    mInstance.getSupportActionBar().hide();
-            		mInstance.setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
-            	}
-            	
-            	mIsLandscape = !mIsLandscape;
-            	
-            	updateFullScreen();
-            }
-            
-        }
-    };
     
     @Override
     public boolean onTrackballEvent(MotionEvent ev) {
@@ -421,24 +339,10 @@ public class MiniMediaController extends MediaController {
             }
             return true;
         } else if (keyCode == KeyEvent.KEYCODE_DPAD_LEFT) {
-        	int pos = mPlayer.getCurrentPosition();
-        	pos -= 30000;
-        	if (pos < 0)
-        		pos = 0;
-        	mPlayer.seekTo(pos);
-        	if (mRewindBtn != null) {
-        		mRewindBtn.requestFocus();
-            }
+            process_seek(-1);
         	return true;
         } else if (keyCode == KeyEvent.KEYCODE_DPAD_RIGHT) {
-        	int pos = mPlayer.getCurrentPosition();
-        	pos += 30000;
-        	if (pos > mPlayer.getDuration())
-        		pos = mPlayer.getDuration();
-        	mPlayer.seekTo(pos);
-        	if (mForwardBtn != null) {
-        		mForwardBtn.requestFocus();
-            }
+            process_seek(1);
         	return true;
         } else if (keyCode == KeyEvent.KEYCODE_VOLUME_DOWN
                 || keyCode == KeyEvent.KEYCODE_VOLUME_UP
@@ -455,6 +359,30 @@ public class MiniMediaController extends MediaController {
 
         show(sDefaultTimeout);
         return super.dispatchKeyEvent(event);
+    }
+
+    private void process_seek(int incr) {
+        if (!mIsSeeking) {
+            // show controller until seek complete
+            show(0);
+
+            mSeekingPos = mPlayer.getCurrentPosition();
+
+            mSeekStep = 10000; // 10 sec
+            if (mSeekStep > mPlayer.getDuration() / 100) {
+                mSeekStep = mPlayer.getDuration() / 100 + 1000; // min seek step is 1 sec
+            }
+            mIsSeeking = true;
+        }
+
+        mSeekingPos += (incr * mSeekStep);
+        if (mSeekingPos > mPlayer.getDuration())
+            mSeekingPos = mPlayer.getDuration();
+        else if (mSeekingPos < 0)
+            mSeekingPos = 0;
+
+        mHandler.removeMessages(MSG_SEEK);
+        mHandler.sendMessageDelayed(mHandler.obtainMessage(MSG_SEEK), SEEK_TIMEOUT);
     }
 	
 	private OnSeekBarChangeListener mProgressChangeListener = new OnSeekBarChangeListener() {

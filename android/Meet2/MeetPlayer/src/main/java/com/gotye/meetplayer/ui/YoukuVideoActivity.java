@@ -71,12 +71,15 @@ public class YoukuVideoActivity extends AppCompatActivity {
 			@Override
 			public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
 				if (mSubChannelSelected) {
-                    Intent intent = new Intent(YoukuVideoActivity.this, YoukuEpisodeActivity.class);
-                    intent.putExtra("title", mCatalogList.get(position).getTitle());
+                    Catalog cat = mCatalogList.get(position);
+					Intent intent = new Intent(YoukuVideoActivity.this, YoukuEpisodeActivity.class);
+                    intent.putExtra("title", cat.getTitle());
                     intent.putExtra("channel_id", mChannelId);
-                    intent.putExtra("filter", mCatalogList.get(position).getFilter());
-					intent.putExtra("sub_channel_id", mCatalogList.get(position).getSubChannelId());
-                    intent.putExtra("sub_channel_type", mCatalogList.get(position).getSubChannelType());
+                    if (cat.getTitle().equals("全部"))
+                        intent.putExtra("get_filter", 1);
+					intent.putExtra("filter", cat.getFilter());
+					intent.putExtra("sub_channel_id", cat.getSubChannelId());
+                    intent.putExtra("sub_channel_type", cat.getSubChannelType());
 					startActivity(intent);
 				}
                 else {
@@ -179,7 +182,6 @@ public class YoukuVideoActivity extends AppCompatActivity {
 
             public void onClick(DialogInterface dialog, int which) {
             	mEPGsearchKey = inputKey.getText().toString();
-                String new_search_keys = search_keys;
                 boolean bDuplicated = false;
                 StringTokenizer st = new StringTokenizer(search_keys, "|", false);
                 while (st.hasMoreElements()) {
@@ -190,9 +192,9 @@ public class YoukuVideoActivity extends AppCompatActivity {
                     }
                 }
                 if (!bDuplicated) {
-                    if (!new_search_keys.isEmpty())
-                        new_search_keys += "|";
-                    new_search_keys += mEPGsearchKey;
+                    String new_search_keys = mEPGsearchKey;
+                    new_search_keys += "|";
+                    new_search_keys += search_keys;
                     Util.writeSettings(YoukuVideoActivity.this, "search_keys", new_search_keys);
                 }
 
