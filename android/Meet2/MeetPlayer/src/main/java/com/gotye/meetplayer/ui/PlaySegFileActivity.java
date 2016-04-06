@@ -120,7 +120,17 @@ public class PlaySegFileActivity extends AppCompatActivity
 
 		super.getWindow().addFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN);
 		super.getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
-		
+
+        try {
+            super.getWindow().addFlags(
+                    WindowManager.LayoutParams.class.
+                            getField("FLAG_NEEDS_MENU_KEY").getInt(null));
+        } catch (NoSuchFieldException e) {
+            // Ignore since this field won't exist in most versions of Android
+        } catch (IllegalAccessException e) {
+            e.printStackTrace();
+        }
+
 		setContentView(R.layout.activity_frag_mp4_player);
 
 		if (getSupportActionBar() != null)

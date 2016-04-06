@@ -83,6 +83,36 @@ static IExtractor* setMediaExtractor(JNIEnv* env, jobject thiz, IExtractor* extr
 	return old;
 }
 
+void android_media_MediaExtractor_setSubtitleParser(JNIEnv *env, jobject thiz, jobject paser)
+{
+	PPLOGI("setSubtitleParser()");
+
+	jclass clazzSubtitle = env->FindClass("com/gotye/meetsdk/subtitle/SimpleSubTitleParser");
+	if (clazzSubtitle == NULL) {
+		PPLOGE("cannot find class com/gotye/meetsdk/subtitle/SimpleSubTitleParser, setSubtitleParser failed");
+		jniThrowException(env, "java/lang/RuntimeException", "cannot find class com/gotye/meetsdk/subtitle/SimpleSubTitleParser");
+		return;
+	}
+
+	//fields.iSubtitle
+	jfieldID is = env->GetFieldID(clazzSubtitle, "mNativeContext", "J");
+	ISubtitles* p = NULL;
+	if (paser)
+		p = (ISubtitles*)env->GetLongField(paser, is);
+
+	PPLOGI("111111111111");
+	IExtractor* extractor = getMediaExtractor(env, thiz);
+	if (extractor == NULL ) {
+		PPLOGE("failed to get ffextractor");
+		jniThrowException(env, "java/lang/RuntimeException", "failed to get ffextractor");
+		return;
+	}
+
+	PPLOGI("222222222222");
+	extractor->setISubtitle(p);
+	PPLOGI("3333333333");
+}
+
 jboolean android_media_MediaExtractor_advance(JNIEnv *env, jobject thiz)
 {
 	IExtractor* extractor = getMediaExtractor(env, thiz);
@@ -326,6 +356,26 @@ jboolean android_media_MediaExtractor_getTrackFormatNative(JNIEnv *env, jobject 
 		env->CallVoidMethod(mediaformat, midSetByteBuffer, env->NewStringUTF("csd-0"), bb_csd0); // sps
 	}
 	else if (PPMEDIA_TYPE_SUBTITLE == native_format.media_type) {
+		const char *mime_str = "subtitle/other";
+		switch (native_format.codec_id) {
+		case PPMEDIA_CODEC_ID_SSA:
+			mime_str = "subtitle/ssa";
+			break;
+		case PPMEDIA_CODEC_ID_ASS:
+			mime_str = "subtitle/ass";
+			break;
+		case PPMEDIA_CODEC_ID_TEXT:
+			mime_str = "subtitle/text";
+			break;
+		case PPMEDIA_CODEC_ID_SRT:
+			mime_str = "subtitle/srt";
+			break;
+		case PPMEDIA_CODEC_ID_SUBRIP:
+			mime_str = "subtitle/subrip";
+			break;
+		default:
+			break;
+		}
 		env->CallVoidMethod(mediaformat, midSetString, env->NewStringUTF("mime"), env->NewStringUTF("subtitle/unknown"));
 	}
 	else if (PPMEDIA_TYPE_DATA == native_format.media_type) {
@@ -627,6 +677,7 @@ static JNINativeMethod gExtractorMethods[] = {
 	{"unselectTrack",       "(I)V",		(void *)android_media_MediaExtractor_unselectTrack},
 	{"native_init",       "()Z",		(void *)android_media_MediaExtractor_init},
 	{"setup",       "(Ljava/lang/Object;)V",		(void *)android_media_MediaExtractor_setup},
+	{"native_setSubtitleParser", "(Lcom/gotye/meetsdk/subtitle/SimpleSubTitleParser;)V", (void *)android_media_MediaExtractor_setSubtitleParser},
 };
 
 bool setup_extractor(void *so_handle)

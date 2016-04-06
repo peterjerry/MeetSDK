@@ -498,7 +498,8 @@ void android_media_MediaPlayer_setSubtitleParser(JNIEnv *env, jobject thiz, jobj
 	PPLOGI("setSubtitleParser");
 	jclass clazzSubtitle = env->FindClass("com/gotye/meetsdk/subtitle/SimpleSubTitleParser");
 	if (clazzSubtitle == NULL) {
-		PPLOGE("player is null, setSubtitleParser failed");
+		PPLOGE("cannot find class com/gotye/meetsdk/subtitle/SimpleSubTitleParser, setSubtitleParser failed");
+		jniThrowException(env, "java/lang/RuntimeException", "cannot find class com/gotye/meetsdk/subtitle/SimpleSubTitleParser");
 		return;
 	}
 	//fields.iSubtitle

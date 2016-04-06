@@ -60,12 +60,15 @@ public class XOMediaPlayer extends BaseMediaPlayer {
 
 	private MediaFormat mAudioFormat = null;
 	private MediaFormat mVideoFormat = null;
+    private String mSubtitleMime = null;
 
-	private int mAudioTrackIndex = -1;
-	private int mVideoTrackIndex = -1;
+	private int mAudioTrackIndex    = -1;
+	private int mVideoTrackIndex    = -1;
+    private int mSubtitleTrackIndex = -1;
 
-	private boolean mHaveAudio = false;
-	private boolean mHaveVideo = false;
+	private boolean mHaveAudio      = false;
+	private boolean mHaveVideo      = false;
+    private boolean mHaveSubtitle   = false;
 
 	private Lock mAudioCodecLock = null;
 	private MediaCodec mAudioCodec = null;
@@ -109,6 +112,8 @@ public class XOMediaPlayer extends BaseMediaPlayer {
 	private long mLastAudioPktMSec = 0L;
 	private long mAudioLatencyMsec = 0L;
 	private int mAudioDataLen = 0;
+    // subtitle
+    private SimpleSubTitleParser mSubParser;
 
 	private final static boolean NO_AUDIO = false;
 
@@ -363,6 +368,8 @@ public class XOMediaPlayer extends BaseMediaPlayer {
 
 	private boolean initMediaExtractor() {
 		LogUtils.info("start initMediaExtractor");
+        if (mSubParser != null)
+            mExtractor.setSubtitleParser(mSubParser);
 		try {
 			// would block
 			mExtractor.setDataSource(mUrl);
@@ -441,12 +448,18 @@ public class XOMediaPlayer extends BaseMediaPlayer {
 				mVideoTrackIndex = index;
 				LogUtils.info("Java: mVideoTrackIndex: " + mVideoTrackIndex);
 				mHaveVideo = true;
-			} else {
+			} else if (mime.startsWith("subtitle/")) {
+                mSubtitleMime = mime;
+                mSubtitleTrackIndex = index;
+                LogUtils.info("Java: mSubtitleTrackIndex: " + mSubtitleTrackIndex);
+                mHaveSubtitle = true;
+            } else {
 				// unknown media type;
 				LogUtils.warn("Java: unknown media type");
 			}
 
-			if (mHaveAudio && mHaveVideo) {
+			if (mHaveAudio && mHaveVideo && mHaveSubtitle) {
+                // enough stream info
 				break;
 			}
 		}
@@ -719,9 +732,9 @@ public class XOMediaPlayer extends BaseMediaPlayer {
 			}
 		}
 
-		LogUtils.debug(String.format(
-				"audio_clock: pos %d, lat %d, diff %d msec",
-				mAudioPositionMsec, mAudioLatencyMsec, playedDiffMsec));
+		//LogUtils.debug(String.format(
+		//		"audio_clock: pos %d, lat %d, diff %d msec",
+		//		mAudioPositionMsec, mAudioLatencyMsec, playedDiffMsec));
 		// |----diff----pts################play->audio_hardware
 		audio_clock_msec = mAudioPositionMsec - mAudioLatencyMsec
 				+ playedDiffMsec;
@@ -1832,7 +1845,7 @@ public class XOMediaPlayer extends BaseMediaPlayer {
 	@Override
 	public void setSubtitleParser(SimpleSubTitleParser parser) {
 		// TODO Auto-generated method stub
-
+        mSubParser = parser;
 	}
 
 	@Override
@@ -1899,8 +1912,13 @@ public class XOMediaPlayer extends BaseMediaPlayer {
 				mime = mime.substring(pos + 1);
 			mediaInfo.setAudioChannels(1);
 			mediaInfo.setAudioChannelsInfo(
-					0, mAudioTrackIndex, mime, null, "N/A", "N/A");
+                    0, mAudioTrackIndex, mime, null, "N/A", "N/A");
 		}
+        if (mHaveSubtitle) {
+            mediaInfo.setSubtitleChannels(1);
+            mediaInfo.setSubtitleChannelsInfo(
+                    0, mSubtitleTrackIndex, mSubtitleMime, "N/A", "N/A");
+        }
 		
 		return mediaInfo;
 	}

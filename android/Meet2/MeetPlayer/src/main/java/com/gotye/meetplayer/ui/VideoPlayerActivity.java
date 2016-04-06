@@ -139,7 +139,8 @@ public class VideoPlayerActivity extends AppCompatActivity implements Callback {
 		
 		setContentView(R.layout.activity_video_player);
 
-        getSupportActionBar().hide();
+        if (getSupportActionBar() != null)
+			getSupportActionBar().hide();
 		
 		this.mController = (MyMediaController) findViewById(R.id.video_controller);
 		this.mVideoView = (MeetVideoView) findViewById(R.id.video_view);

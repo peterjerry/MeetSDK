@@ -289,6 +289,8 @@ public class MediaPlayer implements MediaPlayerInterface {
 		// 2015.3.23 guoliangma move here to fix s39h cannot play pptv url problem
 		// setLooping called after setDataSource will throw (-38, 0) when using SystemPlayer
 		setLooping();
+
+		setSubtitleParser();
 		
 		try {
             if (mContext != null && mUri != null && mHeaders != null)
@@ -343,7 +345,6 @@ public class MediaPlayer implements MediaPlayerInterface {
 		setupMediaPlayer();
 		
 		if (mPlayer != null) {
-			setSubtitleParser();
 			mPlayer.prepareAsync();
 		}
 		else {
@@ -521,11 +522,10 @@ public class MediaPlayer implements MediaPlayerInterface {
 	@Override
     public void setSubtitleParser(SimpleSubTitleParser parser) {
         mSubtitleParser = parser;
-        
     }
     
     private void setSubtitleParser() {
-        if(mSubtitleParser != null) {
+        if (mSubtitleParser != null) {
             mPlayer.setSubtitleParser(mSubtitleParser);
         }
 

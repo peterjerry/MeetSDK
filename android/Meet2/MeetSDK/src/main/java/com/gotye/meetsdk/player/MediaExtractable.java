@@ -5,6 +5,8 @@ import java.nio.ByteBuffer;
 
 import android.media.MediaFormat;
 
+import com.gotye.meetsdk.subtitle.SimpleSubTitleParser;
+
 public interface MediaExtractable {
 	
 	public abstract boolean advance();
@@ -50,5 +52,7 @@ public interface MediaExtractable {
 	public abstract boolean isSystemExtractor();
 	
 	public abstract void setVideoAhead(int msec);
+
+	public abstract void setSubtitleParser(SimpleSubTitleParser parser);
 
 }
