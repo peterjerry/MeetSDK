@@ -10,11 +10,10 @@ import com.gotye.common.sohu.EpisodeSohu;
 import com.gotye.common.sohu.PlaylinkSohu;
 import com.gotye.common.sohu.PlaylinkSohu.SohuFtEnum;
 import com.gotye.common.sohu.SohuUtil;
+import com.gotye.common.util.LogUtil;
 import com.gotye.meetplayer.R;
-import com.gotye.meetplayer.util.Constants;
 import com.gotye.meetplayer.util.Util;
 
-import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.Dialog;
 import android.content.DialogInterface;
@@ -24,8 +23,6 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
 import android.support.v7.app.AppCompatActivity;
-import android.util.Log;
-import android.view.KeyEvent;
 import android.view.View;
 import android.view.WindowManager;
 import android.widget.AbsListView;
@@ -39,7 +36,7 @@ public class SohuEpisodeActivity extends AppCompatActivity {
 	private final static String TAG = "SohuEpisodeActivity";
 	
 	private GridView gridView = null;  
-    private MySohuEpAdapter adapter = null;
+    private CommonAlbumAdapter adapter = null;
     
     private final static int MSG_EPISODE_DONE		= 1;
     private final static int MSG_PLAYLINK_DONE	= 2;
@@ -156,15 +153,25 @@ public class SohuEpisodeActivity extends AppCompatActivity {
 			@Override
 			public void onScrollStateChanged(AbsListView view, int scrollState) {
 				// TODO Auto-generated method stub
-				
+				switch (scrollState) {
+					case AbsListView.OnScrollListener.SCROLL_STATE_FLING:
+					case AbsListView.OnScrollListener.SCROLL_STATE_TOUCH_SCROLL:
+						adapter.setLoadImg(false);
+						break;
+					case AbsListView.OnScrollListener.SCROLL_STATE_IDLE:
+						adapter.setLoadImg(true);
+						break;
+					default:
+						break;
+				}
 			}
 			
 			@Override
 			public void onScroll(AbsListView view, int firstVisibleItem,
 		            int visibleItemCount, int totalItemCount) {
 				// TODO Auto-generated method stub
-				Log.d(TAG, String.format("Java: onScroll first %d, visible %d, total %d", 
-						firstVisibleItem, visibleItemCount, totalItemCount));
+				//LogUtil.debug(TAG, String.format("Java: onScroll first %d, visible %d, total %d",
+				//		firstVisibleItem, visibleItemCount, totalItemCount));
 				
 				int lastInScreen = firstVisibleItem + visibleItemCount;
 		        if (totalItemCount > 0 && lastInScreen == totalItemCount && !noMoreData) {
@@ -351,7 +358,7 @@ public class SohuEpisodeActivity extends AppCompatActivity {
 			// TODO Auto-generated method stub
 			
 			if (!result) {
-				Log.e(TAG, "failed to get episode");
+				LogUtil.error(TAG, "failed to get episode");
 				Toast.makeText(SohuEpisodeActivity.this, "failed to get episode", Toast.LENGTH_SHORT).show();
 			}
 		}
@@ -360,12 +367,12 @@ public class SohuEpisodeActivity extends AppCompatActivity {
 		protected Boolean doInBackground(Long... params) {
 			// TODO Auto-generated method stub
 			long action = params[0];
-			Log.i(TAG, "Java: SohuEpgTask action " + action);
+			LogUtil.info(TAG, "Java: SohuEpgTask action " + action);
 			
 			if (action == TASK_EPISODE) {
 				long aid = params[1];
 				if (!mEPG.episode(aid, ep_page_index, page_size)) {
-					Log.e(TAG, "Java: failed to call episode()");
+					LogUtil.error(TAG, "Java: failed to call episode()");
 					mhandler.sendEmptyMessage(MSG_NO_MORE_EPISODE);
 					return true;
 				}
@@ -375,7 +382,7 @@ public class SohuEpisodeActivity extends AppCompatActivity {
 			}
 			else if (action == TASK_PLAYLINK){
 				if (params.length < 3) {
-					Log.e(TAG, "Java: TASK_PLAYLINK params.lenght is invalid: " + params.length);
+					LogUtil.error(TAG, "Java: TASK_PLAYLINK params.lenght is invalid: " + params.length);
 					return false;
 				}
 				
@@ -384,7 +391,7 @@ public class SohuEpisodeActivity extends AppCompatActivity {
 				
 				mPlaylink = mEPG.playlink_pptv((int)vid, 0);
 				if (mPlaylink == null) {
-					Log.e(TAG, "Java: failed to call playlink_pptv() vid: " + vid);
+					LogUtil.error(TAG, "Java: failed to call playlink_pptv() vid: " + vid);
 					return false;
 				}
 				
@@ -396,7 +403,7 @@ public class SohuEpisodeActivity extends AppCompatActivity {
 			else if (action == TASK_MORELIST) {
 				album_page_index++;
 				if (!mEPG.morelist(mMoreList, page_size, (album_page_index - 1) * page_size)) {
-					Log.e(TAG, "Java: failed to call morelist() morelist " + mMoreList);
+					LogUtil.error(TAG, "Java: failed to call morelist() morelist " + mMoreList);
 					noMoreData = true;
 					return false;
 				}
@@ -407,7 +414,7 @@ public class SohuEpisodeActivity extends AppCompatActivity {
 			}
 			else if (action == TASK_VIDEO_INFO) {
 				if (params.length < 4) {
-					Log.e(TAG, "Java: TASK_VIDEO_INFO params.lenght is invalid: " + params.length);
+					LogUtil.error(TAG, "Java: TASK_VIDEO_INFO params.lenght is invalid: " + params.length);
 					return false;
 				}
 				
@@ -416,7 +423,7 @@ public class SohuEpisodeActivity extends AppCompatActivity {
 				long site	= params[3];
 				mPlaylink = mEPG.video_info((int)site, (int)vid, aid);
 				if (mPlaylink == null) {
-					Log.e(TAG, "Java: failed to call video_info() vid: " + vid);
+					LogUtil.error(TAG, "Java: failed to call video_info() vid: " + vid);
 					return false;
 				}
 				
@@ -426,7 +433,7 @@ public class SohuEpisodeActivity extends AppCompatActivity {
 				mhandler.sendEmptyMessage(MSG_PLAYLINK_DONE);	
 			}
 			else {
-				Log.e(TAG, "Java: invalid action type: " + action);
+				LogUtil.error(TAG, "Java: invalid action type: " + action);
 				return false;
 			}
 
@@ -442,11 +449,11 @@ public class SohuEpisodeActivity extends AppCompatActivity {
 			// TODO Auto-generated method stub
 			
 			if (!result) {
-				Log.e(TAG, "Java: failed to get sub channel");
+				LogUtil.error(TAG, "Java: failed to get sub channel");
 				return;
 			}
 			
-			adapter = new MySohuEpAdapter(SohuEpisodeActivity.this, data2);
+			adapter = new CommonAlbumAdapter(SohuEpisodeActivity.this, data2);
 		    gridView.setAdapter(adapter);  
 		}
 		
@@ -463,19 +470,19 @@ public class SohuEpisodeActivity extends AppCompatActivity {
 			}
 			else {
 				if (!mEPG.subchannel(sub_channel_id, page_size, 1)) {
-					Log.e(TAG, "Java: failed to call subchannel()");
+					LogUtil.error(TAG, "Java: failed to call subchannel()");
 					return false;
 				}
 				
 				mMoreList = mEPG.getMoreList();
 				if (mMoreList != null && !mMoreList.isEmpty()) {
 					if (!mEPG.morelist(mMoreList, page_size, (album_page_index - 1) * page_size)) {
-						Log.e(TAG, "Java: failed to call morelist()");
+						LogUtil.error(TAG, "Java: failed to call morelist()");
 						return false;
 					}
 				}
 				else {
-					Log.w(TAG, "Java: morelist param is empty");
+					LogUtil.warn(TAG, "Java: morelist param is empty");
 				}
 				
 				mAlbumList = mEPG.getAlbumList();
@@ -483,7 +490,6 @@ public class SohuEpisodeActivity extends AppCompatActivity {
 						  
 			data2 = new ArrayList<Map<String, Object>>();
 			int c = mAlbumList.size();
-			Log.i(TAG, "Java album size: " + c);
 			for (int i=0;i<c;i++) {
 				HashMap<String, Object> episode = new HashMap<String, Object>();
 				AlbumSohu al = mAlbumList.get(i);

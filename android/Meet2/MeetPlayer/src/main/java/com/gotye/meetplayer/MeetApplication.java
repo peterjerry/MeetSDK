@@ -32,13 +32,16 @@ public class MeetApplication extends Application {
 	public void onCreate() {
 		// TODO Auto-generated method stub
 		super.onCreate();
-		Log.i(TAG, "Java: onCreate()");
 		
-		/*ImageLoaderConfiguration config = new ImageLoaderConfiguration.Builder(getApplicationContext())
-        .threadPriority(Thread.NORM_PRIORITY - 1).threadPoolSize(16)
-           .denyCacheImageMultipleSizesInMemory().tasksProcessingOrder(QueueProcessingType.LIFO)
-           .diskCacheSize(50 * 1024 * 1024).diskCacheFileCount(100)
-           .build();
+		/*ImageLoaderConfiguration config =
+				new ImageLoaderConfiguration.Builder(getApplicationContext())
+						.threadPriority(Thread.NORM_PRIORITY - 1)
+						.threadPoolSize(16)
+						.denyCacheImageMultipleSizesInMemory()
+                        .tasksProcessingOrder(QueueProcessingType.LIFO)
+						.diskCacheSize(50 * 1024 * 1024)
+                        .diskCacheFileCount(100)
+						.build();
    
 		ImageLoader.getInstance().init(config);*/
 		

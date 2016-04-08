@@ -10,7 +10,6 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
 import android.support.v7.app.AppCompatActivity;
-import android.util.Log;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
@@ -72,7 +71,7 @@ public class YoukuVideoActivity extends AppCompatActivity {
 			public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
 				if (mSubChannelSelected) {
                     Catalog cat = mCatalogList.get(position);
-					Intent intent = new Intent(YoukuVideoActivity.this, YoukuEpisodeActivity.class);
+					Intent intent = new Intent(YoukuVideoActivity.this, YoukuAlbumActivity.class);
                     intent.putExtra("title", cat.getTitle());
                     intent.putExtra("channel_id", mChannelId);
                     if (cat.getTitle().equals("全部"))
@@ -102,8 +101,6 @@ public class YoukuVideoActivity extends AppCompatActivity {
 	@Override
 	public boolean onOptionsItemSelected(MenuItem item) {
 		int id = item.getItemId();
-		Log.i(TAG, "Java: onOptionsItemSelected " + id);
-
 		switch (id) {
 			case R.id.search:
 				popupSearch();
@@ -119,7 +116,7 @@ public class YoukuVideoActivity extends AppCompatActivity {
 				popupHistory();
 				break;
 			default:
-				Log.w(TAG, "unknown menu id " + id);
+				LogUtil.warn(TAG, "unknown menu id " + id);
 				break;
 		}
 		
@@ -198,7 +195,7 @@ public class YoukuVideoActivity extends AppCompatActivity {
                     Util.writeSettings(YoukuVideoActivity.this, "search_keys", new_search_keys);
                 }
 
-            	Intent intent = new Intent(YoukuVideoActivity.this, YoukuEpisodeActivity.class);
+            	Intent intent = new Intent(YoukuVideoActivity.this, YoukuAlbumActivity.class);
         		intent.putExtra("search_key", mEPGsearchKey);
         		startActivity(intent);
         		
@@ -230,7 +227,7 @@ public class YoukuVideoActivity extends AppCompatActivity {
                 .setItems(keywords,
                         new DialogInterface.OnClickListener() {
                             public void onClick(DialogInterface dialog, int whichButton) {
-                                Intent intent = new Intent(YoukuVideoActivity.this, YoukuEpisodeActivity.class);
+                                Intent intent = new Intent(YoukuVideoActivity.this, YoukuAlbumActivity.class);
                                 intent.putExtra("search_key", keywords[whichButton]);
                                 startActivity(intent);
 
@@ -288,8 +285,8 @@ public class YoukuVideoActivity extends AppCompatActivity {
 				mSubChannelSelected = false;
 
 				mChannelList = YKUtil.getChannel();
-				if (mChannelList == null) {
-					Log.e(TAG, "Java: failed to call getChannel():");
+				if (mChannelList == null || mChannelList.isEmpty()) {
+					LogUtil.error(TAG, "Java: failed to call getChannel():");
 					mhandler.sendEmptyMessage(MSG_FAIL_TO_CHANNEL_LIST);
 					return null;
 				}
@@ -302,8 +299,8 @@ public class YoukuVideoActivity extends AppCompatActivity {
 			}
 			else if (action == EPG_TASK_SELECT_CATALOG) {
 				mCatalogList = YKUtil.getCatalog(mChannelId);
-				if (mCatalogList == null) {
-					Log.e(TAG, "Java: failed to call getCatalog() channel_id: " + mChannelId);
+				if (mCatalogList == null || mCatalogList.isEmpty()) {
+					LogUtil.error(TAG, "Java: failed to call getCatalog() channel_id: " + mChannelId);
 					mhandler.sendEmptyMessage(MSG_FAIL_TO_SELECT_CATALOG);
 					return null;
 				}

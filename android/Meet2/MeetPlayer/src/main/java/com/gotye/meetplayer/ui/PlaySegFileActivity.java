@@ -299,12 +299,12 @@ public class PlaySegFileActivity extends AppCompatActivity
             case R.id.select_ft:
                 break;
             case R.id.select_episode:
-                AlertDialog.Builder builder;
+                onSelectEpisode();
                 break;
             case R.id.next_episode:
                 onSelectEpisode(1);
                 break;
-            case R.id.prev_episode:
+            case R.id.previous_episode:
                 onSelectEpisode(-1);
                 break;
             case R.id.show_mediainfo:
@@ -352,6 +352,10 @@ public class PlaySegFileActivity extends AppCompatActivity
         mBufferingProgressBar.setVisibility(View.GONE);
 
         finish();
+    }
+
+    protected void onSelectEpisode() {
+
     }
 
     protected void onSelectEpisode(int incr) {

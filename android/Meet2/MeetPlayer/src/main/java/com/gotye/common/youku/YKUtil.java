@@ -190,7 +190,7 @@ public class YKUtil {
     }
 
     public static ZGUrl getPlayUrl2(String vid) {
-        String m3u8_url = YKUtil.getPlayUrl(vid);
+        String m3u8_url = getPlayUrl(vid);
         if (m3u8_url == null) {
             LogUtil.error(TAG, "Java: failed to call getPlayUrl() vid: " + vid);
             return null;
@@ -608,6 +608,9 @@ public class YKUtil {
                     return null;
             }
 
+            // sub_channel_id=242&sub_channel_type=1 电视剧 精选
+            // sub_channel_id=2&sub_channel_type=3 电视剧 大陆
+
             List<Album> albumList = new ArrayList<Album>();
 
             if (channel_id == 95 /*music*/) {
@@ -641,6 +644,50 @@ public class YKUtil {
                             String subtitle = item.getString("subtitle");
                             int is_vv = item.getInt("is_vv");
                             int type = item.getInt("type");
+                            String total_vv = "";
+                            if (is_vv > 0)
+                                total_vv = subtitle;
+                            int total_ep = 1;
+                            if (type == 2)
+                                total_ep = 12345678; // guess
+                            albumList.add(new Album(title, tid, stripe,
+                                    img_url, total_vv, total_ep));
+                        }
+                    }
+                }
+            }
+            else if (sub_channel_type == 1/*精选*/) {
+                JSONArray boxes = root.getJSONArray("boxes");
+                int size = boxes.length();
+                for (int i=0;i<size;i++) {
+                    JSONObject box = boxes.getJSONObject(i);
+                    String box_title = "";
+                    if (box.has("title"))
+                        box_title = box.getString("title");
+                    JSONArray cells = box.getJSONArray("cells");
+                    for (int j=0;j<cells.length();j++) {
+                        JSONObject cell = cells.getJSONObject(j);
+                        JSONArray contents = cell.getJSONArray("contents");
+                        for (int k=0;k<contents.length();k++) {
+                            JSONObject content = contents.getJSONObject(k);
+//                            {
+//                                subtitle: "8.5",
+//                                        img: "http://r4.ykimg.com/050C0000570342EE67BC3D03F80969CE",
+//                                    title: "铁血战狼",
+//                                    url: "",
+//                                    paid: 0,
+//                                    stripe: "更新至20集",
+//                                    tid: "c31d55bc6f3411e5b692",
+//                                    is_vv: 0,
+//                                    type: "2"
+//                            },
+                            String title = box_title + " " + content.getString("title");
+                            String stripe = content.getString("stripe");
+                            String subtitle = content.getString("subtitle");
+                            String img_url = content.getString("img");
+                            String tid = content.getString("tid");
+                            int is_vv = content.getInt("is_vv");
+                            int type = content.getInt("type");
                             String total_vv = "";
                             if (is_vv > 0)
                                 total_vv = subtitle;

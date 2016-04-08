@@ -28,7 +28,6 @@ import android.os.Environment;
 import android.os.Handler;
 import android.os.Message;
 import android.support.v7.app.AppCompatActivity;
-import android.util.Log;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
@@ -51,7 +50,7 @@ public class PPTVEpisodeActivity extends AppCompatActivity {
 	private CheckBox cbIsCatalog;
 	private Button btnFt;
 	private GridView gridView = null;
-    private MySohuEpAdapter adapter = null;
+    private CommonAlbumAdapter adapter = null;
     
     private final static int MSG_EPISODE_DONE		= 1;
     private final static int MSG_MOREDATA_DONE	= 2;
@@ -192,15 +191,25 @@ public class PPTVEpisodeActivity extends AppCompatActivity {
 			@Override
 			public void onScrollStateChanged(AbsListView view, int scrollState) {
 				// TODO Auto-generated method stub
-				
+				switch (scrollState) {
+					case AbsListView.OnScrollListener.SCROLL_STATE_FLING:
+					case AbsListView.OnScrollListener.SCROLL_STATE_TOUCH_SCROLL:
+						adapter.setLoadImg(false);
+						break;
+					case AbsListView.OnScrollListener.SCROLL_STATE_IDLE:
+						adapter.setLoadImg(true);
+						break;
+					default:
+						break;
+				}
 			}
 			
 			@Override
 			public void onScroll(AbsListView view, int firstVisibleItem,
 		            int visibleItemCount, int totalItemCount) {
 				// TODO Auto-generated method stub
-				Log.d(TAG, String.format("Java: onScroll first %d, visible %d, total %d", 
-						firstVisibleItem, visibleItemCount, totalItemCount));
+				//LogUtil.debug(TAG, String.format("Java: onScroll first %d, visible %d, total %d",
+				//		firstVisibleItem, visibleItemCount, totalItemCount));
 				
 				int lastInScreen = firstVisibleItem + visibleItemCount;
 		        if (totalItemCount > 0 && lastInScreen == totalItemCount && !noMoreData) {
@@ -273,7 +282,7 @@ public class PPTVEpisodeActivity extends AppCompatActivity {
 	@Override
 	public boolean onOptionsItemSelected(MenuItem item) {
 		int id = item.getItemId();
-		Log.i(TAG, "Java: onOptionsItemSelected " + id);
+		LogUtil.info(TAG, "Java: onOptionsItemSelected " + id);
 		
 		switch (id) {
 		case R.id.pop_sel_ep:
@@ -307,7 +316,7 @@ public class PPTVEpisodeActivity extends AppCompatActivity {
 	        dlg.show();
 			break;
 		default:
-			Log.w(TAG, "unknown menu id " + id);
+			LogUtil.warn(TAG, "unknown menu id " + id);
 			break;
 		}
 		
@@ -371,7 +380,7 @@ public class PPTVEpisodeActivity extends AppCompatActivity {
             	new SetDataTask().execute(SET_DATA_LIST);
             	break;
             default:
-            	Log.w(TAG, "Java unknown view id: " + v.getId());
+				LogUtil.warn(TAG, "Java unknown view id: " + v.getId());
                 break;  
 			}
 		}
@@ -438,7 +447,7 @@ public class PPTVEpisodeActivity extends AppCompatActivity {
 		
 		String info = String.format("ready to play video %s, playlink: %s, ft: %d", 
 				episode_title, vid, ft);
-		Log.i(TAG, info);
+		LogUtil.info(TAG, info);
 		Toast.makeText(this, info, Toast.LENGTH_SHORT).show();
 		
 		short port = MediaSDK.getPort("http");
@@ -467,7 +476,7 @@ public class PPTVEpisodeActivity extends AppCompatActivity {
 		
         Intent intent = new Intent(PPTVEpisodeActivity.this,
         		PPTVPlayerActivity.class);
-		Log.i(TAG, "to play uri: " + uri.toString());
+		LogUtil.info(TAG, "to play uri: " + uri.toString());
 
 		intent.setData(uri);
 		intent.putExtra("title", episode_title);
@@ -481,7 +490,7 @@ public class PPTVEpisodeActivity extends AppCompatActivity {
 		
 		if (last_pos > 0) {
 			intent.putExtra("preseek_msec", last_pos);
-			Log.i(TAG, "Java: set preseek_msec " + last_pos);
+			LogUtil.info(TAG, "Java: set preseek_msec " + last_pos);
 		}
         
 		startActivity(intent);
@@ -530,7 +539,7 @@ public class PPTVEpisodeActivity extends AppCompatActivity {
 			// TODO Auto-generated method stub
 			
 			if (!result) {
-				Log.e(TAG, "failed to get episode");
+				LogUtil.error(TAG, "failed to get episode");
 				Toast.makeText(PPTVEpisodeActivity.this, "failed to get episode", Toast.LENGTH_SHORT).show();
 			}
 		}
@@ -539,12 +548,11 @@ public class PPTVEpisodeActivity extends AppCompatActivity {
 		protected Boolean doInBackground(Integer... params) {
 			// TODO Auto-generated method stub
 			long action = params[0];
-			Log.i(TAG, "Java: PPTVEpgTask action " + action);
 			
 			if (action == TASK_DETAIL) {
 				int vid = params[1];
 				if (!mEPG.detail(String.valueOf(vid))) {
-					Log.e(TAG, "Java: failed to call detail()");
+					LogUtil.error(TAG, "Java: failed to call detail()");
 					mhandler.sendEmptyMessage(MSG_FAIL_TO_DETAIL);
 					return false;
 				}
@@ -558,7 +566,7 @@ public class PPTVEpisodeActivity extends AppCompatActivity {
 			else if (action == TASK_MORELIST) {
 				album_page_index++;
 				if (!mEPG.list(epg_param, epg_type, album_page_index, epg_order, page_size, is_catalog)) {
-					Log.e(TAG, "Java: failed to call list() more");
+					LogUtil.error(TAG, "Java: failed to call list() more");
 					noMoreData = true;
 					return false;
 				}
@@ -570,7 +578,7 @@ public class PPTVEpisodeActivity extends AppCompatActivity {
 			else if (action == TASK_MORESEARCH) {
 				album_page_index++;
 				if (!mEPG.search(search_key, 0, 0, album_page_index, page_size)) {
-					Log.e(TAG, "Java: failed to call search() more");
+					LogUtil.error(TAG, "Java: failed to call search() more");
 					noMoreData = true;
 					return false;
 				}
@@ -580,7 +588,7 @@ public class PPTVEpisodeActivity extends AppCompatActivity {
 				mhandler.sendEmptyMessage(MSG_MOREDATA_DONE);
 			}
 			else if (action == TASK_ITEM_FT) {
-        		Log.i(TAG, "Java: EPGTask start to getCDNUrl");
+				LogUtil.info(TAG, "Java: EPGTask start to getCDNUrl");
         		
         		int vid = params[1];
         		int []ft_list = mEPG.getAvailableFT(String.valueOf(vid));
@@ -640,7 +648,7 @@ public class PPTVEpisodeActivity extends AppCompatActivity {
     	        msg.sendToTarget();
         	}
 			else {
-                Log.e(TAG, "Java: invalid action type: " + action);
+				LogUtil.error(TAG, "Java: invalid action type: " + action);
 				return false;
 			}
 
@@ -656,12 +664,12 @@ public class PPTVEpisodeActivity extends AppCompatActivity {
 			// TODO Auto-generated method stub
 			
 			if (result == null) {
-				Log.e(TAG, "Java: failed to get data");
+				LogUtil.error(TAG, "Java: failed to get data");
 				return;
 			}
 			
 			if (adapter == null) {
-				adapter = new MySohuEpAdapter(PPTVEpisodeActivity.this, result);
+				adapter = new CommonAlbumAdapter(PPTVEpisodeActivity.this, result);
 				gridView.setAdapter(adapter);
 			}
 			else {
@@ -692,7 +700,6 @@ public class PPTVEpisodeActivity extends AppCompatActivity {
 			
 			List<Map<String, Object>> items = new ArrayList<Map<String, Object>>();
 			int c = mAlbumList.size();
-			Log.i(TAG, "Java album size: " + c);
 			for (int i=0;i<c;i++) {
 				HashMap<String, Object> episode = new HashMap<String, Object>();
 				PlayLink2 al = mAlbumList.get(i);

@@ -17,10 +17,10 @@
         android:title="选集" >
         <menu>
             <item
-                android:id="@+id/next_episode"
+                android:id="@+id/previous_episode"
                 android:title="上一集"/>
             <item
-                android:id="@+id/prev_episode"
+                android:id="@+id/next_episode"
                 android:title="下一集"/>
             <item
                 android:id="@+id/select_episode"

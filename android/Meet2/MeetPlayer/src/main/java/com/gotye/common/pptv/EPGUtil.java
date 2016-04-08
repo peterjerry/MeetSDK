@@ -322,7 +322,7 @@ public class EPGUtil {
 			int module_index = 0;
 			// hard code
 			if ("app://aph.pptv.com/v4/cate/sports?type=5".equals(surfix))
-				module_index = 1;
+				module_index = 0                                ;
 			else if ("app://aph.pptv.com/v4/cate/life?type=75399".equals(surfix))
 				module_index = 5;
 			
@@ -331,10 +331,10 @@ public class EPGUtil {
 			for (int i=0;i<contents.length();i++) {
 				JSONObject obj = contents.getJSONObject(i);
 				
-				JSONArray tags = obj.getJSONArray("tags");
-				if (tags == null)
+				if (!obj.has("tags"))
 					continue;
-				
+
+				JSONArray tags = obj.getJSONArray("tags");
 				for (int j=0;j<tags.length();j++) {
 					JSONObject c = tags.getJSONObject(j);
 					Content new_content = new Content(

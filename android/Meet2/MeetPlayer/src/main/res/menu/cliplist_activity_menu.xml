@@ -98,12 +98,6 @@
                 android:id="@+id/youku_video"
                 android:title="youku video"/>
             <item
-                android:id="@+id/tudou_video"
-                android:title="tudou video"/>
-            <item
-                android:id="@+id/iqiyi_video"
-                android:title="iqiyi video"/>
-            <item
                 android:id="@+id/parse_url"
                 android:title="parse url"/>
         </menu>
