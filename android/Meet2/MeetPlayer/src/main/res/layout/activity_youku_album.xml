@@ -1,55 +1,79 @@
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:orientation="vertical">
+    android:layout_height="match_parent" >
 
-    <ImageView
-		android:id="@+id/img"
-		android:layout_width="150dp"
-		android:layout_height="200dp"
-        android:src="@drawable/loading"
-        android:layout_alignParentTop="true"
-        android:layout_alignParentLeft="true"
-        android:scaleType="centerInside"/>
     <LinearLayout
-        android:id="@+id/layout_info"
-        android:layout_width="match_parent"
+        android:id="@+id/layout_ctrl"  
+        android:layout_width="match_parent"  
         android:layout_height="wrap_content"
-        android:layout_toRightOf="@id/img"
         android:layout_alignParentTop="true"
-        android:orientation="vertical">
-        <TextView
-            android:id="@+id/tv_director"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="导演: "
-            android:lines="1" />
-        <TextView
-            android:id="@+id/tv_actor"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="主演: "
-            android:lines="3" />
-        <TextView
-            android:id="@+id/tv_desc"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="剧情介绍: "
-            android:lines="7" />
-    </LinearLayout>
+        android:orientation="horizontal" >
+		<Button
+			android:id="@+id/btn_reputation"
+			android:layout_width="0dp"
+			android:layout_height="wrap_content"
+			android:layout_weight="6"
+			android:text="综合排序"/>
+		<Button
+			android:id="@+id/btn_popularity"
+			android:layout_width="0dp"
+			android:layout_height="wrap_content"
+			android:layout_weight="6"
+			android:text="最多播放"/>
+		<Button
+			android:id="@+id/btn_update"
+			android:layout_width="0dp"
+			android:layout_height="wrap_content"
+			android:layout_weight="6"
+			android:text="最新发布"/>
+		<TextView
+			android:layout_width="0dp"
+			android:layout_height="wrap_content"
+			android:layout_weight="1"
+			android:text="ft" />
+		<Button
+			android:id="@+id/btn_ft"
+			android:layout_width="0dp"
+			android:layout_height="wrap_content"
+			android:layout_weight="3"
+			android:text="0"/>
+		<CheckBox
+			android:id="@+id/cb_is_catalog"
+			android:layout_width="0dp"
+			android:layout_height="wrap_content"
+			android:layout_weight="5"
+			android:text="合集"/>
+	</LinearLayout>
 
-    <GridView
+	<LinearLayout
+        android:id="@+id/layout_filter"
+        android:layout_width="wrap_content"
+		android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:layout_below="@id/layout_ctrl"
+        android:visibility="gone">
+        <com.gotye.meetplayer.ui.widget.HorizontalTextListView
+            android:id="@+id/htv_filter"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_below="@+id/layout_sort"
+            android:visibility="gone" />
+	</LinearLayout>
+
+	<GridView
         android:id="@+id/grid_view"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:layout_below="@id/img"
-        android:layout_alignParentLeft="true"
+        android:layout_below="@+id/layout_filter"
         android:layout_marginLeft="1dip"
         android:layout_marginRight="1dip"
         android:numColumns="auto_fit"
-        android:columnWidth="80dp"
+        android:columnWidth="150dp"
+        android:verticalSpacing="25dp"
         android:stretchMode="columnWidth"
         android:cacheColorHint="#00000000">
-    </GridView>
+	</GridView>
+        
 
 </RelativeLayout>

@@ -47,6 +47,9 @@ public class PPTVPlayerActivity extends VideoPlayerActivity {
 		mPlaylink		= intent.getIntExtra("playlink", -1);
 		mAlbumId 		= intent.getIntExtra("album_id", -1);
 		mEpisodeIndex	= intent.getIntExtra("index", -1);
+
+		LogUtil.info(TAG, String.format("playlink %d, album_id %d, ep_index %d",
+				mPlaylink, mAlbumId, mEpisodeIndex));
 		
 		mEPG = new EPGUtil();
 	}
@@ -134,7 +137,7 @@ public class PPTVPlayerActivity extends VideoPlayerActivity {
             		finish();
             		return;
             	}
-            	
+
             	if (mEpisodeIndex < 0) {
             		mEpisodeIndex = mEpisodeList.size() - 1;
             		Toast.makeText(PPTVPlayerActivity.this, 
@@ -208,6 +211,8 @@ public class PPTVPlayerActivity extends VideoPlayerActivity {
 				}
 			
 				mEpisodeList = mEPG.getLink();
+                // play next ep
+                mEpisodeIndex++;
 				mHandler.sendEmptyMessage(MSG_EPISODE_DONE);
 			}
 			else if (action == TASK_ITEM_FT) {

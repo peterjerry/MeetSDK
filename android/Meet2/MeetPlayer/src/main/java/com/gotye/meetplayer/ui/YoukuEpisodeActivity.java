@@ -2,8 +2,8 @@ package com.gotye.meetplayer.ui;
 
 import android.content.Intent;
 import android.graphics.Bitmap;
+import android.graphics.BitmapRegionDecoder;
 import android.os.AsyncTask;
-import android.speech.tts.TextToSpeech;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.DisplayMetrics;
@@ -13,7 +13,6 @@ import android.widget.AbsListView;
 import android.widget.AdapterView;
 import android.widget.GridView;
 import android.widget.ImageView;
-import android.widget.RelativeLayout;
 import android.widget.SimpleAdapter;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -23,7 +22,6 @@ import com.gotye.common.youku.Album;
 import com.gotye.common.youku.Episode;
 import com.gotye.common.youku.YKUtil;
 import com.gotye.meetplayer.R;
-import com.gotye.meetplayer.ui.widget.HorizontalTextListView;
 import com.gotye.meetplayer.util.ImgUtil;
 import com.gotye.meetplayer.util.Util;
 
@@ -37,21 +35,22 @@ public class YoukuEpisodeActivity extends AppCompatActivity {
     private final static String TAG ="YoukuEpisodeActivity";
 
     private String mShowId;
-    private String mTitle;
-    private int  mEpisodeIndex;
+    private int mEpisodeIndex; // base 0
+    private int mPageIndex;
+    private List<Episode> mEpisodeList;
+    private boolean mbRevertEp = false;
 
     private int mPlayerImpl;
 
     private final static int page_size = 10;
 
     private ImageView mImgView;
+    private TextView mTvStripe;
+    private TextView mTvTotalVV;
     private TextView mTvDirector;
     private TextView mTVActor;
     private TextView mTvDesc;
     private GridView gridView;
-
-    private int screen_width, screen_height;
-    private boolean isTVbox = false;
 
     private SimpleAdapter mAdapter = null;
 
@@ -61,12 +60,14 @@ public class YoukuEpisodeActivity extends AppCompatActivity {
 
         super.getWindow().addFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN);
 
-        setContentView(R.layout.activity_youku_album);
+        setContentView(R.layout.activity_youku_episode);
 
         Intent intent = getIntent();
         mShowId = intent.getStringExtra("show_id");
 
         mImgView = (ImageView)this.findViewById(R.id.img);
+        mTvStripe = (TextView)this.findViewById(R.id.tv_stripe);
+        mTvTotalVV = (TextView)this.findViewById(R.id.tv_total_vv);
         mTvDirector = (TextView)this.findViewById(R.id.tv_director);
         mTVActor = (TextView)this.findViewById(R.id.tv_actor);
         mTvDesc = (TextView)this.findViewById(R.id.tv_desc);
@@ -83,10 +84,9 @@ public class YoukuEpisodeActivity extends AppCompatActivity {
                 LogUtil.info(TAG, "Java: onItemClick() " + position);
 
                 Map<String, Object> item = (Map<String, Object>) mAdapter.getItem(position);
-                mTitle = (String)item.get("title");
-                mEpisodeIndex = position;
-                String vid = (String)item.get("vid");
-                new PlayLinkTask().execute(vid);
+                int index = (Integer)item.get("index");
+                mEpisodeIndex = index - 1;
+                new PlayLinkTask().execute();
             }
 
         });
@@ -108,23 +108,8 @@ public class YoukuEpisodeActivity extends AppCompatActivity {
         new SetDataTask().execute(mShowId);
     }
 
-    @Override
-    protected void onResume() {
-        super.onResume();
-
-        DisplayMetrics dm = new DisplayMetrics();
-        getWindowManager().getDefaultDisplay().getMetrics(dm);
-        screen_width	= dm.widthPixels;
-        screen_height	= dm.heightPixels;
-        LogUtil.info(TAG, String.format("Java: screen %d x %d", screen_width, screen_height));
-
-        if (screen_width > screen_height)
-            isTVbox = true;
-        else
-            isTVbox = false;
-    }
-
-    private class PlayLinkTask extends AsyncTask<String, Integer, YKUtil.ZGUrl> {
+    private class PlayLinkTask extends AsyncTask<Integer, Integer, YKUtil.ZGUrl> {
+        private String mTitle;
 
         @Override
         protected void onPostExecute(YKUtil.ZGUrl zgUrl) {
@@ -148,43 +133,60 @@ public class YoukuEpisodeActivity extends AppCompatActivity {
         }
 
         @Override
-        protected YKUtil.ZGUrl doInBackground(String... params) {
+        protected YKUtil.ZGUrl doInBackground(Integer... params) {
             // TODO Auto-generated method stub
-            String vid = params[0];
+            int page_index = ((mEpisodeIndex + 1/*convert to base 1*/) + 9) / 10;
+            if (mEpisodeList == null || mEpisodeList.isEmpty() || mPageIndex != page_index) {
+                mPageIndex = page_index;
+                mEpisodeList = YKUtil.getEpisodeList(mShowId, mPageIndex, page_size);
+                if (mEpisodeList == null || mEpisodeList.isEmpty())
+                    return null;
+            }
+
+            Episode ep = mEpisodeList.get(mEpisodeIndex - (mPageIndex - 1) * 10);
+            String vid = ep.getVideoId();
+            mTitle = ep.getTitle();
             return YKUtil.getPlayUrl2(vid);
         }
     }
 
-    private class SetDataTask extends AsyncTask<String, Integer, Boolean> {
-        private Album mAlbum;
-        private List<Episode> mEpList;
-        private Bitmap mBitmap;
+    private class SetDataTask extends AsyncTask<String, Integer, Album> {
 
         @Override
-        protected void onPostExecute(Boolean result) {
+        protected void onPostExecute(Album album) {
             // TODO Auto-generated method stub
-            if (result) {
-                mTVActor.setText("主演: " + mAlbum.getActor());
-                mTvDesc.setText("剧情介绍: " + mAlbum.getDescription());
+            if (album != null) {
+                if (album.getImgUrl() != null)
+                    new SetPicTask().execute(album.getImgUrl());
 
-                if (mBitmap != null)
-                    mImgView.setImageBitmap(mBitmap);
+                mTVActor.setText(String.format("主演: %s", album.getActor()));
+                mTvDesc.setText(String.format("剧情介绍: %s", album.getDescription()));
 
-                int size = mEpList.size();
+                mTvTotalVV.setText(String.format("播放: %s", album.getTotalVV()));
+                mTvStripe.setText(album.getStripe());
+
+                int size = album.getEpisodeTotal();
+                if (size > 30)
+                    mbRevertEp = true;
+                else
+                    mbRevertEp = false;
                 ArrayList<HashMap<String, Object>> dataList =
                         new ArrayList<HashMap<String, Object>>();
                 for (int i = 0; i < size; i++) {
-                    Episode ep = mEpList.get(i);
                     HashMap<String, Object> map = new HashMap<String, Object>();
-                    map.put("index", i + 1 /*base 1*/);
-                    map.put("title", ep.getTitle());
-                    map.put("vid", ep.getVideoId());
+                    int ep_index;
+                    if (mbRevertEp)
+                        ep_index = size - i/*base 1*/;
+                    else
+                        ep_index = i + 1 /*base 1*/;
+                    map.put("index", ep_index);
                     dataList.add(map);
                 }
 
+                String []from = new String[] { "index"};
+                int []to = new int[] {R.id.tv_title};
                 mAdapter = new SimpleAdapter(YoukuEpisodeActivity.this, dataList,
-                        R.layout.gridview_episode, new String[] { "index" }, new int[] {
-                        R.id.tv_title });
+                        R.layout.gridview_episode, from, to);
                 gridView.setAdapter(mAdapter);
             }
             else {
@@ -194,32 +196,29 @@ public class YoukuEpisodeActivity extends AppCompatActivity {
         }
 
         @Override
-        protected Boolean doInBackground(String... params) {
+        protected Album doInBackground(String... params) {
             // TODO Auto-generated method stub
             String tid = params[0];
-            mAlbum = YKUtil.getAlbumInfo(tid);
-            if (mAlbum == null)
-                return false;
+            return YKUtil.getAlbumInfo(tid);
+        }
+    }
 
-            String url = mAlbum.getImgUrl();
-            if (url != null && url.startsWith("http://"))
-                mBitmap = ImgUtil.getHttpBitmap(url);
+    private class SetPicTask extends AsyncTask<String, Integer, Bitmap> {
 
-            int index = 1;
-            mEpList = new ArrayList<Episode>();
-            while (true) {
-                List<Episode> epList =  YKUtil.getEpisodeList(tid, index, page_size);
-                if (epList == null || epList.isEmpty())
-                    break;
-
-                mEpList.addAll(epList);
-                if (epList.size() < 10)
-                    break;
-
-                index++;
+        @Override
+        protected void onPostExecute(Bitmap bitmap) {
+            if (bitmap != null) {
+                mImgView.setImageBitmap(bitmap);
             }
+        }
 
-            return true;
+        @Override
+        protected Bitmap doInBackground(String... params) {
+            String url = params[0];
+            if (url != null && url.startsWith("http://"))
+                return ImgUtil.getHttpBitmap(url);
+
+            return null;
         }
     }
 }

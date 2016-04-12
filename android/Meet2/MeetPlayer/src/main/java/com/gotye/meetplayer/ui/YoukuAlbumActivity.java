@@ -15,7 +15,6 @@ import android.view.WindowManager;
 import android.widget.AbsListView;
 import android.widget.AdapterView;
 import android.widget.Button;
-import android.widget.EditText;
 import android.widget.GridView;
 import android.widget.LinearLayout;
 import android.widget.Toast;
@@ -119,7 +118,7 @@ public class YoukuAlbumActivity extends AppCompatActivity {
 			return;
 		}
 		
-		setContentView(R.layout.activity_youku_episode);
+		setContentView(R.layout.activity_youku_album);
 
         findViewById(R.id.btn_reputation).setOnClickListener(mClickListener);
         findViewById(R.id.btn_popularity).setOnClickListener(mClickListener);

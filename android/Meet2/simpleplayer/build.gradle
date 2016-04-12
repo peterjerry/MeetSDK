@@ -19,18 +19,6 @@ android {
         versionCode 1
         versionName "1.0"
     }
-    productFlavors {
-        arm {
-            ndk {
-                abiFilters "armeabi", "armeabi-v7a"
-            }
-        }
-        x86 {
-            ndk {
-                abiFilter "x86"
-            }
-        }
-    }
     buildTypes {
         release {
             minifyEnabled false
@@ -38,6 +26,9 @@ android {
         }
         debug {
             signingConfig signingConfigs.release
+            ndk {
+                abiFilters "armeabi", "armeabi-v7a"
+            }
         }
     }
     packagingOptions {

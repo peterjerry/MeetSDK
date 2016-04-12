@@ -55,7 +55,8 @@
             android:label="@string/title_activity_youku_video"/>
         <activity
             android:name=".ui.YoukuEpisodeActivity"
-            android:label="@string/title_activity_youku_video" />
+            android:label="@string/title_activity_youku_video"
+            android:screenOrientation="portrait"/>
         <activity
             android:name=".ui.PlayYoukuActivity"
             android:screenOrientation="landscape"/>
@@ -64,7 +65,8 @@
             android:label="@string/title_activity_pptv_video"/>
         <activity
             android:name=".ui.PPTVEpisodeActivity"
-            android:label="@string/title_activity_pptv_video"/>
+            android:label="@string/title_activity_pptv_video"
+            android:screenOrientation="portrait"/>
         <activity
             android:name=".ui.PPTVLiveActivity"
             android:label="@string/title_activity_pptv_video"/>
