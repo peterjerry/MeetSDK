@@ -167,6 +167,7 @@ FFExtractor::FFExtractor()
 
 	m_subtitle_stream		= NULL;
 	m_subtitle_stream_idx	= -1;
+	m_subtitle_dec_ctx		= NULL;
 	mAVSubtitle				= NULL;
 	mSubtitleTrackFirstIndex= -1;
 	mSubtitleTrackIndex		= -1;
@@ -1202,7 +1203,7 @@ status_t FFExtractor::readSampleData(unsigned char *data, int32_t *sampleSize)
 				m_sample_pkt->data, m_sample_pkt->size, isKeyFrame);
 			//LOGD("readSampleData_flt(audio) pkt size %d, outbuf size %d", origin_size, m_sample_pkt->size);
 		}
-		
+
 		memcpy(data, m_sample_pkt->data, m_sample_pkt->size);
 		*sampleSize = m_sample_pkt->size;
 	}

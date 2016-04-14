@@ -279,7 +279,8 @@ public class XOMediaPlayer extends BaseMediaPlayer {
 
 	@Override
 	public void prepare() throws IOException, IllegalStateException {
-		throw new IllegalStateException("Do not support this operation.");
+		//throw new IllegalStateException("Do not support this operation.");
+        prepare_proc();
 	}
 
 	@Override
@@ -942,6 +943,7 @@ public class XOMediaPlayer extends BaseMediaPlayer {
 		LogUtils.info("read sample thread exited");
 	}
 
+	// return false: not packet added
 	private boolean queue_packet(boolean isVideo) {
 		if (mSawInputEOS)
 			return true;
@@ -1165,20 +1167,23 @@ public class XOMediaPlayer extends BaseMediaPlayer {
 							: AV_SYNC_THRESHOLD_MSEC;
 					if (av_diff_msec < AV_NOSYNC_THRESHOLD
 							&& av_diff_msec > -AV_NOSYNC_THRESHOLD) {
-						if (av_diff_msec <= -sync_threshold_msec) {
+						if (av_diff_msec <= -sync_threshold_msec * 2) {
 							delay_msec = 0;
 						} else if (av_diff_msec >= sync_threshold_msec
 								&& av_diff_msec <= (sync_threshold_msec * 2)) {
 							delay_msec = 2 * delay_msec;
 						} else if (av_diff_msec >= (sync_threshold_msec * 2)) {
 							delay_msec = av_diff_msec; // for seek case
-							
-							if (videoAheadMax > 50) {
-								videoAheadMax -= 50;
-								mExtractor.setVideoAhead(videoAheadMax);
-								LogUtils.error("Java: setVideoAhead(too early) " + videoAheadMax);
-							}
 						}
+
+                        if (av_diff_msec >= sync_threshold_msec && videoAheadMax > 0) {
+                            videoAheadMax -= 50;
+                            if (videoAheadMax < 0)
+                                videoAheadMax = 0;
+
+                            mExtractor.setVideoAhead(videoAheadMax);
+                            LogUtils.error("Java: setVideoAhead(too early) " + videoAheadMax);
+                        }
 					}
 
 					//LogUtils.debug("delay_msec: " + delay_msec);
@@ -1189,7 +1194,8 @@ public class XOMediaPlayer extends BaseMediaPlayer {
 						
 						if (av_diff_msec > -sync_threshold_msec * 4 &&
 								av_diff_msec < -videoAheadMax) {
-							videoAheadMax = (int)-av_diff_msec;
+							//videoAheadMax = (int)-av_diff_msec;
+                            videoAheadMax = 500;// force set a big value
 							mExtractor.setVideoAhead(videoAheadMax);
 							LogUtils.error("Java: setVideoAhead(too late) " + videoAheadMax);
 						}
@@ -1322,15 +1328,15 @@ public class XOMediaPlayer extends BaseMediaPlayer {
 
 					if (!NO_AUDIO) {
 						ByteBuffer outputBuf = mAudioCodec.getOutputBuffers()[outputBufIndex];
-						
+
 						int bufSize = info.size;
 						if (mAudioData == null || mAudioData.length < bufSize) {
 							// Allocate a new buffer.
 							mAudioData = new byte[bufSize];
 						}
-						
+
 						outputBuf.get(mAudioData);
-						
+
 						//if (mVideoFirstFrame) {
 							/*if (mAudioCacheBuffer != null && mAudioCacheBuffer.remaining() > 0) {
 								mAudioCacheBuffer.flip();
@@ -1348,29 +1354,29 @@ public class XOMediaPlayer extends BaseMediaPlayer {
 										write_size = left;
 									mAudioTrack.write(data, 0, write_size);
 									LogUtils.error("write audio data " + write_size);
-									
+
 									left -= write_size;
 									written += write_size;
 									// update time
 									mAudioPositionMsec = mAudioStartMsec + 1000 * written / mAudioDataLen;
 								}
-								
+
 								mAudioCacheBuffer.clear();
 							}*/
-							
-							// would block
-							mAudioTrack.write(mAudioData, 0, bufSize);
-	
-							// update audio clock
-							mAudioStartMsec = System.currentTimeMillis();
-	
-							mAudioPositionMsec = info.presentationTimeUs / 1000;
+
+						// would block
+						mAudioTrack.write(mAudioData, 0, bufSize);
+
+						// update audio clock
+						mAudioStartMsec = System.currentTimeMillis();
+
+						mAudioPositionMsec = info.presentationTimeUs / 1000;
 						//}
 						/*else {
 							if (mAudioCacheBuffer == null) {
 								mAudioCacheBuffer = ByteBuffer.allocate(1048576);
 							}
-							
+
 							mAudioCacheBuffer.put(mAudioData);
 							LogUtils.error("add audio buffer " + info.size);
 						}*/
@@ -1791,31 +1797,7 @@ public class XOMediaPlayer extends BaseMediaPlayer {
 		LogUtils.info(String.format("getSnapShot() %d x %d, fmt: %d", width,
 				height, fmt));
 
-		Bitmap bmp = null;
-
-		/*
-		 * mVideoListLock.lock();
-		 * 
-		 * do { if (mVideoPktList.size() == 0) {
-		 * LogUtils.warn("render list is null"); break; }
-		 * 
-		 * RenderBuf buf = null;
-		 * 
-		 * buf = mVideoPktList.get(0); if (buf == null) {
-		 * LogUtils.warn("video buf is null"); break; }
-		 * 
-		 * int outputBufIndex = buf.buf_index; if (mVideoCodec != null) {
-		 * ByteBuffer bb = mVideoCodec.getOutputBuffers()[outputBufIndex];
-		 * bb.position(buf.offset); bb.limit(buf.offset + buf.size); byte[] ba =
-		 * new byte[bb.remaining()]; bb.get(ba);
-		 * LogUtils.info(String.format("xxxxxx %d %d %d", buf.offset, buf.size,
-		 * bb.remaining())); bmp = BitmapFactory.decodeByteArray(ba, 0,
-		 * bb.limit()); } }while(false);
-		 * 
-		 * mVideoListLock.unlock();
-		 */
-
-		return bmp;
+		return null;
 	}
 
 	@Override

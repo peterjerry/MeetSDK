@@ -11,7 +11,6 @@ import com.gotye.meetsdk.player.MediaPlayer;
 public class FragmentMp4MediaPlayerV2 {
 	private final static String TAG = "FragmentMp4MediaPlayer";
 	
-	
 	private List<String> m_playlink_list;
 	private List<Integer> m_duration_list;
 	
@@ -29,7 +28,11 @@ public class FragmentMp4MediaPlayerV2 {
 	private boolean mScreenOnWhilePlaying = true;
 	private boolean mSeeking;
 	private int mStreamType;
-	
+
+	private static final int SYSTEM_PLAYER  = 1;
+	private static final int XO_PLAYER      = 2;
+	private static final int FF_PLAYER      = 3;
+
 	private MediaPlayer.OnBufferingUpdateListener mOnBufferingUpdateListener;
 	private MediaPlayer.OnVideoSizeChangedListener mOnVideoSizeChangedListener;
 	private MediaPlayer.OnPreparedListener mOnPreparedListener;
@@ -262,8 +265,14 @@ public class FragmentMp4MediaPlayerV2 {
 			mCurrentPlayer = null;
 		}
 
-        MediaPlayer.DecodeMode mode = (mPlayerImpl == 3 ?
-                MediaPlayer.DecodeMode.SW : MediaPlayer.DecodeMode.HW_SYSTEM);
+        MediaPlayer.DecodeMode mode;
+        if (mPlayerImpl == FF_PLAYER)
+            mode = MediaPlayer.DecodeMode.SW;
+        else if (mPlayerImpl == XO_PLAYER)
+            mode = MediaPlayer.DecodeMode.HW_XOPLAYER;
+        else
+            mode = MediaPlayer.DecodeMode.SW;
+
 		mCurrentPlayer = new MediaPlayer(mode);
 		mCurrentPlayer.reset();
 		
@@ -304,13 +313,18 @@ public class FragmentMp4MediaPlayerV2 {
 				if (mNextPlayer != null)
 					mNextPlayer.release();
 
-                MediaPlayer.DecodeMode mode = (mPlayerImpl == 3 ?
-                        MediaPlayer.DecodeMode.SW : MediaPlayer.DecodeMode.HW_SYSTEM);
+                MediaPlayer.DecodeMode mode;
+                if (mPlayerImpl == FF_PLAYER)
+                    mode = MediaPlayer.DecodeMode.SW;
+                else if (mPlayerImpl == XO_PLAYER)
+                    mode = MediaPlayer.DecodeMode.HW_XOPLAYER;
+                else
+                    mode = MediaPlayer.DecodeMode.SW;
 				mNextPlayer = new MediaPlayer(mode);
 				mNextPlayer.reset();
 
                 // ffplayer MUST set HERE!!!
-                if (mPlayerImpl == 3)
+                if (mPlayerImpl == FF_PLAYER)
                     mNextPlayer.setDisplay(mHolder);
                 mNextPlayer.setAudioStreamType(mStreamType);
 				//mNextPlayer.setScreenOnWhilePlaying(mScreenOnWhilePlaying);
@@ -373,16 +387,16 @@ public class FragmentMp4MediaPlayerV2 {
 
 			// SYSTEM player nextplay auto play ok code
             // must release first???
-			if (mPlayerImpl != 3) // ffplay cannot set null Display now!
+			if (mPlayerImpl == SYSTEM_PLAYER) // ffplay cannot set null Display now!
                 mp.setDisplay(null);
 			mp.release();
 
             mCurrentPlayer = mNextPlayer;
             mNextPlayer = null;
-            if (mPlayerImpl == 3)
-                mCurrentPlayer.start(); // ffplay MUST start manually
-			else
+			if (mPlayerImpl == SYSTEM_PLAYER)
 				mCurrentPlayer.setDisplay(mHolder); // system player set display HERE!
+            else
+                mCurrentPlayer.start(); // ffplay MUST start manually
 
             LogUtil.info(TAG, "Java: switch to next segment #" + m_playlink_now_index);
 			

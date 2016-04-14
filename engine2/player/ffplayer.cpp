@@ -4297,8 +4297,7 @@ static int open_codec_context(int *stream_idx,
         dec_ctx = st->codec;
         dec = avcodec_find_decoder(dec_ctx->codec_id);
         if (!dec) {
-            fprintf(stderr, "Failed to find %s codec\n",
-                    av_get_media_type_string(type));
+            LOGE("Failed to find %s codec", av_get_media_type_string(type));
             return AVERROR(EINVAL);
         }
 

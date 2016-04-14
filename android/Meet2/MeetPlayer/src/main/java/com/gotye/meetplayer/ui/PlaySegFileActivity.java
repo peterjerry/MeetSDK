@@ -86,7 +86,7 @@ public class PlaySegFileActivity extends AppCompatActivity
 	private MediaPlayer.OnCompletionListener mOnCompletionListener;
 	private MediaPlayer.OnBufferingUpdateListener mOnBufferingUpdate;
 	private MediaPlayer.OnInfoListener mOnInfoListener;
-	
+
 	public static final int SCREEN_FIT = 0; // 自适应
     public static final int SCREEN_STRETCH = 1; // 铺满屏幕 
     public static final int SCREEN_FILL = 2; // 放大裁切

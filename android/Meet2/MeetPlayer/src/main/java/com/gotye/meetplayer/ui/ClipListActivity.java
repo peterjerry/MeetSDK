@@ -190,7 +190,8 @@ public class ClipListActivity extends AppCompatActivity implements
 	
 	// list
 	private ListMediaUtil mListUtil;
-	private final static String HTTP_SERVER_URL = "http://192.168.1.114:8088/testcase/";
+	//private final static String HTTP_SERVER_URL = "http://192.168.1.114:8088/testcase/";
+	private final static String HTTP_SERVER_URL = "http://42.62.105.235/test/media/testcase/";
 	
 	private String mPlayUrl;
 	private int mVideoWidth, mVideoHeight;

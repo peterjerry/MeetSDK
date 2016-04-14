@@ -8,7 +8,6 @@ import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
-import android.util.Log;
 import android.view.KeyEvent;
 import android.widget.Toast;
 
@@ -57,13 +56,12 @@ public class PPTVPlayerActivity extends VideoPlayerActivity {
 	@Override
 	protected void onPause() {
 		// TODO Auto-generated method stub
-		Log.i(TAG, "Java: onPause()");
 		
 		if (mVideoView.isPlaying()) {
 			int pos = mVideoView.getCurrentPosition();
 			if (mPlaylink != -1 && (mPlaylink < 300000 || mPlaylink > 400000) && pos > 5000) {
 				Util.save_pptvvideo_pos(this, String.valueOf(mPlaylink), pos);
-				Log.i(TAG, String.format("Java: vid %d played pos %d msec saved", mPlaylink, pos));
+				LogUtil.info(TAG, String.format("Java: vid %d played pos %d msec saved", mPlaylink, pos));
 			}
 		}
 		
@@ -91,8 +89,6 @@ public class PPTVPlayerActivity extends VideoPlayerActivity {
 	
 	@Override
 	public boolean onKeyUp(int keyCode, KeyEvent event) {
-		
-		Log.d(TAG, "keyCode: " + keyCode);
 		int incr;
 		
 		if (keyCode == KeyEvent.KEYCODE_DPAD_LEFT ||
@@ -161,7 +157,7 @@ public class PPTVPlayerActivity extends VideoPlayerActivity {
             	
             	String info = String.format("ready to play video %s, playlink: %s, ft: %d", 
             			pl.getTitle(), playlink, mFt);
-        		Log.i(TAG, info);
+				LogUtil.info(TAG, info);
         		Toast.makeText(PPTVPlayerActivity.this, info, Toast.LENGTH_SHORT).show();
         		
         		Util.add_pptvvideo_history(PPTVPlayerActivity.this, 
@@ -172,7 +168,7 @@ public class PPTVPlayerActivity extends VideoPlayerActivity {
             	setupPlayer();
             	break;
 			default:
-				Log.w(TAG, "Java: unknown msg.what " + msg.what);
+				LogUtil.warn(TAG, "Java: unknown msg.what " + msg.what);
 				break;
 			}			 
         }
@@ -184,7 +180,7 @@ public class PPTVPlayerActivity extends VideoPlayerActivity {
 		protected void onPostExecute(Boolean result) {
 			// TODO Auto-generated method stub
 			if (!result) {
-				Log.e(TAG, "failed to get episode");
+				LogUtil.error(TAG, "failed to get episode");
 				Toast.makeText(PPTVPlayerActivity.this, 
 						"failed to get episode", Toast.LENGTH_SHORT).show();
 			}
@@ -194,18 +190,16 @@ public class PPTVPlayerActivity extends VideoPlayerActivity {
 		protected Boolean doInBackground(Integer... params) {
 			// TODO Auto-generated method stub
 			long action = params[0];
-			Log.i(TAG, "Java: PPTVEpgTask action " + action);
-			
 			if (action == TASK_DETAIL) {
 				if (params.length < 2) {
-					Log.e(TAG, "Java: failed to call detail()");
+					LogUtil.error(TAG, "Java: failed to call detail()");
 					mHandler.sendEmptyMessage(MSG_FAIL_TO_DETAIL);
 					return false;
 				}
 				
 				int vid = params[1];
 				if (!mEPG.detail(String.valueOf(vid))) {
-					Log.e(TAG, "Java: failed to call detail()");
+					LogUtil.error(TAG, "Java: failed to call detail()");
 					mHandler.sendEmptyMessage(MSG_FAIL_TO_DETAIL);
 					return false;
 				}
@@ -216,7 +210,7 @@ public class PPTVPlayerActivity extends VideoPlayerActivity {
 				mHandler.sendEmptyMessage(MSG_EPISODE_DONE);
 			}
 			else if (action == TASK_ITEM_FT) {
-        		Log.i(TAG, "Java: EPGTask start to getCDNUrl");
+				LogUtil.info(TAG, "Java: EPGTask start to getCDNUrl");
         		
         		int vid = params[1];
         		int []ft_list = mEPG.getAvailableFT(String.valueOf(vid));
@@ -245,7 +239,7 @@ public class PPTVPlayerActivity extends VideoPlayerActivity {
     	        msg.sendToTarget();
         	}
 			else {
-				Log.e(TAG, "Java: invalid action type: " + action);
+				LogUtil.error(TAG, "Java: invalid action type: " + action);
 				return false;
 			}
 

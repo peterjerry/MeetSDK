@@ -60,10 +60,10 @@ task modifyCfgFile << {
 // call regular ndk-build(.cmd) script from app directory
 task ndkBuild(type: Exec) {
     if (Os.isFamily(Os.FAMILY_WINDOWS)) {
-        commandLine "$android.ndkDirectory/ndk-build.cmd", '-B', '-C', file('src/main').absolutePath
+        commandLine "$android.ndkDirectory/ndk-build.cmd", '-j4', '-B', '-C', file('src/main').absolutePath
     }
     else {
-        commandLine "$android.ndkDirectory/ndk-build", '-B', '-C', file('src/main').absolutePath
+        commandLine "$android.ndkDirectory/ndk-build", '-j4', '-B', '-C', file('src/main').absolutePath
     }
 
 }
