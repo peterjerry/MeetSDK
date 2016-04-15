@@ -313,6 +313,8 @@ public:
 
 	virtual	status_t setISubtitle(ISubtitles* subtitle){return -1;}
 
+	virtual status_t readPacket(int stream_index, unsigned char *data, int32_t *sampleSize) = 0;
+
 	virtual ~IExtractor() {}
 };
 

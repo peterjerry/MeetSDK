@@ -1148,9 +1148,104 @@ status_t FFExtractor::advance()
 	return OK;
 }
 
+status_t FFExtractor::readPacket(int stream_index, unsigned char *data, int32_t *sampleSize)
+{
+	if (start() < 0)
+		return ERROR;
+
+	if (stream_index < 0 || stream_index >= (int)m_fmt_ctx->nb_streams) {
+		LOGE("invalid stream index: %d", stream_index);
+		return ERROR;
+	}
+
+	if (m_eof)
+		return READ_EOF;
+
+	if (m_video_q.count() == 0 || m_audio_q.count() == 0) {
+		m_buffering = true;
+
+		if (m_sorce_type != TYPE_LOCAL_FILE) {
+			LOGI("notifyListener_l MEDIA_INFO_BUFFERING_START");
+			notifyListener_l(MEDIA_INFO, MEDIA_INFO_BUFFERING_START);
+		}
+
+		LOGI("start to buffering");
+		while (m_buffering) {
+			av_usleep(10000); // 10 msec
+			if (FFEXTRACTOR_STOPPING == m_status) {
+				LOGI("readPacket was interrputd by stop");
+				return ERROR;
+			}
+		}
+
+		if (m_sorce_type != TYPE_LOCAL_FILE) {
+			LOGI("notifyListener_l MEDIA_INFO_BUFFERING_END");
+			notifyListener_l(MEDIA_INFO, MEDIA_INFO_BUFFERING_END);
+		}
+	}
+
+	int64_t pts_msec;
+
+	if (stream_index == m_video_stream_idx) {
+		m_sample_pkt = m_video_q.get();
+		if (!m_sample_pkt)
+			return ERROR;
+
+		m_sample_track_idx	= m_sample_pkt->stream_index;
+
+		pts_msec = get_packet_pos(m_sample_pkt);
+		if (pts_msec == AV_NOPTS_VALUE)
+			pts_msec = m_video_clock_msec;
+		else
+			m_video_clock_msec = pts_msec;
+		m_sample_clock_msec = pts_msec;
+
+		if (m_nalu_convert && strncmp((const char *)m_sample_pkt->data, "FLUSH", 5) != 0) {
+			int offset = 0;
+			while (offset < m_sample_pkt->size) {
+				int nalu_size = get_size(m_sample_pkt->data + offset, m_NALULengthSizeMinusOne + 1);
+				memcpy(m_sample_pkt->data + offset, nalu_header + (3 - m_NALULengthSizeMinusOne), m_NALULengthSizeMinusOne + 1);
+				offset += (m_NALULengthSizeMinusOne + 1 + nalu_size);
+			}
+		}
+
+		memcpy(data, m_sample_pkt->data, m_sample_pkt->size);
+		*sampleSize = m_sample_pkt->size;
+	}
+	else if (stream_index == m_audio_stream_idx) {
+		m_sample_pkt = m_audio_q.get();
+		if (!m_sample_pkt)
+			return ERROR;
+
+		m_sample_track_idx	= m_sample_pkt->stream_index;
+
+		pts_msec = get_packet_pos(m_sample_pkt);
+		if (pts_msec == AV_NOPTS_VALUE)
+			pts_msec = m_audio_clock_msec;
+		else
+			m_audio_clock_msec = pts_msec;
+		m_sample_clock_msec = pts_msec;
+
+		if (strncmp((const char *)m_sample_pkt->data, "FLUSH", 5) != 0 && m_pBsfc_aac) {
+			int isKeyFrame = m_sample_pkt->flags & AV_PKT_FLAG_KEY;
+			av_bitstream_filter_filter(m_pBsfc_aac, m_audio_stream->codec, NULL, &m_sample_pkt->data, &m_sample_pkt->size, 
+				m_sample_pkt->data, m_sample_pkt->size, isKeyFrame);
+		}
+
+		memcpy(data, m_sample_pkt->data, m_sample_pkt->size);
+		*sampleSize = m_sample_pkt->size;
+	}
+	else {
+		LOGE("Non video/audio stream index: %d", stream_index);
+		return ERROR;
+	}
+
+	return OK;
+}
+
 status_t FFExtractor::readSampleData(unsigned char *data, int32_t *sampleSize)
 {
-	LOGD("readSampleData()");
+	//LOGD("readSampleData()");
 	
 	if (start() < 0)
 		return ERROR;

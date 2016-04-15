@@ -178,4 +178,9 @@ class SystemMediaExtractor implements MediaExtractable {
 
 	}
 
+	@Override
+	public int readPacket(int stream_index, ByteBuffer byteBuf, int offset) {
+		return 0;
+	}
+
 }

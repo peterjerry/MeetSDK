@@ -61,6 +61,8 @@ public:
 
 	status_t setISubtitle(ISubtitles* subtitle);
 
+	status_t readPacket(int stream_index, unsigned char *data, int32_t *sampleSize);
+
 private:
 	int open_codec_context(int *stream_idx, int media_type);
 

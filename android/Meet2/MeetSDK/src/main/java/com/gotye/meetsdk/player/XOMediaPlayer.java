@@ -6,6 +6,7 @@ import java.lang.ref.WeakReference;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Condition;
@@ -37,6 +38,8 @@ import android.view.SurfaceHolder;
 
 @TargetApi(Build.VERSION_CODES.JELLY_BEAN)
 public class XOMediaPlayer extends BaseMediaPlayer {
+    private final static boolean USE_READ_SAMPLE_THREAD = false;
+
 	protected final static long TIMEOUT = 5000;// timeoutUs
 
 	private static final int EVENT_SEEKTO = 1003;
@@ -74,6 +77,8 @@ public class XOMediaPlayer extends BaseMediaPlayer {
 	private MediaCodec mAudioCodec = null;
 	private Lock mVideoCodecLock = null;
 	private MediaCodec mVideoCodec = null;
+
+    private Lock mPacketLock = null;
 
 	private byte[] mAudioData = null;
 	private ByteBuffer mAudioCacheBuffer = null;
@@ -352,6 +357,8 @@ public class XOMediaPlayer extends BaseMediaPlayer {
 			mLock.unlock();
 			return false;
 		}
+
+        mPacketLock = new ReentrantLock();
 
 		setState(PlayState.PREPARED);
 
@@ -671,7 +678,7 @@ public class XOMediaPlayer extends BaseMediaPlayer {
 	private void play_l() {
 		ResetStatics();
 
-		if (mReadSampleThr == null) {
+		if (USE_READ_SAMPLE_THREAD && mReadSampleThr == null) {
 			mReadSampleThr = new Thread(new Runnable() {
 				@Override
 				public void run() {
@@ -1063,8 +1070,60 @@ public class XOMediaPlayer extends BaseMediaPlayer {
 			}
 
 			noOutputCounter++;
-			if (!queue_packet(true))
-				continue;
+
+            if (USE_READ_SAMPLE_THREAD) {
+                if (!queue_packet(true))
+                    continue;
+            }
+            else {
+                int inputBufIndex = -1;
+                try {
+                    inputBufIndex = mVideoCodec.dequeueInputBuffer(TIMEOUT);
+                } catch (IllegalStateException e) {
+                    e.printStackTrace();
+                    LogUtils.warn("codec dequeueInputBuffer exception: "
+                            + e.getMessage());
+                }
+
+                if (inputBufIndex >= 0) {
+                    ByteBuffer dstBuf = mVideoCodec.getInputBuffers()[inputBufIndex];
+                    mPacketLock.lock();
+                    int sampleSize = mExtractor.readPacket(mVideoTrackIndex, dstBuf, 0);
+                    if (sampleSize < 0) {
+                        mSawInputEOS = true;
+                        sampleSize = 0;
+                        LogUtils.error("saw video Input EOS.");
+                    }
+
+                    boolean is_flush_pkt = false;
+                    if (sampleSize > 0 /* 5 */) {
+                        String str_flush = "FLUSH";
+                        byte[] byte_ctx = new byte[5];
+                        dstBuf.get(byte_ctx);
+                        dstBuf.rewind();
+                        String strPkt = new String(byte_ctx);
+                        if (str_flush.equals(strPkt)) {
+                            is_flush_pkt = true;
+                            LogUtils.error("Java: flush video");
+
+                            ResetStatics();
+                            mCurrentTimeMsec = mSeekingTimeMsec;
+
+                            mEventHandler.sendEmptyMessage(MediaPlayer.MEDIA_SEEK_COMPLETE);
+
+                            mVideoCodec.flush();
+                        }
+                    } // end of flush pkt
+
+                    if (!is_flush_pkt) {
+                        long presentationTimeUs = mExtractor.getSampleTime();
+                        mVideoCodec.queueInputBuffer(inputBufIndex, 0 /* offset */, sampleSize,
+                                presentationTimeUs,
+                                mSawInputEOS ? MediaCodec.BUFFER_FLAG_END_OF_STREAM : 0);
+                    }
+                    mPacketLock.unlock();
+                }
+            }
 
 			if (noOutputCounter >= 50) {
 				LogUtils.warn("output eos not found after 50 frames");
@@ -1072,6 +1131,7 @@ public class XOMediaPlayer extends BaseMediaPlayer {
 			}
 
 			int res;
+            Message msg;
 			try {
 				mVideoCodecLock.lock();
 				//LogUtils.debug("before video dequeueOutputBuffer");
@@ -1113,7 +1173,7 @@ public class XOMediaPlayer extends BaseMediaPlayer {
 					long elapsed_msec = now_msec - mLastOnVideoTimeMsec;
 					if (elapsed_msec > 1000) {
 						int decode_fps = (int) (mDecodedFrameCnt * 1000 / (now_msec - mTotalStartMsec));
-						Message msg = mEventHandler
+						msg = mEventHandler
 								.obtainMessage(MediaPlayer.MEDIA_INFO);
 						msg.arg1 = MediaPlayer.MEDIA_INFO_TEST_DECODE_FPS;
 						msg.arg2 = (int) decode_fps;
@@ -1153,21 +1213,23 @@ public class XOMediaPlayer extends BaseMediaPlayer {
 					long av_diff_msec = video_clock_msec - audio_clock_msec;
 					if (NO_AUDIO)
 						av_diff_msec = 0;
-					//LogUtils.debug(String.format(
-					//		"video %d, audio %d, diff_msec %d msec",
-					//		video_clock_msec, audio_clock_msec, av_diff_msec));
+					/*LogUtils.debug(String.format(Locale.US,
+							"video %d, audio %d, diff_msec %d msec",
+							video_clock_msec, audio_clock_msec, av_diff_msec));*/
 
-					Message msg = mEventHandler
-							.obtainMessage(MediaPlayer.MEDIA_INFO);
-					msg.arg1 = MediaPlayer.MEDIA_INFO_TEST_LATENCY_MSEC;
-					msg.arg2 = (int) av_diff_msec;
-					msg.sendToTarget();
+                    if (mDecodedFrameCnt % 10 == 0) {
+                        msg = mEventHandler
+                                .obtainMessage(MediaPlayer.MEDIA_INFO);
+                        msg.arg1 = MediaPlayer.MEDIA_INFO_TEST_LATENCY_MSEC;
+                        msg.arg2 = (int) av_diff_msec;
+                        msg.sendToTarget();
+                    }
 
 					long sync_threshold_msec = (delay_msec > AV_SYNC_THRESHOLD_MSEC) ? delay_msec
 							: AV_SYNC_THRESHOLD_MSEC;
 					if (av_diff_msec < AV_NOSYNC_THRESHOLD
 							&& av_diff_msec > -AV_NOSYNC_THRESHOLD) {
-						if (av_diff_msec <= -sync_threshold_msec * 2) {
+						if (av_diff_msec <= -sync_threshold_msec) {
 							delay_msec = 0;
 						} else if (av_diff_msec >= sync_threshold_msec
 								&& av_diff_msec <= (sync_threshold_msec * 2)) {
@@ -1176,7 +1238,7 @@ public class XOMediaPlayer extends BaseMediaPlayer {
 							delay_msec = av_diff_msec; // for seek case
 						}
 
-                        if (av_diff_msec >= sync_threshold_msec && videoAheadMax > 0) {
+                        if (USE_READ_SAMPLE_THREAD && av_diff_msec >= sync_threshold_msec && videoAheadMax > 0) {
                             videoAheadMax -= 50;
                             if (videoAheadMax < 0)
                                 videoAheadMax = 0;
@@ -1192,7 +1254,8 @@ public class XOMediaPlayer extends BaseMediaPlayer {
 					if (av_diff_msec < -sync_threshold_msec * 2) {
 						render = false;
 						
-						if (av_diff_msec > -sync_threshold_msec * 4 &&
+						if (USE_READ_SAMPLE_THREAD &&
+                                av_diff_msec > -sync_threshold_msec * 4 &&
 								av_diff_msec < -videoAheadMax) {
 							//videoAheadMax = (int)-av_diff_msec;
                             videoAheadMax = 500;// force set a big value
@@ -1247,7 +1310,7 @@ public class XOMediaPlayer extends BaseMediaPlayer {
 				e.printStackTrace();
 				LogUtils.error("codec dequeueOutputBuffer exception"
 						+ e.getMessage());
-				Message msg = mEventHandler
+				msg = mEventHandler
 						.obtainMessage(MediaPlayer.MEDIA_ERROR);
 				msg.arg1 = MediaPlayer.MEDIA_ERROR_VIDEO_DECODER;
 				msg.arg2 = 0;
@@ -1287,8 +1350,60 @@ public class XOMediaPlayer extends BaseMediaPlayer {
 			}
 
 			noOutputCounter++;
-			if (!queue_packet(false))
-				continue;
+
+            if (USE_READ_SAMPLE_THREAD) {
+                if (!queue_packet(false))
+                    continue;
+            }
+            else {
+                int inputBufIndex = -1;
+                try {
+                    inputBufIndex = mAudioCodec.dequeueInputBuffer(TIMEOUT);
+                } catch (IllegalStateException e) {
+                    e.printStackTrace();
+                    LogUtils.warn("codec dequeueInputBuffer exception: "
+                            + e.getMessage());
+                }
+
+                if (inputBufIndex >= 0) {
+                    ByteBuffer dstBuf = mAudioCodec.getInputBuffers()[inputBufIndex];
+                    mPacketLock.lock();
+                    int sampleSize = mExtractor.readPacket(mAudioTrackIndex, dstBuf, 0);
+                    if (sampleSize < 0) {
+                        mSawInputEOS = true;
+                        sampleSize = 0;
+                        LogUtils.error("saw audio Input EOS.");
+                    }
+
+                    boolean is_flush_pkt = false;
+                    if (sampleSize > 0 /* 5 */) {
+                        String str_flush = "FLUSH";
+                        byte[] byte_ctx = new byte[5];
+                        dstBuf.get(byte_ctx);
+                        dstBuf.rewind();
+                        String strPkt = new String(byte_ctx);
+                        if (str_flush.equals(strPkt)) {
+                            is_flush_pkt = true;
+                            LogUtils.error("Java: flush video");
+
+                            ResetStatics();
+                            mCurrentTimeMsec = mSeekingTimeMsec;
+
+                            mEventHandler.sendEmptyMessage(MediaPlayer.MEDIA_SEEK_COMPLETE);
+
+                            mAudioCodec.flush();
+                        }
+                    } // end of flush pkt
+
+                    if (!is_flush_pkt) {
+                        long presentationTimeUs = mExtractor.getSampleTime();
+                        mAudioCodec.queueInputBuffer(inputBufIndex, 0 /* offset */, sampleSize,
+                                presentationTimeUs,
+                                mSawInputEOS ? MediaCodec.BUFFER_FLAG_END_OF_STREAM : 0);
+                    }
+                    mPacketLock.unlock();
+                }
+            }
 
 			if (noOutputCounter >= 50) {
 				LogUtils.warn("output eos not found after 50 frames");

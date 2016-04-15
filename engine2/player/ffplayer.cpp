@@ -1332,7 +1332,7 @@ void FFPlayer::notifyVideoDelay(int64_t video_clock, int64_t audio_clock, int64_
 {
 	static int64_t start_msec = 0;
 #ifdef TEST_PERFORMANCE
-	if (mDecodedFrames % 5 == 0)
+	if (mDecodedFrames % 10 == 0)
 		notifyListener_l(MEDIA_INFO, MEDIA_INFO_TEST_LATENCY_MSEC, (int)frame_delay);
 #endif
 	int64_t cur_msec = getNowMs();

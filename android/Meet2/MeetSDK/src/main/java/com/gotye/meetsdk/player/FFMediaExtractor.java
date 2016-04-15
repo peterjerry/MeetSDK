@@ -122,4 +122,7 @@ public class FFMediaExtractor implements MediaExtractable {
 
 	// subtitle
 	private native void native_setSubtitleParser(SimpleSubTitleParser parser);
+
+	@Override
+	public native int readPacket(int stream_index, ByteBuffer byteBuf, int offset);
 }

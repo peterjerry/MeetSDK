@@ -403,6 +403,78 @@ jboolean android_media_MediaExtractor_hasCachedReachedEndOfStream(JNIEnv *env, j
 	return false;
 }
 
+jint android_media_MediaExtractor_readPacket(
+	JNIEnv *env, jobject thiz, jint stream_index, jobject byteBuf, jint offset)
+{
+	PPLOGD("readSampleData()");
+
+	void *dst = env->GetDirectBufferAddress(byteBuf);
+
+	jlong dstSize;
+	jbyteArray byteArray = NULL;
+
+    if (dst == NULL) {
+        jclass byteBufClass = env->FindClass("java/nio/ByteBuffer");
+        if (byteBufClass == NULL) {
+			PPLOGE("failed to find class: java/nio/ByteBuffer");
+			return INVALID_OPERATION;
+		}
+
+        jmethodID arrayID =
+            env->GetMethodID(byteBufClass, "array", "()[B");
+        if (arrayID == NULL) {
+			PPLOGE("failed to GetMethodID: array");
+			return INVALID_OPERATION;
+		}
+
+        byteArray = (jbyteArray)env->CallObjectMethod(byteBuf, arrayID);
+
+        if (byteArray == NULL) {
+            return INVALID_OPERATION;
+        }
+
+        jboolean isCopy;
+        dst = env->GetByteArrayElements(byteArray, &isCopy);
+
+        dstSize = env->GetArrayLength(byteArray);
+    } else {
+        dstSize = env->GetDirectBufferCapacity(byteBuf);
+    }
+
+    if (dstSize < offset) {
+        if (byteArray != NULL) {
+            env->ReleaseByteArrayElements(byteArray, (jbyte *)dst, 0);
+        }
+
+		PPLOGE("dstSize is less than offset %d.%d", dstSize, offset);
+        return -ERANGE;
+    }
+
+	IExtractor* extractor = getMediaExtractor(env, thiz);
+	if (extractor == NULL ) {
+		PPLOGE("failed to get ffextractor");
+		return INVALID_OPERATION;
+	}
+
+	int sample_size = 0;
+	status_t err = extractor->readPacket(stream_index, (unsigned char *)dst + offset, &sample_size);
+
+    if (byteArray != NULL) {
+        env->ReleaseByteArrayElements(byteArray, (jbyte *)dst, 0);
+    }
+
+	if (err == READ_EOF) {
+		PPLOGI("find eof");
+		return -1;
+	}
+	else if (err != OK) {
+		PPLOGE("failed to call readSampleData() %d", err);
+        return -1;
+    }
+
+	return sample_size;
+}
+
 jint android_media_MediaExtractor_readSampleData(JNIEnv *env, jobject thiz, jobject byteBuf, jint offset)
 {
 	PPLOGD("readSampleData()");
@@ -678,6 +750,7 @@ static JNINativeMethod gExtractorMethods[] = {
 	{"native_init",       "()Z",		(void *)android_media_MediaExtractor_init},
 	{"setup",       "(Ljava/lang/Object;)V",		(void *)android_media_MediaExtractor_setup},
 	{"native_setSubtitleParser", "(Lcom/gotye/meetsdk/subtitle/SimpleSubTitleParser;)V", (void *)android_media_MediaExtractor_setSubtitleParser},
+	{"readPacket",       "(ILjava/nio/ByteBuffer;I)I",		(void *)android_media_MediaExtractor_readPacket},
 };
 
 bool setup_extractor(void *so_handle)
