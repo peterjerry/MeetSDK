@@ -19,6 +19,7 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Random;
 import java.util.regex.Matcher;
@@ -220,7 +221,7 @@ public class YKUtil {
         System.arraycopy(buffer, 0, m3u8_context, 0, content_size);
 
         //return YKUtil.getZGUrls(vid);
-        return YKUtil.parseM3u8(new String(m3u8_context));
+        return YKUtil.parseM3u8(vid, new String(m3u8_context));
     }
 
 	private static String getPlayUrl(String vid) {
@@ -263,14 +264,16 @@ public class YKUtil {
 	}
 
     public static class ZGUrl {
+        public String vid;
         public String file_type;
         public String urls;
         public String durations;
 
-        public ZGUrl(String type, String urls, String durations) {
-            this.file_type = type;
-            this.urls = urls;
-            this.durations = durations;
+        public ZGUrl(String vid, String type, String urls, String durations) {
+            this.vid        = vid;
+            this.file_type  = type;
+            this.urls       = urls;
+            this.durations  = durations;
         }
     }
 
@@ -312,7 +315,8 @@ public class YKUtil {
 
                 JSONObject item = urls.getJSONObject(i);
                 String item_url = item.getString("url");
-                LogUtil.info(TAG, String.format("getZGUrls() url seg #%d %s", i, item_url));
+                LogUtil.info(TAG, String.format(Locale.US,
+                        "getZGUrls() url seg #%d %s", i, item_url));
                 sbUrl.append(item_url);
             }
 
@@ -335,8 +339,8 @@ public class YKUtil {
             byte []m3u8_context = new byte[content_size];
             System.arraycopy(buffer, 0, m3u8_context, 0, content_size);
 
-            ZGUrl tmp = parseM3u8(new String(m3u8_context));
-            return new ZGUrl(file_type, sbUrl.toString(), tmp.durations);
+            ZGUrl tmp = parseM3u8(vid, new String(m3u8_context));
+            return new ZGUrl(vid, file_type, sbUrl.toString(), tmp.durations);
         } catch (JSONException e) {
             // TODO Auto-generated catch block
             e.printStackTrace();
@@ -1139,7 +1143,7 @@ public class YKUtil {
         return null;
     }
 
-    public static ZGUrl parseM3u8(String m3u8_context) {
+    public static ZGUrl parseM3u8(String vid, String m3u8_context) {
         LogUtil.info(TAG, "parseM3u8()");
 
         StringBuffer sbUrl = new StringBuffer();
@@ -1199,10 +1203,10 @@ public class YKUtil {
             return null;
         }
 
-        return new ZGUrl("flv", sbUrl.toString(), sbDuration.toString());
+        return new ZGUrl(vid, "flv", sbUrl.toString(), sbDuration.toString());
     }
 
-	private static String getVid(String url) {
+	public static String getVid(String url) {
 		String strRegex = "(?<=id_)(\\w+)";
 		Pattern pattern = Pattern.compile(strRegex);
 		Matcher match = pattern.matcher(url);

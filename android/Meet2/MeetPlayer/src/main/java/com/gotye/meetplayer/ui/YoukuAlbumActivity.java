@@ -298,8 +298,9 @@ public class YoukuAlbumActivity extends AppCompatActivity {
                     intent.putExtra("title", activity.mTitle);
                     intent.putExtra("ft", 2);
                     intent.putExtra("show_id", activity.mShowId);
+                    intent.putExtra("vid", activity.mZGUrl.vid);
                     intent.putExtra("page_index", activity.episode_page_index);
-                    intent.putExtra("index", activity.mEpisodeIndex);
+                    intent.putExtra("episode_index", activity.mEpisodeIndex);
                     intent.putExtra("player_impl", activity.mPlayerImpl);
 
                     activity.startActivity(intent);

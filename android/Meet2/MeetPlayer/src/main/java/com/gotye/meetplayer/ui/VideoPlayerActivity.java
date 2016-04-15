@@ -662,7 +662,8 @@ public class VideoPlayerActivity extends AppCompatActivity implements Callback {
 				
 		@Override
 		public boolean onFling(MotionEvent e1, MotionEvent e2, float velocityX, float velocityY) {
-			if (velocityX > 2000f || velocityX < 2000f) {
+			if (Math.abs(velocityY) < 1000f &&
+					(velocityX > 2000f || velocityX < 2000f)) {
 				int incr = (velocityX > 2000f ? 1: -1);
 
                 int pos = mVideoView.getCurrentPosition();

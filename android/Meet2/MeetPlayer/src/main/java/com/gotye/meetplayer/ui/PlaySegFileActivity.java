@@ -51,7 +51,7 @@ public class PlaySegFileActivity extends AppCompatActivity
 	private RelativeLayout mLayout;
 	private MyPreView2 mView;
 	private SurfaceHolder mHolder;
-	private FragmentMp4MediaPlayerV2 mPlayer;
+	protected FragmentMp4MediaPlayerV2 mPlayer;
     private int mPlayerImpl;
     private boolean mPrepared = false;
 	private MicroMediaController mController;

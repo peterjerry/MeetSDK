@@ -25,11 +25,14 @@ import com.gotye.common.util.LogUtil;
 import com.gotye.common.youku.Catalog;
 import com.gotye.common.youku.Channel;
 import com.gotye.common.youku.YKUtil;
+import com.gotye.db.YKPlayhistoryDatabaseHelper;
+import com.gotye.db.YKPlayhistoryDatabaseHelper.ClipInfo;
 import com.gotye.meetplayer.R;
 import com.gotye.meetplayer.util.Util;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.StringTokenizer;
 
 
@@ -51,6 +54,12 @@ public class YoukuVideoActivity extends AppCompatActivity {
 	private int mChannelId;
 	private ArrayAdapter<String> mAdapter;
 	private boolean mSubChannelSelected = false;
+
+    private int mPlayerImpl;
+    private String mTitle;
+    private String mShowId;
+    private int mEpisodeIndex = -1;
+    private int mLastPos;
 
 	private String mEPGsearchKey;
 
@@ -87,7 +96,9 @@ public class YoukuVideoActivity extends AppCompatActivity {
                 }
 			}
 		});
-		
+
+        mPlayerImpl = Util.readSettingsInt(this, "PlayerImpl");
+
 		new EPGTask().execute(EPG_TASK_LIST_CHANNEL);
 	}
 
@@ -114,6 +125,9 @@ public class YoukuVideoActivity extends AppCompatActivity {
                 break;
 			case R.id.play_history:
 				popupHistory();
+				break;
+			case R.id.recent_play:
+                popupRecentPlay();
 				break;
 			default:
 				LogUtil.warn(TAG, "unknown menu id " + id);
@@ -239,9 +253,131 @@ public class YoukuVideoActivity extends AppCompatActivity {
     }
 	
 	private void popupHistory() {
+        final YKPlayhistoryDatabaseHelper historyDB = YKPlayhistoryDatabaseHelper.getInstance(this);
 
+        final List<ClipInfo> infoList = historyDB.getPlayedClips();
+
+        if (infoList == null || infoList.isEmpty()) {
+            Toast.makeText(this, "播放记录为空", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        List<String> titleList = new ArrayList<String>();
+        for (int i=0;i<infoList.size();i++) {
+            titleList.add(infoList.get(i).mTitle);
+        }
+
+        final String[] str_title_list = titleList.toArray(new String[infoList.size()]);
+
+        Dialog choose_history_dlg = new AlertDialog.Builder(this)
+                .setTitle("播放记录")
+                .setItems(str_title_list,
+                        new DialogInterface.OnClickListener(){
+                            public void onClick(DialogInterface dialog, int whichButton) {
+                                ClipInfo info = infoList.get(whichButton);
+                                mTitle = info.mTitle;
+                                mShowId = info.mShowId;
+                                mEpisodeIndex = info.mEpisodeIndex;
+                                new PlayLinkTask().execute(info.mVideoId);
+
+                                dialog.dismiss();
+                            }
+                        })
+                .setNeutralButton("Clear",
+                        new DialogInterface.OnClickListener(){
+                            public void onClick(DialogInterface dialog, int whichButton){
+                                historyDB.clearHistory();
+                                Toast.makeText(YoukuVideoActivity.this,
+                                        "播放记录已清空",
+                                        Toast.LENGTH_LONG).show();
+                            }})
+                .setNegativeButton("Cancel",
+                        new DialogInterface.OnClickListener(){
+                            public void onClick(DialogInterface dialog, int whichButton){
+                            }})
+                .create();
+
+        choose_history_dlg.show();
 	}
-	
+
+    private void popupRecentPlay() {
+        final YKPlayhistoryDatabaseHelper historyDB = YKPlayhistoryDatabaseHelper.getInstance(this);
+
+        final List<ClipInfo> infoList = historyDB.getRecentPlay();
+
+        if (infoList == null || infoList.isEmpty()) {
+            Toast.makeText(this, "没有最近播放记录", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        List<String> titleList = new ArrayList<String>();
+        for (int i=0;i<infoList.size();i++) {
+            titleList.add(infoList.get(i).mTitle);
+        }
+
+        final String[] str_title_list = titleList.toArray(new String[infoList.size()]);
+
+        Dialog choose_recentplay_dlg = new AlertDialog.Builder(this)
+                .setTitle("最近播放")
+                .setItems(str_title_list,
+                        new DialogInterface.OnClickListener(){
+                            public void onClick(DialogInterface dialog, int whichButton) {
+                                ClipInfo info = infoList.get(whichButton);
+                                mTitle          = info.mTitle;
+                                mShowId         = info.mShowId;
+                                mEpisodeIndex   = info.mEpisodeIndex;
+                                mLastPos        = info.mLastPos;
+
+                                new PlayLinkTask().execute(info.mVideoId);
+
+                                dialog.dismiss();
+                            }
+                        })
+                .setNegativeButton("Cancel",
+                        new DialogInterface.OnClickListener(){
+                            public void onClick(DialogInterface dialog, int whichButton){
+                            }})
+                .create();
+
+        choose_recentplay_dlg.show();
+    }
+
+    private class PlayLinkTask extends AsyncTask<String, Integer, YKUtil.ZGUrl> {
+        @Override
+        protected void onPostExecute(YKUtil.ZGUrl zgUrl) {
+            // TODO Auto-generated method stub
+            if (zgUrl == null) {
+                Toast.makeText(YoukuVideoActivity.this, "获取视频播放地址失败",
+                        Toast.LENGTH_SHORT).show();
+                return;
+            }
+
+            Intent intent = new Intent(YoukuVideoActivity.this, PlayYoukuActivity.class);
+            intent.putExtra("url_list", zgUrl.urls);
+            intent.putExtra("duration_list", zgUrl.durations);
+            intent.putExtra("title", mTitle);
+            intent.putExtra("ft", 2);
+            intent.putExtra("show_id", mShowId);
+            intent.putExtra("vid", zgUrl.vid);
+            intent.putExtra("episode_index", mEpisodeIndex);
+            intent.putExtra("player_impl", mPlayerImpl);
+
+            if (mLastPos > 0) {
+                intent.putExtra("preseek_msec", mLastPos);
+                LogUtil.info(TAG, "Java: set preseek_msec " + mLastPos);
+            }
+
+            startActivity(intent);
+        }
+
+        @Override
+        protected YKUtil.ZGUrl doInBackground(String... params) {
+            // TODO Auto-generated method stub
+            String vid = params[0];
+            return YKUtil.getPlayUrl2(vid);
+        }
+    }
+
 	private class EPGTask extends AsyncTask<Integer, Integer, List<String>> {
 
 		private ProgressDialog progDlg = null;

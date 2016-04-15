@@ -12,6 +12,7 @@ import android.widget.Toast;
 import com.gotye.common.util.LogUtil;
 import com.gotye.common.youku.Episode;
 import com.gotye.common.youku.YKUtil;
+import com.gotye.db.YKPlayhistoryDatabaseHelper;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -20,6 +21,7 @@ public class PlayYoukuActivity extends PlaySegFileActivity {
 	private final static String TAG = "PlayYoukuActivity";
 
 	private String mShowId;
+    private String mVid;
     private int mEpisodeIndex;
     private final static int page_size = 10;
 	private List<Episode> mEpisodeList;
@@ -28,9 +30,10 @@ public class PlayYoukuActivity extends PlaySegFileActivity {
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 		
-		Intent intent = getIntent();
-        mShowId				= intent.getStringExtra("show_id");
-        mEpisodeIndex		= intent.getIntExtra("index", -1);
+		Intent intent   = getIntent();
+        mShowId			= intent.getStringExtra("show_id");
+        mVid            = intent.getStringExtra("vid");
+        mEpisodeIndex	= intent.getIntExtra("episode_index", -1);
 	}
 
     @Override
@@ -45,6 +48,16 @@ public class PlayYoukuActivity extends PlaySegFileActivity {
         mBufferingProgressBar.setVisibility(View.GONE);
 
         finish();
+    }
+
+    @Override
+    protected void onPause() {
+        if (mPlayer != null) {
+            YKPlayhistoryDatabaseHelper.getInstance(this)
+                    .savePlayedPosition(mVid, mPlayer.getCurrentPosition());
+        }
+
+        super.onPause();
     }
 
     private void popupSelectEpDlg() {
@@ -161,7 +174,9 @@ public class PlayYoukuActivity extends PlaySegFileActivity {
             }
 
             Episode ep = mEpisodeList.get(mEpisodeIndex);
-            YKUtil.ZGUrl zg = YKUtil.getPlayUrl2(ep.getVideoId());
+            mVid = ep.getVideoId();
+
+            YKUtil.ZGUrl zg = YKUtil.getPlayUrl2(mVid);
             if (zg == null) {
                 mHandler.sendEmptyMessage(MainHandler.MSG_INVALID_EPISODE_INDEX);
                 return false;
@@ -170,6 +185,9 @@ public class PlayYoukuActivity extends PlaySegFileActivity {
             mTitle = ep.getTitle();
             mUrlListStr = zg.urls;
             mDurationListStr = zg.durations;
+
+            YKPlayhistoryDatabaseHelper.getInstance(PlayYoukuActivity.this)
+                    .saveHistory(mTitle, mVid, mShowId, mEpisodeIndex);
 
 			buildPlaylinkList();
 			

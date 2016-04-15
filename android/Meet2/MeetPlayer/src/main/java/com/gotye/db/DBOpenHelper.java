@@ -6,11 +6,13 @@ import android.database.ContentObserver;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
-import android.util.Log;
+
+import com.gotye.common.util.LogUtil;
 
 import java.lang.ref.WeakReference;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Locale;
 
 /**
  * 数据库
@@ -30,7 +32,8 @@ public class DBOpenHelper extends SQLiteOpenHelper {
     /**
      * The Constant VERSION.
      */
-    public static final int DB_VERSION = 100; // 626 -> add COLUMN_WATCH_TIME
+    // 101 add yk ykHistory
+    public static final int DB_VERSION = 101;
 
     private static DBOpenHelper instance;
     private HashMap<String, HashSet<WeakReference<ContentObserver>>> observers = new HashMap<String, HashSet<WeakReference<ContentObserver>>>();
@@ -42,7 +45,8 @@ public class DBOpenHelper extends SQLiteOpenHelper {
      */
     private DBOpenHelper(Context context) {
         super(context, DB_NAME, null, DB_VERSION);
-        Log.i(TAG, "Java: DBOpenHelper() constructor");
+
+        LogUtil.info(TAG, "Java: DBOpenHelper() constructor");
     }
 
     /**
@@ -64,7 +68,7 @@ public class DBOpenHelper extends SQLiteOpenHelper {
         try {
             db.execSQL(sql);
         } catch (Exception e) {
-            Log.e(TAG, e.toString());
+            LogUtil.error(TAG, e.toString());
         }
     }
 
@@ -72,24 +76,35 @@ public class DBOpenHelper extends SQLiteOpenHelper {
         try {
             db.execSQL(sql, bindArgs);
         } catch (Exception e) {
-        	Log.e(TAG, e.toString());
+            LogUtil.error(TAG, e.toString());
         }
     }
 
     @Override
     public void onCreate(SQLiteDatabase db) {
+        LogUtil.info(TAG, "onCreate()");
+
         MediaStoreDatabaseHelper.createDB(db);
         PPTVPlayhistoryDatabaseHelper.createDB(db);
+        YKPlayhistoryDatabaseHelper.createDB(db);
     }
 
     @Override
     public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
-        // 更新数据库，以后数据库更新时在添加，注意不要直接删除全部表，因为有些数据不希望更新就没了
+        // 更新数据库，以后数据库更新时在添加，
+        // 注意不要直接删除全部表，因为有些数据不希望更新就没了
+        LogUtil.info(TAG, String.format(Locale.US,
+                "onUpgrade() oldVersion %d, newVersion %d", oldVersion, newVersion));
 
         if (oldVersion < newVersion) {
             MediaStoreDatabaseHelper.onUpgrade(db, oldVersion, newVersion);
+            PPTVPlayhistoryDatabaseHelper.onUpgrade(db, oldVersion, newVersion);
+            YKPlayhistoryDatabaseHelper.createDB(db);
         } else {
             MediaStoreDatabaseHelper.dropTable(db);
+            PPTVPlayhistoryDatabaseHelper.dropTable(db);
+            YKPlayhistoryDatabaseHelper.dropTable(db);
+
             onCreate(db);
         }
     }
@@ -105,7 +120,7 @@ public class DBOpenHelper extends SQLiteOpenHelper {
             SQLiteDatabase db = getWritableDatabase();
             return db.query(table, columns, selection, selectionArgs, groupBy, having, orderBy);
         } catch (Exception e) {
-        	Log.e(TAG, e.toString());
+            LogUtil.error(TAG, e.toString());
         }
         return null;
     }
@@ -129,7 +144,7 @@ public class DBOpenHelper extends SQLiteOpenHelper {
             id = db.insert(table, null, values);
 
         } catch (Exception e) {
-            Log.e(TAG, e.toString());
+            LogUtil.error(TAG, e.toString());
         }
 
         if (id != -1) {
@@ -149,7 +164,7 @@ public class DBOpenHelper extends SQLiteOpenHelper {
             SQLiteDatabase db = getWritableDatabase();
             count = db.update(table, values, whereClause, whereArgs);
         } catch (Exception e) {
-        	Log.e(TAG, e.toString());
+            LogUtil.error(TAG, e.toString());
         }
 
         if (count > 0) {
@@ -169,7 +184,7 @@ public class DBOpenHelper extends SQLiteOpenHelper {
             count = db.delete(table, whereClause, whereArgs);
 
         } catch (Exception e) {
-        	Log.e(TAG, e.toString());
+            LogUtil.error(TAG, e.toString());
         }
 
         if (count > 0) {
@@ -192,7 +207,7 @@ public class DBOpenHelper extends SQLiteOpenHelper {
 
             set.add(new WeakReference<ContentObserver>(observer));
         } catch (Exception e) {
-        	Log.e(TAG, e.toString());
+            LogUtil.error(TAG, e.toString());
         }
     }
 
@@ -223,7 +238,7 @@ public class DBOpenHelper extends SQLiteOpenHelper {
                 trashSet.clear();
             }
         } catch (Exception e) {
-        	Log.e(TAG, e.toString());
+            LogUtil.error(TAG, e.toString());
         }
     }
 
@@ -252,7 +267,7 @@ public class DBOpenHelper extends SQLiteOpenHelper {
                 trashSet.clear();
             }
         } catch (Exception e) {
-        	Log.e(TAG, e.toString());
+            LogUtil.error(TAG, e.toString());
         }
     }
 }

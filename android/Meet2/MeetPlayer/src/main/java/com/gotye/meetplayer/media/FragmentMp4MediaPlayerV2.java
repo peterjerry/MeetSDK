@@ -271,7 +271,7 @@ public class FragmentMp4MediaPlayerV2 {
         else if (mPlayerImpl == XO_PLAYER)
             mode = MediaPlayer.DecodeMode.HW_XOPLAYER;
         else
-            mode = MediaPlayer.DecodeMode.SW;
+            mode = MediaPlayer.DecodeMode.HW_SYSTEM;
 
 		mCurrentPlayer = new MediaPlayer(mode);
 		mCurrentPlayer.reset();
@@ -324,7 +324,7 @@ public class FragmentMp4MediaPlayerV2 {
 				mNextPlayer.reset();
 
                 // ffplayer MUST set HERE!!!
-                if (mPlayerImpl == FF_PLAYER)
+                if (mPlayerImpl != SYSTEM_PLAYER)
                     mNextPlayer.setDisplay(mHolder);
                 mNextPlayer.setAudioStreamType(mStreamType);
 				//mNextPlayer.setScreenOnWhilePlaying(mScreenOnWhilePlaying);

@@ -21,6 +21,7 @@ import com.gotye.common.util.LogUtil;
 import com.gotye.common.youku.Album;
 import com.gotye.common.youku.Episode;
 import com.gotye.common.youku.YKUtil;
+import com.gotye.db.YKPlayhistoryDatabaseHelper;
 import com.gotye.meetplayer.R;
 import com.gotye.meetplayer.util.ImgUtil;
 import com.gotye.meetplayer.util.Util;
@@ -28,6 +29,7 @@ import com.gotye.meetplayer.util.Util;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 public class YoukuEpisodeActivity extends AppCompatActivity {
@@ -120,13 +122,20 @@ public class YoukuEpisodeActivity extends AppCompatActivity {
                 return;
             }
 
+            LogUtil.info(TAG, String.format(
+                    Locale.US, "before add history: title %s, vid %s, show_id %s, ep_index %d",
+                    mTitle, zgUrl.vid, mShowId, mEpisodeIndex));
+            YKPlayhistoryDatabaseHelper.getInstance(YoukuEpisodeActivity.this)
+                    .saveHistory(mTitle, zgUrl.vid, mShowId, mEpisodeIndex);
+
             Intent intent = new Intent(YoukuEpisodeActivity.this, PlayYoukuActivity.class);
             intent.putExtra("url_list", zgUrl.urls);
             intent.putExtra("duration_list", zgUrl.durations);
             intent.putExtra("title", mTitle);
             intent.putExtra("ft", 2);
             intent.putExtra("show_id", mShowId);
-            intent.putExtra("index", mEpisodeIndex);
+            intent.putExtra("vid", zgUrl.vid);
+            intent.putExtra("episode_index", mEpisodeIndex);
             intent.putExtra("player_impl", mPlayerImpl);
 
             startActivity(intent);
