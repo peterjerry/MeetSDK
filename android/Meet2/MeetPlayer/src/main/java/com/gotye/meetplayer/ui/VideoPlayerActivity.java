@@ -5,10 +5,10 @@ import java.util.ArrayList;
 import java.util.List;
 import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
+import java.util.Locale;
 
 import so.cym.crashhandlerdemo.UploadLogTask;
 
-import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.Dialog;
 import android.content.DialogInterface;
@@ -21,7 +21,6 @@ import android.os.Environment;
 import android.os.Handler;
 import android.os.Message;
 import android.support.v7.app.AppCompatActivity;
-import android.util.Log;
 import android.view.GestureDetector;
 import android.view.KeyEvent;
 import android.view.Menu;
@@ -52,7 +51,8 @@ public class VideoPlayerActivity extends AppCompatActivity implements Callback {
 
 	private final static String TAG = "VideoPlayerActivity";
 	
-	private final static String []mode_desc = {"自适应", "铺满屏幕", "放大裁切", "原始大小"};
+	private final static String []mode_desc = {
+			"自适应", "铺满屏幕", "放大裁切", "原始大小"};
 
 	protected MeetVideoView mVideoView = null; // protected for child access
 	protected MyMediaController mController;
@@ -104,6 +104,7 @@ public class VideoPlayerActivity extends AppCompatActivity implements Callback {
 	private static final int MSG_UPDATE_PLAY_INFO 				= 403;
 	private static final int MSG_UPDATE_RENDER_INFO				= 404;
 	private static final int MSG_UPDATE_NETWORK_SPEED			= 405;
+    private static final int MSG_RESTART_PLAYER                 = 406;
 	
 	@Override
 	public void onCreate(Bundle savedInstanceState) {
@@ -218,8 +219,8 @@ public class VideoPlayerActivity extends AppCompatActivity implements Callback {
 		super.onResume();
 
 		LogUtil.info(TAG, "Java: onResume");
-		
-		setupPlayer();
+
+        setupPlayer();
 	}
 
 	@Override
@@ -237,11 +238,11 @@ public class VideoPlayerActivity extends AppCompatActivity implements Callback {
 
 		LogUtil.info(TAG, "Java: onStop()");
 
-		stop_subtitle();
-		stopPlayer();
+        stop_subtitle();
+        stopPlayer();
 	}
 
-	private void popupMediaInfo() {
+    private void popupMediaInfo() {
 		String decodedUrl;
 		try {
 			decodedUrl = URLDecoder.decode(mUri.toString(), "UTF-8");
@@ -301,8 +302,8 @@ public class VideoPlayerActivity extends AppCompatActivity implements Callback {
 								pre_seek_msec = mVideoView.getCurrentPosition() - 5000;
 								if (pre_seek_msec < 0)
 									pre_seek_msec = 0;
-								
-								setupPlayer();
+
+                                mHandler.sendEmptyMessage(MSG_RESTART_PLAYER);
 							}
 							
 							dialog.dismiss();
@@ -430,7 +431,8 @@ public class VideoPlayerActivity extends AppCompatActivity implements Callback {
 			DecMode = DecodeMode.SW;
 			break;
 		default:
-			LogUtil.warn(TAG, String.format("Java: unknown DecodeMode: %d", mPlayerImpl));
+			LogUtil.warn(TAG, String.format(Locale.US,
+                    "Java: unknown DecodeMode: %d", mPlayerImpl));
 			DecMode = DecodeMode.SW;
 			break;
 		}
@@ -741,7 +743,8 @@ public class VideoPlayerActivity extends AppCompatActivity implements Callback {
 	
 				int pos = mVideoView.getCurrentPosition();
 				int step = mVideoView.getDuration() / 100 + 1000;
-				LogUtil.info(TAG, String.format("Java pos %d, step %s", pos, step));
+				LogUtil.info(TAG, String.format(Locale.US,
+                        "Java pos %d, step %s", pos, step));
 				if (step > 30000)
 					step = 30000;
 				pos += (incr * step);
@@ -928,36 +931,41 @@ public class VideoPlayerActivity extends AppCompatActivity implements Callback {
 	private Handler mHandler = new Handler(){  
 		  
         @Override  
-        public void handleMessage(Message msg) {  
-            switch(msg.what) {
-            case MSG_UPDATE_NETWORK_SPEED:
-            	int[] speed = mSpeed.currentSpeed();
-            	if (speed != null) {
-            		rx_speed = speed[0];
-            		tx_speed = speed[1];
-            		this.sendEmptyMessageDelayed(MSG_UPDATE_NETWORK_SPEED, 1000);
-            	}
-			case MSG_UPDATE_PLAY_INFO:
-			case MSG_UPDATE_RENDER_INFO:
-				if (mbShowDebugInfo) {
-					mTextViewDebugInfo.setText(String.format("%02d|%03d v-a: %+04d "
-							+ "dec/render %d(%d)/%d(%d) fps/msec bitrate %d kbps\nrx %d kB/s, tx %d kB/s", 
-						render_frame_num % 25, decode_drop_frame % 1000, av_latency_msec, 
-						decode_fps, decode_avg_msec, render_fps, render_avg_msec,
-						video_bitrate,
-						rx_speed, tx_speed));
-				}
-				break;
-			case MSG_DISPLAY_SUBTITLE:
-				mSubtitleTextView.setText(mSubtitleText);
-				break;
-			case MSG_HIDE_SUBTITLE:
-				mSubtitleTextView.setText("");
-				break;
-			default:
-				LogUtil.warn(TAG, "Java: unknown msg.what " + msg.what);
-				break;
-			}			 
+        public void handleMessage(Message msg) {
+            switch (msg.what) {
+                case MSG_UPDATE_NETWORK_SPEED:
+                    int[] speed = mSpeed.currentSpeed();
+                    if (speed != null) {
+                        rx_speed = speed[0];
+                        tx_speed = speed[1];
+                        this.sendEmptyMessageDelayed(MSG_UPDATE_NETWORK_SPEED, 1000);
+                    }
+                case MSG_UPDATE_PLAY_INFO:
+                case MSG_UPDATE_RENDER_INFO:
+                    if (mbShowDebugInfo) {
+                        mTextViewDebugInfo.setText(String.format(Locale.US,
+                                "%02d|%03d v-a: %+04d dec/render %d(%d)/%d(%d) fps/msec\n" +
+                                        "bitrate %d kbps\n" +
+                                        "rx %d kB/s, tx %d kB/s",
+                                render_frame_num % 25, decode_drop_frame % 1000, av_latency_msec,
+                                decode_fps, decode_avg_msec, render_fps, render_avg_msec,
+                                video_bitrate,
+                                rx_speed, tx_speed));
+                    }
+                    break;
+                case MSG_DISPLAY_SUBTITLE:
+                    mSubtitleTextView.setText(mSubtitleText);
+                    break;
+                case MSG_HIDE_SUBTITLE:
+                    mSubtitleTextView.setText("");
+                    break;
+                case MSG_RESTART_PLAYER:
+                    setupPlayer();
+                    break;
+                default:
+                    LogUtil.warn(TAG, "Java: unknown msg.what " + msg.what);
+                    break;
+            }
         }
 	}; 
 }

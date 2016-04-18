@@ -1,8 +1,9 @@
 package com.gotye.meetplayer.ui;
 
 import android.app.AlertDialog;
+import android.app.Dialog;
+import android.content.DialogInterface;
 import android.content.Intent;
-import android.graphics.Color;
 import android.graphics.PixelFormat;
 import android.media.AudioManager;
 import android.os.Bundle;
@@ -16,7 +17,6 @@ import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.MotionEvent;
 import android.view.SurfaceHolder;
-import android.view.SurfaceView;
 import android.view.View;
 import android.view.WindowManager;
 import android.widget.ImageButton;
@@ -34,14 +34,11 @@ import com.gotye.meetplayer.util.Util;
 import com.gotye.meetsdk.player.MediaController.MediaPlayerControl;
 import com.gotye.meetsdk.player.MediaPlayer;
 
-import org.apache.ivy.Main;
-
 import java.io.IOException;
-import java.io.UnsupportedEncodingException;
 import java.lang.ref.WeakReference;
-import java.net.URLDecoder;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.StringTokenizer;
 
 public class PlaySegFileActivity extends AppCompatActivity
@@ -65,6 +62,7 @@ public class PlaySegFileActivity extends AppCompatActivity
     protected String mDurationListStr;
 	protected String mTitle;
     protected int mFt;
+    protected int pre_seek_msec = -1;
 
     protected MainHandler mHandler;
 	
@@ -143,6 +141,8 @@ public class PlaySegFileActivity extends AppCompatActivity
             mDurationListStr	= intent.getStringExtra("duration_list");
             mTitle				= intent.getStringExtra("title");
             mFt                 = intent.getIntExtra("ft", 0);
+            pre_seek_msec       = intent.getIntExtra("preseek_msec", -1);
+
             LogUtil.info(TAG, "Java: mDurationListStr " + mDurationListStr);
         }
         else {
@@ -250,6 +250,11 @@ public class PlaySegFileActivity extends AppCompatActivity
 				mBufferingProgressBar.setVisibility(View.GONE);
 				toggleMediaControlsVisiblity();
 
+                /*if (pre_seek_msec > 0) {
+                    mp.seekTo(pre_seek_msec);
+                    pre_seek_msec = -1;
+                }*/
+
                 mp.start();
 			}
 		};
@@ -295,6 +300,7 @@ public class PlaySegFileActivity extends AppCompatActivity
         int id = item.getItemId();
         switch (id) {
             case R.id.select_player_impl:
+                popupPlayerImplDlg();
                 break;
             case R.id.select_ft:
                 break;
@@ -317,6 +323,45 @@ public class PlaySegFileActivity extends AppCompatActivity
         }
 
         return true;
+    }
+
+    private void popupPlayerImplDlg() {
+        final String[] PlayerImpl = {"Auto", "System", "XOPlayer", "FFPlayer", "OMXPlayer"};
+
+        Dialog choose_player_impl_dlg = new AlertDialog.Builder(PlaySegFileActivity.this)
+                .setTitle("选择播放器类型")
+                .setSingleChoiceItems(PlayerImpl, mPlayerImpl, /*default selection item number*/
+                        new DialogInterface.OnClickListener(){
+                            public void onClick(DialogInterface dialog, int whichButton){
+                                LogUtil.info(TAG, "select player impl: " + whichButton);
+
+                                mPlayerImpl = whichButton;
+                                Util.writeSettingsInt(PlaySegFileActivity.this, "PlayerImpl", mPlayerImpl);
+                                Toast.makeText(PlaySegFileActivity.this,
+                                        "选择类型: " + PlayerImpl[whichButton], Toast.LENGTH_SHORT).show();
+
+                                if (mPlayer != null) {
+                                    pre_seek_msec = mPlayer.getCurrentPosition() - 5000;
+                                    if (pre_seek_msec < 0)
+                                        pre_seek_msec = 0;
+
+                                    mView.setVisibility(View.INVISIBLE);
+
+                                    if (mPlayerImpl == 3/*ffplay*/) {
+                                        SurfaceHolder holder = mView.getHolder();
+                                        holder.setType(SurfaceHolder.SURFACE_TYPE_NORMAL);
+                                        holder.setFormat(PixelFormat.RGBX_8888/*RGB_565*/);
+                                    }
+
+                                    mView.setVisibility(View.VISIBLE);
+                                }
+
+                                dialog.dismiss();
+                            }
+                        })
+                .setNegativeButton("取消", null)
+                .create();
+        choose_player_impl_dlg.show();
     }
 
     private void popupMediaInfo() {
@@ -615,19 +660,38 @@ public class PlaySegFileActivity extends AppCompatActivity
                     Toast.makeText(activity, "failed to get stream", Toast.LENGTH_SHORT).show();
                     activity.finish();
                     break;
+                default:
+                    break;
             }
         }
     }
 	
 	boolean setupMediaPlayer() {
 		if (mPlayer != null) {
-			mPlayer.stop();
+            try {
+                mPlayer.stop();
+            } catch (IllegalStateException e) {
+                e.printStackTrace();
+                LogUtil.error(TAG, "failed to stop player: " + e.toString());
+            }
 			mPlayer.release();
 			mPlayer = null;
 		}
 
         mTvTitle.setText(mTitle);
-        Toast.makeText(this, String.format("ready to play video: %s (ft %d)", mTitle, mFt),
+
+        String decodemode_str;
+        if (mPlayerImpl == 1)
+            decodemode_str = "SYSTEM";
+        else if (mPlayerImpl == 2)
+            decodemode_str = "XOPlayer";
+        else if (mPlayerImpl == 3)
+            decodemode_str = "FFPlayer";
+        else
+            decodemode_str = "Unknown(" + mPlayerImpl + ")";
+        Toast.makeText(this, String.format(Locale.US,
+                "ready to play video: %s (ft %d), decode_mode: %s",
+                mTitle, mFt, decodemode_str),
 				Toast.LENGTH_SHORT).show();
 		
 		mPlayer = new FragmentMp4MediaPlayerV2(mPlayerImpl);

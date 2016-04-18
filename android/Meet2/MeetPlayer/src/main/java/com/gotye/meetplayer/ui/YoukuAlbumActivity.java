@@ -23,6 +23,7 @@ import com.gotye.common.util.LogUtil;
 import com.gotye.common.youku.Album;
 import com.gotye.common.youku.Episode;
 import com.gotye.common.youku.YKUtil;
+import com.gotye.db.YKPlayhistoryDatabaseHelper;
 import com.gotye.meetplayer.R;
 import com.gotye.meetplayer.ui.widget.HorizontalTextListView;
 import com.gotye.meetplayer.util.Util;
@@ -31,6 +32,7 @@ import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 
@@ -292,6 +294,11 @@ public class YoukuAlbumActivity extends AppCompatActivity {
                     intent.putExtra("impl", 3); // force ffplay
                     */
 
+                    YKPlayhistoryDatabaseHelper.getInstance(activity)
+                            .saveHistory(activity.mTitle,
+                                    activity.mZGUrl.vid, activity.mShowId,
+                                    activity.mEpisodeIndex);
+
                     Intent intent = new Intent(activity, PlayYoukuActivity.class);
                     intent.putExtra("url_list", activity.mZGUrl.urls);
                     intent.putExtra("duration_list", activity.mZGUrl.durations);
@@ -486,7 +493,8 @@ public class YoukuAlbumActivity extends AppCompatActivity {
                         if (mAlbumList == null)
                             LogUtil.info(TAG, "Java: no more album");
                         else
-                            LogUtil.info(TAG, String.format("Java: no more album(meet end) %d %d",
+                            LogUtil.info(TAG, String.format(Locale.US,
+                                    "Java: no more album(meet end) %d %d",
                                     mAlbumList.size(), page_size));
                         noMoreData = true;
                         return false;
@@ -589,6 +597,8 @@ public class YoukuAlbumActivity extends AppCompatActivity {
                                 }
                             }
                             LogUtil.info(TAG, "set filter to: " + filter);
+
+                            album_page_index = 1;
                             new SetDataTask().execute(SET_DATA_LIST);
                             return true;
                         }
@@ -659,7 +669,7 @@ public class YoukuAlbumActivity extends AppCompatActivity {
                     items.add(episode);
                 }
 			}
-			else {
+			else if (action == SET_DATA_LIST) {
                 mAlbumList = YKUtil.getAlbums(channel_id, filter, subpage_sort,
                         sub_channel_id, sub_channel_type,
                         album_page_index, page_size);
@@ -686,6 +696,10 @@ public class YoukuAlbumActivity extends AppCompatActivity {
                     get_filter = 0; // ONLY show once
                 }
 			}
+            else {
+                LogUtil.error(TAG, "invalid action: " + action);
+                return null;
+            }
 
 			return items;
 		}

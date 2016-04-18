@@ -583,7 +583,7 @@ public class YKUtil {
             int sub_channel_id, int sub_channel_type,
             int page, int page_size) {
 
-        String url = String.format(youku_subpage_api,
+        String url = String.format(Locale.US, youku_subpage_api,
                 channel_id, sub_channel_id, sub_channel_type,
                 sort, page, page_size);
         if (filter != null && !filter.isEmpty()) {
@@ -616,51 +616,7 @@ public class YKUtil {
             // sub_channel_id=2&sub_channel_type=3 电视剧 大陆
 
             List<Album> albumList = new ArrayList<Album>();
-
-            if (channel_id == 95 /*music*/) {
-                JSONArray boxes = root.getJSONArray("boxes");
-                int size = boxes.length();
-                for (int i=0;i<size;i++) {
-                    JSONObject item = boxes.getJSONObject(i);
-                    JSONArray cells = item.getJSONArray("cells");
-                    int size2 = cells.length();
-                    for (int j=0;j<size2;j++) {
-                        JSONObject cell = cells.getJSONObject(j);
-                        JSONArray contents = cell.getJSONArray("contents");
-                        int size3 = contents.length();
-                        for (int k=0;k<size3;k++) {
-                            JSONObject song = contents.getJSONObject(k);
-//                            {
-//                                subtitle: "495",
-//                                        img: "http://r4.ykimg.com/0541010156E2270E641DA4FA18A017DC",
-//                                    title: "Where Went Yesterday 剧情版",
-//                                    url: "",
-//                                    paid: 0,
-//                                    stripe: "05:20",
-//                                    tid: "XMTQ5NjQ1NTc1Ng==",
-//                                    is_vv: 1,
-//                                    type: "1"
-//                            },
-                            String title = song.getString("title");
-                            String tid = song.getString("tid");
-                            String stripe = song.getString("stripe");
-                            String img_url = song.getString("img");
-                            String subtitle = item.getString("subtitle");
-                            int is_vv = item.getInt("is_vv");
-                            int type = item.getInt("type");
-                            String total_vv = "";
-                            if (is_vv > 0)
-                                total_vv = subtitle;
-                            int total_ep = 1;
-                            if (type == 2)
-                                total_ep = 12345678; // guess
-                            albumList.add(new Album(title, tid, stripe,
-                                    img_url, total_vv, total_ep));
-                        }
-                    }
-                }
-            }
-            else if (sub_channel_type == 1/*精选*/) {
+            if (sub_channel_type == 1/*精选*/) {
                 JSONArray boxes = root.getJSONArray("boxes");
                 int size = boxes.length();
                 for (int i=0;i<size;i++) {
@@ -734,14 +690,14 @@ public class YKUtil {
                     JSONObject item = results.getJSONObject(i);
                     String title = item.getString("title");
                     String stripe = item.getString("stripe");
-                    String subtitle = item.getString("subtitle");
                     String img_url = item.getString("img");
                     String tid = item.getString("tid");
                     int is_vv = item.getInt("is_vv");
                     int type = item.getInt("type");
                     String total_vv = "";
-                    if (is_vv > 0)
-                        total_vv = subtitle;
+                    if (is_vv > 0 && item.has("subtitle")) {
+                        total_vv = item.getString("subtitle");
+                    }
                     int total_ep = 1;
                     if (type == 2)
                         total_ep = 12345678; // guess

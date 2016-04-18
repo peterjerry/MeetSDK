@@ -2,6 +2,7 @@ package com.gotye.meetplayer.ui;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.StringTokenizer;
 
 import com.gotye.common.pptv.Catalog;
 import com.gotye.common.pptv.Content;
@@ -15,13 +16,11 @@ import com.gotye.common.util.LogUtil;
 import com.gotye.db.PPTVPlayhistoryDatabaseHelper;
 import com.gotye.db.PPTVPlayhistoryDatabaseHelper.ClipInfo;
 import com.gotye.meetplayer.R;
-import com.gotye.meetplayer.util.Constants;
 import com.gotye.meetplayer.util.Util;
 import com.pplive.sdk.MediaSDK;
 
 import android.app.AlertDialog;
 import android.app.Dialog;
-import android.app.ListActivity;
 import android.app.ProgressDialog;
 import android.content.DialogInterface;
 import android.content.Intent;
@@ -31,8 +30,6 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
 import android.support.v7.app.AppCompatActivity;
-import android.util.Log;
-import android.view.KeyEvent;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
@@ -190,28 +187,35 @@ public class PPTVVideoActivity extends AppCompatActivity {
 	@Override
     public boolean onCreateOptionsMenu(Menu menu) {  
         MenuInflater menuInflater = new MenuInflater(getApplication());  
-        menuInflater.inflate(R.menu.pptv_menu, menu);  
+        menuInflater.inflate(R.menu.sohu_menu, menu);
         return super.onCreateOptionsMenu(menu);  
     }
 	
 	@Override
 	public boolean onOptionsItemSelected(MenuItem item) {
 		int id = item.getItemId();
-		Log.i(TAG, "Java: onOptionsItemSelected " + id);
-		
+		LogUtil.info(TAG, "Java: onOptionsItemSelected " + id);
+
 		switch (id) {
-		case R.id.search:
-			popupSearch();
-			break;
-		case R.id.play_history:
-			popupHistory();
-			break;
-		case R.id.recent_play:
-			popupRecentPlay();
-			break;
-		default:
-			Log.w(TAG, "unknown menu id " + id);
-			break;
+			case R.id.search:
+				popupSearch();
+				break;
+			case R.id.search_history:
+				popupSearchHistory();
+				break;
+            case R.id.clean_search_history:
+                Util.writeSettings(PPTVVideoActivity.this, "search_keys", "");
+                Toast.makeText(this, "搜索记录已清空", Toast.LENGTH_SHORT).show();
+                break;
+			case R.id.play_history:
+				popupHistory();
+				break;
+			case R.id.recent_play:
+				popupRecentPlay();
+				break;
+			default:
+				LogUtil.warn(TAG, "unknown menu id " + id);
+				break;
 		}
 		
 		return true;
@@ -252,35 +256,86 @@ public class PPTVVideoActivity extends AppCompatActivity {
 		
 		super.onBackPressed();
 	}
-	
-	private void popupSearch() {
-		AlertDialog.Builder builder;
-		
-		final EditText inputKey = new EditText(this);
-    	String last_key = Util.readSettings(this, "last_searchkey");
-    	Log.i(TAG, "Java last_key: " + last_key);
-    	inputKey.setText(last_key);
-		inputKey.setHint("input search key");
-		
+
+    private void popupSearch() {
+        AlertDialog.Builder builder;
+
+        final EditText inputKey = new EditText(this);
+        final String search_keys = Util.readSettings(this, "search_keys");
+        String keyword = search_keys;
+        int pos = search_keys.indexOf("|");
+        if (pos > 0) {
+            keyword = search_keys.substring(0, pos);
+        }
+        inputKey.setText(keyword);
+        inputKey.setHint("输入搜索关键词");
+
         builder = new AlertDialog.Builder(this);
-        builder.setTitle("input key").setIcon(android.R.drawable.ic_dialog_info).setView(inputKey)
-                .setNegativeButton("Cancel", null);
-        builder.setPositiveButton("Ok", new DialogInterface.OnClickListener() {
+        builder.setTitle("输入搜索关键词").setIcon(android.R.drawable.ic_dialog_info).setView(inputKey)
+                .setNegativeButton("取消", null);
+        builder.setPositiveButton("确认", new DialogInterface.OnClickListener() {
 
             public void onClick(DialogInterface dialog, int which) {
-            	mEPGsearchKey = inputKey.getText().toString();
-            	Log.i(TAG, "Java save last_key: " + mEPGsearchKey);
-            	Util.writeSettings(PPTVVideoActivity.this, "last_searchkey", mEPGsearchKey);
+                mEPGsearchKey = inputKey.getText().toString();
+                boolean bDuplicated = false;
+                StringTokenizer st = new StringTokenizer(search_keys, "|", false);
+                while (st.hasMoreElements()) {
+                    String keyword = st.nextToken();
+                    if (keyword.equals(mEPGsearchKey)) {
+                        bDuplicated = true;
+                        break;
+                    }
+                }
+                if (!bDuplicated) {
+                    String new_search_keys = mEPGsearchKey;
+                    new_search_keys += "|";
+                    new_search_keys += search_keys;
+                    Util.writeSettings(PPTVVideoActivity.this, "search_keys", new_search_keys);
+                }
 
-            	Intent intent = new Intent(PPTVVideoActivity.this, PPTVEpisodeActivity.class);
-        		intent.putExtra("search_key", mEPGsearchKey);
-        		startActivity(intent);
-        		
-        		dialog.dismiss();
-             }
+                Intent intent = new Intent(PPTVVideoActivity.this, PPTVEpisodeActivity.class);
+                intent.putExtra("search_key", mEPGsearchKey);
+                startActivity(intent);
+
+                dialog.dismiss();
+            }
         });
         builder.show();
-	}
+    }
+
+    private void popupSearchHistory() {
+        String search_keys = Util.readSettings(this, "search_keys");
+        StringTokenizer st = new StringTokenizer(search_keys, "|", false);
+        List<String> key_list = new ArrayList<String>();
+        while (st.hasMoreElements()) {
+            String keyword = st.nextToken();
+            key_list.add(keyword);
+        }
+
+        if (key_list.isEmpty()) {
+            Toast.makeText(this, "搜索记录为空", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        final String[] keywords = key_list.toArray(new String[key_list.size()]);
+
+        Dialog choose_search_dlg = new AlertDialog.Builder(this)
+                .setTitle("选择搜索关键词")
+                .setNegativeButton("取消", null)
+                .setItems(keywords,
+                        new DialogInterface.OnClickListener() {
+                            public void onClick(DialogInterface dialog, int whichButton) {
+                                Intent intent = new Intent(
+                                        PPTVVideoActivity.this, PPTVEpisodeActivity.class);
+                                intent.putExtra("search_key", keywords[whichButton]);
+                                startActivity(intent);
+
+                                dialog.dismiss();
+                            }
+                        })
+                .create();
+        choose_search_dlg.show();
+    }
 	
 	private void popupRecentPlay() {
 		final List<ClipInfo> infoList = mHistoryDB.getRecentPlay();
@@ -313,7 +368,7 @@ public class PPTVVideoActivity extends AppCompatActivity {
 				Uri uri = Uri.parse(url);
 				Intent intent = new Intent(PPTVVideoActivity.this,
 						PPTVPlayerActivity.class);
-				Log.i(TAG, "to play uri: " + uri.toString());
+                LogUtil.info(TAG, "to play uri: " + uri.toString());
 				
 				Toast.makeText(PPTVVideoActivity.this, 
 						String.format("ready to play %s, 码流 %d",str_title_list[whichButton], ft), 
@@ -327,7 +382,7 @@ public class PPTVVideoActivity extends AppCompatActivity {
 				
 				if (info.mLastPos > 0) {
 					intent.putExtra("preseek_msec", info.mLastPos);
-					Log.i(TAG, "Java: set preseek_msec " + info.mLastPos);
+                    LogUtil.info(TAG, "Java: set preseek_msec " + info.mLastPos);
 				}
 		        
 				startActivity(intent);
@@ -373,7 +428,7 @@ public class PPTVVideoActivity extends AppCompatActivity {
 				String url = PlayLinkUtil.getPlayUrl(playlink, port, ft, bw_type, null);
 				
 				Uri uri = Uri.parse(url);
-				Log.i(TAG, "to play uri: " + uri.toString());
+                LogUtil.info(TAG, "to play uri: " + uri.toString());
 				
 				Toast.makeText(PPTVVideoActivity.this, 
 						String.format("ready to play %s, 码流 %d",str_title_list[whichButton], ft), 
@@ -388,7 +443,7 @@ public class PPTVVideoActivity extends AppCompatActivity {
 				
 				if (info.mLastPos > 0) {
 					intent.putExtra("preseek_msec", info.mLastPos);
-					Log.i(TAG, "Java: set preseek_msec " + info.mLastPos);
+                    LogUtil.info(TAG, "Java: set preseek_msec " + info.mLastPos);
 				}
 		        
 				startActivity(intent);
@@ -487,7 +542,7 @@ public class PPTVVideoActivity extends AppCompatActivity {
     			mContentSelected = true;
         	}
         	else {
-        		Log.w(TAG, "Java: EPGTask invalid action: " + action);
+                LogUtil.warn(TAG, "Java: EPGTask invalid action: " + action);
         	}
         	
         	return items;

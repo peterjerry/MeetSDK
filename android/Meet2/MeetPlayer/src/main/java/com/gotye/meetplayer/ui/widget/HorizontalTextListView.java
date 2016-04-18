@@ -3,6 +3,7 @@ package com.gotye.meetplayer.ui.widget;
 import java.util.ArrayList;
 
 import android.content.Context;
+import android.graphics.Color;
 import android.graphics.Rect;
 import android.util.AttributeSet;
 import android.view.LayoutInflater;
@@ -220,6 +221,18 @@ public class HorizontalTextListView extends LinearLayout
             textView = (TextView) view.findViewById(R.id.horizontal_text_item_text);
 
             textView.setText(str);
+            textView.setFocusable(true);
+            textView.setOnFocusChangeListener(new OnFocusChangeListener() {
+                @Override
+                public void onFocusChange(View v, boolean hasFocus) {
+                    if (hasFocus) {
+                        v.setBackgroundColor(Color.LTGRAY);
+                    }
+                    else {
+                        v.setBackgroundColor(Color.WHITE);
+                    }
+                }
+            });
             // textView.setTextColor(COLOR_UNSELECTED);
             if (textColor != -1)
             {

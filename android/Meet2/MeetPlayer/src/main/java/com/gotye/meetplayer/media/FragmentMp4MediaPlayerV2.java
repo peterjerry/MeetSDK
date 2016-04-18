@@ -319,7 +319,7 @@ public class FragmentMp4MediaPlayerV2 {
                 else if (mPlayerImpl == XO_PLAYER)
                     mode = MediaPlayer.DecodeMode.HW_XOPLAYER;
                 else
-                    mode = MediaPlayer.DecodeMode.SW;
+                    mode = MediaPlayer.DecodeMode.HW_SYSTEM;
 				mNextPlayer = new MediaPlayer(mode);
 				mNextPlayer.reset();
 

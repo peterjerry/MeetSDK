@@ -1,6 +1,7 @@
 package com.gotye.meetplayer.ui;
 
 import java.util.List;
+import java.util.Locale;
 
 import android.content.Intent;
 import android.net.Uri;
@@ -70,6 +71,12 @@ public class PPTVPlayerActivity extends VideoPlayerActivity {
 
 	@Override
 	protected void onCompleteImpl() {
+        if (mPlaylink != -1 && (mPlaylink < 300000 || mPlaylink > 400000)) {
+            Util.save_pptvvideo_pos(this, String.valueOf(mPlaylink), 0);
+            LogUtil.info(TAG, String.format(Locale.US,
+                    "Java: vid %d play complete, reset position", mPlaylink));
+        }
+
 		mVideoView.stopPlayback();
 		
 		if (mEpisodeList == null) {
@@ -155,7 +162,8 @@ public class PPTVPlayerActivity extends VideoPlayerActivity {
             			Integer.valueOf(playlink), http_port, mFt, 3, null);
             	mUri = Uri.parse(url);
             	
-            	String info = String.format("ready to play video %s, playlink: %s, ft: %d", 
+            	String info = String.format(Locale.US,
+						"ready to play video %s, playlink: %s, ft: %d",
             			pl.getTitle(), playlink, mFt);
 				LogUtil.info(TAG, info);
         		Toast.makeText(PPTVPlayerActivity.this, info, Toast.LENGTH_SHORT).show();
