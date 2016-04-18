@@ -63,6 +63,8 @@ public:
 
 	status_t readPacket(int stream_index, unsigned char *data, int32_t *sampleSize);
 
+	status_t getBitrate(int32_t *kbps);
+
 private:
 	int open_codec_context(int *stream_idx, int media_type);
 

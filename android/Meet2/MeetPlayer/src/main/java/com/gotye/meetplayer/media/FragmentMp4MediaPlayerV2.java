@@ -324,7 +324,8 @@ public class FragmentMp4MediaPlayerV2 {
 				mNextPlayer.reset();
 
                 // ffplayer MUST set HERE!!!
-                if (mPlayerImpl != SYSTEM_PLAYER)
+                // xoplayer cannot set HERE because of 2 instance cannot share 1 native window
+                if (mPlayerImpl == FF_PLAYER)
                     mNextPlayer.setDisplay(mHolder);
                 mNextPlayer.setAudioStreamType(mStreamType);
 				//mNextPlayer.setScreenOnWhilePlaying(mScreenOnWhilePlaying);
@@ -387,15 +388,16 @@ public class FragmentMp4MediaPlayerV2 {
 
 			// SYSTEM player nextplay auto play ok code
             // must release first???
-			if (mPlayerImpl == SYSTEM_PLAYER) // ffplay cannot set null Display now!
+			// ffplay cannot set null Display now!
+			if (mPlayerImpl == SYSTEM_PLAYER)
                 mp.setDisplay(null);
 			mp.release();
 
             mCurrentPlayer = mNextPlayer;
             mNextPlayer = null;
-			if (mPlayerImpl == SYSTEM_PLAYER)
+			if (mPlayerImpl == SYSTEM_PLAYER || mPlayerImpl == XO_PLAYER)
 				mCurrentPlayer.setDisplay(mHolder); // system player set display HERE!
-            else
+            if (mPlayerImpl == XO_PLAYER || mPlayerImpl == FF_PLAYER)
                 mCurrentPlayer.start(); // ffplay MUST start manually
 
             LogUtil.info(TAG, "Java: switch to next segment #" + m_playlink_now_index);

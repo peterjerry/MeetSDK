@@ -315,6 +315,8 @@ public:
 
 	virtual status_t readPacket(int stream_index, unsigned char *data, int32_t *sampleSize) = 0;
 
+	virtual status_t getBitrate(int32_t *kbps) = 0;
+
 	virtual ~IExtractor() {}
 };
 

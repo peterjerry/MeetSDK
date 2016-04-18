@@ -1037,7 +1037,7 @@ public class XOMediaPlayer extends BaseMediaPlayer {
 		LogUtils.info("video thread started");
 
 		int noOutputCounter = 0;
-		boolean sawOutputEOS = false;
+        boolean sawOutputEOS = false;
 		int videoAheadMax = 0;
 		MediaCodec.BufferInfo info = new MediaCodec.BufferInfo();
 
@@ -1058,16 +1058,15 @@ public class XOMediaPlayer extends BaseMediaPlayer {
 				}
 			}
 
-			if (sawOutputEOS) {
-				try {
-					Thread.sleep(10);
-				} catch (InterruptedException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
-				}
+            if (sawOutputEOS) {
+                try {
+                    Thread.sleep(10);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
 
-				continue;
-			}
+                continue;
+            }
 
 			noOutputCounter++;
 
@@ -1153,11 +1152,14 @@ public class XOMediaPlayer extends BaseMediaPlayer {
 						LogUtils.info("saw output EOS.");
 
 						if (mLooping) {
-							mSawInputEOS = false;
+                            mVideoCodec.flush();
+
+							mSawInputEOS = false; // notify audio_proc to restart
+                            noOutputCounter = 0;
 							seekTo(0);
 							continue;
 						} else {
-							sawOutputEOS = true;
+                            sawOutputEOS = true;
 							postPlaybackCompletionEvent();
 							break;
 						}
@@ -1213,9 +1215,9 @@ public class XOMediaPlayer extends BaseMediaPlayer {
 					long av_diff_msec = video_clock_msec - audio_clock_msec;
 					if (NO_AUDIO)
 						av_diff_msec = 0;
-					/*LogUtils.debug(String.format(Locale.US,
-							"video %d, audio %d, diff_msec %d msec",
-							video_clock_msec, audio_clock_msec, av_diff_msec));*/
+					//LogUtils.info(String.format(Locale.US,
+					//		"video %d, audio %d, diff_msec %d msec",
+					//		video_clock_msec, audio_clock_msec, av_diff_msec));
 
                     if (mDecodedFrameCnt % 10 == 0) {
                         msg = mEventHandler
@@ -1262,7 +1264,9 @@ public class XOMediaPlayer extends BaseMediaPlayer {
 							mExtractor.setVideoAhead(videoAheadMax);
 							LogUtils.error("Java: setVideoAhead(too late) " + videoAheadMax);
 						}
-						
+
+                        //LogUtils.info(String.format(Locale.US,
+                        //        "drop frame: av_diff %d msec", av_diff_msec));
 						msg = mEventHandler
 								.obtainMessage(MediaPlayer.MEDIA_INFO);
 						msg.arg1 = MediaPlayer.MEDIA_INFO_TEST_DROP_FRAME;
@@ -1299,16 +1303,16 @@ public class XOMediaPlayer extends BaseMediaPlayer {
 					}
 				} else if (res == MediaCodec.INFO_OUTPUT_BUFFERS_CHANGED) {
 					// codecOutputBuffers = codec.getOutputBuffers();
-					LogUtils.error("output buffers have changed.");
+					LogUtils.info("output buffers have changed.");
 				} else if (res == MediaCodec.INFO_OUTPUT_FORMAT_CHANGED) {
 					MediaFormat oformat = mVideoCodec.getOutputFormat();
-					LogUtils.error("output format has changed to " + oformat);
+					LogUtils.info("output format has changed to " + oformat);
 				} else {
-					LogUtils.error("video no output: " + res);
+					LogUtils.debug("video no output: " + res);
 				}
 			} catch (IllegalStateException e) {
 				e.printStackTrace();
-				LogUtils.error("codec dequeueOutputBuffer exception"
+				LogUtils.warn("codec dequeueOutputBuffer exception"
 						+ e.getMessage());
 				msg = mEventHandler
 						.obtainMessage(MediaPlayer.MEDIA_ERROR);
@@ -1328,7 +1332,6 @@ public class XOMediaPlayer extends BaseMediaPlayer {
 	private void audio_proc() {
 		LogUtils.info("audio thread started");
 
-		int noOutputCounter = 0;
 		boolean sawOutputEOS = false;
 		MediaCodec.BufferInfo info = new MediaCodec.BufferInfo();
 
@@ -1349,7 +1352,22 @@ public class XOMediaPlayer extends BaseMediaPlayer {
 				}
 			}
 
-			noOutputCounter++;
+            if (sawOutputEOS) {
+                if (mSawInputEOS) {
+                    try {
+                        Thread.sleep(10);
+                    } catch (InterruptedException e) {
+                        // TODO Auto-generated catch block
+                        e.printStackTrace();
+                    }
+
+                    continue;
+                }
+                else {
+                    LogUtils.info("receive seek back to 0 signal");
+                    sawOutputEOS = false;
+                }
+            }
 
             if (USE_READ_SAMPLE_THREAD) {
                 if (!queue_packet(false))
@@ -1384,7 +1402,7 @@ public class XOMediaPlayer extends BaseMediaPlayer {
                         String strPkt = new String(byte_ctx);
                         if (str_flush.equals(strPkt)) {
                             is_flush_pkt = true;
-                            LogUtils.error("Java: flush video");
+                            LogUtils.error("Java: flush audio");
 
                             ResetStatics();
                             mCurrentTimeMsec = mSeekingTimeMsec;
@@ -1405,27 +1423,23 @@ public class XOMediaPlayer extends BaseMediaPlayer {
                 }
             }
 
-			if (noOutputCounter >= 50) {
-				LogUtils.warn("output eos not found after 50 frames");
-				break;
-			}
-
 			int res;
 			try {
 				mAudioCodecLock.lock();
 				res = mAudioCodec.dequeueOutputBuffer(info, TIMEOUT);
 
 				if (res >= 0) {
-					if (info.size > 0) {
-						noOutputCounter = 0;
-					}
-
 					int outputBufIndex = res;
 
 					if ((info.flags & MediaCodec.BUFFER_FLAG_END_OF_STREAM) != 0) {
 						LogUtils.info("saw audio output EOS.");
 						sawOutputEOS = true;
-						break;
+
+						if (!mLooping)
+							break;
+
+                        mAudioCodec.flush();
+                        continue;
 					}
 
 					//LogUtils.debug(String
@@ -1745,7 +1759,7 @@ public class XOMediaPlayer extends BaseMediaPlayer {
 
 		PlayState state = getState();
 		if (state != PlayState.STARTED && state != PlayState.PAUSED
-				&& state != PlayState.PREPARED) {
+				&& state != PlayState.PREPARED && state != PlayState.PLAYBACK_COMPLETED) {
 
 			LogUtils.error("SeekTo Exception!!!");
 			throw new IllegalStateException("Error State: " + state);
@@ -1924,7 +1938,7 @@ public class XOMediaPlayer extends BaseMediaPlayer {
 	@Override
 	public boolean isLooping() {
 		// TODO Auto-generated method stub
-		return false;
+		return mLooping;
 	}
 
 	@Override

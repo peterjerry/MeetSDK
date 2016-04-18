@@ -1148,17 +1148,42 @@ status_t FFExtractor::advance()
 	return OK;
 }
 
+status_t FFExtractor::getBitrate(int32_t *kbps)
+{
+	if (m_fmt_ctx && m_fmt_ctx->pb) {
+		int64_t size = avio_size(m_fmt_ctx->pb);
+		if (size <=0)
+			size = avio_tell(m_fmt_ctx->pb);
+
+		int64_t duration_msec = m_video_clock_msec;
+		if (duration_msec < 100)
+			duration_msec = 100;
+		return (int)((double)(size * 8) / (double)m_video_clock_msec);
+	}
+
+	return 0;
+}
+
 status_t FFExtractor::readPacket(int stream_index, unsigned char *data, int32_t *sampleSize)
 {
-	if (start() < 0)
-		return ERROR;
-
 	if (stream_index < 0 || stream_index >= (int)m_fmt_ctx->nb_streams) {
 		LOGE("invalid stream index: %d", stream_index);
 		return ERROR;
 	}
 
-	if (m_eof)
+	if (FFEXTRACTOR_STARTED != m_status && FFEXTRACTOR_PAUSED != m_status) {
+		if (!m_audio_stream && !m_video_stream) {
+			LOGE("both audio and video stream was not set, aborting");
+			return ERROR;
+		}
+
+		pthread_create(&mThread, NULL, demux_thread, this);
+
+		m_buffering = true;
+		m_status = FFEXTRACTOR_STARTED;
+	}
+
+	if (m_eof && m_video_q.count() == 0/* && m_audio_q.count == 0*/)
 		return READ_EOF;
 
 	if (m_video_q.count() == 0 || m_audio_q.count() == 0) {
