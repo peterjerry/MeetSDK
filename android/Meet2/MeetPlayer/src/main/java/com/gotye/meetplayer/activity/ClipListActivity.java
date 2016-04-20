@@ -1,6 +1,5 @@
-package com.gotye.meetplayer.ui;
+package com.gotye.meetplayer.activity;
 
-import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.Dialog;
 import android.app.ProgressDialog;
@@ -23,14 +22,14 @@ import android.net.Uri;
 import android.net.wifi.WifiManager;
 import android.net.wifi.WifiManager.WifiLock;
 import android.os.AsyncTask;
-import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
 import android.os.Handler;
 import android.os.Message;
 
 import com.gotye.common.youku.YKUtil;
-import com.gotye.meetplayer.util.Constants;
+import com.gotye.meetplayer.adapter.LocalFileAdapter;
+import com.gotye.meetplayer.ui.MyPreView2;
 import com.gotye.meetsdk.MeetSDK;
 import com.gotye.meetsdk.player.MediaController.MediaPlayerControl;
 import com.gotye.meetsdk.player.MediaInfo;
@@ -122,12 +121,14 @@ import java.util.Random;
 
 import so.cym.crashhandlerdemo.UploadLogTask;
 
+// ONLY support external subtitle???
 public class ClipListActivity extends AppCompatActivity implements
 		MediaPlayer.OnPreparedListener, MediaPlayer.OnCompletionListener,
 		MediaPlayer.OnErrorListener, MediaPlayer.OnInfoListener,
 		MediaPlayer.OnVideoSizeChangedListener, MediaPlayer.OnBufferingUpdateListener,
 		MediaPlayer.OnSeekCompleteListener,
-		MediaPlayerControl, SurfaceHolder.Callback, SubTitleParser.Callback, OnFocusChangeListener {
+		MediaPlayerControl, SurfaceHolder.Callback,
+		SubTitleParser.OnReadyListener, OnFocusChangeListener {
 
 	private final static String TAG = "ClipList";
 	
@@ -1116,7 +1117,7 @@ public class ClipListActivity extends AppCompatActivity implements
 	}
 	
 	@SuppressWarnings("deprecation") // avoid setType warning
-	private int start_player(String title, String path) {
+	private boolean start_player(String title, String path) {
 		mDecMode = DecodeMode.UNKNOWN;
 		if (0 == mPlayerImpl) {
 			mDecMode = DecodeMode.AUTO;
@@ -1161,10 +1162,10 @@ public class ClipListActivity extends AppCompatActivity implements
 				fileName = path;
 			}
 			
-			if (canPlay == false) {
+			if (!canPlay) {
 				Toast.makeText(ClipListActivity.this, "XOPlayer cannot play: " + fileName, 
 					Toast.LENGTH_SHORT).show();
-				return -1;
+				return false;
 			}
 			
 			mDecMode = DecodeMode.HW_XOPLAYER;
@@ -1175,14 +1176,14 @@ public class ClipListActivity extends AppCompatActivity implements
 		else if (4 == mPlayerImpl) {
 			boolean canPlay = false;
 			if (path.startsWith("/") || path.startsWith("file://")) {
-				if (path.endsWith(".ts") || path.endsWith(".mpegts"));
+				if (path.endsWith(".ts") || path.endsWith(".mpegts"))
 					canPlay = true;
 			}
 			
-			if (canPlay == false) {
+			if (!canPlay) {
 				Toast.makeText(ClipListActivity.this, "OMXPlayer cannot play: " + path, 
 					Toast.LENGTH_SHORT).show();
-				return -1;
+				return false;
 			}
 			
 			mDecMode = DecodeMode.HW_OMX;
@@ -1190,7 +1191,7 @@ public class ClipListActivity extends AppCompatActivity implements
 		else {
 			Toast.makeText(ClipListActivity.this, "invalid player implement: " + Integer.toString(mPlayerImpl), 
 				Toast.LENGTH_SHORT).show();
-			return -1;
+			return false;
 		}
 		
 		stop_player();
@@ -1267,39 +1268,31 @@ public class ClipListActivity extends AppCompatActivity implements
 
 				mWifiLock.acquire();
 			}
-			
-			boolean succeed = false;
+
 			try {
 				mPlayer.setDataSource(path);
 				mPlayer.prepareAsync();
-				succeed = true;
-			} catch (IllegalArgumentException e) {
+
+                if (!mPlayUrl.startsWith("/") && !mPlayUrl.startsWith("file://")) {
+                    // ONLY network media need buffering
+                    mBufferingProgressBar.setVisibility(View.VISIBLE);
+                    mIsBuffering = true;
+
+                    mSpeed = new NetworkSpeed();
+                    mHandler.sendEmptyMessage(MSG_UPDATE_NETWORK_SPEED);
+                }
+
+                return true;
+			} catch (Exception e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
-			} catch (IllegalStateException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			} catch (IOException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
-			
-			if (succeed) {
-				if (!mPlayUrl.startsWith("/") && !mPlayUrl.startsWith("file://")) {
-					// ONLY network media need buffering
-					mBufferingProgressBar.setVisibility(View.VISIBLE);
-					mIsBuffering = true;
-					
-					mSpeed = new NetworkSpeed();
-					mHandler.sendEmptyMessage(MSG_UPDATE_NETWORK_SPEED);
-				}
-			}
-			else {
-				Toast.makeText(this, "Java: failed to play: " + path, Toast.LENGTH_SHORT).show();
+				LogUtil.error(TAG, "failed to play: " + e.toString());
+                Toast.makeText(this, "Java: failed to play: " + path, Toast.LENGTH_SHORT).show();
+				return false;
 			}
 		}
 		
-		return 0;
+		return true;
 	}
 	
 	void stop_player() {
@@ -2539,7 +2532,7 @@ public class ClipListActivity extends AppCompatActivity implements
 		stop_subtitle();
 		
 		mSubtitleParser = new SimpleSubTitleParser();
-		mSubtitleParser.setOnPreparedListener(this);
+		mSubtitleParser.setListener(this);
 		
 		mSubtitleParser.setDataSource(filename);
 		mSubtitleParser.prepareAsync();

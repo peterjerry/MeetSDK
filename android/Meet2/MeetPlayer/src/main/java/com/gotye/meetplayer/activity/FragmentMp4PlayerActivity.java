@@ -1,6 +1,5 @@
-package com.gotye.meetplayer.ui;
+package com.gotye.meetplayer.activity;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.StringTokenizer;
@@ -13,7 +12,6 @@ import com.gotye.common.sohu.SohuUtil;
 import com.gotye.common.util.LogUtil;
 import com.gotye.meetplayer.R;
 
-import android.app.Activity;
 import android.content.Intent;
 import android.graphics.Color;
 import android.media.AudioManager;
@@ -30,7 +28,6 @@ import android.view.KeyEvent;
 import android.view.MotionEvent;
 import android.view.SurfaceHolder;
 import android.view.View;
-import android.view.Window;
 import android.view.WindowManager;
 import android.view.SurfaceHolder.Callback;
 import android.view.SurfaceView;
@@ -414,18 +411,10 @@ public class FragmentMp4PlayerActivity extends AppCompatActivity implements Call
 		
 		try {
 			mPlayer.setDataSource(m_playlink_list.get(m_playlink_now_index));
-		} catch (IllegalStateException e) {
+		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
-		} catch (IllegalArgumentException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (SecurityException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			return false;
 		}
 		
 		mPlayer.prepareAsync();

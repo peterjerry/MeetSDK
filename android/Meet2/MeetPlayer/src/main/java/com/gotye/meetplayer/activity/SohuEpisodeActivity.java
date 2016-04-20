@@ -1,4 +1,4 @@
-package com.gotye.meetplayer.ui;
+package com.gotye.meetplayer.activity;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -12,6 +12,7 @@ import com.gotye.common.sohu.PlaylinkSohu.SohuFtEnum;
 import com.gotye.common.sohu.SohuUtil;
 import com.gotye.common.util.LogUtil;
 import com.gotye.meetplayer.R;
+import com.gotye.meetplayer.adapter.CommonAlbumAdapter;
 import com.gotye.meetplayer.util.Util;
 
 import android.app.AlertDialog;

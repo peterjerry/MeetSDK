@@ -306,7 +306,8 @@ public class FFMediaPlayer extends BaseMediaPlayer {
 	//return buffering time in milliseconds
 	@Override
 	public native int getBufferingTime();
-	
+
+	@Override
 	public native int flags() throws IllegalStateException;
 
 	@Override

@@ -1,4 +1,4 @@
-package com.gotye.meetplayer.ui;
+package com.gotye.meetplayer.activity;
 
 import android.app.AlertDialog;
 import android.app.Dialog;
@@ -29,6 +29,7 @@ import android.widget.Toast;
 import com.gotye.common.util.LogUtil;
 import com.gotye.meetplayer.R;
 import com.gotye.meetplayer.media.FragmentMp4MediaPlayerV2;
+import com.gotye.meetplayer.ui.MyPreView2;
 import com.gotye.meetplayer.ui.widget.MicroMediaController;
 import com.gotye.meetplayer.util.Util;
 import com.gotye.meetsdk.player.MediaController.MediaPlayerControl;

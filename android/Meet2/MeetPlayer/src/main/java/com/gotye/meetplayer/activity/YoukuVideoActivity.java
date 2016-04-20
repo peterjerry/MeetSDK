@@ -1,4 +1,4 @@
-package com.gotye.meetplayer.ui;
+package com.gotye.meetplayer.activity;
 
 import android.app.AlertDialog;
 import android.app.Dialog;
@@ -32,7 +32,6 @@ import com.gotye.meetplayer.util.Util;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Locale;
 import java.util.StringTokenizer;
 
 

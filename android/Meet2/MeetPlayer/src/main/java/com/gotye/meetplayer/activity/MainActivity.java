@@ -1,4 +1,4 @@
-package com.gotye.meetplayer.ui;
+package com.gotye.meetplayer.activity;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -23,6 +23,7 @@ import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Environment;
+
 import com.gotye.meetsdk.MeetSDK;
 import com.gotye.meetsdk.player.MediaInfo;
 import android.provider.MediaStore;

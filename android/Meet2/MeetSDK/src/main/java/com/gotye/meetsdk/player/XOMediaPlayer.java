@@ -715,7 +715,8 @@ public class XOMediaPlayer extends BaseMediaPlayer {
 		mPlayCond.signalAll();
 		mPlayLock.unlock();
 
-		postBufferingUpdateCheckEvent();
+		if (!mUrl.startsWith("file://") || !mUrl.startsWith("/"))
+			postBufferingUpdateCheckEvent();
 	}
 
 	private long get_audio_clock() {

@@ -1,4 +1,4 @@
-package com.gotye.meetplayer.ui;
+package com.gotye.meetplayer.activity;
 
 import android.app.AlertDialog;
 import android.app.Dialog;
@@ -25,6 +25,7 @@ import com.gotye.common.youku.Episode;
 import com.gotye.common.youku.YKUtil;
 import com.gotye.db.YKPlayhistoryDatabaseHelper;
 import com.gotye.meetplayer.R;
+import com.gotye.meetplayer.adapter.CommonAlbumAdapter;
 import com.gotye.meetplayer.ui.widget.HorizontalTextListView;
 import com.gotye.meetplayer.util.Util;
 
@@ -50,6 +51,7 @@ public class YoukuAlbumActivity extends AppCompatActivity {
     
     private final static int SET_DATA_LIST		= 1;
     private final static int SET_DATA_SEARCH	= 2;
+    private final static int SET_DATA_RELATE	= 3;
 
     private boolean search_mode = false;
 
@@ -60,7 +62,7 @@ public class YoukuAlbumActivity extends AppCompatActivity {
     private int album_page_index = 1;
     private int episode_page_index = 1;
     private int subpage_sort = 2; // 1-最新发布，2-最多播放
-    private int search_orderby = 2; // orderby 1-综合排序 2-最新发布 3-最多播放
+    private int search_orderby = -1; // orderby 1-综合排序 2-最新发布 3-最多播放
     private int search_page_index = 1;
     private int episode_page_incr = 1;
     private final static int page_size = 10;
@@ -87,6 +89,7 @@ public class YoukuAlbumActivity extends AppCompatActivity {
     private int sub_channel_type = -1;
 
     private String search_key;
+    private String relate_vid;
     
     boolean noMoreData = false;
     boolean loadingMore = false;
@@ -109,12 +112,17 @@ public class YoukuAlbumActivity extends AppCompatActivity {
             setTitle(getResources().getString(R.string.title_activity_youku_video) +
                     "  " + search_key);
         }
+        else if (intent.hasExtra("relate_vid")) {
+            relate_vid = intent.getStringExtra("relate_vid");
+            setTitle(getResources().getString(R.string.title_activity_youku_video) +
+                    "  " + title + " 相关");
+        }
         else {
             setTitle(getResources().getString(R.string.title_activity_youku_video) +
                     "  " + title);
         }
 
-		if (sub_channel_id == -1 && search_key == null) {
+		if (sub_channel_id == -1 && search_key == null && relate_vid == null) {
 			Toast.makeText(this, "intent param is wrong", Toast.LENGTH_SHORT).show();
             finish();
 			return;
@@ -138,6 +146,8 @@ public class YoukuAlbumActivity extends AppCompatActivity {
                 boolean bAlbum = (Boolean) item.get("is_album");
                 if (bAlbum) {
                     mShowId = (String) item.get("show_id");
+                    String vid = (String) item.get("vid");
+                    String title = (String) item.get("title");
                     int count = (Integer) item.get("episode_total");
                     if (count < 10) {
                         new EPGTask().execute(TASK_EPISODE);
@@ -146,6 +156,8 @@ public class YoukuAlbumActivity extends AppCompatActivity {
 
                     Intent intent = new Intent(YoukuAlbumActivity.this, YoukuEpisodeActivity.class);
                     intent.putExtra("show_id", mShowId);
+                    intent.putExtra("vid", vid);
+                    intent.putExtra("title", title);
                     startActivity(intent);
                 }
                 else {
@@ -207,7 +219,8 @@ public class YoukuAlbumActivity extends AppCompatActivity {
                 //        firstVisibleItem, visibleItemCount, totalItemCount));
 
                 int lastInScreen = firstVisibleItem + visibleItemCount;
-                if (totalItemCount > 0 && lastInScreen == totalItemCount && !noMoreData) {
+                if (relate_vid == null &&
+                        totalItemCount > 0 && lastInScreen == totalItemCount && !noMoreData) {
                     if (!loadingMore) {
                         loadingMore = true;
                         new EPGTask().execute(TASK_MORELIST);
@@ -223,6 +236,10 @@ public class YoukuAlbumActivity extends AppCompatActivity {
 	    if (search_key != null) {
             search_mode = true;
             new SetDataTask().execute(SET_DATA_SEARCH);
+        }
+        else if (relate_vid != null) {
+            search_mode = false;
+            new SetDataTask().execute(SET_DATA_RELATE);
         }
 	    else {
             search_mode = false;
@@ -455,28 +472,33 @@ public class YoukuAlbumActivity extends AppCompatActivity {
 			}
 			else if (action == TASK_MORELIST) {
                 if (search_mode) {
+                    List<Map<String, Object>> listData = mAdapter.getData();
+
                     search_page_index++;
-                    mEpisodeList = YKUtil.soku(search_key, search_orderby, search_page_index);
-                    if (mEpisodeList == null || mEpisodeList.isEmpty()) {
+                    YKUtil.MixResult result = YKUtil.soku(search_key, search_orderby, search_page_index);
+                    if (result == null || result.mEpisodeList == null ||
+                            result.mEpisodeList.isEmpty()) {
                         LogUtil.info(TAG, "Java: no more search result");
                         noMoreData = true;
                         return false;
                     }
 
+                    mEpisodeList = result.mEpisodeList;
                     int c = mEpisodeList.size();
                     if (c < search_page_size) {
                         noMoreData = true;
                         LogUtil.info(TAG, "Java: meet search end");
                     }
-                    List<Map<String, Object>> listData = mAdapter.getData();
                     for (int i=0;i<c;i++) {
                         HashMap<String, Object> episode = new HashMap<String, Object>();
                         Episode ep = mEpisodeList.get(i);
                         episode.put("title", ep.getTitle());
                         episode.put("img_url", ep.getThumbUrl());
                         episode.put("desc", "N/A");
-                        episode.put("onlinetime", "发布: " + ep.getOnlineTime());
-                        episode.put("tip", "播放: " + ep.getTotalVV());
+                        episode.put("onlinetime", String.format("发布: %s",
+                                ep.getOnlineTime() == null ? "" : ep.getOnlineTime()));
+                        episode.put("tip", String.format("播放: %s",
+                                ep.getTotalVV() == null ? "" : ep.getTotalVV()));
                         episode.put("duration", ep.getDuration());
                         episode.put("vid", ep.getVideoId());
                         episode.put("is_album", false);
@@ -645,14 +667,35 @@ public class YoukuAlbumActivity extends AppCompatActivity {
                     LogUtil.error(TAG, "Java: failed to call subchannel()");
                     return false;
                 }*/
-                mEpisodeList = YKUtil.soku(search_key, search_orderby, search_page_index);
-                if (mEpisodeList == null || mEpisodeList.isEmpty()) {
+
+                items = new ArrayList<Map<String, Object>>();
+
+                YKUtil.MixResult result = YKUtil.soku(search_key, search_orderby, search_page_index);
+                if (result == null) {
                     LogUtil.error(TAG, "Java: failed to call soku()");
                     return null;
                 }
 
+                mAlbumList = result.mALbumList;
+                mEpisodeList = result.mEpisodeList;
+                if (mAlbumList != null && !mAlbumList.isEmpty()) {
+                    int c = mAlbumList.size();
+                    for (int i=0;i<c;i++) {
+                        Album al = mAlbumList.get(i);
+                        HashMap<String, Object> albumMap = fill_album_info(al);
+                        if (albumMap == null)
+                            continue;
+
+                        items.add(albumMap);
+                    }
+                }
+
+                if (mEpisodeList == null || mEpisodeList.isEmpty()) {
+                    LogUtil.error(TAG, "Java: soku() episode list is null");
+                    return null;
+                }
+
                 int c = mEpisodeList.size();
-                items = new ArrayList<Map<String, Object>>();
                 for (int i=0;i<c;i++) {
                     HashMap<String, Object> episode = new HashMap<String, Object>();
                     Episode ep = mEpisodeList.get(i);
@@ -681,11 +724,11 @@ public class YoukuAlbumActivity extends AppCompatActivity {
                 int c = mAlbumList.size();
                 for (int i=0;i<c;i++) {
                     Album al = mAlbumList.get(i);
-                    HashMap<String, Object> episode = fill_album_info(al);
-                    if (episode == null)
+                    HashMap<String, Object> albumMap = fill_album_info(al);
+                    if (albumMap == null)
                         continue;
 
-                    items.add(episode);
+                    items.add(albumMap);
                 }
 
                 if (get_filter > 0) {
@@ -696,6 +739,51 @@ public class YoukuAlbumActivity extends AppCompatActivity {
                     get_filter = 0; // ONLY show once
                 }
 			}
+            else if (action == SET_DATA_RELATE) {
+                YKUtil.MixResult result = YKUtil.relate(relate_vid, album_page_index);
+                if (result == null) {
+                    LogUtil.error(TAG, "failed to call relate() " + relate_vid);
+                    return null;
+                }
+
+                items = new ArrayList<Map<String, Object>>();
+
+                mAlbumList = result.mALbumList;
+                mEpisodeList = result.mEpisodeList;
+
+                if (mAlbumList == null && mEpisodeList == null) {
+                    LogUtil.error(TAG, "Java: failed to call relate()");
+                    return null;
+                }
+                if (mAlbumList != null && !mAlbumList.isEmpty()) {
+                    int c = mAlbumList.size();
+                    for (int i=0;i<c;i++) {
+                        Album al = mAlbumList.get(i);
+                        HashMap<String, Object> albumMap = fill_album_info(al);
+                        if (albumMap == null)
+                            continue;
+
+                        items.add(albumMap);
+                    }
+                }
+
+                int c = mEpisodeList.size();
+                for (int i=0;i<c;i++) {
+                    HashMap<String, Object> episode = new HashMap<String, Object>();
+                    Episode ep = mEpisodeList.get(i);
+                    LogUtil.info(TAG, "episode info: " + ep.toString());
+                    episode.put("title", ep.getTitle());
+                    episode.put("img_url", ep.getThumbUrl());
+                    episode.put("desc", "N/A");
+                    episode.put("onlinetime", "发布: " + ep.getOnlineTime());
+                    episode.put("tip", "播放: " + ep.getTotalVV());
+                    episode.put("duration", ep.getDuration());
+                    episode.put("vid", ep.getVideoId());
+                    episode.put("is_album", false);
+                    episode.put("episode_total", 1);
+                    items.add(episode);
+                }
+            }
             else {
                 LogUtil.error(TAG, "invalid action: " + action);
                 return null;

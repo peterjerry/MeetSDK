@@ -1,4 +1,4 @@
-package com.gotye.meetplayer.ui;
+package com.gotye.meetplayer.activity;
 
 import java.util.List;
 
@@ -10,7 +10,6 @@ import com.gotye.common.sohu.PlaylinkSohu;
 import com.gotye.common.sohu.PlaylinkSohu.SohuFtEnum;
 import com.gotye.common.sohu.SohuUtil;
 import com.gotye.common.util.LogUtil;
-import com.gotye.meetplayer.R;
 import com.gotye.meetplayer.util.Util;
 
 import android.content.Intent;

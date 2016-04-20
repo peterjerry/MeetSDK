@@ -1,4 +1,4 @@
-package com.gotye.meetplayer.ui;
+package com.gotye.meetplayer.activity;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -14,14 +14,13 @@ import com.gotye.common.pptv.EPGUtil;
 import com.gotye.common.pptv.PlayLink2;
 import com.gotye.common.pptv.PlayLinkUtil;
 import com.gotye.meetplayer.R;
+import com.gotye.meetplayer.adapter.PPTVAdapter;
 import com.gotye.meetplayer.ui.widget.MiniMediaController;
 import com.gotye.meetplayer.util.DownloadClipTask;
 import com.gotye.meetplayer.util.NetworkSpeed;
 import com.gotye.meetplayer.util.Util;
-import com.gotye.meetsdk.player.MeetNativeVideoView;
 import com.pplive.sdk.MediaSDK;
 
-import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.Dialog;
 import android.app.Notification;
@@ -56,7 +55,6 @@ import android.view.KeyEvent;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.View.OnFocusChangeListener;
-import android.view.Window;
 import android.view.WindowManager;
 import android.widget.AdapterView;
 import android.widget.Button;

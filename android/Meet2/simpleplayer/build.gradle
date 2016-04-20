@@ -14,15 +14,19 @@ android {
 
     defaultConfig {
         applicationId "com.gotye.simpleplayer"
-        minSdkVersion 16
-        targetSdkVersion 23
+        minSdkVersion 14
+        targetSdkVersion 20
         versionCode 1
         versionName "1.0"
     }
     buildTypes {
         release {
-            minifyEnabled false
+            minifyEnabled true
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            signingConfig signingConfigs.release
+            ndk {
+                abiFilters "armeabi-v7a", "x86"
+            }
         }
         debug {
             signingConfig signingConfigs.release

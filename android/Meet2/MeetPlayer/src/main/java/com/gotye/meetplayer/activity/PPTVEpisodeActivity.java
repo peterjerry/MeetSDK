@@ -1,4 +1,4 @@
-package com.gotye.meetplayer.ui;
+package com.gotye.meetplayer.activity;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -12,6 +12,7 @@ import com.gotye.common.pptv.PlayLinkUtil;
 import com.gotye.common.util.LogUtil;
 import com.gotye.db.PPTVPlayhistoryDatabaseHelper;
 import com.gotye.meetplayer.R;
+import com.gotye.meetplayer.adapter.CommonAlbumAdapter;
 import com.gotye.meetplayer.ui.widget.DirChooserDialog;
 import com.gotye.meetplayer.ui.widget.DirChooserDialog.onOKListener;
 import com.gotye.meetplayer.util.Util;

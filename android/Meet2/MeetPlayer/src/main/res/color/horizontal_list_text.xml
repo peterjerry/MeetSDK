@@ -8,5 +8,11 @@
 	<item android:state_focused="true" android:state_selected="true"
 		android:color="@color/blue" />
 
+	<item android:state_focused="false" android:state_selected="false"
+		android:color="@color/black" />
+
+	<item android:state_focused="true" android:state_selected="false"
+		android:color="#FF0000" />
+
 	<item android:color="@color/black" /><!-- not selected -->
 </selector>

@@ -1,4 +1,4 @@
-package com.gotye.meetplayer.ui;
+package com.gotye.meetplayer.activity;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -44,10 +44,12 @@ import com.gotye.meetsdk.player.MediaPlayer;
 import com.gotye.meetsdk.player.MediaPlayer.DecodeMode;
 import com.gotye.meetsdk.player.MeetVideoView;
 import com.gotye.meetsdk.subtitle.SimpleSubTitleParser;
+import com.gotye.meetsdk.subtitle.SubTitleParser;
 import com.gotye.meetsdk.subtitle.SubTitleSegment;
-import com.gotye.meetsdk.subtitle.SubTitleParser.Callback;
 
-public class VideoPlayerActivity extends AppCompatActivity implements Callback {
+// ONLY support external subtitle???
+public class VideoPlayerActivity extends AppCompatActivity
+		implements SubTitleParser.OnReadyListener {
 
 	private final static String TAG = "VideoPlayerActivity";
 	
@@ -384,7 +386,7 @@ public class VideoPlayerActivity extends AppCompatActivity implements Callback {
 		LogUtil.info(TAG, "Java: subtitle start_subtitle " + filename);
 		
 		mSubtitleParser = new SimpleSubTitleParser();
-		mSubtitleParser.setOnPreparedListener(this);
+		mSubtitleParser.setListener(this);
 		
 		mSubtitleParser.setDataSource(filename);
 		mSubtitleParser.prepareAsync();

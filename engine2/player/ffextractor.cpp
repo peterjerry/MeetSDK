@@ -1127,14 +1127,11 @@ status_t FFExtractor::advance()
 
 	m_sample_track_idx		= m_sample_pkt->stream_index;
 	m_buffered_size			-= m_sample_pkt->size;
-	m_cached_duration_msec	-= get_packet_duration(m_sample_pkt);
 
 	// 20151226 michael.ma added to fix m_buffered_size<0 bug 
 	// cause m_max_buffersize dead-loop for "Double max buffer size"
 	if (m_buffered_size < 0)
 		m_buffered_size = 0;
-	if (m_cached_duration_msec < 0)
-		m_cached_duration_msec = 0;
 	
 	if (m_video_stream_idx == m_sample_track_idx)
 		m_sample_clock_msec = m_video_clock_msec;
@@ -1780,13 +1777,11 @@ void FFExtractor::thread_impl()
 
 			m_audio_q.put(pPacket);
 
-			if (pPacket->stream_index == m_audio_stream_idx) {
-				int64_t cached_pos_msec = get_packet_pos(pPacket);
-				if (cached_pos_msec == AV_NOPTS_VALUE)
-					m_cached_duration_msec += get_packet_duration(pPacket);
-				else
-					m_cached_duration_msec = cached_pos_msec;
-			}
+			int64_t cached_pos_msec = get_packet_pos(pPacket);
+			if (cached_pos_msec == AV_NOPTS_VALUE)
+				m_cached_duration_msec += get_packet_duration(pPacket);
+			else
+				m_cached_duration_msec = cached_pos_msec;
 		}
 		else if (pPacket->stream_index == m_subtitle_stream_idx && m_subtitle_stream) {
 			AVPacket *orig_pkt = pPacket;

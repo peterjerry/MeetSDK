@@ -1,12 +1,13 @@
-package com.gotye.meetplayer.ui;
+package com.gotye.meetplayer.activity;
 
 import android.content.Intent;
 import android.graphics.Bitmap;
-import android.graphics.BitmapRegionDecoder;
 import android.os.AsyncTask;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
-import android.util.DisplayMetrics;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.WindowManager;
 import android.widget.AbsListView;
@@ -37,6 +38,8 @@ public class YoukuEpisodeActivity extends AppCompatActivity {
     private final static String TAG ="YoukuEpisodeActivity";
 
     private String mShowId;
+    private String mVid;
+    private String mTitle;
     private int mEpisodeIndex; // base 0
     private int mPageIndex;
     private List<Episode> mEpisodeList;
@@ -66,6 +69,8 @@ public class YoukuEpisodeActivity extends AppCompatActivity {
 
         Intent intent = getIntent();
         mShowId = intent.getStringExtra("show_id");
+        mVid = intent.getStringExtra("vid");
+        mTitle = intent.getStringExtra("title");
 
         mImgView = (ImageView)this.findViewById(R.id.img);
         mTvStripe = (TextView)this.findViewById(R.id.tv_stripe);
@@ -108,6 +113,30 @@ public class YoukuEpisodeActivity extends AppCompatActivity {
         });
 
         new SetDataTask().execute(mShowId);
+    }
+
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        MenuInflater menuInflater = new MenuInflater(getApplication());
+        menuInflater.inflate(R.menu.episode_menu, menu);
+        return super.onCreateOptionsMenu(menu);
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        int id = item.getItemId();
+        switch (id) {
+            case R.id.relate:
+                Intent intent = new Intent(YoukuEpisodeActivity.this, YoukuAlbumActivity.class);
+                intent.putExtra("title", mTitle);
+                intent.putExtra("relate_vid", mVid);
+                startActivity(intent);
+                break;
+            default:
+                break;
+        }
+
+        return true;
     }
 
     private class PlayLinkTask extends AsyncTask<Integer, Integer, YKUtil.ZGUrl> {

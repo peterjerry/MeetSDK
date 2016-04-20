@@ -1,4 +1,4 @@
-package com.gotye.meetplayer.ui;
+package com.gotye.meetplayer.activity;
 
 import java.util.List;
 
@@ -7,11 +7,11 @@ import com.gotye.common.pptv.PlayLink2;
 import com.gotye.common.pptv.PlayLinkUtil;
 import com.gotye.common.util.PlayBackTime;
 import com.gotye.meetplayer.R;
+import com.gotye.meetplayer.adapter.MyPPTVLiveAdapter;
 import com.gotye.meetplayer.service.MyHttpService;
 import com.gotye.meetplayer.util.Util;
 import com.pplive.sdk.MediaSDK;
 
-import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.Dialog;
 import android.content.DialogInterface;

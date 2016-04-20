@@ -24,7 +24,7 @@
 
         <!-- Activities -->
         <activity
-            android:name=".ui.ClipListActivity"
+            android:name=".activity.ClipListActivity"
             android:configChanges="keyboardHidden|screenSize|orientation|layoutDirection"
             android:label="@string/app_name"
             android:windowSoftInputMode="adjustPan">
@@ -35,54 +35,54 @@
             </intent-filter>
         </activity>
         <activity
-            android:name=".ui.FragmentMp4PlayerActivity"
+            android:name=".activity.FragmentMp4PlayerActivity"
             android:label="@string/app_name"
             android:screenOrientation="landscape"/>
         <activity
-            android:name=".ui.PlaySohuActivity"
+            android:name=".activity.PlaySohuActivity"
             android:screenOrientation="landscape"/>
         <activity
-            android:name=".ui.SohuVideoActivity"
+            android:name=".activity.SohuVideoActivity"
             android:label="@string/title_activity_sohu_video"/>
         <activity
-            android:name=".ui.SohuEpisodeActivity"
+            android:name=".activity.SohuEpisodeActivity"
             android:label="@string/title_activity_sohu_video"/>
         <activity
-            android:name=".ui.YoukuVideoActivity"
+            android:name=".activity.YoukuVideoActivity"
             android:label="@string/title_activity_youku_video"/>
         <activity
-            android:name=".ui.YoukuAlbumActivity"
+            android:name=".activity.YoukuAlbumActivity"
             android:label="@string/title_activity_youku_video"/>
         <activity
-            android:name=".ui.YoukuEpisodeActivity"
+            android:name=".activity.YoukuEpisodeActivity"
             android:label="@string/title_activity_youku_video"
             android:screenOrientation="portrait"/>
         <activity
-            android:name=".ui.PlayYoukuActivity"
+            android:name=".activity.PlayYoukuActivity"
             android:screenOrientation="landscape"/>
         <activity
-            android:name=".ui.PPTVVideoActivity"
+            android:name=".activity.PPTVVideoActivity"
             android:label="@string/title_activity_pptv_video"/>
         <activity
-            android:name=".ui.PPTVEpisodeActivity"
+            android:name=".activity.PPTVEpisodeActivity"
             android:label="@string/title_activity_pptv_video"
             android:screenOrientation="portrait"/>
         <activity
-            android:name=".ui.PPTVLiveActivity"
+            android:name=".activity.PPTVLiveActivity"
             android:label="@string/title_activity_pptv_video"/>
         <activity
-            android:name=".ui.PPTVLiveCenterActivity"
+            android:name=".activity.PPTVLiveCenterActivity"
             android:label="@string/title_activity_pptv_video"/>
         <activity
-            android:name=".ui.PPTVPlayerActivity"
+            android:name=".activity.PPTVPlayerActivity"
             android:label="@string/app_name"
             android:screenOrientation="landscape"/>
         <activity
-            android:name=".ui.MeetViewActivity"
+            android:name=".activity.MeetViewActivity"
             android:configChanges="keyboardHidden|screenSize|orientation|layoutDirection"
             android:label="@string/app_name"/>
         <activity
-            android:name=".ui.VideoPlayerActivity"
+            android:name=".activity.VideoPlayerActivity"
             android:label="@string/app_name"
             android:process=":Player"
             android:screenOrientation="landscape">

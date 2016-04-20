@@ -45,6 +45,18 @@ public class YKUtil {
 	private final static String youku_page =
             "http://v.youku.com/v_show/id_%s.html";
 	
+	private final static String relate_api = 
+			"http://api.mobile.youku.com/common/shows/relate" +
+			"?pid=6f81431b00e5b30a" +
+			"&guid=0b902709fdaba50d69ce66911d4a56e8" +
+			"&ver=5.4.4" +
+			"&network=WIFI" +
+			"&id=%s" +
+			"&apt=3" +
+			"&pg=%d" +
+			"&md=1" +
+			"&pz=10";
+	
 	private final static String apiurl = 
 			"http://i.play.api.3g.youku.com/common/v3/play" +
     		"?audiolang=1" +
@@ -197,7 +209,7 @@ public class YKUtil {
 					String.format("#%d %s", i, channelList.get(i).toString()));
 		}
 		
-		Channel c = channelList.get(6); // 1电视剧 2电影 6 娱乐 15游戏
+		Channel c = channelList.get(1); // 1电视剧 2电影 6 娱乐 15游戏
 		List<Catalog> catlogList = getCatalog(c.getChannelId());
 		if (catlogList == null)
 			return;
@@ -243,7 +255,7 @@ public class YKUtil {
 		}
 		
 		//getZGUrls(list.get(3).getVideoId());
-		String vid = list.get(9).getVideoId();
+		String vid = list.get(1).getVideoId();
 		String m3u8Url = getPlayUrl_vid(vid);
 		if (m3u8Url == null) {
 			System.out.println("failed to get m3u8");
@@ -281,6 +293,22 @@ public class YKUtil {
 		
 		soku2("水浒传", 1, 1);
 		
+		/*RelateResult r = relate("XODA2Njk1MTEy", 1);
+		List<Album> albumList = r.mALbumList;
+		List<Episode> epList = r.mEpisodeList;
+		if (albumList != null && !albumList.isEmpty()) {
+			for (int i=0;i<albumList.size();i++) {
+				Album album = albumList.get(i);
+				System.out.println("album: " + album.toString());
+			}
+		}
+		if (epList != null && !epList.isEmpty()) {
+			for (int i=0;i<epList.size();i++) {
+				Episode ep = epList.get(i);
+				System.out.println("ep: " + ep.toString());
+			}
+		}*/
+		
         //String keyStr = "UITN25LMUQC436IM";  
  
         //String plainText = "this is a string will be AES_Encrypt";
@@ -290,6 +318,150 @@ public class YKUtil {
          
         //System.out.println(encText); 
         //System.out.println(decString);
+	}
+	
+	public static class RelateResult {
+		public List<Album> mALbumList;
+		public List<Episode> mEpisodeList;
+		
+		public RelateResult(List<Album> albumList, List<Episode> epList) {
+			this.mALbumList = albumList;
+			this.mEpisodeList = epList;
+		}
+	}
+	
+	public static RelateResult relate(String vid, int page) {
+		System.out.println("relate() vid " + vid);
+		
+		String url = String.format(relate_api, vid, page);
+		System.out.println("relate() url: " + url);
+		String result = getHttpPage(url, false, false);
+		if (result == null)
+			return null;
+			
+		try {
+            JSONTokener jsonParser = new JSONTokener(result);
+            JSONObject root = (JSONObject) jsonParser.nextValue();
+            String status = root.getString("status");
+            if (!status.equals("success"))
+            	return null;
+            
+//            pubdate: "2016-01-15 16:14:48",
+//            total_vv: 70892,
+//            duration: 8509,
+//            dct: "96",
+//            ver: "A",
+//            total_comment: 107,
+//            img: "http://r1.ykimg.com/054204085697780D6A0A4804C63C2FEB",
+//            title: "火星救援",
+//            format: [
+//            4,
+//            5,
+//            6
+//            ],
+//            videoid: "XMTQ0NTI3Mzk0OA==",
+//            source: 120,
+//            state: 3,
+//            cats: "电影",
+//            publicType: 0,
+//            duration_fmt: "141:49",
+//            img_hd: "http://r1.ykimg.com/054104085697780D6A0A4804C63C2FEB",
+//            username: "焦亦丝",
+//            tags: [
+//            "电影",
+//            "火星救援"
+//            ],
+//            clickLogUrl: "",
+//            paid: 0,
+//            total_down: 1,
+//            link: "http://v.youku.com/v_show/id_XMTQ0NTI3Mzk0OA==.html",
+//            total_up: 410,
+//            ord: "0",
+//            algInfo: "1cf001-2-1cf007-2-1lr1-2-1dtype-2h-1api-2F0107-1reqid-2F146104103506237U",
+//            desc: "",
+//            dma: "306",
+//            stripe_bottom: "播放：7.1万",
+//            cid: 96,
+//            mm: "0",
+//            userid: "UMzE2NTUwNTAzNg==",
+//            stripe_bottom_fmt: "141:49",
+//            total_vv_fmt: "7.1万",
+//            total_fav: 0,
+//            reputation: 8.1186461960806,
+//            limit: 1,
+//            req_id: "146104103506237U",
+            
+//            showid: "cbfc2f22962411de83b1",
+//            dma: "1101",
+//            total_vv_fmt: "446.6万",
+//            clickLogUrl: "",
+//            total_vv: 4465916,
+//            ord: "0",
+//            dct: "97",
+//            pk_odshow: "13449",
+//            ver: "A",
+//            stripe_bottom: "8集全",
+//            img: "http://r1.ykimg.com/050B0000541BBA1267379F65020B5888",
+//            title: "武松",
+//            mm: "0",
+//            show_vthumburl: "http://r3.ykimg.com/050D0000541BBA3367379F18480DC8DB",
+//            videoid: "XNTI0NTQ3OTAw",
+//            stripe_bottom_fmt: "8集全",
+//            algInfo: "1cf001-2-1dtype-2h-1api-2F0070-1reqid-2F1461042026169DX0",
+//            reputation: 8.471,
+//            req_id: "1461042026169DX0",
+//            show_vthumburl_hd: "http://r3.ykimg.com/050E0000541BBA3367379F18480DC8DB",
+//            series_update: "8集全",
+//            duration_fmt: "00:00",
+//            img_hd: "http://r1.ykimg.com/050C0000541BBA1267379F65020B5888",
+            
+            JSONArray results = root.getJSONArray("results");
+            int size = results.length();
+            List<Album> albumList = new ArrayList<Album>();
+            List<Episode> epList = new ArrayList<Episode>();
+            
+            for (int i=0;i<size;i++) {
+            	JSONObject item = results.getJSONObject(i);
+            	if (item.has("showid")) {
+            		// album
+            		String showid = item.getString("showid");
+            		String total_vv_fmt = item.getString("total_vv_fmt");
+            		int total_vv = item.getInt("total_vv");
+            		String stripe_bottom = item.getString("stripe_bottom");
+            		String img_url = item.getString("img");
+                	String title=  item.getString("title");
+                	String videoid = item.getString("videoid");
+                	double reputation = item.getDouble("reputation");
+                	String series_update = item.getString("series_update");
+                	albumList.add(new Album(title, showid, stripe_bottom,
+                			img_url, total_vv_fmt, 123456));
+            	}
+            	else {
+            		String pubdate = item.getString("pubdate");
+                	int total_vv = item.getInt("total_vv");
+                	int duration = item.getInt("duration");
+                	String img_url = item.getString("img");
+                	String title=  item.getString("title");
+                	JSONArray formats = item.getJSONArray("format");
+                	int []format = new int[formats.length()];
+                	for(int j=0;j<formats.length();j++)
+                		format[j] = formats.getInt(j);
+                	String videoid = item.getString("videoid");
+                	String duration_fmt = item.getString("duration_fmt");
+                	String link = item.getString("link");
+                	String stripe_bottom = item.getString("stripe_bottom");
+                	String total_vv_fmt = item.getString("total_vv_fmt");
+                	epList.add(new Episode(title, vid, img_url,
+                			pubdate, total_vv_fmt, duration_fmt, null));
+            	}
+            }
+            
+            return new RelateResult(albumList, epList);
+		} catch (JSONException e1) {
+            e1.printStackTrace();
+        }
+		
+		return null;
 	}
 	
 	public static List<Episode> soku(String keyword, int sort_type) {
@@ -364,25 +536,38 @@ public class YKUtil {
 			Elements s_dir = doc.getElementsByClass("s_dir");
 			int size = s_dir.size();
 			System.out.println("s_dir size " + size);
-			for (int i = 0; i < size; i++) {
-				Element v = s_dir.get(i);
-				Element s_inform = v.child(0).child(1);
-				Element x = s_inform.child(1);
-				String company = x.child(0).child(0).child(0).child(1).text();
-				System.out.println("company: " + company);
-				if (company.equals("优酷")) {
-					Elements lis = s_inform.child(0).child(2)
-							.getElementsByAttribute("data-type").first().children();
-					System.out.println("lis size: " + lis.size());
-					for (int j = 0;j<lis.size();j++) {
-						Element item = lis.get(j);
-						String title = item.attr("_log_title");
-						String href = item.attr("href");
-						//String span = item.child(0).text();
-						System.out.println("title: " + title + ", href: " + href);
-					}
-				}
+			
+			Elements lis = doc.getElementsByClass("s_link");
+			System.out.println("lis size: " + lis.size());
+			for (int j = 0;j<lis.size();j++) {
+				Element item = lis.get(j).getElementsByTag("a").first();
+				String title = item.attr("_log_title");
+				String href = item.attr("href");
+				String showid = item.attr("_iku_showid");
+				System.out.println("title: " + title + ", showid: " + showid);
 			}
+			/*Elements lis = doc.getElementsByAttribute("_log_sid");
+			StringBuffer sbTmp = new StringBuffer();
+			for (int j = 0;j<lis.size();j++) {
+				Element item = lis.get(j);
+				if (!item.attr("href").contains("v.youku.com/v_show") ||
+						item.getElementsByTag("span").text().isEmpty())
+					continue;
+				
+				String title = item.attr("_log_title");
+				String href = item.attr("href");
+				String span = item.getElementsByTag("span").text();
+				
+				String video_title = String.format("%s(%s)", title, span);
+				if (!sbTmp.toString().isEmpty() && 
+						sbTmp.toString().contains(video_title)) {
+					continue;
+				}
+				
+				sbTmp.append(video_title);
+				sbTmp.append("|");
+				System.out.println("title: " + title + span + ", href: " + href);
+			}*/
 			
 			// get video
 			Elements all_v = doc.getElementsByClass("v"); 
