@@ -1,3 +1,4 @@
+<?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.gotye.meetplayer">
 
@@ -8,11 +9,9 @@
     <!-- 往SDCard写入数据权限 -->
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
-
-    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"></uses-permission>
-    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE"></uses-permission>
-    <uses-permission android:name="android.permission.CHANGE_WIFI_STATE"></uses-permission>
-
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
+    <uses-permission android:name="android.permission.CHANGE_WIFI_STATE" />
     <uses-permission android:name="android.permission.CHANGE_CONFIGURATION" />
 
     <application
@@ -25,76 +24,68 @@
 
         <!-- Activities -->
         <activity
-            android:name=".ui.ClipListActivity"
+            android:name=".activity.ClipListActivity"
+            android:configChanges="keyboardHidden|screenSize|orientation|layoutDirection"
             android:label="@string/app_name"
-            android:windowSoftInputMode="adjustPan"
-            android:configChanges="keyboardHidden|screenSize|orientation|layoutDirection" >
+            android:windowSoftInputMode="adjustPan">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
+
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
         <activity
-            android:name=".ui.FragmentMp4PlayerActivity"
-            android:screenOrientation="landscape"
-            android:label="@string/app_name" >
-        </activity>
-        <activity
-            android:name=".ui.PlaySohuActivity"
-            android:screenOrientation="landscape">
-        </activity>
-        <activity
-            android:name=".ui.SohuVideoActivity"
-            android:label="@string/title_activity_sohu_video" >
-        </activity>
-        <activity
-            android:name=".ui.SohuEpisodeActivity"
-            android:label="@string/title_activity_sohu_video" >
-        </activity>
-        <activity
-            android:name=".ui.YoukuVideoActivity"
-            android:label="@string/title_activity_youku_video" >
-        </activity>
-        <activity
-            android:name=".ui.YoukuEpisodeActivity"
-            android:label="@string/title_activity_youku_video" >
-        </activity>
-        <activity
-            android:name=".ui.PlayYoukuActivity"
-            android:screenOrientation="landscape">
-        </activity>
-        <activity
-            android:name=".ui.PPTVVideoActivity"
-            android:label="@string/title_activity_pptv_video" >
-        </activity>
-        <activity
-            android:name=".ui.PPTVEpisodeActivity"
-            android:label="@string/title_activity_pptv_video" >
-        </activity>
-        <activity
-            android:name=".ui.PPTVLiveActivity"
-            android:label="@string/title_activity_pptv_video" >
-        </activity>
-        <activity
-            android:name=".ui.PPTVLiveCenterActivity"
-            android:label="@string/title_activity_pptv_video" >
-        </activity>
-        <activity
-            android:name=".ui.PPTVPlayerActivity"
+            android:name=".activity.FragmentMp4PlayerActivity"
             android:label="@string/app_name"
-            android:screenOrientation="landscape">
-        </activity>
+            android:screenOrientation="landscape"/>
         <activity
-            android:name=".ui.MeetViewActivity"
+            android:name=".activity.PlaySohuActivity"
+            android:screenOrientation="landscape"/>
+        <activity
+            android:name=".activity.SohuVideoActivity"
+            android:label="@string/title_activity_sohu_video"/>
+        <activity
+            android:name=".activity.SohuEpisodeActivity"
+            android:label="@string/title_activity_sohu_video"/>
+        <activity
+            android:name=".activity.YoukuVideoActivity"
+            android:label="@string/title_activity_youku_video"/>
+        <activity
+            android:name=".activity.YoukuAlbumActivity"
+            android:label="@string/title_activity_youku_video"/>
+        <activity
+            android:name=".activity.YoukuEpisodeActivity"
+            android:label="@string/title_activity_youku_video"
+            android:screenOrientation="portrait"/>
+        <activity
+            android:name=".activity.PlayYoukuActivity"
+            android:screenOrientation="landscape"/>
+        <activity
+            android:name=".activity.PPTVVideoActivity"
+            android:label="@string/title_activity_pptv_video"/>
+        <activity
+            android:name=".activity.PPTVEpisodeActivity"
+            android:label="@string/title_activity_pptv_video"
+            android:screenOrientation="portrait"/>
+        <activity
+            android:name=".activity.PPTVLiveActivity"
+            android:label="@string/title_activity_pptv_video"/>
+        <activity
+            android:name=".activity.PPTVLiveCenterActivity"
+            android:label="@string/title_activity_pptv_video"/>
+        <activity
+            android:name=".activity.PPTVPlayerActivity"
+            android:label="@string/app_name"
+            android:screenOrientation="landscape"/>
+        <activity
+            android:name=".activity.MeetViewActivity"
             android:configChanges="keyboardHidden|screenSize|orientation|layoutDirection"
-            android:label="@string/app_name" >
-        </activity>
+            android:label="@string/app_name"/>
         <activity
-            android:name=".ui.VideoPlayerActivity"
+            android:name=".activity.VideoPlayerActivity"
             android:label="@string/app_name"
             android:process=":Player"
             android:screenOrientation="landscape">
-
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
 
@@ -102,37 +93,56 @@
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
 
-                <data android:mimeType="video/*" android:scheme="file" />
-                <data android:mimeType="video/*" android:scheme="content" />
-                <data android:mimeType="video/*" android:scheme="rtsp" />
-                <data android:mimeType="video/*" android:scheme="http" />
-                <data android:mimeType="video/*" android:scheme="pplive2" />
-                <data android:mimeType="video/*" android:scheme="ppvod" />
-
-                <data android:mimeType="audio/*" android:scheme="file" />
-                <data android:mimeType="audio/*" android:scheme="content" />
-                <data android:mimeType="audio/*" android:scheme="rtsp" />
-                <data android:mimeType="audio/*" android:scheme="http" />
-
-                <data android:mimeType="application/octet-stream" android:scheme="file" />
-                <data android:mimeType="application/octet-stream" android:scheme="http" />
+                <data
+                    android:mimeType="video/*"
+                    android:scheme="file" />
+                <data
+                    android:mimeType="video/*"
+                    android:scheme="content" />
+                <data
+                    android:mimeType="video/*"
+                    android:scheme="rtsp" />
+                <data
+                    android:mimeType="video/*"
+                    android:scheme="http" />
+                <data
+                    android:mimeType="video/*"
+                    android:scheme="pplive2" />
+                <data
+                    android:mimeType="video/*"
+                    android:scheme="ppvod" />
+                <data
+                    android:mimeType="audio/*"
+                    android:scheme="file" />
+                <data
+                    android:mimeType="audio/*"
+                    android:scheme="content" />
+                <data
+                    android:mimeType="audio/*"
+                    android:scheme="rtsp" />
+                <data
+                    android:mimeType="audio/*"
+                    android:scheme="http" />
+                <data
+                    android:mimeType="application/octet-stream"
+                    android:scheme="file" />
+                <data
+                    android:mimeType="application/octet-stream"
+                    android:scheme="http" />
             </intent-filter>
         </activity>
         <activity
-            android:name="so.cym.crashhandlerdemo.SendCrashActivity"
-            android:label="@string/title_activity_send_crash" >
-        </activity>
+            android:name="com.gotye.crashhandler.SendCrashActivity"
+            android:label="@string/title_activity_send_crash"/>
 
         <!-- Services -->
-        <service
-            android:name=".service.DLNAService" >
-            <intent-filter >
+        <service android:name=".service.DLNAService">
+            <intent-filter>
                 <action android:name="com.gotye.meetplayer.DLNAService" />
             </intent-filter>
         </service>
-        <service
-            android:name=".service.MyHttpService" >
-            <intent-filter >
+        <service android:name=".service.MyHttpService">
+            <intent-filter>
                 <action android:name="com.gotye.meetplayer.MyHttpService" />
             </intent-filter>
         </service>
@@ -142,7 +152,7 @@
         <receiver
             android:name=".service.MediaScannerReceiver"
             android:exported="false">
-            <intent-filter >
+            <intent-filter>
                 <action android:name="com.gotye.action.MEDIA_MOUNTED" />
                 <action android:name="com.gotye.action.MEDIA_SCANNER_SCAN_FILE" />
             </intent-filter>

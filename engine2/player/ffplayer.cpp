@@ -822,11 +822,12 @@ status_t FFPlayer::setVideoSurface(void* surface)
 {
 	LOGI("player op setVideoSurface %p", surface);
 
-	if (mPlayerStatus != MEDIA_PLAYER_IDLE &&
+	// should support set surface dynamically
+	/*if (mPlayerStatus != MEDIA_PLAYER_IDLE &&
         mPlayerStatus != MEDIA_PLAYER_INITIALIZED)
 	{
         return INVALID_OPERATION;
-    }
+    }*/
 
 	if (surface == NULL) {
 		LOGE("mSurface is NULL");
@@ -1331,7 +1332,7 @@ void FFPlayer::notifyVideoDelay(int64_t video_clock, int64_t audio_clock, int64_
 {
 	static int64_t start_msec = 0;
 #ifdef TEST_PERFORMANCE
-	if (mDecodedFrames % 5 == 0)
+	if (mDecodedFrames % 10 == 0)
 		notifyListener_l(MEDIA_INFO, MEDIA_INFO_TEST_LATENCY_MSEC, (int)frame_delay);
 #endif
 	int64_t cur_msec = getNowMs();
@@ -4296,8 +4297,7 @@ static int open_codec_context(int *stream_idx,
         dec_ctx = st->codec;
         dec = avcodec_find_decoder(dec_ctx->codec_id);
         if (!dec) {
-            fprintf(stderr, "Failed to find %s codec\n",
-                    av_get_media_type_string(type));
+            LOGE("Failed to find %s codec", av_get_media_type_string(type));
             return AVERROR(EINVAL);
         }
 

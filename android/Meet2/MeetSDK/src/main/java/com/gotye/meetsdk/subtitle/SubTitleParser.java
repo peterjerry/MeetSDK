@@ -2,19 +2,19 @@ package com.gotye.meetsdk.subtitle;
 
 public interface SubTitleParser {
 
-	public void close();
+	void close();
 
-	public SubTitleSegment next();
+	SubTitleSegment next();
 
-	public void prepareAsync();
+	void prepareAsync();
 
-	public void seekTo(long msec);
+	void seekTo(long msec);
 
-	public void setDataSource(String filePath);
+	void setDataSource(String filePath);
 
-	public void setOnPreparedListener(Callback listener);
+	void setListener(OnReadyListener listener);
 
-	interface Callback {
+	interface OnReadyListener {
 		
 		void onPrepared(boolean success, String msg);
 		

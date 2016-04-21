@@ -8,6 +8,7 @@ import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Locale;
 
 import org.apache.http.HttpResponse;
 import org.apache.http.client.ClientProtocolException;
@@ -23,14 +24,10 @@ import org.json.JSONException;
 import org.json.JSONObject;
 import org.json.JSONTokener;
 
-import android.util.Log;
-
 import com.gotye.common.util.LogUtil;
 
 public class EPGUtil { 
 	private final static String TAG = "EPGUtil";
-	
-	private final int HOST_PORT = 80;
 	
 	private final static String frontpage_url = "http://mtbu.api.pptv.com/v4/module?lang=zh_cn&platform=aphone"
 			+ "&appid=com.pplive.androidphone&appver=4.1.3"
@@ -174,7 +171,7 @@ public class EPGUtil {
 	
 	public boolean live(int start_page, int count, int type) {
 		String url = String.format(live_url_fmt, start_page, count, type);
-		Log.i(TAG, "Java: live() " + url);
+		LogUtil.info(TAG, "Java: live() " + url);
 		
 		HttpGet request = new HttpGet(url);
 		
@@ -198,7 +195,7 @@ public class EPGUtil {
 	        List<Element> v_list = root.getChildren("v");
 			Iterator<Element> it2 = v_list.iterator();
 	        while (it2.hasNext()){   
-	        	Element v  = (Element) it2.next();
+	        	Element v  = it2.next();
 	        	String title = v.getChild("title").getText();
 	        	String vid = v.getChild("vid").getText();
 	        	String nowplay = "N/A";
@@ -214,18 +211,12 @@ public class EPGUtil {
 		    	if (img != null)
 		    		imgUrl = img.getText();
 		    	
-	        	Log.i(TAG, String.format("Java: live prog title: %s, id: %s, nowplay: %s, willplay: %s", 
+	        	LogUtil.info(TAG, String.format("Java: live prog title: %s, id: %s, nowplay: %s, willplay: %s",
 	        			title, vid, nowplay, willplay));
 	        	PlayLink2 l = new PlayLink2(title, vid, desc, imgUrl);
 	        	mPlayLinkList.add(l);
 	        }
-		} catch (ClientProtocolException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (JDOMException e) {
+		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
@@ -246,7 +237,7 @@ public class EPGUtil {
 		
 		String url = catalog_url_prefix2 + "&location=" + cate;
 		
-		Log.i(TAG, "Java: epg contents_list " + url);
+		LogUtil.info(TAG, "Java: epg contents_list " + url);
 		
 		HttpGet request = new HttpGet(url);
 		
@@ -271,22 +262,17 @@ public class EPGUtil {
 				Module new_mod = new Module(i, c.getString("title"), c.getString("target"), c.getString("link"));
 				mModuleList.add(new_mod);
 			}
-		} catch (ClientProtocolException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (JSONException e) {
-			// TODO Auto-generated catch block
+
+            return true;
+		} catch (Exception e) {
 			e.printStackTrace();
 		}
-		
-		return true;
+
+		return false;
 	}
 	
 	public boolean contents(String surfix) {
-		Log.i(TAG, "Java: contents() surfix: " + surfix);
+		LogUtil.info(TAG, "Java: contents() surfix: " + surfix);
 		String cate;
 		try {
 			String sur = "app://aph.pptv.com/v4/cate";
@@ -301,7 +287,7 @@ public class EPGUtil {
 		
 		String url = catalog_url_prefix + "&location=" + cate;
 		
-		Log.i(TAG, "Java: epg contents " + url);
+		LogUtil.info(TAG, "Java: epg contents " + url);
 		
 		HttpGet request = new HttpGet(url);
 		
@@ -322,7 +308,7 @@ public class EPGUtil {
 			int module_index = 0;
 			// hard code
 			if ("app://aph.pptv.com/v4/cate/sports?type=5".equals(surfix))
-				module_index = 1;
+				module_index = 0                                ;
 			else if ("app://aph.pptv.com/v4/cate/life?type=75399".equals(surfix))
 				module_index = 5;
 			
@@ -331,10 +317,10 @@ public class EPGUtil {
 			for (int i=0;i<contents.length();i++) {
 				JSONObject obj = contents.getJSONObject(i);
 				
-				JSONArray tags = obj.getJSONArray("tags");
-				if (tags == null)
+				if (!obj.has("tags"))
 					continue;
-				
+
+				JSONArray tags = obj.getJSONArray("tags");
 				for (int j=0;j<tags.length();j++) {
 					JSONObject c = tags.getJSONObject(j);
 					Content new_content = new Content(
@@ -342,29 +328,24 @@ public class EPGUtil {
 					mContentList.add(new_content);
 				}
 			}
-		} catch (ClientProtocolException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (JSONException e) {
+            return true;
+		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 		
-		return true;
+		return false;
 	}
 	
 	public boolean frontpage() {
-		Log.i(TAG, "Java: epg url " + frontpage_url);
+		LogUtil.info(TAG, "Java: epg url " + frontpage_url);
 		HttpGet request = new HttpGet(frontpage_url);
 		
 		HttpResponse response;
 		try {
 			response = new DefaultHttpClient().execute(request);
 			if (response.getStatusLine().getStatusCode() != 200){
-				Log.e(TAG, "failed to connect to epg server");
+				LogUtil.error(TAG, "failed to connect to epg server");
 				return false;
 			}
 			
@@ -389,14 +370,9 @@ public class EPGUtil {
 					mModuleList.add(c);
 				}
 			}
-			
-		} catch (ClientProtocolException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (JSONException e) {
+
+			return true;
+		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
@@ -405,14 +381,14 @@ public class EPGUtil {
 	}
 	
 	public boolean catalog(int index) {
-		Log.i(TAG, "Java: epg url " + frontpage_url);
+		LogUtil.info(TAG, "Java: epg url " + frontpage_url);
 		HttpGet request = new HttpGet(frontpage_url);
 		
 		HttpResponse response;
 		try {
 			response = new DefaultHttpClient().execute(request);
 			if (response.getStatusLine().getStatusCode() != 200){
-				Log.e(TAG, "failed to connect to epg server");
+				LogUtil.error(TAG, "failed to connect to epg server");
 				return false;
 			}
 			
@@ -433,42 +409,39 @@ public class EPGUtil {
                 		collection.getString("target"), collection.getString("link"));
 				mCatalogList.add(c);
 			}
-			
-		} catch (ClientProtocolException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (JSONException e) {
+			return true;
+		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-		
-		return true;
+
+		return false;
 	}
 	
 	public boolean list(String param, String type, 
 			int start_page, String order, int count, boolean isCatalog) {
-		Log.i(TAG, String.format("Java: list() param %s, type %s, start_page %d, order %s, count %d",
+		LogUtil.info(TAG, String.format(Locale.US,
+				"Java: list() param %s, type %s, start_page %d, order %s, count %d",
 				param, type, start_page, order, count));
-		String encoded_param;
-		int pos = param.indexOf('=');
-		if (pos == -1)
-			encoded_param = param;
-		else {
-			String tmp = param.substring(pos + 1, param.length());
-			try {
-				encoded_param = param.substring(0, pos + 1) + URLEncoder.encode(tmp, "utf-8");
-			} catch (UnsupportedEncodingException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-				return false;
-			}
-			Log.i(TAG, "Java: epg encoded param " + encoded_param);
-		}
+		String encoded_param = null;
+        if (param != null && !param.isEmpty()) {
+            int pos = param.indexOf('=');
+            if (pos == -1)
+                encoded_param = param;
+            else {
+                String tmp = param.substring(pos + 1, param.length());
+                try {
+                    encoded_param = param.substring(0, pos + 1) + URLEncoder.encode(tmp, "utf-8");
+                } catch (UnsupportedEncodingException e) {
+                    // TODO Auto-generated catch block
+                    e.printStackTrace();
+                    return false;
+                }
+                LogUtil.info(TAG, "Java: epg encoded param " + encoded_param);
+            }
+        }
 		
-		String url = String.format(list_url_prefix_fmt, 
+		String url = String.format(Locale.US, list_url_prefix_fmt,
 				start_page, order, count);
 		
 		if (type != null && !type.isEmpty()) {
@@ -478,11 +451,13 @@ public class EPGUtil {
 		
 		if (isCatalog)
 			url += "&vt=21%2C22";
-		url += "&";
-		url += encoded_param;
+        if (encoded_param != null) {
+            url += "&";
+            url += encoded_param;
+        }
 		url += "&appid=com.pplive.androidphone&appplt=aph";
 		url += ppi;
-		Log.i(TAG, "Java: epg list() url: " + url);
+		LogUtil.info(TAG, "Java: epg list() url: " + url);
 		
 		boolean ret = false;
 		
@@ -509,9 +484,10 @@ public class EPGUtil {
 	        int page_count = Integer.valueOf(root.getChild("page_count").getText());
 	        int countInPage = Integer.valueOf(root.getChild("countInPage").getText());
 	        int page = Integer.valueOf(root.getChild("page").getText()); // == input param s
-	        Log.i(TAG, 
-	        	String.format("total_count %d, page_count %d, countInPage %d, page %d",
-	        	total_count, page_count, countInPage, page));
+	        LogUtil.info(TAG, 
+	        	String.format(Locale.US,
+                    "total_count %d, page_count %d, countInPage %d, page %d",
+                        total_count, page_count, countInPage, page));
 	        
 	        mPlayLinkList.clear();
 	        
@@ -523,25 +499,21 @@ public class EPGUtil {
 	        	if (!ret)
 	        		break;
 	        }
-		} catch (ClientProtocolException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (JDOMException e) {
+            return ret;
+		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 			
-		return ret;
+		return false;
 	}
 	
 	public boolean virtual_channel(String title, int info_id, int page_size, int site_id, int now_page) {
 		//http://epg.api.pptv.com/getvchannel?platform=android3&pagesize=200&infoid=1056&siteid=3&nowpage=4
 			
-		String url = String.format(getvchannel_fmt, page_size, info_id, site_id, now_page);
-		Log.i(TAG, "Java: virtual_channel() " + url);
+		String url = String.format(Locale.US,
+                getvchannel_fmt, page_size, info_id, site_id, now_page);
+		LogUtil.info(TAG, "Java: virtual_channel() " + url);
 		
 		boolean ret = false;
 		
@@ -563,24 +535,18 @@ public class EPGUtil {
 	        Element root = doc.getRootElement();
 	        
 	        mVirtualPlayLinkList.clear();
-	        ret = add_episode(root, title);
-		} catch (ClientProtocolException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (JDOMException e) {
+	        return add_episode(root, title);
+		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 			
-		return ret;
+		return false;
 	}
 	
 	public boolean detail(String vid) {
 		String url = String.format(detail_url_fmt, vid, vid);
-		Log.i(TAG, "Java: epg url " + url);
+		LogUtil.info(TAG, "Java: epg url " + url);
 		
 		boolean ret = false;
 		
@@ -590,13 +556,11 @@ public class EPGUtil {
 		try {
 			response = new DefaultHttpClient().execute(request);
 			if (response.getStatusLine().getStatusCode() != 200){
-				Log.e(TAG, "failed to connect to epg server");
+				LogUtil.error(TAG, "failed to connect to epg server");
 				return false;
 			}
 			
 			String result = EntityUtils.toString(response.getEntity());
-			Log.d(TAG, "Java: epg result " + result.replace("\n", ""));
-			
 			SAXBuilder builder = new SAXBuilder();
 			Reader returnQuote = new StringReader(result);  
 	        Document doc = builder.build(returnQuote);
@@ -604,19 +568,13 @@ public class EPGUtil {
 	        
 	        mPlayLinkList.clear();
 	        
-	        ret = add_v(root);
-		} catch (ClientProtocolException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (JDOMException e) {
+	        return add_v(root);
+		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 			
-		return ret;
+		return false;
 	}
 	
 	private boolean add_episode(Element v, String main_title) {
@@ -706,12 +664,12 @@ public class EPGUtil {
 		        			Integer.valueOf(total), Integer.valueOf(mode));
 		        	mVchannelInfoList.add(vInfo);
 		        	
-		        	Log.i(TAG, String.format("Java: virtual channel info_id %s, title: %s, siteid %s, total %s",
+		        	LogUtil.info(TAG, String.format("Java: virtual channel info_id %s, title: %s, siteid %s, total %s",
 		        			infoId, title, siteid, total));
     			}
 
     			if (!found_sohu) {
-    				Log.w(TAG, "Java: sohu virtual channel was NOT found");
+    				LogUtil.warn(TAG, "Java: sohu virtual channel was NOT found");
     				return false;
     			}
     			
@@ -754,13 +712,12 @@ public class EPGUtil {
 	    			link_resolution, duration_sec);
 	    	mPlayLinkList.add(l);
         }
-        
-        //Log.d(TAG, "mPlayLinkList size " + mPlayLinkList.size());
+
         return true;
 	}
 	
 	public int[] getAvailableFT(String link) {
-		Log.i(TAG, String.format("java: getAvailableFT() %s", link));
+		LogUtil.info(TAG, String.format("java: getAvailableFT() %s", link));
 		
 		String user_type = null;
 		try {
@@ -776,7 +733,7 @@ public class EPGUtil {
 		sbBoxPlayUrl.append(boxplay_prefix);
 		sbBoxPlayUrl.append(user_type);
 		sbBoxPlayUrl.append(boxplay_part2);
-		Log.i(TAG, "Java: getAvailableFT() url " + sbBoxPlayUrl.toString());
+		LogUtil.info(TAG, "Java: getAvailableFT() url " + sbBoxPlayUrl.toString());
 
 		HttpGet request = new HttpGet(sbBoxPlayUrl.toString());
 		
@@ -785,7 +742,7 @@ public class EPGUtil {
 			response = new DefaultHttpClient().execute(request);
 			int code = response.getStatusLine().getStatusCode();
 			if (code != 200) {
-				Log.e(TAG, "Java: getAvailableFT() result is no 200: " + code);
+				LogUtil.error(TAG, "Java: getAvailableFT() result is no 200: " + code);
 				return null;
 			}
 			
@@ -801,7 +758,7 @@ public class EPGUtil {
 	}
 	
 	private int[] parseCdnUrlxml_ft(String xml) {
-		Log.i(TAG, "Java: epg parseCdnUrlxml " + xml.replace("\n", ""));
+		LogUtil.info(TAG, "Java: epg parseCdnUrlxml " + xml.replace("\n", ""));
 		
 		SAXBuilder builder = new SAXBuilder();
 		Reader returnQuote = new StringReader(xml);  
@@ -844,7 +801,7 @@ public class EPGUtil {
 	
 	public List<CDNItem> live_cdn(int vid) {
 		String url = String.format(live_cdn_url_fmt, vid);
-		Log.i(TAG, "Java: live_cdn() url: " + url);
+		LogUtil.info(TAG, "Java: live_cdn() url: " + url);
 		
 		HttpGet request = new HttpGet(url);
 		
@@ -869,7 +826,7 @@ public class EPGUtil {
 	}
 	
 	private List<CDNItem> parseLiveCdnUrlxml(String xml) {
-		Log.d(TAG, "Java: epg parseLiveCdnUrlxml \n" + xml.replace("\n", ""));
+		LogUtil.debug(TAG, "Java: epg parseLiveCdnUrlxml \n" + xml.replace("\n", ""));
 		
 		SAXBuilder builder = new SAXBuilder();
 		Reader returnQuote = new StringReader(xml);  
@@ -915,7 +872,7 @@ public class EPGUtil {
 				String ft = strm_item.getAttributeValue("ft");
 				String format = strm_item.getAttributeValue("format");
 				
-				Log.i(TAG, String.format("Java: stream_info[#%d] delay %s, interval %s, " +
+				LogUtil.info(TAG, String.format("Java: stream_info[#%d] delay %s, interval %s, " +
 						"rid %s, bitrate %s, width %s, height %s, ft %s, format %s",
 						i, delay, interval, rid, bitrate, width, height, ft, format));
 				
@@ -940,7 +897,7 @@ public class EPGUtil {
 	}
 	
 	public String getCDNUrl(String link, String ft, boolean is_m3u8, boolean noVideo) {
-		Log.i(TAG, String.format("java: getCDNUrl() %s", link));
+		LogUtil.info(TAG, String.format("java: getCDNUrl() %s", link));
 		
 		String user_type = null;
 		try {
@@ -956,7 +913,7 @@ public class EPGUtil {
 		sbBoxPlayUrl.append(boxplay_prefix);
 		sbBoxPlayUrl.append(user_type);
 		sbBoxPlayUrl.append(boxplay_part2);
-		Log.i(TAG, "Java: epg url " + sbBoxPlayUrl.toString());
+		LogUtil.info(TAG, "Java: epg url " + sbBoxPlayUrl.toString());
 
 		HttpGet request = new HttpGet(sbBoxPlayUrl.toString());
 		
@@ -965,7 +922,7 @@ public class EPGUtil {
 			response = new DefaultHttpClient().execute(request);
 			int code = response.getStatusLine().getStatusCode();
 			if (code != 200) {
-				Log.e(TAG, "Java: getCDNUrl() result is no 200: " + code);
+				LogUtil.error(TAG, "Java: getCDNUrl() result is no 200: " + code);
 				return null;
 			}
 			
@@ -981,7 +938,7 @@ public class EPGUtil {
 	}
 	
 	private String parseCdnUrlxml(String xml, String ft, boolean is_m3u8, boolean novideo) {
-		Log.i(TAG, "Java: epg parseCdnUrlxml " + xml.replace("\n", ""));
+		LogUtil.info(TAG, "Java: epg parseCdnUrlxml " + xml.replace("\n", ""));
 		String url = null;
 		
 		SAXBuilder builder = new SAXBuilder();
@@ -1023,13 +980,15 @@ public class EPGUtil {
 						d_sh, d_st, d_bh, d_key, strmList.get(i).m_rid);
 				itemList.add(item);
 			}
-			
+
+            int HOST_PORT = 80;
+
 			// generate cdn url
 			for (int i=0;i<itemList.size();i++) {
 				CDNItem item = itemList.get(i);
 
 				if (item.getFT().equals(ft)) {
-					Log.i(TAG, "Java: epg start to gen cdn url");
+					LogUtil.info(TAG, "Java: epg start to gen cdn url");
 					
 					String host = item.getHost();
 					if (!host.contains("http://"))
@@ -1072,10 +1031,12 @@ public class EPGUtil {
 					url += "&ft=" + ft;
 					//url += "&accessType=wifi";
 					
-					Log.i(TAG, "Java: epg final cdn url: " + url);
+					LogUtil.info(TAG, "Java: epg final cdn url: " + url);
 					break;
 				}
 			}
+
+            return url;
 		} catch (JDOMException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -1084,12 +1045,13 @@ public class EPGUtil {
 			e.printStackTrace();
 		}
         
-		return url;
+		return null;
 	}
 	
 	public boolean search(String s_key, int s_type, int s_contenttype, int s_start_page, int s_count) {
-		String url = String.format(search_url_fmt, s_key, s_type, s_contenttype, s_start_page, s_count);
-		Log.i(TAG, "Java: epg search() " + url);
+		String url = String.format(Locale.US,
+                search_url_fmt, s_key, s_type, s_contenttype, s_start_page, s_count);
+		LogUtil.info(TAG, "Java: epg search() " + url);
 
 		boolean ret = false;
 		
@@ -1099,13 +1061,11 @@ public class EPGUtil {
 		try {
 			response = new DefaultHttpClient().execute(request);
 			if (response.getStatusLine().getStatusCode() != 200){
-				Log.e(TAG, "failed to connect to epg server");
+				LogUtil.error(TAG, "failed to connect to epg server");
 				return false;
 			}
 			
 			String result = EntityUtils.toString(response.getEntity());
-			Log.d(TAG, "Java: epg result " + result.replace("\n", ""));
-			
 			SAXBuilder builder = new SAXBuilder();
 			Reader returnQuote = new StringReader(result);  
 	        Document doc = builder.build(returnQuote);
@@ -1141,19 +1101,13 @@ public class EPGUtil {
 	        	if (!ret)
 	        		break;
 	        }
-	        
-		} catch (ClientProtocolException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (JDOMException e) {
+	        return ret;
+		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 		
-		return ret;
+		return false;
 	}
 	
 	/**
@@ -1164,7 +1118,7 @@ public class EPGUtil {
 	public boolean live_center(String id, String start_time) {
 		String url = String.format(live_center_fmt, id, start_time);
 		
-		Log.i(TAG, "Java: epg live_center() " + url);
+		LogUtil.info(TAG, "Java: epg live_center() " + url);
 
 		HttpGet request = new HttpGet(url);
 		HttpResponse response;
@@ -1172,13 +1126,11 @@ public class EPGUtil {
 		try {
 			response = new DefaultHttpClient().execute(request);
 			if (response.getStatusLine().getStatusCode() != 200){
-				Log.e(TAG, "failed to connect to epg server");
+				LogUtil.error(TAG, "failed to connect to epg server");
 				return false;
 			}
 			
 			String result = EntityUtils.toString(response.getEntity());
-			Log.d(TAG, "Java: epg result " + result.replace("\n", ""));
-			
 			SAXBuilder builder = new SAXBuilder();
 			Reader returnQuote = new StringReader(result);  
 			Document doc = builder.build(returnQuote);
@@ -1209,18 +1161,12 @@ public class EPGUtil {
 	        	mLiveStrmList.add(new LiveStream(prog_id, prog_title, channel_id, 
 	        			prog_start_time, prog_end_time, null));
 	        	
-	        	Log.i(TAG, String.format("Java: title %s, id %s, start %s, end %s, channel_id %s",
+	        	LogUtil.info(TAG, String.format("Java: title %s, id %s, start %s, end %s, channel_id %s",
 	        			prog_title, prog_id, prog_start_time, prog_end_time, channel_id));
 	        }
 	        
 	        return true;
-		} catch (ClientProtocolException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (JDOMException e) {
+		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}

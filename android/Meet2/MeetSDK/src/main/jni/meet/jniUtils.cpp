@@ -21,7 +21,8 @@
 
 JavaVM *gs_jvm = NULL;
 PlatformInfo* gPlatformInfo = NULL;
-pthread_mutex_t sLock;
+pthread_mutex_t PlayerLock;
+pthread_mutex_t ExtractorLock;
 
 char* vstrcat_impl(const char* first, ...)
 {
@@ -97,6 +98,8 @@ jint JNI_OnLoad(JavaVM* vm, void* reserved)
 	}
 
 #ifdef BUILD_FFPLAYER
+	pthread_mutex_init(&PlayerLock, NULL);
+
 	if (register_android_media_MediaPlayer(env) < 0) {
 		AND_LOGE("ERROR: MediaPlayer native registration failed");
 		goto bail;
@@ -104,6 +107,8 @@ jint JNI_OnLoad(JavaVM* vm, void* reserved)
 #endif
 
 #ifdef BUILD_FFEXTRACTOR
+	pthread_mutex_init(&ExtractorLock, NULL);
+
 	if (register_android_media_MediaExtractor(env) < 0) {
 		AND_LOGE("ERROR: MediaExtractor native registration failed");
 		goto bail;
@@ -116,8 +121,6 @@ jint JNI_OnLoad(JavaVM* vm, void* reserved)
 		goto bail;
 	}
 #endif
-
-	pthread_mutex_init(&sLock, NULL);
 
 	//save jvm for multiple thread invoking to java application.
 	gs_jvm = vm;
@@ -142,7 +145,12 @@ void JNI_OnUnload(JavaVM* vm, void* reserved)
 	unloadPlayerLib();
 #endif
 
-	pthread_mutex_destroy(&sLock);
+#ifdef BUILD_FFPLAYER
+	pthread_mutex_destroy(&PlayerLock);
+#endif
+#ifdef BUILD_FFEXTRACTOR
+	pthread_mutex_destroy(&ExtractorLock);
+#endif
 
 	if (gPlatformInfo) {
 		delete gPlatformInfo;

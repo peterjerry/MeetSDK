@@ -513,7 +513,6 @@ public class MeetVideoView extends SurfaceView implements MediaPlayerControl {
         public void surfaceCreated(SurfaceHolder holder)
         {
         	LogUtils.info("video surfaceCreated()");
-        	Log.d(TAG, "video surfaceCreated()");
             mSurfaceHolder = holder;
             openVideo();
         }
@@ -521,7 +520,6 @@ public class MeetVideoView extends SurfaceView implements MediaPlayerControl {
         public void surfaceDestroyed(SurfaceHolder holder)
         {
         	LogUtils.info("video surfaceDestroyed()");
-        	Log.d(TAG, "video surfaceDestroyed()");
             // after we return from this we can't use the surface any more
             mSurfaceHolder = null;
             release(true);

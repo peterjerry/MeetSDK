@@ -198,6 +198,11 @@ public class OMXMediaPlayer extends BaseMediaPlayer {
 		return DecodeMode.HW_OMX;
 	}
 
+	@Override
+	public void setNextMediaPlayer(MediaPlayer next) {
+		
+	}
+
 	/**
 	 * Called from native code when an interesting event happens. This method
 	 * just uses the EventHandler system to post the event back to the main app

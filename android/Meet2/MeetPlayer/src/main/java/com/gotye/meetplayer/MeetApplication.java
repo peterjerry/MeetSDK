@@ -1,11 +1,7 @@
 package com.gotye.meetplayer;
 
-import so.cym.crashhandlerdemo.CrashHandler;
-
-import com.nostra13.universalimageloader.core.ImageLoader;
-import com.nostra13.universalimageloader.core.ImageLoaderConfiguration;
-import com.nostra13.universalimageloader.core.assist.QueueProcessingType;
-import com.nullwire.trace.ExceptionHandler;
+import com.gotye.crashhandler.CrashHandler;
+import com.gotye.thirdparty.BreakpadUtil;
 
 import com.gotye.meetplayer.service.MyHttpService;
 import com.gotye.meetplayer.util.Util;
@@ -19,6 +15,8 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.util.Log;
 
+import java.io.File;
+
 public class MeetApplication extends Application {
 	
 	private final static String TAG = "MeetApplication";
@@ -26,19 +24,23 @@ public class MeetApplication extends Application {
 	public static final String CRASH_HOST = "http://42.62.105.235";
 	//public static final String CRASH_HOST = "http://iloveyaya.zz.vc"; //31.220.16.178
     //public static final String CRASH_HOST = "http://192.168.1.114:8088";
-    public static final String UPLOAD_URL = CRASH_HOST + "/crash/crash.php";
+    public static final String UPLOAD_CRASH_LOG_URL = CRASH_HOST + "/crash/crash.php";
+	public static final String UPLOAD_DUMP_URL = CRASH_HOST + "/dump/upload.php";
 	
 	@Override
 	public void onCreate() {
 		// TODO Auto-generated method stub
 		super.onCreate();
-		Log.i(TAG, "Java: onCreate()");
 		
-		/*ImageLoaderConfiguration config = new ImageLoaderConfiguration.Builder(getApplicationContext())
-        .threadPriority(Thread.NORM_PRIORITY - 1).threadPoolSize(16)
-           .denyCacheImageMultipleSizesInMemory().tasksProcessingOrder(QueueProcessingType.LIFO)
-           .diskCacheSize(50 * 1024 * 1024).diskCacheFileCount(100)
-           .build();
+		/*ImageLoaderConfiguration config =
+				new ImageLoaderConfiguration.Builder(getApplicationContext())
+						.threadPriority(Thread.NORM_PRIORITY - 1)
+						.threadPoolSize(16)
+						.denyCacheImageMultipleSizesInMemory()
+                        .tasksProcessingOrder(QueueProcessingType.LIFO)
+						.diskCacheSize(50 * 1024 * 1024)
+                        .diskCacheFileCount(100)
+						.build();
    
 		ImageLoader.getInstance().init(config);*/
 		
@@ -46,7 +48,9 @@ public class MeetApplication extends Application {
 		
 		Util.initLog(this);
         
-        CrashHandler.getInstance().init(this, UPLOAD_URL);
+        CrashHandler.getInstance().init(this, UPLOAD_CRASH_LOG_URL);
+
+        BreakpadUtil.registerBreakpad(new File(getCacheDir().getAbsolutePath()));
 		
 		IntentFilter filter = new IntentFilter(Intent.ACTION_TIME_TICK); 
 		MyBroadcastReceiver receiver = new MyBroadcastReceiver(); 

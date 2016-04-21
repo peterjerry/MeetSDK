@@ -12,7 +12,7 @@ import android.util.Log;
 //import com.pptv.atv.tvplayer.player.util.LogUtils;
 
 public class PPTVPlayhistoryDatabaseHelper {
-    private static final String TAG = "PPTVStoreDatabaseHelper";
+    private static final String TAG = "PPTVdbHelper";
 	
     private static final String TABLE_NAME = "pptvhistory";
     

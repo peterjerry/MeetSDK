@@ -28,21 +28,25 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="通用错误"
+            android:textColor="@color/horizontal_list_text"
             android:checked="true" />
         <RadioButton
             android:id="@+id/fail2open"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:textColor="@color/horizontal_list_text"
             android:text="推送失败" />
         <RadioButton
             android:id="@+id/dumpcrash"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:textColor="@color/horizontal_list_text"
             android:text="推送过程中崩溃" />
         <RadioButton
             android:id="@+id/camera_problem"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:textColor="@color/horizontal_list_text"
             android:text="摄像头切换崩溃" />
     </RadioGroup>
     <Button

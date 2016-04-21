@@ -43,7 +43,7 @@ public class FFMediaPlayer extends BaseMediaPlayer {
 	public FFMediaPlayer(MediaPlayer mp) {
 		super(mp);
         mUseRenderer = false;
-		native_setup(new WeakReference<FFMediaPlayer>(this)); // always true to use ffplay
+		native_setup(new WeakReference<FFMediaPlayer>(this));
 	}
 
 	// capability
@@ -306,7 +306,8 @@ public class FFMediaPlayer extends BaseMediaPlayer {
 	//return buffering time in milliseconds
 	@Override
 	public native int getBufferingTime();
-	
+
+	@Override
 	public native int flags() throws IllegalStateException;
 
 	@Override
@@ -389,6 +390,11 @@ public class FFMediaPlayer extends BaseMediaPlayer {
 	public int getAudioSessionId() {
 		// TODO Auto-generated method stub
 		return 0;
+	}
+
+	@Override
+	public void setNextMediaPlayer(MediaPlayer next) {
+		
 	}
 	
 	private native void _setDataSource(String path) throws IOException,

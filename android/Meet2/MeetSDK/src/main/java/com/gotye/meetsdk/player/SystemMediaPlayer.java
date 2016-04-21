@@ -362,7 +362,15 @@ public class SystemMediaPlayer extends android.media.MediaPlayer implements
 		
 		return null;
 	}
-	
+
+	@Override
+	public void setNextMediaPlayer(MediaPlayer next) {
+		if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN &&
+				next.getInterface() instanceof android.media.MediaPlayer) {
+			super.setNextMediaPlayer((android.media.MediaPlayer)next.getInterface());
+		}
+	}
+
 	private MediaInfo fillMediaInfo(TrackInfo []trackinfos) {
 		//Java: getMediaInfo 
 		//dragon_trainer_4audio|/storage/usbotg/usbotg-sda1/dragon_trainer_4audio.mkv

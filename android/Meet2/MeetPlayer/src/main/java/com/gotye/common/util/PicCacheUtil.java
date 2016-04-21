@@ -13,7 +13,6 @@ import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.os.Environment;
-import android.util.Log;
 
 public class PicCacheUtil {
 	private final static String TAG = "PicCacheUtil";
@@ -78,9 +77,7 @@ public class PicCacheUtil {
 						4 * 1024 * 1024 /* maxSize */);
 			} 
 		} catch (IOException e) {
-            Log.e(TAG, "IOException" + e);
-		} finally {
-			
+            LogUtil.error(TAG, "IOException" + e);
 		}
 		
 		return sDiskCache;
@@ -91,7 +88,7 @@ public class PicCacheUtil {
 
 		try {
 			if (cache != null) {
-			    Log.d(TAG, "addThumbnailToDiskCache");
+				LogUtil.debug(TAG, "addThumbnailToDiskCache");
 				
 				DiskLruCache.Editor editor = cache.edit(key);
 				
@@ -100,15 +97,12 @@ public class PicCacheUtil {
 					editor.commit();
 					
 					boolean ret = bitmap.compress(Bitmap.CompressFormat.PNG, 100, os);
-					Log.d(TAG, "bitmap compress: " + ret);
+					LogUtil.debug(TAG, "bitmap compress: " + ret);
 				}
-				
 			}
 
 		} catch (IOException e) {
-			Log.e(TAG, "IOException" + e);
-		} finally {
-			
+			LogUtil.error(TAG, "IOException" + e);
 		}
 	}
 
@@ -117,22 +111,18 @@ public class PicCacheUtil {
 		DiskLruCache cache = getThumbnailDiskLruCache();
 
 		try {
-			Log.d(TAG, "getThumbnailFromDiskCache");
+			LogUtil.debug(TAG, "getThumbnailFromDiskCache");
 			if (cache != null && cache.get(key) != null) {
 				DiskLruCache.Snapshot snapshot = cache.get(key);
-				InputStream is = snapshot.getInputStream(0);
-				bitmap = BitmapFactory.decodeStream(is);
-				
-				snapshot.close();
+                if (snapshot != null) {
+                    InputStream is = snapshot.getInputStream(0);
+                    if (is != null)
+                        bitmap = BitmapFactory.decodeStream(is);
+                    snapshot.close();
+                }
 			}
 		} catch (IOException e) {
-			Log.e(TAG, "IOException" + e);
-		} finally {
-			if (bitmap != null) {
-				Log.d(TAG, "bitmap is not null.");
-			} else {
-				Log.d(TAG, "bitmap is null.");
-			}
+			LogUtil.error(TAG, "IOException" + e);
 		}
 
 		return bitmap;

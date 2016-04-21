@@ -1,7 +1,7 @@
 <menu xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
-    tools:context="com.gotye.meetplayer.ui.ClipListActivity" >
+    tools:context=".activity.ClipListActivity" >
 
     <item
         android:id="@+id/list_clip"
@@ -97,12 +97,6 @@
             <item
                 android:id="@+id/youku_video"
                 android:title="youku video"/>
-            <item
-                android:id="@+id/tudou_video"
-                android:title="tudou video"/>
-            <item
-                android:id="@+id/iqiyi_video"
-                android:title="iqiyi video"/>
             <item
                 android:id="@+id/parse_url"
                 android:title="parse url"/>

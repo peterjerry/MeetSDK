@@ -4,6 +4,8 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 
 import android.media.MediaFormat;
+
+import com.gotye.meetsdk.subtitle.SimpleSubTitleParser;
 import com.gotye.meetsdk.util.LogUtils;
 
 public class FFMediaExtractor implements MediaExtractable {
@@ -12,7 +14,9 @@ public class FFMediaExtractor implements MediaExtractable {
 
 	private static boolean inited = false;
 
+    // accessed by native methods
 	private long mNativeContext;
+	private long mListenerContext;
 
 	public static boolean initExtrator() {
 		if (inited)
@@ -79,7 +83,13 @@ public class FFMediaExtractor implements MediaExtractable {
 		// TODO Auto-generated method stub
 		return false;
 	}
-	
+
+    @Override
+	public void setSubtitleParser(SimpleSubTitleParser parser) {
+		// TODO Auto-generated method stub
+		native_setSubtitleParser(parser);
+	}
+
 	private native boolean getTrackFormatNative(int index, 
 			MediaFormat mediaformat);
 
@@ -111,4 +121,10 @@ public class FFMediaExtractor implements MediaExtractable {
 	public native void setVideoAhead(int msec);
 	
 	private native void setup(Object mediaplayer_this);
+
+	// subtitle
+	private native void native_setSubtitleParser(SimpleSubTitleParser parser);
+
+	@Override
+	public native int readPacket(int stream_index, ByteBuffer byteBuf, int offset);
 }

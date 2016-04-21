@@ -20,7 +20,7 @@ android {
         versionCode 251
         versionName "2.51"
     }
-    productFlavors {
+    /*productFlavors {
         arm {
             ndk {
                 abiFilters "armeabi", "armeabi-v7a"
@@ -31,16 +31,30 @@ android {
                 abiFilter "x86"
             }
         }
-    }
+    }*/
     buildTypes {
         release {
-            minifyEnabled false
+            minifyEnabled true
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
 			signingConfig signingConfigs.release
+            ndk {
+                abiFilters "armeabi", "armeabi-v7a"
+            }
+        }
+        release_x86 {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            signingConfig signingConfigs.release
+            ndk {
+                abiFilters "x86"
+            }
         }
 		debug {
             minifyEnabled false
             signingConfig signingConfigs.release
+            ndk {
+                abiFilters "armeabi", "armeabi-v7a"
+            }
         }
     }
 	packagingOptions {
@@ -48,10 +62,15 @@ android {
         exclude 'META-INF/NOTICE.txt'
     }
 }
-
+repositories {
+    flatDir {
+        dirs 'libs'
+    }
+}
 dependencies {
     compile fileTree(dir: 'libs', include: ['*.jar'])
     testCompile 'junit:junit:4.12'
+    compile(name: 'BreakpadUtil', ext: 'aar')
     compile 'com.android.support:appcompat-v7:23.1.1'
     compile project(':MeetSDK')
 }

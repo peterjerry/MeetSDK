@@ -1,7 +1,6 @@
 package com.gotye.common.youku;
 
 import android.os.Environment;
-import android.util.Log;
 
 import com.gotye.common.util.CryptAES;
 import com.gotye.common.util.LogUtil;
@@ -13,12 +12,16 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
 import java.net.HttpURLConnection;
+import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLEncoder;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Random;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -27,8 +30,24 @@ import org.json.JSONException;
 import org.json.JSONObject;
 import org.json.JSONTokener;
 
+import org.jsoup.Jsoup;
+import org.jsoup.nodes.Document;
+import org.jsoup.nodes.Element;
+import org.jsoup.select.Elements;
+
 public class YKUtil {
 	private final static String TAG = "YKUtil";
+
+    private final static String YOUKU_USER_AGENT =
+            "Youku HD;3.9.4;iPhone OS;7.1.2;iPad4,1";
+
+    private final static String DESKTOP_CHROME_USER_AGENT =
+            "Mozilla/5.0 (Windows NT 6.3; Win64; x64) " +
+                    "AppleWebKit/537.36 (KHTML, like Gecko) " +
+                    "Chrome/46.0.2490.86 Safari/537.36";
+
+    private final static String youku_page =
+            "http://v.youku.com/v_show/id_%s.html";
 
     private final static String youku_channel_api =
             "http://api.mobile.youku.com/layout/android5_0/channel/" +
@@ -45,19 +64,33 @@ public class YKUtil {
                     "&network=WIFI" +
                     "&cid=%d";
 
-    private final static String youku_album_api =
+    private final static String youku_subpage_api =
             "http://api.mobile.youku.com/layout/v_5/android/" +
                     "channel/subpage?pid=6f81431b00e5b30a" +
                     "&guid=0b902709fdaba50d69ce66911d4a56e8" +
                     "&ver=5.4.4" +
+                    //"&_t_=1459479510" +
+                    //"&e=md5" +
+                    //"&_s_=1c024ab0b0c0de314a425423e8ab021e" +
                     "&network=WIFI" +
                     "&cid=%d" +
                     "&sub_channel_id=%d" +
                     "&sub_channel_type=%d" +
-                    "&ob=2" +
+                    "&ob=%d" + // 2 sort 1-最新发布, 2-最多播放
                     "&show_game_information=1" +
                     "&pg=%d" + // index from 1
                     "&pz=%d"; // page size
+
+    private final static String youku_filter_api =
+            "http://api.mobile.youku.com/layout/android3_0/" +
+                    "channel/filter?pid=6f81431b00e5b30a" +
+                    "&guid=0b902709fdaba50d69ce66911d4a56e8" +
+                    "ver=5.4.4" +
+                    //"&_t_=1459481528
+                    // &e=md5
+                    // &_s_=cb0d373a00025401298039dc5f721d73
+                    "&network=WIFI" +
+                    "&cid=%d"; // 86
 
     private final static String youku_album_info_api =
             "http://api.mobile.youku.com/layout/android5_0/" +
@@ -124,6 +157,9 @@ public class YKUtil {
                     "&pid=87c959fb273378eb" +
                     "&local_vid=%s"; // param3
 
+    private final static String youku_soku_api =
+            "http://www.soku.com/search_video/q_";
+
     private final static String m3u8_url_fmt =
             "http://pl.youku.com/playlist/m3u8" +
                     "?ts=%s" + // useless?
@@ -137,6 +173,20 @@ public class YKUtil {
                     "&ctype=%s" +
                     "&ev=1" +
                     "&ep=%s";
+
+    private final static String relate_api =
+            "http://api.mobile.youku.com/common/shows/relate" +
+                    "?pid=6f81431b00e5b30a" +
+                    "&guid=0b902709fdaba50d69ce66911d4a56e8" +
+                    "&ver=5.4.4" +
+                    "&network=WIFI" +
+                    "&id=%s" +
+                    "&apt=3" +
+                    "&pg=%d" +
+                    "&md=1" +
+                    "&pz=20";
+
+    private static String YKss = null;
 
     public static String getPlayUrl(String youku_url, String vid) {
         LogUtil.info(TAG, String.format("Java: getPlayUrl %s, vid %s",
@@ -152,7 +202,41 @@ public class YKUtil {
         return getPlayUrl(vid_);
     }
 
-	public static String getPlayUrl(String vid) {
+    public static ZGUrl getPlayUrl2(String vid) {
+        String m3u8_url = getPlayUrl(vid);
+        if (m3u8_url == null) {
+            LogUtil.error(TAG, "Java: failed to call getPlayUrl() vid: " + vid);
+            return null;
+        }
+
+        LogUtil.info(TAG, "m3u8_url: " + m3u8_url);
+
+        if (YKss == null) {
+            YKss = getYKss(null, vid);
+            if (YKss == null) {
+                LogUtil.error(TAG, "failed to get ykss");
+                return null;
+            }
+        }
+
+        String Cookies = "__ysuid=" + YKUtil.getPvid(3) +
+                ";xreferrer=http://www.youku.com/" +
+                ";ykss=" + YKss;
+        System.out.println("Cookies: " + Cookies);
+        byte []buffer = new byte[65536 * 10];
+        int content_size = httpUtil.httpDownloadBuffer(m3u8_url, Cookies, 0, buffer);
+        if (content_size <= 0) {
+            LogUtil.error(TAG, "Java: failed to download m3u8 file: " + m3u8_url);
+            return null;
+        }
+        byte []m3u8_context = new byte[content_size];
+        System.arraycopy(buffer, 0, m3u8_context, 0, content_size);
+
+        //return YKUtil.getZGUrls(vid);
+        return YKUtil.parseM3u8(vid, new String(m3u8_context));
+    }
+
+	private static String getPlayUrl(String vid) {
         LogUtil.info(TAG, "Java: getPlayUrl() vid " + vid);
 		
 		String ctype = "20";//指定播放ID 20
@@ -161,7 +245,8 @@ public class YKUtil {
         String tm = String.valueOf(sec);
         
         String api_url = String.format(apiurl, ctype, did, vid, vid);
-        String result = getHttpPage(api_url, true, true);
+        LogUtil.info(TAG, "youku api_url: " + api_url);
+        String result = getHttpPage(api_url, YOUKU_USER_AGENT, true);
         if (result == null)
             return null;
 
@@ -191,14 +276,16 @@ public class YKUtil {
 	}
 
     public static class ZGUrl {
+        public String vid;
         public String file_type;
         public String urls;
         public String durations;
 
-        public ZGUrl(String type, String urls, String durations) {
-            this.file_type = type;
-            this.urls = urls;
-            this.durations = durations;
+        public ZGUrl(String vid, String type, String urls, String durations) {
+            this.vid        = vid;
+            this.file_type  = type;
+            this.urls       = urls;
+            this.durations  = durations;
         }
     }
 
@@ -210,7 +297,7 @@ public class YKUtil {
         String api_url = "http://zg.yangsifa.com/video?url=v.youku.com/v_show/id_%s==.html&hd=3";
         String url = String.format(api_url, vid, api_key);
         LogUtil.info(TAG, "getZGUrls() url: " + url);
-        String result = getHttpPage(url, false, false);
+        String result = getHttpPage(url, null, false);
         if (result == null)
             return null;
 
@@ -240,7 +327,8 @@ public class YKUtil {
 
                 JSONObject item = urls.getJSONObject(i);
                 String item_url = item.getString("url");
-                LogUtil.info(TAG, String.format("getZGUrls() url seg #%d %s", i, item_url));
+                LogUtil.info(TAG, String.format(Locale.US,
+                        "getZGUrls() url seg #%d %s", i, item_url));
                 sbUrl.append(item_url);
             }
 
@@ -263,8 +351,8 @@ public class YKUtil {
             byte []m3u8_context = new byte[content_size];
             System.arraycopy(buffer, 0, m3u8_context, 0, content_size);
 
-            ZGUrl tmp = parseM3u8(new String(m3u8_context));
-            return new ZGUrl(file_type, sbUrl.toString(), tmp.durations);
+            ZGUrl tmp = parseM3u8(vid, new String(m3u8_context));
+            return new ZGUrl(vid, file_type, sbUrl.toString(), tmp.durations);
         } catch (JSONException e) {
             // TODO Auto-generated catch block
             e.printStackTrace();
@@ -276,7 +364,7 @@ public class YKUtil {
     public static List<Channel> getChannel() {
         System.out.println("getChannel: " + youku_channel_api);
 
-        String result = getHttpPage(youku_channel_api, false, false);
+        String result = getHttpPage(youku_channel_api, null, false);
         if (result == null)
             return null;
 
@@ -319,7 +407,7 @@ public class YKUtil {
         String url = String.format(youku_catalog_api, channel_id);
 
         LogUtil.info(TAG, "getCatalog() url: " + url);
-        String result = getHttpPage(url, true, true);
+        String result = getHttpPage(url, YOUKU_USER_AGENT, true);
         if (result == null)
             return null;
 
@@ -342,7 +430,7 @@ public class YKUtil {
 //            		},
 
                 JSONObject item = results.getJSONObject(i);
-                String filter = "";
+                String filter = null;
                 if (item.has("filter"))
                     filter = item.getString("filter");
                 String title = item.getString("title");
@@ -361,13 +449,155 @@ public class YKUtil {
         return null;
     }
 
+    public static class SortType {
+        public String mTitle;
+        public int mValue;
+
+        public SortType(String title, int value) {
+            this.mTitle = title;
+            this.mValue = value;
+        }
+
+        @Override
+         public String toString() {
+            return String.format("sort_type: title %s, value %d", mTitle, mValue);
+        }
+    }
+
+    public static class FilerType {
+        public String mTitle;
+        public String mValue;
+
+        public FilerType(String title, String value) {
+            this.mTitle = title;
+            this.mValue = value;
+        }
+
+        @Override
+        public String toString() {
+            return String.format("filter_type: title %s, value %s", mTitle, mValue);
+        }
+    }
+
+    public static class FilerGroup {
+        public String mTitle;
+        public String mCat;
+        public List<FilerType> mFilterList;
+
+        public FilerGroup(String title, String cat, List<FilerType> filter_list) {
+            this.mTitle         = title;
+            this.mCat           = cat;
+            this.mFilterList    = filter_list;
+        }
+
+        @Override
+        public String toString() {
+            StringBuffer sb = new StringBuffer();
+            sb.append("filter_group: title ");
+            sb.append(mTitle);
+            sb.append(", cat ");
+            sb.append(mCat);
+            sb.append(", filter_list ");
+            sb.append(mFilterList.toString());
+            return sb.toString();
+        }
+    }
+
+    public static class FilterResult {
+        public List<FilerGroup> mFilters;
+        public List<SortType> mSortTypes;
+
+        public FilterResult(List<FilerGroup> filter_list, List<SortType> sort_type_list) {
+            this.mFilters = filter_list;
+            this.mSortTypes = sort_type_list;
+        }
+
+        @Override
+        public String toString() {
+            StringBuffer sb = new StringBuffer();
+            for (int i=0;i<mFilters.size();i++) {
+                if (i > 0)
+                    sb.append("\n");
+
+                sb.append("filter_group: #");
+                sb.append(i);
+                sb.append(" " + mFilters.get(i).toString());
+            }
+
+            for (int i=0;i<mSortTypes.size();i++) {
+                sb.append("\nsort_type: #");
+                sb.append(i);
+                sb.append(" " + mSortTypes.get(i).toString());
+            }
+            return sb.toString();
+        }
+    }
+
+    public static FilterResult getFilter(int channel_id) {
+        //2-最多播放, 4-最具争议, 6-最多收藏, 5-最广传播, 1-最新发布
+        String url = String.format(youku_filter_api, channel_id);
+        LogUtil.info(TAG, "getFilter() url " + url);
+
+        String result = getHttpPage(url, DESKTOP_CHROME_USER_AGENT, true);
+        if (result == null)
+            return null;
+
+        try {
+            JSONTokener jsonParser = new JSONTokener(result);
+            JSONObject root = (JSONObject) jsonParser.nextValue();
+            if (root.has("status")) {
+                String status = root.getString("status");
+                if (!status.equals("success"))
+                    return null;
+            }
+
+            JSONObject results = root.getJSONObject("results");
+            JSONArray filter = results.getJSONArray("filter");
+            int count = filter.length();
+            List<FilerGroup> filtergroupList = new ArrayList<FilerGroup>();
+            for (int i=0;i<count;i++) {
+                JSONObject item = filter.getJSONObject(i);
+                String title = item.getString("title");
+                String cat = item.getString("cat");
+                JSONArray items = item.getJSONArray("items");
+                int c = items.length();
+                List<FilerType> filterList = new ArrayList<FilerType>();
+                for (int j=0;j<c;j++) {
+                    JSONObject f = items.getJSONObject(j);
+                    String f_title = f.getString("title");
+                    String f_value = f.getString("value");
+                    filterList.add(new FilerType(f_title, f_value));
+                }
+
+                filtergroupList.add(new FilerGroup(title, cat, filterList));
+            }
+
+            JSONArray sort = results.getJSONArray("sort");
+            count = sort.length();
+            List<SortType> sortList = new ArrayList<SortType>();
+            for (int i=0;i<count;i++) {
+                JSONObject item = sort.getJSONObject(i);
+                String title = item.getString("title");
+                int value = item.getInt("value");
+                sortList.add(new SortType(title, value));
+            }
+
+            return new FilterResult(filtergroupList, sortList);
+        } catch (JSONException e1) {
+            e1.printStackTrace();
+        }
+
+        return null;
+    }
+
     public static List<Album> getAlbums(
-            int channel_id ,String filter,
+            int channel_id , String filter, int sort,
             int sub_channel_id, int sub_channel_type,
             int page, int page_size) {
 
-        String url = String.format(youku_album_api,
-                channel_id, sub_channel_id, sub_channel_type, page, page_size);
+        String url = String.format(Locale.US, youku_subpage_api,
+                channel_id, sub_channel_id, sub_channel_type,
+                sort, page, page_size);
         if (filter != null && !filter.isEmpty()) {
             try {
                 String encoded_filter = URLEncoder.encode(filter, "UTF-8");
@@ -381,7 +611,7 @@ public class YKUtil {
         }
 
         LogUtil.info(TAG, "getAlbums() url " + url);
-        String result = getHttpPage(url, true, true);
+        String result = getHttpPage(url, DESKTOP_CHROME_USER_AGENT, false);
         if (result == null)
             return null;
 
@@ -394,36 +624,50 @@ public class YKUtil {
                     return null;
             }
 
-            List<Album> albumList = new ArrayList<Album>();
+            // sub_channel_id=242&sub_channel_type=1 电视剧 精选
+            // sub_channel_id=2&sub_channel_type=3 电视剧 大陆
 
-            if (channel_id == 95 /*music*/) {
+            List<Album> albumList = new ArrayList<Album>();
+            if (sub_channel_type == 1/*精选*/) {
                 JSONArray boxes = root.getJSONArray("boxes");
                 int size = boxes.length();
                 for (int i=0;i<size;i++) {
-                    JSONObject item = boxes.getJSONObject(i);
-                    JSONArray cells = item.getJSONArray("cells");
-                    int size2 = cells.length();
-                    for (int j=0;j<size2;j++) {
+                    JSONObject box = boxes.getJSONObject(i);
+                    String box_title = "";
+                    if (box.has("title"))
+                        box_title = box.getString("title");
+                    JSONArray cells = box.getJSONArray("cells");
+                    for (int j=0;j<cells.length();j++) {
                         JSONObject cell = cells.getJSONObject(j);
                         JSONArray contents = cell.getJSONArray("contents");
-                        int size3 = contents.length();
-                        for (int k=0;k<size3;k++) {
-                            JSONObject song = contents.getJSONObject(k);
+                        for (int k=0;k<contents.length();k++) {
+                            JSONObject content = contents.getJSONObject(k);
 //                            {
-//                                subtitle: "495",
-//                                        img: "http://r4.ykimg.com/0541010156E2270E641DA4FA18A017DC",
-//                                    title: "Where Went Yesterday 剧情版",
+//                                subtitle: "8.5",
+//                                        img: "http://r4.ykimg.com/050C0000570342EE67BC3D03F80969CE",
+//                                    title: "铁血战狼",
 //                                    url: "",
 //                                    paid: 0,
-//                                    stripe: "05:20",
-//                                    tid: "XMTQ5NjQ1NTc1Ng==",
-//                                    is_vv: 1,
-//                                    type: "1"
+//                                    stripe: "更新至20集",
+//                                    tid: "c31d55bc6f3411e5b692",
+//                                    is_vv: 0,
+//                                    type: "2"
 //                            },
-                            String title = song.getString("title");
-                            String tid = song.getString("tid");
-                            String stripe = song.getString("stripe");
-                            albumList.add(new Album(title, tid, stripe));
+                            String title = box_title + " " + content.getString("title");
+                            String stripe = content.getString("stripe");
+                            String subtitle = content.getString("subtitle");
+                            String img_url = content.getString("img");
+                            String tid = content.getString("tid");
+                            int is_vv = content.getInt("is_vv");
+                            int type = content.getInt("type");
+                            String total_vv = "";
+                            if (is_vv > 0)
+                                total_vv = subtitle;
+                            int total_ep = 1;
+                            if (type == 2)
+                                total_ep = 12345678; // guess
+                            albumList.add(new Album(title, tid, stripe,
+                                    img_url, total_vv, total_ep));
                         }
                     }
                 }
@@ -444,11 +688,33 @@ public class YKUtil {
 //            	type: 2
 //            	},
 
+//                {
+//                    subtitle: "177.5万",
+//                    img: "http://r3.ykimg.com/0542040856FA0B0C6A0A49045E9340C2",
+//                    title: "第20160329期 吴奇隆刘诗诗婚后首现身 华晨宇否认与邓紫棋恋情",
+//                    paid: 0,
+//                    stripe: "27:51",
+//                    tid: "XMTUxNTU0ODAzMg==",
+//                    is_vv: 1,
+//                    type: 1
+//                },
+
                     JSONObject item = results.getJSONObject(i);
                     String title = item.getString("title");
                     String stripe = item.getString("stripe");
+                    String img_url = item.getString("img");
                     String tid = item.getString("tid");
-                    albumList.add(new Album(title, tid, stripe));
+                    int is_vv = item.getInt("is_vv");
+                    int type = item.getInt("type");
+                    String total_vv = "";
+                    if (is_vv > 0 && item.has("subtitle")) {
+                        total_vv = item.getString("subtitle");
+                    }
+                    int total_ep = 1;
+                    if (type == 2)
+                        total_ep = 12345678; // guess
+                    albumList.add(new Album(title, tid, stripe,
+                            img_url, total_vv, total_ep));
                 }
             }
 
@@ -463,8 +729,8 @@ public class YKUtil {
     public static Album getAlbumInfo(String tid) {
         String url = String.format(youku_album_info_api, tid);
 
-        LogUtil.debug(TAG, "getAlbumInfo() url: " + url);
-        String result = getHttpPage(url, true, true);
+        LogUtil.info(TAG, "getAlbumInfo() url: " + url);
+        String result = getHttpPage(url, YOUKU_USER_AGENT, true);
         if (result == null)
             return null;
 
@@ -492,7 +758,8 @@ public class YKUtil {
             if (detail.has("showid"))
                 showid = detail.getString("showid");
             String title = detail.getString("title");
-            String sub_title = detail.getString("username");
+            String stripe_bottom = detail.getString("stripe_bottom");
+            String username = detail.getString("username");
             String img = detail.getString("img");
             String desc = detail.getString("desc");
             String total_vv = detail.getString("total_vv_fmt");
@@ -507,11 +774,6 @@ public class YKUtil {
             if (detail.has("episode_total"))
                 episode_total = detail.getInt("episode_total");
 
-            if (sub_title != null && !sub_title.isEmpty()) {
-                title += "(";
-                title += sub_title;
-                title += ")";
-            }
             return new Album(title, showid,
                     stripe, img, total_vv,
                     showdate, desc, actor, videoid, episode_total);
@@ -526,7 +788,7 @@ public class YKUtil {
         String url = String.format(youku_episode_api, showId, page, page_size);
 
         LogUtil.info(TAG, "getEpisodeList() url: " + url);
-        String result = getHttpPage(url, true, true);
+        String result = getHttpPage(url, YOUKU_USER_AGENT, true);
         if (result == null)
             return null;
 
@@ -580,6 +842,241 @@ public class YKUtil {
         return null;
     }
 
+    public static MixResult soku(String keyword, int orderby, int page) {
+        String url = null;
+        try {
+            String encoded_keyword = URLEncoder.encode(keyword, "UTF-8");
+            url = youku_soku_api + encoded_keyword;
+            // orderby 1-综合排序 2-最新发布 3-最多播放
+            // page base 1
+            // hd 0-不限,1-高清,6-超清,7-1080p
+            // lengthtype 0- 不限，1->0-10min, 2->10-30min, 3->30-60min, 4->60min+
+            url += "?page=";
+            url += page;
+            if (orderby > 0) {
+                url += "&orderby=";
+                url += orderby;
+            }
+            /*url += "&hd=";
+            url += hd;
+            url += "&lengthtype=";
+            url += lengthtype;*/
+            //综合排序 最新发布 最多播放 &od=0,1,2
+        } catch (UnsupportedEncodingException e) {
+            e.printStackTrace();
+            return null;
+        }
+
+        LogUtil.info(TAG, "soku() url: " + url);
+        String html = getHttpPage(url, DESKTOP_CHROME_USER_AGENT, false);
+        if (html == null) {
+            LogUtil.error(TAG, "failed to get http page: " + url);
+            return null;
+        }
+
+        //Document doc = Jsoup.connect(url).timeout(5000).get();
+        Document doc = Jsoup.parse(html);
+
+        List<Album> albumList = null;
+        List<Episode> epList = new ArrayList<Episode>();
+
+        // get s_dir
+        Elements s_dir = doc.getElementsByClass("s_dir");
+        int size = s_dir.size();
+        if (size > 0) {
+            Elements lis = doc.getElementsByClass("s_link");
+            albumList = new ArrayList<Album>();
+            for (int j = 0;j<lis.size();j++) {
+                Element item = lis.get(j).getElementsByTag("a").first();
+                String title = item.attr("_log_title");
+                String href = item.attr("href");
+                String showid = item.attr("_iku_showid");
+                albumList.add(new Album(title, showid, null,
+                        null, null, 123456));
+            }
+        }
+
+        // get video
+        Elements test = doc.getElementsByClass("v");
+        if (test == null || test.isEmpty()) {
+            LogUtil.error(TAG, "failed to get v tag");
+            return null;
+        }
+
+        size = test.size();
+        for (int i = 0; i < size; i++) {
+            Element v = test.get(i);
+            Element v_thumb = v.getElementsByClass("v-thumb").first();
+            Element v_link = v.getElementsByClass("v-link").first();
+            // fix me!
+            // solve http://www.soku.com/detail/show/XMTEwMTU5Mg==?siteId=14
+            if (v_link == null)
+                continue;
+
+            Element v_meta = v.getElementsByClass("v-meta").first();
+            Element video = v_link.getElementsByTag("a").first();
+            String thumb_url = v_thumb.child(0).attr("src");
+            String duration = v_thumb.getElementsByClass("v-thumb-tagrb")
+                    .first().child(0).text();
+            String title = video.attr("title");
+            String href = video.attr("href");
+            String vid = video.attr("_log_vid");
+            String vv = v_meta.getElementsByClass("v-meta-entry")
+                    .first().child(1).child(1).text();
+            String online_time = v_meta.getElementsByClass("v-meta-entry")
+                    .first().child(2).child(1).text();
+            epList.add(new Episode(title, vid, thumb_url,
+                    online_time, vv, duration, null));
+        }
+
+        return new MixResult(albumList, epList);
+    }
+
+    public static class MixResult {
+        public List<Album> mALbumList;
+        public List<Episode> mEpisodeList;
+
+        public MixResult(List<Album> albumList, List<Episode> epList) {
+            this.mALbumList = albumList;
+            this.mEpisodeList = epList;
+        }
+    }
+
+    public static MixResult relate(String vid, int page) {
+        LogUtil.info(TAG, String.format(Locale.US, "relate() vid %s, page %d", vid, page));
+
+        String url = String.format(Locale.US, relate_api, vid, page);
+        LogUtil.info(TAG, "relate() url: " + url);
+        String result = getHttpPage(url, YOUKU_USER_AGENT, false);
+        if (result == null)
+            return null;
+
+        try {
+            JSONTokener jsonParser = new JSONTokener(result);
+            JSONObject root = (JSONObject) jsonParser.nextValue();
+            String status = root.getString("status");
+            if (!status.equals("success"))
+                return null;
+
+//            pubdate: "2016-01-15 16:14:48",
+//            total_vv: 70892,
+//            duration: 8509,
+//            dct: "96",
+//            ver: "A",
+//            total_comment: 107,
+//            img: "http://r1.ykimg.com/054204085697780D6A0A4804C63C2FEB",
+//            title: "火星救援",
+//            format: [
+//            4,
+//            5,
+//            6
+//            ],
+//            videoid: "XMTQ0NTI3Mzk0OA==",
+//            source: 120,
+//            state: 3,
+//            cats: "电影",
+//            publicType: 0,
+//            duration_fmt: "141:49",
+//            img_hd: "http://r1.ykimg.com/054104085697780D6A0A4804C63C2FEB",
+//            username: "焦亦丝",
+//            tags: [
+//            "电影",
+//            "火星救援"
+//            ],
+//            clickLogUrl: "",
+//            paid: 0,
+//            total_down: 1,
+//            link: "http://v.youku.com/v_show/id_XMTQ0NTI3Mzk0OA==.html",
+//            total_up: 410,
+//            ord: "0",
+//            algInfo: "1cf001-2-1cf007-2-1lr1-2-1dtype-2h-1api-2F0107-1reqid-2F146104103506237U",
+//            desc: "",
+//            dma: "306",
+//            stripe_bottom: "播放：7.1万",
+//            cid: 96,
+//            mm: "0",
+//            userid: "UMzE2NTUwNTAzNg==",
+//            stripe_bottom_fmt: "141:49",
+//            total_vv_fmt: "7.1万",
+//            total_fav: 0,
+//            reputation: 8.1186461960806,
+//            limit: 1,
+//            req_id: "146104103506237U",
+
+//            showid: "cbfc2f22962411de83b1",
+//            dma: "1101",
+//            total_vv_fmt: "446.6万",
+//            clickLogUrl: "",
+//            total_vv: 4465916,
+//            ord: "0",
+//            dct: "97",
+//            pk_odshow: "13449",
+//            ver: "A",
+//            stripe_bottom: "8集全",
+//            img: "http://r1.ykimg.com/050B0000541BBA1267379F65020B5888",
+//            title: "武松",
+//            mm: "0",
+//            show_vthumburl: "http://r3.ykimg.com/050D0000541BBA3367379F18480DC8DB",
+//            videoid: "XNTI0NTQ3OTAw",
+//            stripe_bottom_fmt: "8集全",
+//            algInfo: "1cf001-2-1dtype-2h-1api-2F0070-1reqid-2F1461042026169DX0",
+//            reputation: 8.471,
+//            req_id: "1461042026169DX0",
+//            show_vthumburl_hd: "http://r3.ykimg.com/050E0000541BBA3367379F18480DC8DB",
+//            series_update: "8集全",
+//            duration_fmt: "00:00",
+//            img_hd: "http://r1.ykimg.com/050C0000541BBA1267379F65020B5888",
+
+            JSONArray results = root.getJSONArray("results");
+            int size = results.length();
+            List<Album> albumList = new ArrayList<Album>();
+            List<Episode> epList = new ArrayList<Episode>();
+
+            for (int i=0;i<size;i++) {
+                JSONObject item = results.getJSONObject(i);
+                if (item.has("showid")) {
+                    // album
+                    String showid = item.getString("showid");
+                    String total_vv_fmt = item.getString("total_vv_fmt");
+                    int total_vv = item.getInt("total_vv");
+                    String stripe_bottom = item.getString("stripe_bottom");
+                    String img_url = item.getString("img");
+                    String title=  item.getString("title");
+                    String videoid = item.getString("videoid");
+                    double reputation = item.getDouble("reputation");
+                    String series_update = item.getString("series_update");
+                    albumList.add(new Album(title, showid, stripe_bottom,
+                            img_url, total_vv_fmt, 123456));
+                }
+                else {
+                    String pubdate = item.getString("pubdate");
+                    int total_vv = item.getInt("total_vv");
+                    int duration = item.getInt("duration");
+                    String img_url = item.getString("img");
+                    String title=  item.getString("title");
+                    JSONArray formats = item.getJSONArray("format");
+                    int []format = new int[formats.length()];
+                    for(int j=0;j<formats.length();j++)
+                        format[j] = formats.getInt(j);
+                    String videoid = item.getString("videoid");
+                    String duration_fmt = item.getString("duration_fmt");
+                    String link = item.getString("link");
+                    String stripe_bottom = item.getString("stripe_bottom");
+                    String total_vv_fmt = item.getString("total_vv_fmt");
+                    epList.add(new Episode(title, vid, img_url,
+                            pubdate, total_vv_fmt, duration_fmt, null));
+                }
+            }
+
+            return new MixResult(albumList, epList);
+        } catch (JSONException e1) {
+            e1.printStackTrace();
+        }
+
+        return null;
+    }
+
+    @Deprecated
     public static List<Album> search(String keyword,
                                      int page, int page_size) {
         LogUtil.info(TAG, "Java: search() keyword " + keyword);
@@ -595,7 +1092,7 @@ public class YKUtil {
         }
 
         LogUtil.info(TAG, "Java: search() url: " + url);
-        String result = getHttpPage(url, true, false);
+        String result = getHttpPage(url, YOUKU_USER_AGENT, false);
         if (result == null)
             return null;
 
@@ -613,8 +1110,10 @@ public class YKUtil {
                 String title = item.getString("title");
                 String showid = item.getString("showid");
                 String videoId = item.getString("videoid");
+                String img_url = item.getString("img");
                 String pubdate = item.getString("pubdate");
-                albumList.add(new Album(title, showid, pubdate));
+                albumList.add(new Album(title, showid, pubdate,
+                        img_url, null, 1));
             }
 
             return albumList;
@@ -625,7 +1124,7 @@ public class YKUtil {
         return null;
     }
 
-	private static String getHttpPage(String url, boolean setUserAgent, boolean setEncoding) {
+	private static String getHttpPage(String url, String UserAgent, boolean setEncoding) {
 		InputStream is = null;
 		ByteArrayOutputStream os = null;
 
@@ -636,12 +1135,17 @@ public class YKUtil {
 			conn.setRequestMethod("GET");
 			conn.setReadTimeout(5000);// 设置超时的时间
 			conn.setConnectTimeout(5000);// 设置链接超时的时间
-			if (setUserAgent) {
-				conn.setRequestProperty("User-Agent",
-						"Youku HD;3.9.4;iPhone OS;7.1.2;iPad4,1");
-			}
+            if (UserAgent != null)
+                conn.setRequestProperty("User-Agent", UserAgent);
 			if (setEncoding)
 				conn.setRequestProperty("Encoding", "gzip, deflate");
+
+            if (YKss != null) {
+                String Cookies = "__ysuid=" + YKUtil.getPvid(3) +
+                        ";xreferrer=http://www.youku.com/" +
+                        ";ykss=" + YKss;
+                conn.setRequestProperty("Cookie", Cookies);
+            }
 
 			conn.connect();
 
@@ -773,7 +1277,9 @@ public class YKUtil {
         return null;
     }
 
-    public static ZGUrl parseM3u8(String m3u8_context) {
+    public static ZGUrl parseM3u8(String vid, String m3u8_context) {
+        LogUtil.info(TAG, "parseM3u8()");
+
         StringBuffer sbUrl = new StringBuffer();
         StringBuffer sbDuration = new StringBuffer();
 
@@ -826,13 +1332,15 @@ public class YKUtil {
             }
         }
 
-        if (!sbUrl.toString().isEmpty() && !sbDuration.toString().isEmpty())
-            return new ZGUrl("flv", sbUrl.toString(), sbDuration.toString());
+        if (sbUrl.toString().isEmpty()|| sbDuration.toString().isEmpty()) {
+            LogUtil.error(TAG, "url list is null: " + m3u8_context);
+            return null;
+        }
 
-        return null;
+        return new ZGUrl(vid, "flv", sbUrl.toString(), sbDuration.toString());
     }
 
-	private static String getVid(String url) {
+	public static String getVid(String url) {
 		String strRegex = "(?<=id_)(\\w+)";
 		Pattern pattern = Pattern.compile(strRegex);
 		Matcher match = pattern.matcher(url);
@@ -887,4 +1395,68 @@ public class YKUtil {
 
 	    return hex.toString();
 	}
+
+    public static String getPvid(int len) {
+        String[] randchar = new String[]{
+                "0", "1", "2", "3", "4", "5", "6", "7", "8", "9",
+                "a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n", "o",
+                "p", "q", "r", "s", "t", "u", "v", "w", "x", "y", "z",
+                "A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O",
+                "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z"};
+
+        int i = 0;
+        String r = "";
+        long seconds = System.currentTimeMillis();
+        /*Calendar cal = java.util.Calendar.getInstance();
+        int zoneOffset = cal.get(java.util.Calendar.ZONE_OFFSET);
+        int dstOffset = cal.get(java.util.Calendar.DST_OFFSET);
+        cal.add(java.util.Calendar.MILLISECOND, -(zoneOffset + dstOffset));
+        long seconds = cal.getTimeInMillis();*/
+        for (i = 0; i < len; i++) {
+            int v = new Random().nextInt(100);
+            int index = (int)(v * Math.pow(10, 6)) % randchar.length;
+            r += randchar[index];
+        }
+
+        return String.valueOf(seconds) + r;
+    }
+
+    private static String getYKss(String httpUrl, String vid) {
+        if (httpUrl == null && vid == null) {
+            LogUtil.error(TAG, "getYKss() invalid params");
+            return null;
+        }
+
+        String html_url = httpUrl;
+        if (html_url == null)
+            html_url = String.format(youku_page, vid);
+        LogUtil.info(TAG, "Java: getYKss() " + html_url);
+
+        try {
+            URL url = new URL(html_url);
+            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+            Map<String, List<String>> map = conn.getHeaderFields();
+            List<String> cookie_list = map.get("Set-Cookie");
+            if (cookie_list != null) {
+                for (int i = 0; i < cookie_list.size(); i++) {
+                    String c = cookie_list.get(i);
+                    if (c.contains("ykss=")) {
+                        int start = c.indexOf("ykss=");
+                        int end = c.indexOf(";");
+                        if (end == -1)
+                            return c.substring(start + 5);
+
+                        return c.substring(start + 5, end);
+                    }
+                }
+            }
+        } catch (MalformedURLException e) {
+            e.printStackTrace();
+            return null;
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        return null;
+    }
 }

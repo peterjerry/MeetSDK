@@ -15,3 +15,106 @@
 #-keepclassmembers class fqcn.of.javascript.interface.for.webview {
 #   public *;
 #}
+
+-optimizationpasses 5          # 指定代码的压缩级别
+-dontusemixedcaseclassnames   # 是否使用大小写混合
+-dontpreverify           # 混淆时是否做预校验
+-dontskipnonpubliclibraryclasses #指定不去忽略非公共的库的类
+-dontskipnonpubliclibraryclassmembers #指定不去忽略非公共的库的类的成员
+-verbose                # 混淆时是否记录日志
+
+-optimizations !code/simplification/arithmetic,!field/*,!class/merging/*  # 混淆时所采用的算法
+
+-keepattributes *Annotation*
+-keepattributes Signature
+-keepattributes SourceFile,LineNumberTable
+-keepattributes InnerClasses # fix MediaPlayer$setOnErrorListener problem
+#-keepattributes EnclosingMethod # fix warning: Ignoring InnerClasses attribute
+
+-keep public class * extends android.app.Activity      # 保持哪些类不被混淆
+-keep public class * extends android.app.Application   # 保持哪些类不被混淆
+-keep public class * extends android.app.Service       # 保持哪些类不被混淆
+-keep public class * extends android.content.BroadcastReceiver  # 保持哪些类不被混淆
+-keep public class * extends android.content.ContentProvider    # 保持哪些类不被混淆
+-keep public class * extends android.app.backup.BackupAgentHelper # 保持哪些类不被混淆
+-keep public class * extends android.preference.Preference        # 保持哪些类不被混淆
+-keep public class com.android.vending.licensing.ILicensingService    # 保持哪些类不被混淆
+
+-keep class **.R$* {*;}
+
+-keepclasseswithmembernames class * {  # 保持 native 方法不被混淆
+    native <methods>;
+}
+-keepclasseswithmembers class * {   # 保持自定义控件类不被混淆
+    public <init>(android.content.Context, android.util.AttributeSet);
+}
+-keepclasseswithmembers class * {# 保持自定义控件类不被混淆
+    public <init>(android.content.Context, android.util.AttributeSet, int);
+}
+-keepclassmembers class * extends android.app.Activity { # 保持自定义控件类不被混淆
+    public void *(android.view.View);
+}
+-keepclassmembers enum * {     # 保持枚举 enum 类不被混淆
+    public static **[] values();
+    public static ** valueOf(java.lang.String);
+}
+-keep class * implements android.os.Parcelable { # 保持 Parcelable 不被混淆
+    public static final android.os.Parcelable$Creator *;
+}
+
+-keepclasseswithmembers class * {
+    void *(**On*Event);
+}
+
+-keepclasseswithmembers class * {
+    void *(**On*Listener);
+}
+
+-keep class com.gotye.meetsdk.** {
+	public void set*(***);
+	public *** get*();
+	public ** is*();
+}
+
+-keepclasseswithmembers class com.pplive.sdk.MediaSDK {
+    <fields>;
+    <methods>;
+}
+
+-dontwarn android.support.**
+-keep class android.support.** {*;}
+-keep interface android.support.** {*;}
+-keep public class * extends android.support.**
+-keep public class * extends android.app.Fragment
+
+#-libraryjars libs/ivy-2.0.0-rc1.jar
+#-libraryjars libs/jdom-2.0.5.jar
+
+-keep public class com.pplive.dlna.** {*;}
+-keep public class com.gotye.meetsdk.** { *; }
+-keep public class com.pplive.sdk.MediaSDK$* {*;}
+
+#不混淆第三方jar包中的类
+-keep public class org.apache.ivy.util.** {*;}
+-keep public class org.apache.ivy.util.url.HttpClientHandler$* {*;}
+-keep public class org.apache.commons.httpclient.** {*;}
+-keep public class org.apache.commons.httpclient.auth.** {*;}
+-keep public class org.apache.commons.httpclient.cookie.** {*;}
+-keep public class org.apache.commons.httpclient.methods.** {*;}
+-keep public class org.apache.commons.httpclient.params.** {*;}
+-keep public class org.apache.commons.httpclient.util.** {*;}
+-keep public class org.apache.commons.codec.net.** {*;}
+-keep public class org.apache.commons.logging.** {*;}
+-keep public class org.apache.commons.logging.impl.** {*;}
+-keep public class org.apache.commons.codec.** {*;}
+-keep public class org.apache.commons.codec.binary.** {*;}
+-keep public class org.apache.http.entity.mime.** {*;}
+-keep class org.jdom2.** {*;}
+-keep class org.jaxen.** {*;}
+-keep class org.jsoup.** {*;}
+-keep class org.jsoup.**$.* {*;}
+-keep class com.nostra13.** {*;}
+
+-dontwarn org.jdom2.**
+-dontwarn org.apache.ivy.**
+-dontwarn org.jsoup.**

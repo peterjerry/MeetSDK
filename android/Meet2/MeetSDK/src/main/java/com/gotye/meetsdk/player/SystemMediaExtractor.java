@@ -5,6 +5,8 @@ import java.nio.ByteBuffer;
 
 import android.media.MediaExtractor;
 import android.media.MediaFormat;
+
+import com.gotye.meetsdk.subtitle.SimpleSubTitleParser;
 import com.gotye.meetsdk.util.LogUtils;
 
 class SystemMediaExtractor implements MediaExtractable {
@@ -169,6 +171,16 @@ class SystemMediaExtractor implements MediaExtractable {
 	public void setVideoAhead(int msec) {
 		// TODO Auto-generated method stub
 		
+	}
+
+	@Override
+	public void setSubtitleParser(SimpleSubTitleParser parser) {
+
+	}
+
+	@Override
+	public int readPacket(int stream_index, ByteBuffer byteBuf, int offset) {
+		return 0;
 	}
 
 }

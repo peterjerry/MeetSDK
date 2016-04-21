@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+	android:layout_width="fill_parent" android:layout_height="wrap_content">
+
+	<!--ImageView android:id="@+id/horizontal_bg"
+		android:layout_width="fill_parent" android:layout_height="wrap_content"
+		android:background="@drawable/shaixuan_box"
+		android:layout_centerVertical="true" /-->
+
+	<HorizontalScrollView android:layout_width="fill_parent"
+		android:layout_height="wrap_content" android:scrollbars="none"
+		android:scrollbarSize="0dip" android:layout_marginLeft="20dip"
+		android:fadingEdge="none" android:layout_marginRight="20dip"
+		android:layout_centerVertical="true" >
+
+		<LinearLayout android:id="@+id/horizontal_list"
+			android:layout_width="fill_parent" android:layout_height="wrap_content"
+			android:orientation="horizontal" android:gravity="center_vertical" />
+	</HorizontalScrollView>
+</RelativeLayout>

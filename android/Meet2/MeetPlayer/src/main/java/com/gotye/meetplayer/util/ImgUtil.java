@@ -17,7 +17,7 @@ import com.gotye.common.util.LogUtil;
 public class ImgUtil {
 	private final static String TAG = "ImgUtil";
 	private final static int TIMEOUT_MSEC = 3000; // 3 sec
-	
+
 	public static Bitmap getLocalBitmap(String url) {
 	     try {
 	          FileInputStream fis = new FileInputStream(url);

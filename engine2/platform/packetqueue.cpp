@@ -52,16 +52,14 @@ AVPacket* PacketQueue::get()
 	AutoLock autoLock(&mLock);
 
     AVPacket* pPacket = (AVPacket*)mPacketList.Remove(0);
-    if(pPacket != NULL)
-    {
+    if (pPacket != NULL) {
         mCachedSize -= pPacket->size;
         mCount--;
         LOGD("mCount:%d", mCount);
         mDuration-=pPacket->duration;
         LOGD("mDuration:%lld", mDuration);
     }
-    else
-    {
+    else {
         mCachedSize = 0;
         mCount = 0;
         mDuration = 0;
