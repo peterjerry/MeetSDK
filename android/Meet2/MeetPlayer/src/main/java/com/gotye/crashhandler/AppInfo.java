@@ -1,4 +1,4 @@
-package so.cym.crashhandlerdemo;
+package com.gotye.crashhandler;
 
 public class AppInfo {
 	public static String FILES_PATH = null;

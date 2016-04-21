@@ -229,7 +229,7 @@ int FFExtractor::interrupt_l(void* ctx)
 
     if (extractor->m_status == FFEXTRACTOR_STOPPED || extractor->m_status == FFEXTRACTOR_STOPPING) {
         //abort av_read_frame or avformat_open_input, avformat_find_stream_info
-        LOGI("interrupt_l: FFSTREAM_STOPPED");
+        LOGI("interrupt_l: FFEXTRACTOR_STOPPED");
         return 1;
     }
 	
@@ -244,13 +244,18 @@ status_t FFExtractor::setListener(MediaPlayerListener* listener)
 
 status_t FFExtractor::stop()
 {
-	m_status = FFEXTRACTOR_STOPPING;
-	LOGI("stop preparing media");
+	LOGI("extractor_op stop()");
+
+	// 2016.4.21 FFEXTRACTOR_PREPARED state thread was NOT created
+	if (FFEXTRACTOR_PREPARED != m_status)
+		m_status = FFEXTRACTOR_STOPPING;
 	return OK;
 }
 
 status_t FFExtractor::setVideoAhead(int32_t msec)
 {
+	LOGI("extractor_op setVideoAhead() %d", msec);
+
 	m_video_ahead_msec = msec;
 	m_min_play_buf_count = m_video_ahead_msec * m_framerate / 1000;
 	LOGI("setVideoAhead() video_ahead_msec %d, min_play_buf_count %d", 
@@ -260,7 +265,7 @@ status_t FFExtractor::setVideoAhead(int32_t msec)
 
 status_t FFExtractor::setISubtitle(ISubtitles* subtitle)
 {
-	LOGI("setISubtitle %p", subtitle);
+	LOGI("extractor_op setISubtitle() %p", subtitle);
 
 	mISubtitle = subtitle;
 	return OK;
@@ -271,18 +276,21 @@ void FFExtractor::close()
 	if (FFEXTRACTOR_STOPPED == m_status)
 		return;
 
-	LOGI("close()");
+	LOGI("extractor_op close()");
 
-	if (m_status == FFEXTRACTOR_STARTED || m_status == FFEXTRACTOR_PAUSED) {
+	// 2016.4.21 add "m_status == FFEXTRACTOR_STOPPING"
+	// to fix interrupt demux case
+	if (m_status == FFEXTRACTOR_STARTED || m_status == FFEXTRACTOR_PAUSED || m_status == FFEXTRACTOR_STOPPING) {
 		m_status = FFEXTRACTOR_STOPPING;
 		m_buffering = false;
 		pthread_cond_signal(&mCondition);
 
 		LOGI("stop(): before pthread_join %p", mThread);
-		if (pthread_join(mThread, NULL) != 0) {
-			LOGE("pthread_join error");
-		}
+		int ret = pthread_join(mThread, NULL);
+		if (ret != 0)
+			LOGE("pthread_join error %d", ret);
 
+		LOGI("stop(): after thread join");
 		m_video_q.flush();
 		m_audio_q.flush();
 		m_cached_duration_msec = 0;
@@ -339,7 +347,7 @@ void FFExtractor::notifyListener_l(int msg, int ext1, int ext2)
 
 status_t FFExtractor::setDataSource(const char *path)
 {
-	LOGI("setDataSource() %s", path);
+	LOGI("extractor_op setDataSource() %s", path);
 
 	if (!path || strcmp(path, "") == 0) {
 		LOGE("url is empty");
@@ -469,8 +477,9 @@ status_t FFExtractor::setDataSource(const char *path)
 	else
 		m_min_play_buf_count = 25 * 4; // 4 sec for vod "smooth" play 
 
-	LOGI("setDataSource done");
 	m_status = FFEXTRACTOR_PREPARED;
+	LOGI("setDataSource done");
+
 	return OK;
 }
 
@@ -512,8 +521,12 @@ status_t FFExtractor::getTrackCount(int32_t *track_count)
 
 status_t FFExtractor::getTrackFormat(int32_t index, MediaFormat *format)
 {
-	if (NULL == format)
+	LOGI("extractor_op getTrackFormat()");
+
+	if (NULL == format) {
+		LOGE("MediaFormat is null ptr");
 		return INVALID_OPERATION;
+	}
 	
 	if (index >= (int32_t)m_fmt_ctx->nb_streams) {
 		LOGE("invalid stream index: %d", index);
@@ -1002,9 +1015,11 @@ bool FFExtractor::seek_l()
 		m_audio_q.put(flush_pkt);
 	}
 
+	LOGI("before flush subtile parser");
 	if (mISubtitle)
 		mISubtitle->seekTo(0); // do flush
 
+	LOGI("seek_l done!"); 
 	return true;
 }
 
@@ -1167,17 +1182,14 @@ status_t FFExtractor::readPacket(int stream_index, unsigned char *data, int32_t 
 		LOGE("invalid stream index: %d", stream_index);
 		return ERROR;
 	}
+	
+	// NOT need call advance when start()
+	if (start(0) < 0) 
+		return ERROR;
 
 	if (FFEXTRACTOR_STARTED != m_status && FFEXTRACTOR_PAUSED != m_status) {
-		if (!m_audio_stream && !m_video_stream) {
-			LOGE("both audio and video stream was not set, aborting");
-			return ERROR;
-		}
-
-		pthread_create(&mThread, NULL, demux_thread, this);
-
-		m_buffering = true;
-		m_status = FFEXTRACTOR_STARTED;
+		LOGE("extractor in wrong state: %d", m_status);
+		return ERROR;
 	}
 
 	if (m_eof && m_video_q.count() == 0/* && m_audio_q.count == 0*/)
@@ -1269,7 +1281,8 @@ status_t FFExtractor::readSampleData(unsigned char *data, int32_t *sampleSize)
 {
 	//LOGD("readSampleData()");
 	
-	if (start() < 0)
+	// NEED call advance when start()
+	if (start(1) < 0)
 		return ERROR;
 
 	if (!is_packet_valid()) {
@@ -1339,7 +1352,10 @@ bool FFExtractor::is_packet_valid()
 
 status_t FFExtractor::getSampleTrackIndex(int32_t *trackIndex)
 {
-	if (start() < 0)
+	LOGI("getSampleTrackIndex()");
+
+	// NEED call advance when start()
+	if (start(1) < 0) 
 		return ERROR;
 
 	*trackIndex = m_sample_track_idx;
@@ -1553,7 +1569,7 @@ void FFExtractor::addADTStoPacket(uint8_t *packet, int packetLen)
     packet[6] = 0xFC;
 }
 
-int FFExtractor::start()
+int FFExtractor::start(int fill_pkt)
 {
 	if (FFEXTRACTOR_STARTED == m_status || FFEXTRACTOR_PAUSED == m_status)
 		return 0;
@@ -1563,11 +1579,19 @@ int FFExtractor::start()
 		return -1;
 	}
 
-	pthread_create(&mThread, NULL, demux_thread, this);
+	int ret = pthread_create(&mThread, NULL, demux_thread, this);
+	if (ret != 0) {
+		LOGE("pthread_create error: %d", ret);
+		return -1;
+	}
+
+	LOGI("pthread: %p created", mThread);
 
 	m_buffering = true;
 	m_status = FFEXTRACTOR_STARTED;
-	advance();
+
+	if (fill_pkt)
+		advance();
 
 	return 0;
 }
@@ -1640,7 +1664,7 @@ void FFExtractor::thread_impl()
 	
 	while (1) {
 		if (FFEXTRACTOR_STOPPING == m_status || FFEXTRACTOR_STOPPED ==  m_status) {
-            LOGI("work thead break");
+            LOGI("work thread break");
             break;
         }
 

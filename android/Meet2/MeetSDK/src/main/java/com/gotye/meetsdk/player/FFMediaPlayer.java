@@ -43,7 +43,7 @@ public class FFMediaPlayer extends BaseMediaPlayer {
 	public FFMediaPlayer(MediaPlayer mp) {
 		super(mp);
         mUseRenderer = false;
-		native_setup(new WeakReference<FFMediaPlayer>(this)); // always true to use ffplay
+		native_setup(new WeakReference<FFMediaPlayer>(this));
 	}
 
 	// capability

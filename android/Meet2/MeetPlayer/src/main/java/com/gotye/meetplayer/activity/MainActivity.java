@@ -101,10 +101,6 @@ public class MainActivity extends ListActivity {
 		});
 		
 		MeetSDK.setAppRootDir(getCacheDir().getParentFile().getAbsolutePath() + "/");
-		if (android.os.Build.CPU_ABI == "x86")
-    		MeetSDK.setPPBoxLibName("libppbox-android-x86-gcc44-mt-1.1.0.so");
-    	else
-    		MeetSDK.setPPBoxLibName("libppbox-armandroid-r4-gcc44-mt-1.1.0.so");
 		MeetSDK.setLogPath(getCacheDir().getAbsolutePath() + "/meetplayer.log", getCacheDir().getAbsolutePath() + "/");
 		
 		initVideoList();

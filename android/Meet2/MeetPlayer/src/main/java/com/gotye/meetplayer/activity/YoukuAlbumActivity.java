@@ -377,38 +377,21 @@ public class YoukuAlbumActivity extends AppCompatActivity {
         choose_episode_dlg.show();
     }
 
-    private HashMap<String, Object> fill_album_info(Album al) {
+    private HashMap<String, Object> fill_album_info(Album album) {
 
         HashMap<String, Object> AlbumInfo = new HashMap<String, Object>();
 
-        Album detail_album;
-        if (al.getEpisodeTotal() > 1) {
-            // get more detail
-            detail_album = YKUtil.getAlbumInfo(al.getShowId());
-            if (detail_album == null)
-                return null;
-        }
-        else {
-            detail_album = al;
-        }
-
-        LogUtil.info(TAG, "album info: " + detail_album.toString());
-
-        String vid = detail_album.getVid();
+        String vid = album.getVid();
         if (vid == null)
-            vid = detail_album.getShowId(); // tid: "XMTUxNTU0ODAzMg==",
+            vid = album.getShowId(); // tid: "XMTUxNTU0ODAzMg==",
 
-        AlbumInfo.put("title", detail_album.getTitle());
-        AlbumInfo.put("img_url", detail_album.getImgUrl());
-        AlbumInfo.put("desc", detail_album.getDescription());
-        AlbumInfo.put("tip", "播放: " + detail_album.getTotalVV());
-        AlbumInfo.put("duration", detail_album.getStripe());
-        AlbumInfo.put("show_id", detail_album.getShowId());
-        AlbumInfo.put("total_vv", detail_album.getTotalVV());
-        AlbumInfo.put("actor", detail_album.getActor());
+        AlbumInfo.put("title", album.getTitle());
+        AlbumInfo.put("img_url", album.getImgUrl());
+        AlbumInfo.put("show_id", album.getShowId());
+        AlbumInfo.put("tip", album.getStripe());
         AlbumInfo.put("vid", vid);
-        AlbumInfo.put("episode_total", detail_album.getEpisodeTotal());
-        AlbumInfo.put("is_album", detail_album.getEpisodeTotal() > 1 ? true : false);
+        AlbumInfo.put("episode_total", album.getEpisodeTotal());
+        AlbumInfo.put("is_album", album.getEpisodeTotal() > 1);
         return AlbumInfo;
     }
 
@@ -621,6 +604,7 @@ public class YoukuAlbumActivity extends AppCompatActivity {
                             LogUtil.info(TAG, "set filter to: " + filter);
 
                             album_page_index = 1;
+                            noMoreData = false;
                             new SetDataTask().execute(SET_DATA_LIST);
                             return true;
                         }
@@ -644,6 +628,8 @@ public class YoukuAlbumActivity extends AppCompatActivity {
                     public boolean onItemClick(int position) {
                         subpage_sort = mFilterResult.mSortTypes.get(position).mValue;
                         LogUtil.info(TAG, "set subpage_sort to: " + subpage_sort);
+                        album_page_index = 1;
+                        noMoreData = false;
                         new SetDataTask().execute(SET_DATA_LIST);
                         return true;
                     }

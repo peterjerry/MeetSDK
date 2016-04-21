@@ -7,8 +7,6 @@ import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
 import java.util.Locale;
 
-import so.cym.crashhandlerdemo.UploadLogTask;
-
 import android.app.AlertDialog;
 import android.app.Dialog;
 import android.content.DialogInterface;
@@ -34,6 +32,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.gotye.common.util.LogUtil;
+import com.gotye.crashhandler.UploadLogTask;
 import com.gotye.meetplayer.R;
 import com.gotye.meetplayer.ui.widget.MyMediaController;
 import com.gotye.meetplayer.util.FileFilterTest;
@@ -545,10 +544,8 @@ public class VideoPlayerActivity extends AppCompatActivity
 
 	protected void onErrorImpl() {
 		Util.makeUploadLog("failed to play: " + mUri.toString() + "\n\n");
-
 		UploadLogTask task = new UploadLogTask(VideoPlayerActivity.this);
 		task.execute(Util.upload_log_path, "failed to play");
-
 		finish();
 	}
 	

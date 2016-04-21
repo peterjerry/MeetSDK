@@ -46,8 +46,9 @@ struct fields_t {
 };
 
 static fields_t fields;
-static pthread_mutex_t sLock;
 static bool sInited = false;
+
+extern pthread_mutex_t PlayerLock;
 
 typedef IPlayer* (*GET_PLAYER_FUN) (void*);
 typedef void (*RELEASE_PLAYER_FUN) (IPlayer *);
@@ -109,14 +110,14 @@ static Surface* get_surface(JNIEnv* env, jobject clazz)
 
 static IPlayer* getMediaPlayer(JNIEnv* env, jobject thiz)
 {
-	AutoLock l(&sLock);
+	AutoLock l(&PlayerLock);
 	IPlayer* p = (IPlayer*)env->GetLongField(thiz, fields.context);
 	return p;
 }
 
 static IPlayer* setMediaPlayer(JNIEnv* env, jobject thiz, IPlayer* player)
 {
-	AutoLock l(&sLock);
+	AutoLock l(&PlayerLock);
 	IPlayer* old = (IPlayer*)env->GetLongField(thiz, fields.context);
 	env->SetLongField(thiz, fields.context, (int64_t)player);
 	return old;

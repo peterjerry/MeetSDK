@@ -88,7 +88,8 @@
     public abstract int readSampleData(java.nio.ByteBuffer,int);
 }
 -keepclassmembers class com.gotye.meetsdk.player.FFMediaExtractor {
-	long mNativeContext;
+	private long mNativeContext;
+	private long mListenerContext;
 	public native boolean advance();
 	public native boolean hasCachedReachedEndOfStream();
 	public native int readSampleData(java.nio.ByteBuffer,int);

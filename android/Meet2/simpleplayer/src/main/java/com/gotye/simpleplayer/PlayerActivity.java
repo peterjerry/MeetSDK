@@ -44,8 +44,7 @@ public class PlayerActivity extends AppCompatActivity implements Callback,
             "&plat=6&mkey=91UZYM8cJOOpvQDw2wiFcHO57mZgUfFQ&prod=app";*/
 
     private final static String PLAY_URL = "http://42.62.105.235" +
-            "/test/media/testcase" +
-            "/[APTX4869][CONAN][655][480P][AVC_AAC][CHS](FD79F094).mp4";
+            "/test/media/transformer2-H264-1080P_2_chn_aac.mp4";
 	
 	private DecodeMode mMode = DecodeMode.HW_XOPLAYER;
 	private MediaPlayer mPlayer;
@@ -317,7 +316,6 @@ public class PlayerActivity extends AppCompatActivity implements Callback,
         mMediaController.setMediaPlayer(mControl);
         mMediaController.setAnchorView(mPreview);
         mMediaController.show(0);
-        mMediaController.setEnabled(false);
 		mp.start();
 	}
 

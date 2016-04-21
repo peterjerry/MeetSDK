@@ -132,8 +132,8 @@
             </intent-filter>
         </activity>
         <activity
-            android:name="so.cym.crashhandlerdemo.SendCrashActivity"
-            android:label="@string/title_activity_send_crash"></activity>
+            android:name="com.gotye.crashhandler.SendCrashActivity"
+            android:label="@string/title_activity_send_crash"/>
 
         <!-- Services -->
         <service android:name=".service.DLNAService">

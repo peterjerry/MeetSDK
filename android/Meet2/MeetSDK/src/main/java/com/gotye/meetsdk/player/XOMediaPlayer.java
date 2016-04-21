@@ -38,6 +38,7 @@ import android.view.SurfaceHolder;
 
 @TargetApi(Build.VERSION_CODES.JELLY_BEAN)
 public class XOMediaPlayer extends BaseMediaPlayer {
+
     private final static boolean USE_READ_SAMPLE_THREAD = false;
 
 	protected final static long TIMEOUT = 5000;// timeoutUs
@@ -248,7 +249,7 @@ public class XOMediaPlayer extends BaseMediaPlayer {
 
 	private void setDataSource(MediaExtractable extractor)
 			throws IllegalStateException {
-		LogUtils.info("setDataSource extractor");
+		LogUtils.info("setDataSource() extractor");
 		mExtractor = extractor;
 		setState(PlayState.INITIALIZED);
 	}
@@ -284,7 +285,6 @@ public class XOMediaPlayer extends BaseMediaPlayer {
 
 	@Override
 	public void prepare() throws IOException, IllegalStateException {
-		//throw new IllegalStateException("Do not support this operation.");
         prepare_proc();
 	}
 
@@ -715,8 +715,9 @@ public class XOMediaPlayer extends BaseMediaPlayer {
 		mPlayCond.signalAll();
 		mPlayLock.unlock();
 
-		if (!mUrl.startsWith("file://") || !mUrl.startsWith("/"))
-			postBufferingUpdateCheckEvent();
+		if (!mUrl.startsWith("file://") && !mUrl.startsWith("/")) {
+            postBufferingUpdateCheckEvent();
+        }
 	}
 
 	private long get_audio_clock() {
@@ -956,13 +957,12 @@ public class XOMediaPlayer extends BaseMediaPlayer {
 		if (mSawInputEOS)
 			return true;
 
-		PacketBuf buf = null;
+		PacketBuf buf;
 
-		List<PacketBuf> list = null;
-		Lock lock = null;
-		Condition notFullCond = null;
-		Condition notEmptyCond = null;
-		MediaCodec codec = null;
+		List<PacketBuf> list;
+		Lock lock;
+		Condition notFullCond, notEmptyCond;
+		MediaCodec codec;
 
 		if (isVideo) {
 			codec = mVideoCodec;
@@ -1586,6 +1586,7 @@ public class XOMediaPlayer extends BaseMediaPlayer {
 
 		postBufferingUpdateEvent();
 
+        // add next check event
 		postBufferingUpdateCheckEvent();
 	}
 
@@ -1663,6 +1664,12 @@ public class XOMediaPlayer extends BaseMediaPlayer {
 			mVideoNotEmptyCond.signal();
 			mVideoListLock.unlock();
 
+			// 2015.12.10 fix stop stuck in some case
+			// 2016.4.21 move here
+			if (mExtractor != null) {
+				mExtractor.stop();
+			}
+
 			if (mRenderVideoThr != null) {
 				mRenderVideoThr.interrupt();
 				try {
@@ -1685,11 +1692,6 @@ public class XOMediaPlayer extends BaseMediaPlayer {
 					// TODO Auto-generated catch block
 					e.printStackTrace();
 				}
-			}
-
-			// 2015.12.10 fix stop stuck in some case
-			if (mExtractor != null) {
-				// mExtractor.stop();
 			}
 
 			if (mReadSampleThr != null) {

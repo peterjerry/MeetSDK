@@ -70,7 +70,7 @@ private:
 
 	int open_codec_context_idx(int stream_idx);
 
-	int start();
+	int start(int fill_pkt);
 
 	void close();
 

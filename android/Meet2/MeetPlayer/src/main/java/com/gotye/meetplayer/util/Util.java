@@ -1,5 +1,6 @@
 package com.gotye.meetplayer.util;
 
+import java.io.BufferedOutputStream;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
@@ -15,16 +16,18 @@ import java.io.UnsupportedEncodingException;
 import java.net.InetAddress;
 import java.net.NetworkInterface;
 import java.net.SocketException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.Enumeration;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Properties;
 import java.util.StringTokenizer;
 
-import so.cym.crashhandlerdemo.UploadLogTask;
-
+import android.app.ProgressDialog;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.net.ConnectivityManager;
@@ -32,12 +35,16 @@ import android.net.NetworkInfo;
 import android.net.Uri;
 import android.net.wifi.WifiInfo;
 import android.net.wifi.WifiManager;
-import android.os.AsyncTask;
 import android.os.Environment;
+
+import com.gotye.crashhandler.AppInfo;
+import com.gotye.crashhandler.UploadFileTask;
+import com.gotye.crashhandler.UploadLogTask;
 import com.gotye.meetsdk.MeetSDK;
 import com.gotye.meetsdk.player.MediaInfo;
 import com.gotye.meetsdk.player.TrackInfo;
 import android.util.Log;
+import android.widget.ProgressBar;
 import android.widget.Toast;
 
 import com.gotye.common.util.LogUtil;
@@ -451,25 +458,6 @@ public class Util {
 		return sbInfo.toString();
 	}
 	
-	public static void upload_crash_report(Context ctx, int type) {  
-        MeetSDK.makePlayerlog();
-        Util.copyFile(ctx.getCacheDir().getAbsolutePath() + "/meetplayer.log", 
-        		Environment.getExternalStorageDirectory().getAbsolutePath() + "/meetplayer.txt");
-        
-        String ip = Util.getIpAddr(ctx);
-        if (ip == null) {
-        	Toast.makeText(ctx, "network is un-available, cannot send crash report", Toast.LENGTH_SHORT).show();
-        	return;
-        }
-        
-        new UploadLogTask(ctx).execute("");
-        
-    	/*String URL = "http://172.16.10.137/crashapi/api/crashreport/launcher";
-    	FeedBackFactory fbf = new FeedBackFactory(
-			 Integer.toString(type), "123456", true, false);
-    	fbf.asyncFeedBack(URL);*/
-	}
-	
 	public void copyFolder(String oldPath, String newPath) {
 
 		try {
@@ -507,10 +495,70 @@ public class Util {
 
 		}
 	}
-	
+
+	public static void upload_crash_dump(final Context context) {
+		SimpleDateFormat format = new SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US);
+
+		File dmp_folder = new File(context.getCacheDir().getAbsolutePath());
+		String[] exts = new String[]{"dmp", "zip"};
+		File[] files = dmp_folder.listFiles(new FileFilterTest(exts));
+		if (files != null && files.length > 0) {
+			for (File f : files) {
+				try {
+					LogUtil.info(TAG, "ready to upload dump file " + f.getName());
+
+					String upload_filename;
+					if (f.getName().endsWith("dmp")) {
+						String str_time = format.format((new Date()));
+						String zipPath = context.getCacheDir().getAbsolutePath() + File.separator +
+								"log.zip";
+						String infoPath = context.getCacheDir().getAbsolutePath() +
+								File.separator + str_time + "_info.txt";
+
+						StringBuffer sb = new StringBuffer();
+						sb.append("PHONE_MODEL: ").append(AppInfo.PHONE_MODEL).append("\n");
+						sb.append("ANDROID_VERSION: ").append(AppInfo.ANDROID_VERSION).append("\n");
+						sb.append("APP_PACKAGE: ").append(AppInfo.APP_PACKAGE).append("\n");
+						sb.append("APP_VERSION: ").append(AppInfo.APP_VERSION).append("\n");
+						getFileFromBytes(sb.toString(), infoPath);
+
+						File[] logfiles = new File[2];
+						logfiles[0] = f;
+						logfiles[1] = new File(infoPath);
+						ZipUtils.zipFiles(logfiles, zipPath);
+						f.delete();
+						upload_filename = zipPath;
+					}
+					else {
+						upload_filename = f.getAbsolutePath();
+					}
+
+                    UploadFileTask task = new UploadFileTask(context);
+                    task.setOnTaskListener(new UploadLogTask.TaskListener() {
+                        @Override
+                        public void onFinished(String msg, int code) {
+                            Toast.makeText(context,
+                                    msg, Toast.LENGTH_SHORT).show();
+                        }
+
+                        @Override
+                        public void onEror(String msg, int code) {
+                            Toast.makeText(context,
+                                    msg, Toast.LENGTH_SHORT).show();
+                        }
+                    });
+                    task.execute(upload_filename);
+				} catch (IOException e) {
+					e.printStackTrace();
+					break;
+				}
+			}
+		}
+	}
+
 	/**
 	 * 
-	 * @param ex
+	 * @param stacktrace
 	 * 将崩溃写入文件系统
 	 */
 	public static void makeUploadLog(String stacktrace) {
@@ -578,11 +626,38 @@ public class Util {
 			}
 		}
 	}
-	
+
+    /**
+     * 将String数据存为文件
+     */
+    private static boolean getFileFromBytes(String strContext, String path) {
+        byte[] b = strContext.getBytes();
+        BufferedOutputStream stream = null;
+        try {
+            File file = new File(path);
+            FileOutputStream fstream = new FileOutputStream(file);
+            stream = new BufferedOutputStream(fstream);
+            stream.write(b);
+            return true;
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            if (stream != null) {
+                try {
+                    stream.close();
+                } catch (IOException e1) {
+                    e1.printStackTrace();
+                }
+            }
+        }
+
+        return false;
+    }
+
 	/**
 	 * 
 	 * @param log
-	 * @param name
+	 * @param filename
 	 * @return 返回写入的文件路径
 	 * 写入Log信息的方法，写入到SD卡里面
 	 */

@@ -28,6 +28,7 @@ import android.os.Handler;
 import android.os.Message;
 
 import com.gotye.common.youku.YKUtil;
+import com.gotye.crashhandler.UploadLogTask;
 import com.gotye.meetplayer.adapter.LocalFileAdapter;
 import com.gotye.meetplayer.ui.MyPreView2;
 import com.gotye.meetsdk.MeetSDK;
@@ -100,7 +101,6 @@ import com.gotye.meetplayer.util.LogcatHelper;
 import com.gotye.meetplayer.util.NetworkSpeed;
 import com.gotye.meetplayer.util.Util;
 import com.pplive.sdk.MediaSDK;
-import com.pplive.thirdparty.BreakpadUtil;
 
 import java.io.BufferedOutputStream;
 import java.io.File;
@@ -118,8 +118,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Random;
-
-import so.cym.crashhandlerdemo.UploadLogTask;
 
 // ONLY support external subtitle???
 public class ClipListActivity extends AppCompatActivity implements
@@ -311,9 +309,6 @@ public class ClipListActivity extends AppCompatActivity implements
 	
 	private final int[] to = { R.id.tv_filename, R.id.tv_mediainfo, R.id.tv_folder, 
 			R.id.tv_filesize, R.id.tv_resolution, R.id.iv_thumb };
-	
-	private boolean USE_BREAKPAD = false;
-	private boolean mBreakpadRegisterDone = false;
 
 	@SuppressWarnings("deprecation")
 	@Override
@@ -356,8 +351,11 @@ public class ClipListActivity extends AppCompatActivity implements
 			setContentView(R.layout.list);
 		}
 
-		getSupportActionBar().hide();
-		
+		if (getSupportActionBar() != null)
+            getSupportActionBar().hide();
+
+        Util.upload_crash_dump(this);
+
 		this.tv_title = (MyMarqueeTextView) this.findViewById(R.id.tv_title);
 		this.btnPlay = (AppCompatButton) this.findViewById(R.id.btn_play);
 		this.btnSelectTime = (AppCompatButton) this.findViewById(R.id.btn_select_time);
@@ -411,16 +409,6 @@ public class ClipListActivity extends AppCompatActivity implements
 				Toast.makeText(this, "sd card is not mounted!", Toast.LENGTH_SHORT).show();
 			}
 		}
-		
-		if (USE_BREAKPAD && !mBreakpadRegisterDone) {
-            try {
-                BreakpadUtil.registerBreakpad(new File(getCacheDir().getAbsolutePath()));
-                mBreakpadRegisterDone = true;
-            }
-            catch (Exception e) {
-                LogUtil.error(TAG, e.toString());
-            }
-        }
 		
 		mListUtil = new ListMediaUtil(this);
 		new ListItemTask().execute(mCurrentFolder);
@@ -1366,12 +1354,14 @@ public class ClipListActivity extends AppCompatActivity implements
 			}
 			
 			// update mBufferingPertent
-			if (pos <= 0)
-				pos = 1; // avoid to be devided by zero
-			mBufferingPertent = pos * 100 / mPlayer.getDuration() + 1;
-			if (mBufferingPertent > 100)
-				mBufferingPertent = 100;
-			LogUtil.info(TAG, "onBufferingUpdate: seekTo " + mBufferingPertent);
+            if (!mPlayUrl.startsWith("file://") && !mPlayUrl.startsWith("/")) {
+                if (pos <= 0)
+                    pos = 100; // avoid to be devided by zero
+                mBufferingPertent = pos * 100 / mPlayer.getDuration() + 1;
+                if (mBufferingPertent > 100)
+                    mBufferingPertent = 100;
+                LogUtil.info(TAG, "onBufferingUpdate: seekTo " + mBufferingPertent);
+            }
 		}
 		
 		if (mSubtitleParser != null) {
@@ -2632,7 +2622,31 @@ public class ClipListActivity extends AppCompatActivity implements
             case R.id.upload_crash_report:
                 Util.makeUploadLog("manual upload\n\n");
 
+                final ProgressDialog progDlg = new ProgressDialog(this);
+                progDlg.setTitle("系统管理");
+                progDlg.setMessage("日志上传中...");
+                progDlg.setProgressStyle(ProgressDialog.STYLE_SPINNER);
+                progDlg.setCancelable(true);
+                progDlg.show();
+
                 UploadLogTask task = new UploadLogTask(this);
+				task.setOnTaskListener(new UploadLogTask.TaskListener() {
+					@Override
+					public void onFinished(String msg, int code) {
+						progDlg.dismiss();
+
+                        Toast.makeText(ClipListActivity.this,
+                                msg, Toast.LENGTH_SHORT).show();
+					}
+
+					@Override
+					public void onEror(String msg, int code) {
+                        progDlg.dismiss();
+
+                        Toast.makeText(ClipListActivity.this,
+                                msg, Toast.LENGTH_SHORT).show();
+					}
+				});
                 task.execute(Util.upload_log_path, "common");
                 break;
             case R.id.update_apk:

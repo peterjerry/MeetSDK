@@ -3,16 +3,16 @@ package com.gotye.meetplayer.activity;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Random;
-
-import so.cym.crashhandlerdemo.UploadLogTask;
 
 import com.gotye.common.pptv.Catalog;
 import com.gotye.common.pptv.Content;
 import com.gotye.common.pptv.EPGUtil;
 import com.gotye.common.pptv.PlayLink2;
 import com.gotye.common.pptv.PlayLinkUtil;
+import com.gotye.crashhandler.UploadLogTask;
 import com.gotye.meetplayer.R;
 import com.gotye.meetplayer.adapter.PPTVAdapter;
 import com.gotye.meetplayer.ui.widget.MiniMediaController;
@@ -883,8 +883,10 @@ public class MeetViewActivity extends AppCompatActivity implements OnFocusChange
 	private MediaPlayer.OnErrorListener mErrorListener = new MediaPlayer.OnErrorListener() {
 		public boolean onError(MediaPlayer mp, int framework_err, int impl_err) {
 			Log.i(TAG, "Error: " + framework_err + "," + impl_err);
-			Toast.makeText(MeetViewActivity.this, 
-					String.format("onError what: %d, extra %d", framework_err, impl_err), Toast.LENGTH_SHORT).show();
+			Toast.makeText(MeetViewActivity.this,
+					String.format(Locale.US, "onError what: %d, extra %d",
+							framework_err, impl_err),
+					Toast.LENGTH_SHORT).show();
 			stopPlayer();
 			
 			Util.makeUploadLog("failed to play: " + mUri.toString() + "\n\n");

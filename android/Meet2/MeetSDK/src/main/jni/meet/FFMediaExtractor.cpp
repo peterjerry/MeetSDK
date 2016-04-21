@@ -14,12 +14,12 @@ typedef  void (*RELEASE_EXTRACTOR_FUN)(IExtractor*);
 GET_EXTRACTOR_FUN		getExtractorFun = NULL; // function to NEW ffextractor instance
 RELEASE_EXTRACTOR_FUN	releaseExtractorFun = NULL; // function to DELETE ffextractor instance
 
-static XOMediaPlayerListener* s_listener = NULL;
-
-static pthread_mutex_t sExtractorLock;
+extern pthread_mutex_t ExtractorLock;
 
 struct fields_t {
 	jfieldID    context;
+	// 2016.4.20 guoliang.ma add to support mutil-session player
+	jfieldID	listener; // for save listener handle
 	jmethodID   post_event;
 };
 
@@ -70,14 +70,14 @@ void XOMediaPlayerListener::notify(int msg, int ext1, int ext2)
 
 static IExtractor* getMediaExtractor(JNIEnv* env, jobject thiz)
 {
-	AutoLock l(&sExtractorLock);
+	AutoLock l(&ExtractorLock);
 	IExtractor* e = (IExtractor*)env->GetLongField(thiz, fields.context);
 	return e;
 }
 
 static IExtractor* setMediaExtractor(JNIEnv* env, jobject thiz, IExtractor* extractor)
 {
-	AutoLock l(&sExtractorLock);
+	AutoLock l(&ExtractorLock);
 	IExtractor* old = (IExtractor*)env->GetLongField(thiz, fields.context);
 	env->SetLongField(thiz, fields.context, (int64_t)extractor);
 	return old;
@@ -406,7 +406,7 @@ jboolean android_media_MediaExtractor_hasCachedReachedEndOfStream(JNIEnv *env, j
 jint android_media_MediaExtractor_readPacket(
 	JNIEnv *env, jobject thiz, jint stream_index, jobject byteBuf, jint offset)
 {
-	PPLOGD("readSampleData()");
+	PPLOGD("readPacket()");
 
 	void *dst = env->GetDirectBufferAddress(byteBuf);
 
@@ -468,7 +468,7 @@ jint android_media_MediaExtractor_readPacket(
 		return -1;
 	}
 	else if (err != OK) {
-		PPLOGE("failed to call readSampleData() %d", err);
+		PPLOGE("failed to call readPacket() %d", err);
         return -1;
     }
 
@@ -584,12 +584,14 @@ void android_media_MediaExtractor_release(JNIEnv *env, jobject thiz)
 	IExtractor* extractor = setMediaExtractor(env, thiz, NULL);
 	releaseExtractorFun(extractor);
 
-	if (s_listener) {
-		delete s_listener;
-		s_listener = NULL;
+	PPLOGI("before release listener");
+	XOMediaPlayerListener* player_listener = (XOMediaPlayerListener *)env->GetLongField(thiz, fields.listener);
+	if (player_listener) {
+		delete player_listener;
+		player_listener = NULL;
 	}
+	env->SetLongField(thiz, fields.listener, 0);
 
-	pthread_mutex_destroy(&sExtractorLock);
 	PPLOGI("release done!");
 }
 
@@ -677,18 +679,33 @@ jboolean android_media_MediaExtractor_init(JNIEnv *env, jobject thiz)
 	fields.context = env->GetFieldID(clazz, "mNativeContext", "J");
 	if (fields.context == NULL) {
 		PPLOGE("Can't find FFMediaExtractor.mNativeContext");
+		jniThrowException(env, "java/lang/RuntimeException", 
+			"Can't find XOMediaPlayer.mNativeContext");
+		return false;
+	}
+	fields.listener = env->GetFieldID(clazz, "mListenerContext", "J");
+	if (fields.listener == NULL) {
+		PPLOGE("Can't find FFMediaExtractor.mListenerContext");
+		jniThrowException(env, "java/lang/RuntimeException", 
+			"Can't find FFMediaExtractor.mListenerContext");
 		return false;
 	}
 
 	jclass clazz2 = env->FindClass("com/gotye/meetsdk/player/XOMediaPlayer");
 	if (clazz2 == NULL) {
 		PPLOGE("Can't find com/gotye/meetsdk/player/XOMediaPlayer");
+		jniThrowException(env, "java/lang/RuntimeException", 
+			"Can't find com/gotye/meetsdk/player/XOMediaPlayer");
 		return false;
 	}
 	fields.post_event = env->GetStaticMethodID(clazz2, "postEventFromNative",
 			"(Ljava/lang/Object;IIILjava/lang/Object;)V");
-	if (fields.post_event == NULL)
-		jniThrowException(env, "java/lang/RuntimeException", "Can't find XOMediaPlayer.postEventFromNative");
+	if (fields.post_event == NULL) {
+		PPLOGE("Can't find XOMediaPlayer.postEventFromNative");
+		jniThrowException(env, "java/lang/RuntimeException", 
+			"Can't find XOMediaPlayer.postEventFromNative");
+		return false;
+	}
 
 #ifdef BUILD_ONE_LIB
 	getExtractorFun		= getExtractor;
@@ -705,10 +722,8 @@ jboolean android_media_MediaExtractor_init(JNIEnv *env, jobject thiz)
 }
 
 // called when new FFExtractor()
-void android_media_MediaExtractor_setup(JNIEnv *env, jobject thiz, jobject weak_this)
+void android_media_MediaExtractor_setup(JNIEnv *env, jobject thiz, jobject weak_player)
 {
-	pthread_mutex_init(&sExtractorLock, NULL);
-
 	if (NULL == getExtractorFun) {
 		jniThrowException(env, "java/lang/RuntimeException", "getExtractorFun is null.");
 		return;
@@ -720,10 +735,19 @@ void android_media_MediaExtractor_setup(JNIEnv *env, jobject thiz, jobject weak_
 		return;
 	}
 
-	// create new listener and give it to MediaPlayer
-	s_listener = new XOMediaPlayerListener(env, thiz, weak_this);
+	// create new listener and give it to MediaExtractor
+	XOMediaPlayerListener * player_listener = new XOMediaPlayerListener(env, thiz, weak_player);
+	if (player_listener == NULL) {
+		jniThrowException(env, "java/lang/RuntimeException", 
+			"Create XOMediaPlayerListener failed.");
+		return;
+	}
+
 	//IExtractor takes responsibility to release listener.
-	extractor->setListener(s_listener);
+	extractor->setListener(player_listener);
+
+	// 2016.4.20 guoliang.ma add to support multi-session player
+	env->SetLongField(thiz, fields.listener, (int64_t)player_listener);
 
 	setMediaExtractor(env, thiz, extractor);
 }

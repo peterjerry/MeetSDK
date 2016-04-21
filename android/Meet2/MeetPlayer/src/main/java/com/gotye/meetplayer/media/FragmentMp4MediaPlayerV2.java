@@ -290,7 +290,7 @@ public class FragmentMp4MediaPlayerV2 {
 		
 		try {
             String url = m_playlink_list.get(m_playlink_now_index);
-            LogUtil.info(TAG, "setupPlayer() set_play_url: " + url);
+            LogUtil.info(TAG, "curr_player set_play_url: " + url);
 			mCurrentPlayer.setDataSource(url);
 			mCurrentPlayer.prepareAsync();
 		} catch (Exception e) {
@@ -338,7 +338,7 @@ public class FragmentMp4MediaPlayerV2 {
 				
 				try {
                     String url = m_playlink_list.get(m_playlink_now_index + 1);
-                    LogUtil.info(TAG, "setupNextPlayer() set_play_url: " + url);
+                    LogUtil.info(TAG, "next_player set_play_url: " + url);
 					mNextPlayer.setDataSource(url);
 					mNextPlayer.prepare(); // must wait for prepare done to call setNextMediaPlayer
 				} catch (Exception e) {

@@ -14,7 +14,9 @@ public class FFMediaExtractor implements MediaExtractable {
 
 	private static boolean inited = false;
 
+    // accessed by native methods
 	private long mNativeContext;
+	private long mListenerContext;
 
 	public static boolean initExtrator() {
 		if (inited)
