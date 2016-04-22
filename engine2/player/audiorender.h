@@ -55,6 +55,8 @@ private:
 private:
 	bool need_convert();
 
+	bool init_swr();
+
 private:
     struct SwrContext * mConvertCtx;
     int mSampleRate;

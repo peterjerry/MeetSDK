@@ -109,7 +109,7 @@ status_t AudioPlayer::setup_render()
 
 	char channel_layout_desc[1024] = {0};
 	av_get_channel_layout_string(channel_layout_desc, 1024, CodecCtx->channels, CodecCtx->channel_layout);
-	LOGI("channel layout:%lld(%s), sample rate:%d, sample format:%d(%s), channels:%d", 
+	LOGI("channel layout: %lld(%s), sample rate: %d, sample format: %d(%s), channels: %d", 
 		CodecCtx->channel_layout, channel_layout_desc, 
 		CodecCtx->sample_rate, 
 		CodecCtx->sample_fmt, av_get_sample_fmt_name(CodecCtx->sample_fmt), 

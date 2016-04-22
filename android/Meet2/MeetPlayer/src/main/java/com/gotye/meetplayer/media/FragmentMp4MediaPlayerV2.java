@@ -395,8 +395,10 @@ public class FragmentMp4MediaPlayerV2 {
 
             mCurrentPlayer = mNextPlayer;
             mNextPlayer = null;
+			// system player set display HERE!
+			// XOPlayer cannot share one native window simultaneously
 			if (mPlayerImpl == SYSTEM_PLAYER || mPlayerImpl == XO_PLAYER)
-				mCurrentPlayer.setDisplay(mHolder); // system player set display HERE!
+				mCurrentPlayer.setDisplay(mHolder);
             if (mPlayerImpl == XO_PLAYER || mPlayerImpl == FF_PLAYER)
                 mCurrentPlayer.start(); // ffplay MUST start manually
 

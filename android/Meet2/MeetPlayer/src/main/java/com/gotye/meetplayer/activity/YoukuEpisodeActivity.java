@@ -181,7 +181,15 @@ public class YoukuEpisodeActivity extends AppCompatActivity {
                     return null;
             }
 
-            Episode ep = mEpisodeList.get(mEpisodeIndex - (mPageIndex - 1) * 10);
+            int index = mEpisodeIndex - (mPageIndex - 1) * 10;
+            if (index >= mEpisodeList.size()) {
+                LogUtil.error(TAG, String.format(Locale.US,
+                        "episode list index is invalid: %d.%d",
+                        index, mEpisodeList.size()));
+                return null;
+            }
+
+            Episode ep = mEpisodeList.get(index);
             String vid = ep.getVideoId();
             mTitle = ep.getTitle();
             return YKUtil.getPlayUrl2(vid);

@@ -2,13 +2,7 @@ package com.gotye.meetplayer.ui;
 
 import android.content.Context;
 import android.util.AttributeSet;
-import android.util.Log;
 import android.view.SurfaceView;
-import android.view.View;
-import android.view.GestureDetector;
-import android.view.MotionEvent;
-
-import com.gotye.meetsdk.player.MediaPlayer;
 
 /**
  * Displays a video file.  The VideoView class

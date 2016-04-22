@@ -2778,6 +2778,10 @@ public class ClipListActivity extends AppCompatActivity implements
                 intent = new Intent(ClipListActivity.this, YoukuVideoActivity.class);
                 startActivity(intent);
                 break;
+			case R.id.inke_live:
+				intent = new Intent(ClipListActivity.this, InkeActivity.class);
+				startActivity(intent);
+				break;
             case R.id.parse_url:
                 String video_url = getClipboardText();
                 if (video_url == null) {

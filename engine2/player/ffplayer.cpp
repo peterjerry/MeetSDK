@@ -2219,14 +2219,14 @@ status_t FFPlayer::prepareAudio_l()
 		LOGI("audio codec_tag %s", tag_buf);
     }
 
-	LOGI("audio codec_ctx fmt %d", codec_ctx->sample_fmt);
+	LOGI("audio codec_ctx channels %d, fmt %d", codec_ctx->channels, codec_ctx->sample_fmt);
 
     // Open codec
     //codec_ctx->request_sample_fmt = AV_SAMPLE_FMT_S16;
 	// AV_SAMPLE_FMT_S16P,        ///< signed 16 bits, planar
     if (avcodec_open2(codec_ctx, codec, NULL) >= 0) {
         //init audioplayer
-        if(codec_ctx->sample_rate > 0 && codec_ctx->channels > 0) {
+        if (codec_ctx->sample_rate > 0 && codec_ctx->channels > 0) {
             mAudioPlayer = new AudioPlayer(mDataStream, mAudioStream, mAudioStreamIndex);
 #ifdef PCM_DUMP
 			mAudioPlayer->set_dump(mDumpUrl);

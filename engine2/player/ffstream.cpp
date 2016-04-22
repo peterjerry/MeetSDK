@@ -560,9 +560,9 @@ AVFormatContext* FFStream::open(char* uri)
 		mMaxBufferSize = mMaxBufferSize / 4;
         LOGI("It is a local file with mMinPlayBufferCount: %d", mMinPlayBufferCount);
     }
-	else if(strstr(uri, "type=pplive"))
+	else if(strstr(uri, "type=gotyelive"))
 	{
-		mMinPlayBufferCount = mFrameRate * FF_PLAYER_MIN_BUFFER_SECONDS_VOD;
+		mMinPlayBufferCount = mFrameRate / 5; // 200 msec
         mUrlType = TYPE_LIVE;
         LOGI("It is a online live stream with mMinPlayBufferCount:%d", mMinPlayBufferCount);
 	}

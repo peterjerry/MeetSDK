@@ -211,7 +211,11 @@ public class PlaySegFileActivity extends AppCompatActivity
 				}
 				else if (what == MediaPlayer.MEDIA_INFO_VIDEO_RENDERING_START) {
                     LogUtil.info(TAG, "Java: onInfo MEDIA_INFO_VIDEO_RENDERING_START");
-				}
+                }
+                else if (what == MediaPlayer.MEDIA_INFO_TEST_DROP_FRAME) {
+                    LogUtil.info(TAG, String.format(
+                            "Java: onInfo MEDIA_INFO_TEST_DROP_FRAME %d msec", extra));
+                }
 				
 				return true;
 			}

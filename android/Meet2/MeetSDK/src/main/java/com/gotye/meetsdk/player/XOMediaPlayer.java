@@ -281,6 +281,15 @@ public class XOMediaPlayer extends BaseMediaPlayer {
 	@Override
 	public void setSurface(Surface surface) {
 		mSurface = surface;
+
+        // support setSurface after prepare()
+        if (getState() == PlayState.PREPARED && mVideoCodec == null) {
+            if (!initVideoDecoder()) {
+                Message msg = mEventHandler.obtainMessage(MediaPlayer.MEDIA_ERROR);
+                msg.arg1 = MediaPlayer.MEDIA_ERROR_VIDEO_DECODER;
+                msg.sendToTarget();
+            }
+        }
 	}
 
 	@Override
@@ -349,14 +358,18 @@ public class XOMediaPlayer extends BaseMediaPlayer {
 			return false;
 		}
 
-		ret = initVideoDecoder();
-		if (!ret) {
-			Message msg = mEventHandler.obtainMessage(MediaPlayer.MEDIA_ERROR);
-			msg.arg1 = MediaPlayer.MEDIA_ERROR_VIDEO_DECODER;
-			msg.sendToTarget();
-			mLock.unlock();
-			return false;
-		}
+        // init videoDecoder later if surface NOT set
+        if (mSurface != null) {
+            ret = initVideoDecoder();
+            if (!ret) {
+                Message msg = mEventHandler.obtainMessage(MediaPlayer.MEDIA_ERROR);
+                msg.arg1 = MediaPlayer.MEDIA_ERROR_VIDEO_DECODER;
+                msg.sendToTarget();
+                mLock.unlock();
+                return false;
+            }
+        }
+
 
         mPacketLock = new ReentrantLock();
 
@@ -1293,7 +1306,7 @@ public class XOMediaPlayer extends BaseMediaPlayer {
 
 					long schedule_msec = mFrameTimerMsec
 							- System.currentTimeMillis();
-					//LogUtils.debug("schedule_msec: " + schedule_msec);
+					//LogUtils.info("schedule_msec: " + schedule_msec);
 
 					if (schedule_msec >= 10 && !NO_AUDIO) {
 						try {

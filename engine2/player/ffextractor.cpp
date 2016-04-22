@@ -369,7 +369,7 @@ status_t FFExtractor::setDataSource(const char *path)
     if (strncmp(m_url, "/", 1) == 0 || strncmp(m_url, "file://", 7) == 0)
 #endif
 		m_sorce_type = TYPE_LOCAL_FILE;
-	else if(strstr(m_url, "type=pplive") || strncmp(m_url, "rtmp://", 7) == 0)
+	else if(strstr(m_url, "type=gotyelive") || strncmp(m_url, "rtmp://", 7) == 0)
 		m_sorce_type = TYPE_LIVE;
 	else
 		m_sorce_type = TYPE_VOD;
@@ -1222,8 +1222,10 @@ status_t FFExtractor::readPacket(int stream_index, unsigned char *data, int32_t 
 
 	if (stream_index == m_video_stream_idx) {
 		m_sample_pkt = m_video_q.get();
-		if (!m_sample_pkt)
+		if (!m_sample_pkt) {
+			LOGE("failed to get pkt from video queue");
 			return ERROR;
+		}
 
 		m_sample_track_idx	= m_sample_pkt->stream_index;
 
@@ -1242,14 +1244,13 @@ status_t FFExtractor::readPacket(int stream_index, unsigned char *data, int32_t 
 				offset += (m_NALULengthSizeMinusOne + 1 + nalu_size);
 			}
 		}
-
-		memcpy(data, m_sample_pkt->data, m_sample_pkt->size);
-		*sampleSize = m_sample_pkt->size;
 	}
 	else if (stream_index == m_audio_stream_idx) {
 		m_sample_pkt = m_audio_q.get();
-		if (!m_sample_pkt)
+		if (!m_sample_pkt) {
+			LOGE("failed to get pkt from audio queue");
 			return ERROR;
+		}
 
 		m_sample_track_idx	= m_sample_pkt->stream_index;
 
@@ -1265,14 +1266,18 @@ status_t FFExtractor::readPacket(int stream_index, unsigned char *data, int32_t 
 			av_bitstream_filter_filter(m_pBsfc_aac, m_audio_stream->codec, NULL, &m_sample_pkt->data, &m_sample_pkt->size, 
 				m_sample_pkt->data, m_sample_pkt->size, isKeyFrame);
 		}
-
-		memcpy(data, m_sample_pkt->data, m_sample_pkt->size);
-		*sampleSize = m_sample_pkt->size;
 	}
 	else {
-		LOGE("Non video/audio stream index: %d", stream_index);
+		LOGE("invalid stream index to read pkt: %d", stream_index);
 		return ERROR;
 	}
+
+	memcpy(data, m_sample_pkt->data, m_sample_pkt->size);
+	*sampleSize = m_sample_pkt->size;
+
+	m_buffered_size -= m_sample_pkt->size;
+	if (m_buffered_size < 0)
+		m_buffered_size = 0;
 
 	return OK;
 }
@@ -1723,7 +1728,8 @@ void FFExtractor::thread_impl()
 					pthread_cond_timedwait_relative_np(&mCondition, &mLock, &ts);
 #endif
 					if (FFEXTRACTOR_STOPPING == m_status || m_seeking || m_buffering) {
-						LOGI("buffer too much, sleep was interrputed by stoping || seek || buffer");
+						LOGI("buffer too much, sleep was interrputed(status %d, is_seeking %d, is_buffering %d)",
+							m_status, m_seeking, m_buffering);
 						break;
 					}
 				}
@@ -1776,7 +1782,7 @@ void FFExtractor::thread_impl()
 		if (pPacket->stream_index == m_video_stream_idx) {
 			if (!m_video_keyframe_sync) {
 				if (pPacket->flags & AV_PKT_FLAG_KEY) {
-					LOGI("video sync done!");
+					LOGI("find key frame, video sync done!");
 					m_video_keyframe_sync = true;
 				}
 				else {
@@ -1825,10 +1831,20 @@ void FFExtractor::thread_impl()
 					LOGI("got subtitle format: %d, type: %d, content: %s", 
 						mAVSubtitle->format, (*(mAVSubtitle->rects))->type, (*(mAVSubtitle->rects))->ass);
 					int64_t start_time ,stop_time;
+#ifdef _MSC_VER
+					AVRational ra;
+					ra.num = 1;
+					ra.den = AV_TIME_BASE;
+					start_time = av_rescale_q(mAVSubtitle->pts + mAVSubtitle->start_display_time * 1000,
+						ra, m_subtitle_stream->time_base);
+					stop_time = av_rescale_q(mAVSubtitle->pts + mAVSubtitle->end_display_time * 1000,
+						ra, m_subtitle_stream->time_base);
+#else
 					start_time = av_rescale_q(mAVSubtitle->pts + mAVSubtitle->start_display_time * 1000,
 						AV_TIME_BASE_Q, m_subtitle_stream->time_base);
 					stop_time = av_rescale_q(mAVSubtitle->pts + mAVSubtitle->end_display_time * 1000,
 						AV_TIME_BASE_Q, m_subtitle_stream->time_base);
+#endif
 					if (SUBTITLE_ASS == (*(mAVSubtitle->rects))->type) {
 						mISubtitle->addEmbeddingSubtitleEntity(mSubtitleTrackIndex, 
 							start_time, stop_time - start_time, 

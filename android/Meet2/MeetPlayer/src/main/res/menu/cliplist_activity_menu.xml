@@ -87,16 +87,19 @@
                 android:title="pptv frontpage"/>
             <item
                 android:id="@+id/pptv_video"
-                android:title="pptv video"/>
+                android:title="PPTV视频"/>
             <item
                 android:id="@+id/sohu_video"
-                android:title="sohu video"/>
+                android:title="搜狐视频"/>
             <item
                 android:id="@+id/bestv_video"
                 android:title="bestv video"/>
             <item
                 android:id="@+id/youku_video"
-                android:title="youku video"/>
+                android:title="优酷视频"/>
+			<item
+				android:id="@+id/inke_live"
+				android:title="映客直播"/>
             <item
                 android:id="@+id/parse_url"
                 android:title="parse url"/>
