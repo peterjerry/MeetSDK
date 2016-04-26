@@ -100,9 +100,10 @@ echo "run configure"
 	--disable-muxers \
 	--enable-muxer=flv,mpegts,mp4,webm \
 	--disable-devices \
-	--enable-libmfx \
 	--disable-symver $EXTRA_FF_BUILD_OPTION
-	
+
+#--enable-libmfx
+
 # dosomething1 || exit 1	
 if [[ $? -ne 0 ]]; then
 	echo -e "\033[31m \n\nfailed to config ffmpeg \033[0m"
