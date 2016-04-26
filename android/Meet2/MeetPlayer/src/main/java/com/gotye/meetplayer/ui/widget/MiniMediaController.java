@@ -73,7 +73,7 @@ public class MiniMediaController extends MediaController {
 	}
 	
 	public void updateLandscape(boolean isLandscape) {
-		Log.i(TAG, "Java: updateLandscape" + isLandscape);
+		Log.i(TAG, "Java: updateLandscape " + isLandscape);
 		
 		if (mIsLandscape != isLandscape) {
 			mIsLandscape = isLandscape;
@@ -83,6 +83,8 @@ public class MiniMediaController extends MediaController {
 	
 	@Override
 	public void onFinishInflate() {
+        super.onFinishInflate();
+
 		initControllerView(mControllerView);
 	}
 	

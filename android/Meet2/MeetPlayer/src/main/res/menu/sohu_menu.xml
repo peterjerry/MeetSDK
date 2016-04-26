@@ -1,15 +1,27 @@
 <menu xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
-    tools:context="com.gotye.meetplayer.ui.SohuVideoActivity" >
+    tools:context=".activity.SohuVideoActivity" >
 
     <item
         android:id="@+id/search"
         android:orderInCategory="1"
-        android:title="search"/>
+        android:title="搜索"/>
+    <item
+        android:id="@+id/search_history"
+        android:orderInCategory="2"
+        android:title="搜索记录"/>
+    <item
+        android:id="@+id/clean_search_history"
+        android:orderInCategory="3"
+        android:title="清空搜索记录"/>
     <item
         android:id="@+id/play_history"
-        android:orderInCategory="2"
-        android:title="play history"/>
+        android:orderInCategory="4"
+        android:title="播放记录"/>
+    <item
+        android:id="@+id/recent_play"
+        android:orderInCategory="5"
+        android:title="最近播放"/>
 
 </menu>

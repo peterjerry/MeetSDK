@@ -14,12 +14,12 @@ typedef  void (*RELEASE_EXTRACTOR_FUN)(IExtractor*);
 GET_EXTRACTOR_FUN		getExtractorFun = NULL; // function to NEW ffextractor instance
 RELEASE_EXTRACTOR_FUN	releaseExtractorFun = NULL; // function to DELETE ffextractor instance
 
-static XOMediaPlayerListener* s_listener = NULL;
-
-static pthread_mutex_t sExtractorLock;
+extern pthread_mutex_t ExtractorLock;
 
 struct fields_t {
 	jfieldID    context;
+	// 2016.4.20 guoliang.ma add to support mutil-session player
+	jfieldID	listener; // for save listener handle
 	jmethodID   post_event;
 };
 
@@ -70,17 +70,47 @@ void XOMediaPlayerListener::notify(int msg, int ext1, int ext2)
 
 static IExtractor* getMediaExtractor(JNIEnv* env, jobject thiz)
 {
-	AutoLock l(&sExtractorLock);
+	AutoLock l(&ExtractorLock);
 	IExtractor* e = (IExtractor*)env->GetLongField(thiz, fields.context);
 	return e;
 }
 
 static IExtractor* setMediaExtractor(JNIEnv* env, jobject thiz, IExtractor* extractor)
 {
-	AutoLock l(&sExtractorLock);
+	AutoLock l(&ExtractorLock);
 	IExtractor* old = (IExtractor*)env->GetLongField(thiz, fields.context);
 	env->SetLongField(thiz, fields.context, (int64_t)extractor);
 	return old;
+}
+
+void android_media_MediaExtractor_setSubtitleParser(JNIEnv *env, jobject thiz, jobject paser)
+{
+	PPLOGI("setSubtitleParser()");
+
+	jclass clazzSubtitle = env->FindClass("com/gotye/meetsdk/subtitle/SimpleSubTitleParser");
+	if (clazzSubtitle == NULL) {
+		PPLOGE("cannot find class com/gotye/meetsdk/subtitle/SimpleSubTitleParser, setSubtitleParser failed");
+		jniThrowException(env, "java/lang/RuntimeException", "cannot find class com/gotye/meetsdk/subtitle/SimpleSubTitleParser");
+		return;
+	}
+
+	//fields.iSubtitle
+	jfieldID is = env->GetFieldID(clazzSubtitle, "mNativeContext", "J");
+	ISubtitles* p = NULL;
+	if (paser)
+		p = (ISubtitles*)env->GetLongField(paser, is);
+
+	PPLOGI("111111111111");
+	IExtractor* extractor = getMediaExtractor(env, thiz);
+	if (extractor == NULL ) {
+		PPLOGE("failed to get ffextractor");
+		jniThrowException(env, "java/lang/RuntimeException", "failed to get ffextractor");
+		return;
+	}
+
+	PPLOGI("222222222222");
+	extractor->setISubtitle(p);
+	PPLOGI("3333333333");
 }
 
 jboolean android_media_MediaExtractor_advance(JNIEnv *env, jobject thiz)
@@ -326,6 +356,26 @@ jboolean android_media_MediaExtractor_getTrackFormatNative(JNIEnv *env, jobject 
 		env->CallVoidMethod(mediaformat, midSetByteBuffer, env->NewStringUTF("csd-0"), bb_csd0); // sps
 	}
 	else if (PPMEDIA_TYPE_SUBTITLE == native_format.media_type) {
+		const char *mime_str = "subtitle/other";
+		switch (native_format.codec_id) {
+		case PPMEDIA_CODEC_ID_SSA:
+			mime_str = "subtitle/ssa";
+			break;
+		case PPMEDIA_CODEC_ID_ASS:
+			mime_str = "subtitle/ass";
+			break;
+		case PPMEDIA_CODEC_ID_TEXT:
+			mime_str = "subtitle/text";
+			break;
+		case PPMEDIA_CODEC_ID_SRT:
+			mime_str = "subtitle/srt";
+			break;
+		case PPMEDIA_CODEC_ID_SUBRIP:
+			mime_str = "subtitle/subrip";
+			break;
+		default:
+			break;
+		}
 		env->CallVoidMethod(mediaformat, midSetString, env->NewStringUTF("mime"), env->NewStringUTF("subtitle/unknown"));
 	}
 	else if (PPMEDIA_TYPE_DATA == native_format.media_type) {
@@ -351,6 +401,78 @@ jboolean android_media_MediaExtractor_hasCachedReachedEndOfStream(JNIEnv *env, j
 
 	// todo
 	return false;
+}
+
+jint android_media_MediaExtractor_readPacket(
+	JNIEnv *env, jobject thiz, jint stream_index, jobject byteBuf, jint offset)
+{
+	PPLOGD("readPacket()");
+
+	void *dst = env->GetDirectBufferAddress(byteBuf);
+
+	jlong dstSize;
+	jbyteArray byteArray = NULL;
+
+    if (dst == NULL) {
+        jclass byteBufClass = env->FindClass("java/nio/ByteBuffer");
+        if (byteBufClass == NULL) {
+			PPLOGE("failed to find class: java/nio/ByteBuffer");
+			return INVALID_OPERATION;
+		}
+
+        jmethodID arrayID =
+            env->GetMethodID(byteBufClass, "array", "()[B");
+        if (arrayID == NULL) {
+			PPLOGE("failed to GetMethodID: array");
+			return INVALID_OPERATION;
+		}
+
+        byteArray = (jbyteArray)env->CallObjectMethod(byteBuf, arrayID);
+
+        if (byteArray == NULL) {
+            return INVALID_OPERATION;
+        }
+
+        jboolean isCopy;
+        dst = env->GetByteArrayElements(byteArray, &isCopy);
+
+        dstSize = env->GetArrayLength(byteArray);
+    } else {
+        dstSize = env->GetDirectBufferCapacity(byteBuf);
+    }
+
+    if (dstSize < offset) {
+        if (byteArray != NULL) {
+            env->ReleaseByteArrayElements(byteArray, (jbyte *)dst, 0);
+        }
+
+		PPLOGE("dstSize is less than offset %d.%d", dstSize, offset);
+        return -ERANGE;
+    }
+
+	IExtractor* extractor = getMediaExtractor(env, thiz);
+	if (extractor == NULL ) {
+		PPLOGE("failed to get ffextractor");
+		return INVALID_OPERATION;
+	}
+
+	int sample_size = 0;
+	status_t err = extractor->readPacket(stream_index, (unsigned char *)dst + offset, &sample_size);
+
+    if (byteArray != NULL) {
+        env->ReleaseByteArrayElements(byteArray, (jbyte *)dst, 0);
+    }
+
+	if (err == READ_EOF) {
+		PPLOGI("find eof");
+		return -1;
+	}
+	else if (err != OK) {
+		PPLOGE("failed to call readPacket() %d", err);
+        return -1;
+    }
+
+	return sample_size;
 }
 
 jint android_media_MediaExtractor_readSampleData(JNIEnv *env, jobject thiz, jobject byteBuf, jint offset)
@@ -462,12 +584,14 @@ void android_media_MediaExtractor_release(JNIEnv *env, jobject thiz)
 	IExtractor* extractor = setMediaExtractor(env, thiz, NULL);
 	releaseExtractorFun(extractor);
 
-	if (s_listener) {
-		delete s_listener;
-		s_listener = NULL;
+	PPLOGI("before release listener");
+	XOMediaPlayerListener* player_listener = (XOMediaPlayerListener *)env->GetLongField(thiz, fields.listener);
+	if (player_listener) {
+		delete player_listener;
+		player_listener = NULL;
 	}
+	env->SetLongField(thiz, fields.listener, 0);
 
-	pthread_mutex_destroy(&sExtractorLock);
 	PPLOGI("release done!");
 }
 
@@ -555,18 +679,33 @@ jboolean android_media_MediaExtractor_init(JNIEnv *env, jobject thiz)
 	fields.context = env->GetFieldID(clazz, "mNativeContext", "J");
 	if (fields.context == NULL) {
 		PPLOGE("Can't find FFMediaExtractor.mNativeContext");
+		jniThrowException(env, "java/lang/RuntimeException", 
+			"Can't find XOMediaPlayer.mNativeContext");
+		return false;
+	}
+	fields.listener = env->GetFieldID(clazz, "mListenerContext", "J");
+	if (fields.listener == NULL) {
+		PPLOGE("Can't find FFMediaExtractor.mListenerContext");
+		jniThrowException(env, "java/lang/RuntimeException", 
+			"Can't find FFMediaExtractor.mListenerContext");
 		return false;
 	}
 
 	jclass clazz2 = env->FindClass("com/gotye/meetsdk/player/XOMediaPlayer");
 	if (clazz2 == NULL) {
 		PPLOGE("Can't find com/gotye/meetsdk/player/XOMediaPlayer");
+		jniThrowException(env, "java/lang/RuntimeException", 
+			"Can't find com/gotye/meetsdk/player/XOMediaPlayer");
 		return false;
 	}
 	fields.post_event = env->GetStaticMethodID(clazz2, "postEventFromNative",
 			"(Ljava/lang/Object;IIILjava/lang/Object;)V");
-	if (fields.post_event == NULL)
-		jniThrowException(env, "java/lang/RuntimeException", "Can't find XOMediaPlayer.postEventFromNative");
+	if (fields.post_event == NULL) {
+		PPLOGE("Can't find XOMediaPlayer.postEventFromNative");
+		jniThrowException(env, "java/lang/RuntimeException", 
+			"Can't find XOMediaPlayer.postEventFromNative");
+		return false;
+	}
 
 #ifdef BUILD_ONE_LIB
 	getExtractorFun		= getExtractor;
@@ -583,10 +722,8 @@ jboolean android_media_MediaExtractor_init(JNIEnv *env, jobject thiz)
 }
 
 // called when new FFExtractor()
-void android_media_MediaExtractor_setup(JNIEnv *env, jobject thiz, jobject weak_this)
+void android_media_MediaExtractor_setup(JNIEnv *env, jobject thiz, jobject weak_player)
 {
-	pthread_mutex_init(&sExtractorLock, NULL);
-
 	if (NULL == getExtractorFun) {
 		jniThrowException(env, "java/lang/RuntimeException", "getExtractorFun is null.");
 		return;
@@ -598,10 +735,19 @@ void android_media_MediaExtractor_setup(JNIEnv *env, jobject thiz, jobject weak_
 		return;
 	}
 
-	// create new listener and give it to MediaPlayer
-	s_listener = new XOMediaPlayerListener(env, thiz, weak_this);
+	// create new listener and give it to MediaExtractor
+	XOMediaPlayerListener * player_listener = new XOMediaPlayerListener(env, thiz, weak_player);
+	if (player_listener == NULL) {
+		jniThrowException(env, "java/lang/RuntimeException", 
+			"Create XOMediaPlayerListener failed.");
+		return;
+	}
+
 	//IExtractor takes responsibility to release listener.
-	extractor->setListener(s_listener);
+	extractor->setListener(player_listener);
+
+	// 2016.4.20 guoliang.ma add to support multi-session player
+	env->SetLongField(thiz, fields.listener, (int64_t)player_listener);
 
 	setMediaExtractor(env, thiz, extractor);
 }
@@ -627,6 +773,8 @@ static JNINativeMethod gExtractorMethods[] = {
 	{"unselectTrack",       "(I)V",		(void *)android_media_MediaExtractor_unselectTrack},
 	{"native_init",       "()Z",		(void *)android_media_MediaExtractor_init},
 	{"setup",       "(Ljava/lang/Object;)V",		(void *)android_media_MediaExtractor_setup},
+	{"native_setSubtitleParser", "(Lcom/gotye/meetsdk/subtitle/SimpleSubTitleParser;)V", (void *)android_media_MediaExtractor_setSubtitleParser},
+	{"readPacket",       "(ILjava/nio/ByteBuffer;I)I",		(void *)android_media_MediaExtractor_readPacket},
 };
 
 bool setup_extractor(void *so_handle)

@@ -1,3 +1,4 @@
+import org.apache.tools.ant.taskdefs.condition.Os
 apply plugin: 'com.android.library'
 
 android {
@@ -5,14 +6,14 @@ android {
     buildToolsVersion "23.0.2"
 
     defaultConfig {
-        minSdkVersion 16
+        minSdkVersion 14
         targetSdkVersion 20
         versionCode 1
         versionName "1.0"
     }
     buildTypes {
         release {
-            minifyEnabled false
+            minifyEnabled true
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
             ndk {
                 moduleName "meetsdk"
@@ -55,6 +56,19 @@ task modifyCfgFile << {
             file: 'src/main/java/com/gotye/meetsdk/config/Config.java',
             token: "@CONFIG.STARTP2P@",
             value: "false")
+}
+// call regular ndk-build(.cmd) script from app directory
+task ndkBuild(type: Exec) {
+    if (Os.isFamily(Os.FAMILY_WINDOWS)) {
+        commandLine "$android.ndkDirectory/ndk-build.cmd", '-j4', '-B', '-C', file('src/main').absolutePath
+    }
+    else {
+        commandLine "$android.ndkDirectory/ndk-build", '-j4', '-B', '-C', file('src/main').absolutePath
+    }
+
+}
+tasks.withType(JavaCompile) {
+    compileTask -> compileTask.dependsOn ndkBuild
 }
 task copyNativeSymbols(type: Copy) {
     from fileTree(dir: 'src/main/obj/local', include: '**/*.so')

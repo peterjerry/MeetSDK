@@ -1,0 +1,40 @@
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    tools:context=".activity.VideoPlayerActivity" >
+
+	<item
+        android:id="@+id/select_player_impl"
+        android:orderInCategory="1"
+        android:title="选择播放器类型"/>
+	<item
+        android:id="@+id/select_ft"
+        android:orderInCategory="2"
+        android:title="选择码率"/>
+    <item
+        android:id="@+id/episode"
+        android:orderInCategory="3"
+        android:title="切换分集" >
+        <menu>
+            <item
+                android:id="@+id/previous_episode"
+                android:title="上一集"/>
+            <item
+                android:id="@+id/next_episode"
+                android:title="下一集"/>
+            <item
+                android:id="@+id/select_episode"
+                android:title="手动选择"/>
+        </menu>
+    </item>
+
+	<item
+        android:id="@+id/show_mediainfo"
+        android:orderInCategory="4"
+        android:title="媒体信息"/>
+	<item
+        android:id="@+id/toggle_debug_info"
+        android:orderInCategory="5"
+        android:title="切换调试信息"/>
+
+</menu>

@@ -16,6 +16,7 @@
 #define BUFFER_FLAG_END_OF_STREAM	4
 
 class MediaPlayerListener;
+class ISubtitles;
 
 #define MKTAG(a,b,c,d) ((a) | ((b) << 8) | ((c) << 16) | ((unsigned)(d) << 24))
 #define MKBETAG(a,b,c,d) ((d) | ((c) << 8) | ((b) << 16) | ((unsigned)(a) << 24))
@@ -204,6 +205,43 @@ enum pp_media_coded_id {
     PPMEDIA_CODEC_ID_WMALOSSLESS,
     PPMEDIA_CODEC_ID_ATRAC3P,
     PPMEDIA_CODEC_ID_EAC3,
+
+	/* subtitle codecs */
+    PPMEDIA_CODEC_ID_FIRST_SUBTITLE = 0x17000,          ///< A dummy ID pointing at the start of subtitle codecs.
+    PPMEDIA_CODEC_ID_DVD_SUBTITLE = 0x17000,
+    PPMEDIA_CODEC_ID_DVB_SUBTITLE,
+    PPMEDIA_CODEC_ID_TEXT,  ///< raw UTF-8 text
+    PPMEDIA_CODEC_ID_XSUB,
+    PPMEDIA_CODEC_ID_SSA,
+    PPMEDIA_CODEC_ID_MOV_TEXT,
+    PPMEDIA_CODEC_ID_HDMV_PGS_SUBTITLE,
+    PPMEDIA_CODEC_ID_DVB_TELETEXT,
+    PPMEDIA_CODEC_ID_SRT,
+    PPMEDIA_CODEC_ID_MICRODVD   = MKBETAG('m','D','V','D'),
+    PPMEDIA_CODEC_ID_EIA_608    = MKBETAG('c','6','0','8'),
+    PPMEDIA_CODEC_ID_JACOSUB    = MKBETAG('J','S','U','B'),
+    PPMEDIA_CODEC_ID_SAMI       = MKBETAG('S','A','M','I'),
+    PPMEDIA_CODEC_ID_REALTEXT   = MKBETAG('R','T','X','T'),
+    PPMEDIA_CODEC_ID_SUBVIEWER1 = MKBETAG('S','b','V','1'),
+    PPMEDIA_CODEC_ID_SUBVIEWER  = MKBETAG('S','u','b','V'),
+    PPMEDIA_CODEC_ID_SUBRIP     = MKBETAG('S','R','i','p'),
+    PPMEDIA_CODEC_ID_WEBVTT     = MKBETAG('W','V','T','T'),
+    PPMEDIA_CODEC_ID_MPL2       = MKBETAG('M','P','L','2'),
+    PPMEDIA_CODEC_ID_VPLAYER    = MKBETAG('V','P','l','r'),
+    PPMEDIA_CODEC_ID_PJS        = MKBETAG('P','h','J','S'),
+    PPMEDIA_CODEC_ID_ASS        = MKBETAG('A','S','S',' '),  ///< ASS as defined in Matroska
+
+    /* other specific kind of codecs (generally used for attachments) */
+    PPMEDIA_CODEC_ID_FIRST_UNKNOWN = 0x18000,           ///< A dummy ID pointing at the start of various fake codecs.
+    PPMEDIA_CODEC_ID_TTF = 0x18000,
+    PPMEDIA_CODEC_ID_BINTEXT    = MKBETAG('B','T','X','T'),
+    PPMEDIA_CODEC_ID_XBIN       = MKBETAG('X','B','I','N'),
+    PPMEDIA_CODEC_ID_IDF        = MKBETAG( 0 ,'I','D','F'),
+    PPMEDIA_CODEC_ID_OTF        = MKBETAG( 0 ,'O','T','F'),
+    PPMEDIA_CODEC_ID_SMPTE_KLV  = MKBETAG('K','L','V','A'),
+    PPMEDIA_CODEC_ID_DVD_NAV    = MKBETAG('D','N','A','V'),
+    PPMEDIA_CODEC_ID_TIMED_ID3  = MKBETAG('T','I','D','3'),
+    PPMEDIA_CODEC_ID_BIN_DATA   = MKBETAG('D','A','T','A'),
 };
 
 typedef struct MediaFormat
@@ -272,6 +310,12 @@ public:
 	virtual status_t stop() = 0;
 
 	virtual status_t setVideoAhead(int32_t msec) = 0;
+
+	virtual	status_t setISubtitle(ISubtitles* subtitle){return -1;}
+
+	virtual status_t readPacket(int stream_index, unsigned char *data, int32_t *sampleSize) = 0;
+
+	virtual status_t getBitrate(int32_t *kbps) = 0;
 
 	virtual ~IExtractor() {}
 };

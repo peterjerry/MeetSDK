@@ -5,50 +5,56 @@ import java.nio.ByteBuffer;
 
 import android.media.MediaFormat;
 
+import com.gotye.meetsdk.subtitle.SimpleSubTitleParser;
+
 public interface MediaExtractable {
 	
-	public abstract boolean advance();
-	
-	public abstract long getCachedDuration();
-	
-//	public abstract boolean getSampleCryptoInfo(MediaCodec.CryptoInfo info);
-	
-	public abstract int getSampleFlags();
-	
-	public abstract long getSampleTime();
-	
-	public abstract int getSampleTrackIndex();
-	
-	public abstract int getTrackCount();
-	
-	public abstract MediaFormat getTrackFormat(int index);
-	
-	public abstract boolean hasCachedReachedEndOfStream();
-	
-	public abstract int readSampleData(ByteBuffer byteBuf, int offset);
-	
-	public abstract void release();
-	
-	public abstract void stop();
-	
-	public abstract void seekTo(long timeUs, int mode);
-	
-	public abstract void selectTrack(int index);
-	
-	public abstract void setDataSource(String path) throws IOException;
-	
-//	public abstract void setDataSource(String path, Map<String, String> headers);
-	
-//	public abstract void setDataSource(FileDescriptor fd);
-	
-//	public abstract void setDataSource(FileDescriptor fd, long offset, long length);
-	
-//	public abstract void setDataSource(Context context, Uri uri, Map<String, String> headers);
-	
-	public abstract void unselectTrack(int index);
-	
-	public abstract boolean isSystemExtractor();
-	
-	public abstract void setVideoAhead(int msec);
+	boolean advance();
+
+	long getCachedDuration();
+
+	//	boolean getSampleCryptoInfo(MediaCodec.CryptoInfo info);
+
+	int getSampleFlags();
+
+	long getSampleTime();
+
+	int getSampleTrackIndex();
+
+	int getTrackCount();
+
+	MediaFormat getTrackFormat(int index);
+
+	boolean hasCachedReachedEndOfStream();
+
+	int readSampleData(ByteBuffer byteBuf, int offset);
+
+	void release();
+
+	void stop();
+
+    void seekTo(long timeUs, int mode);
+
+	void selectTrack(int index);
+
+	void setDataSource(String path) throws IOException;
+
+	//	void setDataSource(String path, Map<String, String> headers);
+
+	//	void setDataSource(FileDescriptor fd);
+
+	//	setDataSource(FileDescriptor fd, long offset, long length);
+
+	// void setDataSource(Context context, Uri uri, Map<String, String> headers);
+
+	void unselectTrack(int index);
+
+	boolean isSystemExtractor();
+
+	void setVideoAhead(int msec);
+
+	void setSubtitleParser(SimpleSubTitleParser parser);
+
+    int readPacket(int stream_index, ByteBuffer byteBuf, int offset);
 
 }

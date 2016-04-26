@@ -49,10 +49,13 @@ public class MyPreView2 extends SurfaceView {
 		mVideoHeight	= height;
 	}
 	
-	public void switchDisplayMode() {
-		mDisplayMode++;
-		if (mDisplayMode > 3)
-			mDisplayMode = 0;
+	public void switchDisplayMode(int incr) {
+		mDisplayMode += incr;
+        if (mDisplayMode < SCREEN_FIT)
+            mDisplayMode = SCREEN_CENTER;
+		else if (mDisplayMode > SCREEN_CENTER)
+			mDisplayMode = SCREEN_FIT;
+        requestLayout();
 	}
 	
 	public String getDisplayMode() {
@@ -91,6 +94,8 @@ public class MyPreView2 extends SurfaceView {
                 break;
             }
         }
+
+
         setMeasuredDimension(width, height);
     }
 	

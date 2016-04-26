@@ -147,12 +147,12 @@ public class LogUtil {
             
             msg += '\n';
             braf.seek(offset);
-            braf.write(msg.getBytes());
+            braf.write(msg.getBytes("UTF-8"));
             offset = (offset + msg.length()) >= fileLimit ? 0 : offset + msg.length();
             
             // update new file offset
             braf.seek(0);
-            braf.write((offset + "#").getBytes());
+            braf.write((offset + "#").getBytes("UTF-8"));
             braf.flush();
         } catch (IOException e) {
         	e.printStackTrace();

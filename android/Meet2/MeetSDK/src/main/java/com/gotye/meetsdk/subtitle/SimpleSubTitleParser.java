@@ -6,7 +6,7 @@ import android.os.HandlerThread;
 import android.os.Message;
 import com.gotye.meetsdk.util.LogUtils;
 
-public class SimpleSubTitleParser implements Handler.Callback, SubTitleParser {
+public class SimpleSubTitleParser implements SubTitleParser, Handler.Callback {
 	private static final int WHAT_LOAD_SUBTILTE = 9001;
 	private static final int WHAT_SEEKTO 		= 9002;
 	private static final int WHAT_CLOSE 		= 9003;
@@ -41,7 +41,7 @@ public class SimpleSubTitleParser implements Handler.Callback, SubTitleParser {
 					LogUtils.info("System.loadLibrary() subtitle loaded");
 				}
 				
-				native_init();
+				nativeInit();
 				
 				slibLoaded = true;
 				
@@ -74,7 +74,7 @@ public class SimpleSubTitleParser implements Handler.Callback, SubTitleParser {
 			throw new IllegalStateException("Load Lib failed");
 		}
 		
-		native_setup();
+		nativeSetup();
 		
 		HandlerThread ht = new HandlerThread("SampleSubTitleParser");
 		ht.start();
@@ -87,16 +87,16 @@ public class SimpleSubTitleParser implements Handler.Callback, SubTitleParser {
 		boolean ret = true;
 		switch (msg.what) {
 			case WHAT_LOAD_SUBTILTE: {
-				native_loadSubtitle(mFilePath, false /* isMediaFile */);
+				nativeLoadSubtitle(mFilePath, false /* isMediaFile */);
 				break;
 			}
 			case WHAT_SEEKTO: {
 				long msec = msg.getData().getLong("seek_to_msec");
-				native_seekTo(msec);
+				nativeSeekTo(msec);
 				break;
 			}
 			case WHAT_CLOSE: {
-				native_close();
+				nativeClose();
 				break;
 			}
 			default: {
@@ -114,7 +114,7 @@ public class SimpleSubTitleParser implements Handler.Callback, SubTitleParser {
 	
 	@Override
 	public SubTitleSegment next() {
-		boolean ret = native_next(mSegment);
+		boolean ret = nativeNext(mSegment);
 		return ret ? mSegment : null;
 	}
 	
@@ -140,10 +140,10 @@ public class SimpleSubTitleParser implements Handler.Callback, SubTitleParser {
 		mFilePath = filePath;
 	}
 	
-	private Callback mSubTitleCallback; 
+	private OnReadyListener mSubTitleCallback;
 	
 	@Override
-	public void setOnPreparedListener(Callback callback) {
+	public void setListener(OnReadyListener callback) {
 		mSubTitleCallback = callback;
 	}
 
@@ -160,15 +160,15 @@ public class SimpleSubTitleParser implements Handler.Callback, SubTitleParser {
 		}
 	}
 	
-	private static native void native_init();
+	private static native void nativeInit();
 	
-	private native void native_setup();
+	private native void nativeSetup();
 
-	private native void native_loadSubtitle(String filePath, boolean isMediaFile);
+	private native void nativeLoadSubtitle(String filePath, boolean isMediaFile);
 	
-	private native boolean native_next(SubTitleSegment segment);
+	private native boolean nativeNext(SubTitleSegment segment);
 	
-	private native void native_seekTo(long msec);
+	private native void nativeSeekTo(long msec);
 	
-	private native void native_close();
+	private native void nativeClose();
 }

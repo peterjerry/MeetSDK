@@ -3,9 +3,10 @@
 #include "ppffmpeg.h"
 #include "autolock.h"
 #include "utils.h"
+#include "player.h"
+#include "subtitle.h"
 #define LOG_TAG "FFExtractor"
 #include "log.h"
-#include "player.h"
 
 #ifdef __ANDROID__
 #include <jni.h>
@@ -31,6 +32,8 @@ extern JavaVM* gs_jvm;
 #define MEDIA_READ_TIMEOUT_MSEC		(300 * 1000) // 5 min
 
 static const uint8_t nalu_header[4] = {0x00, 0x00, 0x00, 0x01};
+
+static bool getStreamLangTitle(char** langcode, char** langtitle, int index, AVStream* stream);
 
 // NAL unit types
 enum NALUnitType {
@@ -161,6 +164,17 @@ FFExtractor::FFExtractor()
 	m_NALULengthSizeMinusOne= 4; // default
 	m_num_of_sps			= 0;
 	m_num_of_pps			= 0;
+
+	m_subtitle_stream		= NULL;
+	m_subtitle_stream_idx	= -1;
+	m_subtitle_dec_ctx		= NULL;
+	mAVSubtitle				= NULL;
+	mSubtitleTrackFirstIndex= -1;
+	mSubtitleTrackIndex		= -1;
+	mISubtitle				= NULL;
+
+	pthread_mutex_init(&mSubtitleLock, NULL);
+
 	/* register all formats and codecs */
 	av_register_all();
 
@@ -181,6 +195,8 @@ FFExtractor::~FFExtractor()
 	pthread_cond_destroy(&mCondition);
     pthread_mutex_destroy(&mLock);
 	pthread_mutex_destroy(&mLockNotify);
+
+	pthread_mutex_destroy(&mSubtitleLock);
 
 	avformat_network_deinit();
 	LOGI("FFExtractor destrcutor done");
@@ -213,7 +229,7 @@ int FFExtractor::interrupt_l(void* ctx)
 
     if (extractor->m_status == FFEXTRACTOR_STOPPED || extractor->m_status == FFEXTRACTOR_STOPPING) {
         //abort av_read_frame or avformat_open_input, avformat_find_stream_info
-        LOGI("interrupt_l: FFSTREAM_STOPPED");
+        LOGI("interrupt_l: FFEXTRACTOR_STOPPED");
         return 1;
     }
 	
@@ -228,17 +244,30 @@ status_t FFExtractor::setListener(MediaPlayerListener* listener)
 
 status_t FFExtractor::stop()
 {
-	m_status = FFEXTRACTOR_STOPPING;
-	LOGI("stop preparing media");
+	LOGI("extractor_op stop()");
+
+	// 2016.4.21 FFEXTRACTOR_PREPARED state thread was NOT created
+	if (FFEXTRACTOR_PREPARED != m_status)
+		m_status = FFEXTRACTOR_STOPPING;
 	return OK;
 }
 
 status_t FFExtractor::setVideoAhead(int32_t msec)
 {
+	LOGI("extractor_op setVideoAhead() %d", msec);
+
 	m_video_ahead_msec = msec;
 	m_min_play_buf_count = m_video_ahead_msec * m_framerate / 1000;
 	LOGI("setVideoAhead() video_ahead_msec %d, min_play_buf_count %d", 
 		m_video_ahead_msec, m_min_play_buf_count);
+	return OK;
+}
+
+status_t FFExtractor::setISubtitle(ISubtitles* subtitle)
+{
+	LOGI("extractor_op setISubtitle() %p", subtitle);
+
+	mISubtitle = subtitle;
 	return OK;
 }
 
@@ -247,18 +276,21 @@ void FFExtractor::close()
 	if (FFEXTRACTOR_STOPPED == m_status)
 		return;
 
-	LOGI("close()");
+	LOGI("extractor_op close()");
 
-	if (m_status == FFEXTRACTOR_STARTED || m_status == FFEXTRACTOR_PAUSED) {
+	// 2016.4.21 add "m_status == FFEXTRACTOR_STOPPING"
+	// to fix interrupt demux case
+	if (m_status == FFEXTRACTOR_STARTED || m_status == FFEXTRACTOR_PAUSED || m_status == FFEXTRACTOR_STOPPING) {
 		m_status = FFEXTRACTOR_STOPPING;
 		m_buffering = false;
 		pthread_cond_signal(&mCondition);
 
 		LOGI("stop(): before pthread_join %p", mThread);
-		if (pthread_join(mThread, NULL) != 0) {
-			LOGE("pthread_join error");
-		}
+		int ret = pthread_join(mThread, NULL);
+		if (ret != 0)
+			LOGE("pthread_join error %d", ret);
 
+		LOGI("stop(): after thread join");
 		m_video_q.flush();
 		m_audio_q.flush();
 		m_cached_duration_msec = 0;
@@ -280,6 +312,10 @@ void FFExtractor::close()
     if (m_audio_dec_ctx) {
 		avcodec_close(m_audio_dec_ctx);
 		m_audio_dec_ctx = NULL;
+	}
+	if (m_subtitle_dec_ctx) {
+		avcodec_close(m_subtitle_dec_ctx);
+		m_subtitle_dec_ctx = NULL;
 	}
 	if (m_fmt_ctx) {
 		m_fmt_ctx->interrupt_callback.callback = NULL;
@@ -311,7 +347,7 @@ void FFExtractor::notifyListener_l(int msg, int ext1, int ext2)
 
 status_t FFExtractor::setDataSource(const char *path)
 {
-	LOGI("setDataSource() %s", path);
+	LOGI("extractor_op setDataSource() %s", path);
 
 	if (!path || strcmp(path, "") == 0) {
 		LOGE("url is empty");
@@ -361,9 +397,74 @@ status_t FFExtractor::setDataSource(const char *path)
         return ERROR;
     }
 
-	// disable all stream at first
-	for (unsigned int i=0;i<m_fmt_ctx->nb_streams;i++) {
-		m_fmt_ctx->streams[i]->discard = AVDISCARD_ALL;
+	// only set mISubtitle will do subtitle parse and decode
+	if (mISubtitle) {
+		for (int32_t i = 0; i < (int32_t)m_fmt_ctx->nb_streams; i++) {
+			if (m_fmt_ctx->streams[i]->codec->codec_type == AVMEDIA_TYPE_SUBTITLE) {
+				AVStream *subtitle_stream = m_fmt_ctx->streams[i];
+				AVCodecID codec_id = subtitle_stream->codec->codec_id;
+				// only support 5 type subtitle
+				if (codec_id == AV_CODEC_ID_ASS || codec_id == AV_CODEC_ID_SSA ||
+						codec_id == AV_CODEC_ID_TEXT || codec_id == AV_CODEC_ID_SRT ||
+						codec_id == AV_CODEC_ID_SUBRIP) {
+					if (m_subtitle_stream_idx == -1) {
+    					m_subtitle_stream_idx = i;
+						LOGI("m_subtitle_stream_idx: %d", m_subtitle_stream_idx);
+						m_subtitle_stream = subtitle_stream;
+
+						if (!open_subtitle_codec()) {
+							LOGE("failed to open subtitle codec");
+						}
+					}
+					else {
+						subtitle_stream->discard = AVDISCARD_ALL;
+						LOGI("Discard m_subtitle_streamIndex stream: #%d codec_id %d(%s)", i, codec_id, avcodec_get_name(codec_id));
+					}
+
+					// add subtitle track
+					SubtitleCodecId sub_codec_id = SUBTITLE_CODEC_ID_NONE;
+					if (codec_id == AV_CODEC_ID_ASS || codec_id == AV_CODEC_ID_SSA)
+					{
+						sub_codec_id = SUBTITLE_CODEC_ID_ASS;
+					}
+					else if(codec_id == AV_CODEC_ID_TEXT || codec_id == AV_CODEC_ID_SRT || codec_id == AV_CODEC_ID_SUBRIP)
+					{
+						sub_codec_id = SUBTITLE_CODEC_ID_TEXT;
+					}
+					else {
+						LOGW("unsupported subtitle stream #%d codec: %d(%s)", i, codec_id, avcodec_get_name(codec_id));
+						continue;
+					}
+
+					const char* extraData = (const char*)subtitle_stream->codec->extradata;
+					int dataLen = subtitle_stream->codec->extradata_size;
+					char *langcode = NULL;
+					char *langtitle = NULL;
+					if (!getStreamLangTitle(&langcode, &langtitle, i, subtitle_stream)) {
+						langcode = (char *)"N/A";
+						langtitle = (char *)"N/A";
+					}
+
+					int track_index = mISubtitle->addEmbeddingSubtitle(sub_codec_id, langcode/*"chs"*/, langtitle/*"chs"*/, extraData, dataLen);
+					if (track_index < 0) {
+						LOGE("failed to add embedding subtitle");
+						break;
+					}
+
+					LOGI("subtitle track %d added", track_index);
+
+					if (mSubtitleTrackIndex == -1) {
+						mSubtitleTrackFirstIndex	= i;
+						mSubtitleTrackIndex			= track_index;
+						LOGI("subtitle track from #%d (sub select #%d)", i, track_index);
+					}
+				} // end of 5 subtitle type
+			}
+			else {
+				// disable all stream at first
+				m_fmt_ctx->streams[i]->discard = AVDISCARD_ALL;
+			}
+		}
 	}
 
 	/* dump input information to stderr */
@@ -376,9 +477,34 @@ status_t FFExtractor::setDataSource(const char *path)
 	else
 		m_min_play_buf_count = 25 * 4; // 4 sec for vod "smooth" play 
 
-	LOGI("setDataSource done");
 	m_status = FFEXTRACTOR_PREPARED;
+	LOGI("setDataSource done");
+
 	return OK;
+}
+
+bool FFExtractor::open_subtitle_codec()
+{
+	LOGI("subtitle extradata size %d", m_subtitle_stream->codec->extradata_size);
+		
+	m_subtitle_dec_ctx = m_subtitle_stream->codec;
+	AVCodec* SubCodec = avcodec_find_decoder(m_subtitle_dec_ctx->codec_id);
+	// Open codec
+    if (avcodec_open2(m_subtitle_dec_ctx, SubCodec, NULL) < 0) {
+    	LOGE("failed to open subtitle decoder: id %d, name %s", 
+			m_subtitle_dec_ctx->codec_id, avcodec_get_name(m_subtitle_dec_ctx->codec_id));
+		return NULL;
+	}
+
+	LOGI("subtitle codec id: %d(%s), codec_name: %s", 
+		m_subtitle_dec_ctx->codec_id, avcodec_get_name(m_subtitle_dec_ctx->codec_id), 
+		SubCodec->long_name);
+	
+	if (!mAVSubtitle)
+		mAVSubtitle = new AVSubtitle;
+
+	LOGI("subtitle codec opened");
+	return true;
 }
 
 status_t FFExtractor::getTrackCount(int32_t *track_count)
@@ -395,8 +521,12 @@ status_t FFExtractor::getTrackCount(int32_t *track_count)
 
 status_t FFExtractor::getTrackFormat(int32_t index, MediaFormat *format)
 {
-	if (NULL == format)
+	LOGI("extractor_op getTrackFormat()");
+
+	if (NULL == format) {
+		LOGE("MediaFormat is null ptr");
 		return INVALID_OPERATION;
+	}
 	
 	if (index >= (int32_t)m_fmt_ctx->nb_streams) {
 		LOGE("invalid stream index: %d", index);
@@ -634,72 +764,6 @@ status_t FFExtractor::getTrackFormat(int32_t index, MediaFormat *format)
 			format->csd_0			= new uint8_t[len];
 			memcpy(format->csd_0, (uint8_t *)&extradata + 1, 1);
 			memcpy(format->csd_0 + 1, (uint8_t *)&extradata, 1);
-
-			/*
-			// method 2
-			m_fmt_ctx->streams[index]->discard = AVDISCARD_DEFAULT;
-
-			m_pBsfc_aac =  av_bitstream_filter_init("aac_adtstoasc");
-			if (!m_pBsfc_aac) {
-				LOGE("Could not aquire aac_adtstoasc filter");
-				return ERROR;
-			}
-
-			AVPacket pkt;
-			av_init_packet(&pkt);
-			pkt.size = 0;
-			pkt.data = NULL;
-
-			int ret;
-			bool found = false;
-			while (!found) {
-				ret = av_read_frame(m_fmt_ctx, &pkt);
-				if (ret == AVERROR_EOF) {
-					LOGE("find sps and pps: av_read_frame() eof");
-					break;
-				}
-				else if (ret < 0) {
-					char msg[128] = {0};
-					av_make_error_string(msg, 128, ret);
-					LOGE("find aac extradata: failed to read frame %d %s", ret, msg);
-					break;
-				}
-
-				if (index == pkt.stream_index) {
-					uint8_t *pOutBuf = NULL;
-					int outBufSize;
-					int isKeyFrame = pkt.flags & AV_PKT_FLAG_KEY;
-					av_bitstream_filter_filter(m_pBsfc_aac, m_fmt_ctx->streams[index]->codec, NULL, &pOutBuf, &outBufSize, 
-						pkt.data, pkt.size, isKeyFrame);
-
-					if (c->extradata_size) {
-						format->csd_0_size = c->extradata_size;
-						format->csd_0 = new uint8_t[c->extradata_size];
-						memcpy(format->csd_0, c->extradata, c->extradata_size);
-
-						av_free(pOutBuf);
-						LOGI("audio extradata found size %d, 0x%02x 0x%02x", c->extradata_size, format->csd_0[0], format->csd_0[1]);
-						found = true;
-					}
-				}
-			} // end of while
-
-			if (format->csd_0_size == 0 || format->csd_0 == NULL) {
-				LOGE("failed to find audio extradata");
-				return ERROR;
-			}
-
-			if (av_seek_frame(m_fmt_ctx, -1, 0, AVSEEK_FLAG_BACKWARD) < 0) {
-				LOGE("failed to seekback to head");
-				return ERROR;
-			}
-
-			if (m_pBsfc_aac) {
-				av_bitstream_filter_close(m_pBsfc_aac);
-				m_pBsfc_aac = NULL;
-			}
-
-			m_fmt_ctx->streams[index]->discard = AVDISCARD_ALL;*/
 		}
 	}
 	else if (AVMEDIA_TYPE_SUBTITLE == type) {
@@ -951,6 +1015,11 @@ bool FFExtractor::seek_l()
 		m_audio_q.put(flush_pkt);
 	}
 
+	LOGI("before flush subtile parser");
+	if (mISubtitle)
+		mISubtitle->seekTo(0); // do flush
+
+	LOGI("seek_l done!"); 
 	return true;
 }
 
@@ -1073,14 +1142,11 @@ status_t FFExtractor::advance()
 
 	m_sample_track_idx		= m_sample_pkt->stream_index;
 	m_buffered_size			-= m_sample_pkt->size;
-	m_cached_duration_msec	-= get_packet_duration(m_sample_pkt);
 
 	// 20151226 michael.ma added to fix m_buffered_size<0 bug 
 	// cause m_max_buffersize dead-loop for "Double max buffer size"
 	if (m_buffered_size < 0)
 		m_buffered_size = 0;
-	if (m_cached_duration_msec < 0)
-		m_cached_duration_msec = 0;
 	
 	if (m_video_stream_idx == m_sample_track_idx)
 		m_sample_clock_msec = m_video_clock_msec;
@@ -1094,11 +1160,129 @@ status_t FFExtractor::advance()
 	return OK;
 }
 
+status_t FFExtractor::getBitrate(int32_t *kbps)
+{
+	if (m_fmt_ctx && m_fmt_ctx->pb) {
+		int64_t size = avio_size(m_fmt_ctx->pb);
+		if (size <=0)
+			size = avio_tell(m_fmt_ctx->pb);
+
+		int64_t duration_msec = m_video_clock_msec;
+		if (duration_msec < 100)
+			duration_msec = 100;
+		return (int)((double)(size * 8) / (double)m_video_clock_msec);
+	}
+
+	return 0;
+}
+
+status_t FFExtractor::readPacket(int stream_index, unsigned char *data, int32_t *sampleSize)
+{
+	if (stream_index < 0 || stream_index >= (int)m_fmt_ctx->nb_streams) {
+		LOGE("invalid stream index: %d", stream_index);
+		return ERROR;
+	}
+	
+	// NOT need call advance when start()
+	if (start(0) < 0) 
+		return ERROR;
+
+	if (FFEXTRACTOR_STARTED != m_status && FFEXTRACTOR_PAUSED != m_status) {
+		LOGE("extractor in wrong state: %d", m_status);
+		return ERROR;
+	}
+
+	if (m_eof && m_video_q.count() == 0/* && m_audio_q.count == 0*/)
+		return READ_EOF;
+
+	if (m_video_q.count() == 0 || m_audio_q.count() == 0) {
+		m_buffering = true;
+
+		if (m_sorce_type != TYPE_LOCAL_FILE) {
+			LOGI("notifyListener_l MEDIA_INFO_BUFFERING_START");
+			notifyListener_l(MEDIA_INFO, MEDIA_INFO_BUFFERING_START);
+		}
+
+		LOGI("start to buffering");
+		while (m_buffering) {
+			av_usleep(10000); // 10 msec
+			if (FFEXTRACTOR_STOPPING == m_status) {
+				LOGI("readPacket was interrputd by stop");
+				return ERROR;
+			}
+		}
+
+		if (m_sorce_type != TYPE_LOCAL_FILE) {
+			LOGI("notifyListener_l MEDIA_INFO_BUFFERING_END");
+			notifyListener_l(MEDIA_INFO, MEDIA_INFO_BUFFERING_END);
+		}
+	}
+
+	int64_t pts_msec;
+
+	if (stream_index == m_video_stream_idx) {
+		m_sample_pkt = m_video_q.get();
+		if (!m_sample_pkt)
+			return ERROR;
+
+		m_sample_track_idx	= m_sample_pkt->stream_index;
+
+		pts_msec = get_packet_pos(m_sample_pkt);
+		if (pts_msec == AV_NOPTS_VALUE)
+			pts_msec = m_video_clock_msec;
+		else
+			m_video_clock_msec = pts_msec;
+		m_sample_clock_msec = pts_msec;
+
+		if (m_nalu_convert && strncmp((const char *)m_sample_pkt->data, "FLUSH", 5) != 0) {
+			int offset = 0;
+			while (offset < m_sample_pkt->size) {
+				int nalu_size = get_size(m_sample_pkt->data + offset, m_NALULengthSizeMinusOne + 1);
+				memcpy(m_sample_pkt->data + offset, nalu_header + (3 - m_NALULengthSizeMinusOne), m_NALULengthSizeMinusOne + 1);
+				offset += (m_NALULengthSizeMinusOne + 1 + nalu_size);
+			}
+		}
+
+		memcpy(data, m_sample_pkt->data, m_sample_pkt->size);
+		*sampleSize = m_sample_pkt->size;
+	}
+	else if (stream_index == m_audio_stream_idx) {
+		m_sample_pkt = m_audio_q.get();
+		if (!m_sample_pkt)
+			return ERROR;
+
+		m_sample_track_idx	= m_sample_pkt->stream_index;
+
+		pts_msec = get_packet_pos(m_sample_pkt);
+		if (pts_msec == AV_NOPTS_VALUE)
+			pts_msec = m_audio_clock_msec;
+		else
+			m_audio_clock_msec = pts_msec;
+		m_sample_clock_msec = pts_msec;
+
+		if (strncmp((const char *)m_sample_pkt->data, "FLUSH", 5) != 0 && m_pBsfc_aac) {
+			int isKeyFrame = m_sample_pkt->flags & AV_PKT_FLAG_KEY;
+			av_bitstream_filter_filter(m_pBsfc_aac, m_audio_stream->codec, NULL, &m_sample_pkt->data, &m_sample_pkt->size, 
+				m_sample_pkt->data, m_sample_pkt->size, isKeyFrame);
+		}
+
+		memcpy(data, m_sample_pkt->data, m_sample_pkt->size);
+		*sampleSize = m_sample_pkt->size;
+	}
+	else {
+		LOGE("Non video/audio stream index: %d", stream_index);
+		return ERROR;
+	}
+
+	return OK;
+}
+
 status_t FFExtractor::readSampleData(unsigned char *data, int32_t *sampleSize)
 {
-	LOGD("readSampleData()");
+	//LOGD("readSampleData()");
 	
-	if (start() < 0)
+	// NEED call advance when start()
+	if (start(1) < 0)
 		return ERROR;
 
 	if (!is_packet_valid()) {
@@ -1149,7 +1333,7 @@ status_t FFExtractor::readSampleData(unsigned char *data, int32_t *sampleSize)
 				m_sample_pkt->data, m_sample_pkt->size, isKeyFrame);
 			//LOGD("readSampleData_flt(audio) pkt size %d, outbuf size %d", origin_size, m_sample_pkt->size);
 		}
-		
+
 		memcpy(data, m_sample_pkt->data, m_sample_pkt->size);
 		*sampleSize = m_sample_pkt->size;
 	}
@@ -1168,7 +1352,10 @@ bool FFExtractor::is_packet_valid()
 
 status_t FFExtractor::getSampleTrackIndex(int32_t *trackIndex)
 {
-	if (start() < 0)
+	LOGI("getSampleTrackIndex()");
+
+	// NEED call advance when start()
+	if (start(1) < 0) 
 		return ERROR;
 
 	*trackIndex = m_sample_track_idx;
@@ -1382,7 +1569,7 @@ void FFExtractor::addADTStoPacket(uint8_t *packet, int packetLen)
     packet[6] = 0xFC;
 }
 
-int FFExtractor::start()
+int FFExtractor::start(int fill_pkt)
 {
 	if (FFEXTRACTOR_STARTED == m_status || FFEXTRACTOR_PAUSED == m_status)
 		return 0;
@@ -1392,11 +1579,19 @@ int FFExtractor::start()
 		return -1;
 	}
 
-	pthread_create(&mThread, NULL, demux_thread, this);
+	int ret = pthread_create(&mThread, NULL, demux_thread, this);
+	if (ret != 0) {
+		LOGE("pthread_create error: %d", ret);
+		return -1;
+	}
+
+	LOGI("pthread: %p created", mThread);
 
 	m_buffering = true;
 	m_status = FFEXTRACTOR_STARTED;
-	advance();
+
+	if (fill_pkt)
+		advance();
 
 	return 0;
 }
@@ -1469,7 +1664,7 @@ void FFExtractor::thread_impl()
 	
 	while (1) {
 		if (FFEXTRACTOR_STOPPING == m_status || FFEXTRACTOR_STOPPED ==  m_status) {
-            LOGI("work thead break");
+            LOGI("work thread break");
             break;
         }
 
@@ -1606,14 +1801,54 @@ void FFExtractor::thread_impl()
 
 			m_audio_q.put(pPacket);
 
-			if (pPacket->stream_index == m_audio_stream_idx) {
-				int64_t cached_pos_msec = get_packet_pos(pPacket);
-				if (cached_pos_msec == AV_NOPTS_VALUE)
-					m_cached_duration_msec += get_packet_duration(pPacket);
-				else
-					m_cached_duration_msec = cached_pos_msec;
-			}
+			int64_t cached_pos_msec = get_packet_pos(pPacket);
+			if (cached_pos_msec == AV_NOPTS_VALUE)
+				m_cached_duration_msec += get_packet_duration(pPacket);
+			else
+				m_cached_duration_msec = cached_pos_msec;
 		}
+		else if (pPacket->stream_index == m_subtitle_stream_idx && m_subtitle_stream) {
+			AVPacket *orig_pkt = pPacket;
+			int got_sub;
+			int ret;
+
+			AutoLock autoLock(&mSubtitleLock);
+
+			do {
+				ret = avcodec_decode_subtitle2(m_subtitle_stream->codec, mAVSubtitle, &got_sub, pPacket);
+				if (ret < 0) {
+					LOGW("failed to decode subtitle");
+					break;
+				}
+
+				if (got_sub) {
+					LOGI("got subtitle format: %d, type: %d, content: %s", 
+						mAVSubtitle->format, (*(mAVSubtitle->rects))->type, (*(mAVSubtitle->rects))->ass);
+					int64_t start_time ,stop_time;
+					start_time = av_rescale_q(mAVSubtitle->pts + mAVSubtitle->start_display_time * 1000,
+						AV_TIME_BASE_Q, m_subtitle_stream->time_base);
+					stop_time = av_rescale_q(mAVSubtitle->pts + mAVSubtitle->end_display_time * 1000,
+						AV_TIME_BASE_Q, m_subtitle_stream->time_base);
+					if (SUBTITLE_ASS == (*(mAVSubtitle->rects))->type) {
+						mISubtitle->addEmbeddingSubtitleEntity(mSubtitleTrackIndex, 
+							start_time, stop_time - start_time, 
+							(const char*)pPacket->data, pPacket->size);
+					}
+					else {
+						mISubtitle->addEmbeddingSubtitleEntity(mSubtitleTrackIndex, 
+							start_time, stop_time - start_time, 
+							(*(mAVSubtitle->rects))->text, 0);
+					}
+					avsubtitle_free(mAVSubtitle);
+				}
+
+				pPacket->data += ret;
+				pPacket->size -= ret;
+			} while (pPacket->size > 0);
+
+			av_free_packet(orig_pkt);
+            av_free(orig_pkt);
+		} // end of subtitle case
 		else {
 			LOGD("invalid packet found: stream_idx %d", pPacket->stream_index);
 			av_free_packet(pPacket);
@@ -1760,4 +1995,52 @@ static int get_size(uint8_t *s, int len)
 	return b_size.size;
 }
 
+static bool getStreamLangTitle(char** langcode, char** langtitle, int index, AVStream* stream)
+{
+    bool gotlanguage = false;
+
+	if (langcode == NULL || langtitle == NULL)
+		return false;
+
+	if (stream == NULL || stream->metadata == NULL)
+		return false;
+
+	const char *stream_type = "other";
+	if (stream->codec->codec_type == AVMEDIA_TYPE_AUDIO)
+		stream_type = "audio";
+	else if (stream->codec->codec_type == AVMEDIA_TYPE_SUBTITLE)
+		stream_type = "subtitle";
+
+    AVDictionaryEntry* elem = NULL;
+
+	elem = av_dict_get(stream->metadata, "language", NULL, 0);
+    if (elem && elem->value != NULL) {
+		int len = strlen(elem->value) + 1;
+		*langcode = new char[len];
+		memset(*langcode, 0, len);
+        strcpy(*langcode, elem->value);
+        gotlanguage = true;
+    }
+
+    elem = av_dict_get(stream->metadata, "title", NULL, 0);
+    if (elem && elem->value != NULL) {
+		int len = strlen(elem->value) + 1;
+		*langtitle = new char[len];
+		memset(*langtitle, 0, len);
+        strcpy(*langtitle, elem->value);
+        gotlanguage = true;
+    }
+
+	if (gotlanguage) {
+		LOGI("%s stream index: #%d(lang %s, title: %s)", 
+			stream_type, index, 
+			*langcode ? *langcode : "N/A", 
+			*langtitle ? *langcode : "N/A");
+	}
+	else {
+		LOGW("%s stream index: #d lang and title are both empty", stream_type, index);
+	}
+
+    return gotlanguage;
+}
 

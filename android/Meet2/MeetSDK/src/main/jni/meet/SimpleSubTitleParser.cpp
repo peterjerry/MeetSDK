@@ -158,32 +158,30 @@ extern "C" {
  * Signature: ()V
  */
 JNIEXPORT void JNICALL
-Java_com_gotye_meetsdk_subtitle_SimpleSubTitleParser_native_1init(JNIEnv* env, jobject thiz)
+Java_com_gotye_meetsdk_subtitle_SimpleSubTitleParser_nativeInit(JNIEnv* env, jobject thiz)
 {
 	jclass clazz = env->FindClass("com/gotye/meetsdk/subtitle/SimpleSubTitleParser");
-	if (clazz == NULL)
-	{
-		JNU_ThrowByName(env, "java/lang/IllegalStateException", "Class not found.");
+	if (clazz == NULL) {
+		JNU_ThrowByName(env, "java/lang/IllegalStateException", 
+			"Class com/gotye/meetsdk/subtitle/SimpleSubTitleParser not found.");
 		return;
 	}
 
 	gFields.context = env->GetFieldID(clazz, "mNativeContext", "J");
-	if (gFields.context == NULL)
-	{
-		JNU_ThrowByName(env, "java/lang/IllegalStateException", "Field not found.");
+	if (gFields.context == NULL) {
+		JNU_ThrowByName(env, "java/lang/IllegalStateException", 
+			"Field mNativeContext not found.");
 		return;
 	}
 
 	gFields.onPreparedID = env->GetMethodID(clazz, "onPrepared", "(ZLjava/lang/String;)V");
-	if (gFields.onPreparedID == NULL)
-	{
+	if (gFields.onPreparedID == NULL) {
 		JNU_ThrowByName(env, "java/lang/IllegalStateException", "Method not found.");
 		return;
 	}
 
 	gFields.onSeekCompleteID = env->GetMethodID(clazz, "onSeekComplete", "()V");
-	if (gFields.onSeekCompleteID == NULL)
-	{
+	if (gFields.onSeekCompleteID == NULL) {
 		JNU_ThrowByName(env, "java/lang/IllegalStateException", "Method not found.");
 		return;
 	}
@@ -215,15 +213,16 @@ Java_com_gotye_meetsdk_subtitle_SimpleSubTitleParser_native_1init(JNIEnv* env, j
 
 /*
  * Class:     com_gotye_meetsdk_subtitle_SimpleSubTitleParser
- * Method:    native_setup
+ * Method:    nativeSetup
  * Signature: ()V
  */
 JNIEXPORT void JNICALL
-Java_com_gotye_meetsdk_subtitle_SimpleSubTitleParser_native_1setup(JNIEnv* env, jobject thiz)
+Java_com_gotye_meetsdk_subtitle_SimpleSubTitleParser_nativeSetup(JNIEnv* env, jobject thiz)
 {
 	ISubtitles* parser = NULL;
 	if (!ISubtitles::create(&parser)) {
-		JNU_ThrowByName(env, "java/lang/IllegalStateException", "Native subtitle parser init failed.");
+		JNU_ThrowByName(env, "java/lang/IllegalStateException", 
+			"Native subtitle parser init failed.");
 		return;
 	}
 
@@ -232,11 +231,11 @@ Java_com_gotye_meetsdk_subtitle_SimpleSubTitleParser_native_1setup(JNIEnv* env, 
 
 /*
  * Class:     com_gotye_meetsdk_subtitle_SimpleSubTitleParser
- * Method:    native_close
+ * Method:    nativeClose
  * Signature: ()V
  */
 JNIEXPORT void JNICALL
-Java_com_gotye_meetsdk_subtitle_SimpleSubTitleParser_native_1close(JNIEnv *env, jobject thiz)
+Java_com_gotye_meetsdk_subtitle_SimpleSubTitleParser_nativeClose(JNIEnv *env, jobject thiz)
 {
 	LOGI("native_close()");
 
@@ -253,11 +252,11 @@ Java_com_gotye_meetsdk_subtitle_SimpleSubTitleParser_native_1close(JNIEnv *env, 
 
 /*
  * Class:     com_gotye_meetsdk_subtitle_SimpleSubTitleParser
- * Method:    native_loadSubtitle
+ * Method:    nativeLoadSubtitle
  * Signature: (Ljava/lang/String;Z)V
  */
 JNIEXPORT void JNICALL
-Java_com_gotye_meetsdk_subtitle_SimpleSubTitleParser_native_1loadSubtitle
+Java_com_gotye_meetsdk_subtitle_SimpleSubTitleParser_nativeLoadSubtitle
 (JNIEnv *env, jobject thiz, jstring jFilePath, jboolean isMediaFile)
 {
 	LOGI("native_loadSubtitle()");
@@ -284,11 +283,11 @@ Java_com_gotye_meetsdk_subtitle_SimpleSubTitleParser_native_1loadSubtitle
 
 /*
  * Class:     com_gotye_meetsdk_subtitle_SimpleSubTitleParser
- * Method:    native_seekTo
+ * Method:    nativeSeekTo
  * Signature: (J)V
  */
 JNIEXPORT void JNICALL
-Java_com_gotye_meetsdk_subtitle_SimpleSubTitleParser_native_1seekTo(JNIEnv *env, jobject thiz, jlong msec)
+Java_com_gotye_meetsdk_subtitle_SimpleSubTitleParser_nativeSeekTo(JNIEnv *env, jobject thiz, jlong msec)
 {
 	LOGI("native_seekTo");
 
@@ -306,11 +305,11 @@ Java_com_gotye_meetsdk_subtitle_SimpleSubTitleParser_native_1seekTo(JNIEnv *env,
 
 /*
  * Class:     com_gotye_meetsdk_subtitle_SimpleSubTitleParser
- * Method:    native_next
+ * Method:    nativeNext
  * Signature: (Lcom/gotye/meetsdk/subtitle/SubTitleSegment;)Z
  */
 JNIEXPORT jboolean JNICALL
-Java_com_gotye_meetsdk_subtitle_SimpleSubTitleParser_native_1next(JNIEnv *env, jobject thiz, jobject segment)
+Java_com_gotye_meetsdk_subtitle_SimpleSubTitleParser_nativeNext(JNIEnv *env, jobject thiz, jobject segment)
 {
 	LOGD("native_next");
 

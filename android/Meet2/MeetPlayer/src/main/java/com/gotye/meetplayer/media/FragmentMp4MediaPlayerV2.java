@@ -3,39 +3,36 @@ package com.gotye.meetplayer.media;
 import java.io.IOException;
 import java.util.List;
 
-import android.media.MediaPlayer;
-import android.media.MediaPlayer.OnBufferingUpdateListener;
-import android.media.MediaPlayer.OnCompletionListener;
-import android.media.MediaPlayer.OnErrorListener;
-import android.media.MediaPlayer.OnInfoListener;
-import android.media.MediaPlayer.OnPreparedListener;
-import android.media.MediaPlayer.OnSeekCompleteListener;
-import android.media.MediaPlayer.OnVideoSizeChangedListener;
-
-import android.util.Log;
 import android.view.SurfaceHolder;
+
+import com.gotye.common.util.LogUtil;
+import com.gotye.meetsdk.player.MediaPlayer;
 
 public class FragmentMp4MediaPlayerV2 {
 	private final static String TAG = "FragmentMp4MediaPlayer";
-	
 	
 	private List<String> m_playlink_list;
 	private List<Integer> m_duration_list;
 	
 	private int m_playlink_now_index;
-	private int m_play_pos_offset;
-	private int m_pre_seek_pos;
+	private int m_play_pos_offset; // msec
+	private int m_pre_seek_pos; // msec
 	private int m_seek_pos;
 	private int m_total_duration_msec;
 	
 	private MediaPlayer mCurrentPlayer, mNextPlayer;
+	private int mPlayerImpl;
 	private SurfaceHolder mHolder;
 	private int mVideoWidth, mVideoHeight;
 	private boolean mLooping = false;
 	private boolean mScreenOnWhilePlaying = true;
 	private boolean mSeeking;
 	private int mStreamType;
-	
+
+	private static final int SYSTEM_PLAYER  = 1;
+	private static final int XO_PLAYER      = 2;
+	private static final int FF_PLAYER      = 3;
+
 	private MediaPlayer.OnBufferingUpdateListener mOnBufferingUpdateListener;
 	private MediaPlayer.OnVideoSizeChangedListener mOnVideoSizeChangedListener;
 	private MediaPlayer.OnPreparedListener mOnPreparedListener;
@@ -44,8 +41,8 @@ public class FragmentMp4MediaPlayerV2 {
 	private MediaPlayer.OnInfoListener mOnInfoListener;
 	private MediaPlayer.OnSeekCompleteListener mOnSeekCompleteListener;
 	
-	public FragmentMp4MediaPlayerV2() {
-		
+	public FragmentMp4MediaPlayerV2(int impl) {
+		mPlayerImpl = impl;
 	}
 	
 	public void setDataSource(List<String> urlList, List<Integer>durationList /* msec */)
@@ -125,8 +122,8 @@ public class FragmentMp4MediaPlayerV2 {
 				if (mOnInfoListener != null)
 					mOnInfoListener.onInfo(mCurrentPlayer, MediaPlayer.MEDIA_INFO_BUFFERING_START, 0);
 				
-				Log.i(TAG, String.format("Java: seekto(back) pos %d, #%d, offset %d", 
-						msec, m_playlink_now_index, m_play_pos_offset));
+				LogUtil.info(TAG, String.format("Java: seekto(back) pos %d, #%d, offset %d",
+                        msec, m_playlink_now_index, m_play_pos_offset));
 				m_pre_seek_pos = msec - m_play_pos_offset;
 				
 				setupPlayer();
@@ -144,8 +141,8 @@ public class FragmentMp4MediaPlayerV2 {
 				if (mOnInfoListener != null)
 					mOnInfoListener.onInfo(mCurrentPlayer, MediaPlayer.MEDIA_INFO_BUFFERING_START, 0);
 				
-				Log.i(TAG, String.format("Java: seekto(forward) pos %d, #%d, offset %d", 
-						msec, m_playlink_now_index, m_play_pos_offset));
+				LogUtil.info(TAG, String.format("Java: seekto(forward) pos %d, #%d, offset %d",
+                        msec, m_playlink_now_index, m_play_pos_offset));
 				m_pre_seek_pos = msec - m_play_pos_offset;
 				
 				setupPlayer();
@@ -154,8 +151,8 @@ public class FragmentMp4MediaPlayerV2 {
 				mCurrentPlayer.seekTo(msec - m_play_pos_offset);
 				mSeeking = false;
 				
-				Log.i(TAG, String.format("Java: seekto(inner) pos %d, #%d, offset %d", 
-						msec, m_playlink_now_index, m_play_pos_offset));
+				LogUtil.info(TAG, String.format("Java: seekto(inner) pos %d, #%d, offset %d",
+                        msec, m_playlink_now_index, m_play_pos_offset));
 			}
 		}
 	}
@@ -227,31 +224,31 @@ public class FragmentMp4MediaPlayerV2 {
 		mStreamType = streamType;
 	}
 
-	public void setOnBufferingUpdateListener(OnBufferingUpdateListener listener) {
+	public void setOnBufferingUpdateListener(MediaPlayer.OnBufferingUpdateListener listener) {
 		mOnBufferingUpdateListener = listener;
 	}
 
-	public void setOnCompletionListener(OnCompletionListener listener) {
+	public void setOnCompletionListener(MediaPlayer.OnCompletionListener listener) {
 		mOnCompletionListener = listener;
 	}
 
-	public void setOnErrorListener(OnErrorListener listener) {
+	public void setOnErrorListener(MediaPlayer.OnErrorListener listener) {
 		mOnErrorListener = listener;
 	}
 
-	public void setOnInfoListener(OnInfoListener listener) {
+	public void setOnInfoListener(MediaPlayer.OnInfoListener listener) {
 		mOnInfoListener = listener;
 	}
 
-	public void setOnPreparedListener(OnPreparedListener listener) {
+	public void setOnPreparedListener(MediaPlayer.OnPreparedListener listener) {
 		mOnPreparedListener = listener;
 	}
 
-	public void setOnSeekCompleteListener(OnSeekCompleteListener listener) {
+	public void setOnSeekCompleteListener(MediaPlayer.OnSeekCompleteListener listener) {
 		mOnSeekCompleteListener = listener;
 	}
 
-	public void setOnVideoSizeChangedListener(OnVideoSizeChangedListener listener) {
+	public void setOnVideoSizeChangedListener(MediaPlayer.OnVideoSizeChangedListener listener) {
 		mOnVideoSizeChangedListener = listener;
 	}
 	
@@ -260,13 +257,23 @@ public class FragmentMp4MediaPlayerV2 {
 	}
 	
 	private boolean setupPlayer() {
+        LogUtil.info(TAG, "setupPlayer()");
+
 		if (mCurrentPlayer != null) {
 			mCurrentPlayer.stop();
 			mCurrentPlayer.release();
 			mCurrentPlayer = null;
 		}
-		
-		mCurrentPlayer = new MediaPlayer();
+
+        MediaPlayer.DecodeMode mode;
+        if (mPlayerImpl == FF_PLAYER)
+            mode = MediaPlayer.DecodeMode.SW;
+        else if (mPlayerImpl == XO_PLAYER)
+            mode = MediaPlayer.DecodeMode.HW_XOPLAYER;
+        else
+            mode = MediaPlayer.DecodeMode.HW_SYSTEM;
+
+		mCurrentPlayer = new MediaPlayer(mode);
 		mCurrentPlayer.reset();
 		
 		mCurrentPlayer.setDisplay(mHolder);
@@ -282,7 +289,9 @@ public class FragmentMp4MediaPlayerV2 {
 		mCurrentPlayer.setOnSeekCompleteListener(mSeekCompleteListener);
 		
 		try {
-			mCurrentPlayer.setDataSource(m_playlink_list.get(m_playlink_now_index));
+            String url = m_playlink_list.get(m_playlink_now_index);
+            LogUtil.info(TAG, "curr_player set_play_url: " + url);
+			mCurrentPlayer.setDataSource(url);
 			mCurrentPlayer.prepareAsync();
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
@@ -294,6 +303,8 @@ public class FragmentMp4MediaPlayerV2 {
 	}
 	
 	private void setupNextPlayer() {
+        LogUtil.info(TAG, "setupNextPlayer()");
+
 		new Thread(new Runnable() {
 
 			@Override
@@ -301,11 +312,22 @@ public class FragmentMp4MediaPlayerV2 {
 				// TODO Auto-generated method stub
 				if (mNextPlayer != null)
 					mNextPlayer.release();
-				
-				mNextPlayer = new MediaPlayer();
+
+                MediaPlayer.DecodeMode mode;
+                if (mPlayerImpl == FF_PLAYER)
+                    mode = MediaPlayer.DecodeMode.SW;
+                else if (mPlayerImpl == XO_PLAYER)
+                    mode = MediaPlayer.DecodeMode.HW_XOPLAYER;
+                else
+                    mode = MediaPlayer.DecodeMode.HW_SYSTEM;
+				mNextPlayer = new MediaPlayer(mode);
 				mNextPlayer.reset();
-				
-				mNextPlayer.setAudioStreamType(mStreamType);
+
+                // ffplayer MUST set HERE!!!
+                // xoplayer cannot set HERE because of 2 instance cannot share 1 native window
+                if (mPlayerImpl == FF_PLAYER)
+                    mNextPlayer.setDisplay(mHolder);
+                mNextPlayer.setAudioStreamType(mStreamType);
 				//mNextPlayer.setScreenOnWhilePlaying(mScreenOnWhilePlaying);
 				
 				//mNextPlayer.setOnBufferingUpdateListener(mOnBufferingUpdateListener);
@@ -315,7 +337,9 @@ public class FragmentMp4MediaPlayerV2 {
 				mNextPlayer.setOnSeekCompleteListener(mSeekCompleteListener);
 				
 				try {
-					mNextPlayer.setDataSource(m_playlink_list.get(m_playlink_now_index + 1));
+                    String url = m_playlink_list.get(m_playlink_now_index + 1);
+                    LogUtil.info(TAG, "next_player set_play_url: " + url);
+					mNextPlayer.setDataSource(url);
 					mNextPlayer.prepare(); // must wait for prepare done to call setNextMediaPlayer
 				} catch (Exception e) {
 					// TODO Auto-generated catch block
@@ -336,6 +360,9 @@ public class FragmentMp4MediaPlayerV2 {
 			// TODO Auto-generated method stub	
 			
 			if (m_playlink_now_index == m_playlink_list.size() - 1) {
+				LogUtil.info(TAG, String.format("Java: playlink meet end: m_playlink_now_index %d, list_size %d",
+                        m_playlink_now_index, m_playlink_list.size()));
+
 				// finish!!!
 				if (mOnCompletionListener != null)
 					mOnCompletionListener.onCompletion(mp);
@@ -343,25 +370,40 @@ public class FragmentMp4MediaPlayerV2 {
 				return;
 			}
 			
-			m_play_pos_offset += m_duration_list.get(m_playlink_now_index++);
-			
-			mp.setDisplay(null);
-			mp.release();
-			if (mNextPlayer == null && mOnErrorListener != null) {
-				mOnErrorListener.onError(mp, MediaPlayer.MEDIA_ERROR_NOT_VALID_FOR_PROGRESSIVE_PLAYBACK, 
-					m_playlink_now_index);
+			m_play_pos_offset += m_duration_list.get(m_playlink_now_index);
+            m_playlink_now_index++;
+
+            LogUtil.info(TAG, String.format("Java: m_play_pos_offset %d, m_playlink_now_index %d",
+                    m_play_pos_offset, m_playlink_now_index));
+
+			if (mNextPlayer == null) {
+                if (mOnErrorListener != null) {
+                    mOnErrorListener.onError(mp, MediaPlayer.MEDIA_ERROR_NOT_VALID_FOR_PROGRESSIVE_PLAYBACK,
+                            m_playlink_now_index);
+                }
+
+                LogUtil.error(TAG, "next player is null");
 				return;
 			}
-			
-			mCurrentPlayer = mNextPlayer;
-			mNextPlayer = null;
-			mCurrentPlayer.setDisplay(mHolder);
 
-			Log.i(TAG, "Java: switch to next segment #" + m_playlink_now_index);
+			// SYSTEM player nextplay auto play ok code
+            // must release first???
+			// ffplay cannot set null Display now!
+			if (mPlayerImpl == SYSTEM_PLAYER)
+                mp.setDisplay(null);
+			mp.release();
+
+            mCurrentPlayer = mNextPlayer;
+            mNextPlayer = null;
+			if (mPlayerImpl == SYSTEM_PLAYER || mPlayerImpl == XO_PLAYER)
+				mCurrentPlayer.setDisplay(mHolder); // system player set display HERE!
+            if (mPlayerImpl == XO_PLAYER || mPlayerImpl == FF_PLAYER)
+                mCurrentPlayer.start(); // ffplay MUST start manually
+
+            LogUtil.info(TAG, "Java: switch to next segment #" + m_playlink_now_index);
 			
-			if (m_playlink_now_index < m_playlink_list.size() - 1) {
-				setupNextPlayer();
-			}
+			if (m_playlink_now_index < m_playlink_list.size() - 1)
+                setupNextPlayer();
 		}
 		
 	};
@@ -390,9 +432,8 @@ public class FragmentMp4MediaPlayerV2 {
 					mOnInfoListener.onInfo(mCurrentPlayer, MediaPlayer.MEDIA_INFO_BUFFERING_END, 0);
 			}
 			
-			if (m_playlink_now_index < m_playlink_list.size() - 1) {
+			if (m_playlink_now_index < m_playlink_list.size() - 1)
 				setupNextPlayer();
-			}
 		}
 		
 	};

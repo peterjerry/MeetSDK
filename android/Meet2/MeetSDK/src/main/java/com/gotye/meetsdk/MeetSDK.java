@@ -50,7 +50,6 @@ public final class MeetSDK {
 	private static boolean libLoaded = false;
 	
 	private static String AppRootDir = null;
-	private static String PPBoxLibName = null;
 	private static int status = 0;
 	
 	@Deprecated
@@ -62,16 +61,7 @@ public final class MeetSDK {
 	static public String getAppRootDir() {
 		return AppRootDir;
 	}
-	
-	@Deprecated
-	static public void setPPBoxLibName(String libname) {
-		PPBoxLibName = libname;
-	}
-	
-	@Deprecated
-	static public String getPPBoxLibName() {
-		return PPBoxLibName;
-	}
+
     
 	public static boolean initSDK(Context ctx) {
 		return initSDK(ctx, "");
@@ -392,24 +382,6 @@ public final class MeetSDK {
 		return isOMXSurface(path);
 	}
 
-	@Deprecated
-	public static boolean setSurfaceType(Context ctx, SurfaceHolder holder, Uri uri) {
-		return false;
-	}
-
-	@Deprecated
-	public interface SurfaceTypeDecider {
-		public boolean isOMXSurface();
-	}
-
-	@Deprecated
-	public static void setSurfaceType(SurfaceHolder holder, SurfaceTypeDecider decider) {
-	}
-
-	@Deprecated
-	public static void setSurfaceType(SurfaceHolder holder, boolean isOMXSurface) {
-	}
-
 	/**
 	 * @param filePath
 	 *            the path of video file
@@ -602,9 +574,9 @@ public final class MeetSDK {
 	private MeetSDK() {}
 	
 	/**
-	 * @param [in]in_flv 输入flv文件内容
-	 * @param [in]in_size 输入flv文件大小
-	 * @param [out]out_ts 输出mpegts文件内容
+	 * @param in_flv  输入flv文件内容
+	 * @param in_size 输入flv文件大小
+	 * @param out_ts  输出mpegts文件内容
 	 * @param process_timestamp 是否处理时间戳
 	 * @param first_seg 是否是第一个分段(仅当 process_timestamp为1有效)
 	 * @return
