@@ -891,8 +891,6 @@ public class ClipListActivity extends AppCompatActivity implements
 		
 		@Override
 		public boolean onTouch(View v, MotionEvent event) {
-			//LogUtil.debug(TAG, "Java: onTouch(): " + event.getAction());
-			
 			return mGestureDetector.onTouchEvent(event);
 		}
 	};
@@ -908,9 +906,6 @@ public class ClipListActivity extends AppCompatActivity implements
 			
 			@Override
 			public boolean onFling(MotionEvent e1, MotionEvent e2, float velocityX, float velocityY) {
-				LogUtil.debug(TAG, String.format("Java: onFling!!! velocityX %.3f, velocityY %.3f", 
-						velocityX, velocityY));
-				
 				// 1xxx - 4xxx
 				if (velocityX > 1000.0f || velocityX < -1000.0f) {
 					if (mPlayer != null && !isTVbox) {
@@ -1283,7 +1278,7 @@ public class ClipListActivity extends AppCompatActivity implements
 		return true;
 	}
 	
-	void stop_player() {
+	private void stop_player() {
 		if (mPlayer != null) {
 			mHandler.removeMessages(MSG_UPDATE_NETWORK_SPEED);
 			
@@ -2640,7 +2635,7 @@ public class ClipListActivity extends AppCompatActivity implements
 					}
 
 					@Override
-					public void onEror(String msg, int code) {
+					public void onError(String msg, int code) {
                         progDlg.dismiss();
 
                         Toast.makeText(ClipListActivity.this,

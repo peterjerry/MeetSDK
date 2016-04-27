@@ -1,11 +1,9 @@
 package com.gotye.simpleplayer;
 
-import java.io.IOException;
 import java.lang.ref.WeakReference;
 import java.util.Locale;
 
 import android.content.Intent;
-import android.graphics.Color;
 import android.graphics.PixelFormat;
 import android.media.AudioManager;
 import android.os.Bundle;

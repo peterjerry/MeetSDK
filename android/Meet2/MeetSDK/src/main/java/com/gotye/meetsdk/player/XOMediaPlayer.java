@@ -205,10 +205,10 @@ public class XOMediaPlayer extends BaseMediaPlayer {
 		}
 
 		mUrl = path;
-		MediaExtractable extractor = 
-				UrlUtil.isUseSystemExtractor(mUrl) 
-				? new SystemMediaExtractor()
-				: new FFMediaExtractor(new WeakReference<XOMediaPlayer>(this));
+
+        // always use FFMediaExtractor
+		MediaExtractable extractor =
+				new FFMediaExtractor(new WeakReference<XOMediaPlayer>(this));
 
 		setDataSource(extractor);
 	}

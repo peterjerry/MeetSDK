@@ -542,7 +542,7 @@ public class Util {
                         }
 
                         @Override
-                        public void onEror(String msg, int code) {
+                        public void onError(String msg, int code) {
                             Toast.makeText(context,
                                     msg, Toast.LENGTH_SHORT).show();
                         }

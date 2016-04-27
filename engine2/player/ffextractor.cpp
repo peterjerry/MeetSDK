@@ -273,10 +273,12 @@ status_t FFExtractor::setISubtitle(ISubtitles* subtitle)
 
 void FFExtractor::close()
 {
-	if (FFEXTRACTOR_STOPPED == m_status)
+	if (FFEXTRACTOR_STOPPED == m_status) {
+		LOGW("already stopped");
 		return;
+	}
 
-	LOGI("extractor_op close()");
+	LOGI("extractor_op close() status: %d", m_status);
 
 	// 2016.4.21 add "m_status == FFEXTRACTOR_STOPPING"
 	// to fix interrupt demux case
@@ -285,7 +287,7 @@ void FFExtractor::close()
 		m_buffering = false;
 		pthread_cond_signal(&mCondition);
 
-		LOGI("stop(): before pthread_join %p", mThread);
+		LOGI("stop(): demux_thread before pthread_join %p", mThread);
 		int ret = pthread_join(mThread, NULL);
 		if (ret != 0)
 			LOGE("pthread_join error %d", ret);
@@ -1519,10 +1521,29 @@ int FFExtractor::open_codec_context_idx(int stream_idx)
 
 void* FFExtractor::demux_thread(void* ptr)
 {
-	LOGI("demux thread started");
     FFExtractor* extractor = (FFExtractor*)ptr;
+	LOGI("demux_thread started: %p", extractor->mThread);
+
+#ifdef __ANDROID__
+	JNIEnv *env = NULL;
+    gs_jvm->AttachCurrentThread(&env, NULL);
+#endif
+
     extractor->thread_impl();
-	LOGI("demux thread exited");
+
+#ifdef __ANDROID__
+	if (gs_jvm != NULL) {
+		int status;
+		status = gs_jvm->DetachCurrentThread();
+		if (status != JNI_OK) {
+			LOGE("DetachCurrentThread failed %d", status);
+		}
+	}
+
+	LOGI("thread detached");
+#endif
+
+	LOGI("demux_thread exited: %p", extractor->mThread);
     return NULL;
 }
 
@@ -1576,8 +1597,14 @@ void FFExtractor::addADTStoPacket(uint8_t *packet, int packetLen)
 
 int FFExtractor::start(int fill_pkt)
 {
-	if (FFEXTRACTOR_STARTED == m_status || FFEXTRACTOR_PAUSED == m_status)
+	if (FFEXTRACTOR_PREPARED != m_status) {
+		// 2016.4.27 fix FFEXTRACTOR_STOPPING state re-create thread bug
+		if (FFEXTRACTOR_STARTED != m_status && FFEXTRACTOR_PAUSED != m_status) {
+			LOGI("start() called in state: %d", m_status);
+		}
+
 		return 0;
+	}
 
 	if (!m_audio_stream && !m_video_stream) {
 		LOGE("both audio and video stream was not set, aborting");
@@ -1589,8 +1616,6 @@ int FFExtractor::start(int fill_pkt)
 		LOGE("pthread_create error: %d", ret);
 		return -1;
 	}
-
-	LOGI("pthread: %p created", mThread);
 
 	m_buffering = true;
 	m_status = FFEXTRACTOR_STARTED;
@@ -1874,18 +1899,6 @@ void FFExtractor::thread_impl()
 
 		m_buffered_size += pPacket->size;
 	}
-
-#ifdef __ANDROID__
-	if (gs_jvm != NULL) {
-		int status;
-		status = gs_jvm->DetachCurrentThread();
-		if (status != JNI_OK) {
-			LOGE("DetachCurrentThread failed %d", status);
-		}
-	}
-
-	LOGI("thread detached");
-#endif
 }
 
 static void ff_log_callback(void* avcl, int level, const char* fmt, va_list vl)
