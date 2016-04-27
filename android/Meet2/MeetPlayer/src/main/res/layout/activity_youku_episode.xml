@@ -71,7 +71,6 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:layout_below="@id/img"
-        android:layout_alignParentLeft="true"
         android:layout_marginLeft="1dip"
         android:layout_marginRight="1dip"
         android:numColumns="auto_fit"
@@ -79,5 +78,13 @@
         android:stretchMode="columnWidth"
         android:cacheColorHint="#00000000">
     </GridView>
+
+    <ListView
+        android:id="@+id/listview"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_below="@id/img"
+        android:visibility="gone">
+    </ListView>
 
 </RelativeLayout>

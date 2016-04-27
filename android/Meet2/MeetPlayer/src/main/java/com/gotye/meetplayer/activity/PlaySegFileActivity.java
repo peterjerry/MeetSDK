@@ -135,6 +135,8 @@ public class PlaySegFileActivity extends AppCompatActivity
 		if (getSupportActionBar() != null)
             getSupportActionBar().hide();
 
+        setVolumeControlStream(AudioManager.STREAM_MUSIC);
+
         Intent intent = getIntent();
         mPlayerImpl = intent.getIntExtra("player_impl", 1);
         if (intent.hasExtra("url_list") && intent.hasExtra("duration_list")) {
@@ -191,8 +193,8 @@ public class PlaySegFileActivity extends AppCompatActivity
 		m_duration_list = new ArrayList<Integer>();
 
         mHandler = new MainHandler(this);
-		
-		mOnInfoListener = new MediaPlayer.OnInfoListener() {
+
+        mOnInfoListener = new MediaPlayer.OnInfoListener() {
 			
 			@Override
 			public boolean onInfo(MediaPlayer mp, int what, int extra) {

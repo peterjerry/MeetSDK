@@ -16,6 +16,7 @@ import com.gotye.db.YKPlayhistoryDatabaseHelper;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 
 public class PlayYoukuActivity extends PlaySegFileActivity {
 	private final static String TAG = "PlayYoukuActivity";
@@ -139,18 +140,17 @@ public class PlayYoukuActivity extends PlaySegFileActivity {
                 int index = 1;
                 mEpisodeList = new ArrayList<Episode>();
                 while (true) {
-                    List<Episode> epList =  YKUtil.getEpisodeList(mShowId, index, page_size);
-                    if (epList == null || epList.isEmpty())
+                    List<Episode> epList =  YKUtil.getEpisodeList(mShowId, index++, page_size);
+                    if (epList != null && !epList.isEmpty()) {
+                        mEpisodeList.addAll(epList);
+                    }
+                    else {
                         break;
-
-                    mEpisodeList.addAll(epList);
-                    if (epList.size() < 10)
-                        break;
-
-                    index++;
+                    }
                 }
 
                 if (mEpisodeList == null) {
+                    LogUtil.error(TAG, "mEpisodeList is null");
                     mHandler.sendEmptyMessage(MainHandler.MSG_INVALID_EPISODE_INDEX);
                     return false;
                 }
@@ -158,12 +158,7 @@ public class PlayYoukuActivity extends PlaySegFileActivity {
 
             if (action == ACTION_EPISODE_INCR) {
                 int incr = params[1];
-
                 mEpisodeIndex += incr;
-                if (mEpisodeIndex < 0 || mEpisodeIndex >= mEpisodeList.size()) {
-                    mHandler.sendEmptyMessage(MainHandler.MSG_INVALID_EPISODE_INDEX);
-                    return false;
-                }
             }
             else if (action == ACTION_EPISODE_INDEX){
                 mEpisodeIndex = params[1];
@@ -171,6 +166,14 @@ public class PlayYoukuActivity extends PlaySegFileActivity {
             else {
                 // just get ep list
                 return true;
+            }
+
+            if (mEpisodeIndex < 0 || mEpisodeIndex >= mEpisodeList.size()) {
+                LogUtil.error(TAG, String.format(Locale.US,
+                        "mEpisodeIndex %d, mEpisodeList.size() %d",
+                        mEpisodeIndex, mEpisodeList.size()));
+                mHandler.sendEmptyMessage(MainHandler.MSG_INVALID_EPISODE_INDEX);
+                return false;
             }
 
             Episode ep = mEpisodeList.get(mEpisodeIndex);

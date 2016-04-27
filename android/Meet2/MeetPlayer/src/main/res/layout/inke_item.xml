@@ -17,7 +17,7 @@
 		android:layout_alignParentTop="true"
 		android:layout_toRightOf="@id/avatar"
 		android:layout_marginLeft="5dip"
-        android:lines="3"
+		android:maxLines="3"
 		android:textSize="20sp"
         android:text="标题"/>
 	<TextView

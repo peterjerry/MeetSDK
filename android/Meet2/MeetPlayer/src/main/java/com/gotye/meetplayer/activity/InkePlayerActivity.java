@@ -1,6 +1,7 @@
 package com.gotye.meetplayer.activity;
 
 import android.content.Intent;
+import android.graphics.PixelFormat;
 import android.media.AudioManager;
 import android.os.AsyncTask;
 import android.os.Bundle;
@@ -47,6 +48,7 @@ public class InkePlayerActivity extends AppCompatActivity
     private TextView mTvInfo;
 
     private String mPlayUrl;
+    private int mPlayerImpl;
     private int mVideoWidth, mVideoHeight;
     private boolean mIsBuffering = false;
     private long mStartMsec;
@@ -65,6 +67,8 @@ public class InkePlayerActivity extends AppCompatActivity
         if (getSupportActionBar() != null)
             getSupportActionBar().hide();
 
+        setVolumeControlStream(AudioManager.STREAM_MUSIC);
+
         Intent intent = getIntent();
         mPlayUrl = intent.getStringExtra("play_url");
 
@@ -74,7 +78,16 @@ public class InkePlayerActivity extends AppCompatActivity
 
         Util.initMeetSDK(this);
 
-        this.mView.getHolder().addCallback(this);
+        mPlayerImpl = Util.readSettingsInt(this, "PlayerImpl");
+        if (mPlayerImpl == 0)
+            mPlayerImpl = 2;
+
+        SurfaceHolder holder = mView.getHolder();
+        if (mPlayerImpl == 3) {
+            holder.setType(SurfaceHolder.SURFACE_TYPE_NORMAL);
+            holder.setFormat(PixelFormat.RGBX_8888/*RGB_565*/);
+        }
+        holder.addCallback(this);
 
         mOnInfoListener = new MediaPlayer.OnInfoListener() {
 
@@ -129,7 +142,9 @@ public class InkePlayerActivity extends AppCompatActivity
                 mp.start();
 
                 long load_msec = System.currentTimeMillis() - mStartMsec;
-                mTvInfo.setText(String.format(Locale.US, "加载速度: %d msec", load_msec));
+                Toast.makeText(InkePlayerActivity.this,
+                        String.format(Locale.US, "加载时间: %d msec", load_msec),
+                        Toast.LENGTH_SHORT).show();
             }
         };
 
@@ -176,10 +191,16 @@ public class InkePlayerActivity extends AppCompatActivity
         }
     }
 
-    boolean SetupPlayer() {
+    private boolean SetupPlayer() {
         mStartMsec = System.currentTimeMillis();
 
-        mPlayer = new MediaPlayer(MediaPlayer.DecodeMode.HW_XOPLAYER);
+        MediaPlayer.DecodeMode mode;
+        if (mPlayerImpl == 2)
+            mode = MediaPlayer.DecodeMode.HW_XOPLAYER;
+        else
+            mode = MediaPlayer.DecodeMode.SW;
+
+        mPlayer = new MediaPlayer(mode);
         mPlayer.reset();
 
         mPlayer.setDisplay(mHolder);

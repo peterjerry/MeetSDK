@@ -6,6 +6,7 @@ import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.AdapterView;
+import android.widget.Button;
 import android.widget.ListView;
 import android.widget.Toast;
 
@@ -26,7 +27,10 @@ import java.util.Map;
 public class InkeActivity extends AppCompatActivity {
 
     private ListView mLvCreator;
+    private Button mBtnToggle;
     private InkeAdapter mAdapter;
+
+    private int type = 0;
 
     private String gettop_api_url = "http://service5.ingkee.com/api/live/gettop" +
             "?lc=3000000000001604" +
@@ -60,11 +64,28 @@ public class InkeActivity extends AppCompatActivity {
             "&proto=3" +
             "&multiaddr=1";
 
+    private String homepage_api_url = "http://service5.ingkee.com/api/live/homepage_new" +
+            "?lc=3000000000003002" +
+            "&cv=IK2.6.10_Android" +
+            "&cc=TG36001" +
+            "&ua=YuLongCoolpad8297-C00" +
+            "&uid=67302632" +
+            "&sid=E0rgPgFY8Vi0bQ69RjMuQaybuIQi3i3" +
+            "&devi=99000558796818" +
+            "&imsi=" +
+            "&icc=" +
+            "&conn=WIFI" +
+            "&vv=1.0.2-201601131421.android" +
+            "&aid=3dc3324f515d553" +
+            "&osversion=android_19" +
+            "&proto=3";
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_inke);
 
+        mBtnToggle = (Button) this.findViewById(R.id.btn_toggle);
         mLvCreator = (ListView) this.findViewById(R.id.lv_creator);
 
         mLvCreator.setOnItemClickListener(new AdapterView.OnItemClickListener() {
@@ -78,7 +99,23 @@ public class InkeActivity extends AppCompatActivity {
             }
         });
 
-        new LoadTask().execute();
+        mBtnToggle.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if (type == 0) {
+                    type = 1;
+                    mBtnToggle.setText(getResources().getString(R.string.inke_hotest));
+                }
+                else {
+                    type = 0;
+                    mBtnToggle.setText(getResources().getString(R.string.inke_newest));
+                }
+
+                new LoadTask().execute(type);
+            }
+        });
+
+        new LoadTask().execute(type);
     }
 
     private class LoadTask extends AsyncTask<Integer, Integer, List<Map<String, Object>>> {
@@ -86,9 +123,17 @@ public class InkeActivity extends AppCompatActivity {
         @Override
         protected void onPostExecute(List<Map<String, Object>> result) {
             if (result != null) {
+                if (mAdapter == null) {
+                    mAdapter = new InkeAdapter(InkeActivity.this, result);
+                    mLvCreator.setAdapter(mAdapter);
+                }
+                else {
+                    List<Map<String, Object>> dataList = mAdapter.getData();
+                    dataList.clear();
+                    dataList.addAll(result);
+                    mAdapter.notifyDataSetChanged();
+                }
 
-                mAdapter = new InkeAdapter(InkeActivity.this, result);
-                mLvCreator.setAdapter(mAdapter);
             }
             else {
                 Toast.makeText(InkeActivity.this, "加载数据失败", Toast.LENGTH_SHORT).show();
@@ -97,7 +142,12 @@ public class InkeActivity extends AppCompatActivity {
 
         @Override
         protected List<Map<String, Object>> doInBackground(Integer... params) {
-            String result = httpUtil.getHttpPage(simpleall_api_url);
+            String result;
+
+            if (params[0] == 0)
+                result = httpUtil.getHttpPage(simpleall_api_url);
+            else
+                result = httpUtil.getHttpPage(homepage_api_url);
             if (result == null)
                 return null;
 
@@ -144,7 +194,11 @@ public class InkeActivity extends AppCompatActivity {
                     String play_url = live.getString("stream_addr");
                     int online_users = live.getInt("online_users");
 
-                    String img_url = "http://img.meelive.cn/" + portrait;
+                    String img_url;
+                    if (portrait.startsWith("http://"))
+                        img_url = portrait;
+                    else
+                        img_url = "http://img.meelive.cn/" + portrait;
                     String encoded_img_url = URLEncoder.encode(img_url, "UTF-8");
                     String show_url = "http://image.scale.a8.com/imageproxy2/dimgm/scaleImage";
                     show_url += "?url=";

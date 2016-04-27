@@ -467,7 +467,8 @@ public class FragmentMp4MediaPlayerV2 {
 					mOnInfoListener.onInfo(mCurrentPlayer, MediaPlayer.MEDIA_INFO_BUFFERING_END, 0);
 			}
 
-            process_next_player();
+            if (mNextPlayer == null)
+				process_next_player();
 		}
 		
 	};
