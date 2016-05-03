@@ -195,7 +195,9 @@ public class InkePlayerActivity extends AppCompatActivity
         mStartMsec = System.currentTimeMillis();
 
         MediaPlayer.DecodeMode mode;
-        if (mPlayerImpl == 2)
+        if (mPlayerImpl == 1)
+			mode = MediaPlayer.DecodeMode.HW_SYSTEM;
+		else if (mPlayerImpl == 2)
             mode = MediaPlayer.DecodeMode.HW_XOPLAYER;
         else
             mode = MediaPlayer.DecodeMode.SW;

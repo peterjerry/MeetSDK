@@ -37,6 +37,7 @@ import com.gotye.meetsdk.player.MediaPlayer;
 
 import java.io.IOException;
 import java.lang.ref.WeakReference;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
@@ -85,15 +86,6 @@ public class PlaySegFileActivity extends AppCompatActivity
 	private MediaPlayer.OnCompletionListener mOnCompletionListener;
 	private MediaPlayer.OnBufferingUpdateListener mOnBufferingUpdate;
 	private MediaPlayer.OnInfoListener mOnInfoListener;
-
-	public static final int SCREEN_FIT = 0; // 自适应
-    public static final int SCREEN_STRETCH = 1; // 铺满屏幕 
-    public static final int SCREEN_FILL = 2; // 放大裁切
-    public static final int SCREEN_CENTER = 3; // 原始大小
-    
-    private final static String []mode_desc = {"自适应", "铺满屏幕", "放大裁切", "原始大小"};
-	
-	private int mDisplayMode = SCREEN_FIT;
 	
 	private final static String url_list = "http://data.vod.itc.cn/?" +
 			"new=/49/197/T9vx2eIRoGJa8v2svlzxkN.mp4&vid=1913402&ch=tv" +
@@ -215,7 +207,7 @@ public class PlaySegFileActivity extends AppCompatActivity
                     LogUtil.info(TAG, "Java: onInfo MEDIA_INFO_VIDEO_RENDERING_START");
                 }
                 else if (what == MediaPlayer.MEDIA_INFO_TEST_DROP_FRAME) {
-                    LogUtil.info(TAG, String.format(
+                    LogUtil.info(TAG, String.format(Locale.US,
                             "Java: onInfo MEDIA_INFO_TEST_DROP_FRAME %d msec", extra));
                 }
 				
@@ -382,6 +374,20 @@ public class PlaySegFileActivity extends AppCompatActivity
         sbInfo.append(m_playlink_list.toString());
         sbInfo.append("\n文件时长列表 ");
         sbInfo.append(m_duration_list.toString());
+
+        sbInfo.append("\n文件时长列表2 [");
+        int total_msec = 0;
+        SimpleDateFormat formatter = new SimpleDateFormat("mm:ss", Locale.US);
+        for (int i=0;i<m_duration_list.size();i++) {
+            int duration = m_duration_list.get(i);
+            total_msec += duration;
+            String str_duration = formatter.format(total_msec);
+
+            if (i > 0)
+                sbInfo.append("   ");
+            sbInfo.append(str_duration);
+        }
+        sbInfo.append("]");
 
         sbInfo.append("\n分辨率 ");
         sbInfo.append(mVideoWidth);
@@ -754,17 +760,25 @@ public class PlaySegFileActivity extends AppCompatActivity
 		st = new StringTokenizer(mUrlListStr, ",", false);
 		while (st.hasMoreElements()) {
 			String url = st.nextToken();
-            LogUtil.info(TAG, String.format("Java: segment #%d url: %s", i++, url));
+            LogUtil.info(TAG, String.format(Locale.US,
+                    "Java: segment #%d url: %s", i++, url));
 			m_playlink_list.add(url);
 		}
 		
 		st = new StringTokenizer(mDurationListStr, ",", false);
 		i=0;
+        SimpleDateFormat formatter = new SimpleDateFormat("mm:ss", Locale.US);
+        int total_msec = 0;
 		while (st.hasMoreElements()) {
 			String seg_duration = st.nextToken();
-            LogUtil.info(TAG, String.format("Java: segment #%d duration: %s", i++, seg_duration));
 			int duration_msec = (int)(Double.valueOf(seg_duration) * 1000.0f);
+            total_msec += duration_msec;
+            String str_duration = formatter.format(total_msec);
 			m_duration_list.add(duration_msec);
+
+            LogUtil.info(TAG, String.format(Locale.US,
+                    "Java: segment #%d duration: %s(%s)",
+                    i++, seg_duration, str_duration));
 		}
 	}
 	

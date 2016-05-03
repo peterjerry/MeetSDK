@@ -1,6 +1,7 @@
 package com.gotye.meetplayer.activity;
 
 import android.app.Dialog;
+import android.app.ProgressDialog;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.os.AsyncTask;
@@ -113,10 +114,20 @@ public class PlayYoukuActivity extends PlaySegFileActivity {
 
         private int action;
 
+        private ProgressDialog mProgressDlg;
+
+        @Override
+        protected void onPreExecute() {
+            mProgressDlg = new ProgressDialog(PlayYoukuActivity.this);
+            mProgressDlg.setMessage("播放地址解析中...");
+            mProgressDlg.setCancelable(false);
+            mProgressDlg.show();
+        }
+
 		@Override
 		protected void onPostExecute(Boolean result) {
 			// TODO Auto-generated method stub
-			super.onPostExecute(result);
+            mProgressDlg.dismiss();
 
             mSwichingEpisode = false;
 
@@ -179,7 +190,7 @@ public class PlayYoukuActivity extends PlaySegFileActivity {
             Episode ep = mEpisodeList.get(mEpisodeIndex);
             mVid = ep.getVideoId();
 
-            YKUtil.ZGUrl zg = YKUtil.getPlayUrl2(mVid);
+            YKUtil.ZGUrl zg = YKUtil.getPlayUrl2(PlayYoukuActivity.this, mVid);
             if (zg == null) {
                 mHandler.sendEmptyMessage(MainHandler.MSG_INVALID_EPISODE_INDEX);
                 return false;

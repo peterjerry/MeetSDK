@@ -1,10 +1,13 @@
 package com.gotye.common.youku;
 
+import android.content.Context;
 import android.os.Environment;
+import android.util.Log;
 
 import com.gotye.common.util.CryptAES;
 import com.gotye.common.util.LogUtil;
 import com.gotye.common.util.httpUtil;
+import com.gotye.meetplayer.util.Util;
 
 import java.io.ByteArrayOutputStream;
 import java.io.FileOutputStream;
@@ -17,7 +20,13 @@ import java.net.URL;
 import java.net.URLEncoder;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.text.DateFormat;
+import java.text.ParseException;
+import java.text.ParsePosition;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Date;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -202,7 +211,7 @@ public class YKUtil {
         return getPlayUrl(vid_);
     }
 
-    public static ZGUrl getPlayUrl2(String vid) {
+    public static ZGUrl getPlayUrl2(Context context, String vid) {
         String m3u8_url = getPlayUrl(vid);
         if (m3u8_url == null) {
             LogUtil.error(TAG, "Java: failed to call getPlayUrl() vid: " + vid);
@@ -212,17 +221,26 @@ public class YKUtil {
         LogUtil.info(TAG, "m3u8_url: " + m3u8_url);
 
         if (YKss == null) {
-            YKss = getYKss(null, vid);
-            if (YKss == null) {
-                LogUtil.error(TAG, "failed to get ykss");
-                return null;
+            // try get ykss from storage
+
+            // load valid YKss
+            YKss = Util.readSettings(context, "ykss");
+            if (!YKss.isEmpty())
+                LogUtil.info(TAG, "ykss loaded: " + YKss);
+
+            // always try to get kyss, maybe cannot get because last ykss is still valid
+            String new_ykss = getYKss(null, vid);
+            if (new_ykss != null) {
+                YKss = new_ykss;
+                Util.writeSettings(context, "ykss", YKss);
+                LogUtil.info(TAG, "ykss updated: " + YKss);
             }
         }
 
         String Cookies = "__ysuid=" + YKUtil.getPvid(3) +
                 ";xreferrer=http://www.youku.com/" +
                 ";ykss=" + YKss;
-        System.out.println("Cookies: " + Cookies);
+        LogUtil.info(TAG, "Cookies: " + Cookies);
         byte []buffer = new byte[65536 * 10];
         int content_size = httpUtil.httpDownloadBuffer(m3u8_url, Cookies, 0, buffer);
         if (content_size <= 0) {
@@ -742,6 +760,18 @@ public class YKUtil {
                 return null;
 
             JSONObject detail = root.getJSONObject("detail");
+            String director = "N/A";
+            if (detail.has("director")) {
+                JSONArray item_director = detail.getJSONArray("director");
+                int size = item_director.length();
+                StringBuffer sb = new StringBuffer();
+                for (int i=0;i<size;i++) {
+                    if (i > 0)
+                        sb.append(",");
+                    sb.append(item_director.getString(i));
+                }
+                director = sb.toString();
+            }
             String actor = "N/A";
             if (detail.has("performer")) {
                 JSONArray performer = detail.getJSONArray("performer");
@@ -776,7 +806,7 @@ public class YKUtil {
 
             return new Album(title, showid,
                     stripe, img, total_vv,
-                    showdate, desc, actor, videoid, episode_total);
+                    showdate, desc, director, actor, videoid, episode_total);
         } catch (JSONException e1) {
             e1.printStackTrace();
         }
@@ -842,7 +872,7 @@ public class YKUtil {
         return null;
     }
 
-    public static MixResult soku(String keyword, int orderby, int page) {
+    public static MixResult soku(String keyword, String filter, int orderby, int page) {
         String url = null;
         try {
             String encoded_keyword = URLEncoder.encode(keyword, "UTF-8");
@@ -851,11 +881,15 @@ public class YKUtil {
             // page base 1
             // hd 0-不限,1-高清,6-超清,7-1080p
             // lengthtype 0- 不限，1->0-10min, 2->10-30min, 3->30-60min, 4->60min+
+            // limitdate 1->1天, 7->1周, 31->1月， 365->1年
             url += "?page=";
             url += page;
             if (orderby > 0) {
                 url += "&orderby=";
                 url += orderby;
+            }
+            if (filter != null) {
+                url += filter;
             }
             /*url += "&hd=";
             url += hd;
@@ -1421,6 +1455,16 @@ public class YKUtil {
         return String.valueOf(seconds) + r;
     }
 
+    public static class YKssResult {
+        public String m_ykss;
+        public long m_exp_time;
+
+        public YKssResult(String ykss, long exp_time) {
+            this.m_ykss = ykss;
+            this.m_exp_time = exp_time;
+        }
+    }
+
     private static String getYKss(String httpUrl, String vid) {
         if (httpUrl == null && vid == null) {
             LogUtil.error(TAG, "getYKss() invalid params");
@@ -1438,23 +1482,57 @@ public class YKUtil {
             Map<String, List<String>> map = conn.getHeaderFields();
             List<String> cookie_list = map.get("Set-Cookie");
             if (cookie_list != null) {
+                LogUtil.info(TAG, "Set-Cookie: " + cookie_list.toString());
+                // Set-Cookie: [ykss=a6bb21573338bd086f08658d; path=/; domain=.youku.com, u=deleted; expires=Wed, 29-Apr-2015 07:28:37 GMT; path=/; domain=.youku.com]
+
+                String ykss;
+                int start, end;
+
                 for (int i = 0; i < cookie_list.size(); i++) {
                     String c = cookie_list.get(i);
-                    if (c.contains("ykss=")) {
-                        int start = c.indexOf("ykss=");
-                        int end = c.indexOf(";");
-                        if (end == -1)
-                            return c.substring(start + 5);
+                    LogUtil.info(TAG, "cookie c: " + c);
 
-                        return c.substring(start + 5, end);
+                    if (c.contains("ykss=")) {
+                        start = c.indexOf("ykss=");
+                        end = c.indexOf(";", start);
+
+                        if (end == -1)
+                            ykss = c.substring(start + 5);
+                        else
+                            ykss = c.substring(start + 5, end);
+
+                        return ykss;
+                    }
+                    else if (c.contains("expires=")) {
+                        String expire_str;
+                        start = c.indexOf("expires=");
+                        end = c.indexOf(";", start);
+                        if (end == -1)
+                            expire_str = c.substring(start + 8);
+                        else
+                            expire_str = c.substring(start + 8, end);
+                        /*DateFormat df = new SimpleDateFormat("EEE, dd-MMM-yyyy HH:mm:ss 'GMT'", Locale.US);
+                        try {
+                            expire_time = df.parse(expire_str).getTime();
+                        } catch (ParseException e) {
+                            e.printStackTrace();
+                            LogUtil.error(TAG, "ParseException: " + e.toString());
+                            return null;
+                        }*/
                     }
                 }
+
+                LogUtil.error(TAG, "Set-Cookie: ykss NOT found");
+            }
+            else {
+                LogUtil.error(TAG, "Set-Cookie is empty");
             }
         } catch (MalformedURLException e) {
             e.printStackTrace();
-            return null;
+            LogUtil.error(TAG, e.toString());
         } catch (IOException e) {
             e.printStackTrace();
+            LogUtil.error(TAG, e.toString());
         }
 
         return null;

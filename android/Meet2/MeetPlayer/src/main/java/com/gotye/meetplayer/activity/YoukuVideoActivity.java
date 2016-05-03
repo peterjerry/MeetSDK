@@ -119,8 +119,17 @@ public class YoukuVideoActivity extends AppCompatActivity {
 				popupSearchHistory();
 				break;
             case R.id.clean_search_history:
-                Util.writeSettings(YoukuVideoActivity.this, "search_keys", "");
-                Toast.makeText(this, "搜索记录已清空", Toast.LENGTH_SHORT).show();
+                AlertDialog.Builder builder = new AlertDialog.Builder(this);
+                builder.setTitle("确认删除搜索历史");
+                builder.setPositiveButton("确认", new DialogInterface.OnClickListener() {
+
+                    public void onClick(DialogInterface dialog, int which) {
+                        Util.writeSettings(YoukuVideoActivity.this, "search_keys", "");
+                        Toast.makeText(YoukuVideoActivity.this, "搜索记录已清空", Toast.LENGTH_SHORT).show();
+                    }
+                });
+                builder.setNegativeButton("取消", null);
+                builder.show();
                 break;
 			case R.id.play_history:
 				popupHistory();
@@ -128,7 +137,11 @@ public class YoukuVideoActivity extends AppCompatActivity {
 			case R.id.recent_play:
                 popupRecentPlay();
 				break;
-			default:
+            case R.id.clean_cookie:
+                Util.writeSettings(this, "ykss", "");
+                Util.writeSettingsLong(this, "ykss_exp_time", 0L);
+                Toast.makeText(this, "优酷 YKss cookie 已清空", Toast.LENGTH_SHORT).show();
+            default:
 				LogUtil.warn(TAG, "unknown menu id " + id);
 				break;
 		}
@@ -373,7 +386,7 @@ public class YoukuVideoActivity extends AppCompatActivity {
         protected YKUtil.ZGUrl doInBackground(String... params) {
             // TODO Auto-generated method stub
             String vid = params[0];
-            return YKUtil.getPlayUrl2(vid);
+            return YKUtil.getPlayUrl2(YoukuVideoActivity.this, vid);
         }
     }
 

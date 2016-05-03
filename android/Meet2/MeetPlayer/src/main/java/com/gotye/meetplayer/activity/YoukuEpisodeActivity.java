@@ -1,5 +1,6 @@
 package com.gotye.meetplayer.activity;
 
+import android.app.ProgressDialog;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.os.AsyncTask;
@@ -34,6 +35,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class YoukuEpisodeActivity extends AppCompatActivity {
 
@@ -167,10 +170,21 @@ public class YoukuEpisodeActivity extends AppCompatActivity {
 
     private class PlayLinkTask extends AsyncTask<Integer, Integer, YKUtil.ZGUrl> {
         private String mTitle;
+        private ProgressDialog mProgressDlg;
+
+        @Override
+        protected void onPreExecute() {
+            mProgressDlg = new ProgressDialog(YoukuEpisodeActivity.this);
+            mProgressDlg.setMessage("播放地址解析中...");
+            mProgressDlg.setCancelable(false);
+            mProgressDlg.show();
+        }
 
         @Override
         protected void onPostExecute(YKUtil.ZGUrl zgUrl) {
             // TODO Auto-generated method stub
+            mProgressDlg.dismiss();
+
             if (zgUrl == null) {
                 Toast.makeText(YoukuEpisodeActivity.this, "获取视频播放地址失败",
                         Toast.LENGTH_SHORT).show();
@@ -220,7 +234,7 @@ public class YoukuEpisodeActivity extends AppCompatActivity {
             Episode ep = mEpisodeList.get(index);
             String vid = ep.getVideoId();
             mTitle = ep.getTitle();
-            return YKUtil.getPlayUrl2(vid);
+            return YKUtil.getPlayUrl2(YoukuEpisodeActivity.this, vid);
         }
     }
 
@@ -236,6 +250,7 @@ public class YoukuEpisodeActivity extends AppCompatActivity {
                 if (mAlbum.getImgUrl() != null)
                     new SetPicTask().execute(mAlbum.getImgUrl());
 
+                mTvDirector.setText(String.format("导演: " + mAlbum.getDirector()));
                 mTVActor.setText(String.format("主演: %s", mAlbum.getActor()));
                 mTvDesc.setText(String.format("剧情介绍: %s", mAlbum.getDescription()));
 
@@ -244,6 +259,19 @@ public class YoukuEpisodeActivity extends AppCompatActivity {
 
                 if (mbGridMode) {
                     int size = mAlbum.getEpisodeTotal();
+
+                    String stripe = mAlbum.getStripe();
+                    // 更新至36集
+                    //[\d]*
+                    if (stripe != null && stripe.contains("更新至")) {
+                        Pattern pattern = Pattern.compile("[1-9]\\d*");
+                        Matcher matcher = pattern.matcher(stripe);
+                        if (matcher.find()) {
+                            size = Integer.valueOf(matcher.group());
+                            LogUtil.info(TAG, "episode size updated to " + size);
+                        }
+                    }
+
                     if (size > 30)
                         mbRevertEp = true;
                     else

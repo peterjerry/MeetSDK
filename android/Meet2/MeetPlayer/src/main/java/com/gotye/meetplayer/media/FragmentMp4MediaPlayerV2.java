@@ -3,6 +3,7 @@ package com.gotye.meetplayer.media;
 import java.io.IOException;
 import java.lang.ref.WeakReference;
 import java.util.List;
+import java.util.Locale;
 
 import android.os.Handler;
 import android.os.Message;
@@ -141,7 +142,8 @@ public class FragmentMp4MediaPlayerV2 {
 				if (mOnInfoListener != null)
 					mOnInfoListener.onInfo(mCurrentPlayer, MediaPlayer.MEDIA_INFO_BUFFERING_START, 0);
 				
-				LogUtil.info(TAG, String.format("Java: seekto(back) pos %d, #%d, offset %d",
+				LogUtil.info(TAG, String.format(Locale.US,
+                        "Java: seekto(back) pos %d, #%d, offset %d",
                         msec, m_playlink_now_index, m_play_pos_offset));
 				m_pre_seek_pos = msec - m_play_pos_offset;
 
@@ -150,7 +152,7 @@ public class FragmentMp4MediaPlayerV2 {
 			}
 			else if (msec >= m_play_pos_offset + m_duration_list.get(m_playlink_now_index)) {
 				for (int i=m_playlink_now_index;i<m_playlink_list.size();i++) {
-					m_play_pos_offset += (int)m_duration_list.get(m_playlink_now_index);
+					m_play_pos_offset += m_duration_list.get(m_playlink_now_index);
 					m_playlink_now_index++;
 					if (m_playlink_now_index == m_playlink_list.size() - 1)
 						break;
@@ -161,7 +163,8 @@ public class FragmentMp4MediaPlayerV2 {
 				if (mOnInfoListener != null)
 					mOnInfoListener.onInfo(mCurrentPlayer, MediaPlayer.MEDIA_INFO_BUFFERING_START, 0);
 				
-				LogUtil.info(TAG, String.format("Java: seekto(forward) pos %d, #%d, offset %d",
+				LogUtil.info(TAG, String.format(Locale.US,
+                        "Java: seekto(forward) pos %d, #%d, offset %d",
                         msec, m_playlink_now_index, m_play_pos_offset));
 				m_pre_seek_pos = msec - m_play_pos_offset;
 
@@ -172,7 +175,8 @@ public class FragmentMp4MediaPlayerV2 {
 				mCurrentPlayer.seekTo(msec - m_play_pos_offset);
 				mSeeking = false;
 				
-				LogUtil.info(TAG, String.format("Java: seekto(inner) pos %d, #%d, offset %d",
+				LogUtil.info(TAG, String.format(Locale.US,
+                        "Java: seekto(inner) pos %d, #%d, offset %d",
                         msec, m_playlink_now_index, m_play_pos_offset));
 			}
 		}
@@ -394,7 +398,8 @@ public class FragmentMp4MediaPlayerV2 {
 			// TODO Auto-generated method stub	
 			
 			if (m_playlink_now_index == m_playlink_list.size() - 1) {
-				LogUtil.info(TAG, String.format("Java: playlink meet end: m_playlink_now_index %d, list_size %d",
+				LogUtil.info(TAG, String.format(Locale.US,
+                        "Java: playlink meet end: m_playlink_now_index %d, list_size %d",
                         m_playlink_now_index, m_playlink_list.size()));
 
 				// finish!!!
@@ -407,7 +412,8 @@ public class FragmentMp4MediaPlayerV2 {
 			m_play_pos_offset += m_duration_list.get(m_playlink_now_index);
             m_playlink_now_index++;
 
-            LogUtil.info(TAG, String.format("Java: m_play_pos_offset %d, m_playlink_now_index %d",
+            LogUtil.info(TAG, String.format(Locale.US,
+                    "Java: m_play_pos_offset %d, m_playlink_now_index %d",
                     m_play_pos_offset, m_playlink_now_index));
 
 			if (mNextPlayer == null) {
@@ -467,6 +473,7 @@ public class FragmentMp4MediaPlayerV2 {
 					mOnInfoListener.onInfo(mCurrentPlayer, MediaPlayer.MEDIA_INFO_BUFFERING_END, 0);
 			}
 
+			// ONLY first OnPrepared will trigger check next player
             if (mNextPlayer == null)
 				process_next_player();
 		}

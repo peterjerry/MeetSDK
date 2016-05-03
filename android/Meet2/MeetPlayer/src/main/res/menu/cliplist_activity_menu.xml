@@ -57,22 +57,22 @@
     	<menu>      
             <item
 		        android:id="@+id/dlna_dmr"
-		        android:title="dlna dmr"/>
+		        android:title="dlna推送视频"/>
 		    <item
 		        android:id="@+id/load_subtitle"
-		        android:title="load subtitle"/>
+		        android:title="加载字幕文件"/>
 		    <item
 		        android:id="@+id/audio_dst"
 		        android:title="audio dst"/>
 		    <item
 		        android:id="@+id/clean_media_db"
-		        android:title="clean media db"/>
+		        android:title="清空本地媒体库"/>
 		    <item
 		        android:id="@+id/scan_media"
-		        android:title="scan media"/>
+		        android:title="扫描媒体文件"/>
 		    <item
 		        android:id="@+id/upload_crash_report"
-		        android:title="upload crash report"/>
+		        android:title="手动上传日志"/>
 		</menu>
 	</item>
 	<item
@@ -84,7 +84,7 @@
         <menu>
             <item
                 android:id="@+id/pptv_frontpage"
-                android:title="pptv frontpage"/>
+                android:title="pptv首页"/>
             <item
                 android:id="@+id/pptv_video"
                 android:title="PPTV视频"/>
@@ -102,7 +102,7 @@
 				android:title="映客直播"/>
             <item
                 android:id="@+id/parse_url"
-                android:title="parse url"/>
+                android:title="解析视频url"/>
         </menu>
     </item>
     <item

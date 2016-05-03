@@ -170,7 +170,19 @@ public class Util {
 		SharedPreferences settings = ctx.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE); // create it if NOT exist
     	return settings.getInt(key, 0);
 	}
-	
+
+	public static boolean writeSettingsLong(Context ctx, String key, long value) {
+		SharedPreferences settings = ctx.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE); // create it if NOT exist
+		SharedPreferences.Editor editor = settings.edit();
+		editor.putLong(key, value);
+		return editor.commit();
+	}
+
+	public static long readSettingsLong(Context ctx, String key) {
+		SharedPreferences settings = ctx.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE); // create it if NOT exist
+		return settings.getLong(key, 0L);
+	}
+
 	public static void add_sohuvideo_history(Context ctx, String title, int vid, long aid, int site) {
 		String key = "SohuPlayHistory";
 		String regularEx = ",";

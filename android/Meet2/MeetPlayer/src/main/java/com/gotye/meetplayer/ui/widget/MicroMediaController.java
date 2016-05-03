@@ -240,7 +240,11 @@ public class MicroMediaController extends MediaController {
                     ins.mIsShowing = false;
                     break;
                 case UPDATE_PROGRESS:
-                    int pos = ins.setProgress();
+                    int pos;
+                    if (ins.mIsSeeking)
+                        pos = 0;
+                    else
+                        pos = ins.setProgress();
                     // keep UI always show up
                     if (ins.isShowing() && ins.mPlayer.isPlaying()) {
                         msg = obtainMessage(UPDATE_PROGRESS);
@@ -380,6 +384,8 @@ public class MicroMediaController extends MediaController {
             mSeekingPos = mPlayer.getDuration();
         else if (mSeekingPos < 0)
             mSeekingPos = 0;
+
+        setProgress(mSeekingPos);
 
         mHandler.removeMessages(MSG_SEEK);
         mHandler.sendMessageDelayed(mHandler.obtainMessage(MSG_SEEK), SEEK_TIMEOUT);
