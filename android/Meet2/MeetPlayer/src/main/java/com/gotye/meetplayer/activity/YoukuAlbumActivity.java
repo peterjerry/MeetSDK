@@ -29,7 +29,9 @@ import com.gotye.meetplayer.adapter.CommonAlbumAdapter;
 import com.gotye.meetplayer.ui.widget.HorizontalTextListView;
 import com.gotye.meetplayer.util.Util;
 
+import java.io.UnsupportedEncodingException;
 import java.lang.ref.WeakReference;
+import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -54,10 +56,6 @@ public class YoukuAlbumActivity extends AppCompatActivity {
     private final static int SET_DATA_RELATE	= 3;
 
     private boolean search_mode = false;
-
-    private Button btnReputation;
-    private Button btnPopularity;
-    private Button btnUpdate;
 
     private int album_page_index = 1;
     private int episode_page_index = 1;
@@ -131,10 +129,6 @@ public class YoukuAlbumActivity extends AppCompatActivity {
 		
 		setContentView(R.layout.activity_youku_album);
 
-        findViewById(R.id.btn_reputation).setOnClickListener(mClickListener);
-        findViewById(R.id.btn_popularity).setOnClickListener(mClickListener);
-        findViewById(R.id.btn_update).setOnClickListener(mClickListener);
-
 		this.mGridView = (GridView) findViewById(R.id.grid_view);
 		this.mGridView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
 
@@ -202,10 +196,8 @@ public class YoukuAlbumActivity extends AppCompatActivity {
                 switch (scrollState) {
                     case AbsListView.OnScrollListener.SCROLL_STATE_FLING:
                     case AbsListView.OnScrollListener.SCROLL_STATE_TOUCH_SCROLL:
-                        mAdapter.setLoadImg(false);
                         break;
                     case AbsListView.OnScrollListener.SCROLL_STATE_IDLE:
-                        mAdapter.setLoadImg(true);
                         break;
                     default:
                         break;
@@ -254,29 +246,6 @@ public class YoukuAlbumActivity extends AppCompatActivity {
         @Override
         public void onClick(View v) {
             // TODO Auto-generated method stub
-
-            if (search_mode) {
-                search_page_index = 1;
-                // orderby 1-综合排序 2-最新发布 3-最多播放
-
-                switch (v.getId()) {
-                    case R.id.btn_reputation:
-                        search_orderby = 1;
-                        new SetDataTask().execute(SET_DATA_SEARCH);
-                        break;
-                    case R.id.btn_popularity:
-                        search_orderby = 3;
-                        new SetDataTask().execute(SET_DATA_SEARCH);
-                        break;
-                    case R.id.btn_update:
-                        search_orderby = 2;
-                        new SetDataTask().execute(SET_DATA_SEARCH);
-                        break;
-                    default:
-                        Log.w(TAG, "Java unknown view id: " + v.getId());
-                        break;
-                }
-            }
         }
     };
 
@@ -394,6 +363,7 @@ public class YoukuAlbumActivity extends AppCompatActivity {
         AlbumInfo.put("vid", vid);
         AlbumInfo.put("episode_total", album.getEpisodeTotal());
         AlbumInfo.put("is_album", album.getEpisodeTotal() > 1);
+        AlbumInfo.put("company", "youku");
         return AlbumInfo;
     }
 
@@ -488,6 +458,7 @@ public class YoukuAlbumActivity extends AppCompatActivity {
                         episode.put("vid", ep.getVideoId());
                         episode.put("is_album", false);
                         episode.put("episode_total", 1);
+                        episode.put("company", "youku");
                         listData.add(episode);
                     }
                 }
@@ -753,45 +724,12 @@ public class YoukuAlbumActivity extends AppCompatActivity {
                     episode.put("vid", ep.getVideoId());
                     episode.put("is_album", false);
                     episode.put("episode_total", 1);
+                    episode.put("company", "youku");
                     items.add(episode);
                 }
 
                 if (search_get_filter) {
-                    List<YKUtil.FilerGroup> filter_list = new ArrayList<>();
-
-                    List<YKUtil.FilerType> ft_duration = new ArrayList<>();
-                    //0- 不限，1->0-10min, 2->10-30min, 3->30-60min, 4->60min+
-                    ft_duration.add(new YKUtil.FilerType("不限", "0"));
-                    ft_duration.add(new YKUtil.FilerType("0-10分钟", "1"));
-                    ft_duration.add(new YKUtil.FilerType("10-30分钟", "2"));
-                    ft_duration.add(new YKUtil.FilerType("30-60分钟", "3"));
-                    ft_duration.add(new YKUtil.FilerType("60分钟以上", "4"));
-
-                    List<YKUtil.FilerType> publish_time = new ArrayList<>();
-                    // limitdate 1->1天, 7->1周, 31->1月， 365->1年
-                    publish_time.add(new YKUtil.FilerType("不限", "0"));
-                    publish_time.add(new YKUtil.FilerType("1天", "1"));
-                    publish_time.add(new YKUtil.FilerType("1周", "7"));
-                    publish_time.add(new YKUtil.FilerType("1月", "31"));
-                    publish_time.add(new YKUtil.FilerType("1年", "365"));
-
-                    List<YKUtil.FilerType> resolution_ft = new ArrayList<>();
-                    // hd 0-不限,1-高清,6-超清,7-1080p
-                    resolution_ft.add(new YKUtil.FilerType("不限", "0"));
-                    resolution_ft.add(new YKUtil.FilerType("高清", "1"));
-                    resolution_ft.add(new YKUtil.FilerType("超清", "6"));
-                    resolution_ft.add(new YKUtil.FilerType("1080p", "7"));
-
-                    filter_list.add(new YKUtil.FilerGroup("时长", "lengthtype", ft_duration));
-                    filter_list.add(new YKUtil.FilerGroup("发布时间", "limitdate", publish_time));
-                    filter_list.add(new YKUtil.FilerGroup("画质", "hd", resolution_ft));
-
-                    List<YKUtil.SortType> sort_type_list = new ArrayList<>();
-                    // orderby 1-综合排序 2-最新发布 3-最多播放
-                    sort_type_list.add(new YKUtil.SortType("综合排序", 1));
-                    sort_type_list.add(new YKUtil.SortType("最新发布", 2));
-                    sort_type_list.add(new YKUtil.SortType("最多播放", 3));
-                    mFilterResult = new YKUtil.FilterResult(filter_list, sort_type_list);
+                    mFilterResult = YKUtil.getSearchFilter();
                     show_filter = true;
                     search_get_filter = false;
                 }
@@ -865,6 +803,7 @@ public class YoukuAlbumActivity extends AppCompatActivity {
                     episode.put("vid", ep.getVideoId());
                     episode.put("is_album", false);
                     episode.put("episode_total", 1);
+                    episode.put("company", "youku");
                     items.add(episode);
                 }
             }

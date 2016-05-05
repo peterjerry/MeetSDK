@@ -29,13 +29,14 @@ public class ImgUtil {
 	}
 	
 	public static Bitmap getHttpBitmap(String url) {
-	     URL myFileUrl = null;
+	     URL myFileUrl;
 	     Bitmap bitmap = null;
+
 	     try {
-	          LogUtil.debug(TAG, "Java: getHttpBitmap " + url);
 	          myFileUrl = new URL(url);
 	     } catch (MalformedURLException e) {
 	          e.printStackTrace();
+			 return null;
 	     }
 	     
 	     try {

@@ -287,7 +287,13 @@ public class FragmentMp4MediaPlayerV2 {
         LogUtil.info(TAG, "setupPlayer()");
 
 		if (mCurrentPlayer != null) {
-			mCurrentPlayer.stop();
+			try {
+				mCurrentPlayer.stop();
+			}
+			catch (Exception e) {
+				e.printStackTrace();
+			}
+
 			mCurrentPlayer.release();
 			mCurrentPlayer = null;
 		}
@@ -337,8 +343,16 @@ public class FragmentMp4MediaPlayerV2 {
 			@Override
 			public void run() {
 				// TODO Auto-generated method stub
-				if (mNextPlayer != null)
-					mNextPlayer.release();
+				if (mNextPlayer != null) {
+                    try {
+                        mNextPlayer.stop();
+                    }
+                    catch (Exception e) {
+                        e.printStackTrace();
+                    }
+
+                    mNextPlayer.release();
+                }
 
                 MediaPlayer.DecodeMode mode;
                 if (mPlayerImpl == FF_PLAYER)

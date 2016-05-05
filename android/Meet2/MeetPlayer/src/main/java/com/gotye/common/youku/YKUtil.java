@@ -551,6 +551,44 @@ public class YKUtil {
         }
     }
 
+    public static FilterResult getSearchFilter() {
+        List<YKUtil.FilerType> ft_duration = new ArrayList<>();
+        //0- 不限，1->0-10min, 2->10-30min, 3->30-60min, 4->60min+
+        ft_duration.add(new YKUtil.FilerType("不限", "0"));
+        ft_duration.add(new YKUtil.FilerType("0-10分钟", "1"));
+        ft_duration.add(new YKUtil.FilerType("10-30分钟", "2"));
+        ft_duration.add(new YKUtil.FilerType("30-60分钟", "3"));
+        ft_duration.add(new YKUtil.FilerType("60分钟以上", "4"));
+
+        List<YKUtil.FilerType> publish_time = new ArrayList<>();
+        // limitdate 1->1天, 7->1周, 31->1月， 365->1年
+        publish_time.add(new YKUtil.FilerType("不限", "0"));
+        publish_time.add(new YKUtil.FilerType("1天", "1"));
+        publish_time.add(new YKUtil.FilerType("1周", "7"));
+        publish_time.add(new YKUtil.FilerType("1月", "31"));
+        publish_time.add(new YKUtil.FilerType("1年", "365"));
+
+        List<YKUtil.FilerType> resolution_ft = new ArrayList<>();
+        // hd 0-不限,1-高清,6-超清,7-1080p
+        resolution_ft.add(new YKUtil.FilerType("不限", "0"));
+        resolution_ft.add(new YKUtil.FilerType("高清", "1"));
+        resolution_ft.add(new YKUtil.FilerType("超清", "6"));
+        resolution_ft.add(new YKUtil.FilerType("1080p", "7"));
+
+        List<YKUtil.FilerGroup> filter_list = new ArrayList<>();
+        filter_list.add(new YKUtil.FilerGroup("时长", "lengthtype", ft_duration));
+        filter_list.add(new YKUtil.FilerGroup("发布时间", "limitdate", publish_time));
+        filter_list.add(new YKUtil.FilerGroup("画质", "hd", resolution_ft));
+
+        List<YKUtil.SortType> sort_type_list = new ArrayList<>();
+        // orderby 1-综合排序 2-最新发布 3-最多播放
+        sort_type_list.add(new YKUtil.SortType("综合排序", 1));
+        sort_type_list.add(new YKUtil.SortType("最新发布", 2));
+        sort_type_list.add(new YKUtil.SortType("最多播放", 3));
+
+        return new YKUtil.FilterResult(filter_list, sort_type_list);
+    }
+
     public static FilterResult getFilter(int channel_id) {
         //2-最多播放, 4-最具争议, 6-最多收藏, 5-最广传播, 1-最新发布
         String url = String.format(youku_filter_api, channel_id);

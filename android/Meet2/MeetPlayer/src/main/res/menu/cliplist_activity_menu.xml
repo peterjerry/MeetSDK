@@ -6,19 +6,19 @@
     <item
         android:id="@+id/list_clip"
         android:orderInCategory="1"
-        android:title="list clip"
+        android:title="列出媒体文件"
         app:showAsAction="always"
         android:icon="@drawable/list" />
     <item
         android:id="@+id/update_apk"
         android:orderInCategory="2"
-        android:title="update"
+        android:title="升级"
         app:showAsAction="never"
         android:icon="@drawable/update" />
     <item
         android:id="@+id/settings"
         android:orderInCategory="3"
-        android:title="settings"
+        android:title="设置"
         app:showAsAction="always"
         android:icon="@drawable/settings" >
         <menu>      
@@ -51,7 +51,7 @@
     <item
         android:id="@+id/option"
         android:orderInCategory="4"
-        android:title="option"
+        android:title="选项"
         app:showAsAction="always"
         android:icon="@drawable/option" >
     	<menu>      
@@ -78,13 +78,13 @@
 	<item
 		android:id="@+id/video"
 		android:orderInCategory="5"
-		android:title="video"
+		android:title="视频"
         app:showAsAction="always"
 		android:icon="@drawable/option" >
         <menu>
             <item
                 android:id="@+id/pptv_frontpage"
-                android:title="pptv首页"/>
+                android:title="PPTV首页"/>
             <item
                 android:id="@+id/pptv_video"
                 android:title="PPTV视频"/>
@@ -108,7 +108,7 @@
     <item
         android:id="@+id/quit"
         android:orderInCategory="6"
-        android:title="quit"
+        android:title="退出"
         app:showAsAction="never"
         android:icon="@drawable/quit" />
 

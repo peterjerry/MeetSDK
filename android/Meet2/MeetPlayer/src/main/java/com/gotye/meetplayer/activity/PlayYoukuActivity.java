@@ -40,6 +40,8 @@ public class PlayYoukuActivity extends PlaySegFileActivity {
 
     @Override
     protected void OnComplete() {
+        YKPlayhistoryDatabaseHelper.getInstance(this).savePlayedPosition(mVid, 0);
+
         if (mShowId != null && mEpisodeIndex != -1) {
             new NextEpisodeTask().execute(NextEpisodeTask.ACTION_EPISODE_INCR, 1);
             return;

@@ -218,8 +218,13 @@ static void setVideoSurface(IPlayer* mp, JNIEnv *env, jobject thiz, jobject surf
 #ifdef USE_NDK_SURFACE_REF
 	PPLOGI("setVideoSurface: use java side surface");
 	if (NULL != surface) {
-		gPlatformInfo->javaSurface = env->NewGlobalRef(surface);
-		mp->setVideoSurface((void*)gPlatformInfo->javaSurface);
+		// 2016.5.4 fix multi-session problem
+		//gPlatformInfo->javaSurface = env->NewGlobalRef(surface);
+		//mp->setVideoSurface((void*)gPlatformInfo->javaSurface);
+		
+		jobject obj = env->NewGlobalRef(surface);
+		env->SetLongField(thiz, fields.surface, (jlong)obj);
+		mp->setVideoSurface((void*)obj);
 	}
 #else
 	PPLOGI("setVideoSurface: use member variable surface");
@@ -696,6 +701,10 @@ jboolean android_media_MediaPlayer_native_init(JNIEnv *env, jobject thiz)
 	if (fields.listener == NULL)
 		jniThrowException(env, "java/lang/RuntimeException", "Can't find FFMediaPlayer.mListenerContext");
 
+	fields.surface = env->GetFieldID(clazz, "mSurface", "J");
+	if (fields.surface == NULL)
+		jniThrowException(env, "java/lang/RuntimeException", "Can't find FFMediaPlayer.mSurface");
+
 	fields.post_event = env->GetStaticMethodID(clazz, "postEventFromNative",
 			"(Ljava/lang/Object;IIILjava/lang/Object;)V");
 	if (fields.post_event == NULL)
@@ -753,12 +762,18 @@ void android_media_MediaPlayer_release(JNIEnv *env, jobject thiz)
 	IPlayer* mp = setMediaPlayer(env, thiz, NULL);
 	releasePlayerFun(mp);
 
-    if (gPlatformInfo != NULL) {
+    /*if (gPlatformInfo != NULL) {
 		if (gPlatformInfo->javaSurface != NULL) {
 			env->DeleteGlobalRef(gPlatformInfo->javaSurface);
 			gPlatformInfo->javaSurface = NULL;
 		}
-    }
+    }*/
+
+	// 2016.5.4 fix multi-session
+	jobject surf = (jobject)env->GetLongField(thiz, fields.surface);
+	if (surf)
+		env->DeleteGlobalRef(surf);
+	env->SetLongField(thiz, fields.surface, 0);
 
 	JNIMediaPlayerListener* player_listener = (JNIMediaPlayerListener *)env->GetLongField(thiz, fields.listener);
 	if (player_listener) {

@@ -57,14 +57,15 @@
         android:visibility="gone" />
 	
 	<TextView
-		android:id="@+id/textview_subtitle"
+		android:id="@+id/tv_info"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-		android:layout_alignParentBottom="true"
-        android:layout_centerInParent="true"
-		android:layout_marginBottom="20dp"
+		android:layout_alignParentTop="true"
+        android:layout_alignParentLeft="true"
+		android:layout_marginTop="5dp"
 		android:textColor="#FF0000"
-		android:gravity="center"
+		android:gravity="left"
+		android:textSize="28sp"
         android:visibility="gone" />
 	
 </RelativeLayout>

@@ -7,6 +7,9 @@ import com.gotye.common.util.LogUtil;
 import com.gotye.common.util.PicCacheUtil;
 import com.gotye.meetplayer.R;
 import com.gotye.meetplayer.util.ImgUtil;
+import com.nostra13.universalimageloader.core.DisplayImageOptions;
+import com.nostra13.universalimageloader.core.ImageLoader;
+import com.nostra13.universalimageloader.core.display.RoundedBitmapDisplayer;
 
 import android.content.Context;
 import android.graphics.Bitmap;
@@ -102,17 +105,21 @@ public class InkeAdapter extends BaseAdapter {
 		holder.online_users.setText(online_users);
 
 		if (img_url != null && img_url.startsWith("http://")) {
-			String key = PicCacheUtil.hashKeyForDisk(img_url);
-			Bitmap bmp = PicCacheUtil.getThumbnailFromDiskCache(key);
-			if (bmp != null) {
-				holder.avatar.setImageBitmap(bmp);
-				LogUtil.info(TAG, "set http bitmap from getThumbnailFromDiskCache");
-			}
-			else {
-				holder.avatar.setTag(img_url);
-				holder.avatar.setImageResource(R.drawable.loading);
-				new LoadPicTask().execute(holder, img_url);
-			}
+			//String key = PicCacheUtil.hashKeyForDisk(img_url);
+			//Bitmap bmp = PicCacheUtil.getThumbnailFromDiskCache(key);
+
+            holder.avatar.setTag(img_url);
+            holder.avatar.setImageResource(R.drawable.loading);
+
+            DisplayImageOptions options = new DisplayImageOptions.Builder()
+                    .showImageOnLoading(R.drawable.avatar_loading)         // 加载开始默认的图片
+                    .showImageForEmptyUri(R.drawable.avatar_error) //url爲空會显示该图片，自己放在drawable里面的
+                    .showImageOnFail(R.drawable.avatar_error)      //加载图片出现问题，会显示该图片
+                    .displayer(new RoundedBitmapDisplayer(5))  //图片圆角显示，值为整数
+                    .cacheInMemory(true)
+                    .cacheOnDisk(true)
+                    .build();
+            ImageLoader.getInstance().displayImage(img_url, holder.avatar, options);
 		}
 		
 		// 注意 默认为返回null,必须得返回convertView视图
@@ -128,38 +135,5 @@ public class InkeAdapter extends BaseAdapter {
 		float m = context.getResources().getDisplayMetrics().density;
 		return (int) (pxValue / m + 0.5f);
 	}
-	
-	private class LoadPicTask extends AsyncTask<Object, Integer, Bitmap> {
 
-		private ViewHolder mHolder;
-		private String mImgUrl;
-		
-		@Override
-		protected void onPostExecute(Bitmap bmp) {
-			if (mHolder == null || bmp == null) {
-				Log.e(TAG, "Java: failed to get http image " + mImgUrl);
-				return;
-			}
-			
-			if (mHolder.avatar.getTag() != null && mHolder.avatar.getTag().equals(mImgUrl)) {
-                mHolder.avatar.setImageBitmap(bmp);
-            }
-		}
-		
-		@Override
-		protected Bitmap doInBackground(Object... params) {
-			mHolder = (ViewHolder)params[0];
-			mImgUrl = (String)params[1];
-			
-			Bitmap bmp = ImgUtil.getHttpBitmap(mImgUrl);
-			if (bmp == null) {
-				Log.e(TAG, "Java: failed to getHttpBitmap " + mImgUrl);
-				return null;
-			}
-
-			String key = PicCacheUtil.hashKeyForDisk(mImgUrl);
-			PicCacheUtil.addThumbnailToDiskCache(key, bmp);
-			return bmp;
-		}
-    }
 }

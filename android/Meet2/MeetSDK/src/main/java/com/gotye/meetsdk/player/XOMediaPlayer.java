@@ -284,6 +284,8 @@ public class XOMediaPlayer extends BaseMediaPlayer {
 
         // support setSurface after prepare()
         if (getState() == PlayState.PREPARED && mVideoCodec == null) {
+			LogUtils.info("init video decoder when surface is ready");
+
             if (!initVideoDecoder()) {
                 Message msg = mEventHandler.obtainMessage(MediaPlayer.MEDIA_ERROR);
                 msg.arg1 = MediaPlayer.MEDIA_ERROR_VIDEO_DECODER;
@@ -360,6 +362,8 @@ public class XOMediaPlayer extends BaseMediaPlayer {
 
         // init videoDecoder later if surface NOT set
         if (mSurface != null) {
+            LogUtils.info("init video decoder when open");
+
             ret = initVideoDecoder();
             if (!ret) {
                 Message msg = mEventHandler.obtainMessage(MediaPlayer.MEDIA_ERROR);

@@ -150,21 +150,10 @@ public class SohuEpisodeActivity extends AppCompatActivity {
 		});
 		
 		this.gridView.setOnScrollListener(new AbsListView.OnScrollListener() {
-			
+
 			@Override
 			public void onScrollStateChanged(AbsListView view, int scrollState) {
 				// TODO Auto-generated method stub
-				switch (scrollState) {
-					case AbsListView.OnScrollListener.SCROLL_STATE_FLING:
-					case AbsListView.OnScrollListener.SCROLL_STATE_TOUCH_SCROLL:
-						adapter.setLoadImg(false);
-						break;
-					case AbsListView.OnScrollListener.SCROLL_STATE_IDLE:
-						adapter.setLoadImg(true);
-						break;
-					default:
-						break;
-				}
 			}
 			
 			@Override

@@ -27,6 +27,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.gotye.common.util.LogUtil;
+import com.gotye.db.YKPlayhistoryDatabaseHelper;
 import com.gotye.meetplayer.R;
 import com.gotye.meetplayer.media.FragmentMp4MediaPlayerV2;
 import com.gotye.meetplayer.ui.MyPreView2;
@@ -59,6 +60,18 @@ public class PlaySegFileActivity extends AppCompatActivity
     private TextView mTvTitle;
     private ImageButton mBtnBack;
 	protected ProgressBar mBufferingProgressBar;
+    private TextView mTvInfo;
+    private boolean mbTvInfoShowing = false;
+
+    // stat
+    private int decode_fps					= 0;
+    private int render_fps 					= 0;
+    private int decode_avg_msec 			= 0;
+    private int render_avg_msec 			= 0;
+    private int render_frame_num			= 0;
+    private int decode_drop_frame			= 0;
+    private int av_latency_msec				= 0;
+    private int video_bitrate				= 0;
 
     protected String mUrlListStr;
     protected String mDurationListStr;
@@ -159,6 +172,8 @@ public class PlaySegFileActivity extends AppCompatActivity
         this.mTvTitle = (TextView)this.findViewById(R.id.player_title);
         this.mBtnBack = (ImageButton)this.findViewById(R.id.player_back_btn);
 
+        this.mTvInfo = (TextView)this.findViewById(R.id.tv_info);
+
         mBtnBack.setOnClickListener(new View.OnClickListener() {
 
             @Override
@@ -206,9 +221,44 @@ public class PlaySegFileActivity extends AppCompatActivity
 				else if (what == MediaPlayer.MEDIA_INFO_VIDEO_RENDERING_START) {
                     LogUtil.info(TAG, "Java: onInfo MEDIA_INFO_VIDEO_RENDERING_START");
                 }
-                else if (what == MediaPlayer.MEDIA_INFO_TEST_DROP_FRAME) {
+                else if (MediaPlayer.MEDIA_INFO_TEST_DECODE_AVG_MSEC == what) {
+                    decode_avg_msec = extra;
+                }
+                else if (MediaPlayer.MEDIA_INFO_TEST_RENDER_AVG_MSEC == what) {
+                    render_avg_msec = extra;
+                }
+                else if (MediaPlayer.MEDIA_INFO_TEST_DECODE_FPS == what) {
+                    decode_fps = extra;
+                    mHandler.sendEmptyMessage(MainHandler.MSG_UPDATE_PLAY_INFO);
+                }
+                else if (MediaPlayer.MEDIA_INFO_TEST_RENDER_FPS == what) {
+                    render_fps = extra;
+                    mHandler.sendEmptyMessage(MainHandler.MSG_UPDATE_PLAY_INFO);
+                }
+                else if (MediaPlayer.MEDIA_INFO_TEST_RENDER_FRAME == what) {
+                    render_frame_num = extra;
+                    mHandler.sendEmptyMessage(MainHandler.MSG_UPDATE_RENDER_INFO);
+                }
+                else if (MediaPlayer.MEDIA_INFO_TEST_LATENCY_MSEC == what) {
+                    av_latency_msec = extra;
+                }
+                else if (MediaPlayer.MEDIA_INFO_TEST_DROP_FRAME == what) {
+                    decode_drop_frame++;
                     LogUtil.info(TAG, String.format(Locale.US,
                             "Java: onInfo MEDIA_INFO_TEST_DROP_FRAME %d msec", extra));
+                    mHandler.sendEmptyMessage(MainHandler.MSG_UPDATE_RENDER_INFO);
+                }
+                else if (MediaPlayer.MEDIA_INFO_TEST_MEDIA_BITRATE == what) {
+                    video_bitrate = extra;
+                    mHandler.sendEmptyMessage(MainHandler.MSG_UPDATE_PLAY_INFO);
+                }
+                else if(MediaPlayer.MEDIA_INFO_VIDEO_TRACK_LAGGING == what) {
+                    av_latency_msec = extra;
+
+                    decode_fps = render_fps = 0;
+                    decode_drop_frame = 0;
+                    video_bitrate = 0;
+                    mHandler.sendEmptyMessage(MainHandler.MSG_UPDATE_PLAY_INFO);
                 }
 				
 				return true;
@@ -249,12 +299,13 @@ public class PlaySegFileActivity extends AppCompatActivity
 				mBufferingProgressBar.setVisibility(View.GONE);
 				toggleMediaControlsVisiblity();
 
-                /*if (pre_seek_msec > 0) {
-                    mp.seekTo(pre_seek_msec);
+                // MUST use mPlayer because mp is seg player
+                if (mPlayerImpl != 2/*XOPlayer not support now*/ && pre_seek_msec > 0) {
+                    mPlayer.seekTo(pre_seek_msec);
                     pre_seek_msec = -1;
-                }*/
+                }
 
-                mp.start();
+                mPlayer.start();
 			}
 		};
 		
@@ -316,6 +367,13 @@ public class PlaySegFileActivity extends AppCompatActivity
                 popupMediaInfo();
                 break;
             case R.id.toggle_debug_info:
+                mbTvInfoShowing = !mbTvInfoShowing;
+                if (mbTvInfoShowing) {
+                    mTvInfo.setVisibility(View.VISIBLE);
+                }
+                else {
+                    mTvInfo.setVisibility(View.GONE);
+                }
                 break;
             default:
                 break;
@@ -325,7 +383,7 @@ public class PlaySegFileActivity extends AppCompatActivity
     }
 
     private void popupPlayerImplDlg() {
-        final String[] PlayerImpl = {"Auto", "System", "XOPlayer", "FFPlayer", "OMXPlayer"};
+        final String[] PlayerImpl = {"System", "XOPlayer", "FFPlayer"};
 
         Dialog choose_player_impl_dlg = new AlertDialog.Builder(PlaySegFileActivity.this)
                 .setTitle("选择播放器类型")
@@ -334,7 +392,7 @@ public class PlaySegFileActivity extends AppCompatActivity
                             public void onClick(DialogInterface dialog, int whichButton){
                                 LogUtil.info(TAG, "select player impl: " + whichButton);
 
-                                mPlayerImpl = whichButton;
+                                mPlayerImpl = whichButton + 1;
                                 Util.writeSettingsInt(PlaySegFileActivity.this, "PlayerImpl", mPlayerImpl);
                                 Toast.makeText(PlaySegFileActivity.this,
                                         "选择类型: " + PlayerImpl[whichButton], Toast.LENGTH_SHORT).show();
@@ -343,6 +401,8 @@ public class PlaySegFileActivity extends AppCompatActivity
                                     pre_seek_msec = mPlayer.getCurrentPosition() - 5000;
                                     if (pre_seek_msec < 0)
                                         pre_seek_msec = 0;
+
+                                    LogUtil.info(TAG, "pre_seek_msec set to: " + pre_seek_msec);
 
                                     mView.setVisibility(View.INVISIBLE);
 
@@ -402,7 +462,6 @@ public class PlaySegFileActivity extends AppCompatActivity
                 .setPositiveButton("确定", null)
                 .show();
     }
-
 
     protected void OnComplete() {
         Toast.makeText(PlaySegFileActivity.this, "Play complete", Toast.LENGTH_SHORT).show();
@@ -638,6 +697,9 @@ public class PlaySegFileActivity extends AppCompatActivity
         protected final static int MSG_FAIL_TO_GET_STREAM		= 103;
         protected final static int MSG_FAIL_TO_GET_ALBUM_INFO	= 104;
 
+        private static final int MSG_UPDATE_PLAY_INFO 			= 201;
+        private static final int MSG_UPDATE_RENDER_INFO			= 202;
+
         public MainHandler(PlaySegFileActivity activity) {
             mWeakActivity = new WeakReference<PlaySegFileActivity>(activity);
         }
@@ -672,6 +734,15 @@ public class PlaySegFileActivity extends AppCompatActivity
                 case MSG_FAIL_TO_GET_STREAM:
                     Toast.makeText(activity, "failed to get stream", Toast.LENGTH_SHORT).show();
                     activity.finish();
+                    break;
+                case MSG_UPDATE_PLAY_INFO:
+                case MSG_UPDATE_RENDER_INFO:
+                    activity.mTvInfo.setText(String.format(Locale.US,
+                            "%02d|%03d v-a: %+04d\n" +
+                            "dec/render %d(%d)/%d(%d) fps/msec\nbitrate %d kbps",
+                            activity.render_frame_num % 25, activity.decode_drop_frame % 1000, activity.av_latency_msec,
+                            activity.decode_fps, activity.decode_avg_msec, activity.render_fps, activity.render_avg_msec,
+                            activity.video_bitrate));
                     break;
                 default:
                     break;

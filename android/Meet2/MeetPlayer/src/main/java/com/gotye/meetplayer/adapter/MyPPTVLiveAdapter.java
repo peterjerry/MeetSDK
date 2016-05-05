@@ -6,6 +6,9 @@ import com.gotye.common.pptv.PlayLink2;
 import com.gotye.common.util.PicCacheUtil;
 import com.gotye.meetplayer.R;
 import com.gotye.meetplayer.util.ImgUtil;
+import com.nostra13.universalimageloader.core.DisplayImageOptions;
+import com.nostra13.universalimageloader.core.ImageLoader;
+import com.nostra13.universalimageloader.core.display.RoundedBitmapDisplayer;
 
 import android.content.Context;
 import android.graphics.Bitmap;
@@ -108,52 +111,22 @@ public class MyPPTVLiveAdapter extends BaseAdapter {
 		
 		String img_url = item.getImgUrl();
 		if (img_url != null && img_url.startsWith("http://")) {
-			String key = PicCacheUtil.hashKeyForDisk(img_url);
-			Bitmap bmp = PicCacheUtil.getThumbnailFromDiskCache(key);
-			if (bmp != null) {
-				holder.img_icon.setImageBitmap(bmp);
-			}
-			else {
-				holder.img_icon.setTag(img_url);
-				holder.img_icon.setImageResource(R.drawable.loading);
-				new LoadInfoTask().execute(holder, img_url);
-			}
+			holder.img_icon.setTag(img_url);
+			holder.img_icon.setImageResource(R.drawable.ic_launcher);
+
+			DisplayImageOptions options = new DisplayImageOptions.Builder()
+					.showImageOnLoading(R.drawable.ic_launcher)         // 加载开始默认的图片
+					.showImageForEmptyUri(R.drawable.ic_launcher) //url爲空會显示该图片，自己放在drawable里面的
+					.showImageOnFail(R.drawable.loading_error)      //加载图片出现问题，会显示该图片
+					.displayer(new RoundedBitmapDisplayer(5))  //图片圆角显示，值为整数
+					.cacheInMemory(true)
+					.cacheOnDisk(true)
+					.build();
+			ImageLoader.getInstance().displayImage(img_url, holder.img_icon, options);
 		}
 		
 		// 注意 默认为返回null,必须得返回convertView视图
 		return convertView;
 	}
-	
-	
-	private class LoadInfoTask extends AsyncTask<Object, Integer, Bitmap> {
 
-		ViewHolder mHolder;
-		String mImgUrl;
-		
-		@Override
-		protected void onPostExecute(Bitmap bmp) {
-			if (mHolder == null || bmp == null)
-				return;
-			
-			ImageView thumb	= mHolder.img_icon;
-			if (thumb.getTag() != null && thumb.getTag().equals(mImgUrl))
-				thumb.setImageBitmap(bmp);
-		}
-		
-		@Override
-		protected Bitmap doInBackground(Object... params) {
-			mHolder = (ViewHolder)params[0];
-			mImgUrl = (String)params[1];
-			
-			Bitmap bmp = ImgUtil.getHttpBitmap(mImgUrl);
-			if (bmp == null) {
-				Log.e(TAG, "Java: failed to getHttpBitmap " + mImgUrl);
-				return null;
-			}
-			
-			String key = PicCacheUtil.hashKeyForDisk(mImgUrl);
-			PicCacheUtil.addThumbnailToDiskCache(key, bmp);
-			return bmp;
-		}
-	}
 }

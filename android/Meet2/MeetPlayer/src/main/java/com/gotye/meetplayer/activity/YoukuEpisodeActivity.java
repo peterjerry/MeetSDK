@@ -14,6 +14,7 @@ import android.view.View;
 import android.view.WindowManager;
 import android.widget.AbsListView;
 import android.widget.AdapterView;
+import android.widget.BaseAdapter;
 import android.widget.GridView;
 import android.widget.ImageView;
 import android.widget.ListView;
@@ -27,8 +28,12 @@ import com.gotye.common.youku.Episode;
 import com.gotye.common.youku.YKUtil;
 import com.gotye.db.YKPlayhistoryDatabaseHelper;
 import com.gotye.meetplayer.R;
+import com.gotye.meetplayer.adapter.YkEpisodeAdapter;
 import com.gotye.meetplayer.util.ImgUtil;
 import com.gotye.meetplayer.util.Util;
+import com.nostra13.universalimageloader.core.DisplayImageOptions;
+import com.nostra13.universalimageloader.core.ImageLoader;
+import com.nostra13.universalimageloader.core.display.RoundedBitmapDisplayer;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -63,7 +68,7 @@ public class YoukuEpisodeActivity extends AppCompatActivity {
     private GridView gridView;
     private ListView listView;
 
-    private SimpleAdapter mAdapter = null;
+    private BaseAdapter mAdapter = null;
     private boolean mbGridMode = true;
 
     @Override
@@ -247,8 +252,18 @@ public class YoukuEpisodeActivity extends AppCompatActivity {
         protected void onPostExecute(Boolean result) {
             // TODO Auto-generated method stub
             if (result) {
-                if (mAlbum.getImgUrl() != null)
-                    new SetPicTask().execute(mAlbum.getImgUrl());
+                if (mAlbum.getImgUrl() != null) {
+                    DisplayImageOptions options = new DisplayImageOptions.Builder()
+                            .showImageOnLoading(R.drawable.loading)         // 加载开始默认的图片
+                            .showImageForEmptyUri(R.drawable.loading) //url爲空會显示该图片，自己放在drawable里面的
+                            .showImageOnFail(R.drawable.loading_error)      //加载图片出现问题，会显示该图片
+                            .displayer(new RoundedBitmapDisplayer(5))  //图片圆角显示，值为整数
+                            .cacheInMemory(true)
+                            .cacheOnDisk(true)
+                            .build();
+                    ImageLoader.getInstance().displayImage(
+                            mAlbum.getImgUrl(), mImgView, options);
+                }
 
                 mTvDirector.setText(String.format("导演: " + mAlbum.getDirector()));
                 mTVActor.setText(String.format("主演: %s", mAlbum.getActor()));
@@ -261,9 +276,10 @@ public class YoukuEpisodeActivity extends AppCompatActivity {
                     int size = mAlbum.getEpisodeTotal();
 
                     String stripe = mAlbum.getStripe();
-                    // 更新至36集
+                    // 更新至36集 剧集
+                    // 更新至20160430 综艺
                     //[\d]*
-                    if (stripe != null && stripe.contains("更新至")) {
+                    if (stripe != null && stripe.contains("更新至") && stripe.endsWith("集")) {
                         Pattern pattern = Pattern.compile("[1-9]\\d*");
                         Matcher matcher = pattern.matcher(stripe);
                         if (matcher.find()) {
@@ -276,8 +292,8 @@ public class YoukuEpisodeActivity extends AppCompatActivity {
                         mbRevertEp = true;
                     else
                         mbRevertEp = false;
-                    ArrayList<HashMap<String, Object>> dataList =
-                            new ArrayList<HashMap<String, Object>>();
+                    List<Map<String, Object>> dataList =
+                            new ArrayList<>();
                     for (int i = 0; i < size; i++) {
                         HashMap<String, Object> map = new HashMap<String, Object>();
                         int ep_index;
@@ -287,30 +303,33 @@ public class YoukuEpisodeActivity extends AppCompatActivity {
                             ep_index = i + 1 /*base 1*/;
                         map.put("index", ep_index);
                         map.put("title", ep_index);
+                        map.put("company", "youku");
                         dataList.add(map);
                     }
 
-                    String []from = new String[] {"index"};
-                    int []to = new int[] {R.id.tv_title};
-                    mAdapter = new SimpleAdapter(YoukuEpisodeActivity.this, dataList,
-                            R.layout.gridview_episode, from, to);
+                    mAdapter = new YkEpisodeAdapter(YoukuEpisodeActivity.this, dataList,
+                            R.layout.gridview_episode);
                     gridView.setAdapter(mAdapter);
                 }
                 else {
-                    ArrayList<HashMap<String, Object>> dataList =
-                            new ArrayList<HashMap<String, Object>>();
+                    ArrayList<Map<String, Object>> dataList =
+                            new ArrayList<>();
                     int size = mEpList.size();
                     for (int i = 0; i < size; i++) {
-                        HashMap<String, Object> map = new HashMap<String, Object>();
+                        Map<String, Object> map = new HashMap<>();
                         map.put("index", i + 1);
                         map.put("title", mEpList.get(i).getTitle());
+                        map.put("vid", mEpList.get(i).getVideoId());
+                        map.put("company", "youku");
                         dataList.add(map);
                     }
 
-                    String []from = new String[] {"title"};
-                    int []to = new int[] {R.id.tv_title};
-                    mAdapter = new SimpleAdapter(YoukuEpisodeActivity.this, dataList,
-                            R.layout.listview_episode, from, to);
+                    //String []from = new String[] {"title"};
+                    //int []to = new int[] {R.id.tv_title};
+                    //mAdapter = new SimpleAdapter(YoukuEpisodeActivity.this, dataList,
+                    //        R.layout.listview_episode, from, to);
+                    mAdapter = new YkEpisodeAdapter(YoukuEpisodeActivity.this, dataList,
+                            R.layout.listview_episode);
                     listView.setAdapter(mAdapter);
                 }
             }
@@ -342,25 +361,6 @@ public class YoukuEpisodeActivity extends AppCompatActivity {
             }
 
             return (mAlbum != null);
-        }
-    }
-
-    private class SetPicTask extends AsyncTask<String, Integer, Bitmap> {
-
-        @Override
-        protected void onPostExecute(Bitmap bitmap) {
-            if (bitmap != null) {
-                mImgView.setImageBitmap(bitmap);
-            }
-        }
-
-        @Override
-        protected Bitmap doInBackground(String... params) {
-            String url = params[0];
-            if (url != null && url.startsWith("http://"))
-                return ImgUtil.getHttpBitmap(url);
-
-            return null;
         }
     }
 }
