@@ -24,11 +24,11 @@
         <menu>      
             <item
 		        android:id="@+id/preview"
-		        android:title="preview"
+		        android:title="预览"
 		        android:checkable="true" />
             <item
 		        android:id="@+id/loop"
-		        android:title="loop"
+		        android:title="循环播放"
 		        android:checkable="true" />
             <item
 		        android:id="@+id/no_video"
@@ -36,15 +36,15 @@
 		        android:checkable="true" />
             <item
 		        android:id="@+id/remember_last_pos"
-		        android:title="remember last position"
+		        android:title="从上次播放位置开始"
 		        android:checkable="true" />
             <item
 		        android:id="@+id/list_audio_file"
-		        android:title="list audio file"
+		        android:title="媒体文件包含音频文件"
 		        android:checkable="true" />
             <item
 		        android:id="@+id/debug_info"
-		        android:title="debug info"
+		        android:title="调试信息"
 		        android:checkable="true" />
         </menu>
     </item>
@@ -63,13 +63,16 @@
 		        android:title="加载字幕文件"/>
 		    <item
 		        android:id="@+id/audio_dst"
-		        android:title="audio dst"/>
+		        android:title="声音推送"/>
 		    <item
 		        android:id="@+id/clean_media_db"
 		        android:title="清空本地媒体库"/>
 		    <item
 		        android:id="@+id/scan_media"
 		        android:title="扫描媒体文件"/>
+			<item
+				android:id="@+id/list_http"
+				android:title="列出网络媒体"/>
 		    <item
 		        android:id="@+id/upload_crash_report"
 		        android:title="手动上传日志"/>
@@ -102,7 +105,7 @@
 				android:title="映客直播"/>
             <item
                 android:id="@+id/parse_url"
-                android:title="解析视频url"/>
+                android:title="解析视频地址"/>
         </menu>
     </item>
     <item

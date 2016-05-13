@@ -491,14 +491,16 @@ public class PlaySegFileActivity extends AppCompatActivity
 
                 @Override
                 public boolean onFling(MotionEvent e1, MotionEvent e2, float velocityX, float velocityY) {
-                    LogUtil.debug(TAG, String.format("Java: onFling!!! velocityX %.3f, velocityY %.3f",
-                            velocityX, velocityY));
-
+                    final int FLING_MIN_DISTANCE = 200;
+                    final float FLING_MIN_VELOCITY = 1000.0f;
                     // 1xxx - 4xxx
-                    if (velocityY < 1000.0f && velocityY > -1000.0f && mPlayer != null) {
-                        if (velocityX > 2000.0f || velocityX < -2000.0f) {
+
+                    float distance = e2.getX() - e1.getX();
+                    if (Math.abs(distance) > FLING_MIN_DISTANCE
+                            && Math.abs(velocityX) > FLING_MIN_VELOCITY) {
+                        if (mPlayer != null) {
                             int pos = mPlayer.getCurrentPosition();
-                            int incr = velocityX > 1.0f ? 1 : -1;
+                            int incr = (distance > 0f ? 1 : -1);
                             pos += incr * 15000; // 15sec
                             if (pos > mPlayer.getDuration())
                                 pos = mPlayer.getDuration();

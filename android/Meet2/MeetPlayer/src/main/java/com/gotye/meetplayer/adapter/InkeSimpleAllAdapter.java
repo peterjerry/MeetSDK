@@ -3,67 +3,22 @@ package com.gotye.meetplayer.adapter;
 import java.util.List;
 import java.util.Map;
 
-import com.gotye.common.util.LogUtil;
-import com.gotye.common.util.PicCacheUtil;
 import com.gotye.meetplayer.R;
-import com.gotye.meetplayer.util.ImgUtil;
 import com.nostra13.universalimageloader.core.DisplayImageOptions;
 import com.nostra13.universalimageloader.core.ImageLoader;
 import com.nostra13.universalimageloader.core.display.RoundedBitmapDisplayer;
 
 import android.content.Context;
-import android.graphics.Bitmap;
-import android.graphics.Matrix;
-import android.os.AsyncTask;
-import android.util.Log;
-import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.BaseAdapter;
 import android.widget.ImageView;
-import android.widget.RelativeLayout;
-import android.widget.RelativeLayout.LayoutParams;
 import android.widget.TextView;
 
-public class InkeAdapter extends BaseAdapter {
-	private final static String TAG = "InkeAdapter";
-	
-	private List<Map<String, Object>> data = null;
-	private Context context					= null;
-	private LayoutInflater inflater 		= null;
+public class InkeSimpleAllAdapter extends MeetAdapter {
 
-	public InkeAdapter(Context context, List<Map<String, Object>> data) {
-		super();
-		
-		this.context = context;
-		this.data = data;
-
-		inflater = LayoutInflater.from(context);
-	}
-	
-	public List<Map<String, Object>> getData() {
-		return data;
-	}
-
-	@Override
-	public int getCount() {
-		// TODO Auto-generated method stub
-		return data.size();
-	}
-
-	@Override
-	public Map<String, Object> getItem(int position) {
-		// TODO Auto-generated method stub
-		if (position >= data.size())
-			return null;
-		
-		return data.get(position);
-	}
-
-	@Override
-	public long getItemId(int position) {
-		// TODO Auto-generated method stub
-		return position;
+	public InkeSimpleAllAdapter(Context context, List<Map<String, Object>> data,
+                                int resourceId) {
+		super(context, data, resourceId);
 	}
 
 	private class ViewHolder {
@@ -82,7 +37,7 @@ public class InkeAdapter extends BaseAdapter {
 		ViewHolder holder;
 		if (convertView == null) {
 			holder = new ViewHolder();
-			convertView = inflater.inflate(R.layout.inke_item, null);
+			convertView = inflater.inflate(id, null);
 
 			holder.avatar = (ImageView) convertView.findViewById(R.id.avatar);
 			holder.title = (TextView) convertView.findViewById(R.id.title);
@@ -124,16 +79,6 @@ public class InkeAdapter extends BaseAdapter {
 		
 		// 注意 默认为返回null,必须得返回convertView视图
 		return convertView;
-	}
-
-	public int dip2px(Context context, float dipValue) {
-		float m = context.getResources().getDisplayMetrics().density;
-		return (int) (dipValue * m + 0.5f);
-	}
-
-	public int px2dip(Context context, float pxValue) {
-		float m = context.getResources().getDisplayMetrics().density;
-		return (int) (pxValue / m + 0.5f);
 	}
 
 }

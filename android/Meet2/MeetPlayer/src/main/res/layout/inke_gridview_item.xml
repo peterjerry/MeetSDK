@@ -1,0 +1,24 @@
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content" >
+    <ImageView
+        android:id="@+id/avatar"
+        android:layout_width="match_parent"
+        android:layout_height="80dp"
+        android:layout_alignParentTop="true"
+        android:scaleType="fitXY"
+        android:layout_margin="5dp"
+        android:src="@drawable/avatar_loading" />
+    <TextView
+        android:id="@+id/location"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignBottom="@id/avatar"
+        android:layout_alignRight="@id/avatar"
+        android:layout_marginRight="5dip"
+        android:textColor="#FF0000"
+        android:textSize="14sp"
+        android:singleLine="true"
+        android:text="位置"/>
+
+</RelativeLayout>

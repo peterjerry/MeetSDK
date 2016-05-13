@@ -10,6 +10,7 @@ import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.Locale;
 
 import com.gotye.meetsdk.util.BufferedRandomAccessFile;
 import android.text.TextUtils;
@@ -20,7 +21,7 @@ public class LogUtil {
 	private static final String TAG = "LogUtil";
 	
     private static final SimpleDateFormat SDF = 
-    		new SimpleDateFormat("yyyy-MM-dd HH:mm:ss SSS");
+    		new SimpleDateFormat("yyyy-MM-dd HH:mm:ss SSS", Locale.US);
     
     private static String outputfile;
 

@@ -219,7 +219,7 @@ public class ListMediaUtil {
 		
 		for (int i = 0; i < FileList.size(); i++) {
 			URL url = (URL)FileList.get(i);
-			String clip_fullpath = url.getPath();
+			String clip_fullpath = url.toString();
 			String filename = GetFileName(clip_fullpath);
 
 			HashMap<String, Object> map = new HashMap<String, Object>();

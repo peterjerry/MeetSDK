@@ -19,47 +19,9 @@ import com.nostra13.universalimageloader.core.display.RoundedBitmapDisplayer;
 import java.util.List;
 import java.util.Map;
 
-public class YkEpisodeAdapter extends BaseAdapter {
-	private final static String TAG = "YkEpisodeAdapter";
-
-	private List<Map<String, Object>> data  = null;
-	private Context context					= null;
-	private LayoutInflater inflater 		= null;
-    private int resourceId;
-
+public class YkEpisodeAdapter extends MeetAdapter {
 	public YkEpisodeAdapter(Context context, List<Map<String, Object>> data, int resource) {
-		super();
-
-		this.context = context;
-		this.data = data;
-        this.resourceId = resource;
-
-		inflater = LayoutInflater.from(context);
-	}
-
-	public List<Map<String, Object>> getData() {
-		return data;
-	}
-
-	@Override
-	public int getCount() {
-		// TODO Auto-generated method stub
-		return data.size();
-	}
-
-	@Override
-	public Map<String, Object> getItem(int position) {
-		// TODO Auto-generated method stub
-		if (position >= data.size())
-			return null;
-
-		return data.get(position);
-	}
-
-	@Override
-	public long getItemId(int position) {
-		// TODO Auto-generated method stub
-		return position;
+		super(context, data, resource);
 	}
 
 	private class ViewHolder {
@@ -73,7 +35,7 @@ public class YkEpisodeAdapter extends BaseAdapter {
 
 		ViewHolder holder;
 		if (convertView == null) {
-			convertView = inflater.inflate(resourceId/*R.layout.gridview_episode*/, null);
+			convertView = inflater.inflate(id, null);
             holder = new ViewHolder();
 			holder.title = (TextView) convertView.findViewById(R.id.tv_title);
 			convertView.setTag(holder);
@@ -95,11 +57,9 @@ public class YkEpisodeAdapter extends BaseAdapter {
                             .getLastPlayedPosition(vid);
                     if (pos > 0) {
                         holder.title.setTextColor(Color.RED);
-                        holder.title.setBackgroundColor(Color.LTGRAY);
                     }
                     else {
                         holder.title.setTextColor(Color.BLACK);
-                        holder.title.setBackgroundColor(Color.WHITE);
                     }
 
                 }

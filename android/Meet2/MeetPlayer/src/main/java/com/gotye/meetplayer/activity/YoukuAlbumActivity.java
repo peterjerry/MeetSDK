@@ -714,7 +714,6 @@ public class YoukuAlbumActivity extends AppCompatActivity {
                 for (int i=0;i<c;i++) {
                     HashMap<String, Object> episode = new HashMap<String, Object>();
                     Episode ep = mEpisodeList.get(i);
-                    LogUtil.info(TAG, "episode info: " + ep.toString());
                     episode.put("title", ep.getTitle());
                     episode.put("img_url", ep.getThumbUrl());
                     episode.put("desc", "N/A");
@@ -793,7 +792,6 @@ public class YoukuAlbumActivity extends AppCompatActivity {
                 for (int i=0;i<c;i++) {
                     HashMap<String, Object> episode = new HashMap<String, Object>();
                     Episode ep = mEpisodeList.get(i);
-                    LogUtil.info(TAG, "episode info: " + ep.toString());
                     episode.put("title", ep.getTitle());
                     episode.put("img_url", ep.getThumbUrl());
                     episode.put("desc", "N/A");

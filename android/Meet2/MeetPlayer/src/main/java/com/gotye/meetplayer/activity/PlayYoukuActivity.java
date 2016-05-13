@@ -57,8 +57,11 @@ public class PlayYoukuActivity extends PlaySegFileActivity {
     @Override
     protected void onPause() {
         if (mPlayer != null) {
-            YKPlayhistoryDatabaseHelper.getInstance(this)
-                    .savePlayedPosition(mVid, mPlayer.getCurrentPosition());
+            int pos = mPlayer.getCurrentPosition();
+            if (pos > 10000) {
+                YKPlayhistoryDatabaseHelper.getInstance(this)
+                        .savePlayedPosition(mVid, pos);
+            }
         }
 
         super.onPause();
@@ -86,26 +89,43 @@ public class PlayYoukuActivity extends PlaySegFileActivity {
         choose_ep_dlg.show();
     }
 
+    private void stopPlayer() {
+        if (mPlayer != null) {
+            try {
+                mPlayer.stop();
+            }
+            catch (Exception e) {
+                e.printStackTrace();
+            }
+
+            mPlayer.release();
+            mPlayer = null;
+        }
+    }
+
     @Override
     protected void onSelectEpisode() {
         if (mEpisodeList == null) {
+            stopPlayer();
             new NextEpisodeTask().execute(NextEpisodeTask.ACTION_LIST_EPISODE);
-            return;
         }
         else if (mEpisodeList.isEmpty()) {
             Toast.makeText(this, "选集列表为空", Toast.LENGTH_SHORT).show();
-            return;
         }
-
-        popupSelectEpDlg();
+        else {
+            popupSelectEpDlg();
+        }
     }
 
     @Override
     protected void onSelectEpisode(int incr) {
-        if (mShowId != null && mEpisodeIndex != -1)
+        if (mShowId != null && mEpisodeIndex != -1) {
+            stopPlayer();
             new NextEpisodeTask().execute(NextEpisodeTask.ACTION_EPISODE_INCR, incr);
-        else
+        }
+        else {
             LogUtil.warn(TAG, "NO episode available");
+        }
     }
 	
 	private class NextEpisodeTask extends AsyncTask<Integer, Integer, Boolean> {

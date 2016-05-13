@@ -28,6 +28,7 @@ import com.gotye.common.youku.Episode;
 import com.gotye.common.youku.YKUtil;
 import com.gotye.db.YKPlayhistoryDatabaseHelper;
 import com.gotye.meetplayer.R;
+import com.gotye.meetplayer.adapter.MeetAdapter;
 import com.gotye.meetplayer.adapter.YkEpisodeAdapter;
 import com.gotye.meetplayer.util.ImgUtil;
 import com.gotye.meetplayer.util.Util;
@@ -40,6 +41,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -68,7 +70,8 @@ public class YoukuEpisodeActivity extends AppCompatActivity {
     private GridView gridView;
     private ListView listView;
 
-    private BaseAdapter mAdapter = null;
+    private MeetAdapter mGvAdapter, mLvAdapter;
+
     private boolean mbGridMode = true;
 
     @Override
@@ -101,7 +104,7 @@ public class YoukuEpisodeActivity extends AppCompatActivity {
             public void onItemClick(AdapterView<?> arg0, View v, int position,
                                     long id) {
                 // TODO Auto-generated method stub
-                Map<String, Object> item = (Map<String, Object>) mAdapter.getItem(position);
+                Map<String, Object> item = (Map<String, Object>) mGvAdapter.getItem(position);
                 int index = (Integer)item.get("index");
                 mEpisodeIndex = index - 1;
                 new PlayLinkTask().execute();
@@ -126,7 +129,7 @@ public class YoukuEpisodeActivity extends AppCompatActivity {
         listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-                Map<String, Object> item = (Map<String, Object>) mAdapter.getItem(position);
+                Map<String, Object> item = (Map<String, Object>) mLvAdapter.getItem(position);
                 int index = (Integer)item.get("index");
                 mEpisodeIndex = index - 1;
                 new PlayLinkTask().execute();
@@ -163,8 +166,6 @@ public class YoukuEpisodeActivity extends AppCompatActivity {
                     listView.setVisibility(View.VISIBLE);
                     gridView.setVisibility(View.GONE);
                 }
-
-                new SetDataTask().execute(mShowId);
                 break;
             default:
                 break;
@@ -251,7 +252,18 @@ public class YoukuEpisodeActivity extends AppCompatActivity {
         @Override
         protected void onPostExecute(Boolean result) {
             // TODO Auto-generated method stub
-            if (result) {
+            if (!result) {
+                Toast.makeText(YoukuEpisodeActivity.this, "获取视频信息失败", Toast.LENGTH_SHORT).show();
+            }
+
+        }
+
+        @Override
+        protected void onProgressUpdate(Integer... values) {
+            int progress = values[0];
+            LogUtil.info(TAG, "onProgressUpdate(): " + progress);
+
+            if (progress == 30) {
                 if (mAlbum.getImgUrl() != null) {
                     DisplayImageOptions options = new DisplayImageOptions.Builder()
                             .showImageOnLoading(R.drawable.loading)         // 加载开始默认的图片
@@ -272,95 +284,128 @@ public class YoukuEpisodeActivity extends AppCompatActivity {
                 mTvTotalVV.setText(String.format("播放: %s", mAlbum.getTotalVV()));
                 mTvStripe.setText(mAlbum.getStripe());
 
-                if (mbGridMode) {
-                    int size = mAlbum.getEpisodeTotal();
+                int size = mAlbum.getEpisodeTotal();
 
-                    String stripe = mAlbum.getStripe();
-                    // 更新至36集 剧集
-                    // 更新至20160430 综艺
-                    //[\d]*
-                    if (stripe != null && stripe.contains("更新至") && stripe.endsWith("集")) {
-                        Pattern pattern = Pattern.compile("[1-9]\\d*");
-                        Matcher matcher = pattern.matcher(stripe);
-                        if (matcher.find()) {
-                            size = Integer.valueOf(matcher.group());
-                            LogUtil.info(TAG, "episode size updated to " + size);
-                        }
+                String stripe = mAlbum.getStripe();
+                // 更新至36集 剧集
+                // 更新至20160430 综艺
+                //[\d]*
+                if (stripe != null && stripe.contains("更新至") && stripe.endsWith("集")) {
+                    Pattern pattern = Pattern.compile("[1-9]\\d*");
+                    Matcher matcher = pattern.matcher(stripe);
+                    if (matcher.find()) {
+                        size = Integer.valueOf(matcher.group());
+                        LogUtil.info(TAG, "episode size updated to " + size);
                     }
+                }
 
-                    if (size > 30)
-                        mbRevertEp = true;
+                if (size > 30)
+                    mbRevertEp = true;
+                else
+                    mbRevertEp = false;
+                List<Map<String, Object>> dataList =
+                        new ArrayList<>();
+                for (int i = 0; i < size; i++) {
+                    HashMap<String, Object> map = new HashMap<String, Object>();
+                    int ep_index;
+                    if (mbRevertEp)
+                        ep_index = size - i/*base 1*/;
                     else
-                        mbRevertEp = false;
-                    List<Map<String, Object>> dataList =
-                            new ArrayList<>();
-                    for (int i = 0; i < size; i++) {
-                        HashMap<String, Object> map = new HashMap<String, Object>();
-                        int ep_index;
-                        if (mbRevertEp)
-                            ep_index = size - i/*base 1*/;
-                        else
-                            ep_index = i + 1 /*base 1*/;
-                        map.put("index", ep_index);
-                        map.put("title", ep_index);
-                        map.put("company", "youku");
-                        dataList.add(map);
-                    }
+                        ep_index = i + 1 /*base 1*/;
+                    map.put("index", ep_index);
+                    map.put("title", ep_index);
+                    map.put("company", "youku");
+                    dataList.add(map);
+                }
 
-                    mAdapter = new YkEpisodeAdapter(YoukuEpisodeActivity.this, dataList,
-                            R.layout.gridview_episode);
-                    gridView.setAdapter(mAdapter);
+                mGvAdapter = new YkEpisodeAdapter(YoukuEpisodeActivity.this, dataList,
+                        R.layout.gridview_episode);
+                gridView.setAdapter(mGvAdapter);
+            }
+            else if (progress > 30) {
+                // grid view
+                // update episode info
+                //String []from = new String[] {"title"};
+                //int []to = new int[] {R.id.tv_title};
+                //mAdapter = new SimpleAdapter(YoukuEpisodeActivity.this, dataList,
+                //        R.layout.listview_episode, from, to);
+                int size;
+
+                size = mEpList.size();
+                for (int i = 0; i < size; i++) {
+                    int ep_index;
+                    if (mbRevertEp)
+                        ep_index = mGvAdapter.getCount() - 1 - i/*base 0*/;
+                    else
+                        ep_index = i/*base 0*/;
+
+                    Map<String, Object> map = mGvAdapter.getItem(ep_index);
+                    map.put("vid", mEpList.get(i).getVideoId());
+                }
+                mGvAdapter.notifyDataSetChanged();
+
+                // list view
+                ArrayList<Map<String, Object>> dataList =
+                        new ArrayList<>();
+                size = mEpList.size();
+                int start = 0;
+                if (mLvAdapter != null) {
+                    start = mLvAdapter.getCount();
+                }
+                for (int i = start; i < size; i++) {
+                    Map<String, Object> map = new HashMap<>();
+                    map.put("index", i + 1);
+                    map.put("title", mEpList.get(i).getTitle());
+                    map.put("vid", mEpList.get(i).getVideoId());
+                    map.put("company", "youku");
+                    dataList.add(map);
+                }
+
+                if (mLvAdapter == null) {
+                    mLvAdapter = new YkEpisodeAdapter(YoukuEpisodeActivity.this, dataList,
+                            R.layout.listview_episode);
+                    listView.setAdapter(mLvAdapter);
                 }
                 else {
-                    ArrayList<Map<String, Object>> dataList =
-                            new ArrayList<>();
-                    int size = mEpList.size();
-                    for (int i = 0; i < size; i++) {
-                        Map<String, Object> map = new HashMap<>();
-                        map.put("index", i + 1);
-                        map.put("title", mEpList.get(i).getTitle());
-                        map.put("vid", mEpList.get(i).getVideoId());
-                        map.put("company", "youku");
-                        dataList.add(map);
-                    }
-
-                    //String []from = new String[] {"title"};
-                    //int []to = new int[] {R.id.tv_title};
-                    //mAdapter = new SimpleAdapter(YoukuEpisodeActivity.this, dataList,
-                    //        R.layout.listview_episode, from, to);
-                    mAdapter = new YkEpisodeAdapter(YoukuEpisodeActivity.this, dataList,
-                            R.layout.listview_episode);
-                    listView.setAdapter(mAdapter);
+                    List<Map<String, Object>> data = mLvAdapter.getData();
+                    data.addAll(dataList);
+                    mLvAdapter.notifyDataSetChanged();
                 }
             }
-            else {
-                Toast.makeText(YoukuEpisodeActivity.this, "获取视频信息失败", Toast.LENGTH_SHORT).show();
-            }
-
         }
 
         @Override
         protected Boolean doInBackground(String... params) {
             // TODO Auto-generated method stub
             String tid = params[0];
-            mAlbum = YKUtil.getAlbumInfo(tid);
-            if (!mbGridMode) {
-                mEpList = new ArrayList<>();
-                int page_index = 1;
-                while (true) {
-                    List<Episode> epList = YKUtil.getEpisodeList(
-                            mAlbum.getShowId(), page_index++, page_size);
-                    if (epList != null && !epList.isEmpty()) {
-                        mEpList.addAll(epList);
-                    }
-                    else {
-                        break;
-                    }
-                }
+            int progress = 0;
 
+            mAlbum = YKUtil.getAlbumInfo(tid);
+            if (mAlbum == null) {
+                LogUtil.error(TAG, "failed to get album info");
+                return false;
             }
 
-            return (mAlbum != null);
+            progress = 30;
+            publishProgress(progress);
+
+            mEpList = new ArrayList<>();
+            int page_index = 1;
+            while (true) {
+                List<Episode> epList = YKUtil.getEpisodeList(
+                        mAlbum.getShowId(), page_index++, page_size);
+                if (epList != null && !epList.isEmpty()) {
+                    mEpList.addAll(epList);
+                    progress++;
+                    publishProgress(progress);
+                }
+                else {
+                    break;
+                }
+            }
+
+            publishProgress(100);
+            return true;
         }
     }
 }

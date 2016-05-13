@@ -3,38 +3,21 @@ package com.gotye.meetplayer.activity;
 import android.content.Intent;
 import android.graphics.PixelFormat;
 import android.media.AudioManager;
-import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
 import android.view.SurfaceHolder;
-import android.view.SurfaceView;
 import android.view.View;
-import android.widget.AdapterView;
-import android.widget.ListView;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import com.gotye.common.util.LogUtil;
-import com.gotye.common.util.httpUtil;
 import com.gotye.meetplayer.R;
-import com.gotye.meetplayer.adapter.InkeAdapter;
-import com.gotye.meetplayer.media.FragmentMp4MediaPlayerV2;
 import com.gotye.meetplayer.ui.MyPreView2;
 import com.gotye.meetplayer.util.Util;
 import com.gotye.meetsdk.player.MediaPlayer;
 
-import org.json.JSONArray;
-import org.json.JSONObject;
-import org.json.JSONTokener;
-
-import java.io.IOException;
-import java.net.URLEncoder;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
 import java.util.Locale;
-import java.util.Map;
 
 public class InkePlayerActivity extends AppCompatActivity
         implements SurfaceHolder.Callback {

@@ -9,7 +9,9 @@ import com.gotye.common.util.LogUtil;
 import com.gotye.common.util.httpUtil;
 import com.gotye.meetplayer.util.Util;
 
+import java.io.BufferedOutputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -214,7 +216,7 @@ public class YKUtil {
     public static ZGUrl getPlayUrl2(Context context, String vid) {
         String m3u8_url = getPlayUrl(vid);
         if (m3u8_url == null) {
-            LogUtil.error(TAG, "Java: failed to call getPlayUrl() vid: " + vid);
+            LogUtil.error(TAG, "Java: failed to get m3u8 url, vid: " + vid);
             return null;
         }
 
@@ -552,41 +554,41 @@ public class YKUtil {
     }
 
     public static FilterResult getSearchFilter() {
-        List<YKUtil.FilerType> ft_duration = new ArrayList<>();
+        List<FilerType> ft_duration = new ArrayList<>();
         //0- 不限，1->0-10min, 2->10-30min, 3->30-60min, 4->60min+
-        ft_duration.add(new YKUtil.FilerType("不限", "0"));
-        ft_duration.add(new YKUtil.FilerType("0-10分钟", "1"));
-        ft_duration.add(new YKUtil.FilerType("10-30分钟", "2"));
-        ft_duration.add(new YKUtil.FilerType("30-60分钟", "3"));
-        ft_duration.add(new YKUtil.FilerType("60分钟以上", "4"));
+        ft_duration.add(new FilerType("不限", "0"));
+        ft_duration.add(new FilerType("0-10分钟", "1"));
+        ft_duration.add(new FilerType("10-30分钟", "2"));
+        ft_duration.add(new FilerType("30-60分钟", "3"));
+        ft_duration.add(new FilerType("60分钟以上", "4"));
 
-        List<YKUtil.FilerType> publish_time = new ArrayList<>();
+        List<FilerType> publish_time = new ArrayList<>();
         // limitdate 1->1天, 7->1周, 31->1月， 365->1年
-        publish_time.add(new YKUtil.FilerType("不限", "0"));
-        publish_time.add(new YKUtil.FilerType("1天", "1"));
-        publish_time.add(new YKUtil.FilerType("1周", "7"));
-        publish_time.add(new YKUtil.FilerType("1月", "31"));
-        publish_time.add(new YKUtil.FilerType("1年", "365"));
+        publish_time.add(new FilerType("不限", "0"));
+        publish_time.add(new FilerType("1天", "1"));
+        publish_time.add(new FilerType("1周", "7"));
+        publish_time.add(new FilerType("1月", "31"));
+        publish_time.add(new FilerType("1年", "365"));
 
-        List<YKUtil.FilerType> resolution_ft = new ArrayList<>();
+        List<FilerType> resolution_ft = new ArrayList<>();
         // hd 0-不限,1-高清,6-超清,7-1080p
-        resolution_ft.add(new YKUtil.FilerType("不限", "0"));
-        resolution_ft.add(new YKUtil.FilerType("高清", "1"));
-        resolution_ft.add(new YKUtil.FilerType("超清", "6"));
-        resolution_ft.add(new YKUtil.FilerType("1080p", "7"));
+        resolution_ft.add(new FilerType("不限", "0"));
+        resolution_ft.add(new FilerType("高清", "1"));
+        resolution_ft.add(new FilerType("超清", "6"));
+        resolution_ft.add(new FilerType("1080p", "7"));
 
-        List<YKUtil.FilerGroup> filter_list = new ArrayList<>();
-        filter_list.add(new YKUtil.FilerGroup("时长", "lengthtype", ft_duration));
-        filter_list.add(new YKUtil.FilerGroup("发布时间", "limitdate", publish_time));
-        filter_list.add(new YKUtil.FilerGroup("画质", "hd", resolution_ft));
+        List<FilerGroup> filter_list = new ArrayList<>();
+        filter_list.add(new FilerGroup("时长", "lengthtype", ft_duration));
+        filter_list.add(new FilerGroup("发布时间", "limitdate", publish_time));
+        filter_list.add(new FilerGroup("画质", "hd", resolution_ft));
 
-        List<YKUtil.SortType> sort_type_list = new ArrayList<>();
+        List<SortType> sort_type_list = new ArrayList<>();
         // orderby 1-综合排序 2-最新发布 3-最多播放
-        sort_type_list.add(new YKUtil.SortType("综合排序", 1));
-        sort_type_list.add(new YKUtil.SortType("最新发布", 2));
-        sort_type_list.add(new YKUtil.SortType("最多播放", 3));
+        sort_type_list.add(new SortType("综合排序", 1));
+        sort_type_list.add(new SortType("最新发布", 2));
+        sort_type_list.add(new SortType("最多播放", 3));
 
-        return new YKUtil.FilterResult(filter_list, sort_type_list);
+        return new FilterResult(filter_list, sort_type_list);
     }
 
     public static FilterResult getFilter(int channel_id) {
@@ -1350,7 +1352,7 @@ public class YKUtil {
     }
 
     public static ZGUrl parseM3u8(String vid, String m3u8_context) {
-        LogUtil.info(TAG, "parseM3u8()");
+        LogUtil.info(TAG, "parseM3u8() vid: " + vid);
 
         StringBuffer sbUrl = new StringBuffer();
         StringBuffer sbDuration = new StringBuffer();

@@ -177,7 +177,11 @@ public class PPTVVideoActivity extends AppCompatActivity {
                 }
             }
         });
-		
+
+		if (!Util.GetNetworkType(this).endsWith("WIFI")) {
+			Toast.makeText(this, "移动网络中，土豪请随意", Toast.LENGTH_SHORT).show();
+		}
+
 		mHistoryDB = PPTVPlayhistoryDatabaseHelper.getInstance(this);
 		
 		mEPG = new EPGUtil();

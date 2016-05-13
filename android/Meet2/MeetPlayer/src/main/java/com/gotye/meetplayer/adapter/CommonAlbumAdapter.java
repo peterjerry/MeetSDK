@@ -10,6 +10,7 @@ import com.gotye.meetplayer.R;
 import com.gotye.meetplayer.util.ImgUtil;
 import com.nostra13.universalimageloader.core.DisplayImageOptions;
 import com.nostra13.universalimageloader.core.ImageLoader;
+import com.nostra13.universalimageloader.core.assist.ImageScaleType;
 import com.nostra13.universalimageloader.core.display.RoundedBitmapDisplayer;
 import com.nostra13.universalimageloader.core.listener.ImageLoadingListener;
 import com.nostra13.universalimageloader.core.listener.SimpleImageLoadingListener;
@@ -129,11 +130,9 @@ public class CommonAlbumAdapter extends BaseAdapter {
                             .getLastPlayedPosition(vid);
                     if (pos > 0) {
                         holder.title.setTextColor(Color.RED);
-                        holder.title.setBackgroundColor(Color.LTGRAY);
                     }
                     else {
                         holder.title.setTextColor(Color.BLACK);
-                        holder.title.setBackgroundColor(Color.WHITE);
                     }
 
                 }
@@ -151,9 +150,9 @@ public class CommonAlbumAdapter extends BaseAdapter {
                     .showImageOnLoading(R.drawable.loading)         // 加载开始默认的图片
                     .showImageForEmptyUri(R.drawable.loading) //url爲空會显示该图片，自己放在drawable里面的
                     .showImageOnFail(R.drawable.loading_error)      //加载图片出现问题，会显示该图片
-                    .displayer(new RoundedBitmapDisplayer(5))  //图片圆角显示，值为整数
                     .cacheInMemory(true)
                     .cacheOnDisk(true)
+					.imageScaleType(ImageScaleType.NONE)
                     .build();
             ImageLoader.getInstance().displayImage(img_url, holder.img, options);
 		}

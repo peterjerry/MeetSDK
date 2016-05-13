@@ -2,17 +2,26 @@ package com.gotye.meetplayer.activity;
 
 import android.content.Intent;
 import android.os.AsyncTask;
+import android.support.v4.view.PagerAdapter;
+import android.support.v4.view.PagerTabStrip;
+import android.support.v4.view.ViewPager;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.view.LayoutInflater;
 import android.view.View;
+import android.view.ViewGroup;
+import android.widget.AbsListView;
 import android.widget.AdapterView;
-import android.widget.Button;
+import android.widget.GridView;
 import android.widget.ListView;
 import android.widget.Toast;
 
 import com.gotye.common.util.httpUtil;
 import com.gotye.meetplayer.R;
-import com.gotye.meetplayer.adapter.InkeAdapter;
+import com.gotye.meetplayer.adapter.MeetAdapter;
+import com.gotye.meetplayer.adapter.InkeHomePageAdapter;
+import com.gotye.meetplayer.adapter.InkeSimpleAllAdapter;
+import com.gotye.meetplayer.util.Util;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -26,11 +35,19 @@ import java.util.Map;
 
 public class InkeActivity extends AppCompatActivity {
 
-    private ListView mLvCreator;
-    private Button mBtnToggle;
-    private InkeAdapter mAdapter;
+    private final static String TAG = "InkeActivity";
 
-    private int type = 0;
+    private ListView mLvCreator;
+    private GridView mGvCreator;
+    private MeetAdapter mAdapter;
+
+    private int type = LoadTask.LIST_SIMPLEALL;
+
+    private ViewPager pager;
+    private PagerTabStrip tabStrip;
+    private ArrayList<View> viewContainter;
+    private ArrayList<String> titleContainer;
+    private View viewSimpleAll, viewHomePage;
 
     private String gettop_api_url = "http://service5.ingkee.com/api/live/gettop" +
             "?lc=3000000000001604" +
@@ -85,57 +102,167 @@ public class InkeActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_inke);
 
-        mBtnToggle = (Button) this.findViewById(R.id.btn_toggle);
-        mLvCreator = (ListView) this.findViewById(R.id.lv_creator);
+        viewContainter = new ArrayList<View>();
+        titleContainer = new ArrayList<String>();
+
+        pager = (ViewPager) this.findViewById(R.id.viewpager);
+        tabStrip = (PagerTabStrip) this.findViewById(R.id.tabstrip);
+        //取消tab下面的长横线
+        tabStrip.setDrawFullUnderline(false);
+        //设置tab的背景色
+        tabStrip.setBackgroundColor(this.getResources().getColor(R.color.fancy_blue));
+        //设置当前tab页签的下划线颜色
+        tabStrip.setTabIndicatorColor(this.getResources().getColor(R.color.red));
+        tabStrip.setTextSpacing(200);
+
+        viewSimpleAll = LayoutInflater.from(this).inflate(R.layout.activity_inke_simpleall, null);
+        viewHomePage = LayoutInflater.from(this).inflate(R.layout.activity_inke_homepage, null);
+        //viewpager开始添加view
+        viewContainter.add(viewSimpleAll);
+        viewContainter.add(viewHomePage);
+        //页签项
+        titleContainer.add("热门主播");
+        titleContainer.add("新鲜出炉");
+
+        pager.setAdapter(new PagerAdapter() {
+
+            //viewpager中的组件数量
+            @Override
+            public int getCount() {
+                return viewContainter.size();
+            }
+            //滑动切换的时候销毁当前的组件
+            @Override
+            public void destroyItem(ViewGroup container, int position,
+                                    Object object) {
+                container.removeView(viewContainter.get(position));
+            }
+            //每次滑动的时候生成的组件
+            @Override
+            public Object instantiateItem(ViewGroup container, int position) {
+                container.addView(viewContainter.get(position));
+                return viewContainter.get(position);
+            }
+
+            @Override
+            public boolean isViewFromObject(View arg0, Object arg1) {
+                return arg0 == arg1;
+            }
+
+            @Override
+            public int getItemPosition(Object object) {
+                return super.getItemPosition(object);
+            }
+
+            @Override
+            public CharSequence getPageTitle(int position) {
+                return titleContainer.get(position);
+            }
+        });
+
+        pager.setOnPageChangeListener(new ViewPager.OnPageChangeListener() {
+            @Override
+            public void onPageScrolled(int position, float positionOffset, int positionOffsetPixels) {
+
+            }
+
+            @Override
+            public void onPageSelected(int position) {
+                mAdapter = null;
+                if (position == 0) {
+                    new LoadTask().execute(LoadTask.LIST_SIMPLEALL);
+                }
+                else {
+                    new LoadTask().execute(LoadTask.LIST_HOMEPAGE);
+                }
+            }
+
+            @Override
+            public void onPageScrollStateChanged(int state) {
+
+            }
+        });
+
+        mLvCreator = (ListView) viewSimpleAll.findViewById(R.id.lv_creator);
+        mGvCreator = (GridView) viewHomePage.findViewById(R.id.gv_creator);
 
         mLvCreator.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-                Map<String, Object> map = mAdapter.getItem(position);
-                String play_url = (String)map.get("play_url");
+                Map<String, Object> map = (Map<String, Object>)mLvCreator.getItemAtPosition(position);
+                String play_url = (String) map.get("play_url");
                 Intent intent = new Intent(InkeActivity.this, InkePlayerActivity.class);
                 intent.putExtra("play_url", play_url);
                 startActivity(intent);
             }
         });
 
-        mBtnToggle.setOnClickListener(new View.OnClickListener() {
+        mGvCreator.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
-            public void onClick(View v) {
-                if (type == 0) {
-                    type = 1;
-                    mBtnToggle.setText(getResources().getString(R.string.inke_hotest));
-                }
-                else {
-                    type = 0;
-                    mBtnToggle.setText(getResources().getString(R.string.inke_newest));
-                }
-
-                new LoadTask().execute(type);
+            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+                Map<String, Object> map = (Map<String, Object>)mGvCreator.getItemAtPosition(position);
+                String play_url = (String) map.get("play_url");
+                Intent intent = new Intent(InkeActivity.this, InkePlayerActivity.class);
+                intent.putExtra("play_url", play_url);
+                startActivity(intent);
             }
         });
 
-        new LoadTask().execute(type);
+        mGvCreator.setOnScrollListener(new AbsListView.OnScrollListener() {
+            @Override
+            public void onScrollStateChanged(AbsListView view, int scrollState) {
+
+            }
+
+            @Override
+            public void onScroll(AbsListView view, int firstVisibleItem, int visibleItemCount, int totalItemCount) {
+
+            }
+        });
+
+        if (!Util.GetNetworkType(this).endsWith("WIFI")) {
+            Toast.makeText(this, "移动网络中，土豪请随意", Toast.LENGTH_SHORT).show();
+        }
+
+        new LoadTask().execute(LoadTask.LIST_SIMPLEALL);
     }
 
     private class LoadTask extends AsyncTask<Integer, Integer, List<Map<String, Object>>> {
 
+        private final static int LIST_SIMPLEALL = 1;
+        private final static int LIST_HOMEPAGE = 2;
+
+        private int action;
+
         @Override
         protected void onPostExecute(List<Map<String, Object>> result) {
             if (result != null) {
-                if (mAdapter == null) {
-                    mAdapter = new InkeAdapter(InkeActivity.this, result);
-                    mLvCreator.setAdapter(mAdapter);
+                if (action == LIST_SIMPLEALL) {
+                    if (mAdapter == null) {
+                        mAdapter = new InkeSimpleAllAdapter(InkeActivity.this, result,
+                                R.layout.inke_item);
+                        mLvCreator.setAdapter(mAdapter);
+                    } else {
+                        List<Map<String, Object>> dataList = mAdapter.getData();
+                        dataList.clear();
+                        dataList.addAll(result);
+                        mAdapter.notifyDataSetChanged();
+                    }
                 }
                 else {
-                    List<Map<String, Object>> dataList = mAdapter.getData();
-                    dataList.clear();
-                    dataList.addAll(result);
-                    mAdapter.notifyDataSetChanged();
+                    if (mAdapter == null) {
+                        mAdapter = new InkeHomePageAdapter(InkeActivity.this, result,
+                                R.layout.inke_gridview_item);
+                        mGvCreator.setAdapter(mAdapter);
+                    } else {
+                        List<Map<String, Object>> dataList = mAdapter.getData();
+                        dataList.clear();
+                        dataList.addAll(result);
+                        mAdapter.notifyDataSetChanged();
+                    }
                 }
 
-            }
-            else {
+            } else {
                 Toast.makeText(InkeActivity.this, "加载数据失败", Toast.LENGTH_SHORT).show();
             }
         }
@@ -144,10 +271,13 @@ public class InkeActivity extends AppCompatActivity {
         protected List<Map<String, Object>> doInBackground(Integer... params) {
             String result;
 
-            if (params[0] == 0)
+            action = params[0];
+
+            if (action == LIST_SIMPLEALL)
                 result = httpUtil.getHttpPage(simpleall_api_url);
             else
                 result = httpUtil.getHttpPage(homepage_api_url);
+
             if (result == null)
                 return null;
 
@@ -161,7 +291,7 @@ public class InkeActivity extends AppCompatActivity {
                 int size = lives.length();
                 List<Map<String, Object>> listData = new ArrayList<Map<String, Object>>();
 
-                for (int i=0;i<size;i++) {
+                for (int i = 0; i < size; i++) {
                     JSONObject live = lives.getJSONObject(i);
 
 //                    {
@@ -223,4 +353,5 @@ public class InkeActivity extends AppCompatActivity {
             return null;
         }
     }
+
 }

@@ -148,6 +148,10 @@ public class FragmentMp4MediaPlayerV2 {
 				m_pre_seek_pos = msec - m_play_pos_offset;
 
                 mHandler.removeMessages(MainHandler.MSG_CHECK_SETUP_NEXT_PLAYER);
+				if (mNextPlayer != null) {
+					mNextPlayer.release();
+					mNextPlayer = null;
+				}
 				setupPlayer();
 			}
 			else if (msec >= m_play_pos_offset + m_duration_list.get(m_playlink_now_index)) {
@@ -169,6 +173,10 @@ public class FragmentMp4MediaPlayerV2 {
 				m_pre_seek_pos = msec - m_play_pos_offset;
 
                 mHandler.removeMessages(MainHandler.MSG_CHECK_SETUP_NEXT_PLAYER);
+				if (mNextPlayer != null) {
+					mNextPlayer.release();
+					mNextPlayer = null;
+				}
 				setupPlayer();
 			}
 			else {
@@ -468,15 +476,15 @@ public class FragmentMp4MediaPlayerV2 {
 		@Override
 		public void onPrepared(MediaPlayer mp) {
 			// TODO Auto-generated method stub
-			if (m_pre_seek_pos > 0) {
+            if (m_pre_seek_pos > 0) {
 				mp.seekTo(m_pre_seek_pos);
 				m_pre_seek_pos = 0;
 			}
-			
+
 			if (mSeeking)
 				mSeeking = false;
-			
-			mp.start();
+
+            mp.start();
 			
 			if (m_playlink_now_index == 0) {
 				if (mOnPreparedListener != null)

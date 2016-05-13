@@ -71,7 +71,7 @@ dependencies {
     compile fileTree(dir: 'libs', include: ['*.jar'])
     testCompile 'junit:junit:4.12'
     compile(name: 'BreakpadUtil', ext: 'aar')
-	//compile(name: 'MeetSDK-release', ext: 'aar')
+	compile(name: 'MeetSDK-release', ext: 'aar')
     compile 'com.android.support:appcompat-v7:23.1.1'
-    compile project(':MeetSDK')
+    //compile project(':MeetSDK')
 }
