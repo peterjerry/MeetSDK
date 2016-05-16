@@ -387,7 +387,7 @@ public class PlaySegFileActivity extends AppCompatActivity
 
         Dialog choose_player_impl_dlg = new AlertDialog.Builder(PlaySegFileActivity.this)
                 .setTitle("选择播放器类型")
-                .setSingleChoiceItems(PlayerImpl, mPlayerImpl, /*default selection item number*/
+                .setSingleChoiceItems(PlayerImpl, mPlayerImpl - 1, /*default selection item number*/
                         new DialogInterface.OnClickListener(){
                             public void onClick(DialogInterface dialog, int whichButton){
                                 LogUtil.info(TAG, "select player impl: " + whichButton);

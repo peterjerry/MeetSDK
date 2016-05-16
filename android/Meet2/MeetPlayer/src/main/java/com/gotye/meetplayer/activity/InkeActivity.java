@@ -220,9 +220,7 @@ public class InkeActivity extends AppCompatActivity {
             }
         });
 
-        if (!Util.GetNetworkType(this).endsWith("WIFI")) {
-            Toast.makeText(this, "移动网络中，土豪请随意", Toast.LENGTH_SHORT).show();
-        }
+        Util.checkNetworkType(this);
 
         new LoadTask().execute(LoadTask.LIST_SIMPLEALL);
     }

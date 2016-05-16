@@ -1214,9 +1214,7 @@ public class ClipListActivity extends AppCompatActivity implements
 
             mPreview.setVisibility(View.VISIBLE);
 
-            if (!Util.GetNetworkType(this).endsWith("WIFI")) {
-                Toast.makeText(this, "移动网络观看中，土豪请随意", Toast.LENGTH_SHORT).show();
-            }
+            Util.checkNetworkType(this);
 
             mPlayer = new MediaPlayer(mDecMode);
 

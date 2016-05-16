@@ -161,7 +161,7 @@ jlong android_media_MediaExtractor_getSampleTime(JNIEnv *env, jobject thiz)
 	IExtractor* extractor = getMediaExtractor(env, thiz);
 	if (extractor == NULL ) {
 		jniThrowException(env, "java/lang/IllegalStateException", NULL);
-		return UNKNOWN_ERROR;
+		return -1;
 	}
 
 	int64_t usec = 0;

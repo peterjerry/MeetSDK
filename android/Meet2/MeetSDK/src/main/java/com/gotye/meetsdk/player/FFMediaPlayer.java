@@ -198,7 +198,8 @@ public class FFMediaPlayer extends BaseMediaPlayer {
 	public void setDisplay(SurfaceHolder sh) {
 		super.setDisplay(sh);
 
-        setSurface(sh.getSurface());
+		if (sh != null)
+        	setSurface(sh.getSurface());
 	}
 	
 	@Override

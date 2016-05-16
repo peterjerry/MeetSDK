@@ -363,8 +363,16 @@ public class Util {
 		return null;
 	}
 
+    public static void checkNetworkType(Context context) {
+        String networkType = GetNetworkType(context);
+        if (!networkType.equals("WIFI") &&
+                !networkType.equals("ETHERNET")) {
+            Toast.makeText(context, "移动网络观看中，土豪请随意", Toast.LENGTH_SHORT).show();
+        }
+    }
+
     public static String GetNetworkType(Context context) {
-        String strNetworkType = "";
+        String strNetworkType = "Unknown";
 
         NetworkInfo networkInfo =
                 ((ConnectivityManager) context.getSystemService(Context.CONNECTIVITY_SERVICE)).getActiveNetworkInfo();
@@ -417,6 +425,9 @@ public class Util {
 
                 LogUtil.info(TAG, "Network getSubtype : " + Integer.valueOf(networkType).toString());
             }
+			else if (networkInfo.getType() == ConnectivityManager.TYPE_ETHERNET) {
+				strNetworkType = "ETHERNET";
+			}
         }
 
         LogUtil.info(TAG, "Network Type : " + strNetworkType);

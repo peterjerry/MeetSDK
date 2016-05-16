@@ -98,9 +98,7 @@ public class YoukuVideoActivity extends AppCompatActivity {
 
         mPlayerImpl = Util.readSettingsInt(this, "PlayerImpl");
 
-        if (!Util.GetNetworkType(this).endsWith("WIFI")) {
-            Toast.makeText(this, "移动网络中，土豪请随意", Toast.LENGTH_SHORT).show();
-        }
+        Util.checkNetworkType(this);
 
 		new EPGTask().execute(EPG_TASK_LIST_CHANNEL);
 	}
