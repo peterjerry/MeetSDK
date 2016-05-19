@@ -39,9 +39,11 @@ extern "C" {
 #include "libavutil/dict.h"
 #include "libavutil/time.h" // for av_usleep()
 #include "libavutil/imgutils.h" // for av_image_alloc()
-#include "libswresample/swresample.h"
 #ifdef USE_SWSCALE
 #include "libswscale/swscale.h"
+#endif
+#ifdef USE_SWRESAMPLE
+#include "libswresample/swresample.h"
 #endif
 #ifdef USE_AV_FILTER
 #include "libavfilter/avfilter.h"
