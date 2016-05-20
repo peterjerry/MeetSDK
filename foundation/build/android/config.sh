@@ -228,6 +228,7 @@ do
 			--disable-bsfs \
 			--enable-bsf=h264_mp4toannexb,aac_adtstoasc \
 			--disable-swscale \
+			--disable-swresample \
 			--disable-avfilter \
 			--disable-postproc \
 			--enable-small "
