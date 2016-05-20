@@ -70,7 +70,7 @@ ifeq ($(TARGET_ARCH_ABI),arm64-v8a)
 LOCAL_C_INCLUDES		+= $(LOCAL_PATH)/$(PLATFORMPATH)/libyuv/jni/include
 endif	
 	
-LOCAL_CFLAGS    		:= -Wall -DNDK_BUILD=1 -DUSE_NDK_SURFACE_REF -DTEST_PERFORMANCE -DTEST_PERFORMANCE_BITRATE  #-DNO_AUDIO_PLAY
+LOCAL_CFLAGS    		:= -Wall -DNDK_BUILD=1 -DUSE_NDK_SURFACE_REF #-DTEST_PERFORMANCE -DTEST_PERFORMANCE_BITRATE -DNO_AUDIO_PLAY
 MY_SRC_PLAYER_FILES 	:= common.cpp ffconverter.cpp
 ifdef BUILD_FFPLAYER
 MY_SRC_PLAYER_FILES 	+= ffstream.cpp audioplayer.cpp audiorender.cpp ffplayer.cpp androidrender.cpp \
