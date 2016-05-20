@@ -157,6 +157,7 @@ FFExtractor::FFExtractor()
 	m_open_stream_start_msec= 0;
 	//m_read_stream_start_msec= 0;
 
+	m_thread_created		= false;					
 	m_buffering				= false;
 	m_seeking				= false;
 	m_eof					= false;
@@ -247,8 +248,8 @@ status_t FFExtractor::stop()
 	LOGI("extractor_op stop()");
 
 	// 2016.4.21 FFEXTRACTOR_PREPARED state thread was NOT created
-	if (FFEXTRACTOR_PREPARED != m_status)
-		m_status = FFEXTRACTOR_STOPPING;
+	// 2016.5.20 fix cannot interrupt blocked prepare()
+	m_status = FFEXTRACTOR_STOPPING;
 	return OK;
 }
 
@@ -287,12 +288,14 @@ void FFExtractor::close()
 		m_buffering = false;
 		pthread_cond_signal(&mCondition);
 
-		LOGI("stop(): demux_thread before pthread_join %p", mThread);
-		int ret = pthread_join(mThread, NULL);
-		if (ret != 0)
-			LOGE("pthread_join error %d", ret);
+		if (m_thread_created) {
+			LOGI("stop(): demux_thread before pthread_join %p", mThread);
+			int ret = pthread_join(mThread, NULL);
+			if (ret != 0)
+				LOGE("pthread_join error %d", ret);
 
-		LOGI("stop(): after thread join");
+			LOGI("stop(): after thread join");
+		}
 		m_video_q.flush();
 		m_audio_q.flush();
 		m_cached_duration_msec = 0;
@@ -1597,14 +1600,8 @@ void FFExtractor::addADTStoPacket(uint8_t *packet, int packetLen)
 
 int FFExtractor::start(int fill_pkt)
 {
-	if (FFEXTRACTOR_PREPARED != m_status) {
-		// 2016.4.27 fix FFEXTRACTOR_STOPPING state re-create thread bug
-		if (FFEXTRACTOR_STARTED != m_status && FFEXTRACTOR_PAUSED != m_status) {
-			LOGI("start() called in state: %d", m_status);
-		}
-
+	if (m_thread_created)
 		return 0;
-	}
 
 	if (!m_audio_stream && !m_video_stream) {
 		LOGE("both audio and video stream was not set, aborting");
@@ -1617,6 +1614,7 @@ int FFExtractor::start(int fill_pkt)
 		return -1;
 	}
 
+	m_thread_created = true;
 	m_buffering = true;
 	m_status = FFEXTRACTOR_STARTED;
 
@@ -1936,7 +1934,7 @@ static void ff_log_callback(void* avcl, int level, const char* fmt, va_list vl)
 		case AV_LOG_MAX_OFFSET:
 			break;
 		default:
-			LOGI("%s", log);
+			LOGD("%s", log);
 			break;
 	}
 }

@@ -165,6 +165,7 @@ enum DATASOURCE_TYPE
 	int64_t				m_open_stream_start_msec;
 	//int64_t				m_read_stream_start_msec;
 
+	bool				m_thread_created;
 	bool				m_buffering;
 	bool				m_seeking;
 	bool				m_eof;
