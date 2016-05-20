@@ -22,6 +22,7 @@ public class FFMediaPlayer extends BaseMediaPlayer {
 
 	private long mNativeContext; // ISubtitle ctx, accessed by native methods
 	private long mListenerContext; // accessed by native methods
+	private long mSurface;// accessed by native methods
 	private static String libPath = "";
     private boolean mUseRenderer = false;
 	
@@ -197,14 +198,16 @@ public class FFMediaPlayer extends BaseMediaPlayer {
 	public void setDisplay(SurfaceHolder sh) {
 		super.setDisplay(sh);
 
-        setSurface(sh.getSurface());
+		if (sh != null)
+        	setSurface(sh.getSurface());
 	}
 	
 	@Override
 	public void setSurface(Surface surface) {
 		// TODO Auto-generated method stub
-        if (!mUseRenderer)
+        if (!mUseRenderer) {
             _setVideoSurface(surface);
+        }
 
 		updateSurfaceScreenOn();
 	}

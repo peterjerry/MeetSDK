@@ -8,6 +8,8 @@ import org.apache.ivy.util.url.ApacheURLLister;
 
 import android.util.Log;
 
+import com.gotye.common.util.LogUtil;
+
 public class HTTPListUtil {
 	
 	private final static String TAG = "HTTPListUtil";
@@ -32,22 +34,23 @@ public class HTTPListUtil {
 			URL url;
 			url = new URL(http_url);
 			mHttpFileList = lister.listFiles(url); //listAll
-			for(int i = 0; i < mHttpFileList.size(); i++) {
+			for (int i = 0; i < mHttpFileList.size(); i++) {
 				URL full_path = (URL)mHttpFileList.get(i);
-				Log.i(TAG, "http file: " + full_path.toString());
+				LogUtil.info(TAG, "http file: " + full_path.toString());
 			}
 			
 			mHttpFolderList = lister.listDirectories(url);
 			for (int i = 0; i < mHttpFolderList.size(); i++) {
 				URL full_path = (URL)mHttpFolderList.get(i);
-				Log.i(TAG, "http folder: " + full_path.toString());
+				LogUtil.info(TAG, "http folder: " + full_path.toString());
 			}
+
+			return true;
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
-			return false;
 		}
 		
-		return true;
+		return false;
 	}
 }

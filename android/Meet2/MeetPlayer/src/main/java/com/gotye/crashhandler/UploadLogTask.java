@@ -21,7 +21,7 @@ public class UploadLogTask extends AsyncTask<String, Integer, String> {
 	public interface TaskListener {
 		void onFinished(String msg, int code);
 
-		void onEror(String msg, int code);
+		void onError(String msg, int code);
 	}
 	
 	public void setOnTaskListener(TaskListener listener) {
@@ -36,7 +36,7 @@ public class UploadLogTask extends AsyncTask<String, Integer, String> {
             if (result != null)
                 mListener.onFinished("成功将崩溃信息 " + result + " 发送到服务器，感谢您的反馈", 0);
             else
-                mListener.onEror("发送崩溃信息失败", -1);
+                mListener.onError("发送崩溃信息失败", -1);
         }
 	}
 	

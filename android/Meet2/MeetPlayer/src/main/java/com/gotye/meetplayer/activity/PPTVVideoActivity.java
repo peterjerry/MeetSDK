@@ -177,7 +177,9 @@ public class PPTVVideoActivity extends AppCompatActivity {
                 }
             }
         });
-		
+
+		Util.checkNetworkType(this);
+
 		mHistoryDB = PPTVPlayhistoryDatabaseHelper.getInstance(this);
 		
 		mEPG = new EPGUtil();

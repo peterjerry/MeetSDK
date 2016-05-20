@@ -88,7 +88,9 @@ public class SohuVideoActivity extends AppCompatActivity {
 		});
 		
 		mEPG = new SohuUtil();
-		
+
+		Util.checkNetworkType(this);
+
 		new EPGTask().execute(EPG_TASK_LIST_CHANNEL);
 	}
 

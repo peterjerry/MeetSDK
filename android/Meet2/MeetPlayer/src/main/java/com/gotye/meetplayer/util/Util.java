@@ -43,6 +43,8 @@ import com.gotye.crashhandler.UploadLogTask;
 import com.gotye.meetsdk.MeetSDK;
 import com.gotye.meetsdk.player.MediaInfo;
 import com.gotye.meetsdk.player.TrackInfo;
+
+import android.telephony.TelephonyManager;
 import android.util.Log;
 import android.widget.ProgressBar;
 import android.widget.Toast;
@@ -170,7 +172,19 @@ public class Util {
 		SharedPreferences settings = ctx.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE); // create it if NOT exist
     	return settings.getInt(key, 0);
 	}
-	
+
+	public static boolean writeSettingsLong(Context ctx, String key, long value) {
+		SharedPreferences settings = ctx.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE); // create it if NOT exist
+		SharedPreferences.Editor editor = settings.edit();
+		editor.putLong(key, value);
+		return editor.commit();
+	}
+
+	public static long readSettingsLong(Context ctx, String key) {
+		SharedPreferences settings = ctx.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE); // create it if NOT exist
+		return settings.getLong(key, 0L);
+	}
+
 	public static void add_sohuvideo_history(Context ctx, String title, int vid, long aid, int site) {
 		String key = "SohuPlayHistory";
 		String regularEx = ",";
@@ -325,21 +339,21 @@ public class Util {
 			Enumeration<NetworkInterface> en = NetworkInterface.getNetworkInterfaces();
 			while (en.hasMoreElements()) {
 				NetworkInterface intf = en.nextElement();
-				if (intf.getName().toLowerCase().equals("eth0")
-						|| intf.getName().toLowerCase().equals("wlan0")) {
+				//if (intf.getName().toLowerCase().equals("eth0")
+				//		|| intf.getName().toLowerCase().equals("wlan0")) {
 					for (Enumeration<InetAddress> enumIpAddr = intf
 							.getInetAddresses(); enumIpAddr.hasMoreElements();) {
 						InetAddress inetAddress = enumIpAddr.nextElement();
 						if (!inetAddress.isLoopbackAddress()) {
-							String ipaddress = inetAddress.getHostAddress().toString();
+							String ipaddress = inetAddress.getHostAddress();
 							if (!ipaddress.contains("::")) {// ipV6的地址
 								return ipaddress;
 							}
 						}
 					}
-				} else {
-					continue;
-				}
+				//} else {
+				//	continue;
+				//}
 			}
 		}
 		catch (SocketException e) {
@@ -348,6 +362,78 @@ public class Util {
 		
 		return null;
 	}
+
+    public static void checkNetworkType(Context context) {
+        String networkType = GetNetworkType(context);
+        if (!networkType.equals("WIFI") &&
+                !networkType.equals("ETHERNET")) {
+            Toast.makeText(context, "移动网络观看中，土豪请随意", Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    public static String GetNetworkType(Context context) {
+        String strNetworkType = "Unknown";
+
+        NetworkInfo networkInfo =
+                ((ConnectivityManager) context.getSystemService(Context.CONNECTIVITY_SERVICE)).getActiveNetworkInfo();
+        if (networkInfo != null && networkInfo.isConnected()) {
+            if (networkInfo.getType() == ConnectivityManager.TYPE_WIFI) {
+                strNetworkType = "WIFI";
+            }
+            else if (networkInfo.getType() == ConnectivityManager.TYPE_MOBILE) {
+                String _strSubTypeName = networkInfo.getSubtypeName();
+
+                LogUtil.info(TAG, "Network getSubtypeName : " + _strSubTypeName);
+
+                // TD-SCDMA   networkType is 17
+                int networkType = networkInfo.getSubtype();
+                switch (networkType) {
+                    case TelephonyManager.NETWORK_TYPE_GPRS:
+                    case TelephonyManager.NETWORK_TYPE_EDGE:
+                    case TelephonyManager.NETWORK_TYPE_CDMA:
+                    case TelephonyManager.NETWORK_TYPE_1xRTT:
+                    case TelephonyManager.NETWORK_TYPE_IDEN: //api<8 : replace by 11
+                        strNetworkType = "2G";
+                        break;
+                    case TelephonyManager.NETWORK_TYPE_UMTS:
+                    case TelephonyManager.NETWORK_TYPE_EVDO_0:
+                    case TelephonyManager.NETWORK_TYPE_EVDO_A:
+                    case TelephonyManager.NETWORK_TYPE_HSDPA:
+                    case TelephonyManager.NETWORK_TYPE_HSUPA:
+                    case TelephonyManager.NETWORK_TYPE_HSPA:
+                    case TelephonyManager.NETWORK_TYPE_EVDO_B: //api<9 : replace by 14
+                    case TelephonyManager.NETWORK_TYPE_EHRPD:  //api<11 : replace by 12
+                    case TelephonyManager.NETWORK_TYPE_HSPAP:  //api<13 : replace by 15
+                        strNetworkType = "3G";
+                        break;
+                    case TelephonyManager.NETWORK_TYPE_LTE:    //api<11 : replace by 13
+                        strNetworkType = "4G";
+                        break;
+                    default:
+                        // http://baike.baidu.com/item/TD-SCDMA 中国移动 联通 电信 三种3G制式
+                        if (_strSubTypeName.equalsIgnoreCase("TD-SCDMA") || _strSubTypeName.equalsIgnoreCase("WCDMA") || _strSubTypeName.equalsIgnoreCase("CDMA2000"))
+                        {
+                            strNetworkType = "3G";
+                        }
+                        else
+                        {
+                            strNetworkType = _strSubTypeName;
+                        }
+
+                        break;
+                }
+
+                LogUtil.info(TAG, "Network getSubtype : " + Integer.valueOf(networkType).toString());
+            }
+			else if (networkInfo.getType() == ConnectivityManager.TYPE_ETHERNET) {
+				strNetworkType = "ETHERNET";
+			}
+        }
+
+        LogUtil.info(TAG, "Network Type : " + strNetworkType);
+
+        return strNetworkType;
+    }
 
 	public static void copyFile(String oldPath, String newPath) {
 		try {
@@ -542,7 +628,7 @@ public class Util {
                         }
 
                         @Override
-                        public void onEror(String msg, int code) {
+                        public void onError(String msg, int code) {
                             Toast.makeText(context,
                                     msg, Toast.LENGTH_SHORT).show();
                         }

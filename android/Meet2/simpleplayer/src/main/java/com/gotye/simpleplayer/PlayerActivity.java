@@ -1,11 +1,9 @@
 package com.gotye.simpleplayer;
 
-import java.io.IOException;
 import java.lang.ref.WeakReference;
 import java.util.Locale;
 
 import android.content.Intent;
-import android.graphics.Color;
 import android.graphics.PixelFormat;
 import android.media.AudioManager;
 import android.os.Bundle;
@@ -22,6 +20,7 @@ import android.os.Handler;
 import android.os.Message;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
+import android.view.KeyEvent;
 import android.view.SurfaceHolder;
 import android.view.SurfaceHolder.Callback;
 import android.view.GestureDetector;
@@ -108,8 +107,12 @@ public class PlayerActivity extends AppCompatActivity implements Callback,
     @Override
     public boolean onTouchEvent(MotionEvent event) {
     	// TODO Auto-generated method stub
-    	//if (mPlayer != null)
-    	//	return mGestureDetector.onTouchEvent(event);
+        if (event.getAction() == KeyEvent.ACTION_DOWN) {
+            if (mMediaController.isShowing())
+                mMediaController.hide();
+            else if (mPlayer != null && mPlayer.isPlaying())
+                mMediaController.show();
+        }
     	
     	return super.onTouchEvent(event);
     }
@@ -162,20 +165,13 @@ public class PlayerActivity extends AppCompatActivity implements Callback,
 
         try {
             mPlayer.setDataSource(PLAY_URL);
+            mPlayer.prepareAsync();
+            mBufferingProgressBar.setVisibility(View.VISIBLE);
         } catch (Exception e) {
             e.printStackTrace();
-            return;
+            Log.e(TAG, "Java: open player exception: " + e.getMessage());
+            Toast.makeText(this, "Java: failed to play: " + PLAY_URL, Toast.LENGTH_SHORT).show();
         }
-
-        try {
-			mPlayer.prepareAsync();
-		}
-		catch (IllegalStateException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-			Log.e(TAG, "Java: prepareAsync() exception: " + e.getMessage());
-			Toast.makeText(this, "Java: failed to play: " + PLAY_URL, Toast.LENGTH_SHORT).show();
-		}
 	}
 
 	@Override
@@ -313,9 +309,11 @@ public class PlayerActivity extends AppCompatActivity implements Callback,
 	@Override
 	public void onPrepared(MediaPlayer mp) {
 		// TODO Auto-generated method stub
+        mBufferingProgressBar.setVisibility(View.GONE);
+
         mMediaController.setMediaPlayer(mControl);
         mMediaController.setAnchorView(mPreview);
-        mMediaController.show(0);
+        mMediaController.show();
 		mp.start();
 	}
 

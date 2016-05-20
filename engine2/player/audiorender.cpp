@@ -9,6 +9,9 @@
 #include <unistd.h> // for usleep
 #endif
 
+#define DEFAULT_DEVICE_CH_LAYOUT	AV_CH_LAYOUT_STEREO
+#define DEFAULT_DEVICE_CHANNELS		2
+
 #ifdef OSLES_IMPL
 #include "oslesrender.h"
 #endif
@@ -26,10 +29,6 @@ AudioRender::AudioRender()
 	mSamples = NULL;
 	mConvertCtx = NULL;
 
-	//we assume android/ios devices have two speakers.
-	//todo: need to support devices which have more speakers.
-	mDeviceChannelLayoutOutput = AV_CH_LAYOUT_STEREO;
-	mDeviceChannels = 2; // hard code to 2 channels?
 #ifdef OSLES_IMPL
 	a_render = NULL;
 #endif
@@ -108,8 +107,10 @@ status_t AudioRender::open(int sampleRate,
 	mSampleFormat = sampleFormat;
 
 	mChannelLayout = channelLayout;
-	if (mChannelLayout <= 0)
+	if (mChannelLayout <= 0) {
 		mChannelLayout = AV_CH_LAYOUT_MONO;
+		LOGW("channelLayout is invalid, use AV_CH_LAYOUT_MONO as default");
+	}
 
 	mChannels = channels;
 	if(mChannels <= 0)
@@ -117,8 +118,6 @@ status_t AudioRender::open(int sampleRate,
 
 	mSampleFormatOutput = mSampleFormat;
 	mSampleRateOutput = mSampleRate;
-	mChannelLayoutOutput = mChannelLayout;
-	mChannelsOutput = mChannels;
 
 	switch (mSampleFormat) {
 	case AV_SAMPLE_FMT_U8:
@@ -150,88 +149,71 @@ status_t AudioRender::open(int sampleRate,
 
 		if (mSamples == NULL) {
 			mSamples = (int16_t*)av_malloc(mSamplesSize);
-			if(mSamples == NULL) {
+			if (mSamples == NULL) {
 				LOGE("No enough memory for audio conversion");
 				return ERROR;
 			}
 		}
 
-		if (mConvertCtx == NULL)
-		{
-			switch(mSampleFormat)
-			{
-			case AV_SAMPLE_FMT_U8:
-			case AV_SAMPLE_FMT_U8P:
-				mFormatSize = 1;
-				break;
-			case AV_SAMPLE_FMT_S16:
-			case AV_SAMPLE_FMT_S16P:
-				mFormatSize = 2;
-				break;
-			case AV_SAMPLE_FMT_S32:
-			case AV_SAMPLE_FMT_S32P:
-			case AV_SAMPLE_FMT_FLT:
-			case AV_SAMPLE_FMT_FLTP:
-				mFormatSize = 4;
-				break;
-			case AV_SAMPLE_FMT_DBL:
-			case AV_SAMPLE_FMT_DBLP:
-				mFormatSize = 8;
-				break;
-			default:
-				mFormatSize = 2;
-				LOGW("unsupported sample format %d", mSampleFormat);
-				break;
-			}
+		switch (mSampleFormat) {
+		case AV_SAMPLE_FMT_U8:
+		case AV_SAMPLE_FMT_U8P:
+			mFormatSize = 1;
+			break;
+		case AV_SAMPLE_FMT_S16:
+		case AV_SAMPLE_FMT_S16P:
+			mFormatSize = 2;
+			break;
+		case AV_SAMPLE_FMT_S32:
+		case AV_SAMPLE_FMT_S32P:
+		case AV_SAMPLE_FMT_FLT:
+		case AV_SAMPLE_FMT_FLTP:
+			mFormatSize = 4;
+			break;
+		case AV_SAMPLE_FMT_DBL:
+		case AV_SAMPLE_FMT_DBLP:
+			mFormatSize = 8;
+			break;
+		default:
+			mFormatSize = 2;
+			LOGW("unsupported sample format %d", mSampleFormat);
+			break;
+		}
 
-			mFormatSizeOutput = mFormatSize;
-			if (mSampleFormatOutput < AV_SAMPLE_FMT_U8) {
-				mSampleFormatOutput = AV_SAMPLE_FMT_U8;
-				mFormatSizeOutput = 1;
-			}
-			else if (mSampleFormatOutput > AV_SAMPLE_FMT_S16) {
-				mSampleFormatOutput = AV_SAMPLE_FMT_S16;
-				mFormatSizeOutput = 2;
-			}
-			LOGI("mSampleFormatOutput:%d", mSampleFormatOutput);
-			LOGI("mFormatSizeOutput:%d", mFormatSizeOutput);
+		mFormatSizeOutput = mFormatSize;
+		if (mSampleFormatOutput < AV_SAMPLE_FMT_U8) {
+			mSampleFormatOutput = AV_SAMPLE_FMT_U8;
+			mFormatSizeOutput = 1;
+		}
+		else if (mSampleFormatOutput > AV_SAMPLE_FMT_S16) {
+			mSampleFormatOutput = AV_SAMPLE_FMT_S16;
+			mFormatSizeOutput = 2;
+		}
 
-            // overwrite bit_per_sample to 1 or 2
-			mBitPerSample = mFormatSizeOutput * 8;
-			LOGI("bitPerSample reset to(need convert): %d", mBitPerSample);
+		LOGI("mSampleFormatOutput: %d, mFormatSizeOutput: %d", 
+			mSampleFormatOutput, mFormatSizeOutput);
 
-			// valid sample rate is 4k - 48k
-			if (mSampleRateOutput < 4000)
-				mSampleRateOutput = 4000;
-			else if (mSampleRateOutput > 48000)
-				mSampleRateOutput = 48000;
-			LOGI("mSampleRateOutput:%d", mSampleRateOutput);
+		// overwrite bit_per_sample to 1 or 2
+		mBitPerSample = mFormatSizeOutput * 8;
+		LOGI("bitPerSample reset to(need convert): %d", mBitPerSample);
 
-			mChannelLayoutOutput = mDeviceChannelLayoutOutput;
-			mChannelsOutput = mDeviceChannels;
-			LOGI("mChannelsOutput:%d, mChannelLayoutOutput:%lld", mChannelsOutput, mChannelLayoutOutput);
+		// valid sample rate is 4k - 48k
+		if (mSampleRateOutput < 4000)
+			mSampleRateOutput = 4000;
+		else if (mSampleRateOutput > 48000)
+			mSampleRateOutput = 48000;
+		LOGI("mSampleRateOutput:%d", mSampleRateOutput);
 
-			mConvertCtx = swr_alloc_set_opts(mConvertCtx,
-				mChannelLayoutOutput,
-				mSampleFormatOutput,
-				mSampleRateOutput,
-				mChannelLayout,
-				mSampleFormat,
-				mSampleRate,
-				0, 0);                   
-			if (swr_init(mConvertCtx) < 0 || mConvertCtx == NULL) {
-				LOGE("swr_init failed");
-				return ERROR;
-			}
-#ifdef _MSC_VER
-			LOGI("swr ctx inited: layout %I64d, fmt %d, rate %d -> %I64d %d %d",
-				mChannelLayout, mSampleFormat, mSampleRate,
-				mChannelLayoutOutput, mSampleFormatOutput, mSampleRateOutput);
-#else
-			LOGI("swr ctx inited: layout %lld, fmt %d, rate %d -> %lld %d %d",
-				mChannelLayout, mSampleFormat, mSampleRate,
-				mChannelLayoutOutput, mSampleFormatOutput, mSampleRateOutput);
-#endif
+		// android and ios device force use 2 channels stereo
+		// we assume android/ios devices have two speakers.
+		// todo: need to support devices which have more speakers.
+		mChannelLayoutOutput = DEFAULT_DEVICE_CH_LAYOUT;
+		mChannelsOutput = DEFAULT_DEVICE_CHANNELS;
+		LOGI("mChannelsOutput:%d, mChannelLayoutOutput:%lld", mChannelsOutput, mChannelLayoutOutput);
+
+		if (!init_swr()) {
+			LOGE("failed to init swr");
+			return ERROR;
 		}
 	}
 
@@ -314,6 +296,49 @@ status_t AudioRender::open(int sampleRate,
 #endif
 }
 
+bool AudioRender::init_swr()
+{
+	if (mConvertCtx) {
+		swr_free(&mConvertCtx);
+		mConvertCtx = NULL;
+	}
+
+	mConvertCtx = swr_alloc_set_opts(mConvertCtx,
+		mChannelLayoutOutput,
+		mSampleFormatOutput,
+		mSampleRateOutput,
+		mChannelLayout,
+		mSampleFormat,
+		mSampleRate,
+		0, 0);
+	int ret = swr_init(mConvertCtx);
+	if (ret < 0 || mConvertCtx == NULL) {
+		LOGE("swr_init failed: %d %p", ret, mConvertCtx);
+		return false;
+	}
+
+	char src_audio_layout_name[64] = {0};
+	char dst_audio_layout_name[64] = {0};
+	char src_audio_fmt_name[64] = {0};
+	char dst_audio_fmt_name[64] = {0};
+	av_get_channel_layout_string(src_audio_layout_name, 64, mChannels, mChannelLayout);
+	av_get_channel_layout_string(dst_audio_layout_name, 64, mChannelsOutput, mChannelLayoutOutput);
+	av_get_sample_fmt_string(src_audio_fmt_name, 64, mSampleFormat);
+	av_get_sample_fmt_string(dst_audio_fmt_name, 64, mSampleFormatOutput);
+
+#ifdef _MSC_VER
+	LOGI("swr ctx inited: layout %I64d(%s), fmt %d(%s), rate %d -> %I64d(%s) %d(%s) %d",
+		mChannelLayout, dst_audio_layout_name, mSampleFormat, src_audio_fmt_name, mSampleRate,
+		mChannelLayoutOutput, dst_audio_layout_name, mSampleFormatOutput, dst_audio_fmt_name, mSampleRateOutput);
+#else
+	LOGI("swr ctx inited: layout %lld(%s), fmt %d(%s), rate %d -> %lld(%s) %d(%s) %d",
+		mChannelLayout, dst_audio_layout_name, mSampleFormat, src_audio_fmt_name, mSampleRate,
+		mChannelLayoutOutput, dst_audio_layout_name, mSampleFormatOutput, dst_audio_fmt_name, mSampleRateOutput);
+#endif
+
+	return true;
+}
+
 status_t AudioRender::render(AVFrame* audioFrame)//int16_t* buffer, uint32_t buffer_size)
 {
 	void* audio_buffer = NULL;
@@ -331,7 +356,17 @@ status_t AudioRender::render(AVFrame* audioFrame)//int16_t* buffer, uint32_t buf
 		LOGW("audio frame channel_layout NOT match %lld(%s) -> %lld(%s)", 
 			mChannelLayout, audio_layout_name, 
 			audioFrame->channel_layout, frame_layout_name);
-		return OK;
+
+		// update audio params
+		mChannels		= audioFrame->channels;
+		mChannelLayout	= audioFrame->channel_layout;
+
+		LOGI("re-alloc swr convert");
+		// re-init swr
+		if (!init_swr()) {
+			LOGE("failed to init swr");
+			return ERROR;
+		}
 	}
 
 	if (mConvertCtx != NULL) {

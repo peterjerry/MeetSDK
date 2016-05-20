@@ -1,6 +1,7 @@
 package com.gotye.meetplayer.activity;
 
 import android.app.Dialog;
+import android.app.ProgressDialog;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.os.AsyncTask;
@@ -16,6 +17,7 @@ import com.gotye.db.YKPlayhistoryDatabaseHelper;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 
 public class PlayYoukuActivity extends PlaySegFileActivity {
 	private final static String TAG = "PlayYoukuActivity";
@@ -38,6 +40,8 @@ public class PlayYoukuActivity extends PlaySegFileActivity {
 
     @Override
     protected void OnComplete() {
+        YKPlayhistoryDatabaseHelper.getInstance(this).savePlayedPosition(mVid, 0);
+
         if (mShowId != null && mEpisodeIndex != -1) {
             new NextEpisodeTask().execute(NextEpisodeTask.ACTION_EPISODE_INCR, 1);
             return;
@@ -53,8 +57,11 @@ public class PlayYoukuActivity extends PlaySegFileActivity {
     @Override
     protected void onPause() {
         if (mPlayer != null) {
-            YKPlayhistoryDatabaseHelper.getInstance(this)
-                    .savePlayedPosition(mVid, mPlayer.getCurrentPosition());
+            int pos = mPlayer.getCurrentPosition();
+            if (pos > 10000) {
+                YKPlayhistoryDatabaseHelper.getInstance(this)
+                        .savePlayedPosition(mVid, pos);
+            }
         }
 
         super.onPause();
@@ -82,28 +89,85 @@ public class PlayYoukuActivity extends PlaySegFileActivity {
         choose_ep_dlg.show();
     }
 
+    private void stopPlayer() {
+        if (mPlayer != null) {
+            try {
+                mPlayer.stop();
+            }
+            catch (Exception e) {
+                e.printStackTrace();
+            }
+
+            mPlayer.release();
+            mPlayer = null;
+        }
+    }
+
     @Override
     protected void onSelectEpisode() {
         if (mEpisodeList == null) {
+            stopPlayer();
             new NextEpisodeTask().execute(NextEpisodeTask.ACTION_LIST_EPISODE);
-            return;
         }
         else if (mEpisodeList.isEmpty()) {
             Toast.makeText(this, "选集列表为空", Toast.LENGTH_SHORT).show();
-            return;
         }
-
-        popupSelectEpDlg();
+        else {
+            popupSelectEpDlg();
+        }
     }
 
     @Override
     protected void onSelectEpisode(int incr) {
-        if (mShowId != null && mEpisodeIndex != -1)
+        if (mShowId != null && mEpisodeIndex != -1) {
+            stopPlayer();
             new NextEpisodeTask().execute(NextEpisodeTask.ACTION_EPISODE_INCR, incr);
-        else
+        }
+        else {
             LogUtil.warn(TAG, "NO episode available");
+        }
     }
-	
+
+    @Override
+    protected void onSelectFt() {
+        new PlayLinkTask().execute();
+    }
+
+    private class PlayLinkTask extends AsyncTask<Integer, Integer, Boolean> {
+        private ProgressDialog mProgressDlg;
+
+        @Override
+        protected void onPreExecute() {
+            mProgressDlg = new ProgressDialog(PlayYoukuActivity.this);
+            mProgressDlg.setMessage("播放地址解析中...");
+            mProgressDlg.setCancelable(false);
+            mProgressDlg.show();
+        }
+
+        @Override
+        protected void onPostExecute(Boolean result) {
+            // TODO Auto-generated method stub
+            mProgressDlg.dismiss();
+        }
+
+        @Override
+        protected Boolean doInBackground(Integer... params) {
+            // TODO Auto-generated method stub
+            YKUtil.ZGUrl zg = YKUtil.getPlayZGUrl(PlayYoukuActivity.this, mVid, mFt);
+            if (zg == null) {
+                mHandler.sendEmptyMessage(MainHandler.MSG_INVALID_FT);
+                return false;
+            }
+
+            mUrlListStr = zg.urls;
+            mDurationListStr = zg.durations;
+            buildPlaylinkList();
+
+            mHandler.sendEmptyMessage(MainHandler.MSG_PLAY_NEXT_EPISODE);
+            return true;
+        }
+    }
+
 	private class NextEpisodeTask extends AsyncTask<Integer, Integer, Boolean> {
 
         private final static int ACTION_EPISODE_INCR    = 1;
@@ -112,10 +176,20 @@ public class PlayYoukuActivity extends PlaySegFileActivity {
 
         private int action;
 
+        private ProgressDialog mProgressDlg;
+
+        @Override
+        protected void onPreExecute() {
+            mProgressDlg = new ProgressDialog(PlayYoukuActivity.this);
+            mProgressDlg.setMessage("播放地址解析中...");
+            mProgressDlg.setCancelable(false);
+            mProgressDlg.show();
+        }
+
 		@Override
 		protected void onPostExecute(Boolean result) {
 			// TODO Auto-generated method stub
-			super.onPostExecute(result);
+            mProgressDlg.dismiss();
 
             mSwichingEpisode = false;
 
@@ -139,18 +213,17 @@ public class PlayYoukuActivity extends PlaySegFileActivity {
                 int index = 1;
                 mEpisodeList = new ArrayList<Episode>();
                 while (true) {
-                    List<Episode> epList =  YKUtil.getEpisodeList(mShowId, index, page_size);
-                    if (epList == null || epList.isEmpty())
+                    List<Episode> epList =  YKUtil.getEpisodeList(mShowId, index++, page_size);
+                    if (epList != null && !epList.isEmpty()) {
+                        mEpisodeList.addAll(epList);
+                    }
+                    else {
                         break;
-
-                    mEpisodeList.addAll(epList);
-                    if (epList.size() < 10)
-                        break;
-
-                    index++;
+                    }
                 }
 
                 if (mEpisodeList == null) {
+                    LogUtil.error(TAG, "mEpisodeList is null");
                     mHandler.sendEmptyMessage(MainHandler.MSG_INVALID_EPISODE_INDEX);
                     return false;
                 }
@@ -158,12 +231,7 @@ public class PlayYoukuActivity extends PlaySegFileActivity {
 
             if (action == ACTION_EPISODE_INCR) {
                 int incr = params[1];
-
                 mEpisodeIndex += incr;
-                if (mEpisodeIndex < 0 || mEpisodeIndex >= mEpisodeList.size()) {
-                    mHandler.sendEmptyMessage(MainHandler.MSG_INVALID_EPISODE_INDEX);
-                    return false;
-                }
             }
             else if (action == ACTION_EPISODE_INDEX){
                 mEpisodeIndex = params[1];
@@ -173,10 +241,18 @@ public class PlayYoukuActivity extends PlaySegFileActivity {
                 return true;
             }
 
+            if (mEpisodeIndex < 0 || mEpisodeIndex >= mEpisodeList.size()) {
+                LogUtil.error(TAG, String.format(Locale.US,
+                        "mEpisodeIndex %d, mEpisodeList.size() %d",
+                        mEpisodeIndex, mEpisodeList.size()));
+                mHandler.sendEmptyMessage(MainHandler.MSG_INVALID_EPISODE_INDEX);
+                return false;
+            }
+
             Episode ep = mEpisodeList.get(mEpisodeIndex);
             mVid = ep.getVideoId();
 
-            YKUtil.ZGUrl zg = YKUtil.getPlayUrl2(mVid);
+            YKUtil.ZGUrl zg = YKUtil.getPlayZGUrl(PlayYoukuActivity.this, mVid);
             if (zg == null) {
                 mHandler.sendEmptyMessage(MainHandler.MSG_INVALID_EPISODE_INDEX);
                 return false;

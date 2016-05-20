@@ -9,6 +9,7 @@ public class Album {
     private String mTotalVV;
     private String mShowDate;
     private String mActor;
+    private String mDirector;
     private String mVideoId;
     private int mEpisodeTotal;
 
@@ -21,12 +22,12 @@ public class Album {
                  String img, String totoal_vv, int total_episode) {
         this(title, tid/*showid*/, stripe,
                 img, totoal_vv, null,
-                null, null, null, total_episode);
+                null, null, null, null, total_episode);
     }
 
     public Album(String title, String show_id, String stripe,
                  String img, String total_vv, String show_date,
-                 String desc, String actor, String video_id, int total_episode) {
+                 String desc, String director, String actor, String video_id, int total_episode) {
         this.mTitle		= title;
         this.mShowId	= show_id;
         this.mStripe	= stripe;
@@ -34,6 +35,7 @@ public class Album {
         this.mDesc		= desc;
         this.mTotalVV	= total_vv;
         this.mShowDate	= show_date;
+        this.mDirector  = director;
         this.mActor		= actor;
         this.mVideoId   = video_id;
         this.mEpisodeTotal = total_episode;
@@ -63,6 +65,10 @@ public class Album {
         return mActor;
     }
 
+    public String getDirector() {
+        return mDirector;
+    }
+
     public String getVid() {
         return mVideoId;
     }
@@ -90,6 +96,10 @@ public class Album {
         if (mDesc != null) {
             sb.append(", description: ");
             sb.append(mDesc);
+        }
+        if (mDirector != null) {
+            sb.append(", director: ");
+            sb.append(mDirector);
         }
         if (mActor != null) {
             sb.append(", actor: ");

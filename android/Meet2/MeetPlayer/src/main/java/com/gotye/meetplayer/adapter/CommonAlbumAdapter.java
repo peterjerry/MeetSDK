@@ -3,12 +3,21 @@ package com.gotye.meetplayer.adapter;
 import java.util.List;
 import java.util.Map;
 
+import com.gotye.common.util.LogUtil;
 import com.gotye.common.util.PicCacheUtil;
+import com.gotye.db.YKPlayhistoryDatabaseHelper;
 import com.gotye.meetplayer.R;
 import com.gotye.meetplayer.util.ImgUtil;
+import com.nostra13.universalimageloader.core.DisplayImageOptions;
+import com.nostra13.universalimageloader.core.ImageLoader;
+import com.nostra13.universalimageloader.core.assist.ImageScaleType;
+import com.nostra13.universalimageloader.core.display.RoundedBitmapDisplayer;
+import com.nostra13.universalimageloader.core.listener.ImageLoadingListener;
+import com.nostra13.universalimageloader.core.listener.SimpleImageLoadingListener;
 
 import android.content.Context;
 import android.graphics.Bitmap;
+import android.graphics.Color;
 import android.graphics.Matrix;
 import android.os.AsyncTask;
 import android.util.Log;
@@ -27,8 +36,6 @@ public class CommonAlbumAdapter extends BaseAdapter {
 	private List<Map<String, Object>> data = null;
 	private Context context					= null;
 	private LayoutInflater inflater 		= null;
-
-    private boolean mbLoadImg = true;
 
 	public CommonAlbumAdapter(Context context, List<Map<String, Object>> data) {
 		super();
@@ -114,27 +121,44 @@ public class CommonAlbumAdapter extends BaseAdapter {
 			duration = (String) item.get("duration");
 		holder.duration.setText(duration);
 
-		if (img_url != null && img_url.startsWith("http://")) {
-			String key = PicCacheUtil.hashKeyForDisk(img_url);
-			Bitmap bmp = PicCacheUtil.getThumbnailFromDiskCache(key);
-			if (bmp != null) {
-				holder.img.setImageBitmap(bmp);
-			}
-			else {
-				holder.img.setImageResource(R.drawable.loading);
-                if (mbLoadImg) {
-                    holder.img.setTag(img_url);
-                    new LoadPicTask().execute(holder, img_url);
+        if (item.containsKey("company")) {
+            String company = (String)item.get("company");
+            if (company.equals("youku")) {
+                String vid = (String)item.get("vid");
+                if (vid != null) {
+                    int pos = YKPlayhistoryDatabaseHelper.getInstance(context)
+                            .getLastPlayedPosition(vid);
+                    if (pos > 0) {
+                        holder.title.setTextColor(Color.RED);
+                    }
+                    else {
+                        holder.title.setTextColor(Color.BLACK);
+                    }
+
                 }
-			}
+            }
+        }
+
+		if (img_url != null && img_url.startsWith("http://")) {
+			//String key = PicCacheUtil.hashKeyForDisk(img_url);
+			//Bitmap bmp = PicCacheUtil.getThumbnailFromDiskCache(key);
+
+            holder.img.setImageResource(R.drawable.loading);
+            holder.img.setTag(img_url);
+
+            DisplayImageOptions options = new DisplayImageOptions.Builder()
+                    .showImageOnLoading(R.drawable.loading)         // 加载开始默认的图片
+                    .showImageForEmptyUri(R.drawable.loading) //url爲空會显示该图片，自己放在drawable里面的
+                    .showImageOnFail(R.drawable.loading_error)      //加载图片出现问题，会显示该图片
+                    .cacheInMemory(true)
+                    .cacheOnDisk(true)
+					.imageScaleType(ImageScaleType.NONE)
+                    .build();
+            ImageLoader.getInstance().displayImage(img_url, holder.img, options);
 		}
 		
 		// 注意 默认为返回null,必须得返回convertView视图
 		return convertView;
-	}
-
-	public void setLoadImg(boolean bLoad) {
-		mbLoadImg = bLoad;
 	}
 
 	private int dip2px(Context context, float dipValue) {
@@ -146,51 +170,4 @@ public class CommonAlbumAdapter extends BaseAdapter {
 		float m = context.getResources().getDisplayMetrics().density;
 		return (int) (pxValue / m + 0.5f);
 	}
-	
-	private class LoadPicTask extends AsyncTask<Object, Integer, Bitmap> {
-
-		private ViewHolder mHolder;
-		private String mImgUrl;
-		
-		@Override
-		protected void onPostExecute(Bitmap bmp) {
-			if (mHolder == null || bmp == null) {
-				Log.e(TAG, "Java: failed to get http image " + mImgUrl);
-				return;
-			}
-
-            String url = (String)mHolder.img.getTag();
-			if (url != null && url.equals(mImgUrl)) {
-                mHolder.img.setImageBitmap(bmp);
-            }
-		}
-		
-		@Override
-		protected Bitmap doInBackground(Object... params) {
-			mHolder = (ViewHolder)params[0];
-			mImgUrl = (String)params[1];
-			
-			Bitmap bmp = ImgUtil.getHttpBitmap(mImgUrl);
-			if (bmp == null) {
-				Log.e(TAG, "Java: failed to getHttpBitmap " + mImgUrl);
-				return null;
-			}
-
-			String key = PicCacheUtil.hashKeyForDisk(mImgUrl);
-			PicCacheUtil.addThumbnailToDiskCache(key, bmp);
-			return bmp;
-		}
-
-        private Bitmap zoomBitmap(Bitmap bitmap, int w, int h){
-            int width = bitmap.getWidth();
-            int height = bitmap.getHeight();
-            Matrix matrix = new Matrix();
-            float scaleWidht = ((float)w / width);
-            float scaleHeight = ((float)h / height);
-            matrix.postScale(scaleWidht, scaleHeight);
-            Bitmap newbmp = Bitmap.createBitmap(bitmap, 0, 0, width, height, matrix, true);
-            bitmap.recycle();
-            return newbmp;
-        }
-    }
 }

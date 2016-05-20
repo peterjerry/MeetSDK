@@ -75,7 +75,7 @@ public class SendCrashActivity extends AppCompatActivity
 	}
 
 	@Override
-	public void onEror(String msg, int code) {
+	public void onError(String msg, int code) {
         if (mProgDlg != null)
             mProgDlg.dismiss();
 

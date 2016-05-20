@@ -195,10 +195,8 @@ public class PPTVEpisodeActivity extends AppCompatActivity {
 				switch (scrollState) {
 					case AbsListView.OnScrollListener.SCROLL_STATE_FLING:
 					case AbsListView.OnScrollListener.SCROLL_STATE_TOUCH_SCROLL:
-						adapter.setLoadImg(false);
 						break;
 					case AbsListView.OnScrollListener.SCROLL_STATE_IDLE:
-						adapter.setLoadImg(true);
 						break;
 					default:
 						break;

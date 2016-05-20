@@ -6,6 +6,7 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.graphics.PixelFormat;
 import android.media.AudioManager;
+import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
@@ -27,6 +28,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.gotye.common.util.LogUtil;
+import com.gotye.db.YKPlayhistoryDatabaseHelper;
 import com.gotye.meetplayer.R;
 import com.gotye.meetplayer.media.FragmentMp4MediaPlayerV2;
 import com.gotye.meetplayer.ui.MyPreView2;
@@ -37,6 +39,7 @@ import com.gotye.meetsdk.player.MediaPlayer;
 
 import java.io.IOException;
 import java.lang.ref.WeakReference;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
@@ -58,11 +61,23 @@ public class PlaySegFileActivity extends AppCompatActivity
     private TextView mTvTitle;
     private ImageButton mBtnBack;
 	protected ProgressBar mBufferingProgressBar;
+    private TextView mTvInfo;
+    private boolean mbTvInfoShowing = false;
+
+    // stat
+    private int decode_fps					= 0;
+    private int render_fps 					= 0;
+    private int decode_avg_msec 			= 0;
+    private int render_avg_msec 			= 0;
+    private int render_frame_num			= 0;
+    private int decode_drop_frame			= 0;
+    private int av_latency_msec				= 0;
+    private int video_bitrate				= 0;
 
     protected String mUrlListStr;
     protected String mDurationListStr;
 	protected String mTitle;
-    protected int mFt;
+    protected int mFt = 2;
     protected int pre_seek_msec = -1;
 
     protected MainHandler mHandler;
@@ -85,15 +100,6 @@ public class PlaySegFileActivity extends AppCompatActivity
 	private MediaPlayer.OnCompletionListener mOnCompletionListener;
 	private MediaPlayer.OnBufferingUpdateListener mOnBufferingUpdate;
 	private MediaPlayer.OnInfoListener mOnInfoListener;
-
-	public static final int SCREEN_FIT = 0; // 自适应
-    public static final int SCREEN_STRETCH = 1; // 铺满屏幕 
-    public static final int SCREEN_FILL = 2; // 放大裁切
-    public static final int SCREEN_CENTER = 3; // 原始大小
-    
-    private final static String []mode_desc = {"自适应", "铺满屏幕", "放大裁切", "原始大小"};
-	
-	private int mDisplayMode = SCREEN_FIT;
 	
 	private final static String url_list = "http://data.vod.itc.cn/?" +
 			"new=/49/197/T9vx2eIRoGJa8v2svlzxkN.mp4&vid=1913402&ch=tv" +
@@ -135,6 +141,8 @@ public class PlaySegFileActivity extends AppCompatActivity
 		if (getSupportActionBar() != null)
             getSupportActionBar().hide();
 
+        setVolumeControlStream(AudioManager.STREAM_MUSIC);
+
         Intent intent = getIntent();
         mPlayerImpl = intent.getIntExtra("player_impl", 1);
         if (intent.hasExtra("url_list") && intent.hasExtra("duration_list")) {
@@ -165,6 +173,8 @@ public class PlaySegFileActivity extends AppCompatActivity
         this.mTvTitle = (TextView)this.findViewById(R.id.player_title);
         this.mBtnBack = (ImageButton)this.findViewById(R.id.player_back_btn);
 
+        this.mTvInfo = (TextView)this.findViewById(R.id.tv_info);
+
         mBtnBack.setOnClickListener(new View.OnClickListener() {
 
             @Override
@@ -191,8 +201,8 @@ public class PlaySegFileActivity extends AppCompatActivity
 		m_duration_list = new ArrayList<Integer>();
 
         mHandler = new MainHandler(this);
-		
-		mOnInfoListener = new MediaPlayer.OnInfoListener() {
+
+        mOnInfoListener = new MediaPlayer.OnInfoListener() {
 			
 			@Override
 			public boolean onInfo(MediaPlayer mp, int what, int extra) {
@@ -211,7 +221,46 @@ public class PlaySegFileActivity extends AppCompatActivity
 				}
 				else if (what == MediaPlayer.MEDIA_INFO_VIDEO_RENDERING_START) {
                     LogUtil.info(TAG, "Java: onInfo MEDIA_INFO_VIDEO_RENDERING_START");
-				}
+                }
+                else if (MediaPlayer.MEDIA_INFO_TEST_DECODE_AVG_MSEC == what) {
+                    decode_avg_msec = extra;
+                }
+                else if (MediaPlayer.MEDIA_INFO_TEST_RENDER_AVG_MSEC == what) {
+                    render_avg_msec = extra;
+                }
+                else if (MediaPlayer.MEDIA_INFO_TEST_DECODE_FPS == what) {
+                    decode_fps = extra;
+                    mHandler.sendEmptyMessage(MainHandler.MSG_UPDATE_PLAY_INFO);
+                }
+                else if (MediaPlayer.MEDIA_INFO_TEST_RENDER_FPS == what) {
+                    render_fps = extra;
+                    mHandler.sendEmptyMessage(MainHandler.MSG_UPDATE_PLAY_INFO);
+                }
+                else if (MediaPlayer.MEDIA_INFO_TEST_RENDER_FRAME == what) {
+                    render_frame_num = extra;
+                    mHandler.sendEmptyMessage(MainHandler.MSG_UPDATE_RENDER_INFO);
+                }
+                else if (MediaPlayer.MEDIA_INFO_TEST_LATENCY_MSEC == what) {
+                    av_latency_msec = extra;
+                }
+                else if (MediaPlayer.MEDIA_INFO_TEST_DROP_FRAME == what) {
+                    decode_drop_frame++;
+                    LogUtil.info(TAG, String.format(Locale.US,
+                            "Java: onInfo MEDIA_INFO_TEST_DROP_FRAME %d msec", extra));
+                    mHandler.sendEmptyMessage(MainHandler.MSG_UPDATE_RENDER_INFO);
+                }
+                else if (MediaPlayer.MEDIA_INFO_TEST_MEDIA_BITRATE == what) {
+                    video_bitrate = extra;
+                    mHandler.sendEmptyMessage(MainHandler.MSG_UPDATE_PLAY_INFO);
+                }
+                else if(MediaPlayer.MEDIA_INFO_VIDEO_TRACK_LAGGING == what) {
+                    av_latency_msec = extra;
+
+                    decode_fps = render_fps = 0;
+                    decode_drop_frame = 0;
+                    video_bitrate = 0;
+                    mHandler.sendEmptyMessage(MainHandler.MSG_UPDATE_PLAY_INFO);
+                }
 				
 				return true;
 			}
@@ -251,12 +300,13 @@ public class PlaySegFileActivity extends AppCompatActivity
 				mBufferingProgressBar.setVisibility(View.GONE);
 				toggleMediaControlsVisiblity();
 
-                /*if (pre_seek_msec > 0) {
-                    mp.seekTo(pre_seek_msec);
+                // MUST use mPlayer because mp is seg player
+                if (mPlayerImpl != 2/*XOPlayer not support now*/ && pre_seek_msec > 0) {
+                    mPlayer.seekTo(pre_seek_msec);
                     pre_seek_msec = -1;
-                }*/
+                }
 
-                mp.start();
+                mPlayer.start();
 			}
 		};
 		
@@ -304,6 +354,7 @@ public class PlaySegFileActivity extends AppCompatActivity
                 popupPlayerImplDlg();
                 break;
             case R.id.select_ft:
+                popupSelectFT();
                 break;
             case R.id.select_episode:
                 onSelectEpisode();
@@ -318,6 +369,13 @@ public class PlaySegFileActivity extends AppCompatActivity
                 popupMediaInfo();
                 break;
             case R.id.toggle_debug_info:
+                mbTvInfoShowing = !mbTvInfoShowing;
+                if (mbTvInfoShowing) {
+                    mTvInfo.setVisibility(View.VISIBLE);
+                }
+                else {
+                    mTvInfo.setVisibility(View.GONE);
+                }
                 break;
             default:
                 break;
@@ -327,16 +385,16 @@ public class PlaySegFileActivity extends AppCompatActivity
     }
 
     private void popupPlayerImplDlg() {
-        final String[] PlayerImpl = {"Auto", "System", "XOPlayer", "FFPlayer", "OMXPlayer"};
+        final String[] PlayerImpl = {"System", "XOPlayer", "FFPlayer"};
 
         Dialog choose_player_impl_dlg = new AlertDialog.Builder(PlaySegFileActivity.this)
                 .setTitle("选择播放器类型")
-                .setSingleChoiceItems(PlayerImpl, mPlayerImpl, /*default selection item number*/
+                .setSingleChoiceItems(PlayerImpl, mPlayerImpl - 1, /*default selection item number*/
                         new DialogInterface.OnClickListener(){
                             public void onClick(DialogInterface dialog, int whichButton){
                                 LogUtil.info(TAG, "select player impl: " + whichButton);
 
-                                mPlayerImpl = whichButton;
+                                mPlayerImpl = whichButton + 1;
                                 Util.writeSettingsInt(PlaySegFileActivity.this, "PlayerImpl", mPlayerImpl);
                                 Toast.makeText(PlaySegFileActivity.this,
                                         "选择类型: " + PlayerImpl[whichButton], Toast.LENGTH_SHORT).show();
@@ -345,6 +403,8 @@ public class PlaySegFileActivity extends AppCompatActivity
                                     pre_seek_msec = mPlayer.getCurrentPosition() - 5000;
                                     if (pre_seek_msec < 0)
                                         pre_seek_msec = 0;
+
+                                    LogUtil.info(TAG, "pre_seek_msec set to: " + pre_seek_msec);
 
                                     mView.setVisibility(View.INVISIBLE);
 
@@ -377,6 +437,20 @@ public class PlaySegFileActivity extends AppCompatActivity
         sbInfo.append("\n文件时长列表 ");
         sbInfo.append(m_duration_list.toString());
 
+        sbInfo.append("\n文件时长列表2 [");
+        int total_msec = 0;
+        SimpleDateFormat formatter = new SimpleDateFormat("mm:ss", Locale.US);
+        for (int i=0;i<m_duration_list.size();i++) {
+            int duration = m_duration_list.get(i);
+            total_msec += duration;
+            String str_duration = formatter.format(total_msec);
+
+            if (i > 0)
+                sbInfo.append("   ");
+            sbInfo.append(str_duration);
+        }
+        sbInfo.append("]");
+
         sbInfo.append("\n分辨率 ");
         sbInfo.append(mVideoWidth);
         sbInfo.append(" x ");
@@ -391,7 +465,6 @@ public class PlaySegFileActivity extends AppCompatActivity
                 .show();
     }
 
-
     protected void OnComplete() {
         Toast.makeText(PlaySegFileActivity.this, "Play complete", Toast.LENGTH_SHORT).show();
         mIsBuffering = false;
@@ -402,6 +475,39 @@ public class PlaySegFileActivity extends AppCompatActivity
 
     protected void onSelectEpisode() {
 
+    }
+
+    protected void onSelectFt() {
+
+    }
+
+    private void popupSelectFT() {
+        final String[] ft_desc = {"流畅", "高清", "超清", "蓝光"};
+
+        Dialog choose_ft_dlg = new AlertDialog.Builder(PlaySegFileActivity.this)
+                .setTitle("选择码率")
+                .setSingleChoiceItems(ft_desc, mFt,
+                        new DialogInterface.OnClickListener() {
+                            public void onClick(DialogInterface dialog, int whichButton) {
+                                if (whichButton == mFt) {
+                                    dialog.dismiss();
+                                    return;
+                                } else {
+                                    Toast.makeText(PlaySegFileActivity.this,
+                                            "选择码率: " + ft_desc[whichButton], Toast.LENGTH_SHORT).show();
+
+                                    mFt = whichButton;
+                                    pre_seek_msec = mPlayer.getCurrentPosition() - 5000;
+                                    if (pre_seek_msec < 0)
+                                        pre_seek_msec = 0;
+
+                                    onSelectFt();
+                                    dialog.dismiss();
+                                }
+                            }
+                        })
+                .create();
+        choose_ft_dlg.show();
     }
 
     protected void onSelectEpisode(int incr) {
@@ -420,14 +526,16 @@ public class PlaySegFileActivity extends AppCompatActivity
 
                 @Override
                 public boolean onFling(MotionEvent e1, MotionEvent e2, float velocityX, float velocityY) {
-                    LogUtil.debug(TAG, String.format("Java: onFling!!! velocityX %.3f, velocityY %.3f",
-                            velocityX, velocityY));
-
+                    final int FLING_MIN_DISTANCE = 200;
+                    final float FLING_MIN_VELOCITY = 1000.0f;
                     // 1xxx - 4xxx
-                    if (velocityY < 1000.0f && velocityY > -1000.0f && mPlayer != null) {
-                        if (velocityX > 2000.0f || velocityX < -2000.0f) {
+
+                    float distance = e2.getX() - e1.getX();
+                    if (Math.abs(distance) > FLING_MIN_DISTANCE
+                            && Math.abs(velocityX) > FLING_MIN_VELOCITY) {
+                        if (mPlayer != null) {
                             int pos = mPlayer.getCurrentPosition();
-                            int incr = velocityX > 1.0f ? 1 : -1;
+                            int incr = (distance > 0f ? 1 : -1);
                             pos += incr * 15000; // 15sec
                             if (pos > mPlayer.getDuration())
                                 pos = mPlayer.getDuration();
@@ -625,6 +733,12 @@ public class PlaySegFileActivity extends AppCompatActivity
         protected final static int MSG_FAIL_TO_GET_PLAYLINK     = 102;
         protected final static int MSG_FAIL_TO_GET_STREAM		= 103;
         protected final static int MSG_FAIL_TO_GET_ALBUM_INFO	= 104;
+        protected final static int MSG_INVALID_FT               = 105;
+
+        private static final int MSG_UPDATE_PLAY_INFO 			= 201;
+        private static final int MSG_UPDATE_RENDER_INFO			= 202;
+
+        private static final int MSG_RESTART_PLAYER             = 301;
 
         public MainHandler(PlaySegFileActivity activity) {
             mWeakActivity = new WeakReference<PlaySegFileActivity>(activity);
@@ -650,6 +764,9 @@ public class PlaySegFileActivity extends AppCompatActivity
                 case MSG_INVALID_EPISODE_INDEX:
                     Toast.makeText(activity, "invalid episode", Toast.LENGTH_SHORT).show();
                     break;
+                case MSG_INVALID_FT:
+                    Toast.makeText(activity, "invalid ft", Toast.LENGTH_SHORT).show();
+                    break;
                 case MSG_FAIL_TO_GET_ALBUM_INFO:
                     Toast.makeText(activity, "failed to get album info", Toast.LENGTH_SHORT).show();
                     break;
@@ -660,6 +777,18 @@ public class PlaySegFileActivity extends AppCompatActivity
                 case MSG_FAIL_TO_GET_STREAM:
                     Toast.makeText(activity, "failed to get stream", Toast.LENGTH_SHORT).show();
                     activity.finish();
+                    break;
+                case MSG_UPDATE_PLAY_INFO:
+                case MSG_UPDATE_RENDER_INFO:
+                    activity.mTvInfo.setText(String.format(Locale.US,
+                            "%02d|%03d v-a: %+04d\n" +
+                            "dec/render %d(%d)/%d(%d) fps/msec\nbitrate %d kbps",
+                            activity.render_frame_num % 25, activity.decode_drop_frame % 1000, activity.av_latency_msec,
+                            activity.decode_fps, activity.decode_avg_msec, activity.render_fps, activity.render_avg_msec,
+                            activity.video_bitrate));
+                    break;
+                case MSG_RESTART_PLAYER:
+                    activity.setupMediaPlayer();
                     break;
                 default:
                     break;
@@ -748,17 +877,25 @@ public class PlaySegFileActivity extends AppCompatActivity
 		st = new StringTokenizer(mUrlListStr, ",", false);
 		while (st.hasMoreElements()) {
 			String url = st.nextToken();
-            LogUtil.info(TAG, String.format("Java: segment #%d url: %s", i++, url));
+            LogUtil.info(TAG, String.format(Locale.US,
+                    "Java: segment #%d url: %s", i++, url));
 			m_playlink_list.add(url);
 		}
 		
 		st = new StringTokenizer(mDurationListStr, ",", false);
 		i=0;
+        SimpleDateFormat formatter = new SimpleDateFormat("mm:ss", Locale.US);
+        int total_msec = 0;
 		while (st.hasMoreElements()) {
 			String seg_duration = st.nextToken();
-            LogUtil.info(TAG, String.format("Java: segment #%d duration: %s", i++, seg_duration));
 			int duration_msec = (int)(Double.valueOf(seg_duration) * 1000.0f);
+            total_msec += duration_msec;
+            String str_duration = formatter.format(total_msec);
 			m_duration_list.add(duration_msec);
+
+            LogUtil.info(TAG, String.format(Locale.US,
+                    "Java: segment #%d duration: %s(%s)",
+                    i++, seg_duration, str_duration));
 		}
 	}
 	

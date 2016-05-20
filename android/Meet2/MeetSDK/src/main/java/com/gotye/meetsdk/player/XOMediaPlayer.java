@@ -205,10 +205,10 @@ public class XOMediaPlayer extends BaseMediaPlayer {
 		}
 
 		mUrl = path;
-		MediaExtractable extractor = 
-				UrlUtil.isUseSystemExtractor(mUrl) 
-				? new SystemMediaExtractor()
-				: new FFMediaExtractor(new WeakReference<XOMediaPlayer>(this));
+
+        // always use FFMediaExtractor
+		MediaExtractable extractor =
+				new FFMediaExtractor(new WeakReference<XOMediaPlayer>(this));
 
 		setDataSource(extractor);
 	}
@@ -281,6 +281,17 @@ public class XOMediaPlayer extends BaseMediaPlayer {
 	@Override
 	public void setSurface(Surface surface) {
 		mSurface = surface;
+
+        // support setSurface after prepare()
+        if (getState() == PlayState.PREPARED && mVideoCodec == null) {
+			LogUtils.info("init video decoder when surface is ready");
+
+            if (!initVideoDecoder()) {
+                Message msg = mEventHandler.obtainMessage(MediaPlayer.MEDIA_ERROR);
+                msg.arg1 = MediaPlayer.MEDIA_ERROR_VIDEO_DECODER;
+                msg.sendToTarget();
+            }
+        }
 	}
 
 	@Override
@@ -349,14 +360,20 @@ public class XOMediaPlayer extends BaseMediaPlayer {
 			return false;
 		}
 
-		ret = initVideoDecoder();
-		if (!ret) {
-			Message msg = mEventHandler.obtainMessage(MediaPlayer.MEDIA_ERROR);
-			msg.arg1 = MediaPlayer.MEDIA_ERROR_VIDEO_DECODER;
-			msg.sendToTarget();
-			mLock.unlock();
-			return false;
-		}
+        // init videoDecoder later if surface NOT set
+        if (mSurface != null) {
+            LogUtils.info("init video decoder when open");
+
+            ret = initVideoDecoder();
+            if (!ret) {
+                Message msg = mEventHandler.obtainMessage(MediaPlayer.MEDIA_ERROR);
+                msg.arg1 = MediaPlayer.MEDIA_ERROR_VIDEO_DECODER;
+                msg.sendToTarget();
+                mLock.unlock();
+                return false;
+            }
+        }
+
 
         mPacketLock = new ReentrantLock();
 
@@ -1117,9 +1134,14 @@ public class XOMediaPlayer extends BaseMediaPlayer {
 
                     if (!is_flush_pkt) {
                         long presentationTimeUs = mExtractor.getSampleTime();
-                        mVideoCodec.queueInputBuffer(inputBufIndex, 0 /* offset */, sampleSize,
-                                presentationTimeUs,
-                                mSawInputEOS ? MediaCodec.BUFFER_FLAG_END_OF_STREAM : 0);
+                        if (presentationTimeUs >=0) {
+                            mVideoCodec.queueInputBuffer(inputBufIndex, 0 /* offset */, sampleSize,
+                                    presentationTimeUs,
+                                    mSawInputEOS ? MediaCodec.BUFFER_FLAG_END_OF_STREAM : 0);
+                        }
+                        else {
+                            LogUtils.error("failed to get video presentationTimeUs");
+                        }
                     }
                     mPacketLock.unlock();
                 }
@@ -1293,7 +1315,7 @@ public class XOMediaPlayer extends BaseMediaPlayer {
 
 					long schedule_msec = mFrameTimerMsec
 							- System.currentTimeMillis();
-					//LogUtils.debug("schedule_msec: " + schedule_msec);
+					//LogUtils.info("schedule_msec: " + schedule_msec);
 
 					if (schedule_msec >= 10 && !NO_AUDIO) {
 						try {
@@ -1304,12 +1326,12 @@ public class XOMediaPlayer extends BaseMediaPlayer {
 					}
 				} else if (res == MediaCodec.INFO_OUTPUT_BUFFERS_CHANGED) {
 					// codecOutputBuffers = codec.getOutputBuffers();
-					LogUtils.info("output buffers have changed.");
+					LogUtils.info("video output buffers have changed.");
 				} else if (res == MediaCodec.INFO_OUTPUT_FORMAT_CHANGED) {
 					MediaFormat oformat = mVideoCodec.getOutputFormat();
-					LogUtils.info("output format has changed to " + oformat);
+					LogUtils.info("video output format has changed to " + oformat);
 				} else {
-					LogUtils.debug("video no output: " + res);
+					LogUtils.info("video no output: " + res);
 				}
 			} catch (IllegalStateException e) {
 				e.printStackTrace();
@@ -1416,9 +1438,14 @@ public class XOMediaPlayer extends BaseMediaPlayer {
 
                     if (!is_flush_pkt) {
                         long presentationTimeUs = mExtractor.getSampleTime();
-                        mAudioCodec.queueInputBuffer(inputBufIndex, 0 /* offset */, sampleSize,
-                                presentationTimeUs,
-                                mSawInputEOS ? MediaCodec.BUFFER_FLAG_END_OF_STREAM : 0);
+                        if (presentationTimeUs >=0) {
+                            mAudioCodec.queueInputBuffer(inputBufIndex, 0 /* offset */, sampleSize,
+                                    presentationTimeUs,
+                                    mSawInputEOS ? MediaCodec.BUFFER_FLAG_END_OF_STREAM : 0);
+                        }
+                        else {
+                            LogUtils.error("failed to get audio presentationTimeUs");
+                        }
                     }
                     mPacketLock.unlock();
                 }
@@ -1517,10 +1544,10 @@ public class XOMediaPlayer extends BaseMediaPlayer {
 					// mAudioCodecLock.unlock();
 				} else if (res == MediaCodec.INFO_OUTPUT_BUFFERS_CHANGED) {
 					// codecOutputBuffers = codec.getOutputBuffers();
-					LogUtils.info("output buffers have changed.");
+					LogUtils.info("audio output buffers have changed.");
 				} else if (res == MediaCodec.INFO_OUTPUT_FORMAT_CHANGED) {
 					MediaFormat oformat = mAudioCodec.getOutputFormat();
-					LogUtils.info("output format has changed to " + oformat);
+					LogUtils.info("audio output format has changed to " + oformat);
 				} else {
 					LogUtils.info("audio no output: " + res);
 				}

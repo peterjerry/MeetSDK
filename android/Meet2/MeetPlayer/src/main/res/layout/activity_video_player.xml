@@ -17,22 +17,45 @@
         android:layout_height="96dp"
         android:layout_centerInParent="true"
         android:visibility="gone" />
-
-    <TextView
-        android:id="@+id/textview_progress"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_below="@+id/progressbar_download"
-        android:layout_centerHorizontal="true"
-        android:visibility="gone" />
 		
 	<com.gotye.meetplayer.ui.widget.MyMediaController
 		android:id="@+id/video_controller"
         android:layout_width="fill_parent"
         android:layout_height="wrap_content"
         android:layout_alignParentBottom="true"
+        android:layout_marginBottom="2dp"
     	android:visibility="gone" />
-	
+
+	<LinearLayout
+		android:id="@+id/player_drag_view"
+		android:layout_width="wrap_content"
+		android:layout_height="wrap_content"
+		android:layout_centerInParent="true"
+		android:background="@drawable/player_popbg"
+		android:orientation="vertical"
+		android:visibility="gone">
+
+		<ImageView
+			android:id="@+id/player_seek_icon"
+			android:layout_width="64dp"
+			android:layout_height="64dp"
+			android:layout_gravity="center_horizontal"
+			android:src="@drawable/player_small_forward" />
+
+		<TextView
+			android:id="@+id/tv_seek_time"
+			android:layout_width="wrap_content"
+			android:layout_height="wrap_content"
+			android:gravity="center"
+			android:layout_gravity="center_horizontal"
+			android:maxLines="1"
+			android:paddingTop="4dip"
+			android:text="00:08:42 / 00:20:10"
+			android:textColor="@color/white"
+			android:textSize="24sp" >
+		</TextView>
+	</LinearLayout>
+
 	<TextView 
         android:id="@+id/tv_debuginfo"
         android:layout_width="wrap_content"

@@ -5,6 +5,11 @@ import com.gotye.thirdparty.BreakpadUtil;
 
 import com.gotye.meetplayer.service.MyHttpService;
 import com.gotye.meetplayer.util.Util;
+import com.nostra13.universalimageloader.cache.disc.impl.UnlimitedDiscCache;
+import com.nostra13.universalimageloader.core.ImageLoader;
+import com.nostra13.universalimageloader.core.ImageLoaderConfiguration;
+import com.nostra13.universalimageloader.core.assist.QueueProcessingType;
+import com.nostra13.universalimageloader.utils.StorageUtils;
 
 import android.app.ActivityManager;
 import android.app.ActivityManager.RunningServiceInfo;
@@ -13,6 +18,7 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.graphics.Bitmap;
 import android.util.Log;
 
 import java.io.File;
@@ -31,18 +37,21 @@ public class MeetApplication extends Application {
 	public void onCreate() {
 		// TODO Auto-generated method stub
 		super.onCreate();
-		
-		/*ImageLoaderConfiguration config =
+
+        //File cacheDir = StorageUtils.getCacheDirectory(getApplicationContext());
+        File cacheDir =StorageUtils.getOwnCacheDirectory(this, "meetplayer/Cache");
+        ImageLoaderConfiguration config =
 				new ImageLoaderConfiguration.Builder(getApplicationContext())
 						.threadPriority(Thread.NORM_PRIORITY - 1)
 						.threadPoolSize(16)
 						.denyCacheImageMultipleSizesInMemory()
                         .tasksProcessingOrder(QueueProcessingType.LIFO)
+                        .diskCache(new UnlimitedDiscCache(cacheDir)) // default
 						.diskCacheSize(50 * 1024 * 1024)
-                        .diskCacheFileCount(100)
+                        .diskCacheFileCount(256)
 						.build();
-   
-		ImageLoader.getInstance().init(config);*/
+
+		ImageLoader.getInstance().init(config);
 		
 		//ExceptionHandler.register(this, "http://iloveyaya.zz.vc/crash/crash.php");
 		
@@ -65,7 +74,7 @@ public class MeetApplication extends Application {
         super.onLowMemory();
         Log.w(TAG, "Java: onLowMemory()");
         
-        //ImageLoader.getInstance().clearMemoryCache();
+        ImageLoader.getInstance().clearMemoryCache();
     }
 	
 	private class MyBroadcastReceiver extends BroadcastReceiver {

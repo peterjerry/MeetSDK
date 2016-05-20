@@ -42,7 +42,7 @@ android {
             }
         }
         release_x86 {
-            minifyEnabled false
+            minifyEnabled true
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
             signingConfig signingConfigs.release
             ndk {
@@ -71,6 +71,7 @@ dependencies {
     compile fileTree(dir: 'libs', include: ['*.jar'])
     testCompile 'junit:junit:4.12'
     compile(name: 'BreakpadUtil', ext: 'aar')
+	//compile(name: 'MeetSDK-release', ext: 'aar')
     compile 'com.android.support:appcompat-v7:23.1.1'
     compile project(':MeetSDK')
 }

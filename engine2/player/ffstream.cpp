@@ -384,12 +384,12 @@ AVFormatContext* FFStream::open(char* uri)
 
     LOGI("avformat_find_stream_info successed");
 
+	av_dump_format(mMovieFile, 0, uri, 0);
+
     mStreamsCount = mMovieFile->nb_streams;
     LOGD("mStreamsCount:%d", mStreamsCount);
-	for (int32_t i = 0; i < (int32_t)mStreamsCount; i++)
-    {
-		if (mMovieFile->streams[i]->codec->codec_type == AVMEDIA_TYPE_AUDIO)
-        {
+	for (int32_t i = 0; i < (int32_t)mStreamsCount; i++) {
+		if (mMovieFile->streams[i]->codec->codec_type == AVMEDIA_TYPE_AUDIO) {
 #ifdef NO_AUDIO_PLAY
 			//by default, use the first audio stream, and discard others.
             mMovieFile->streams[i]->discard = AVDISCARD_ALL;
@@ -560,9 +560,9 @@ AVFormatContext* FFStream::open(char* uri)
 		mMaxBufferSize = mMaxBufferSize / 4;
         LOGI("It is a local file with mMinPlayBufferCount: %d", mMinPlayBufferCount);
     }
-	else if(strstr(uri, "type=pplive"))
+	else if(strstr(uri, "type=gotyelive"))
 	{
-		mMinPlayBufferCount = mFrameRate * FF_PLAYER_MIN_BUFFER_SECONDS_VOD;
+		mMinPlayBufferCount = mFrameRate / 5; // 200 msec
         mUrlType = TYPE_LIVE;
         LOGI("It is a online live stream with mMinPlayBufferCount:%d", mMinPlayBufferCount);
 	}
@@ -576,8 +576,6 @@ AVFormatContext* FFStream::open(char* uri)
         mUrlType = TYPE_ONDEMAND;
         LOGI("It is a online ondemand stream with mMinPlayBufferCount:%d", mMinPlayBufferCount);
     }
-
-	av_dump_format(mMovieFile, 0, uri, 0);
 
     if (mStatus == FFSTREAM_STOPPED ||
         mStatus == FFSTREAM_STOPPING)

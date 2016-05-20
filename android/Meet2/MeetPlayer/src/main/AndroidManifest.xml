@@ -37,50 +37,60 @@
         <activity
             android:name=".activity.FragmentMp4PlayerActivity"
             android:label="@string/app_name"
-            android:screenOrientation="landscape"/>
+            android:screenOrientation="landscape" />
         <activity
             android:name=".activity.PlaySohuActivity"
-            android:screenOrientation="landscape"/>
+            android:screenOrientation="landscape" />
         <activity
             android:name=".activity.SohuVideoActivity"
-            android:label="@string/title_activity_sohu_video"/>
+            android:label="@string/title_activity_sohu_video" />
         <activity
             android:name=".activity.SohuEpisodeActivity"
-            android:label="@string/title_activity_sohu_video"/>
+            android:label="@string/title_activity_sohu_video" />
         <activity
             android:name=".activity.YoukuVideoActivity"
-            android:label="@string/title_activity_youku_video"/>
+            android:label="@string/title_activity_youku_video" />
         <activity
             android:name=".activity.YoukuAlbumActivity"
-            android:label="@string/title_activity_youku_video"/>
+            android:label="@string/title_activity_youku_video" />
         <activity
             android:name=".activity.YoukuEpisodeActivity"
             android:label="@string/title_activity_youku_video"
-            android:screenOrientation="portrait"/>
+            android:screenOrientation="portrait" />
         <activity
             android:name=".activity.PlayYoukuActivity"
-            android:screenOrientation="landscape"/>
+            android:screenOrientation="landscape" />
+        <activity
+            android:name=".activity.InkeActivity"
+            android:label="@string/title_activity_inke_live"
+            android:screenOrientation="portrait" />
+        <activity
+            android:name=".activity.InkePlayerActivity"
+            android:screenOrientation="portrait" />
         <activity
             android:name=".activity.PPTVVideoActivity"
-            android:label="@string/title_activity_pptv_video"/>
+            android:label="@string/title_activity_pptv_video" />
         <activity
             android:name=".activity.PPTVEpisodeActivity"
             android:label="@string/title_activity_pptv_video"
-            android:screenOrientation="portrait"/>
+            android:screenOrientation="portrait" />
         <activity
             android:name=".activity.PPTVLiveActivity"
-            android:label="@string/title_activity_pptv_video"/>
+            android:label="@string/title_activity_pptv_video" />
         <activity
             android:name=".activity.PPTVLiveCenterActivity"
-            android:label="@string/title_activity_pptv_video"/>
+            android:label="@string/title_activity_pptv_video" />
+        <activity
+            android:name=".activity.HttpViewerActivity"
+            android:screenOrientation="portrait"/>
         <activity
             android:name=".activity.PPTVPlayerActivity"
             android:label="@string/app_name"
-            android:screenOrientation="landscape"/>
+            android:screenOrientation="landscape" />
         <activity
             android:name=".activity.MeetViewActivity"
             android:configChanges="keyboardHidden|screenSize|orientation|layoutDirection"
-            android:label="@string/app_name"/>
+            android:label="@string/app_name" />
         <activity
             android:name=".activity.VideoPlayerActivity"
             android:label="@string/app_name"
@@ -133,7 +143,7 @@
         </activity>
         <activity
             android:name="com.gotye.crashhandler.SendCrashActivity"
-            android:label="@string/title_activity_send_crash"/>
+            android:label="@string/title_activity_send_crash" />
 
         <!-- Services -->
         <service android:name=".service.DLNAService">
@@ -157,6 +167,7 @@
                 <action android:name="com.gotye.action.MEDIA_SCANNER_SCAN_FILE" />
             </intent-filter>
         </receiver>
+
     </application>
 
 </manifest>

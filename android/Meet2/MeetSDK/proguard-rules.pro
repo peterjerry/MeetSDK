@@ -73,6 +73,7 @@
 -keepclassmembers class com.gotye.meetsdk.player.FFMediaPlayer {
 	long mNativeContext;
 	long mListenerContext;
+	long mSurface;
 	java.lang.String libPath;
 	private void postEventFromNative(java.lang.Object,int,int,int,java.lang.Object);
 }

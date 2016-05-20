@@ -70,7 +70,7 @@ ifeq ($(TARGET_ARCH_ABI),arm64-v8a)
 LOCAL_C_INCLUDES		+= $(LOCAL_PATH)/$(PLATFORMPATH)/libyuv/jni/include
 endif	
 	
-LOCAL_CFLAGS    		:= -Wall -DNDK_BUILD=1 -DUSE_NDK_SURFACE_REF -DUSE_AV_FILTER -DUSE_SWSCALE #-DTEST_PERFORMANCE -DTEST_PERFORMANCE_BITRATE -DNO_AUDIO_PLAY
+LOCAL_CFLAGS    		:= -Wall -DNDK_BUILD=1 -DUSE_NDK_SURFACE_REF -DTEST_PERFORMANCE -DTEST_PERFORMANCE_BITRATE  #-DNO_AUDIO_PLAY
 MY_SRC_PLAYER_FILES 	:= common.cpp ffconverter.cpp
 ifdef BUILD_FFPLAYER
 MY_SRC_PLAYER_FILES 	+= ffstream.cpp audioplayer.cpp audiorender.cpp ffplayer.cpp androidrender.cpp \
@@ -114,6 +114,9 @@ LOCAL_CFLAGS    		+=-DRENDER_RGB565 -DARCH_ARM=1 -DHAVE_NEON=1
 endif
 ifeq ($(TARGET_ARCH_ABI),armeabi-v7a)
 MY_SRC_PLATFORM_FILES	+= i420_rgb.S.arm nv12_rgb.S.arm nv21_rgb.S.arm
+endif
+ifdef BUILD_FFPLAYER
+LOCAL_CFLAGS			+= -DUSE_SWSCALE -DUSE_SWRESAMPLE -DUSE_AV_FILTER
 endif
 ifdef BUILD_OSLES
 MY_SRC_PLATFORM_FILES	+= fifobuffer.cpp oslesrender.cpp

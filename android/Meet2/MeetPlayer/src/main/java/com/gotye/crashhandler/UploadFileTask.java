@@ -20,7 +20,7 @@ public class UploadFileTask extends UploadLogTask {
             if (result != null)
                 mListener.onFinished("成功将dump文件 " + result + " 发送到服务器，感谢您的反馈", 0);
             else
-                mListener.onEror("发送崩溃信息失败", -1);
+                mListener.onError("发送崩溃信息失败", -1);
         }
     }
 

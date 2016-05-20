@@ -2,6 +2,7 @@ package com.gotye.meetplayer.util;
 
 import java.io.File;
 import java.net.URL;
+import java.net.URLDecoder;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -14,6 +15,8 @@ import java.util.Map;
 import android.content.ContentResolver;
 import android.content.Context;
 import android.database.Cursor;
+
+import com.gotye.common.util.LogUtil;
 import com.gotye.meetsdk.MeetSDK;
 import com.gotye.meetsdk.player.MediaInfo;
 import com.gotye.meetsdk.player.TrackInfo;
@@ -178,11 +181,11 @@ public class ListMediaUtil {
 	}
 	
 	private boolean ListMediaInfoHttp() {
-		Log.i(TAG, "Java: ListMediaInfoHttp");
+		LogUtil.info(TAG, "Java: ListMediaInfoHttp");
 		
 		HTTPListUtil lister = new HTTPListUtil();
 		if (!lister.ListHTTPList(mUrl)) {
-			Log.e(TAG, "Java: failed to list http server");
+			LogUtil.error(TAG, "Java: failed to list http server");
 			return false;
 		}
 		
@@ -218,7 +221,7 @@ public class ListMediaUtil {
 			URL url = (URL)FileList.get(i);
 			String clip_fullpath = url.toString();
 			String filename = GetFileName(clip_fullpath);
-			
+
 			HashMap<String, Object> map = new HashMap<String, Object>();
 			map.put("filename", filename);
 			map.put("mediainfo", "N/A");
@@ -229,7 +232,7 @@ public class ListMediaUtil {
 			map.put("fullpath", clip_fullpath);
 			map.put("thumb", R.drawable.http);
 
-			Log.i(TAG, "video: " + filename + " added to list");
+			LogUtil.info(TAG, "http media: " + filename + " added to list");
 			mClipList.add(map);
 		}
 		

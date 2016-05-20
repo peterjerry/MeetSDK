@@ -29,7 +29,9 @@ import com.gotye.meetplayer.adapter.CommonAlbumAdapter;
 import com.gotye.meetplayer.ui.widget.HorizontalTextListView;
 import com.gotye.meetplayer.util.Util;
 
+import java.io.UnsupportedEncodingException;
 import java.lang.ref.WeakReference;
+import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -55,16 +57,13 @@ public class YoukuAlbumActivity extends AppCompatActivity {
 
     private boolean search_mode = false;
 
-    private Button btnReputation;
-    private Button btnPopularity;
-    private Button btnUpdate;
-
     private int album_page_index = 1;
     private int episode_page_index = 1;
     private int subpage_sort = 2; // 1-最新发布，2-最多播放
     private int search_orderby = -1; // orderby 1-综合排序 2-最新发布 3-最多播放
     private int search_page_index = 1;
-    private int episode_page_incr = 1;
+    private String search_filter;
+    private boolean search_get_filter;
     private final static int page_size = 10;
     private final static int search_page_size = 20;
 
@@ -129,10 +128,6 @@ public class YoukuAlbumActivity extends AppCompatActivity {
 		}
 		
 		setContentView(R.layout.activity_youku_album);
-
-        findViewById(R.id.btn_reputation).setOnClickListener(mClickListener);
-        findViewById(R.id.btn_popularity).setOnClickListener(mClickListener);
-        findViewById(R.id.btn_update).setOnClickListener(mClickListener);
 
 		this.mGridView = (GridView) findViewById(R.id.grid_view);
 		this.mGridView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
@@ -201,10 +196,8 @@ public class YoukuAlbumActivity extends AppCompatActivity {
                 switch (scrollState) {
                     case AbsListView.OnScrollListener.SCROLL_STATE_FLING:
                     case AbsListView.OnScrollListener.SCROLL_STATE_TOUCH_SCROLL:
-                        mAdapter.setLoadImg(false);
                         break;
                     case AbsListView.OnScrollListener.SCROLL_STATE_IDLE:
-                        mAdapter.setLoadImg(true);
                         break;
                     default:
                         break;
@@ -235,6 +228,7 @@ public class YoukuAlbumActivity extends AppCompatActivity {
 
 	    if (search_key != null) {
             search_mode = true;
+            search_get_filter = true;
             new SetDataTask().execute(SET_DATA_SEARCH);
         }
         else if (relate_vid != null) {
@@ -252,29 +246,6 @@ public class YoukuAlbumActivity extends AppCompatActivity {
         @Override
         public void onClick(View v) {
             // TODO Auto-generated method stub
-
-            if (search_mode) {
-                search_page_index = 1;
-                // orderby 1-综合排序 2-最新发布 3-最多播放
-
-                switch (v.getId()) {
-                    case R.id.btn_reputation:
-                        search_orderby = 1;
-                        new SetDataTask().execute(SET_DATA_SEARCH);
-                        break;
-                    case R.id.btn_popularity:
-                        search_orderby = 3;
-                        new SetDataTask().execute(SET_DATA_SEARCH);
-                        break;
-                    case R.id.btn_update:
-                        search_orderby = 2;
-                        new SetDataTask().execute(SET_DATA_SEARCH);
-                        break;
-                    default:
-                        Log.w(TAG, "Java unknown view id: " + v.getId());
-                        break;
-                }
-            }
         }
     };
 
@@ -392,6 +363,7 @@ public class YoukuAlbumActivity extends AppCompatActivity {
         AlbumInfo.put("vid", vid);
         AlbumInfo.put("episode_total", album.getEpisodeTotal());
         AlbumInfo.put("is_album", album.getEpisodeTotal() > 1);
+        AlbumInfo.put("company", "youku");
         return AlbumInfo;
     }
 
@@ -427,7 +399,7 @@ public class YoukuAlbumActivity extends AppCompatActivity {
                     mTitle = ep.getTitle();
                     mEpisodeIndex = -1;
 
-                    mZGUrl = YKUtil.getPlayUrl2(mVid);
+                    mZGUrl = YKUtil.getPlayZGUrl(YoukuAlbumActivity.this, mVid);
                     if (mZGUrl == null) {
                         LogUtil.error(TAG, "Java: failed to call getPlayUrl2()[one ep] vid: " + mVid);
                         return false;
@@ -445,7 +417,7 @@ public class YoukuAlbumActivity extends AppCompatActivity {
                     return false;
                 }
 
-                mZGUrl = YKUtil.getPlayUrl2(mVid);
+                mZGUrl = YKUtil.getPlayZGUrl(YoukuAlbumActivity.this, mVid);
                 if (mZGUrl == null) {
                     LogUtil.error(TAG, "Java: failed to call getPlayUrl2()[playlink] vid: " + mVid);
                     return false;
@@ -458,7 +430,7 @@ public class YoukuAlbumActivity extends AppCompatActivity {
                     List<Map<String, Object>> listData = mAdapter.getData();
 
                     search_page_index++;
-                    YKUtil.MixResult result = YKUtil.soku(search_key, search_orderby, search_page_index);
+                    YKUtil.MixResult result = YKUtil.soku(search_key, search_filter, search_orderby, search_page_index);
                     if (result == null || result.mEpisodeList == null ||
                             result.mEpisodeList.isEmpty()) {
                         LogUtil.info(TAG, "Java: no more search result");
@@ -486,6 +458,7 @@ public class YoukuAlbumActivity extends AppCompatActivity {
                         episode.put("vid", ep.getVideoId());
                         episode.put("is_album", false);
                         episode.put("episode_total", 1);
+                        episode.put("company", "youku");
                         listData.add(episode);
                     }
                 }
@@ -574,38 +547,74 @@ public class YoukuAlbumActivity extends AppCompatActivity {
                     htv.setOnItemClickListener(new HorizontalTextListView.OnItemClickListener() {
                         @Override
                         public boolean onItemClick(int position) {
-                            //  genre:艺术|genre:曲艺
-                            String filter_v = fg.mCat + ":" + ft.get(position).mValue;
-                            if (filter == null || filter.isEmpty()) {
-                                filter = filter_v;
-                            }
-                            else {
-                                int pos = filter.indexOf(fg.mCat);
-                                if (pos != -1) {
-                                    // update
-                                    int pos2 = filter.indexOf("|", pos);
-                                    String prefix = null;
-                                    if (pos2 > 0)
-                                        prefix = filter.substring(pos2);
-
-                                    if (pos == 0)
-                                        filter = filter_v;
-                                    else
-                                        filter = filter.substring(0, pos - 1) + "|" + filter_v;
-                                    if (prefix != null)
-                                        filter += prefix;
+                            if (search_mode) {
+                                String filter_v = fg.mCat + "=" + ft.get(position).mValue;
+                                if (search_filter == null || search_filter.isEmpty()) {
+                                    search_filter = "&" + filter_v;
                                 }
                                 else {
-                                    // add
-                                    filter += "|";
-                                    filter += filter_v;
-                                }
-                            }
-                            LogUtil.info(TAG, "set filter to: " + filter);
+                                    int pos = search_filter.indexOf(fg.mCat);
+                                    if (pos != -1) {
+                                        // update
+                                        int pos2 = search_filter.indexOf("&", pos);
+                                        String prefix = null;
+                                        if (pos2 > 0)
+                                            prefix = search_filter.substring(pos2);
 
-                            album_page_index = 1;
-                            noMoreData = false;
-                            new SetDataTask().execute(SET_DATA_LIST);
+                                        if (pos == 0)
+                                            search_filter = "&" + filter_v;
+                                        else
+                                            search_filter = search_filter.substring(0, pos - 1) + "&" + filter_v;
+                                        if (prefix != null)
+                                            search_filter += prefix;
+                                    }
+                                    else {
+                                        // add
+                                        search_filter += "&";
+                                        search_filter += filter_v;
+                                    }
+                                }
+                                LogUtil.info(TAG, "set search_filter to: " + search_filter);
+
+                                search_page_index = 1;
+                                noMoreData = false;
+                                new SetDataTask().execute(SET_DATA_SEARCH);
+                            }
+                            else {
+                                //  genre:艺术|genre:曲艺
+                                String filter_v = fg.mCat + ":" + ft.get(position).mValue;
+                                if (filter == null || filter.isEmpty()) {
+                                    filter = filter_v;
+                                }
+                                else {
+                                    int pos = filter.indexOf(fg.mCat);
+                                    if (pos != -1) {
+                                        // update
+                                        int pos2 = filter.indexOf("|", pos);
+                                        String prefix = null;
+                                        if (pos2 > 0)
+                                            prefix = filter.substring(pos2);
+
+                                        if (pos == 0)
+                                            filter = filter_v;
+                                        else
+                                            filter = filter.substring(0, pos - 1) + "|" + filter_v;
+                                        if (prefix != null)
+                                            filter += prefix;
+                                    }
+                                    else {
+                                        // add
+                                        filter += "|";
+                                        filter += filter_v;
+                                    }
+                                }
+                                LogUtil.info(TAG, "set filter to: " + filter);
+
+                                album_page_index = 1;
+                                noMoreData = false;
+                                new SetDataTask().execute(SET_DATA_LIST);
+                            }
+
                             return true;
                         }
                     });
@@ -626,11 +635,31 @@ public class YoukuAlbumActivity extends AppCompatActivity {
                 htv.setOnItemClickListener(new HorizontalTextListView.OnItemClickListener() {
                     @Override
                     public boolean onItemClick(int position) {
-                        subpage_sort = mFilterResult.mSortTypes.get(position).mValue;
-                        LogUtil.info(TAG, "set subpage_sort to: " + subpage_sort);
-                        album_page_index = 1;
-                        noMoreData = false;
-                        new SetDataTask().execute(SET_DATA_LIST);
+                        if (search_mode) {
+                            search_page_index = 1;
+                            // orderby 1-综合排序 2-最新发布 3-最多播放
+                            switch (position) {
+                                case 0:
+                                default:
+                                    search_orderby = 1;
+                                    break;
+                                case 1:
+                                    search_orderby = 2;
+                                    break;
+                                case 2:
+                                    search_orderby = 3;
+                                    break;
+                            }
+
+                            new SetDataTask().execute(SET_DATA_SEARCH);
+                        }
+                        else {
+                            subpage_sort = mFilterResult.mSortTypes.get(position).mValue;
+                            LogUtil.info(TAG, "set subpage_sort to: " + subpage_sort);
+                            album_page_index = 1;
+                            noMoreData = false;
+                            new SetDataTask().execute(SET_DATA_LIST);
+                        }
                         return true;
                     }
                 });
@@ -656,7 +685,7 @@ public class YoukuAlbumActivity extends AppCompatActivity {
 
                 items = new ArrayList<Map<String, Object>>();
 
-                YKUtil.MixResult result = YKUtil.soku(search_key, search_orderby, search_page_index);
+                YKUtil.MixResult result = YKUtil.soku(search_key, search_filter, search_orderby, search_page_index);
                 if (result == null) {
                     LogUtil.error(TAG, "Java: failed to call soku()");
                     return null;
@@ -685,7 +714,6 @@ public class YoukuAlbumActivity extends AppCompatActivity {
                 for (int i=0;i<c;i++) {
                     HashMap<String, Object> episode = new HashMap<String, Object>();
                     Episode ep = mEpisodeList.get(i);
-                    LogUtil.info(TAG, "episode info: " + ep.toString());
                     episode.put("title", ep.getTitle());
                     episode.put("img_url", ep.getThumbUrl());
                     episode.put("desc", "N/A");
@@ -695,7 +723,14 @@ public class YoukuAlbumActivity extends AppCompatActivity {
                     episode.put("vid", ep.getVideoId());
                     episode.put("is_album", false);
                     episode.put("episode_total", 1);
+                    episode.put("company", "youku");
                     items.add(episode);
+                }
+
+                if (search_get_filter) {
+                    mFilterResult = YKUtil.getSearchFilter();
+                    show_filter = true;
+                    search_get_filter = false;
                 }
 			}
 			else if (action == SET_DATA_LIST) {
@@ -757,7 +792,6 @@ public class YoukuAlbumActivity extends AppCompatActivity {
                 for (int i=0;i<c;i++) {
                     HashMap<String, Object> episode = new HashMap<String, Object>();
                     Episode ep = mEpisodeList.get(i);
-                    LogUtil.info(TAG, "episode info: " + ep.toString());
                     episode.put("title", ep.getTitle());
                     episode.put("img_url", ep.getThumbUrl());
                     episode.put("desc", "N/A");
@@ -767,6 +801,7 @@ public class YoukuAlbumActivity extends AppCompatActivity {
                     episode.put("vid", ep.getVideoId());
                     episode.put("is_album", false);
                     episode.put("episode_total", 1);
+                    episode.put("company", "youku");
                     items.add(episode);
                 }
             }
