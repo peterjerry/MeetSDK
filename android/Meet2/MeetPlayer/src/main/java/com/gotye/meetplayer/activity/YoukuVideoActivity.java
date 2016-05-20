@@ -388,7 +388,7 @@ public class YoukuVideoActivity extends AppCompatActivity {
         protected YKUtil.ZGUrl doInBackground(String... params) {
             // TODO Auto-generated method stub
             String vid = params[0];
-            return YKUtil.getPlayUrl2(YoukuVideoActivity.this, vid);
+            return YKUtil.getPlayZGUrl(YoukuVideoActivity.this, vid);
         }
     }
 

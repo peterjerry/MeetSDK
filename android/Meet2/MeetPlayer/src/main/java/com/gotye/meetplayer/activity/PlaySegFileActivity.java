@@ -6,6 +6,7 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.graphics.PixelFormat;
 import android.media.AudioManager;
+import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
@@ -76,7 +77,7 @@ public class PlaySegFileActivity extends AppCompatActivity
     protected String mUrlListStr;
     protected String mDurationListStr;
 	protected String mTitle;
-    protected int mFt;
+    protected int mFt = 2;
     protected int pre_seek_msec = -1;
 
     protected MainHandler mHandler;
@@ -353,6 +354,7 @@ public class PlaySegFileActivity extends AppCompatActivity
                 popupPlayerImplDlg();
                 break;
             case R.id.select_ft:
+                popupSelectFT();
                 break;
             case R.id.select_episode:
                 onSelectEpisode();
@@ -473,6 +475,39 @@ public class PlaySegFileActivity extends AppCompatActivity
 
     protected void onSelectEpisode() {
 
+    }
+
+    protected void onSelectFt() {
+
+    }
+
+    private void popupSelectFT() {
+        final String[] ft_desc = {"流畅", "高清", "超清", "蓝光"};
+
+        Dialog choose_ft_dlg = new AlertDialog.Builder(PlaySegFileActivity.this)
+                .setTitle("选择码率")
+                .setSingleChoiceItems(ft_desc, mFt,
+                        new DialogInterface.OnClickListener() {
+                            public void onClick(DialogInterface dialog, int whichButton) {
+                                if (whichButton == mFt) {
+                                    dialog.dismiss();
+                                    return;
+                                } else {
+                                    Toast.makeText(PlaySegFileActivity.this,
+                                            "选择码率: " + ft_desc[whichButton], Toast.LENGTH_SHORT).show();
+
+                                    mFt = whichButton;
+                                    pre_seek_msec = mPlayer.getCurrentPosition() - 5000;
+                                    if (pre_seek_msec < 0)
+                                        pre_seek_msec = 0;
+
+                                    onSelectFt();
+                                    dialog.dismiss();
+                                }
+                            }
+                        })
+                .create();
+        choose_ft_dlg.show();
     }
 
     protected void onSelectEpisode(int incr) {
@@ -698,9 +733,12 @@ public class PlaySegFileActivity extends AppCompatActivity
         protected final static int MSG_FAIL_TO_GET_PLAYLINK     = 102;
         protected final static int MSG_FAIL_TO_GET_STREAM		= 103;
         protected final static int MSG_FAIL_TO_GET_ALBUM_INFO	= 104;
+        protected final static int MSG_INVALID_FT               = 105;
 
         private static final int MSG_UPDATE_PLAY_INFO 			= 201;
         private static final int MSG_UPDATE_RENDER_INFO			= 202;
+
+        private static final int MSG_RESTART_PLAYER             = 301;
 
         public MainHandler(PlaySegFileActivity activity) {
             mWeakActivity = new WeakReference<PlaySegFileActivity>(activity);
@@ -726,6 +764,9 @@ public class PlaySegFileActivity extends AppCompatActivity
                 case MSG_INVALID_EPISODE_INDEX:
                     Toast.makeText(activity, "invalid episode", Toast.LENGTH_SHORT).show();
                     break;
+                case MSG_INVALID_FT:
+                    Toast.makeText(activity, "invalid ft", Toast.LENGTH_SHORT).show();
+                    break;
                 case MSG_FAIL_TO_GET_ALBUM_INFO:
                     Toast.makeText(activity, "failed to get album info", Toast.LENGTH_SHORT).show();
                     break;
@@ -745,6 +786,9 @@ public class PlaySegFileActivity extends AppCompatActivity
                             activity.render_frame_num % 25, activity.decode_drop_frame % 1000, activity.av_latency_msec,
                             activity.decode_fps, activity.decode_avg_msec, activity.render_fps, activity.render_avg_msec,
                             activity.video_bitrate));
+                    break;
+                case MSG_RESTART_PLAYER:
+                    activity.setupMediaPlayer();
                     break;
                 default:
                     break;

@@ -399,7 +399,7 @@ public class YoukuAlbumActivity extends AppCompatActivity {
                     mTitle = ep.getTitle();
                     mEpisodeIndex = -1;
 
-                    mZGUrl = YKUtil.getPlayUrl2(YoukuAlbumActivity.this, mVid);
+                    mZGUrl = YKUtil.getPlayZGUrl(YoukuAlbumActivity.this, mVid);
                     if (mZGUrl == null) {
                         LogUtil.error(TAG, "Java: failed to call getPlayUrl2()[one ep] vid: " + mVid);
                         return false;
@@ -417,7 +417,7 @@ public class YoukuAlbumActivity extends AppCompatActivity {
                     return false;
                 }
 
-                mZGUrl = YKUtil.getPlayUrl2(YoukuAlbumActivity.this, mVid);
+                mZGUrl = YKUtil.getPlayZGUrl(YoukuAlbumActivity.this, mVid);
                 if (mZGUrl == null) {
                     LogUtil.error(TAG, "Java: failed to call getPlayUrl2()[playlink] vid: " + mVid);
                     return false;

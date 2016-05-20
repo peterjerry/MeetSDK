@@ -107,8 +107,8 @@ public class HttpViewerActivity extends AppCompatActivity {
 
                     String vid = YKUtil.getVid(url);
                     if (vid != null) {
-                        new ParseVideoTask().execute();
-                        return true;
+                        //new ParseVideoTask().execute();
+                        //return true;
                     }
                 }
 
@@ -170,7 +170,7 @@ public class HttpViewerActivity extends AppCompatActivity {
 
             if (video_url.contains("youku")) {
                 String vid = YKUtil.getVid(video_url);
-                zgUrl = YKUtil.getPlayUrl2(HttpViewerActivity.this, vid);
+                zgUrl = YKUtil.getPlayZGUrl(HttpViewerActivity.this, vid);
                 if (zgUrl == null) {
                     LogUtil.error(TAG, "failed to get ZGUrl, vid " + vid);
                     return false;

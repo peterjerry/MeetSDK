@@ -127,7 +127,47 @@ public class PlayYoukuActivity extends PlaySegFileActivity {
             LogUtil.warn(TAG, "NO episode available");
         }
     }
-	
+
+    @Override
+    protected void onSelectFt() {
+        new PlayLinkTask().execute();
+    }
+
+    private class PlayLinkTask extends AsyncTask<Integer, Integer, Boolean> {
+        private ProgressDialog mProgressDlg;
+
+        @Override
+        protected void onPreExecute() {
+            mProgressDlg = new ProgressDialog(PlayYoukuActivity.this);
+            mProgressDlg.setMessage("播放地址解析中...");
+            mProgressDlg.setCancelable(false);
+            mProgressDlg.show();
+        }
+
+        @Override
+        protected void onPostExecute(Boolean result) {
+            // TODO Auto-generated method stub
+            mProgressDlg.dismiss();
+        }
+
+        @Override
+        protected Boolean doInBackground(Integer... params) {
+            // TODO Auto-generated method stub
+            YKUtil.ZGUrl zg = YKUtil.getPlayZGUrl(PlayYoukuActivity.this, mVid, mFt);
+            if (zg == null) {
+                mHandler.sendEmptyMessage(MainHandler.MSG_INVALID_FT);
+                return false;
+            }
+
+            mUrlListStr = zg.urls;
+            mDurationListStr = zg.durations;
+            buildPlaylinkList();
+
+            mHandler.sendEmptyMessage(MainHandler.MSG_PLAY_NEXT_EPISODE);
+            return true;
+        }
+    }
+
 	private class NextEpisodeTask extends AsyncTask<Integer, Integer, Boolean> {
 
         private final static int ACTION_EPISODE_INCR    = 1;
@@ -212,7 +252,7 @@ public class PlayYoukuActivity extends PlaySegFileActivity {
             Episode ep = mEpisodeList.get(mEpisodeIndex);
             mVid = ep.getVideoId();
 
-            YKUtil.ZGUrl zg = YKUtil.getPlayUrl2(PlayYoukuActivity.this, mVid);
+            YKUtil.ZGUrl zg = YKUtil.getPlayZGUrl(PlayYoukuActivity.this, mVid);
             if (zg == null) {
                 mHandler.sendEmptyMessage(MainHandler.MSG_INVALID_EPISODE_INDEX);
                 return false;

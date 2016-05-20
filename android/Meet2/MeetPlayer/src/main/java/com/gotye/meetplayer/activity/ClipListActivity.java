@@ -2095,7 +2095,7 @@ public class ClipListActivity extends AppCompatActivity implements
 
             if (video_url.contains("youku")) {
                 String vid = YKUtil.getVid(video_url);
-                zgUrl = YKUtil.getPlayUrl2(ClipListActivity.this, vid);
+                zgUrl = YKUtil.getPlayZGUrl(ClipListActivity.this, vid);
                 if (zgUrl == null) {
                     LogUtil.error(TAG, "failed to get ZGUrl, vid " + vid);
                     return false;
