@@ -435,11 +435,15 @@ public class ClipListActivity extends AppCompatActivity implements
         mMediaDB = MediaStoreDatabaseHelper.getInstance(this);
 
         if (Util.IsHaveInternet(this)) {
-            tv_title.setText(String.format(Locale.US,
+            String title = String.format(Locale.US,
                     "%s, ip: %s, http port: %d",
                     tv_title.getText().toString(),
                     Util.getIpAddr(this),
-                    MyHttpService.getPort()));
+                    MyHttpService.getPort());
+            tv_title.setText(title);
+
+            if (title.length() > 64)
+                tv_title.setMarquee(false);
         }
 
         mPlaybackTime = new PlayBackTime(this);

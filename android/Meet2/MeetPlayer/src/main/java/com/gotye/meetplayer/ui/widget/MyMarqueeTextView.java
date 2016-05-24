@@ -13,6 +13,7 @@ import android.widget.TextView;
  */
 public class MyMarqueeTextView extends TextView {
 
+	private boolean bMarquee = true;
 	public MyMarqueeTextView(Context context, AttributeSet attrs, int defStyle)
 	{
 		super(context, attrs, defStyle);
@@ -22,6 +23,10 @@ public class MyMarqueeTextView extends TextView {
 	public MyMarqueeTextView(Context context, AttributeSet attrs)
 	{
 		super(context, attrs);
+	}
+
+	public void setMarquee(boolean ON) {
+        bMarquee = ON;
 	}
 
 	@Override

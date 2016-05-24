@@ -301,7 +301,7 @@ public class PlaySegFileActivity extends AppCompatActivity
 				toggleMediaControlsVisiblity();
 
                 // MUST use mPlayer because mp is seg player
-                if (mPlayerImpl != 2/*XOPlayer not support now*/ && pre_seek_msec > 0) {
+                if (pre_seek_msec > 0) {
                     mPlayer.seekTo(pre_seek_msec);
                     pre_seek_msec = -1;
                 }
@@ -367,6 +367,9 @@ public class PlaySegFileActivity extends AppCompatActivity
                 break;
             case R.id.show_mediainfo:
                 popupMediaInfo();
+                break;
+            case R.id.show_relate_video:
+                onShowRelateVideo();
                 break;
             case R.id.toggle_debug_info:
                 mbTvInfoShowing = !mbTvInfoShowing;
@@ -508,6 +511,10 @@ public class PlaySegFileActivity extends AppCompatActivity
                         })
                 .create();
         choose_ft_dlg.show();
+    }
+
+    protected void onShowRelateVideo() {
+
     }
 
     protected void onSelectEpisode(int incr) {

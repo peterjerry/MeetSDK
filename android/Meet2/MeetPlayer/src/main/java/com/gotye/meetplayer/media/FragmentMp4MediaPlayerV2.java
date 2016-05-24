@@ -37,6 +37,8 @@ public class FragmentMp4MediaPlayerV2 {
 	private boolean mSeeking;
 	private int mStreamType;
 
+	private int mTotalPlayer = 0;
+
 	private static final int SYSTEM_PLAYER  = 1;
 	private static final int XO_PLAYER      = 2;
 	private static final int FF_PLAYER      = 3;
@@ -141,16 +143,21 @@ public class FragmentMp4MediaPlayerV2 {
 				
 				if (mOnInfoListener != null)
 					mOnInfoListener.onInfo(mCurrentPlayer, MediaPlayer.MEDIA_INFO_BUFFERING_START, 0);
-				
-				LogUtil.info(TAG, String.format(Locale.US,
-                        "Java: seekto(back) pos %d, #%d, offset %d",
-                        msec, m_playlink_now_index, m_play_pos_offset));
-				m_pre_seek_pos = msec - m_play_pos_offset;
+
+                // huawei m321 MediaCodec not support pre-seek
+				if (mPlayerImpl != 2) {
+					LogUtil.info(TAG, String.format(Locale.US,
+							"Java: seekto(back) pos %d, #%d, offset %d",
+							msec, m_playlink_now_index, m_play_pos_offset));
+					m_pre_seek_pos = msec - m_play_pos_offset;
+				}
 
                 mHandler.removeMessages(MainHandler.MSG_CHECK_SETUP_NEXT_PLAYER);
 				if (mNextPlayer != null) {
 					mNextPlayer.release();
 					mNextPlayer = null;
+                    mTotalPlayer--;
+                    LogUtil.info(TAG, "Media Player total_count--: " + mTotalPlayer);
 				}
 				setupPlayer();
 			}
@@ -166,16 +173,21 @@ public class FragmentMp4MediaPlayerV2 {
 				
 				if (mOnInfoListener != null)
 					mOnInfoListener.onInfo(mCurrentPlayer, MediaPlayer.MEDIA_INFO_BUFFERING_START, 0);
-				
-				LogUtil.info(TAG, String.format(Locale.US,
-                        "Java: seekto(forward) pos %d, #%d, offset %d",
-                        msec, m_playlink_now_index, m_play_pos_offset));
-				m_pre_seek_pos = msec - m_play_pos_offset;
+
+                // huawei m321 MediaCodec not support pre-seek
+                if (mPlayerImpl != 2) {
+                    LogUtil.info(TAG, String.format(Locale.US,
+                            "Java: seekto(forward) pos %d, #%d, offset %d",
+                            msec, m_playlink_now_index, m_play_pos_offset));
+                    m_pre_seek_pos = msec - m_play_pos_offset;
+                }
 
                 mHandler.removeMessages(MainHandler.MSG_CHECK_SETUP_NEXT_PLAYER);
 				if (mNextPlayer != null) {
 					mNextPlayer.release();
 					mNextPlayer = null;
+                    mTotalPlayer--;
+                    LogUtil.info(TAG, "Media Player total_count--: " + mTotalPlayer);
 				}
 				setupPlayer();
 			}
@@ -193,11 +205,19 @@ public class FragmentMp4MediaPlayerV2 {
 	public void release() {
         mHandler.removeMessages(MainHandler.MSG_CHECK_SETUP_NEXT_PLAYER);
 
-		if (mCurrentPlayer != null)
-			mCurrentPlayer.release();
+		if (mCurrentPlayer != null) {
+            mCurrentPlayer.release();
+            mCurrentPlayer = null;
+            mTotalPlayer--;
+            LogUtil.info(TAG, "Media Player total_count--: " + mTotalPlayer);
+        }
 		
-		if (mNextPlayer != null)
-			mNextPlayer.release();
+		if (mNextPlayer != null) {
+            mNextPlayer.release();
+            mNextPlayer = null;
+            mTotalPlayer--;
+            LogUtil.info(TAG, "Media Player total_count--: " + mTotalPlayer);
+        }
 	}
 
 	public void reset() {
@@ -304,6 +324,8 @@ public class FragmentMp4MediaPlayerV2 {
 
 			mCurrentPlayer.release();
 			mCurrentPlayer = null;
+            mTotalPlayer--;
+            LogUtil.info(TAG, "Media Player total_count--: " + mTotalPlayer);
 		}
 
         MediaPlayer.DecodeMode mode;
@@ -315,6 +337,8 @@ public class FragmentMp4MediaPlayerV2 {
             mode = MediaPlayer.DecodeMode.HW_SYSTEM;
 
 		mCurrentPlayer = new MediaPlayer(mode);
+        mTotalPlayer++;
+        LogUtil.info(TAG, "Media Player total_count++: " + mTotalPlayer);
 		mCurrentPlayer.reset();
 		
 		mCurrentPlayer.setDisplay(mHolder);
@@ -360,6 +384,9 @@ public class FragmentMp4MediaPlayerV2 {
                     }
 
                     mNextPlayer.release();
+                    mNextPlayer = null;
+                    mTotalPlayer--;
+                    LogUtil.info(TAG, "Media Player total_count--: " + mTotalPlayer);
                 }
 
                 MediaPlayer.DecodeMode mode;
@@ -370,6 +397,8 @@ public class FragmentMp4MediaPlayerV2 {
                 else
                     mode = MediaPlayer.DecodeMode.HW_SYSTEM;
 				mNextPlayer = new MediaPlayer(mode);
+                mTotalPlayer++;
+                LogUtil.info(TAG, "Media Player total_count++: " + mTotalPlayer);
 				mNextPlayer.reset();
 
                 // ffplayer MUST set HERE!!!
@@ -454,6 +483,8 @@ public class FragmentMp4MediaPlayerV2 {
 			if (mPlayerImpl == SYSTEM_PLAYER)
                 mp.setDisplay(null);
 			mp.release();
+            mTotalPlayer--;
+            LogUtil.info(TAG, "Media Player total_count--: " + mTotalPlayer);
 
             mCurrentPlayer = mNextPlayer;
             mNextPlayer = null;

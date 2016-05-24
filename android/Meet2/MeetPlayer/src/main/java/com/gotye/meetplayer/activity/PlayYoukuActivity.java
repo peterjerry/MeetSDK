@@ -7,6 +7,8 @@ import android.content.Intent;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.v7.app.AlertDialog;
+import android.view.Menu;
+import android.view.MenuInflater;
 import android.view.View;
 import android.widget.Toast;
 
@@ -14,10 +16,13 @@ import com.gotye.common.util.LogUtil;
 import com.gotye.common.youku.Episode;
 import com.gotye.common.youku.YKUtil;
 import com.gotye.db.YKPlayhistoryDatabaseHelper;
+import com.gotye.meetplayer.R;
+import com.gotye.meetplayer.util.Util;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.StringTokenizer;
 
 public class PlayYoukuActivity extends PlaySegFileActivity {
 	private final static String TAG = "PlayYoukuActivity";
@@ -65,6 +70,18 @@ public class PlayYoukuActivity extends PlaySegFileActivity {
         }
 
         super.onPause();
+    }
+
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        MenuInflater menuInflater = new MenuInflater(getApplication());
+        menuInflater.inflate(R.menu.seg_player_menu, menu);
+        return true;
+    }
+
+    @Override
+    protected void onShowRelateVideo() {
+        new RelateVideoTask().execute();
     }
 
     private void popupSelectEpDlg() {
@@ -131,6 +148,66 @@ public class PlayYoukuActivity extends PlaySegFileActivity {
     @Override
     protected void onSelectFt() {
         new PlayLinkTask().execute();
+    }
+
+    private class RelateVideoTask extends AsyncTask<Integer, Integer, Boolean> {
+        private ProgressDialog mProgressDlg;
+        private YKUtil.MixResult mResult;
+
+        @Override
+        protected void onPreExecute() {
+            mProgressDlg = new ProgressDialog(PlayYoukuActivity.this);
+            mProgressDlg.setMessage("相关视频获取中...");
+            mProgressDlg.setCancelable(false);
+            mProgressDlg.show();
+        }
+
+        @Override
+        protected void onPostExecute(Boolean result) {
+            // TODO Auto-generated method stub
+            mProgressDlg.dismiss();
+
+            if (result) {
+                if (mResult.mEpisodeList != null)
+                    popupRelate();
+            }
+        }
+
+        @Override
+        protected Boolean doInBackground(Integer... params) {
+            // TODO Auto-generated method stub
+            mResult = YKUtil.relate(mVid, 1);
+
+            return (mResult != null);
+        }
+
+        private void popupRelate() {
+            List<String> listTitle = new ArrayList<>();
+
+            final List<Episode> relateList = mResult.mEpisodeList;
+            for (int i=0;i<relateList.size();i++) {
+                Episode ep = relateList.get(i);
+                listTitle.add(ep.getTitle());
+            }
+            final String[] title = listTitle.toArray(new String[listTitle.size()]);
+
+            Dialog choose_relate_dlg = new AlertDialog.Builder(PlayYoukuActivity.this)
+                    .setTitle("选择相关视频")
+                    .setNegativeButton("取消", null)
+                    .setItems(title,
+                            new DialogInterface.OnClickListener() {
+                                public void onClick(DialogInterface dialog, int whichButton) {
+                                    Episode ep = relateList.get(whichButton);
+                                    mVid = ep.getVideoId();
+                                    mTitle = ep.getTitle();
+                                    LogUtil.info(TAG, "ready to parse relate video: " + mVid);
+                                    new PlayLinkTask().execute();
+                                    dialog.dismiss();
+                                }
+                            })
+                    .create();
+            choose_relate_dlg.show();
+        }
     }
 
     private class PlayLinkTask extends AsyncTask<Integer, Integer, Boolean> {

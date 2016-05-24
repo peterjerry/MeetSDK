@@ -16,6 +16,7 @@ import java.io.UnsupportedEncodingException;
 import java.net.InetAddress;
 import java.net.NetworkInterface;
 import java.net.SocketException;
+import java.net.UnknownHostException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
@@ -315,19 +316,24 @@ public class Util {
 				.getSystemService(Context.CONNECTIVITY_SERVICE);
 		NetworkInfo wifiNetworkInfo = connectivityManager
 				.getNetworkInfo(ConnectivityManager.TYPE_WIFI);
+		if (wifiNetworkInfo != null)
+            return wifiNetworkInfo.isConnected();
 
-		return wifiNetworkInfo.isConnected();
+        return false;
 	}
-	
-	public static boolean isLANConnected(Context context){
-	        ConnectivityManager connectivityManager =(ConnectivityManager) context
-	        		.getSystemService(Context.CONNECTIVITY_SERVICE);
-	        NetworkInfo lanNetworkInfo = connectivityManager
-	        		.getNetworkInfo(ConnectivityManager.TYPE_ETHERNET);
-	        return lanNetworkInfo.isConnected();
-	}
-	
-	public static String getWifiIpAddr(Context context) {
+
+    public static boolean isLANConnected(Context context) {
+        ConnectivityManager connectivityManager = (ConnectivityManager) context
+                .getSystemService(Context.CONNECTIVITY_SERVICE);
+        NetworkInfo lanNetworkInfo = connectivityManager
+                .getNetworkInfo(ConnectivityManager.TYPE_ETHERNET);
+        if (lanNetworkInfo != null)
+            return lanNetworkInfo.isConnected();
+
+        return false;
+    }
+
+    public static String getWifiIpAddr(Context context) {
 		WifiManager wifiManager = (WifiManager) context.getSystemService(Context.WIFI_SERVICE);
 		WifiInfo wifiInfo = wifiManager.getConnectionInfo();
 		int ipAddress = wifiInfo.getIpAddress();
@@ -364,9 +370,7 @@ public class Util {
 	}
 
     public static void checkNetworkType(Context context) {
-        String networkType = GetNetworkType(context);
-        if (!networkType.equals("WIFI") &&
-                !networkType.equals("ETHERNET")) {
+		if (IsHaveInternet(context) && !isLANConnected(context) && !isWifiConnected(context)) {
             Toast.makeText(context, "移动网络观看中，土豪请随意", Toast.LENGTH_SHORT).show();
         }
     }
@@ -433,6 +437,29 @@ public class Util {
         LogUtil.info(TAG, "Network Type : " + strNetworkType);
 
         return strNetworkType;
+    }
+
+    public static String[] nsLookup(String hostname) {
+        try {
+            InetAddress[] addresses = InetAddress.getAllByName(hostname);
+            if (addresses.length > 0) {
+                String []ips = new String[addresses.length];
+                for (int i = 0; i < addresses.length; i++) {
+                    LogUtil.info(TAG, hostname + "[" + i + "]: "
+                            + addresses[i].getHostAddress());
+                    ips[i] = addresses[i].getHostAddress();
+                }
+
+                return ips;
+            }
+            else {
+                LogUtil.error(TAG, "none ip addr resolved");
+            }
+        } catch (UnknownHostException uhe) {
+            LogUtil.warn(TAG, "Unable to find: " +hostname);
+        }
+
+        return null;
     }
 
 	public static void copyFile(String oldPath, String newPath) {

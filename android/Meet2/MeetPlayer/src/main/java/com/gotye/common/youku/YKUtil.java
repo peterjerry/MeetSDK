@@ -187,14 +187,14 @@ public class YKUtil {
                     "?ts=%s" + // useless?
                     "&keyframe=1" +
                     "&vid=%s" +
-                    "&type=hd2" +
                     "&sid=%s" +
                     "&token=%s" +
                     "&oip=%s" +
                     "&did=%s" + // useless?
                     "&ctype=%s" +
                     "&ev=1" +
-                    "&ep=%s";
+                    "&ep=%s" +
+                    "&type=%s";
 
     private final static String m3u8_url_fmt2 =
             "http://pl.youku.com/playlist/m3u8" +
@@ -220,20 +220,28 @@ public class YKUtil {
                     "&md=1" +
                     "&pz=20";
 
+    public static final int API_METHOD_V3_PLAY     = 1;
+    public static final int API_METHOD_GET_JSON    = 2;
+
     private static String YKss = null;
+    private static int api_method = API_METHOD_V3_PLAY;
 
-    public static String getPlayUrl(String youku_url, String vid) {
-        LogUtil.info(TAG, String.format("Java: getPlayUrl %s, vid %s",
-                youku_url == null ? "N/A" : youku_url, vid == null ? "N/A" : vid));
-
-        String vid_ = vid;
-        if (vid_ == null && youku_url != null) {
-            vid_ = getVid(youku_url);
-            if (vid_ == null)
-                return null;
+    public static void setApiMethod(int method) {
+        if (method != 1 && method !=2 ) {
+            LogUtil.error(TAG, "NOT supported method: " + method);
         }
+    }
 
-        return getPlayUrl2(vid_);
+    public static String getPlayYoukuUrl(String youku_url) {
+        LogUtil.info(TAG, "Java: getPlayYoukuUrl: " + youku_url);
+
+        String vid = getVid(youku_url);
+        if (vid == null)
+            return null;
+        if (api_method == API_METHOD_V3_PLAY)
+            return getPlayUrl(vid);
+        else
+            return getPlayUrl2(vid);
     }
 
     public static ZGUrl getPlayZGUrl(Context context, String vid) {
@@ -258,7 +266,11 @@ public class YKUtil {
             }
         }
 
-        String m3u8_url = getPlayUrl2(vid, ft);
+        String m3u8_url;
+        if (api_method == API_METHOD_V3_PLAY)
+            m3u8_url = getPlayUrl(vid, ft);
+        else
+            m3u8_url = getPlayUrl2(vid, ft);
         if (m3u8_url == null) {
             LogUtil.error(TAG, "Java: failed to get m3u8 url, vid: " + vid);
             return null;
@@ -283,8 +295,36 @@ public class YKUtil {
         return YKUtil.parseM3u8(vid, new String(m3u8_context));
     }
 
-	private static String getPlayUrl(String vid) {
-        LogUtil.info(TAG, "Java: getPlayUrl() vid " + vid);
+    private static String getStreamType(int ft) {
+        //type=mp4（高清）可替换为type=flv（标清）、type=hd2（超清）、type=hd3（1080p）
+        String stream_type = "flv";
+        switch (ft) {
+            case 0:
+                stream_type = "flv";
+                break;
+            case 1:
+                stream_type = "mp4";
+                break;
+            case 2:
+                stream_type = "hd2";
+                break;
+            case 3:
+                stream_type = "hd3";
+                break;
+            default:
+                break;
+        }
+
+        return stream_type;
+    }
+
+    private static String getPlayUrl(String vid) {
+        return getPlayUrl(vid, 2);
+    }
+
+	private static String getPlayUrl(String vid, int ft) {
+        LogUtil.info(TAG, String.format(Locale.US,
+                "Java: getPlayUrl() vid %s, ft %d", vid, ft));
 		
 		String ctype = "20";//指定播放ID 20
         String did = md5(ctype + "," + vid);
@@ -312,8 +352,11 @@ public class YKUtil {
 
             String tmp = String.format("%s_%s_%s", sid, vid, token);
             String ep = getEP(tmp, ctype);
+
+            //type=mp4（高清）可替换为type=flv（标清）、type=hd2（超清）、type=hd3（1080p）
+            String stream_type = getStreamType(ft);
             return String.format(m3u8_url_fmt,
-                    tm, vid, sid, token, oip, did, ctype, ep);
+                    tm, vid, sid, token, oip, did, ctype, ep, stream_type);
 
         } catch (JSONException e1) {
             e1.printStackTrace();
@@ -327,7 +370,8 @@ public class YKUtil {
     }
 
     private static String getPlayUrl2(String vid, int ft) {
-        LogUtil.info(TAG, String.format("Java: getPlayUrl2() vid %s, ft %d", vid, ft));
+        LogUtil.info(TAG, String.format(Locale.US,
+                "Java: getPlayUrl2() vid %s, ft %d", vid, ft));
 
         String ctype = "12";//指定播放ID 12
         String api_url = String.format(api2url, vid, ctype);
@@ -377,24 +421,7 @@ public class YKUtil {
             String tmp4 = myEncoder("bf7e5f01", tmp3.getBytes(), true);
 
             //type=mp4（高清）可替换为type=flv（标清）、type=hd2（超清）、type=hd3（1080p）
-            String stream_type;
-            switch (ft) {
-                case 0:
-                    stream_type = "flv";
-                    break;
-                case 1:
-                    stream_type = "mp4";
-                    break;
-                case 2:
-                    stream_type = "hd2";
-                    break;
-                case 3:
-                    stream_type = "hd3";
-                    break;
-                default:
-                    stream_type = "flv";
-                    break;
-            }
+            String stream_type = getStreamType(ft);
 
             try {
                 String ep_new = URLEncoder.encode(tmp4, "UTF-8");
@@ -1295,7 +1322,7 @@ public class YKUtil {
                     String link = item.getString("link");
                     String stripe_bottom = item.getString("stripe_bottom");
                     String total_vv_fmt = item.getString("total_vv_fmt");
-                    epList.add(new Episode(title, vid, img_url,
+                    epList.add(new Episode(title, videoid, img_url,
                             pubdate, total_vv_fmt, duration_fmt, null));
                 }
             }

@@ -14,7 +14,10 @@
     <string name="title_activity_iqiyi_video">爱奇艺视频</string>
     <string name="title_activity_inke_live">映客直播</string>
 
-    <string name="action_settings">Settings</string>
+    <string name="yk_clean_cookie">清除优酷cookie</string>
+    <string name="yk_api_method">优酷api方法</string>
+
+    <string name="action_settings">设置</string>
     <string name="generateCrash">产生崩溃</string>
     <string name="title_activity_send_crash">发送错误日志</string>
     <string name="send_crash">发送崩溃信息</string>
