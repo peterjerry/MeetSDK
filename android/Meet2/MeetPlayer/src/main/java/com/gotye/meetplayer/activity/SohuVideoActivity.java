@@ -105,20 +105,23 @@ public class SohuVideoActivity extends AppCompatActivity {
 	public boolean onOptionsItemSelected(MenuItem item) {
 		int id = item.getItemId();
 		Log.i(TAG, "Java: onOptionsItemSelected " + id);
-		
-		switch (id) {
-		case R.id.search:
-			popupSearch();
-			break;
-		case R.id.play_history:
-			popupHistory();
-			break;
-		default:
-			Log.w(TAG, "unknown menu id " + id);
-			break;
-		}
-		
-		return true;
+
+        switch (id) {
+            case R.id.search:
+                popupSearch();
+                break;
+            case R.id.search_history:
+                popupSearchHistory();
+                break;
+            case R.id.play_history:
+                popupHistory();
+                break;
+            default:
+                Log.w(TAG, "unknown menu id " + id);
+                break;
+        }
+
+        return true;
     }
 	
 	private Handler mhandler = new Handler(){  
@@ -185,32 +188,83 @@ public class SohuVideoActivity extends AppCompatActivity {
 	
 	private void popupSearch() {
 		AlertDialog.Builder builder;
-		
+
 		final EditText inputKey = new EditText(this);
-    	String last_key = Util.readSettings(this, "last_searchkey");
-    	Log.i(TAG, "Java last_key: " + last_key);
-    	inputKey.setText(last_key);
-		inputKey.setHint("input search key");
-		
-        builder = new AlertDialog.Builder(this);
-        builder.setTitle("input key").setIcon(android.R.drawable.ic_dialog_info).setView(inputKey)
-                .setNegativeButton("Cancel", null);
-        builder.setPositiveButton("Ok", new DialogInterface.OnClickListener() {
+		final String search_keys = Util.readSettings(this, "search_keys");
+		String keyword = search_keys;
+		int pos = search_keys.indexOf("|");
+		if (pos > 0) {
+			keyword = search_keys.substring(0, pos);
+		}
+		inputKey.setText(keyword);
+		inputKey.setHint("输入搜索关键词");
 
-            public void onClick(DialogInterface dialog, int which) {
-            	mEPGsearchKey = inputKey.getText().toString();
-            	Log.i(TAG, "Java save last_key: " + mEPGsearchKey);
-            	Util.writeSettings(SohuVideoActivity.this, "last_searchkey", mEPGsearchKey);
+		builder = new AlertDialog.Builder(this);
+		builder.setTitle("输入搜索关键词").setIcon(android.R.drawable.ic_dialog_info).setView(inputKey)
+				.setNegativeButton("取消", null);
+		builder.setPositiveButton("确认", new DialogInterface.OnClickListener() {
 
-            	Intent intent = new Intent(SohuVideoActivity.this, SohuEpisodeActivity.class);
-        		intent.putExtra("search_key", mEPGsearchKey);
-        		startActivity(intent);
-        		
-        		dialog.dismiss();
-             }
-        });
-        builder.show();
+			public void onClick(DialogInterface dialog, int which) {
+				mEPGsearchKey = inputKey.getText().toString();
+				boolean bDuplicated = false;
+				StringTokenizer st = new StringTokenizer(search_keys, "|", false);
+				while (st.hasMoreElements()) {
+					String keyword = st.nextToken();
+					if (keyword.equals(mEPGsearchKey)) {
+						bDuplicated = true;
+						break;
+					}
+				}
+				if (!bDuplicated) {
+					String new_search_keys = mEPGsearchKey;
+					new_search_keys += "|";
+					new_search_keys += search_keys;
+					Util.writeSettings(SohuVideoActivity.this, "search_keys", new_search_keys);
+				}
+
+				Intent intent = new Intent(SohuVideoActivity.this, SohuEpisodeActivity.class);
+				intent.putExtra("search_key", mEPGsearchKey);
+				startActivity(intent);
+
+				dialog.dismiss();
+			}
+		});
+		builder.show();
 	}
+
+    private void popupSearchHistory() {
+        String search_keys = Util.readSettings(this, "search_keys");
+        StringTokenizer st = new StringTokenizer(search_keys, "|", false);
+        List<String> key_list = new ArrayList<String>();
+        while (st.hasMoreElements()) {
+            String keyword = st.nextToken();
+            key_list.add(keyword);
+        }
+
+        if (key_list.isEmpty()) {
+            Toast.makeText(this, "搜索记录为空", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        final String[] keywords = key_list.toArray(new String[key_list.size()]);
+
+        Dialog choose_search_dlg = new AlertDialog.Builder(this)
+                .setTitle("选择搜索关键词")
+                .setNegativeButton("取消", null)
+                .setItems(keywords,
+                        new DialogInterface.OnClickListener() {
+                            public void onClick(DialogInterface dialog, int whichButton) {
+                                Intent intent = new Intent(
+                                        SohuVideoActivity.this, SohuEpisodeActivity.class);
+                                intent.putExtra("search_key", keywords[whichButton]);
+                                startActivity(intent);
+
+                                dialog.dismiss();
+                            }
+                        })
+                .create();
+        choose_search_dlg.show();
+    }
 	
 	private void popupHistory() {
 		final String key = "SohuPlayHistory";

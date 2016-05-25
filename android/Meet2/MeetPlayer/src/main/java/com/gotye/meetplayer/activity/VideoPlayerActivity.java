@@ -795,8 +795,6 @@ public class VideoPlayerActivity extends AppCompatActivity
 
     @Override
     public boolean onTouchEvent(MotionEvent event) {
-        LogUtil.info(TAG, "onTouchEvent(): " + event.toString());
-
         return mGestureDetector.onTouchEvent(event);
     }
 
