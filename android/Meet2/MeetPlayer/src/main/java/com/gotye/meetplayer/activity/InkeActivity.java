@@ -195,6 +195,7 @@ public class InkeActivity extends AppCompatActivity {
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
                 Map<String, Object> map = (Map<String, Object>)mLvCreator.getItemAtPosition(position);
                 String play_url = (String) map.get("play_url");
+                play_url += "?type=gotyelive";
                 //play_url = ndsTranslate(play_url);
                 Intent intent = new Intent(InkeActivity.this, InkePlayerActivity.class);
                 intent.putExtra("play_url", play_url);
@@ -207,6 +208,7 @@ public class InkeActivity extends AppCompatActivity {
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
                 Map<String, Object> map = (Map<String, Object>)mGvCreator.getItemAtPosition(position);
                 String play_url = (String) map.get("play_url");
+                play_url += "?type=gotyelive";
                 //play_url = ndsTranslate(play_url);
                 Intent intent = new Intent(InkeActivity.this, InkePlayerActivity.class);
                 intent.putExtra("play_url", play_url);

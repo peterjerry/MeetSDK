@@ -88,10 +88,10 @@ public class httpUtil {
 			HttpURLConnection conn = (HttpURLConnection)url.openConnection();
 			conn.setReadTimeout(5000);// 设置超时的时间
 			conn.setConnectTimeout(5000);// 设置链接超时的时间
-            conn.setRequestProperty("User-Agent", DESKTOP_CHROME_USER_AGENT);
-            conn.setRequestProperty("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8");
-            conn.setRequestProperty("Accept-Encoding", "gzip, deflate, sdch");
-            conn.setRequestProperty("Accept-Language", "zh-CN,zh;q=0.8");
+            conn.setRequestProperty("User-Agent", YOUKU_USER_AGENT);
+            //conn.setRequestProperty("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8");
+            //conn.setRequestProperty("Accept-Encoding", "gzip, deflate, sdch");
+            //conn.setRequestProperty("Accept-Language", "zh-CN,zh;q=0.8");
             if (Cookie != null)
                 conn.setRequestProperty("Cookie", Cookie);
 
@@ -102,7 +102,7 @@ public class httpUtil {
 			LogUtil.info(TAG, "inStream available: " + inStream.available());
 			
 			int offset = 0;
-			int count = 1024;
+			int count = 4096;
 			while ((byteread = inStream.read(buffer, offset, count)) != -1) {	
 				bytesum += byteread;
 				offset += byteread;

@@ -134,12 +134,13 @@ public class FragmentMp4MediaPlayerV2 {
 			mSeeking = true;
 			
 			if (msec < m_play_pos_offset) {
-				for (int i=m_playlink_now_index;i>=0;i--) {
-					m_playlink_now_index--;
-					m_play_pos_offset -= m_duration_list.get(m_playlink_now_index);
+                int i;
+				for (i=m_playlink_now_index;i>0;i--) {
+					m_play_pos_offset -= m_duration_list.get(i-1);
 					if (msec >= m_play_pos_offset)
 						break;
 				}
+                m_playlink_now_index = i-1;
 				
 				if (mOnInfoListener != null)
 					mOnInfoListener.onInfo(mCurrentPlayer, MediaPlayer.MEDIA_INFO_BUFFERING_START, 0);
@@ -162,14 +163,14 @@ public class FragmentMp4MediaPlayerV2 {
 				setupPlayer();
 			}
 			else if (msec >= m_play_pos_offset + m_duration_list.get(m_playlink_now_index)) {
-				for (int i=m_playlink_now_index;i<m_playlink_list.size();i++) {
-					m_play_pos_offset += m_duration_list.get(m_playlink_now_index);
-					m_playlink_now_index++;
-					if (m_playlink_now_index == m_playlink_list.size() - 1)
-						break;
-					else if (msec < m_play_pos_offset + m_duration_list.get(m_playlink_now_index + 1))
+				int i;
+				for (i=m_playlink_now_index;i<m_playlink_list.size();i++) {
+					m_play_pos_offset += m_duration_list.get(i);
+					if (msec < m_play_pos_offset)
 						break;
 				}
+				m_playlink_now_index = i;
+                m_play_pos_offset -= m_duration_list.get(i);
 				
 				if (mOnInfoListener != null)
 					mOnInfoListener.onInfo(mCurrentPlayer, MediaPlayer.MEDIA_INFO_BUFFERING_START, 0);

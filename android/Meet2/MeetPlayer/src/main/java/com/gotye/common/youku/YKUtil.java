@@ -282,7 +282,7 @@ public class YKUtil {
                 ";xreferrer=http://www.youku.com/" +
                 ";ykss=" + YKss;
         LogUtil.info(TAG, "Cookies: " + Cookies);
-        byte []buffer = new byte[65536 * 10];
+        byte []buffer = new byte[65536 * 4];
         int content_size = httpUtil.httpDownloadBuffer(m3u8_url, Cookies, 0, buffer);
         if (content_size <= 0) {
             LogUtil.error(TAG, "Java: failed to download m3u8 file: " + m3u8_url);
@@ -291,8 +291,17 @@ public class YKUtil {
         byte []m3u8_context = new byte[content_size];
         System.arraycopy(buffer, 0, m3u8_context, 0, content_size);
 
+        String str_m3u8;
+        try {
+            str_m3u8 = new String(m3u8_context, "UTF-8");
+        } catch (UnsupportedEncodingException e) {
+            e.printStackTrace();
+            LogUtil.error(TAG, "failed to convert m3u8_context to string");
+            return null;
+        }
+
         //return YKUtil.getZGUrls(vid);
-        return YKUtil.parseM3u8(vid, new String(m3u8_context));
+        return YKUtil.parseM3u8(vid, str_m3u8);
     }
 
     private static String getStreamType(int ft) {
@@ -1548,7 +1557,7 @@ public class YKUtil {
     }
 
     public static ZGUrl parseM3u8(String vid, String m3u8_context) {
-        LogUtil.info(TAG, "parseM3u8() vid: " + vid);
+        LogUtil.info(TAG, String.format(Locale.US, "parseM3u8() vid: %s, m3u8_len %d", vid, m3u8_context.length()));
 
         StringBuffer sbUrl = new StringBuffer();
         StringBuffer sbDuration = new StringBuffer();

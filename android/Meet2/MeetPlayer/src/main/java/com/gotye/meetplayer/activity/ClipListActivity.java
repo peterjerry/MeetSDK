@@ -2774,7 +2774,18 @@ public class ClipListActivity extends AppCompatActivity implements
                 if (video_url == null) {
                     Toast.makeText(ClipListActivity.this, "剪贴板中没有视频地址", Toast.LENGTH_SHORT).show();
                 } else {
-                    new ParseVideoTask().execute(video_url);
+                    boolean bParse = false;
+                    if (video_url.contains("youku") && video_url.contains("id_"))
+                        bParse = true;
+
+                    if (bParse) {
+                        new ParseVideoTask().execute(video_url);
+                    }
+                    else {
+                        if (video_url.startsWith("rtmp://") || video_url.contains("a8.com/live"))
+                            video_url += "?type=gotyelive";
+                        start_player("N/A", video_url);
+                    }
                 }
                 break;
             default:

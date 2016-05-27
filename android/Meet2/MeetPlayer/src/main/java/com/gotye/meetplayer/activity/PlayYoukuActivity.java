@@ -33,6 +33,13 @@ public class PlayYoukuActivity extends PlaySegFileActivity {
     private final static int page_size = 10;
 	private List<Episode> mEpisodeList;
 
+    private String search_key;
+    private int search_orderby = 1; // orderby 1-综合排序 2-最新发布 3-最多播放
+    private int search_page_index = -1;
+    private String search_filter;
+    private final static int search_page_size = 20;
+    private int search_index = -1; // index in page
+
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
@@ -41,13 +48,26 @@ public class PlayYoukuActivity extends PlaySegFileActivity {
         mShowId			= intent.getStringExtra("show_id");
         mVid            = intent.getStringExtra("vid");
         mEpisodeIndex	= intent.getIntExtra("episode_index", -1);
+
+        if (intent.hasExtra("search_key")) {
+            search_key = intent.getStringExtra("search_key");
+            search_filter = intent.getStringExtra("search_filter");
+            search_orderby = intent.getIntExtra("search_orderby", 1);
+            search_page_index = intent.getIntExtra("search_page_index", -1);
+            search_index = intent.getIntExtra("search_index", -1);
+
+            LogUtil.info(TAG, String.format(Locale.US,
+                    "play in search mode: key: %s, filter: %s, orderby %d, page_index #%d, index #%d",
+                    search_key, search_filter, search_orderby, search_page_index, search_index));
+        }
 	}
 
     @Override
     protected void OnComplete() {
         YKPlayhistoryDatabaseHelper.getInstance(this).savePlayedPosition(mVid, 0);
 
-        if (mShowId != null && mEpisodeIndex != -1) {
+        if ((mShowId != null && mEpisodeIndex != -1) ||
+                (search_key != null && search_page_index != -1 && search_index != -1 )) {
             new NextEpisodeTask().execute(NextEpisodeTask.ACTION_EPISODE_INCR, 1);
             return;
         }
@@ -136,8 +156,7 @@ public class PlayYoukuActivity extends PlaySegFileActivity {
 
     @Override
     protected void onSelectEpisode(int incr) {
-        if (mShowId != null && mEpisodeIndex != -1) {
-            stopPlayer();
+        if ((mShowId != null && mEpisodeIndex != -1) || search_key != null) {
             new NextEpisodeTask().execute(NextEpisodeTask.ACTION_EPISODE_INCR, incr);
         }
         else {
@@ -168,8 +187,13 @@ public class PlayYoukuActivity extends PlaySegFileActivity {
             mProgressDlg.dismiss();
 
             if (result) {
-                if (mResult.mEpisodeList != null)
+                if (mResult.mEpisodeList != null && mResult.mEpisodeList.size() > 0)
                     popupRelate();
+                else
+                    Toast.makeText(PlayYoukuActivity.this, "相关视频列表为空", Toast.LENGTH_SHORT).show();
+            }
+            else {
+                Toast.makeText(PlayYoukuActivity.this, "获取相关视频失败", Toast.LENGTH_SHORT).show();
             }
         }
 
@@ -287,22 +311,36 @@ public class PlayYoukuActivity extends PlaySegFileActivity {
 			action = params[0];
 
             if (mEpisodeList == null) {
-                int index = 1;
-                mEpisodeList = new ArrayList<Episode>();
-                while (true) {
-                    List<Episode> epList =  YKUtil.getEpisodeList(mShowId, index++, page_size);
-                    if (epList != null && !epList.isEmpty()) {
-                        mEpisodeList.addAll(epList);
+                if (search_key != null) {
+                    YKUtil.MixResult search_result = YKUtil.soku(
+                            search_key, search_filter, search_orderby, search_page_index);
+                    if (search_result != null && search_result.mEpisodeList != null &&
+                            search_result.mEpisodeList.size() > 0) {
+                        mEpisodeList = search_result.mEpisodeList;
+                        mEpisodeIndex = search_index;
+                    } else {
+                        LogUtil.error(TAG, "failed to get search list");
+                        Toast.makeText(PlayYoukuActivity.this, "获取搜索列表失败",
+                                Toast.LENGTH_SHORT).show();
+                        return false;
                     }
-                    else {
-                        break;
+                } else {
+                    int index = 1;
+                    mEpisodeList = new ArrayList<Episode>();
+                    while (true) {
+                        List<Episode> epList = YKUtil.getEpisodeList(mShowId, index++, page_size);
+                        if (epList != null && !epList.isEmpty()) {
+                            mEpisodeList.addAll(epList);
+                        } else {
+                            break;
+                        }
                     }
-                }
 
-                if (mEpisodeList == null) {
-                    LogUtil.error(TAG, "mEpisodeList is null");
-                    mHandler.sendEmptyMessage(MainHandler.MSG_INVALID_EPISODE_INDEX);
-                    return false;
+                    if (mEpisodeList == null) {
+                        LogUtil.error(TAG, "mEpisodeList is null");
+                        mHandler.sendEmptyMessage(MainHandler.MSG_INVALID_EPISODE_INDEX);
+                        return false;
+                    }
                 }
             }
 
