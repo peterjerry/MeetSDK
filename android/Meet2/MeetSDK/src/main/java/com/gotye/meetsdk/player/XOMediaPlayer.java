@@ -1148,7 +1148,7 @@ public class XOMediaPlayer extends BaseMediaPlayer {
             }
 
 			if (noOutputCounter >= 50) {
-				LogUtils.warn("output eos not found after 50 frames");
+				LogUtils.warn("video output eos not found after 50 frames");
 				break;
 			}
 
@@ -1355,6 +1355,7 @@ public class XOMediaPlayer extends BaseMediaPlayer {
 	private void audio_proc() {
 		LogUtils.info("audio thread started");
 
+        int noOutputCounter = 0;
 		boolean sawOutputEOS = false;
 		MediaCodec.BufferInfo info = new MediaCodec.BufferInfo();
 
@@ -1391,6 +1392,8 @@ public class XOMediaPlayer extends BaseMediaPlayer {
                     sawOutputEOS = false;
                 }
             }
+
+            noOutputCounter++;
 
             if (USE_READ_SAMPLE_THREAD) {
                 if (!queue_packet(false))
@@ -1451,6 +1454,11 @@ public class XOMediaPlayer extends BaseMediaPlayer {
                 }
             }
 
+			if (noOutputCounter >= 50) {
+				LogUtils.warn("audio output eos not found after 50 frames");
+				break;
+			}
+
 			int res;
 			try {
 				mAudioCodecLock.lock();
@@ -1458,6 +1466,7 @@ public class XOMediaPlayer extends BaseMediaPlayer {
 
 				if (res >= 0) {
 					int outputBufIndex = res;
+                    noOutputCounter = 0;
 
 					if ((info.flags & MediaCodec.BUFFER_FLAG_END_OF_STREAM) != 0) {
 						LogUtils.info("saw audio output EOS.");

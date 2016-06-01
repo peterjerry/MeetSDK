@@ -276,6 +276,8 @@ public class ClipListActivity extends AppCompatActivity implements
     private BroadcastReceiver mScannerReceiver;
     private MediaStoreDatabaseHelper mMediaDB;
 
+    private BroadcastReceiver mHttpServiceReceiver;
+
     // message
     private final static int MSG_CLIP_PLAY_DONE = 102;
     private static final int MSG_UPDATE_PLAY_INFO = 201;
@@ -433,18 +435,6 @@ public class ClipListActivity extends AppCompatActivity implements
         }
 
         mMediaDB = MediaStoreDatabaseHelper.getInstance(this);
-
-        if (Util.IsHaveInternet(this)) {
-            String title = String.format(Locale.US,
-                    "%s, ip: %s, http port: %d",
-                    tv_title.getText().toString(),
-                    Util.getIpAddr(this),
-                    MyHttpService.getPort());
-            tv_title.setText(title);
-
-            if (title.length() > 64)
-                tv_title.setMarquee(false);
-        }
 
         mPlaybackTime = new PlayBackTime(this);
 
@@ -2700,40 +2690,6 @@ public class ClipListActivity extends AppCompatActivity implements
                 });
                 builder.show();
                 break;
-            case R.id.bestv_video:
-                String url = getClipboardText();
-                if (url != null) {
-                    // http://wechat.bestv.com.cn/activity/androidPlay.jsp
-                    // ?playUrl=http%3A%2F%2Fwx.live.bestvcdn.com.cn%2Flive%2Fprogram%2Flive991%2Fweixinhddfws%2Findex.m3u8
-                    // %3Fse%3Dweixin%26ct%3D1%26starttime%3D1437409560%26endtime%3D1437413340%26_cp
-                    // %3D1%26_fk%3D4BE9666ECD5CA07A02A52EC9689B81621E354113967482965E8A7CC79F52A526
-                    // &token=&t=%E4%B8%9C%E6%96%B9%E5%8D%AB%E8%A7%86%20%E6%9E%81%E9%99%90%E6%8C%91%E6%88%98%E7%AC%AC%E4%BA%94%E9%9B%86
-                    // &seq=1&actcode=&tabIndex=1&topOffset=0&channelAbbr=dfws&type=0&channelCode=Umai:CHAN/1325@BESTV.SMG.SMG
-
-                    int pos = url.indexOf("?playUrl=");
-                    if (pos == -1) {
-                        Toast.makeText(this, "url is not bestv playlink", Toast.LENGTH_SHORT).show();
-                        return true;
-                    }
-
-                    String origin_url = url.substring(pos + "?playUrl=".length());
-                    try {
-                        String decoded_url = URLDecoder.decode(origin_url, "UTF-8");
-
-                        int pos1 = decoded_url.indexOf("&t=");
-                        int pos2 = decoded_url.indexOf("&seq=");
-                        if (pos1 > -1 && pos2 > -1) {
-                            String play_url = decoded_url.substring(0, pos1) + decoded_url.substring(pos2);
-                            LogUtil.info(TAG, "Java: to play bestv url: " + play_url);
-                            start_player("百事通视频", play_url);
-                        } else {
-                            Toast.makeText(this, "fail to parse bestv playlink", Toast.LENGTH_SHORT).show();
-                        }
-                    } catch (UnsupportedEncodingException e) {
-                        e.printStackTrace();
-                    }
-                }
-                break;
             case R.id.pptv_frontpage:
                 if (!Util.IsHaveInternet(this)) {
                     Toast.makeText(this, "network is not connected", Toast.LENGTH_SHORT).show();
@@ -2782,8 +2738,46 @@ public class ClipListActivity extends AppCompatActivity implements
                         new ParseVideoTask().execute(video_url);
                     }
                     else {
-                        if (video_url.startsWith("rtmp://") || video_url.contains("a8.com/live"))
+                        if (video_url.startsWith("http://wechat.bestv.com.cn")) {
+                            // http://wechat.bestv.com.cn/activity/androidPlay.jsp
+                            // ?playUrl=http%3A%2F%2Fwx.live.bestvcdn.com.cn%2Flive%2Fprogram%2Flive991%2Fweixinhddfws%2Findex.m3u8
+                            // %3Fse%3Dweixin%26ct%3D1%26starttime%3D1437409560%26endtime%3D1437413340%26_cp
+                            // %3D1%26_fk%3D4BE9666ECD5CA07A02A52EC9689B81621E354113967482965E8A7CC79F52A526
+                            // &token=&t=%E4%B8%9C%E6%96%B9%E5%8D%AB%E8%A7%86%20%E6%9E%81%E9%99%90%E6%8C%91%E6%88%98%E7%AC%AC%E4%BA%94%E9%9B%86
+                            // &seq=1&actcode=&tabIndex=1&topOffset=0&channelAbbr=dfws&type=0&channelCode=Umai:CHAN/1325@BESTV.SMG.SMG
+
+                            int pos = video_url.indexOf("?playUrl=");
+                            if (pos == -1) {
+                                LogUtil.error(TAG, "bestv playUrl= not found");
+                                Toast.makeText(this, "百事通播放地址解析失败", Toast.LENGTH_SHORT).show();
+                                return true;
+                            }
+
+                            String origin_url = video_url.substring(pos + "?playUrl=".length());
+                            try {
+                                String decoded_url = URLDecoder.decode(origin_url, "UTF-8");
+
+                                int pos1 = decoded_url.indexOf("&t=");
+                                int pos2 = decoded_url.indexOf("&seq=");
+                                if (pos1 > -1 && pos2 > -1) {
+                                    String play_url = decoded_url.substring(0, pos1) + decoded_url.substring(pos2);
+                                    LogUtil.info(TAG, "Java: to play bestv url: " + play_url);
+                                    start_player("百事通视频", play_url);
+                                } else {
+                                    LogUtil.error(TAG, "failed to parse bestv url");
+                                    Toast.makeText(this, "百事通播放地址解析失败", Toast.LENGTH_SHORT).show();
+                                }
+                            } catch (UnsupportedEncodingException e) {
+                                e.printStackTrace();
+                                LogUtil.error(TAG, e.toString());
+                            }
+
+                            return true;
+                        }
+
+                        if (video_url.startsWith("rtmp://") || video_url.contains("a8.com/live")) {
                             video_url += "?type=gotyelive";
+                        }
                         start_player("N/A", video_url);
                     }
                 }
@@ -3171,11 +3165,27 @@ public class ClipListActivity extends AppCompatActivity implements
         readSettings();
 
         if (!isTVbox) {
-            LogUtil.info(TAG, String.format("screen %dx%d, preview height %d", screen_width, screen_height, preview_height));
+            LogUtil.info(TAG, String.format("screen %d x %d, preview height %d", screen_width, screen_height, preview_height));
 
             preview_height = screen_height * 2 / 5;
             mLayout.getLayoutParams().height = preview_height;
             mLayout.requestLayout(); //or invalidate();
+        }
+
+        if (Util.IsHaveInternet(this)) {
+            StringBuffer sb = new StringBuffer();
+            sb.append(tv_title.getText().toString());
+            sb.append(", ip: ");
+            sb.append(Util.getIpAddr(this));
+            int http_port = MyHttpService.getPort();
+            if (http_port != MyHttpService.DEFAULT_HTTP_PORT) {
+                sb.append(", http_port: ");
+                sb.append(http_port);
+            }
+            tv_title.setText(sb.toString());
+
+            if (sb.toString().length() > 64)
+                tv_title.setMarquee(false);
         }
     }
 
@@ -3206,6 +3216,26 @@ public class ClipListActivity extends AppCompatActivity implements
         filter.addAction(MediaScannerService.ACTION_MEDIA_SCANNER_FINISHED);
 
         registerReceiver(mScannerReceiver, filter);
+
+        // Register receivers
+        mHttpServiceReceiver = new BroadcastReceiver() {
+            @Override
+            public void onReceive(Context context, Intent intent) {
+                String action = intent.getAction();
+                LogUtil.info(TAG, "Java: action Action: " + action);
+                if (action.equals(MyHttpService.ACTION_SERVICE_STARTED)) {
+                    int port = intent.getIntExtra("http_port", -1);
+                    String title = String.format(Locale.US,
+                            "%s, http port: %d", tv_title.getText().toString(), port);
+                    tv_title.setText(title);
+                    tv_title.setText(title);
+                }
+            }
+        };
+
+        IntentFilter filter2 = new IntentFilter();
+        filter2.addAction(MyHttpService.ACTION_SERVICE_STARTED);
+        registerReceiver(mHttpServiceReceiver, filter2);
     }
 
     @Override
@@ -3244,6 +3274,11 @@ public class ClipListActivity extends AppCompatActivity implements
         if (mScannerReceiver != null) {
             unregisterReceiver(mScannerReceiver);
             mScannerReceiver = null;
+        }
+
+        if (mHttpServiceReceiver != null) {
+            unregisterReceiver(mHttpServiceReceiver);
+            mHttpServiceReceiver = null;
         }
 
         if (isFinishing()) {

@@ -32,7 +32,7 @@ public class MyMarqueeTextView extends TextView {
 	@Override
 	public boolean isFocused()
 	{
-		return true;
+		return bMarquee;
 	}
 }
 

@@ -273,10 +273,14 @@ public class YoukuAlbumActivity extends AppCompatActivity {
                     intent.putExtra("impl", 3); // force ffplay
                     */
 
-                    YKPlayhistoryDatabaseHelper.getInstance(activity)
-                            .saveHistory(activity.mTitle,
-                                    activity.mZGUrl.vid, activity.mShowId,
-                                    activity.mEpisodeIndex);
+                    YKPlayhistoryDatabaseHelper dbHelper =
+                            YKPlayhistoryDatabaseHelper.getInstance(activity);
+                    int pos = dbHelper.getLastPlayedPosition(activity.mZGUrl.vid);
+                    if (pos < 0) {
+                        dbHelper.saveHistory(activity.mTitle,
+                                activity.mZGUrl.vid, activity.mShowId,
+                                activity.mEpisodeIndex);
+                    }
 
                     Intent intent = new Intent(activity, PlayYoukuActivity.class);
                     intent.putExtra("url_list", activity.mZGUrl.urls);
@@ -295,6 +299,11 @@ public class YoukuAlbumActivity extends AppCompatActivity {
                         intent.putExtra("search_orderby", activity.search_orderby);
                         intent.putExtra("search_page_index", activity.search_page_index);
                         intent.putExtra("search_index", activity.search_index);
+                    }
+
+                    if (pos > 0) {
+                        intent.putExtra("preseek_msec", pos);
+                        LogUtil.info(TAG, "set preseek_msec: " + pos);
                     }
 
                     activity.startActivity(intent);

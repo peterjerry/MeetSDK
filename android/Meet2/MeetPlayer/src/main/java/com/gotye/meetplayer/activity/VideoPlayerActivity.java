@@ -1,6 +1,7 @@
 package com.gotye.meetplayer.activity;
 
 import java.io.File;
+import java.lang.ref.WeakReference;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.List;
@@ -29,6 +30,7 @@ import android.view.MenuItem;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.WindowManager;
+import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ProgressBar;
@@ -38,7 +40,7 @@ import android.widget.Toast;
 import com.gotye.common.util.LogUtil;
 import com.gotye.crashhandler.UploadLogTask;
 import com.gotye.meetplayer.R;
-import com.gotye.meetplayer.ui.widget.MyMediaController;
+import com.gotye.meetplayer.ui.widget.MicroMediaController;
 import com.gotye.meetplayer.util.FileFilterTest;
 import com.gotye.meetplayer.util.NetworkSpeed;
 import com.gotye.meetplayer.util.Util;
@@ -60,7 +62,7 @@ public class VideoPlayerActivity extends AppCompatActivity
             "自适应", "铺满屏幕", "放大裁切", "原始大小"};
 
     protected MeetVideoView mVideoView;
-    protected MyMediaController mController;
+    protected MicroMediaController mController;
     private int mVideoWidth;
     private int mVideoHeight;
     private ProgressBar mBufferingProgressBar = null;
@@ -72,6 +74,7 @@ public class VideoPlayerActivity extends AppCompatActivity
     protected String mTitle;
     protected int pre_seek_msec = -1;
 
+    private boolean mPrepared = false;
     private boolean mIsBuffering = false;
     private boolean isScrolling = false;
 
@@ -82,10 +85,16 @@ public class VideoPlayerActivity extends AppCompatActivity
     /* 记录上一次按返回键的时间 */
     private long backKeyTime = 0L;
 
+    protected boolean mSwichingEpisode = false;
+
     // debug info
     private TextView mTextViewDebugInfo;
     private boolean mbShowDebugInfo = false;
     private NetworkSpeed mSpeed;
+
+    private LinearLayout mHoodLayout;
+    private TextView mTvTitle;
+    private ImageButton mBtnBack;
 
     private int decode_fps = 0;
     private int render_fps = 0;
@@ -108,16 +117,7 @@ public class VideoPlayerActivity extends AppCompatActivity
     private String subtitle_filename;
     private boolean mSubtitleStoped = false;
 
-    // message
-    private static final int MSG_DISPLAY_SUBTITLE = 401;
-    private static final int MSG_HIDE_SUBTITLE = 402;
-    private static final int MSG_UPDATE_PLAY_INFO = 403;
-    private static final int MSG_UPDATE_RENDER_INFO = 404;
-    private static final int MSG_UPDATE_NETWORK_SPEED = 405;
-    private static final int MSG_RESTART_PLAYER = 406;
-
-    private static final int MSG_SCROLL_SEEK = 301;
-    private static final int MSG_HIDE_DRAG_VIEW = 302;
+    protected MainHandler mHandler;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -134,6 +134,8 @@ public class VideoPlayerActivity extends AppCompatActivity
         } catch (IllegalAccessException e) {
             e.printStackTrace();
         }
+
+        mHandler = new MainHandler(this);
 
         Intent intent = getIntent();
         mUri = intent.getData();
@@ -156,7 +158,7 @@ public class VideoPlayerActivity extends AppCompatActivity
         if (getSupportActionBar() != null)
             getSupportActionBar().hide();
 
-        this.mController = (MyMediaController) findViewById(R.id.video_controller);
+        this.mController = (MicroMediaController) findViewById(R.id.video_controller);
         this.mVideoView = (MeetVideoView) findViewById(R.id.video_view);
         this.mSubtitleTextView = (TextView) findViewById(R.id.textview_subtitle);
         this.mBufferingProgressBar = (ProgressBar) findViewById(R.id.progressbar_buffering);
@@ -171,6 +173,22 @@ public class VideoPlayerActivity extends AppCompatActivity
         this.mTextViewDebugInfo.setTypeface(Typeface.MONOSPACE);
 
         this.mController.setMediaPlayer(mVideoView);
+
+        this.mHoodLayout = (LinearLayout)this.findViewById(R.id.hood_layout);
+        this.mTvTitle = (TextView)this.findViewById(R.id.player_title);
+        this.mBtnBack = (ImageButton)this.findViewById(R.id.player_back_btn);
+
+        mBtnBack.setOnClickListener(new View.OnClickListener() {
+
+            @Override
+            public void onClick(View v) {
+                // TODO Auto-generated method stub
+                finish();
+            }
+        });
+
+        this.mVideoView.setLongClickable(true); // MUST set to enable double-tap and single-tap-confirm
+        this.mVideoView.setOnTouchListener(mOnTouchListener);
 
         Util.initMeetSDK(this);
     }
@@ -318,7 +336,7 @@ public class VideoPlayerActivity extends AppCompatActivity
                                             if (pre_seek_msec < 0)
                                                 pre_seek_msec = 0;
 
-                                            mHandler.sendEmptyMessage(MSG_RESTART_PLAYER);
+                                            mHandler.sendEmptyMessage(MainHandler.MSG_RESTART_PLAYER);
                                         }
 
                                         dialog.dismiss();
@@ -454,6 +472,8 @@ public class VideoPlayerActivity extends AppCompatActivity
 
         stopPlayer();
 
+        mPrepared = false;
+
         mVideoView.setDecodeMode(DecMode);
         mVideoView.setVideoURI(mUri);
         mVideoView.setOnCompletionListener(mCompletionListener);
@@ -467,18 +487,18 @@ public class VideoPlayerActivity extends AppCompatActivity
 
         String schema = mUri.getScheme();
         String path = null;
-
         if ("file".equalsIgnoreCase(schema))
             path = mUri.getPath();
         else
             path = mUri.toString();
 
+        String title;
         if (mTitle != null) {
-            mController.setFileName(mTitle);
+            title = mTitle;
         } else {
-            String name = getFileName(path);
-            mController.setFileName(name);
+            title = getFileName(path);
         }
+        mTvTitle.setText(title);
 
         if (pre_seek_msec != -1) {
             LogUtil.info(TAG, "Java: pre seek to " + pre_seek_msec + " msec");
@@ -493,7 +513,7 @@ public class VideoPlayerActivity extends AppCompatActivity
             mIsBuffering = true;
 
             mSpeed = new NetworkSpeed();
-            mHandler.sendEmptyMessage(MSG_UPDATE_NETWORK_SPEED);
+            mHandler.sendEmptyMessage(MainHandler.MSG_UPDATE_NETWORK_SPEED);
         }
 
         mVideoView.start();
@@ -503,7 +523,7 @@ public class VideoPlayerActivity extends AppCompatActivity
         LogUtil.info(TAG, "stopPlayer()");
 
         mBufferingProgressBar.setVisibility(View.GONE);
-        mHandler.removeMessages(MSG_UPDATE_NETWORK_SPEED);
+        mHandler.removeMessages(MainHandler.MSG_UPDATE_NETWORK_SPEED);
 
         mVideoView.stopPlayback();
     }
@@ -617,21 +637,21 @@ public class VideoPlayerActivity extends AppCompatActivity
                 render_avg_msec = extra;
             } else if (MediaPlayer.MEDIA_INFO_TEST_DECODE_FPS == what) {
                 decode_fps = extra;
-                mHandler.sendEmptyMessage(MSG_UPDATE_PLAY_INFO);
+                mHandler.sendEmptyMessage(MainHandler.MSG_UPDATE_PLAY_INFO);
             } else if (MediaPlayer.MEDIA_INFO_TEST_RENDER_FPS == what) {
                 render_fps = extra;
-                mHandler.sendEmptyMessage(MSG_UPDATE_PLAY_INFO);
+                mHandler.sendEmptyMessage(MainHandler.MSG_UPDATE_PLAY_INFO);
             } else if (MediaPlayer.MEDIA_INFO_TEST_RENDER_FRAME == what) {
                 render_frame_num = extra;
-                mHandler.sendEmptyMessage(MSG_UPDATE_RENDER_INFO);
+                mHandler.sendEmptyMessage(MainHandler.MSG_UPDATE_RENDER_INFO);
             } else if (MediaPlayer.MEDIA_INFO_TEST_LATENCY_MSEC == what) {
                 av_latency_msec = extra;
             } else if (MediaPlayer.MEDIA_INFO_TEST_DROP_FRAME == what) {
                 decode_drop_frame++;
-                mHandler.sendEmptyMessage(MSG_UPDATE_RENDER_INFO);
+                mHandler.sendEmptyMessage(MainHandler.MSG_UPDATE_RENDER_INFO);
             } else if (MediaPlayer.MEDIA_INFO_TEST_MEDIA_BITRATE == what) {
                 video_bitrate = extra;
-                mHandler.sendEmptyMessage(MSG_UPDATE_PLAY_INFO);
+                mHandler.sendEmptyMessage(MainHandler.MSG_UPDATE_PLAY_INFO);
             } else if (android.media.MediaPlayer.MEDIA_INFO_VIDEO_RENDERING_START == what) {
 
             } else if (MediaPlayer.MEDIA_INFO_VIDEO_TRACK_LAGGING == what) {
@@ -640,7 +660,7 @@ public class VideoPlayerActivity extends AppCompatActivity
                 decode_fps = render_fps = 0;
                 decode_drop_frame = 0;
                 video_bitrate = 0;
-                mHandler.sendEmptyMessage(MSG_UPDATE_PLAY_INFO);
+                mHandler.sendEmptyMessage(MainHandler.MSG_UPDATE_PLAY_INFO);
             }
 
             return true;
@@ -652,10 +672,21 @@ public class VideoPlayerActivity extends AppCompatActivity
         @Override
         public void onPrepared(MediaPlayer mp) {
             LogUtil.info(TAG, "Java: OnPrepared");
-            mController.show();
+
+            mPrepared = true;
+            toggleMediaControlsVisiblity();
+
             mVideoWidth = mp.getVideoWidth();
             mVideoHeight = mp.getVideoHeight();
             mBufferingProgressBar.setVisibility(View.GONE);
+        }
+    };
+
+    private View.OnTouchListener mOnTouchListener = new View.OnTouchListener() {
+
+        @Override
+        public boolean onTouch(View v, MotionEvent event) {
+            return mGestureDetector.onTouchEvent(event);
         }
     };
 
@@ -668,7 +699,7 @@ public class VideoPlayerActivity extends AppCompatActivity
                     if (e2.getEventTime() - e1.getDownTime() < 150)
                         return true;
 
-                    mHandler.removeMessages(MSG_SCROLL_SEEK);
+                    mHandler.removeMessages(MainHandler.MSG_SCROLL_SEEK);
 
                     if (mVideoView.isPlaying()) {
                         if (!isScrolling) {
@@ -697,7 +728,7 @@ public class VideoPlayerActivity extends AppCompatActivity
                             mSeekIcon.setImageResource(delta >= 0 ? R.drawable.player_small_forward
                                     : R.drawable.player_small_backword);
 
-                            Message msg = mHandler.obtainMessage(MSG_SCROLL_SEEK, new_pos, 0);
+                            Message msg = mHandler.obtainMessage(MainHandler.MSG_SCROLL_SEEK, new_pos, 0);
                             mHandler.sendMessageDelayed(msg, 300);
                         }
                     }
@@ -749,8 +780,8 @@ public class VideoPlayerActivity extends AppCompatActivity
                                     mSeekIcon.setImageResource(delta >= 0 ? R.drawable.player_small_forward
                                             : R.drawable.player_small_backword);
 
-                                    Message msg = mHandler.obtainMessage(MSG_HIDE_DRAG_VIEW, new_pos, 0);
-                                    mHandler.sendMessageDelayed(msg, 500);
+                                    Message msg = mHandler.obtainMessage(MainHandler.MSG_HIDE_DRAG_VIEW, new_pos, 0);
+                                    mHandler.sendMessageDelayed(msg, 2000);
                                 }
                             }
                         }
@@ -762,11 +793,8 @@ public class VideoPlayerActivity extends AppCompatActivity
                 @Override
                 public boolean onSingleTapConfirmed(MotionEvent e) {
                     toggleMediaControlsVisiblity();
-
                     return true;
                 }
-
-                ;
 
                 @Override
                 public boolean onDoubleTap(MotionEvent event) {
@@ -794,58 +822,39 @@ public class VideoPlayerActivity extends AppCompatActivity
     }
 
     @Override
-    public boolean onTouchEvent(MotionEvent event) {
-        return mGestureDetector.onTouchEvent(event);
-    }
-
-    @Override
     public boolean onKeyDown(int keyCode, KeyEvent event) {
-
-        LogUtil.debug(TAG, "keyCode: " + keyCode);
-        int incr;
-
+        // micro mediacontroller
+        // should pay more attention to dispatchKeyEvent()
+        // sometimes event NOT come
+        // it's weird
+        // maybe layout component order take effect?
+        // MeetVideoView onKeyDown has changed to return FALSE by default
         switch (keyCode) {
+            case KeyEvent.KEYCODE_DPAD_DOWN:
+            case KeyEvent.KEYCODE_DPAD_UP:
+                switchDisplayMode(keyCode == KeyEvent.KEYCODE_DPAD_UP ? 1: -1);
+                return true;
             case KeyEvent.KEYCODE_DPAD_CENTER:
             case KeyEvent.KEYCODE_ENTER:
-                if (!mController.isShowing())
-                    mController.show();
+                if (!mController.isShowing()) {
+                    toggleMediaControlsVisiblity();
+                }
                 return true;
             case KeyEvent.KEYCODE_DPAD_LEFT:
             case KeyEvent.KEYCODE_DPAD_RIGHT:
-                if (mController.isShowing()) {
-                    if (KeyEvent.KEYCODE_DPAD_RIGHT == keyCode)
-                        incr = 1;
-                    else
-                        incr = -1;
-
-                    int pos = mVideoView.getCurrentPosition();
-                    int step = mVideoView.getDuration() / 100 + 1000;
-                    LogUtil.info(TAG, String.format(Locale.US,
-                            "Java pos %d, step %s", pos, step));
-                    if (step > 30000)
-                        step = 30000;
-                    pos += (incr * step);
-                    if (pos > mVideoView.getDuration())
-                        pos = mVideoView.getDuration();
-                    else if (pos < 0)
-                        pos = 0;
-                    mVideoView.seekTo(pos);
-
-                    mController.show();
+                if (!mController.isShowing()) {
+                    if (!mSwichingEpisode) {
+                        mSwichingEpisode = true;
+                        onSelectEpisode(keyCode == KeyEvent.KEYCODE_DPAD_LEFT ? -1 : 1);
+                    }
+                    else {
+                        LogUtil.warn(TAG, "already switching epsode...");
+                    }
                 }
-                return true;
-            case KeyEvent.KEYCODE_DPAD_DOWN:
-            case KeyEvent.KEYCODE_DPAD_UP:
-                if (KeyEvent.KEYCODE_DPAD_DOWN == keyCode)
-                    incr = 1;
-                else
-                    incr = -1;
-
-                switchDisplayMode(incr);
                 return true;
             case KeyEvent.KEYCODE_BACK:
                 if (mController.isShowing()) {
-                    mController.hide();
+                    toggleMediaControlsVisiblity();
                 } else if ((System.currentTimeMillis() - backKeyTime) > 2000) {
                     Toast.makeText(VideoPlayerActivity.this,
                             "再按一次退出", Toast.LENGTH_SHORT)
@@ -862,12 +871,28 @@ public class VideoPlayerActivity extends AppCompatActivity
         return super.onKeyDown(keyCode, event);
     }
 
+    protected void onSelectEpisode(int incr) {
+    }
+
+    private void showHood() {
+        showHood(3000);
+    }
+
+    private void showHood(int msec) {
+        mHandler.removeMessages(MainHandler.MSG_HIDE_HOOD);
+        mHoodLayout.setVisibility(View.VISIBLE);
+        if (msec > 0)
+            mHandler.sendEmptyMessageDelayed(MainHandler.MSG_HIDE_HOOD, msec);
+    }
+
     public void toggleMediaControlsVisiblity() {
-        if (mVideoView.isPlaying() && mController != null) {
+        if (mPrepared) {
             if (mController.isShowing()) {
                 mController.hide();
+                mHoodLayout.setVisibility(View.GONE);
             } else {
                 mController.show();
+                showHood();
             }
         }
     }
@@ -904,6 +929,10 @@ public class VideoPlayerActivity extends AppCompatActivity
         // TODO Auto-generated method stub
         LogUtil.info(TAG, "Java: subtitle onSeekComplete");
         mSubtitleSeeking = false;
+    }
+
+    protected void onEpisodeDone() {
+
     }
 
     private synchronized void display_subtitle_thr() {
@@ -946,7 +975,8 @@ public class VideoPlayerActivity extends AppCompatActivity
                 from_msec = seg.getFromTime();
                 to_msec = seg.getToTime();
                 hold_msec = to_msec - from_msec;
-                LogUtil.info(TAG, String.format("Java: subtitle frome %d, to %d, hold %d, %s",
+                LogUtil.info(TAG, String.format(Locale.US,
+                        "Java: subtitle frome %d, to %d, hold %d, %s",
                         seg.getFromTime(), seg.getToTime(), hold_msec,
                         seg.getData()));
                 target_msec = from_msec;
@@ -954,16 +984,15 @@ public class VideoPlayerActivity extends AppCompatActivity
                 target_msec = to_msec;
             }
 
-            if (mSubtitleSeeking == true) {
+            if (mSubtitleSeeking) {
                 isDropItem = true;
                 target_msec = mVideoView.getDuration();
             }
 
             while (mVideoView != null && mVideoView.getCurrentPosition() < target_msec) {
-                if (isDropItem == true) {
-                    if (mSubtitleSeeking == false) {
+                if (isDropItem) {
+                    if (!mSubtitleSeeking)
                         break;
-                    }
                 }
 
                 try {
@@ -982,74 +1011,114 @@ public class VideoPlayerActivity extends AppCompatActivity
                 // drop last subtitle item
                 isDisplay = true;
                 isDropItem = false;
-                mHandler.sendEmptyMessage(MSG_HIDE_SUBTITLE);
+                mHandler.sendEmptyMessage(MainHandler.MSG_HIDE_SUBTITLE);
                 continue;
             }
 
             if (isDisplay) {
-                mHandler.sendEmptyMessage(MSG_DISPLAY_SUBTITLE);
+                mHandler.sendEmptyMessage(MainHandler.MSG_DISPLAY_SUBTITLE);
             } else {
-                mHandler.sendEmptyMessage(MSG_HIDE_SUBTITLE);
+                mHandler.sendEmptyMessage(MainHandler.MSG_HIDE_SUBTITLE);
             }
 
             isDisplay = !isDisplay;
         }
 
-        mHandler.sendEmptyMessage(MSG_HIDE_SUBTITLE);
+        mHandler.sendEmptyMessage(MainHandler.MSG_HIDE_SUBTITLE);
         mSubtitleParser.close();
         mSubtitleParser = null;
         LogUtil.info(TAG, "Java: subtitle thread exited");
     }
 
-    private Handler mHandler = new Handler() {
+    protected static class MainHandler extends Handler {
+        private WeakReference<VideoPlayerActivity> mWeakActivity;
+
+        // message
+        public final static int MSG_DISPLAY_SUBTITLE       = 401;
+        public final static int MSG_HIDE_SUBTITLE          = 402;
+        public final static int MSG_UPDATE_PLAY_INFO       = 403;
+        public final static int MSG_UPDATE_RENDER_INFO     = 404;
+        public final static int MSG_UPDATE_NETWORK_SPEED   = 405;
+        public final static int MSG_RESTART_PLAYER         = 406;
+        public final static int MSG_HIDE_HOOD              = 501;
+
+        public final static int MSG_SCROLL_SEEK             = 301;
+        public final static int MSG_HIDE_DRAG_VIEW          = 302;
+
+        public final static int MSG_EPISODE_DONE            = 601;
+        public final static int MSG_PLAY_CDN_FT		        = 602;
+        public final static int MSG_FAIL_TO_GET_FT	        = 622;
+
+        public MainHandler(VideoPlayerActivity activity) {
+            mWeakActivity = new WeakReference<VideoPlayerActivity>(activity);
+        }
 
         @Override
         public void handleMessage(Message msg) {
+            VideoPlayerActivity activity = mWeakActivity.get();
+            if (activity == null) {
+                LogUtil.debug(TAG, "Got message for dead activity");
+                return;
+            }
+
             switch (msg.what) {
+                case MSG_HIDE_HOOD:
+                    activity.mHoodLayout.setVisibility(View.GONE);
+                    break;
                 case MSG_UPDATE_NETWORK_SPEED:
-                    int[] speed = mSpeed.currentSpeed();
+                    int[] speed = activity.mSpeed.currentSpeed();
                     if (speed != null) {
-                        rx_speed = speed[0];
-                        tx_speed = speed[1];
+                        activity.rx_speed = speed[0];
+                        activity.tx_speed = speed[1];
                         this.sendEmptyMessageDelayed(MSG_UPDATE_NETWORK_SPEED, 1000);
                     }
                 case MSG_UPDATE_PLAY_INFO:
                 case MSG_UPDATE_RENDER_INFO:
-                    if (mbShowDebugInfo) {
-                        mTextViewDebugInfo.setText(String.format(Locale.US,
+                    if (activity.mbShowDebugInfo) {
+                        activity.mTextViewDebugInfo.setText(String.format(Locale.US,
                                 "%02d|%03d v-a: %+04d dec/render %d(%d)/%d(%d) fps/msec\n" +
                                         "bitrate %d kbps\n" +
                                         "rx %d kB/s, tx %d kB/s",
-                                render_frame_num % 25, decode_drop_frame % 1000, av_latency_msec,
-                                decode_fps, decode_avg_msec, render_fps, render_avg_msec,
-                                video_bitrate,
-                                rx_speed, tx_speed));
+                                activity.render_frame_num % 25, activity.decode_drop_frame % 1000, activity.av_latency_msec,
+                                activity.decode_fps, activity.decode_avg_msec, activity.render_fps, activity.render_avg_msec,
+                                activity.video_bitrate,
+                                activity.rx_speed, activity.tx_speed));
                     }
                     break;
                 case MSG_DISPLAY_SUBTITLE:
-                    mSubtitleTextView.setText(mSubtitleText);
+                    activity.mSubtitleTextView.setText(activity.mSubtitleText);
                     break;
                 case MSG_HIDE_SUBTITLE:
-                    mSubtitleTextView.setText("");
+                    activity.mSubtitleTextView.setText("");
                     break;
                 case MSG_RESTART_PLAYER:
-                    setupPlayer();
+                    activity.setupPlayer();
                     break;
                 case MSG_SCROLL_SEEK:
                     LogUtil.info(TAG, "MSG_SCROLL_SEEK");
-                    if (isScrolling) {
-                        mVideoView.seekTo(msg.arg1);
-                        mDragViewLayout.setVisibility(View.GONE);
-                        isScrolling = false;
+                    if (activity.isScrolling) {
+                        activity.mVideoView.seekTo(msg.arg1);
+                        activity.mDragViewLayout.setVisibility(View.GONE);
+                        activity.isScrolling = false;
                     }
                     break;
                 case MSG_HIDE_DRAG_VIEW:
-                    mDragViewLayout.setVisibility(View.GONE);
+                    activity.mDragViewLayout.setVisibility(View.GONE);
+                    break;
+                case MSG_EPISODE_DONE:
+                    activity.onEpisodeDone();
+                    break;
+                case MSG_PLAY_CDN_FT:
+                    LogUtil.info(TAG, "MSG_PLAY_CDN_FT");
+                    break;
+                case MSG_FAIL_TO_GET_FT:
+                    LogUtil.error(TAG, "failed to get ft");
                     break;
                 default:
                     LogUtil.warn(TAG, "Java: unknown msg.what " + msg.what);
                     break;
             }
         }
-    };
+    }
+
 }

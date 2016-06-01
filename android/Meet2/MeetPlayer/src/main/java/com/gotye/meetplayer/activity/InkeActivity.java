@@ -383,7 +383,7 @@ public class InkeActivity extends AppCompatActivity {
                     String show_url = "http://image.scale.a8.com/imageproxy2/dimgm/scaleImage";
                     show_url += "?url=";
                     show_url += encoded_img_url;
-                    show_url += "&w=360&h=360&s=80&c=0&o=0;";
+                    show_url += "&w=360&h=360&s=80&c=0&o=0";
 
                     HashMap<String, Object> mapLive = new HashMap<String, Object>();
                     mapLive.put("title", title);

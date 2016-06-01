@@ -314,8 +314,9 @@ public class MicroMediaController extends MediaController {
     @Override
     public boolean dispatchKeyEvent(KeyEvent event) {
         int keyCode = event.getKeyCode();
-        final boolean uniqueDown = event.getRepeatCount() == 0
-                && event.getAction() == KeyEvent.ACTION_DOWN;
+        final boolean uniqueDown = (event.getRepeatCount() == 0 &&
+                event.getAction() == KeyEvent.ACTION_DOWN);
+        LogUtil.info(TAG, "keyCode: " + keyCode + " , uniqueDown: " + uniqueDown);
         if (keyCode ==  KeyEvent.KEYCODE_HEADSETHOOK
                 || keyCode == KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE
                 || keyCode == KeyEvent.KEYCODE_SPACE) {

@@ -95,9 +95,6 @@
                 android:id="@+id/sohu_video"
                 android:title="搜狐视频"/>
             <item
-                android:id="@+id/bestv_video"
-                android:title="推送百事通地址"/>
-            <item
                 android:id="@+id/youku_video"
                 android:title="优酷视频"/>
 			<item

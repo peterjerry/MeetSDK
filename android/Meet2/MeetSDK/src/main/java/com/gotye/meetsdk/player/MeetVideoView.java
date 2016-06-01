@@ -569,7 +569,7 @@ public class MeetVideoView extends SurfaceView implements MediaPlayerControl {
             }
         }
         
-        return super.onKeyDown(keyCode, event);
+        return false;//super.onKeyDown(keyCode, event);
     }
 
     public void start() {
