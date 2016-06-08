@@ -74,6 +74,8 @@ public class XOMediaPlayer extends BaseMediaPlayer {
 	private boolean mHaveVideo      = false;
     private boolean mHaveSubtitle   = false;
 
+    private boolean mAudioAAC       = true;
+
 	private Lock mAudioCodecLock = null;
 	private MediaCodec mAudioCodec = null;
 	private Lock mVideoCodecLock = null;
@@ -468,6 +470,7 @@ public class XOMediaPlayer extends BaseMediaPlayer {
 				mAudioTrackIndex = index;
 				LogUtils.info("Java: mAudioTrackIndex: " + mAudioTrackIndex);
 				mHaveAudio = true;
+                mAudioAAC = mime.equals("audio/mp4a-latm");
 			} else if (!mHaveVideo && mime.startsWith("video/")) {
 				setVideoFormat(format);
 				mVideoTrackIndex = index;
@@ -539,13 +542,17 @@ public class XOMediaPlayer extends BaseMediaPlayer {
 
 		int channelCount = mAudioFormat
 				.getInteger(MediaFormat.KEY_CHANNEL_COUNT);
-		if (channelCount < 1 || channelCount > 2) {
+		if (channelCount < 1) {
 			LogUtils.error("audio track NOT support channelCount: "
 					+ channelCount);
 			return false;
 		}
+        else if (channelCount > 2) {
+            LogUtils.info("force use stereo channel, origin channel is: " + channelCount);
+            channelCount = 2;
+        }
 
-		int channelConfig = (channelCount == 1) ? AudioFormat.CHANNEL_OUT_MONO
+        int channelConfig = (channelCount == 1) ? AudioFormat.CHANNEL_OUT_MONO
 				: AudioFormat.CHANNEL_OUT_STEREO;
 
 		int sampleRate = mAudioFormat.getInteger(MediaFormat.KEY_SAMPLE_RATE);
@@ -605,23 +612,25 @@ public class XOMediaPlayer extends BaseMediaPlayer {
 
 		boolean ret = true;
 
-		String mime = mAudioFormat.getString(MediaFormat.KEY_MIME);
-		try {
-			LogUtils.info("audio mime: " + mime);
-			mAudioCodec = MediaCodec.createDecoderByType(mime);
+        if (mAudioAAC) {
+            String mime = mAudioFormat.getString(MediaFormat.KEY_MIME);
+            try {
+                LogUtils.info("audio mime: " + mime);
+                mAudioCodec = MediaCodec.createDecoderByType(mime);
 
-			mAudioCodec.configure(mAudioFormat, null /* surface */,
-					null /* crypto */, 0 /* flags */);
-			mAudioCodec.start();
+                mAudioCodec.configure(mAudioFormat, null /* surface */,
+                        null /* crypto */, 0 /* flags */);
+                mAudioCodec.start();
+            } catch (Exception e) {
+                e.printStackTrace();
+                LogUtils.error("Exception", e);
 
-			mExtractor.selectTrack(mAudioTrackIndex);
-		} catch (Exception e) {
-			e.printStackTrace();
-			LogUtils.error("Exception", e);
+                mAudioCodec = null;
+                ret = false;
+            }
+        }
 
-			mAudioCodec = null;
-			ret = false;
-		}
+        mExtractor.selectTrack(mAudioTrackIndex);
 
 		mAudioCodecLock = new ReentrantLock();
 
@@ -719,7 +728,10 @@ public class XOMediaPlayer extends BaseMediaPlayer {
 			mRenderAudioThr = new Thread(new Runnable() {
 				@Override
 				public void run() {
-					audio_proc();
+                    if (mAudioAAC)
+					    audio_proc();
+                    else
+                        audio_decode_proc();
 				}
 			});
 			mRenderAudioThr.start();
@@ -1441,7 +1453,7 @@ public class XOMediaPlayer extends BaseMediaPlayer {
 
                     if (!is_flush_pkt) {
                         long presentationTimeUs = mExtractor.getSampleTime();
-                        if (presentationTimeUs >=0) {
+                        if (presentationTimeUs >= 0) {
                             mAudioCodec.queueInputBuffer(inputBufIndex, 0 /* offset */, sampleSize,
                                     presentationTimeUs,
                                     mSawInputEOS ? MediaCodec.BUFFER_FLAG_END_OF_STREAM : 0);
@@ -1574,6 +1586,112 @@ public class XOMediaPlayer extends BaseMediaPlayer {
 			} finally {
 				mAudioCodecLock.unlock();
 			}
+		} // end of while
+
+		LogUtils.info("audio thread exited");
+	}
+
+	private void audio_decode_proc() {
+		LogUtils.info("audio decode thread started");
+
+		boolean sawOutputEOS = false;
+
+        ByteBuffer sampleBuf = ByteBuffer.allocateDirect(65536);
+        ByteBuffer outputBuf = ByteBuffer.allocateDirect(65536 * 4);
+
+		while (getState() != PlayState.STOPPING) {
+			if (getState() == PlayState.PAUSED) {
+				try {
+					mPlayLock.lock();
+					mPlayCond.await();
+				} catch (InterruptedException e) {
+                    e.printStackTrace();
+				} finally {
+					mPlayLock.unlock();
+				}
+
+				if (getState() == PlayState.PAUSED) {
+					LogUtils.info("receive exit signal when paused");
+					break;
+				}
+			}
+
+			if (sawOutputEOS) {
+				if (mSawInputEOS) {
+					try {
+						Thread.sleep(10);
+					} catch (InterruptedException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					}
+
+					continue;
+				}
+				else {
+					LogUtils.info("receive seek back to 0 signal");
+					sawOutputEOS = false;
+				}
+			}
+
+            sampleBuf.rewind();
+            int sampleSize = mExtractor.readPacket(mAudioTrackIndex, sampleBuf, 0);
+            if (sampleSize < 0) {
+                mSawInputEOS = true;
+                sampleSize = 0;
+                LogUtils.error("saw audio Input EOS.");
+            }
+
+            long presentationTimeUs = mExtractor.getSampleTime();
+            if (sampleSize > 0 /* 5 */) {
+                String str_flush = "FLUSH";
+                byte[] byte_ctx = new byte[5];
+                sampleBuf.get(byte_ctx);
+                sampleBuf.rewind();
+                String strPkt = new String(byte_ctx);
+                if (str_flush.equals(strPkt)) {
+                    LogUtils.error("Java: flush audio");
+
+                    ResetStatics();
+                    mCurrentTimeMsec = mSeekingTimeMsec;
+
+                    mEventHandler.sendEmptyMessage(MediaPlayer.MEDIA_SEEK_COMPLETE);
+                }
+            }
+
+            if (presentationTimeUs > 0) {
+                // update audio average duration
+                if (mLastAudioPktMSec != 0) {
+                    long pkt_duration = presentationTimeUs / 1000
+                            - mLastAudioPktMSec;
+                    mAveAudioPktMsec = (mAveAudioPktMsec * 4 + pkt_duration) / 5;
+                } else {
+                    mLastAudioPktMSec = presentationTimeUs / 1000;
+                }
+
+                // FLUSH pkt also pass to decoder to do a REAL flush
+                int bufSize = mExtractor.decodeAudio(sampleBuf, sampleSize, outputBuf);
+                if (bufSize < 0) {
+                    sawOutputEOS = true;
+                    LogUtils.info("saw audio sawOutputEOS");
+                }
+                else if (bufSize > 0 ) {
+                    if (mAudioData == null || mAudioData.length < bufSize) {
+                        // Allocate a new buffer.
+                        mAudioData = new byte[bufSize];
+                    }
+
+                    outputBuf.rewind();
+                    outputBuf.get(mAudioData);
+
+                    // would block
+                    mAudioTrack.write(mAudioData, 0, bufSize);
+
+                    // update audio clock
+                    mAudioStartMsec = System.currentTimeMillis();
+
+                    mAudioPositionMsec = presentationTimeUs / 1000;
+                }
+            }
 		} // end of while
 
 		LogUtils.info("audio thread exited");

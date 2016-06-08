@@ -1,16 +1,16 @@
 LOCAL_PATH := $(call my-dir)
 
-BUILD_OSLES				:= 1
-BUILD_NATIVEWINDOOW		:= 1
-#BUILD_RENDER_RGB565	:= 1
-#BUILD_PCM_DUMP			:= 1
-BUILD_LIBRTMP			:= 1
-#BUILD_TS_CONVERT		:= 1
-#BUILD_ONE_LIB			:= 1
-BUILD_FFPLAYER			:= 1
-BUILD_FFEXTRACTOR		:= 1
-#BUILD_OMXPLAYER			:= 1
-#BUILD_GLES				:= 1
+BUILD_OSLES				:= yes
+BUILD_NATIVEWINDOOW		:= yes
+BUILD_RENDER_RGB565		:=
+BUILD_PCM_DUMP			:=
+BUILD_LIBRTMP			:= yes
+BUILD_TS_CONVERT		:=
+BUILD_ONE_LIB			:=
+BUILD_FFPLAYER			:= yes
+BUILD_FFEXTRACTOR		:= yes
+BUILD_OMXPLAYER			:=
+BUILD_GLES				:=
 
 FDK_AAC_PATH	:= ../../../../foundation/thirdparty/fdk-aac/lib/android/$(TARGET_ARCH_ABI)
 RTMPDUMP_PATH	:= ../../../../foundation/thirdparty/rtmpdump/lib/android/$(TARGET_ARCH_ABI)
@@ -70,7 +70,7 @@ ifeq ($(TARGET_ARCH_ABI),arm64-v8a)
 LOCAL_C_INCLUDES		+= $(LOCAL_PATH)/$(PLATFORMPATH)/libyuv/jni/include
 endif	
 	
-LOCAL_CFLAGS    		:= -Wall -DNDK_BUILD=1 -DUSE_NDK_SURFACE_REF -DTEST_PERFORMANCE -DTEST_PERFORMANCE_BITRATE  #-DNO_AUDIO_PLAY
+LOCAL_CFLAGS    		:= -Wall -DNDK_BUILD=1 -DUSE_NDK_SURFACE_REF #-DTEST_PERFORMANCE -DTEST_PERFORMANCE_BITRATE -DNO_AUDIO_PLAY
 MY_SRC_PLAYER_FILES 	:= common.cpp ffconverter.cpp
 ifdef BUILD_FFPLAYER
 MY_SRC_PLAYER_FILES 	+= ffstream.cpp audioplayer.cpp audiorender.cpp ffplayer.cpp androidrender.cpp \
@@ -87,7 +87,16 @@ MY_SRC_PLAYER_FILES 	+= apFormatConverter.cpp
 LOCAL_CFLAGS			+= -DBUILD_TS_CONVERT
 endif
 MY_SRC_PLATFORM_FILES	= log_android.c packetqueue.cpp list.cpp utils.cpp
+# fix me: arm64-v8a always need build loop.cpp(otherwise link error)
+build_loop_file			=
 ifdef BUILD_FFPLAYER
+build_loop_file		= yes
+else
+ifeq ($(TARGET_ARCH_ABI),arm64-v8a)
+build_loop_file = yes
+endif
+endif
+ifdef build_loop_file
 MY_SRC_PLATFORM_FILES	+= loop.cpp
 endif
 ifdef BUILD_GLES

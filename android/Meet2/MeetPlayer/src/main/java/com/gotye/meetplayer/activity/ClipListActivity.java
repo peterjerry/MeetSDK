@@ -1114,7 +1114,8 @@ public class ClipListActivity extends AppCompatActivity implements
                             canPlay = true;
                         else {
                             TrackInfo trackinfo = info.getAudioChannelsInfo().get(0);
-                            if (trackinfo.getCodecName() != null && trackinfo.getCodecName().equals("aac"))
+                            if (trackinfo.getCodecName() != null &&
+                                    (trackinfo.getCodecName().equals("aac") || trackinfo.getCodecName().equals("ac3")))
                                 canPlay = true;
                         }
                     }
@@ -3173,15 +3174,21 @@ public class ClipListActivity extends AppCompatActivity implements
         }
 
         if (Util.IsHaveInternet(this)) {
+            String org_title = tv_title.getText().toString();
             StringBuffer sb = new StringBuffer();
-            sb.append(tv_title.getText().toString());
-            sb.append(", ip: ");
-            sb.append(Util.getIpAddr(this));
-            int http_port = MyHttpService.getPort();
-            if (http_port != MyHttpService.DEFAULT_HTTP_PORT) {
-                sb.append(", http_port: ");
-                sb.append(http_port);
+            sb.append(org_title);
+            if (!org_title.contains("ip:")) {
+                sb.append(", ip: ");
+                sb.append(Util.getIpAddr(this));
             }
+            if (!org_title.contains("http_port:")) {
+                int http_port = MyHttpService.getPort();
+                if (http_port != MyHttpService.DEFAULT_HTTP_PORT) {
+                    sb.append(", http_port: ");
+                    sb.append(http_port);
+                }
+            }
+
             tv_title.setText(sb.toString());
 
             if (sb.toString().length() > 64)
@@ -3226,7 +3233,7 @@ public class ClipListActivity extends AppCompatActivity implements
                 if (action.equals(MyHttpService.ACTION_SERVICE_STARTED)) {
                     int port = intent.getIntExtra("http_port", -1);
                     String title = String.format(Locale.US,
-                            "%s, http port: %d", tv_title.getText().toString(), port);
+                            "%s, http_port: %d", tv_title.getText().toString(), port);
                     tv_title.setText(title);
                     tv_title.setText(title);
                 }

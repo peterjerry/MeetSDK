@@ -317,6 +317,8 @@ public:
 
 	virtual status_t getBitrate(int32_t *kbps) = 0;
 
+	virtual status_t decodeAudio(uint8_t *inbuf, int32_t size, uint8_t *out_pcm, int32_t *out_size) = 0;
+
 	virtual ~IExtractor() {}
 };
 

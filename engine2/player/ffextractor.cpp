@@ -27,6 +27,7 @@ extern JavaVM* gs_jvm;
 
 #define MAX_PKT_SIZE (65536 * 4)
 #define DEFAULT_MAX_BUFFER_SIZE 1048576
+#define AVCODEC_MAX_AUDIO_FRAME_SIZE 19200 // 100 msec of 48khz 2chnnel S16 audio
 
 #define MEDIA_OPEN_TIMEOUT_MSEC		(120 * 1000) // 2 min
 #define MEDIA_READ_TIMEOUT_MSEC		(300 * 1000) // 5 min
@@ -175,6 +176,12 @@ FFExtractor::FFExtractor()
 	mISubtitle				= NULL;
 
 	pthread_mutex_init(&mSubtitleLock, NULL);
+
+	m_audio_dec_ctx			= NULL;
+	m_audio_frame			= NULL;
+	m_swr					= NULL;
+	m_audio_need_convert	= 0;
+	mSamples				= NULL;
 
 	/* register all formats and codecs */
 	av_register_all();
@@ -326,6 +333,19 @@ void FFExtractor::close()
 		m_fmt_ctx->interrupt_callback.callback = NULL;
 		m_fmt_ctx->interrupt_callback.opaque = NULL;
 		avformat_close_input(&m_fmt_ctx);
+	}
+
+	if (mSamples != NULL) {
+		// Free audio samples buffer
+		av_free(mSamples);
+		mSamples = NULL;
+	}
+	if (m_audio_frame != NULL) {
+		av_frame_free(&m_audio_frame);
+	}
+	if (m_swr != NULL) {
+		swr_free(&m_swr);
+		m_swr = NULL;
 	}
 
 	if (m_url) {
@@ -752,6 +772,7 @@ status_t FFExtractor::getTrackFormat(int32_t index, MediaFormat *format)
 		format->sample_rate		= c->sample_rate;
 		format->sample_fmt		= (int)c->sample_fmt;
 		format->duration_us		= m_fmt_ctx->duration;
+
 		if (c->extradata && c->extradata_size > 0) {
 			LOGI("audio extradata %p, size %d", c->extradata, c->extradata_size);
 			format->csd_0_size = c->extradata_size;
@@ -1175,10 +1196,154 @@ status_t FFExtractor::getBitrate(int32_t *kbps)
 		int64_t duration_msec = m_video_clock_msec;
 		if (duration_msec < 100)
 			duration_msec = 100;
-		return (int)((double)(size * 8) / (double)m_video_clock_msec);
+		*kbps = (int)((double)(size * 8) / (double)m_video_clock_msec);
 	}
 
-	return 0;
+	*kbps = 0;
+	return OK;
+}
+
+bool FFExtractor::init_swr()
+{
+	if (m_swr) {
+		swr_free(&m_swr);
+		m_swr = NULL;
+	}
+
+	m_swr = swr_alloc_set_opts(m_swr,
+		AV_CH_LAYOUT_STEREO,
+		AV_SAMPLE_FMT_S16,
+		m_audio_dec_ctx->sample_rate,
+		m_audio_dec_ctx->channel_layout,
+		m_audio_dec_ctx->sample_fmt,
+		m_audio_dec_ctx->sample_rate,
+		0, 0);
+	int ret = swr_init(m_swr);
+	if (ret < 0 || m_swr == NULL) {
+		LOGE("swr_init failed: %d %p", ret, m_swr);
+		return false;
+	}
+
+	return true;
+}
+
+status_t FFExtractor::decodeAudio(uint8_t *inbuf, int32_t size, 
+								   uint8_t *out_pcm, int32_t *out_size)
+{
+	//LOGI("decodeAudio %p, size %d", inbuf, size);
+
+	AVPacket pkt;
+	int len;
+	int out_offset = 0;
+
+	av_init_packet(&pkt);
+	/* decode until eof */
+    pkt.data = inbuf;
+    pkt.size = size;
+
+	if (memcmp(pkt.data, "FLUSH", 5) == 0) {
+		avcodec_flush_buffers(m_audio_dec_ctx);
+		LOGI("do audio codec flush");
+		return OK;
+	}
+
+    while (pkt.size > 0) {
+        int got_frame = 0;
+
+        len = avcodec_decode_audio4(m_audio_dec_ctx, m_audio_frame, &got_frame, &pkt);
+        if (len < 0) {
+            LOGE("Error while decoding");
+            return ERROR;
+        }
+		if (!got_frame)
+			continue;
+        if (m_audio_frame->linesize[0] != 0) { //got audio frame
+            // todo
+			void* audio_buffer = NULL;
+			uint32_t audio_buffer_size = 0;
+			const int dst_channels = 2;
+			const int dst_sample_byte = 2; // S16: 2 bytes per sample
+
+			if (m_audio_need_convert) {
+				if (m_audio_frame->channel_layout != 0 &&
+					(m_audio_frame->channel_layout != m_src_channel_layout || 
+					m_audio_frame->channels != m_src_channels))
+				{
+					char frame_layout_name[64] = {0};
+					char audio_layout_name[64] = {0};
+					av_get_channel_layout_string(frame_layout_name, 64, 
+						m_audio_frame->channels, m_audio_frame->channel_layout);
+					av_get_channel_layout_string(audio_layout_name, 64, 
+						m_src_channels, m_src_channel_layout);
+					LOGW("audio frame channel_layout NOT match %lld(%s) -> %lld(%s)", 
+						m_src_channel_layout, audio_layout_name, 
+						m_audio_frame->channel_layout, frame_layout_name);
+
+					// update audio params
+					m_src_channels			= m_audio_frame->channels;
+					m_src_channel_layout	= m_audio_frame->channel_layout;
+
+					LOGI("re-alloc swr convert");
+					// re-init swr
+					if (!init_swr()) {
+						LOGE("failed to init swr");
+						return ERROR;
+					}
+				}
+
+				int32_t sampleInCount = m_audio_frame->nb_samples;
+				LOGD("sampleInCount: %d", sampleInCount);
+				int sampleOutCount = (int)av_rescale_rnd(
+					swr_get_delay(m_swr, m_audio_dec_ctx->sample_rate) + sampleInCount,
+					m_audio_dec_ctx->sample_rate,
+					m_audio_dec_ctx->sample_rate,
+					AV_ROUND_UP);
+
+				int sampleCountOutput = swr_convert(m_swr,
+					(uint8_t**)(&mSamples), sampleOutCount,
+					(const uint8_t**)(m_audio_frame->extended_data), sampleInCount);
+				if (sampleCountOutput < 0) {
+					LOGE("Audio convert sampleformat(%d) failed, ret %d", 
+						m_audio_dec_ctx->sample_fmt, sampleCountOutput);
+					return ERROR;
+				}
+				else if (sampleCountOutput == 0) {
+					LOGW("no audio data in the frame");
+					return OK;
+				}
+				else {
+					audio_buffer = mSamples;
+					audio_buffer_size = sampleCountOutput * dst_channels * dst_sample_byte;
+					LOGD("swr output: sample: %d, size: %d", 
+						sampleCountOutput, audio_buffer_size);
+				}
+			}
+			else {
+				audio_buffer = m_audio_frame->data[0];
+				// 2015.1.28 guoliangma fix noisy audio play problem 
+				// some clip linesize is bigger than actual data size
+				// e.g. linesize[0] = 2048 and nb_samples = 502
+				audio_buffer_size = m_audio_frame->nb_samples * 
+					m_audio_dec_ctx->channels * dst_sample_byte;
+			}
+
+			if (out_offset + audio_buffer_size > (uint32_t)*out_size) {
+				LOGE("output buf overflow: %d %d", out_offset + audio_buffer_size, *out_size);
+				return ERROR;
+			}
+
+			memcpy(out_pcm + out_offset, audio_buffer, audio_buffer_size);
+			out_offset += audio_buffer_size;
+        }
+
+        pkt.size -= len;
+        pkt.data += len;
+        pkt.dts =
+        pkt.pts = AV_NOPTS_VALUE;
+    }
+
+	*out_size = out_offset;
+	return OK;
 }
 
 status_t FFExtractor::readPacket(int stream_index, unsigned char *data, int32_t *sampleSize)
@@ -1506,11 +1671,45 @@ int FFExtractor::open_codec_context_idx(int stream_idx)
 		m_audio_stream_idx	= stream_idx;
 		m_audio_dec_ctx		= m_audio_stream->codec;
 
-		if (!m_audio_dec_ctx->extradata || m_audio_dec_ctx->extradata_size == 0) {
+		if (m_audio_dec_ctx->codec_id == AV_CODEC_ID_AAC && 
+			(!m_audio_dec_ctx->extradata || m_audio_dec_ctx->extradata_size == 0)) {
 			m_pBsfc_aac =  av_bitstream_filter_init("aac_adtstoasc");
 			if (!m_pBsfc_aac) {
 				LOGE("Could not aquire aac_adtstoasc filter");
 				return ERROR;
+			}
+		}
+
+		if (m_audio_dec_ctx->codec_id != AV_CODEC_ID_AAC) {
+			LOGI("enable audio decoder");
+
+			m_src_channels			= m_audio_dec_ctx->channels;
+			m_src_channel_layout	= m_audio_dec_ctx->channel_layout;
+
+			AVCodec* codec = avcodec_find_decoder(m_audio_dec_ctx->codec_id);
+			if (NULL == codec) {
+				LOGE("Failed to find audio decoder: id: %d, name %s", 
+					m_audio_dec_ctx->codec_id, avcodec_get_name(m_audio_dec_ctx->codec_id));
+				return ERROR;
+			}
+			if (avcodec_open2(m_audio_dec_ctx, codec, NULL) < 0) {
+				LOGE("failed to open audio codec");
+				return ERROR;
+			}
+
+			m_audio_frame = av_frame_alloc();
+
+			if (m_audio_dec_ctx->sample_fmt != AV_SAMPLE_FMT_S16) {
+				m_audio_need_convert = 1;
+				if (!init_swr()) {
+					LOGE("failed to init swr");
+					return ERROR;
+				}
+				mSamples = (int16_t*)av_malloc(AVCODEC_MAX_AUDIO_FRAME_SIZE);
+				if (mSamples == NULL) {
+					LOGE("No enough memory for audio conversion");
+					return ERROR;
+				}
 			}
 		}
 	}

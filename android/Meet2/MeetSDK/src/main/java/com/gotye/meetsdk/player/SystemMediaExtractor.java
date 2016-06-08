@@ -183,4 +183,7 @@ class SystemMediaExtractor implements MediaExtractable {
 		return 0;
 	}
 
+	@Override
+	public int decodeAudio(ByteBuffer inBuf, int inSize, ByteBuffer outBuf) { return 0;}
+
 }

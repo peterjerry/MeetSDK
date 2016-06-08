@@ -633,7 +633,25 @@ public class Util {
 						sb.append("ANDROID_VERSION: ").append(AppInfo.ANDROID_VERSION).append("\n");
 						sb.append("APP_PACKAGE: ").append(AppInfo.APP_PACKAGE).append("\n");
 						sb.append("APP_VERSION: ").append(AppInfo.APP_VERSION).append("\n");
-						getFileFromBytes(sb.toString(), infoPath);
+
+						MeetSDK.makePlayerlog();
+						File file = new File(Util.player_log_path);
+						if (file.exists()) {
+							sb.append("==============player log==============\n");
+
+							BufferedReader bf = new BufferedReader(new FileReader(file));
+							String content;
+							while (true) {
+								content = bf.readLine();
+								if (content == null)
+									break;
+
+								sb.append(content);
+								sb.append("\n");
+							}
+						}
+
+						writeBytestoFile(sb.toString(), infoPath);
 
 						File[] logfiles = new File[2];
 						logfiles[0] = f;
@@ -743,7 +761,7 @@ public class Util {
     /**
      * 将String数据存为文件
      */
-    private static boolean getFileFromBytes(String strContext, String path) {
+    private static boolean writeBytestoFile(String strContext, String path) {
         byte[] b = strContext.getBytes();
         BufferedOutputStream stream = null;
         try {
