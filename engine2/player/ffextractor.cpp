@@ -151,6 +151,7 @@ FFExtractor::FFExtractor()
 	m_max_buffersize		= DEFAULT_MAX_BUFFER_SIZE;
 	m_min_play_buf_count	= 0;
 	m_cached_duration_msec	= 0;
+	m_first_pkt				= true;
 
 	m_seek_flag				= 0;
 	m_seek_time_msec		= 0;
@@ -699,6 +700,10 @@ status_t FFExtractor::getTrackFormat(int32_t index, MediaFormat *format)
 					av_copy_packet(pPacket, &pkt);
 					m_video_q.put(pPacket);
 					LOGI("add video pkt to queue in getTrackFormat()");
+					if (m_first_pkt) {
+						m_first_pkt = false;
+						LOGI("first video pkt put into queue(getTrackFormat)");
+					}
 
 					if (!m_video_keyframe_sync && pkt.flags & AV_PKT_FLAG_KEY) {
 						LOGI("video sync(pre-read) done!");
@@ -1017,28 +1022,33 @@ bool FFExtractor::seek_l()
 	flush_l();
 
 	m_video_clock_msec = m_audio_clock_msec = m_seek_time_msec;
-
-	LOGI("put flush packet"); 
-	if (m_video_stream) {
-		AVPacket* flush_pkt = (AVPacket*)av_malloc(sizeof(AVPacket));
-		av_init_packet(flush_pkt);
-
-		flush_pkt->stream_index	= m_video_stream_idx;
-		flush_pkt->data			= (uint8_t*)"FLUSH";
-		flush_pkt->size			= 5;
-
-		m_video_q.put(flush_pkt);
+	
+	if (m_first_pkt) {
+		LOGI("omit first FLUSH packet");
 	}
+	else {
+		LOGI("put flush packet");
+		if (m_video_stream) {
+			AVPacket* flush_pkt = (AVPacket*)av_malloc(sizeof(AVPacket));
+			av_init_packet(flush_pkt);
 
-	if (m_audio_stream) {
-		AVPacket* flush_pkt = (AVPacket*)av_malloc(sizeof(AVPacket));
-		av_init_packet(flush_pkt);
+			flush_pkt->stream_index	= m_video_stream_idx;
+			flush_pkt->data			= (uint8_t*)"FLUSH";
+			flush_pkt->size			= 5;
 
-		flush_pkt->stream_index	= m_audio_stream_idx;
-		flush_pkt->data			= (uint8_t*)"FLUSH";
-		flush_pkt->size			= 5;
+			m_video_q.put(flush_pkt);
+		}
 
-		m_audio_q.put(flush_pkt);
+		if (m_audio_stream) {
+			AVPacket* flush_pkt = (AVPacket*)av_malloc(sizeof(AVPacket));
+			av_init_packet(flush_pkt);
+
+			flush_pkt->stream_index	= m_audio_stream_idx;
+			flush_pkt->data			= (uint8_t*)"FLUSH";
+			flush_pkt->size			= 5;
+
+			m_audio_q.put(flush_pkt);
+		}
 	}
 
 	LOGI("before flush subtile parser");
@@ -2016,6 +2026,10 @@ void FFExtractor::thread_impl()
 			}
 
 			m_video_q.put(pPacket);
+			if (m_first_pkt) {
+				m_first_pkt = false;
+				LOGI("first video pkt put into queue(demux thread)");
+			}
 		}
 		else if(pPacket->stream_index == m_audio_stream_idx) {
 			// 2015.12.14 some clip audio/video packet isn't well interleaved written

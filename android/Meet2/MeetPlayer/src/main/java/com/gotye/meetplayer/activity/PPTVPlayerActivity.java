@@ -81,6 +81,7 @@ public class PPTVPlayerActivity extends VideoPlayerActivity {
 				finish();
 			}
 			else {
+				mEpisodeIndex++;
 				new EpisodeTask().execute(TASK_DETAIL, mAlbumId);
 			}
 		}

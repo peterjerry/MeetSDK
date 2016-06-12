@@ -82,7 +82,7 @@ public class PlayYoukuActivity extends PlaySegFileActivity {
     @Override
     protected void onPause() {
         if (mPlayer != null) {
-            int pos = mPlayer.getCurrentPosition();
+            int pos = mPlayer.getCurrentPosition() - 10000;
             if (pos > 10000) {
                 YKPlayhistoryDatabaseHelper.getInstance(this)
                         .savePlayedPosition(mVid, pos);

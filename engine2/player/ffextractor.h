@@ -161,6 +161,7 @@ enum DATASOURCE_TYPE
 	uint32_t			m_max_buffersize;
 	uint32_t			m_min_play_buf_count;
 	int64_t				m_cached_duration_msec;
+	bool				m_first_pkt;
 	PacketQueue			m_video_q;
 	PacketQueue			m_audio_q;
 

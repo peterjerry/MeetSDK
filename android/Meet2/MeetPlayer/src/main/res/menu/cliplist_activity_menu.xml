@@ -87,10 +87,10 @@
         <menu>
             <item
                 android:id="@+id/pptv_frontpage"
-                android:title="PPTV首页"/>
+                android:title="聚力首页"/>
             <item
                 android:id="@+id/pptv_video"
-                android:title="PPTV视频"/>
+                android:title="聚力视频"/>
             <item
                 android:id="@+id/sohu_video"
                 android:title="搜狐视频"/>

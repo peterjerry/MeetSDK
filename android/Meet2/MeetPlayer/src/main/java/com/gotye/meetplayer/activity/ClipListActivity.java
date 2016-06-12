@@ -395,6 +395,9 @@ public class ClipListActivity extends AppCompatActivity implements
         mLayout.setFocusable(true);
         mLayout.setOnFocusChangeListener(this);
 
+        // set to false to solve cannot show menu problem
+        tv_title.setMarquee(false);
+
         if (home_folder.equals("")) {
             mCurrentFolder = "";
         } else {

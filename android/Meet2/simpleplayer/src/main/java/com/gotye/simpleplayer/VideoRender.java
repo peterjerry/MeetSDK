@@ -1,6 +1,5 @@
-package com.gotye.meetsdk.player;
+package com.gotye.simpleplayer;
 
-import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.FloatBuffer;
@@ -13,7 +12,8 @@ import android.graphics.SurfaceTexture;
 import android.opengl.GLES20;
 import android.opengl.GLSurfaceView;
 import android.opengl.Matrix;
-import com.gotye.meetsdk.util.LogUtils;
+
+import com.gotye.meetsdk.player.MediaPlayer;
 import android.util.Log;
 import android.view.Surface;
 
@@ -180,7 +180,7 @@ public class VideoRender implements GLSurfaceView.Renderer, SurfaceTexture.OnFra
         
         @Override
         public void onSurfaceCreated(GL10 glUnused, EGLConfig config) {
-            mProgram = createProgram(mVertexShader, mFragmentShader);
+            mProgram = createProgram(mVertexShader, mGrayFragmentShader);
             if (mProgram == 0) {
                 return;
             }

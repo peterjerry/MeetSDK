@@ -1,12 +1,25 @@
 package com.gotye.simpleplayer;
 
-import java.lang.ref.WeakReference;
-import java.util.Locale;
-
 import android.content.Intent;
 import android.graphics.PixelFormat;
 import android.media.AudioManager;
+import android.opengl.GLSurfaceView;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Message;
+import android.support.v7.app.AppCompatActivity;
+import android.util.Log;
+import android.view.GestureDetector;
+import android.view.KeyEvent;
+import android.view.MotionEvent;
+import android.view.SurfaceHolder;
+import android.view.View;
+import android.view.WindowManager;
+import android.widget.MediaController;
+import android.widget.ProgressBar;
+import android.widget.TextView;
+import android.widget.Toast;
+
 import com.gotye.meetsdk.MeetSDK;
 import com.gotye.meetsdk.player.MediaPlayer;
 import com.gotye.meetsdk.player.MediaPlayer.DecodeMode;
@@ -16,25 +29,16 @@ import com.gotye.meetsdk.player.MediaPlayer.OnInfoListener;
 import com.gotye.meetsdk.player.MediaPlayer.OnPreparedListener;
 import com.gotye.meetsdk.player.MediaPlayer.OnVideoSizeChangedListener;
 
-import android.os.Handler;
-import android.os.Message;
-import android.support.v7.app.AppCompatActivity;
-import android.util.Log;
-import android.view.KeyEvent;
-import android.view.SurfaceHolder;
-import android.view.SurfaceHolder.Callback;
-import android.view.GestureDetector;
-import android.view.MotionEvent;
-import android.view.SurfaceView;
-import android.view.View;
-import android.view.WindowManager;
-import android.widget.MediaController;
-import android.widget.ProgressBar;
-import android.widget.TextView;
-import android.widget.Toast;
+import java.lang.ref.WeakReference;
+import java.util.Locale;
 
-public class PlayerActivity extends AppCompatActivity implements Callback,
-	OnPreparedListener, OnVideoSizeChangedListener, OnCompletionListener, OnErrorListener, OnInfoListener
+public class GLPlayerActivity extends AppCompatActivity
+        implements
+        OnPreparedListener,
+        OnVideoSizeChangedListener,
+        OnCompletionListener,
+        OnErrorListener,
+        OnInfoListener
 {
 	private final static String TAG = "PlayerActivity";
     /*private final static String PLAY_URL = "http://data.vod.itc.cn/" +
@@ -48,7 +52,8 @@ public class PlayerActivity extends AppCompatActivity implements Callback,
 	private DecodeMode mMode = DecodeMode.HW_XOPLAYER;
 	private MediaPlayer mPlayer;
     private MediaController mMediaController;
-	private SurfaceView mPreview;
+	private GLSurfaceView mPreview;
+    private VideoRender mRenderer;
 	private SurfaceHolder mHolder;
     private ProgressBar mBufferingProgressBar;
     private boolean mIsBuffering = false;
@@ -71,29 +76,39 @@ public class PlayerActivity extends AppCompatActivity implements Callback,
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 		super.getWindow().addFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN);
-        setContentView(R.layout.player);
+        setContentView(R.layout.glplayer);
 		if (getSupportActionBar() != null)
 			getSupportActionBar().hide();
 
-        this.mPreview = (SurfaceView)this.findViewById(R.id.preview);
+        this.mPreview = (GLSurfaceView)this.findViewById(R.id.preview);
         this.mBufferingProgressBar = (ProgressBar) this.findViewById(R.id.progressbar_buffering);
         this.mTvInfo = (TextView)this.findViewById(R.id.tv_info);
-        
+
+        mHolder = mPreview.getHolder();
 		if (DecodeMode.HW_SYSTEM == mMode) {
-			mPreview.getHolder().setType(SurfaceHolder.SURFACE_TYPE_PUSH_BUFFERS);
+            mHolder.setType(SurfaceHolder.SURFACE_TYPE_PUSH_BUFFERS);
 		}
 		else if (DecodeMode.SW == mMode){
-			mPreview.getHolder().setType(SurfaceHolder.SURFACE_TYPE_NORMAL);
-			mPreview.getHolder().setFormat(PixelFormat.RGBX_8888);
-		} 
-       
-        mPreview.getHolder().addCallback(this);
+            mHolder.setType(SurfaceHolder.SURFACE_TYPE_NORMAL);
+            mHolder.setFormat(PixelFormat.RGBX_8888);
+		}
+
+        mPreview.setEGLContextClientVersion(2);
+        mRenderer = new VideoRender(this);
+        mPreview.setRenderer(mRenderer);
 
         mHandler = new MainHandler(this);
 
         mMediaController = new MediaController(this);
     }
-    
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+
+        start_player();
+    }
+
     @Override
     protected void onPause() {
     	// TODO Auto-generated method stub
@@ -127,23 +142,22 @@ public class PlayerActivity extends AppCompatActivity implements Callback,
 			public boolean onSingleTapConfirmed(MotionEvent e) {
                 if (mPlayer.isPlaying()) {
                     mPlayer.pause();
-                    Toast.makeText(PlayerActivity.this, "player paused", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(GLPlayerActivity.this, "player paused", Toast.LENGTH_SHORT).show();
                 }
                 else {
                     mPlayer.start();
-                    Toast.makeText(PlayerActivity.this, "player resumed", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(GLPlayerActivity.this, "player resumed", Toast.LENGTH_SHORT).show();
                 }
                 return true;
-			}
+			};
 			
 			@Override
 			public boolean onDoubleTap(MotionEvent event) {
-                //Intent intent = new Intent(PlayerActivity.this, ViewPlayerActivity.class);
-                Intent intent = new Intent(PlayerActivity.this, GLPlayerActivity.class);
+				Intent intent = new Intent(GLPlayerActivity.this, ViewPlayerActivity.class);
 				startActivity(intent);
 				finish();
 				
-				Toast.makeText(PlayerActivity.this, "go to meetvideoview test", Toast.LENGTH_SHORT).show();
+				Toast.makeText(GLPlayerActivity.this, "go to meetvideoview test", Toast.LENGTH_SHORT).show();
 				return true;
 			}
 	});			
@@ -158,7 +172,6 @@ public class PlayerActivity extends AppCompatActivity implements Callback,
 		mPlayer.reset();
 
         mPlayer.setLooping(true);
-		mPlayer.setDisplay(mPreview.getHolder());
 		mPlayer.setAudioStreamType(AudioManager.STREAM_MUSIC);
 		mPlayer.setScreenOnWhilePlaying(true);
 		mPlayer.setOnPreparedListener(this);
@@ -169,6 +182,7 @@ public class PlayerActivity extends AppCompatActivity implements Callback,
 
         try {
             mPlayer.setDataSource(PLAY_URL);
+            mRenderer.setMediaPlayer(mPlayer);
             mPlayer.prepareAsync();
             mBufferingProgressBar.setVisibility(View.VISIBLE);
         } catch (Exception e) {
@@ -176,25 +190,6 @@ public class PlayerActivity extends AppCompatActivity implements Callback,
             Log.e(TAG, "Java: open player exception: " + e.getMessage());
             Toast.makeText(this, "Java: failed to play: " + PLAY_URL, Toast.LENGTH_SHORT).show();
         }
-	}
-
-	@Override
-	public void surfaceChanged(SurfaceHolder sh, int arg1, int arg2, int arg3) {
-		// TODO Auto-generated method stub
-		
-	}
-
-	@Override
-	public void surfaceCreated(SurfaceHolder sh) {
-		// TODO Auto-generated method stub
-		mHolder = sh;
-		start_player();
-	}
-
-	@Override
-	public void surfaceDestroyed(SurfaceHolder sh) {
-		// TODO Auto-generated method stub
-		
 	}
 
 	@Override
@@ -255,18 +250,18 @@ public class PlayerActivity extends AppCompatActivity implements Callback,
 	}
 
     private static class MainHandler extends Handler {
-        private WeakReference<PlayerActivity> mWeakActivity;
+        private WeakReference<GLPlayerActivity> mWeakActivity;
 
         private static final int MSG_UPDATE_PLAY_INFO       = 1002;
         private static final int MSG_UPDATE_RENDER_INFO     = 1003;
 
-        public MainHandler(PlayerActivity activity) {
-            mWeakActivity = new WeakReference<PlayerActivity>(activity);
+        public MainHandler(GLPlayerActivity activity) {
+            mWeakActivity = new WeakReference<GLPlayerActivity>(activity);
         }
 
         @Override
         public void handleMessage(Message msg) {
-            PlayerActivity activity = mWeakActivity.get();
+            GLPlayerActivity activity = mWeakActivity.get();
             if (activity == null) {
                 Log.e(TAG, "Got message for dead activity");
                 return;
@@ -307,6 +302,9 @@ public class PlayerActivity extends AppCompatActivity implements Callback,
 	public void onVideoSizeChanged(MediaPlayer mp, int w, int h) {
 		// TODO Auto-generated method stub
 		mHolder.setFixedSize(w, h);
+
+        // fix SW mode cannot display video problem( surface resolution is 1x1)
+        mRenderer.getSurfaceTexture().setDefaultBufferSize(w, h);
 	}
 
 	@Override
