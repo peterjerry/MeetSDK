@@ -1,14 +1,19 @@
 package com.gotye.meetplayer.activity;
 
+import java.io.UnsupportedEncodingException;
+import java.net.URLEncoder;
+import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
+import java.util.Locale;
 
 import com.gotye.common.pptv.CDNItem;
 import com.gotye.common.pptv.EPGUtil;
 import com.gotye.common.pptv.LiveStream;
 import com.gotye.common.pptv.PlayLinkUtil;
+import com.gotye.common.util.LogUtil;
 import com.gotye.common.util.PlayBackTime;
 import com.gotye.meetplayer.R;
 import com.gotye.meetplayer.adapter.MyPPTVLiveCenterAdapter;
@@ -88,7 +93,13 @@ public class PPTVLiveCenterActivity extends AppCompatActivity {
 					int position, long id) {
 				// TODO Auto-generated method stub
 				LiveStream liveStrm = mAdapter.getItem(position);
-				new EPGTask().execute(ACTION_LIVE_FT, liveStrm.title, liveStrm.channelID);
+                if (!mPlaybackTime.isLive()) {
+                    new EPGTask().execute(ACTION_LIVE_FT, liveStrm.title, liveStrm.channelID);
+                }
+                else {
+                    new EPGTask().execute(ACTION_LIVE_FT, liveStrm.title, liveStrm.channelID,
+                            liveStrm.start_time, liveStrm.end_time);
+                }
 			}
 		});
 		
@@ -189,6 +200,7 @@ public class PPTVLiveCenterActivity extends AppCompatActivity {
 		private String title;
 		private int vid;
 		private String action;
+        private String timeStr;
 		
 		@Override
 		protected void onPostExecute(Boolean result) {
@@ -221,8 +233,8 @@ public class PPTVLiveCenterActivity extends AppCompatActivity {
 							http_port = (short)MyHttpService.getPort();
 						
 						play_url = PlayLinkUtil.getPlayUrl(
-								vid, http_port, best_ft/*ft*/, 3/*bw_type*/, 
-								mPlaybackTime.getPPTVTimeStr());
+								vid, http_port, best_ft/*ft*/, 3/*bw_type*/,
+                                timeStr == null ? mPlaybackTime.getPPTVTimeStr() : timeStr);
 					}
 					else if (mBwType == 2) {
 						play_url = String.format(live_m3u8_url_fmt, 
@@ -273,6 +285,39 @@ public class PPTVLiveCenterActivity extends AppCompatActivity {
 				title = params[1];
 				
 				vid = Integer.valueOf(params[2]);
+
+                if (params.length > 3) {
+                    String start_time = params[3];
+                    String end_time = params[4];
+
+                    SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss", Locale.US);
+
+                    try {
+                        // 2016-06-12 06:45:00  2016-06-12 09:10:00
+                        long start_msec = sdf.parse(start_time).getTime();
+                        long end_msec = sdf.parse(end_time).getTime();
+
+                        String PlayerLinkSurfix = String.format(Locale.US,
+                                "&begin_time=%d&end_time=%d",
+                                start_msec / 1000, end_msec / 1000);
+                        try {
+                            timeStr = URLEncoder.encode(PlayerLinkSurfix, "utf-8");
+                        } catch (UnsupportedEncodingException e) {
+                            // TODO Auto-generated catch block
+                            e.printStackTrace();
+                            LogUtil.error(TAG, "Java: failed to generate PPTV PlayerLinkSurfix");
+                            return null;
+                        }
+
+                        LogUtil.info(TAG, String.format(Locale.US,
+                                "start_time: %s, end_time %s, start_msec %d, end_msec %d, timeStr %s",
+                                start_time, end_time, start_msec, end_msec, timeStr));
+                    } catch (ParseException e) {
+                        e.printStackTrace();
+                        return false;
+                    }
+                }
+
 				return ((itemList = mEPG.live_cdn(vid)) != null);
 			}
 			else {

@@ -3073,9 +3073,9 @@ public class ClipListActivity extends AppCompatActivity implements
             AlertDialog.Builder builder =
                     new AlertDialog.Builder(this);
 
-            builder.setMessage("Download new APK?");
+            builder.setMessage("下载并更新应用?");
 
-            builder.setPositiveButton("Yes",
+            builder.setPositiveButton("确定",
                     new DialogInterface.OnClickListener() {
 
                         @Override
@@ -3084,14 +3084,7 @@ public class ClipListActivity extends AppCompatActivity implements
                         }
                     });
 
-            builder.setNeutralButton("No",
-                    new DialogInterface.OnClickListener() {
-
-                        @Override
-                        public void onClick(DialogInterface dialog, int which) {
-
-                        }
-                    });
+            builder.setNeutralButton("取消", null);
 
             mUpdateDialog = builder.create();
             mUpdateDialog.show();
