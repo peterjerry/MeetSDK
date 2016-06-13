@@ -251,6 +251,14 @@ public class SohuVideoActivity extends AppCompatActivity {
         Dialog choose_search_dlg = new AlertDialog.Builder(this)
                 .setTitle("选择搜索关键词")
                 .setNegativeButton("取消", null)
+				.setNeutralButton("清空记录", new DialogInterface.OnClickListener() {
+					@Override
+					public void onClick(DialogInterface dialog, int which) {
+						Util.writeSettings(SohuVideoActivity.this, "search_keys", "");
+						Toast.makeText(SohuVideoActivity.this, "搜索记录已清空",
+								Toast.LENGTH_SHORT).show();
+					}
+				})
                 .setItems(keywords,
                         new DialogInterface.OnClickListener() {
                             public void onClick(DialogInterface dialog, int whichButton) {

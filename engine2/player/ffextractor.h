@@ -193,6 +193,7 @@ enum DATASOURCE_TYPE
 
 	pthread_mutex_t		mSubtitleLock;
 
+#ifdef USE_SWRESAMPLE
 	// decode audio
 	AVFrame*			m_audio_frame;
 	int					m_src_channels;
@@ -200,6 +201,7 @@ enum DATASOURCE_TYPE
 	SwrContext*			m_swr;
 	int					m_audio_need_convert;
 	int16_t*			mSamples;
+#endif
 };
 
 #endif // FF_EXTRACTOR_H_

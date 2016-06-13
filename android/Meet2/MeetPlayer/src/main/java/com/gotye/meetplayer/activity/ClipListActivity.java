@@ -353,8 +353,8 @@ public class ClipListActivity extends AppCompatActivity implements
             setContentView(R.layout.list);
         }
 
-        if (getSupportActionBar() != null)
-            getSupportActionBar().hide();
+        //if (getSupportActionBar() != null)
+        //    getSupportActionBar().hide();
 
         Util.upload_crash_dump(this);
 
@@ -958,7 +958,8 @@ public class ClipListActivity extends AppCompatActivity implements
                                     Toast.LENGTH_SHORT).show();
                         } else {
                             // toggle to full screen play mode
-                            //mActionBar.hide();
+                            if (getSupportActionBar() != null)
+                                getSupportActionBar().hide();
                             setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
                         }
                     }
@@ -3174,7 +3175,7 @@ public class ClipListActivity extends AppCompatActivity implements
             StringBuffer sb = new StringBuffer();
             sb.append(org_title);
             if (!org_title.contains("ip:")) {
-                sb.append(", ip: ");
+                sb.append("ip: ");
                 sb.append(Util.getIpAddr(this));
             }
             if (!org_title.contains("http_port:")) {
@@ -3187,8 +3188,8 @@ public class ClipListActivity extends AppCompatActivity implements
 
             tv_title.setText(sb.toString());
 
-            if (sb.toString().length() > 64)
-                tv_title.setMarquee(false);
+            //if (sb.toString().length() > 64)
+            //    tv_title.setMarquee(false);
         }
     }
 
@@ -3230,7 +3231,6 @@ public class ClipListActivity extends AppCompatActivity implements
                     int port = intent.getIntExtra("http_port", -1);
                     String title = String.format(Locale.US,
                             "%s, http_port: %d", tv_title.getText().toString(), port);
-                    tv_title.setText(title);
                     tv_title.setText(title);
                 }
             }
@@ -3579,7 +3579,8 @@ public class ClipListActivity extends AppCompatActivity implements
     public void onBackPressed() {
         if (!mPreviewFocused && !isTVbox && isLandscape) {
             // restore to portait normal view
-            //mActionBar.show();
+            if (getSupportActionBar() != null)
+                getSupportActionBar().show();
             setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
             return;
         }

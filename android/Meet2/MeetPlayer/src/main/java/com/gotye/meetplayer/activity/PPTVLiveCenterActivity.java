@@ -51,11 +51,8 @@ public class PPTVLiveCenterActivity extends AppCompatActivity {
 	private final static String ACTION_LIVE_FT = "live_ft";
 	
 	private TextView tvDay;
-	private Button btnLive;
-	private Button btnPlayback;
-	private Button btnNextDay;
-	private Button btnBwType;
 	private ListView lv_tvlist;
+    private Button btnBwType;
 	
 	private EPGUtil mEPG;
 	private String mLiveId;
@@ -75,16 +72,13 @@ public class PPTVLiveCenterActivity extends AppCompatActivity {
 		setContentView(R.layout.activity_pptv_livecenter);
 		
 		this.tvDay = (TextView)this.findViewById(R.id.tv_day);
-		this.btnLive = (Button)this.findViewById(R.id.btn_live);
-		this.btnPlayback = (Button)this.findViewById(R.id.btn_playback);
-		this.btnNextDay = (Button)this.findViewById(R.id.btn_nextday);
-		this.btnBwType = (Button)this.findViewById(R.id.btn_bw_type);
 		this.lv_tvlist = (ListView)this.findViewById(R.id.lv_tvlist);
-		
-		this.btnLive.setOnClickListener(mOnClickListener);
-		this.btnPlayback.setOnClickListener(mOnClickListener);
-		this.btnNextDay.setOnClickListener(mOnClickListener);
-		this.btnBwType.setOnClickListener(mOnClickListener);
+        this.btnBwType = (Button)this.findViewById(R.id.btn_bw_type);
+
+        this.findViewById(R.id.btn_live).setOnClickListener(mOnClickListener);
+        this.findViewById(R.id.btn_playback).setOnClickListener(mOnClickListener);
+        this.findViewById(R.id.btn_nextday).setOnClickListener(mOnClickListener);
+        this.findViewById(R.id.btn_bw_type).setOnClickListener(mOnClickListener);
 		
 		this.lv_tvlist.setOnItemClickListener(new AdapterView.OnItemClickListener() {
 
@@ -94,11 +88,35 @@ public class PPTVLiveCenterActivity extends AppCompatActivity {
 				// TODO Auto-generated method stub
 				LiveStream liveStrm = mAdapter.getItem(position);
                 if (!mPlaybackTime.isLive()) {
+					// use playback time set time
                     new EPGTask().execute(ACTION_LIVE_FT, liveStrm.title, liveStrm.channelID);
                 }
                 else {
-                    new EPGTask().execute(ACTION_LIVE_FT, liveStrm.title, liveStrm.channelID,
-                            liveStrm.start_time, liveStrm.end_time);
+                    // use epg start and end time
+                    try {
+                        SimpleDateFormat sdf = new SimpleDateFormat(
+                                "yyyy-MM-dd hh:mm:ss", Locale.US);
+                        // 2016-06-12 06:45:00  2016-06-12 09:10:00
+                        long start_msec = sdf.parse(liveStrm.start_time).getTime();
+                        long end_msec = sdf.parse(liveStrm.end_time).getTime();
+                        long curr_msec = System.currentTimeMillis();
+                        if (curr_msec < start_msec) {
+                            LogUtil.error(TAG, "program is not started yet");
+                            Toast.makeText(PPTVLiveCenterActivity.this, "直播尚未开始",
+                                    Toast.LENGTH_SHORT).show();
+                        }
+                        else if (curr_msec < end_msec) {
+                            LogUtil.info(TAG, "program is living");
+                            mPlaybackTime.setLive();
+                            new EPGTask().execute(ACTION_LIVE_FT, liveStrm.title, liveStrm.channelID);
+                        }
+                        else {
+                            new EPGTask().execute(ACTION_LIVE_FT, liveStrm.title, liveStrm.channelID,
+                                    liveStrm.start_time, liveStrm.end_time);
+                        }
+                    } catch (ParseException e) {
+                        e.printStackTrace();
+                    }
                 }
 			}
 		});
@@ -180,7 +198,7 @@ public class PPTVLiveCenterActivity extends AppCompatActivity {
 	};
 	
 	private String updateTime() {
-		SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
+		SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd", Locale.US);
 		Calendar c = Calendar.getInstance();
 		Date today = new Date();
 		c.setTime(today);
@@ -188,7 +206,7 @@ public class PPTVLiveCenterActivity extends AppCompatActivity {
 		Date day = c.getTime();
 		String strDay = sdf.format(day);
 		
-		SimpleDateFormat sdfWeekend = new SimpleDateFormat("E");
+		SimpleDateFormat sdfWeekend = new SimpleDateFormat("E", Locale.US);
 		String strWeekend = sdfWeekend.format(day);
 		this.tvDay.setText(strDay + " " + strWeekend);
 		return strDay;
@@ -237,7 +255,7 @@ public class PPTVLiveCenterActivity extends AppCompatActivity {
                                 timeStr == null ? mPlaybackTime.getPPTVTimeStr() : timeStr);
 					}
 					else if (mBwType == 2) {
-						play_url = String.format(live_m3u8_url_fmt, 
+						play_url = String.format(Locale.US, live_m3u8_url_fmt,
 								LiveItem.getHost(), 
 								LiveItem.getInterval(), LiveItem.getDelay(), 
 								LiveItem.getRid(), LiveItem.getKey());
@@ -258,7 +276,8 @@ public class PPTVLiveCenterActivity extends AppCompatActivity {
 					intent.putExtra("best_ft", best_ft);
 					
 					Toast.makeText(PPTVLiveCenterActivity.this, 
-							String.format("start to play %s, playlink %d, ft %d, size %d x %d, bitrate %d",
+							String.format(Locale.US,
+                                    "start to play %s, playlink %d, ft %d, size %d x %d, bitrate %d",
 									title, vid, best_ft, 
 									LiveItem.getWidth(), LiveItem.getHeight(), LiveItem.getBitrate()),
 							Toast.LENGTH_SHORT).show();
@@ -306,7 +325,7 @@ public class PPTVLiveCenterActivity extends AppCompatActivity {
                             // TODO Auto-generated catch block
                             e.printStackTrace();
                             LogUtil.error(TAG, "Java: failed to generate PPTV PlayerLinkSurfix");
-                            return null;
+                            return false;
                         }
 
                         LogUtil.info(TAG, String.format(Locale.US,

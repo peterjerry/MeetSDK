@@ -178,11 +178,12 @@ FFExtractor::FFExtractor()
 
 	pthread_mutex_init(&mSubtitleLock, NULL);
 
-	m_audio_dec_ctx			= NULL;
+#ifdef USE_SWRESAMPLE
 	m_audio_frame			= NULL;
 	m_swr					= NULL;
 	m_audio_need_convert	= 0;
 	mSamples				= NULL;
+#endif
 
 	/* register all formats and codecs */
 	av_register_all();
@@ -335,7 +336,7 @@ void FFExtractor::close()
 		m_fmt_ctx->interrupt_callback.opaque = NULL;
 		avformat_close_input(&m_fmt_ctx);
 	}
-
+#ifdef USE_SWRESAMPLE
 	if (mSamples != NULL) {
 		// Free audio samples buffer
 		av_free(mSamples);
@@ -348,7 +349,7 @@ void FFExtractor::close()
 		swr_free(&m_swr);
 		m_swr = NULL;
 	}
-
+#endif
 	if (m_url) {
 		delete m_url;
 		m_url = NULL;
@@ -1215,6 +1216,7 @@ status_t FFExtractor::getBitrate(int32_t *kbps)
 
 bool FFExtractor::init_swr()
 {
+#ifdef USE_SWRESAMPLE
 	if (m_swr) {
 		swr_free(&m_swr);
 		m_swr = NULL;
@@ -1235,13 +1237,16 @@ bool FFExtractor::init_swr()
 	}
 
 	return true;
+#else
+	return false;
+#endif
 }
 
 status_t FFExtractor::decodeAudio(uint8_t *inbuf, int32_t size, 
 								   uint8_t *out_pcm, int32_t *out_size)
 {
 	//LOGI("decodeAudio %p, size %d", inbuf, size);
-
+#ifdef USE_SWRESAMPLE
 	AVPacket pkt;
 	int len;
 	int out_offset = 0;
@@ -1354,6 +1359,10 @@ status_t FFExtractor::decodeAudio(uint8_t *inbuf, int32_t size,
 
 	*out_size = out_offset;
 	return OK;
+#else
+	LOGE("swresample NOT build-in");
+	return ERROR;
+#endif
 }
 
 status_t FFExtractor::readPacket(int stream_index, unsigned char *data, int32_t *sampleSize)
@@ -1689,7 +1698,7 @@ int FFExtractor::open_codec_context_idx(int stream_idx)
 				return ERROR;
 			}
 		}
-
+#ifdef USE_SWRESAMPLE
 		if (m_audio_dec_ctx->codec_id != AV_CODEC_ID_AAC) {
 			LOGI("enable audio decoder");
 
@@ -1722,6 +1731,7 @@ int FFExtractor::open_codec_context_idx(int stream_idx)
 				}
 			}
 		}
+#endif
 	}
 	else {
 		LOGE("#%d stream is a %s stream(not video or audio)", stream_idx, av_get_media_type_string(type));
