@@ -264,11 +264,11 @@ public class YKUtil {
 		
 		System.out.println("Java: m3u8Url " + m3u8Url);
 		
-		String ykss = getYKss(vid);
+		/*String ykss = getYKss(vid);
 		if (ykss == null) {
 			System.out.println("failed to get ykss");
 			return;
-		}
+		}*/
 		
 		/*if (!httpUtil.httpDownload(m3u8Url, "1.m3u8")) {
 			System.out.println("failed to download m3u8");
@@ -291,7 +291,7 @@ public class YKUtil {
 		System.arraycopy(buffer, 0, m3u8_context, 0, content_size);
 		parseM3u8(new String(m3u8_context));*/
 		
-		soku2("水浒传", 1, 1);
+		//soku2("水浒传", 1, 1);
 		
 		/*RelateResult r = relate("XODA2Njk1MTEy", 1);
 		List<Album> albumList = r.mALbumList;
@@ -984,7 +984,7 @@ public class YKUtil {
 			JSONObject root = (JSONObject) jsonParser.nextValue();
 			String data = root.getString("data");
 			String dec_data = yk_jsondecode(data);
-			//System.out.println("Java: dec_data " + dec_data);
+			System.out.println("Java: dec_data " + dec_data);
 			
 			JSONTokener jsonDataParser = new JSONTokener(dec_data);
 			JSONObject data_root = (JSONObject) jsonDataParser.nextValue();

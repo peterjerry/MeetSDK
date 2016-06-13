@@ -13,6 +13,7 @@ import android.support.v7.app.AppCompatActivity;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
+import android.view.SubMenu;
 import android.view.View;
 import android.view.WindowManager;
 import android.widget.AdapterView;
@@ -103,14 +104,30 @@ public class YoukuVideoActivity extends AppCompatActivity {
 		new EPGTask().execute(EPG_TASK_LIST_CHANNEL);
 	}
 
+    private final int MENU_OPTION_YOUKU_CLEAN_COOKIE    = 9001;
+    private final int MENU_OPTION_YOUKU_API_METHOD      = 9002;
+    private final int MENU_OPTION_YOUKU_API_V3_PLAY     = 9101;
+    private final int MENU_OPTION_YOUKU_API_GET_JSON    = 9102;
+    private final int MENU_OPTION_YOUKU_API_GROUP       = 9200;
+
 	@Override
     public boolean onCreateOptionsMenu(Menu menu) {  
         MenuInflater menuInflater = new MenuInflater(getApplication());  
-        menuInflater.inflate(R.menu.sohu_menu, menu);  
-        return super.onCreateOptionsMenu(menu);  
+        menuInflater.inflate(R.menu.sohu_menu, menu);
+
+        menu.addSubMenu(Menu.NONE, MENU_OPTION_YOUKU_CLEAN_COOKIE, menu.size(), R.string.yk_clean_cookie);
+
+        Menu yk_method = menu.addSubMenu(Menu.NONE, MENU_OPTION_YOUKU_API_METHOD, menu.size(), R.string.yk_api_method);
+        SubMenu subMenuMethod1 = yk_method.addSubMenu(MENU_OPTION_YOUKU_API_GROUP,
+                MENU_OPTION_YOUKU_API_V3_PLAY, Menu.NONE, "v3_play");
+        subMenuMethod1.setGroupCheckable(MENU_OPTION_YOUKU_API_GROUP, true, true);
+        SubMenu subMenuMethod2 = yk_method.addSubMenu(MENU_OPTION_YOUKU_API_GROUP,
+                MENU_OPTION_YOUKU_API_GET_JSON, Menu.NONE, "get_json");
+        subMenuMethod2.setGroupCheckable(MENU_OPTION_YOUKU_API_GROUP, true, true);
+        return super.onCreateOptionsMenu(menu);
     }
-	
-	@Override
+
+    @Override
 	public boolean onOptionsItemSelected(MenuItem item) {
 		int id = item.getItemId();
 		switch (id) {
@@ -120,29 +137,25 @@ public class YoukuVideoActivity extends AppCompatActivity {
 			case R.id.search_history:
 				popupSearchHistory();
 				break;
-            case R.id.clean_search_history:
-                AlertDialog.Builder builder = new AlertDialog.Builder(this);
-                builder.setTitle("确认删除搜索历史");
-                builder.setPositiveButton("确认", new DialogInterface.OnClickListener() {
-
-                    public void onClick(DialogInterface dialog, int which) {
-                        Util.writeSettings(YoukuVideoActivity.this, "search_keys", "");
-                        Toast.makeText(YoukuVideoActivity.this, "搜索记录已清空", Toast.LENGTH_SHORT).show();
-                    }
-                });
-                builder.setNegativeButton("取消", null);
-                builder.show();
-                break;
 			case R.id.play_history:
 				popupHistory();
 				break;
 			case R.id.recent_play:
                 popupRecentPlay();
 				break;
-            case R.id.clean_cookie:
+            case MENU_OPTION_YOUKU_CLEAN_COOKIE:
                 Util.writeSettings(this, "ykss", "");
                 Util.writeSettingsLong(this, "ykss_exp_time", 0L);
                 Toast.makeText(this, "优酷 YKss cookie 已清空", Toast.LENGTH_SHORT).show();
+                break;
+            case MENU_OPTION_YOUKU_API_V3_PLAY:
+                YKUtil.setApiMethod(YKUtil.API_METHOD_V3_PLAY);
+                Toast.makeText(this, "优酷api设置为1: v3_play", Toast.LENGTH_SHORT).show();
+                break;
+            case MENU_OPTION_YOUKU_API_GET_JSON:
+                YKUtil.setApiMethod(YKUtil.API_METHOD_GET_JSON);
+                Toast.makeText(this, "优酷api设置为2: get_json", Toast.LENGTH_SHORT).show();
+                break;
             default:
 				LogUtil.warn(TAG, "unknown menu id " + id);
 				break;
@@ -252,6 +265,14 @@ public class YoukuVideoActivity extends AppCompatActivity {
         Dialog choose_search_dlg = new AlertDialog.Builder(this)
                 .setTitle("选择搜索关键词")
                 .setNegativeButton("取消", null)
+                .setNeutralButton("清空记录", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        Util.writeSettings(YoukuVideoActivity.this, "search_keys", "");
+                        Toast.makeText(YoukuVideoActivity.this, "搜索记录已清空",
+                                Toast.LENGTH_SHORT).show();
+                    }
+                })
                 .setItems(keywords,
                         new DialogInterface.OnClickListener() {
                             public void onClick(DialogInterface dialog, int whichButton) {

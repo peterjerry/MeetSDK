@@ -28,7 +28,7 @@ public class Episode {
         this.mThumbUrl      = thumb_url;
         this.mOnlineTime    = online_time;
         this.mTotalVV       = total_vv;
-		this.mDuration			= duration;
+		this.mDuration		= duration;
 		this.mStrmTypeList	= strm_type_list;
 	}
 	

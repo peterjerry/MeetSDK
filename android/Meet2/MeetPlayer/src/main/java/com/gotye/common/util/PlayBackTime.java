@@ -8,6 +8,7 @@ import java.util.Calendar;
 import java.util.Date;
 import java.util.GregorianCalendar;
 import java.util.List;
+import java.util.Locale;
 
 import android.app.AlertDialog;
 import android.app.Dialog;
@@ -44,11 +45,16 @@ public class PlayBackTime {
 		mDurationSec = 0;
 	}
 
+    public boolean isLive() {
+        return (mDurationSec == 0);
+    }
+
 	public String getBestvTimeStr() {
 		if (mDurationSec == 0 || mStartTimeSec == -1)
 			return null;
 
-		return String.format("&starttime=%d&endtime=%d",
+		return String.format(Locale.US,
+				"&starttime=%d&endtime=%d",
 				mStartTimeSec, mStartTimeSec + mDurationSec * 60);
 	}
 
@@ -56,7 +62,8 @@ public class PlayBackTime {
 		if (mDurationSec == 0 || mStartTimeSec == -1)
 			return null;
 
-		String PlayerLinkSurfix = String.format("&begin_time=%d&end_time=%d",
+		String PlayerLinkSurfix = String.format(Locale.US,
+				"&begin_time=%d&end_time=%d",
 				mStartTimeSec, mStartTimeSec + mDurationSec * 60);
 		try {
 			PlayerLinkSurfix = URLEncoder.encode(PlayerLinkSurfix, "utf-8");
@@ -74,13 +81,13 @@ public class PlayBackTime {
 	public boolean setPlaybackTime() {
 		AlertDialog.Builder builder = new AlertDialog.Builder(mContext);
 		View view = View.inflate(mContext, R.layout.date_time_dialog, null);
-		final AppCompatSpinner spinnerDate = (AppCompatSpinner) view.findViewById(R.id.spinner_date);
-		final TimePicker timePicker = (android.widget.TimePicker) view.findViewById(R.id.time_picker);
-		final AppCompatSpinner spinnerDuration = (AppCompatSpinner) view.findViewById(R.id.spinner_duration);
+		final Spinner spinnerDate = (Spinner) view.findViewById(R.id.spinner_date);
+		final TimePicker timePicker = (TimePicker) view.findViewById(R.id.time_picker);
+		final Spinner spinnerDuration = (Spinner) view.findViewById(R.id.spinner_duration);
 
 		Calendar cal = Calendar.getInstance();
 		Date date = new Date();
-		SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd"); // yyyy-MM-dd HH:mm:ss
+		SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd", Locale.US); // yyyy-MM-dd HH:mm:ss
 
 		List<String> dateList = new ArrayList<String>();
 		for (int i=0;i<7;i++) {

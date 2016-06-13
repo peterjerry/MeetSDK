@@ -12,20 +12,12 @@
         android:orderInCategory="2"
         android:title="搜索记录"/>
     <item
-        android:id="@+id/clean_search_history"
-        android:orderInCategory="3"
-        android:title="清空搜索记录"/>
-    <item
         android:id="@+id/play_history"
-        android:orderInCategory="4"
+        android:orderInCategory="3"
         android:title="播放记录"/>
     <item
         android:id="@+id/recent_play"
-        android:orderInCategory="5"
+        android:orderInCategory="4"
         android:title="最近播放"/>
-    <item
-        android:id="@+id/clean_cookie"
-        android:orderInCategory="6"
-        android:title="清空cookie"/>
 
 </menu>

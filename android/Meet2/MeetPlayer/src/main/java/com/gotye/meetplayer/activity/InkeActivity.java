@@ -16,6 +16,7 @@ import android.widget.GridView;
 import android.widget.ListView;
 import android.widget.Toast;
 
+import com.gotye.common.util.LogUtil;
 import com.gotye.common.util.httpUtil;
 import com.gotye.meetplayer.R;
 import com.gotye.meetplayer.adapter.MeetAdapter;
@@ -31,6 +32,7 @@ import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 public class InkeActivity extends AppCompatActivity {
@@ -48,6 +50,8 @@ public class InkeActivity extends AppCompatActivity {
     private ArrayList<View> viewContainter;
     private ArrayList<String> titleContainer;
     private View viewSimpleAll, viewHomePage;
+
+    private List<Map<String, String>> nsList;
 
     private String gettop_api_url = "http://service5.ingkee.com/api/live/gettop" +
             "?lc=3000000000001604" +
@@ -191,6 +195,8 @@ public class InkeActivity extends AppCompatActivity {
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
                 Map<String, Object> map = (Map<String, Object>)mLvCreator.getItemAtPosition(position);
                 String play_url = (String) map.get("play_url");
+                play_url += "?type=gotyelive";
+                //play_url = ndsTranslate(play_url);
                 Intent intent = new Intent(InkeActivity.this, InkePlayerActivity.class);
                 intent.putExtra("play_url", play_url);
                 startActivity(intent);
@@ -202,6 +208,8 @@ public class InkeActivity extends AppCompatActivity {
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
                 Map<String, Object> map = (Map<String, Object>)mGvCreator.getItemAtPosition(position);
                 String play_url = (String) map.get("play_url");
+                play_url += "?type=gotyelive";
+                //play_url = ndsTranslate(play_url);
                 Intent intent = new Intent(InkeActivity.this, InkePlayerActivity.class);
                 intent.putExtra("play_url", play_url);
                 startActivity(intent);
@@ -222,7 +230,49 @@ public class InkeActivity extends AppCompatActivity {
 
         Util.checkNetworkType(this);
 
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                String[] ns = new String[]{
+                        "pull.a8.com", "pull2.a8.com",
+                        "pull3.a8.com", "pull4.a8.com",
+                        "pull5.a8.com", "pull6.a8.com",
+                        "pull7.a8.com", "pull8.a8.com",
+                        "pull9.a8.com", "pull99.a8.com",
+                };
+
+                nsList = new ArrayList<>();
+                for (int i=0;i<ns.length;i++) {
+                    String []ips = Util.nsLookup(ns[i]);
+                    if (ips != null && ips.length > 0) {
+                        Map<String, String> item = new HashMap<>();
+                        item.put("ns", ns[i]);
+                        item.put("ip", ips[0]);
+                        nsList.add(item);
+                        LogUtil.info(TAG, String.format(Locale.US,
+                                "ns_add ip binding : %s -> %s", ns[i], ips[0]));
+                    }
+                }
+            }
+        }).start();
+
         new LoadTask().execute(LoadTask.LIST_SIMPLEALL);
+    }
+
+    private String ndsTranslate(String url) {
+        String retUrl = url;
+        for (int i=0;i<nsList.size();i++) {
+            Map<String, String> item = nsList.get(i);
+            String ns = item.get("ns");
+            String ip = item.get("ip");
+            if (url.contains(ns)) {
+                retUrl = url.replace(ns, ip);
+                LogUtil.info(TAG, "ns_replace: final_url: " + retUrl);
+                break;
+            }
+        }
+
+        return retUrl;
     }
 
     private class LoadTask extends AsyncTask<Integer, Integer, List<Map<String, Object>>> {
@@ -268,14 +318,16 @@ public class InkeActivity extends AppCompatActivity {
         @Override
         protected List<Map<String, Object>> doInBackground(Integer... params) {
             String result;
+            String url;
 
             action = params[0];
-
             if (action == LIST_SIMPLEALL)
-                result = httpUtil.getHttpPage(simpleall_api_url);
+                url = simpleall_api_url;
             else
-                result = httpUtil.getHttpPage(homepage_api_url);
+                url = homepage_api_url;
 
+            LogUtil.info(TAG, "inke api: " + url);
+            result = httpUtil.getHttpPage(url);
             if (result == null)
                 return null;
 
@@ -320,7 +372,7 @@ public class InkeActivity extends AppCompatActivity {
                         title = live.getString("name");
                     String share_addr = live.getString("share_addr");
                     String play_url = live.getString("stream_addr");
-                    int online_users = live.getInt("online_users");
+                    int online_users = live.optInt("online_users");
 
                     String img_url;
                     if (portrait.startsWith("http://"))
@@ -331,7 +383,7 @@ public class InkeActivity extends AppCompatActivity {
                     String show_url = "http://image.scale.a8.com/imageproxy2/dimgm/scaleImage";
                     show_url += "?url=";
                     show_url += encoded_img_url;
-                    show_url += "&w=360&h=360&s=80&c=0&o=0;";
+                    show_url += "&w=360&h=360&s=80&c=0&o=0";
 
                     HashMap<String, Object> mapLive = new HashMap<String, Object>();
                     mapLive.put("title", title);

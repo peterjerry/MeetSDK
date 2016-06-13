@@ -196,8 +196,10 @@ public class YoukuEpisodeActivity extends AppCompatActivity {
             LogUtil.info(TAG, String.format(
                     Locale.US, "before add history: title %s, vid %s, show_id %s, ep_index %d",
                     mTitle, zgUrl.vid, mShowId, mEpisodeIndex));
-            YKPlayhistoryDatabaseHelper.getInstance(YoukuEpisodeActivity.this)
-                    .saveHistory(mTitle, zgUrl.vid, mShowId, mEpisodeIndex);
+            YKPlayhistoryDatabaseHelper dbHelper = YKPlayhistoryDatabaseHelper.getInstance(YoukuEpisodeActivity.this);
+            int pos = dbHelper.getLastPlayedPosition(zgUrl.vid);
+            if (pos < 0)
+                dbHelper.saveHistory(mTitle, zgUrl.vid, mShowId, mEpisodeIndex);
 
             Intent intent = new Intent(YoukuEpisodeActivity.this, PlayYoukuActivity.class);
             intent.putExtra("url_list", zgUrl.urls);
@@ -208,6 +210,10 @@ public class YoukuEpisodeActivity extends AppCompatActivity {
             intent.putExtra("vid", zgUrl.vid);
             intent.putExtra("episode_index", mEpisodeIndex);
             intent.putExtra("player_impl", mPlayerImpl);
+            if (pos > 0) {
+                intent.putExtra("preseek_msec", pos);
+                LogUtil.info(TAG, "set preseek_msec: " + pos);
+            }
 
             startActivity(intent);
         }

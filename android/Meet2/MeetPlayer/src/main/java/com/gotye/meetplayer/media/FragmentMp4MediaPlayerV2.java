@@ -11,6 +11,7 @@ import android.view.SurfaceHolder;
 
 import com.gotye.common.util.LogUtil;
 import com.gotye.meetsdk.player.MediaPlayer;
+import com.gotye.meetsdk.util.LogUtils;
 
 import org.apache.ivy.Main;
 
@@ -36,6 +37,8 @@ public class FragmentMp4MediaPlayerV2 {
 	private boolean mScreenOnWhilePlaying = true;
 	private boolean mSeeking;
 	private int mStreamType;
+
+	private int mTotalPlayer = 0;
 
 	private static final int SYSTEM_PLAYER  = 1;
 	private static final int XO_PLAYER      = 2;
@@ -132,50 +135,61 @@ public class FragmentMp4MediaPlayerV2 {
 			mSeeking = true;
 			
 			if (msec < m_play_pos_offset) {
-				for (int i=m_playlink_now_index;i>=0;i--) {
-					m_playlink_now_index--;
-					m_play_pos_offset -= m_duration_list.get(m_playlink_now_index);
+                int i;
+				for (i=m_playlink_now_index;i>0;i--) {
+					m_play_pos_offset -= m_duration_list.get(i-1);
 					if (msec >= m_play_pos_offset)
 						break;
 				}
+                m_playlink_now_index = i-1;
 				
 				if (mOnInfoListener != null)
 					mOnInfoListener.onInfo(mCurrentPlayer, MediaPlayer.MEDIA_INFO_BUFFERING_START, 0);
-				
-				LogUtil.info(TAG, String.format(Locale.US,
-                        "Java: seekto(back) pos %d, #%d, offset %d",
-                        msec, m_playlink_now_index, m_play_pos_offset));
-				m_pre_seek_pos = msec - m_play_pos_offset;
+
+                // huawei m321 MediaCodec not support pre-seek
+				//if (mPlayerImpl != 2) {
+					LogUtil.info(TAG, String.format(Locale.US,
+							"Java: seekto(back) pos %d, #%d, offset %d",
+							msec, m_playlink_now_index, m_play_pos_offset));
+					m_pre_seek_pos = msec - m_play_pos_offset;
+				//}
 
                 mHandler.removeMessages(MainHandler.MSG_CHECK_SETUP_NEXT_PLAYER);
 				if (mNextPlayer != null) {
 					mNextPlayer.release();
 					mNextPlayer = null;
+                    mTotalPlayer--;
+                    LogUtil.info(TAG, "Media Player total_count--: " + mTotalPlayer);
 				}
 				setupPlayer();
 			}
 			else if (msec >= m_play_pos_offset + m_duration_list.get(m_playlink_now_index)) {
-				for (int i=m_playlink_now_index;i<m_playlink_list.size();i++) {
-					m_play_pos_offset += m_duration_list.get(m_playlink_now_index);
-					m_playlink_now_index++;
-					if (m_playlink_now_index == m_playlink_list.size() - 1)
-						break;
-					else if (msec < m_play_pos_offset + m_duration_list.get(m_playlink_now_index + 1))
+				int i;
+				for (i=m_playlink_now_index;i<m_playlink_list.size();i++) {
+					m_play_pos_offset += m_duration_list.get(i);
+					if (msec < m_play_pos_offset)
 						break;
 				}
+				m_playlink_now_index = i;
+                m_play_pos_offset -= m_duration_list.get(i);
 				
 				if (mOnInfoListener != null)
 					mOnInfoListener.onInfo(mCurrentPlayer, MediaPlayer.MEDIA_INFO_BUFFERING_START, 0);
-				
-				LogUtil.info(TAG, String.format(Locale.US,
-                        "Java: seekto(forward) pos %d, #%d, offset %d",
-                        msec, m_playlink_now_index, m_play_pos_offset));
-				m_pre_seek_pos = msec - m_play_pos_offset;
+
+                // huawei m321 MediaCodec not support pre-seek
+                //if (mPlayerImpl != 2) {
+                    LogUtil.info(TAG, String.format(Locale.US,
+                            "Java: seekto(forward) pos %d, #%d, offset %d",
+                            msec, m_playlink_now_index, m_play_pos_offset));
+                    m_pre_seek_pos = msec - m_play_pos_offset;
+                //}
 
                 mHandler.removeMessages(MainHandler.MSG_CHECK_SETUP_NEXT_PLAYER);
 				if (mNextPlayer != null) {
 					mNextPlayer.release();
 					mNextPlayer = null;
+                    mTotalPlayer--;
+                    LogUtil.info(TAG, "Media Player total_count--: " + mTotalPlayer);
 				}
 				setupPlayer();
 			}
@@ -193,11 +207,19 @@ public class FragmentMp4MediaPlayerV2 {
 	public void release() {
         mHandler.removeMessages(MainHandler.MSG_CHECK_SETUP_NEXT_PLAYER);
 
-		if (mCurrentPlayer != null)
-			mCurrentPlayer.release();
+		if (mCurrentPlayer != null) {
+            mCurrentPlayer.release();
+            mCurrentPlayer = null;
+            mTotalPlayer--;
+            LogUtil.info(TAG, "Media Player total_count--: " + mTotalPlayer);
+        }
 		
-		if (mNextPlayer != null)
-			mNextPlayer.release();
+		if (mNextPlayer != null) {
+            mNextPlayer.release();
+            mNextPlayer = null;
+            mTotalPlayer--;
+            LogUtil.info(TAG, "Media Player total_count--: " + mTotalPlayer);
+        }
 	}
 
 	public void reset() {
@@ -304,6 +326,8 @@ public class FragmentMp4MediaPlayerV2 {
 
 			mCurrentPlayer.release();
 			mCurrentPlayer = null;
+            mTotalPlayer--;
+            LogUtil.info(TAG, "Media Player total_count--: " + mTotalPlayer);
 		}
 
         MediaPlayer.DecodeMode mode;
@@ -315,6 +339,8 @@ public class FragmentMp4MediaPlayerV2 {
             mode = MediaPlayer.DecodeMode.HW_SYSTEM;
 
 		mCurrentPlayer = new MediaPlayer(mode);
+        mTotalPlayer++;
+        LogUtil.info(TAG, "Media Player total_count++: " + mTotalPlayer);
 		mCurrentPlayer.reset();
 		
 		mCurrentPlayer.setDisplay(mHolder);
@@ -360,6 +386,9 @@ public class FragmentMp4MediaPlayerV2 {
                     }
 
                     mNextPlayer.release();
+                    mNextPlayer = null;
+                    mTotalPlayer--;
+                    LogUtil.info(TAG, "Media Player total_count--: " + mTotalPlayer);
                 }
 
                 MediaPlayer.DecodeMode mode;
@@ -370,6 +399,8 @@ public class FragmentMp4MediaPlayerV2 {
                 else
                     mode = MediaPlayer.DecodeMode.HW_SYSTEM;
 				mNextPlayer = new MediaPlayer(mode);
+                mTotalPlayer++;
+                LogUtil.info(TAG, "Media Player total_count++: " + mTotalPlayer);
 				mNextPlayer.reset();
 
                 // ffplayer MUST set HERE!!!
@@ -402,10 +433,16 @@ public class FragmentMp4MediaPlayerV2 {
 
 	}
 
-    private void process_next_player() {
-        if (SETUP_NEXT_PLAYER_AT_ONCE) {
-            if (m_playlink_now_index < m_playlink_list.size() - 1)
-                setupNextPlayer();
+    private void process_next_player(boolean immediately) {
+        if (m_playlink_now_index >= m_playlink_list.size() - 1) {
+            LogUtil.warn(TAG, String.format(Locale.US,
+                    "m_playlink_now_index is the last: #%d(size %d)",
+                    m_playlink_now_index, m_playlink_list.size()));
+            return;
+        }
+
+        if (SETUP_NEXT_PLAYER_AT_ONCE || immediately) {
+            setupNextPlayer();
         }
         else {
             mHandler.sendMessageDelayed(
@@ -454,6 +491,8 @@ public class FragmentMp4MediaPlayerV2 {
 			if (mPlayerImpl == SYSTEM_PLAYER)
                 mp.setDisplay(null);
 			mp.release();
+            mTotalPlayer--;
+            LogUtil.info(TAG, "Media Player total_count--: " + mTotalPlayer);
 
             mCurrentPlayer = mNextPlayer;
             mNextPlayer = null;
@@ -466,7 +505,7 @@ public class FragmentMp4MediaPlayerV2 {
 
             LogUtil.info(TAG, "Java: switch to next segment #" + m_playlink_now_index);
 
-            process_next_player();
+            process_next_player(false);
 		}
 		
 	};
@@ -476,8 +515,16 @@ public class FragmentMp4MediaPlayerV2 {
 		@Override
 		public void onPrepared(MediaPlayer mp) {
 			// TODO Auto-generated method stub
+			boolean immediately = false;
+
             if (m_pre_seek_pos > 0) {
 				mp.seekTo(m_pre_seek_pos);
+                if (mp.getDuration() - m_pre_seek_pos < 10000) {
+                    immediately = true;
+                    LogUtil.info(TAG, String.format(Locale.US,
+                            "time left too short, will setup next player immediately(duration %d, pre_seek %d)",
+                            mp.getDuration(), m_pre_seek_pos));
+                }
 				m_pre_seek_pos = 0;
 			}
 
@@ -496,8 +543,9 @@ public class FragmentMp4MediaPlayerV2 {
 			}
 
 			// ONLY first OnPrepared will trigger check next player
-            if (mNextPlayer == null)
-				process_next_player();
+            if (mNextPlayer == null) {
+				process_next_player(immediately);
+			}
 		}
 		
 	};

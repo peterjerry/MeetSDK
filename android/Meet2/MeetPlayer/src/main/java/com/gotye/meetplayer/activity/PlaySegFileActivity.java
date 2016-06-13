@@ -301,7 +301,7 @@ public class PlaySegFileActivity extends AppCompatActivity
 				toggleMediaControlsVisiblity();
 
                 // MUST use mPlayer because mp is seg player
-                if (mPlayerImpl != 2/*XOPlayer not support now*/ && pre_seek_msec > 0) {
+                if (pre_seek_msec > 0) {
                     mPlayer.seekTo(pre_seek_msec);
                     pre_seek_msec = -1;
                 }
@@ -367,6 +367,9 @@ public class PlaySegFileActivity extends AppCompatActivity
                 break;
             case R.id.show_mediainfo:
                 popupMediaInfo();
+                break;
+            case R.id.show_relate_video:
+                onShowRelateVideo();
                 break;
             case R.id.toggle_debug_info:
                 mbTvInfoShowing = !mbTvInfoShowing;
@@ -510,6 +513,10 @@ public class PlaySegFileActivity extends AppCompatActivity
         choose_ft_dlg.show();
     }
 
+    protected void onShowRelateVideo() {
+
+    }
+
     protected void onSelectEpisode(int incr) {
     }
 
@@ -596,85 +603,48 @@ public class PlaySegFileActivity extends AppCompatActivity
     @Override
 	public boolean onKeyDown(int keyCode, KeyEvent event) {
 		// TODO Auto-generated method stub
-		int incr;
-		
-		switch (keyCode) {
-		case KeyEvent.KEYCODE_DPAD_LEFT:
-		case KeyEvent.KEYCODE_DPAD_RIGHT:
-		case KeyEvent.KEYCODE_DPAD_DOWN:
-		case KeyEvent.KEYCODE_DPAD_UP:
-		case KeyEvent.KEYCODE_DPAD_CENTER:
-		case KeyEvent.KEYCODE_ENTER:
-			if (!mController.isShowing()) {
-				if (mPlayer != null) {
-					if (keyCode == KeyEvent.KEYCODE_DPAD_LEFT ||
-							keyCode == KeyEvent.KEYCODE_DPAD_RIGHT) {
-						if (!mSwichingEpisode) {
-							mSwichingEpisode = true;
+        switch (keyCode) {
+            case KeyEvent.KEYCODE_DPAD_LEFT:
+            case KeyEvent.KEYCODE_DPAD_RIGHT:
+            case KeyEvent.KEYCODE_DPAD_DOWN:
+            case KeyEvent.KEYCODE_DPAD_UP:
+            case KeyEvent.KEYCODE_DPAD_CENTER:
+            case KeyEvent.KEYCODE_ENTER:
+                if (!mController.isShowing()) {
+                    if (mPlayer != null) {
+                        if (keyCode == KeyEvent.KEYCODE_DPAD_LEFT ||
+                                keyCode == KeyEvent.KEYCODE_DPAD_RIGHT) {
+                            if (!mSwichingEpisode) {
+                                mSwichingEpisode = true;
+                                onSelectEpisode(keyCode == KeyEvent.KEYCODE_DPAD_LEFT ? -1 : 1);
+                            }
+                        } else if (keyCode == KeyEvent.KEYCODE_DPAD_UP ||
+                                keyCode == KeyEvent.KEYCODE_DPAD_DOWN) {
+                            SwitchDisplayMode(keyCode == KeyEvent.KEYCODE_DPAD_UP ? 1 : -1);
+                        } else {
+                            toggleMediaControlsVisiblity();
+                        }
+                    }
+                }
 
-                            if (keyCode == KeyEvent.KEYCODE_DPAD_LEFT)
-                                incr = -1;
-                            else
-                                incr = 1;
-                            onSelectEpisode(incr);
-						}
-					}
-					else if (keyCode == KeyEvent.KEYCODE_DPAD_UP ||
-							keyCode == KeyEvent.KEYCODE_DPAD_DOWN) {
-                        SwitchDisplayMode(keyCode == KeyEvent.KEYCODE_DPAD_UP ? 1: -1);
-					}
-					else {
-						toggleMediaControlsVisiblity();
-					}
-				}
-				
-				return true;
-			}
+                return true;
+            case KeyEvent.KEYCODE_BACK:
+                if (mController.isShowing()) {
+                    toggleMediaControlsVisiblity();
+                } else if ((System.currentTimeMillis() - backKeyTime) > 2000) {
+                    Toast.makeText(PlaySegFileActivity.this,
+                            "press another time to exit", Toast.LENGTH_SHORT)
+                            .show();
+                    backKeyTime = System.currentTimeMillis();
+                } else {
+                    onBackPressed();
+                }
 
-			if (KeyEvent.KEYCODE_DPAD_RIGHT == keyCode
-					|| KeyEvent.KEYCODE_DPAD_LEFT == keyCode) {
-				if (KeyEvent.KEYCODE_DPAD_RIGHT == keyCode)
-					incr = 1;
-				else
-					incr = -1;
-
-				int pos = mPlayer.getCurrentPosition();
-				int step = mPlayer.getDuration() / 100 + 1000;
-				LogUtil.info(TAG, String.format("Java pos %d, step %s", pos, step));
-				if (step > 30000)
-					step = 30000;
-				pos += (incr * step);
-				if (pos > mPlayer.getDuration())
-					pos = mPlayer.getDuration();
-				else if (pos < 0)
-					pos = 0;
-				mPlayer.seekTo(pos);
-				
-				mController.show(MEDIA_CONTROLLER_TIMEOUT * 2);
-			} else if (KeyEvent.KEYCODE_DPAD_DOWN == keyCode
-					|| KeyEvent.KEYCODE_DPAD_UP == keyCode) {
-				// todo
-			}
-
-			return true;
-		case KeyEvent.KEYCODE_BACK:
-			if (mController.isShowing()) {
-				mController.hide();
-			}
-			else if ((System.currentTimeMillis() - backKeyTime) > 2000) {
-				Toast.makeText(PlaySegFileActivity.this,
-						"press another time to exit", Toast.LENGTH_SHORT)
-						.show();
-				backKeyTime = System.currentTimeMillis();
-			} else {
-				onBackPressed();
-			}
-			
-			return true;
-		default:
-			return super.onKeyDown(keyCode, event);
-		}
-	}
+                return true;
+            default:
+                return super.onKeyDown(keyCode, event);
+        }
+    }
 
 	@Override
 	protected void onPause() {

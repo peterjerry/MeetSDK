@@ -74,6 +74,8 @@ public class XOMediaPlayer extends BaseMediaPlayer {
 	private boolean mHaveVideo      = false;
     private boolean mHaveSubtitle   = false;
 
+    private boolean mAudioAAC       = true;
+
 	private Lock mAudioCodecLock = null;
 	private MediaCodec mAudioCodec = null;
 	private Lock mVideoCodecLock = null;
@@ -83,6 +85,23 @@ public class XOMediaPlayer extends BaseMediaPlayer {
 
 	private byte[] mAudioData = null;
 	private ByteBuffer mAudioCacheBuffer = null;
+
+    private static enum AV_SYNC_TYPE {
+        AV_SYNC_AUDIO_MASTER,
+        AV_SYNC_VIDEO_MASTER,
+        AV_SYNC_EXTERNAL_MASTER;
+
+        private AV_SYNC_TYPE() {
+        }
+
+        public String canonicalForm() {
+            return this.name().toLowerCase();
+        }
+
+        public static AV_SYNC_TYPE fromCanonicalForm(String canonical) {
+            return (AV_SYNC_TYPE)valueOf(AV_SYNC_TYPE.class, canonical.toUpperCase());
+        }
+    }
 
 	// common
 	private long mDurationUsec = 0L; // getduration()
@@ -95,6 +114,7 @@ public class XOMediaPlayer extends BaseMediaPlayer {
 	private Condition mPlayCond;
 	private Lock mSeekLock;
 	private Condition mSeekCond;
+    private AV_SYNC_TYPE mSyncType = AV_SYNC_TYPE.AV_SYNC_AUDIO_MASTER;
 	// video
 	private boolean mVideoFirstFrame;
 	private Lock mVideoListLock;
@@ -342,23 +362,25 @@ public class XOMediaPlayer extends BaseMediaPlayer {
 			return false;
 		}
 
-		ret = initAudioTrack();
-		if (!ret) {
-			Message msg = mEventHandler.obtainMessage(MediaPlayer.MEDIA_ERROR);
-			msg.arg1 = MediaPlayer.MEDIA_ERROR_AUDIO_RENDER;
-			msg.sendToTarget();
-			mLock.unlock();
-			return false;
-		}
+        if (mHaveAudio) {
+            ret = initAudioTrack();
+            if (!ret) {
+                Message msg = mEventHandler.obtainMessage(MediaPlayer.MEDIA_ERROR);
+                msg.arg1 = MediaPlayer.MEDIA_ERROR_AUDIO_RENDER;
+                msg.sendToTarget();
+                mLock.unlock();
+                return false;
+            }
 
-		ret = initAudioDecoder();
-		if (!ret) {
-			Message msg = mEventHandler.obtainMessage(MediaPlayer.MEDIA_ERROR);
-			msg.arg1 = MediaPlayer.MEDIA_ERROR_AUDIO_DECODER;
-			msg.sendToTarget();
-			mLock.unlock();
-			return false;
-		}
+            ret = initAudioDecoder();
+            if (!ret) {
+                Message msg = mEventHandler.obtainMessage(MediaPlayer.MEDIA_ERROR);
+                msg.arg1 = MediaPlayer.MEDIA_ERROR_AUDIO_DECODER;
+                msg.sendToTarget();
+                mLock.unlock();
+                return false;
+            }
+        }
 
         // init videoDecoder later if surface NOT set
         if (mSurface != null) {
@@ -468,6 +490,7 @@ public class XOMediaPlayer extends BaseMediaPlayer {
 				mAudioTrackIndex = index;
 				LogUtils.info("Java: mAudioTrackIndex: " + mAudioTrackIndex);
 				mHaveAudio = true;
+                mAudioAAC = mime.equals("audio/mp4a-latm");
 			} else if (!mHaveVideo && mime.startsWith("video/")) {
 				setVideoFormat(format);
 				mVideoTrackIndex = index;
@@ -489,10 +512,20 @@ public class XOMediaPlayer extends BaseMediaPlayer {
 			}
 		}
 
-		if (!mHaveAudio || !mHaveVideo) {
+		/*if (!mHaveAudio || !mHaveVideo) {
 			LogUtils.error("Java: ONLY support play media which has both video and audio stream");
 			return false;
+		}*/
+
+		if (!mHaveAudio && !mHaveVideo) {
+			LogUtils.error("Java: neither video nor audio stream NOT existed");
+			return false;
 		}
+
+        if (!mHaveAudio || NO_AUDIO) {
+            mSyncType = AV_SYNC_TYPE.AV_SYNC_VIDEO_MASTER;
+            LogUtils.info("change sync type to : " + mSyncType.canonicalForm());
+        }
 
 		LogUtils.info("Java: Init MediaExtractor Success!!!");
 		return true;
@@ -539,13 +572,17 @@ public class XOMediaPlayer extends BaseMediaPlayer {
 
 		int channelCount = mAudioFormat
 				.getInteger(MediaFormat.KEY_CHANNEL_COUNT);
-		if (channelCount < 1 || channelCount > 2) {
+		if (channelCount < 1) {
 			LogUtils.error("audio track NOT support channelCount: "
 					+ channelCount);
 			return false;
 		}
+        else if (channelCount > 2) {
+            LogUtils.info("force use stereo channel, origin channel is: " + channelCount);
+            channelCount = 2;
+        }
 
-		int channelConfig = (channelCount == 1) ? AudioFormat.CHANNEL_OUT_MONO
+        int channelConfig = (channelCount == 1) ? AudioFormat.CHANNEL_OUT_MONO
 				: AudioFormat.CHANNEL_OUT_STEREO;
 
 		int sampleRate = mAudioFormat.getInteger(MediaFormat.KEY_SAMPLE_RATE);
@@ -605,23 +642,25 @@ public class XOMediaPlayer extends BaseMediaPlayer {
 
 		boolean ret = true;
 
-		String mime = mAudioFormat.getString(MediaFormat.KEY_MIME);
-		try {
-			LogUtils.info("audio mime: " + mime);
-			mAudioCodec = MediaCodec.createDecoderByType(mime);
+        if (mAudioAAC) {
+            String mime = mAudioFormat.getString(MediaFormat.KEY_MIME);
+            try {
+                LogUtils.info("audio mime: " + mime);
+                mAudioCodec = MediaCodec.createDecoderByType(mime);
 
-			mAudioCodec.configure(mAudioFormat, null /* surface */,
-					null /* crypto */, 0 /* flags */);
-			mAudioCodec.start();
+                mAudioCodec.configure(mAudioFormat, null /* surface */,
+                        null /* crypto */, 0 /* flags */);
+                mAudioCodec.start();
+            } catch (Exception e) {
+                e.printStackTrace();
+                LogUtils.error("Exception", e);
 
-			mExtractor.selectTrack(mAudioTrackIndex);
-		} catch (Exception e) {
-			e.printStackTrace();
-			LogUtils.error("Exception", e);
+                mAudioCodec = null;
+                ret = false;
+            }
+        }
 
-			mAudioCodec = null;
-			ret = false;
-		}
+        mExtractor.selectTrack(mAudioTrackIndex);
 
 		mAudioCodecLock = new ReentrantLock();
 
@@ -715,17 +754,22 @@ public class XOMediaPlayer extends BaseMediaPlayer {
 			mRenderVideoThr.start();
 		}
 
-		if (mRenderAudioThr == null) {
+		if (mHaveAudio && mRenderAudioThr == null) {
 			mRenderAudioThr = new Thread(new Runnable() {
 				@Override
 				public void run() {
-					audio_proc();
+                    if (mAudioAAC)
+					    audio_proc();
+                    else
+                        audio_decode_proc();
 				}
 			});
 			mRenderAudioThr.start();
 		}
 
-		mAudioTrack.play();
+        if (mHaveAudio && mAudioTrack != null)
+            mAudioTrack.play();
+
 		mAudioStartMsec = mSeekingTimeMsec;
 
 		mPlayLock.lock();
@@ -736,6 +780,23 @@ public class XOMediaPlayer extends BaseMediaPlayer {
             postBufferingUpdateCheckEvent();
         }
 	}
+
+    private long get_master_clock() {
+        if (AV_SYNC_TYPE.AV_SYNC_VIDEO_MASTER == mSyncType)
+            return get_video_clock();
+        else if (AV_SYNC_TYPE.AV_SYNC_AUDIO_MASTER == mSyncType)
+            return get_audio_clock();
+        else
+            return get_external_clock();
+    }
+
+    private long get_external_clock() {
+        return System.currentTimeMillis();
+    }
+
+    private long get_video_clock() {
+        return mCurrentTimeMsec;
+    }
 
 	private long get_audio_clock() {
 		long audio_clock_msec;
@@ -1148,7 +1209,7 @@ public class XOMediaPlayer extends BaseMediaPlayer {
             }
 
 			if (noOutputCounter >= 50) {
-				LogUtils.warn("output eos not found after 50 frames");
+				LogUtils.warn("video output eos not found after 50 frames");
 				break;
 			}
 
@@ -1201,14 +1262,14 @@ public class XOMediaPlayer extends BaseMediaPlayer {
 						msg = mEventHandler
 								.obtainMessage(MediaPlayer.MEDIA_INFO);
 						msg.arg1 = MediaPlayer.MEDIA_INFO_TEST_DECODE_FPS;
-						msg.arg2 = (int) decode_fps;
+						msg.arg2 = decode_fps;
 						msg.sendToTarget();
 
 						int render_fps = (int) (mRenderedFrameCnt * 1000 / (now_msec - mTotalStartMsec));
 						Message msg2 = mEventHandler
 								.obtainMessage(MediaPlayer.MEDIA_INFO);
 						msg2.arg1 = MediaPlayer.MEDIA_INFO_TEST_RENDER_FPS;
-						msg2.arg2 = (int) render_fps;
+						msg2.arg2 = render_fps;
 						msg2.sendToTarget();
 
 						mLastOnVideoTimeMsec = now_msec;
@@ -1234,13 +1295,11 @@ public class XOMediaPlayer extends BaseMediaPlayer {
 					mCurrentTimeMsec = video_clock_msec; // fix me!!!
 					mLastDelayMsec = delay_msec;
 
-					long audio_clock_msec = get_audio_clock();
-					long av_diff_msec = video_clock_msec - audio_clock_msec;
-					if (NO_AUDIO)
-						av_diff_msec = 0;
+					long ref_clock_msec = get_master_clock();
+					long av_diff_msec = video_clock_msec - ref_clock_msec;
 					//LogUtils.info(String.format(Locale.US,
-					//		"video %d, audio %d, diff_msec %d msec",
-					//		video_clock_msec, audio_clock_msec, av_diff_msec));
+					//		"video %d, ref %d, diff_msec %d msec",
+					//		video_clock_msec, ref_clock_msec, av_diff_msec));
 
                     if (mDecodedFrameCnt % 10 == 0) {
                         msg = mEventHandler
@@ -1355,6 +1414,7 @@ public class XOMediaPlayer extends BaseMediaPlayer {
 	private void audio_proc() {
 		LogUtils.info("audio thread started");
 
+        int noOutputCounter = 0;
 		boolean sawOutputEOS = false;
 		MediaCodec.BufferInfo info = new MediaCodec.BufferInfo();
 
@@ -1391,6 +1451,8 @@ public class XOMediaPlayer extends BaseMediaPlayer {
                     sawOutputEOS = false;
                 }
             }
+
+            noOutputCounter++;
 
             if (USE_READ_SAMPLE_THREAD) {
                 if (!queue_packet(false))
@@ -1438,7 +1500,7 @@ public class XOMediaPlayer extends BaseMediaPlayer {
 
                     if (!is_flush_pkt) {
                         long presentationTimeUs = mExtractor.getSampleTime();
-                        if (presentationTimeUs >=0) {
+                        if (presentationTimeUs >= 0) {
                             mAudioCodec.queueInputBuffer(inputBufIndex, 0 /* offset */, sampleSize,
                                     presentationTimeUs,
                                     mSawInputEOS ? MediaCodec.BUFFER_FLAG_END_OF_STREAM : 0);
@@ -1451,6 +1513,11 @@ public class XOMediaPlayer extends BaseMediaPlayer {
                 }
             }
 
+			if (noOutputCounter >= 50) {
+				LogUtils.warn("audio output eos not found after 50 frames");
+				break;
+			}
+
 			int res;
 			try {
 				mAudioCodecLock.lock();
@@ -1458,6 +1525,7 @@ public class XOMediaPlayer extends BaseMediaPlayer {
 
 				if (res >= 0) {
 					int outputBufIndex = res;
+                    noOutputCounter = 0;
 
 					if ((info.flags & MediaCodec.BUFFER_FLAG_END_OF_STREAM) != 0) {
 						LogUtils.info("saw audio output EOS.");
@@ -1565,6 +1633,112 @@ public class XOMediaPlayer extends BaseMediaPlayer {
 			} finally {
 				mAudioCodecLock.unlock();
 			}
+		} // end of while
+
+		LogUtils.info("audio thread exited");
+	}
+
+	private void audio_decode_proc() {
+		LogUtils.info("audio decode thread started");
+
+		boolean sawOutputEOS = false;
+
+        ByteBuffer sampleBuf = ByteBuffer.allocateDirect(65536);
+        ByteBuffer outputBuf = ByteBuffer.allocateDirect(65536 * 4);
+
+		while (getState() != PlayState.STOPPING) {
+			if (getState() == PlayState.PAUSED) {
+				try {
+					mPlayLock.lock();
+					mPlayCond.await();
+				} catch (InterruptedException e) {
+                    e.printStackTrace();
+				} finally {
+					mPlayLock.unlock();
+				}
+
+				if (getState() == PlayState.PAUSED) {
+					LogUtils.info("receive exit signal when paused");
+					break;
+				}
+			}
+
+			if (sawOutputEOS) {
+				if (mSawInputEOS) {
+					try {
+						Thread.sleep(10);
+					} catch (InterruptedException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					}
+
+					continue;
+				}
+				else {
+					LogUtils.info("receive seek back to 0 signal");
+					sawOutputEOS = false;
+				}
+			}
+
+            sampleBuf.rewind();
+            int sampleSize = mExtractor.readPacket(mAudioTrackIndex, sampleBuf, 0);
+            if (sampleSize < 0) {
+                mSawInputEOS = true;
+                sampleSize = 0;
+                LogUtils.error("saw audio Input EOS.");
+            }
+
+            long presentationTimeUs = mExtractor.getSampleTime();
+            if (sampleSize > 0 /* 5 */) {
+                String str_flush = "FLUSH";
+                byte[] byte_ctx = new byte[5];
+                sampleBuf.get(byte_ctx);
+                sampleBuf.rewind();
+                String strPkt = new String(byte_ctx);
+                if (str_flush.equals(strPkt)) {
+                    LogUtils.error("Java: flush audio");
+
+                    ResetStatics();
+                    mCurrentTimeMsec = mSeekingTimeMsec;
+
+                    mEventHandler.sendEmptyMessage(MediaPlayer.MEDIA_SEEK_COMPLETE);
+                }
+            }
+
+            if (presentationTimeUs > 0) {
+                // update audio average duration
+                if (mLastAudioPktMSec != 0) {
+                    long pkt_duration = presentationTimeUs / 1000
+                            - mLastAudioPktMSec;
+                    mAveAudioPktMsec = (mAveAudioPktMsec * 4 + pkt_duration) / 5;
+                } else {
+                    mLastAudioPktMSec = presentationTimeUs / 1000;
+                }
+
+                // FLUSH pkt also pass to decoder to do a REAL flush
+                int bufSize = mExtractor.decodeAudio(sampleBuf, sampleSize, outputBuf);
+                if (bufSize < 0) {
+                    sawOutputEOS = true;
+                    LogUtils.info("saw audio sawOutputEOS");
+                }
+                else if (bufSize > 0 ) {
+                    if (mAudioData == null || mAudioData.length < bufSize) {
+                        // Allocate a new buffer.
+                        mAudioData = new byte[bufSize];
+                    }
+
+                    outputBuf.rewind();
+                    outputBuf.get(mAudioData);
+
+                    // would block
+                    mAudioTrack.write(mAudioData, 0, bufSize);
+
+                    // update audio clock
+                    mAudioStartMsec = System.currentTimeMillis();
+
+                    mAudioPositionMsec = presentationTimeUs / 1000;
+                }
+            }
 		} // end of while
 
 		LogUtils.info("audio thread exited");

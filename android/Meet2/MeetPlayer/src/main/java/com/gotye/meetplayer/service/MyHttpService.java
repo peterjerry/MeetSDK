@@ -12,7 +12,10 @@ import android.util.Log;
 
 public class MyHttpService extends Service {
 	private final static String TAG = "HttpService";
-	private static int HTTP_PORT = 8011;
+	public final static String ACTION_SERVICE_STARTED = "com.gotye.action.HTTP_SERVICE_STARTED";
+    public final static int DEFAULT_HTTP_PORT = 8011;
+
+	private static int HTTP_PORT = DEFAULT_HTTP_PORT;
 	
 	private NanoHTTPD nanoHttpd;
 	
@@ -26,10 +29,13 @@ public class MyHttpService extends Service {
         super.onCreate();
         
         Random rand =new Random();
-		HTTP_PORT = 8800 + rand.nextInt(100);
+		HTTP_PORT = DEFAULT_HTTP_PORT + rand.nextInt(100);
 		Log.i(TAG, "Java: http port: " + HTTP_PORT);
         
         nanoHttpd = new MyNanoHTTPD(this, HTTP_PORT, null);
+        Intent intent = new Intent(ACTION_SERVICE_STARTED);
+        intent.putExtra("http_port", HTTP_PORT);
+        sendBroadcast(intent);
     }
 	
 	@Override

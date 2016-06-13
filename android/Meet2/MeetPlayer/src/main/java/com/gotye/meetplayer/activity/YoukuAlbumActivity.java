@@ -60,12 +60,7 @@ public class YoukuAlbumActivity extends AppCompatActivity {
     private int album_page_index = 1;
     private int episode_page_index = 1;
     private int subpage_sort = 2; // 1-最新发布，2-最多播放
-    private int search_orderby = -1; // orderby 1-综合排序 2-最新发布 3-最多播放
-    private int search_page_index = 1;
-    private String search_filter;
-    private boolean search_get_filter;
     private final static int page_size = 10;
-    private final static int search_page_size = 20;
 
     private int mPlayerImpl;
 
@@ -88,6 +83,13 @@ public class YoukuAlbumActivity extends AppCompatActivity {
     private int sub_channel_type = -1;
 
     private String search_key;
+    private int search_orderby = -1; // orderby 1-综合排序 2-最新发布 3-最多播放
+    private int search_page_index = 1;
+    private String search_filter;
+    private boolean search_get_filter;
+    private final static int search_page_size = 20;
+    private int search_index; // index in page
+
     private String relate_vid;
     
     boolean noMoreData = false;
@@ -159,8 +161,15 @@ public class YoukuAlbumActivity extends AppCompatActivity {
                     mVid = (String) item.get("vid");
                     if (mVid == null) {
                         Toast.makeText(YoukuAlbumActivity.this,
-                                "video id is null", Toast.LENGTH_LONG).show();
+                                "视频ID为空", Toast.LENGTH_LONG).show();
                         return;
+                    }
+
+                    if (search_key != null) {
+                        search_index = position % search_page_size;
+                        LogUtil.info(TAG, String.format(Locale.US,
+                                "set search_index to: %d(pos %d, page_size %d)",
+                                search_index, position, search_page_size));
                     }
 
                     mTitle = (String) item.get("title");
@@ -168,24 +177,6 @@ public class YoukuAlbumActivity extends AppCompatActivity {
                 }
             }
 
-        });
-		
-		this.mGridView.setOnItemLongClickListener(new AdapterView.OnItemLongClickListener() {
-
-            @Override
-            public boolean onItemLongClick(AdapterView<?> arg0, View v,
-                                           int position, long id) {
-                // TODO Auto-generated method stub
-
-                Map<String, Object> item = mAdapter.getItem(position);
-                String description = (String) item.get("desc");
-                new AlertDialog.Builder(YoukuAlbumActivity.this)
-                        .setTitle("专辑介绍")
-                        .setMessage(description)
-                        .setPositiveButton("确定", null)
-                        .show();
-                return true;
-            }
         });
 		
 		this.mGridView.setOnScrollListener(new AbsListView.OnScrollListener() {
@@ -282,10 +273,14 @@ public class YoukuAlbumActivity extends AppCompatActivity {
                     intent.putExtra("impl", 3); // force ffplay
                     */
 
-                    YKPlayhistoryDatabaseHelper.getInstance(activity)
-                            .saveHistory(activity.mTitle,
-                                    activity.mZGUrl.vid, activity.mShowId,
-                                    activity.mEpisodeIndex);
+                    YKPlayhistoryDatabaseHelper dbHelper =
+                            YKPlayhistoryDatabaseHelper.getInstance(activity);
+                    int pos = dbHelper.getLastPlayedPosition(activity.mZGUrl.vid);
+                    if (pos < 0) {
+                        dbHelper.saveHistory(activity.mTitle,
+                                activity.mZGUrl.vid, activity.mShowId,
+                                activity.mEpisodeIndex);
+                    }
 
                     Intent intent = new Intent(activity, PlayYoukuActivity.class);
                     intent.putExtra("url_list", activity.mZGUrl.urls);
@@ -298,13 +293,26 @@ public class YoukuAlbumActivity extends AppCompatActivity {
                     intent.putExtra("episode_index", activity.mEpisodeIndex);
                     intent.putExtra("player_impl", activity.mPlayerImpl);
 
+                    if (activity.search_key != null) {
+                        intent.putExtra("search_key", activity.search_key);
+                        intent.putExtra("search_filter", activity.search_filter);
+                        intent.putExtra("search_orderby", activity.search_orderby);
+                        intent.putExtra("search_page_index", activity.search_page_index);
+                        intent.putExtra("search_index", activity.search_index);
+                    }
+
+                    if (pos > 0) {
+                        intent.putExtra("preseek_msec", pos);
+                        LogUtil.info(TAG, "set preseek_msec: " + pos);
+                    }
+
                     activity.startActivity(intent);
                     break;
                 case MSG_MORELIST_DONE:
                     activity.mAdapter.notifyDataSetChanged();
                     break;
                 case MSG_FAIL_GET_EPISODE:
-                    Toast.makeText(activity, "failed to get episode", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(activity, "获取分集失败", Toast.LENGTH_SHORT).show();
                     break;
                 default:
                     break;
@@ -430,7 +438,8 @@ public class YoukuAlbumActivity extends AppCompatActivity {
                     List<Map<String, Object>> listData = mAdapter.getData();
 
                     search_page_index++;
-                    YKUtil.MixResult result = YKUtil.soku(search_key, search_filter, search_orderby, search_page_index);
+                    YKUtil.MixResult result = YKUtil.soku(
+                            search_key, search_filter, search_orderby, search_page_index);
                     if (result == null || result.mEpisodeList == null ||
                             result.mEpisodeList.isEmpty()) {
                         LogUtil.info(TAG, "Java: no more search result");

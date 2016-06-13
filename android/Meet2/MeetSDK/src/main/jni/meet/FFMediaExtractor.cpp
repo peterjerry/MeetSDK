@@ -403,6 +403,30 @@ jboolean android_media_MediaExtractor_hasCachedReachedEndOfStream(JNIEnv *env, j
 	return false;
 }
 
+jint android_media_MediaExtractor_decodeAudio(
+	JNIEnv *env, jobject thiz, jobject inBuf, jint inSize, jobject outBuf)
+{
+	uint8_t *in_buf = (uint8_t*)env->GetDirectBufferAddress(inBuf);
+    jlong in_size = env->GetDirectBufferCapacity(inBuf);
+	uint8_t *out_buf = (uint8_t*)env->GetDirectBufferAddress(outBuf);
+    jlong out_size = env->GetDirectBufferCapacity(inBuf);
+
+	IExtractor* extractor = getMediaExtractor(env, thiz);
+	if (extractor == NULL ) {
+		PPLOGE("failed to get ffextractor");
+		return INVALID_OPERATION;
+	}
+
+	int pcm_size = (int)out_size;
+	status_t err = extractor->decodeAudio(in_buf, inSize, out_buf, &pcm_size);
+	if (err != OK) {
+		PPLOGE("failed to decode audio: %d", err);
+        return -1;
+    }
+
+	return pcm_size;
+}
+
 jint android_media_MediaExtractor_readPacket(
 	JNIEnv *env, jobject thiz, jint stream_index, jobject byteBuf, jint offset)
 {
@@ -775,6 +799,7 @@ static JNINativeMethod gExtractorMethods[] = {
 	{"setup",       "(Ljava/lang/Object;)V",		(void *)android_media_MediaExtractor_setup},
 	{"native_setSubtitleParser", "(Lcom/gotye/meetsdk/subtitle/SimpleSubTitleParser;)V", (void *)android_media_MediaExtractor_setSubtitleParser},
 	{"readPacket",       "(ILjava/nio/ByteBuffer;I)I",		(void *)android_media_MediaExtractor_readPacket},
+	{"decodeAudio",       "(Ljava/nio/ByteBuffer;ILjava/nio/ByteBuffer;)I",		(void *)android_media_MediaExtractor_decodeAudio},
 };
 
 bool setup_extractor(void *so_handle)

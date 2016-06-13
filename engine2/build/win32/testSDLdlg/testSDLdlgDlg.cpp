@@ -127,11 +127,11 @@ int pptv_channel_id[] = {
 	300254,// 东方购物"), /*&m3u8seekback=true*/
 };
 
-const char *pptv_rtsp_playlink_fmt = "rtsp://%s:%d/play.es?type=pplive3&playlink=%d";
-const char *pptv_http_playlink_fmt = "http://%s:%d/play.m3u8?type=pplive3&playlink=%d";
-const char *pptv_live_playlink_surfix = "%3Fft%3D1%26bwtype%3D3%26platform%3Dandroid3%26type%3Dphone.android.vip";
-const char *pptv_live_fmt = "?ft=%d&bwtype=3&platform=android3&type=phone.android.vip";
-const char *pptv_playlink_ppvod2_fmt = "http://%s:%d/record.m3u8?type=ppvod2&playlink=%s";
+const char *PPTV_RTSP_PLAYLINK_FMT = "rtsp://%s:%d/play.es?type=pplive3&playlink=%d";
+const char *PPTV_HTTP_PLAYLINK_FMT = "http://%s:%d/play.m3u8?type=pplive3&playlink=%d";
+const char *PPTV_LIVE_PLAYLINK_SURFIX = "%3Fft%3D1%26bwtype%3D3%26platform%3Dandroid3%26type%3Dphone.android.vip";
+const char *PPTV_LIVE_FMT = "?ft=%d&bwtype=3&platform=android3&type=phone.android.vip";
+const char *PPTV_PLAYLINK_PPVOD2_FMT = "http://%s:%d/record.m3u8?type=ppvod2&playlink=%s";
 
 static void genHMSM(int total_msec, int *hour, int *minute, int *sec, int *msec);
 
@@ -341,15 +341,15 @@ BOOL CtestSDLdlgDlg::OnInitDialog()
 
 	for (int i=0;i<sizeof(pptv_channel_id) / sizeof(int);i++) {
 		char *new_item = (char *)malloc(256);
-		_snprintf(new_item, 256, pptv_rtsp_playlink_fmt, HOST, mrtspPort, pptv_channel_id[i]);
-		strcat(new_item, pptv_live_playlink_surfix);
+		_snprintf(new_item, 256, PPTV_RTSP_PLAYLINK_FMT, HOST, mrtspPort, pptv_channel_id[i]);
+		strcat(new_item, PPTV_LIVE_PLAYLINK_SURFIX);
 		url_list[PPTV_RTSP_URL_OFFSET + i] = new_item;
 	}
 
 	for (int i=0;i<sizeof(pptv_channel_id) / sizeof(int);i++) {
 		char *new_item = (char *)malloc(256);
-		_snprintf(new_item, 256, pptv_http_playlink_fmt, HOST, mhttpPort, pptv_channel_id[i]);
-		strcat(new_item, pptv_live_playlink_surfix);
+		_snprintf(new_item, 256, PPTV_HTTP_PLAYLINK_FMT, HOST, mhttpPort, pptv_channel_id[i]);
+		strcat(new_item, PPTV_LIVE_PLAYLINK_SURFIX);
 		url_list[PPTV_HLS_URL_OFFSET + i] = new_item;
 	}
 
@@ -1497,6 +1497,7 @@ void CtestSDLdlgDlg::OnBnClickedButtonPlayEpg()
 {
 	// TODO: 在此添加控件通知处理程序代码
 	stop_player();
+
 	char str_url[1024] = {0};
 	char str_playlink[512] = {0};
 
@@ -1506,15 +1507,32 @@ void CtestSDLdlgDlg::OnBnClickedButtonPlayEpg()
 	bw_type = mCBbwType.GetCurSel();
 
 	if (link >= 300000 && link <= 400000) {
-		_snprintf(str_url, 1024, pptv_http_playlink_fmt, HOST, mhttpPort, link);
-
-		_snprintf(str_playlink, 512, pptv_live_fmt, ft);
+		_snprintf(str_url, 1024, PPTV_HTTP_PLAYLINK_FMT, HOST, mhttpPort, link);
+		_snprintf(str_playlink, 512, PPTV_LIVE_FMT, ft);
 		int out_len;
 		char *encoded_playlink = urlencode(str_playlink, strlen(str_playlink), &out_len);
 
 		strcat(str_url, encoded_playlink);
-		strcat(str_url, "&m3u8seekback=true");
-		mPlayLive = true;
+		
+		int64_t start_time = getSec();
+		int duration_min = GetDlgItemInt(IDC_EDIT_VOD_DURATION);
+		if (duration_min > 0) {
+			// fake vod
+			CString strTime;
+			strTime.Format("%I64d", start_time);
+			strcat(str_url, "%26begin_time%3D");
+			strcat(str_url, strTime.GetBuffer());
+			strcat(str_url, "%26end_time%3D");
+			strTime.Format("%I64d", start_time + 60 * duration_min);
+			strcat(str_url, strTime.GetBuffer());
+			mPlayLive = false;
+		}
+		else {
+			// live
+			strcat(str_url, "&m3u8seekback=true");
+			mPlayLive = true;
+			LOGI("switch to live mode");
+		}
 	}
 	else {
 		if (bw_type == 4) {
@@ -1537,7 +1555,7 @@ void CtestSDLdlgDlg::OnBnClickedButtonPlayEpg()
 			char *encoded_playlink = urlencode(str_playlink, strlen(str_playlink), &out_len);
 			LOGI("playlink after urlencode: %s", encoded_playlink);
 
-			_snprintf(str_url, 1024, pptv_playlink_ppvod2_fmt, HOST, mhttpPort, encoded_playlink);
+			_snprintf(str_url, 1024, PPTV_PLAYLINK_PPVOD2_FMT, HOST, mhttpPort, encoded_playlink);
 			strcat(str_url, "%26param%3DuserType%253D1&mux.M3U8.segment_duration=5");// %26param%3DuserType%253D1
 		}
 	}

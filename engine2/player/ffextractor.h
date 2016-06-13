@@ -12,6 +12,7 @@ struct AVCodecContext;
 struct AVFrame;
 struct AVBitStreamFilterContext;
 struct AVSubtitle;
+struct SwrContext;
 
 class MediaPlayerListener;
 
@@ -65,6 +66,8 @@ public:
 
 	status_t getBitrate(int32_t *kbps);
 
+	status_t decodeAudio(uint8_t *inbuf, int32_t size, uint8_t *out_pcm, int32_t *out_size);
+
 private:
 	int open_codec_context(int *stream_idx, int media_type);
 
@@ -99,6 +102,9 @@ private:
 	static int interrupt_l(void* ctx);
 
 	bool open_subtitle_codec();
+
+	bool init_swr();
+
 private:
 
 enum DATASOURCE_TYPE
@@ -155,6 +161,7 @@ enum DATASOURCE_TYPE
 	uint32_t			m_max_buffersize;
 	uint32_t			m_min_play_buf_count;
 	int64_t				m_cached_duration_msec;
+	bool				m_first_pkt;
 	PacketQueue			m_video_q;
 	PacketQueue			m_audio_q;
 
@@ -185,6 +192,16 @@ enum DATASOURCE_TYPE
 	ISubtitles*			mISubtitle;
 
 	pthread_mutex_t		mSubtitleLock;
+
+#ifdef USE_SWRESAMPLE
+	// decode audio
+	AVFrame*			m_audio_frame;
+	int					m_src_channels;
+	uint64_t			m_src_channel_layout;
+	SwrContext*			m_swr;
+	int					m_audio_need_convert;
+	int16_t*			mSamples;
+#endif
 };
 
 #endif // FF_EXTRACTOR_H_

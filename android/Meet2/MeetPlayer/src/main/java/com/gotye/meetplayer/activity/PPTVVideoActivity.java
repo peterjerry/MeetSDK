@@ -205,10 +205,6 @@ public class PPTVVideoActivity extends AppCompatActivity {
 			case R.id.search_history:
 				popupSearchHistory();
 				break;
-            case R.id.clean_search_history:
-                Util.writeSettings(PPTVVideoActivity.this, "search_keys", "");
-                Toast.makeText(this, "搜索记录已清空", Toast.LENGTH_SHORT).show();
-                break;
 			case R.id.play_history:
 				popupHistory();
 				break;
@@ -324,6 +320,14 @@ public class PPTVVideoActivity extends AppCompatActivity {
         Dialog choose_search_dlg = new AlertDialog.Builder(this)
                 .setTitle("选择搜索关键词")
                 .setNegativeButton("取消", null)
+				.setNeutralButton("清空记录", new DialogInterface.OnClickListener() {
+					@Override
+					public void onClick(DialogInterface dialog, int which) {
+						Util.writeSettings(PPTVVideoActivity.this, "search_keys", "");
+						Toast.makeText(PPTVVideoActivity.this, "搜索记录已清空",
+								Toast.LENGTH_SHORT).show();
+					}
+				})
                 .setItems(keywords,
                         new DialogInterface.OnClickListener() {
                             public void onClick(DialogInterface dialog, int whichButton) {

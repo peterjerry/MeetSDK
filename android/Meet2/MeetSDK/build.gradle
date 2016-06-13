@@ -8,11 +8,12 @@ android {
     defaultConfig {
         minSdkVersion 14
         targetSdkVersion 20
-        versionCode 1
-        versionName "1.0"
+        versionCode 240
+        versionName "2.4.0"
     }
     buildTypes {
         release {
+            buildConfigField 'boolean', 'START_P2P', 'false'
             minifyEnabled true
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
             ndk {
@@ -21,6 +22,8 @@ android {
             }
         }
         debug {
+            def today = new Date().format('yyMMddHHmm');
+            buildConfigField 'boolean', 'START_P2P', 'false'
             minifyEnabled false
             ndk {
                 moduleName "meetsdk"
@@ -68,7 +71,7 @@ task ndkBuild(type: Exec) {
 
 }
 tasks.withType(JavaCompile) {
-    compileTask -> compileTask.dependsOn ndkBuild
+    compileTask -> compileTask.dependsOn ndkBuild,copyNativeSymbols
 }
 task copyNativeSymbols(type: Copy) {
     from fileTree(dir: 'src/main/obj/local', include: '**/*.so')
@@ -84,7 +87,7 @@ task copyLib(type: Copy) {
     into('build/dist/aar')
 	include('*.aar')
 }
-tasks.withType(JavaCompile) { compileTask -> compileTask.dependsOn copyCfgFile,modifyCfgFile,copyNativeSymbols }
+//tasks.withType(JavaCompile) { compileTask -> compileTask.dependsOn copyCfgFile,modifyCfgFile,copyNativeSymbols }
 
 clean.dependsOn 'cleanNativeSymbols'
 

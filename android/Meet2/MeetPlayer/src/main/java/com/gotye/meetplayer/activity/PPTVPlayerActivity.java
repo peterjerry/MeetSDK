@@ -27,11 +27,6 @@ public class PPTVPlayerActivity extends VideoPlayerActivity {
 	private final static int TASK_NEXT_EP			= 2;
 	private final static int TASK_ITEM_FT			= 4;
 	
-	private final static int MSG_EPISODE_DONE		= 1;
-    private final static int MSG_PLAY_CDN_FT		= 3;
-	private final static int MSG_FAIL_TO_DETAIL	= 12;
-    private final static int MSG_FAIL_TO_GET_FT	= 13;
-	
 	private EPGUtil mEPG;
 	private List<PlayLink2> mEpisodeList;
 	private String episode_title;
@@ -62,7 +57,8 @@ public class PPTVPlayerActivity extends VideoPlayerActivity {
 			int pos = mVideoView.getCurrentPosition();
 			if (mPlaylink != -1 && (mPlaylink < 300000 || mPlaylink > 400000) && pos > 5000) {
 				Util.save_pptvvideo_pos(this, String.valueOf(mPlaylink), pos);
-				LogUtil.info(TAG, String.format("Java: vid %d played pos %d msec saved", mPlaylink, pos));
+				LogUtil.info(TAG, String.format(Locale.US,
+                        "Java: vid %d played pos %d msec saved", mPlaylink, pos));
 			}
 		}
 		
@@ -81,116 +77,97 @@ public class PPTVPlayerActivity extends VideoPlayerActivity {
 		
 		if (mEpisodeList == null) {
 			if (mAlbumId == -1) {
-				Toast.makeText(this, "album Id is invalid", Toast.LENGTH_SHORT).show();
+				Toast.makeText(this, "剧集列表为空", Toast.LENGTH_SHORT).show();
 				finish();
 			}
 			else {
+				mEpisodeIndex++;
 				new EpisodeTask().execute(TASK_DETAIL, mAlbumId);
 			}
 		}
 		else {
 			mEpisodeIndex++;
-			mHandler.sendEmptyMessage(MSG_EPISODE_DONE);
+			mHandler.sendEmptyMessage(MainHandler.MSG_EPISODE_DONE);
 		}
 	}
-	
-	@Override
-	public boolean onKeyUp(int keyCode, KeyEvent event) {
-		int incr;
-		
-		if (keyCode == KeyEvent.KEYCODE_DPAD_LEFT ||
-				keyCode == KeyEvent.KEYCODE_DPAD_RIGHT) {
-			if (mController.isShowing()) {
-				return super.onKeyUp(keyCode, event);
-			}
-			
-			if (KeyEvent.KEYCODE_DPAD_LEFT == keyCode)
-				incr = -1;
-			else
-				incr = 1;
-			
-			mEpisodeIndex += incr;
-			
-			if (mEpisodeList == null) {
-				if (mAlbumId == -1) {
-					Toast.makeText(this, "album id is invalid", Toast.LENGTH_SHORT).show();
-				}
-				else {
-					new EpisodeTask().execute(TASK_DETAIL, mAlbumId);
-				}
-			}
-			else {
-				mHandler.sendEmptyMessage(MSG_EPISODE_DONE);
-			}
-			
-			return true;
-		}
-		
-		return super.onKeyUp(keyCode, event);
-	}
-	
-	private Handler mHandler = new Handler(){  
-		  
-        @Override  
-        public void handleMessage(Message msg) {  
-            switch(msg.what) {
-            case MSG_EPISODE_DONE:
-            	if (mEpisodeList.size() < 2) {
-            		LogUtil.info(TAG, "episode list size is ONLY 1");
-            		finish();
-            		return;
-            	}
 
-            	if (mEpisodeIndex < 0) {
-            		mEpisodeIndex = mEpisodeList.size() - 1;
-            		Toast.makeText(PPTVPlayerActivity.this, 
-            				"switch to ep tail, list size: " + mEpisodeList.size(), 
-            				Toast.LENGTH_SHORT).show();
-            	}
-            	else if (mEpisodeIndex > mEpisodeList.size() - 1) {
-            		mEpisodeIndex = 0;
-            		Toast.makeText(PPTVPlayerActivity.this, 
-            				"switch to ep head, list size: " + mEpisodeList.size(), 
-            				Toast.LENGTH_SHORT).show();
-            		return;
-            	}
-            	
-            	PlayLink2 pl = mEpisodeList.get(mEpisodeIndex);
-            	String playlink = pl.getId();
-            	short http_port = MediaSDK.getPort("http");
-            	String url = PlayLinkUtil.getPlayUrl(
-            			Integer.valueOf(playlink), http_port, mFt, 3, null);
-            	mUri = Uri.parse(url);
-            	
-            	String info = String.format(Locale.US,
-						"ready to play video %s, playlink: %s, ft: %d",
-            			pl.getTitle(), playlink, mFt);
-				LogUtil.info(TAG, info);
-        		Toast.makeText(PPTVPlayerActivity.this, info, Toast.LENGTH_SHORT).show();
-        		
-        		Util.add_pptvvideo_history(PPTVPlayerActivity.this, 
-        				pl.getTitle(), playlink, String.valueOf(mAlbumId), mFt);
-        		
-        		mTitle = pl.getTitle();
-        		
-            	setupPlayer();
-            	break;
-			default:
-				LogUtil.warn(TAG, "Java: unknown msg.what " + msg.what);
-				break;
-			}			 
+	@Override
+	protected void onSelectEpisode(int incr) {
+        mEpisodeIndex += incr;
+		LogUtil.info(TAG, "ep changed to: " + mEpisodeIndex);
+
+        if (mEpisodeList == null) {
+            if (mAlbumId == -1) {
+                Toast.makeText(this, "剧集列表为空", Toast.LENGTH_SHORT).show();
+                mSwichingEpisode = false;
+            }
+            else {
+                new EpisodeTask().execute(TASK_DETAIL, mAlbumId);
+            }
         }
-	}; 
+        else {
+            mHandler.sendEmptyMessage(MainHandler.MSG_EPISODE_DONE);
+        }
+	}
+
+    @Override
+    protected void onEpisodeDone() {
+        mSwichingEpisode = false;
+
+        if (mEpisodeList.size() < 2) {
+            LogUtil.info(TAG, "episode list size is ONLY one");
+            finish();
+            return;
+        }
+
+        // check ep index
+        if (mEpisodeIndex < 0) {
+            mEpisodeIndex = mEpisodeList.size() - 1;
+            Toast.makeText(PPTVPlayerActivity.this,
+                    "switch to ep tail, list size: " + mEpisodeList.size(),
+                    Toast.LENGTH_SHORT).show();
+        }
+        else if (mEpisodeIndex > mEpisodeList.size() - 1) {
+            mEpisodeIndex = 0;
+            Toast.makeText(PPTVPlayerActivity.this,
+                    "switch to ep head, list size: " + mEpisodeList.size(),
+                    Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+		LogUtil.info(TAG, "ready to get ep: " + mEpisodeIndex);
+        PlayLink2 pl = mEpisodeList.get(mEpisodeIndex);
+        String playlink = pl.getId();
+        short http_port = MediaSDK.getPort("http");
+        String url = PlayLinkUtil.getPlayUrl(
+                Integer.valueOf(playlink), http_port, mFt, 3, null);
+        mUri = Uri.parse(url);
+
+        String info = String.format(Locale.US,
+                "ready to play video %s, playlink: %s, ft: %d",
+                pl.getTitle(), playlink, mFt);
+        LogUtil.info(TAG, info);
+        Toast.makeText(PPTVPlayerActivity.this, info, Toast.LENGTH_SHORT).show();
+
+        Util.add_pptvvideo_history(PPTVPlayerActivity.this,
+                pl.getTitle(), playlink, String.valueOf(mAlbumId), mFt);
+
+        mTitle = pl.getTitle();
+
+        setupPlayer();
+    }
 	
 	private class EpisodeTask extends AsyncTask<Integer, Integer, Boolean> {
 
 		@Override
 		protected void onPostExecute(Boolean result) {
 			// TODO Auto-generated method stub
+            mSwichingEpisode = false;
+
 			if (!result) {
 				LogUtil.error(TAG, "failed to get episode");
 				Toast.makeText(PPTVPlayerActivity.this, 
-						"failed to get episode", Toast.LENGTH_SHORT).show();
+						"获取分集列表失败", Toast.LENGTH_SHORT).show();
 			}
 		}
 		
@@ -201,21 +178,17 @@ public class PPTVPlayerActivity extends VideoPlayerActivity {
 			if (action == TASK_DETAIL) {
 				if (params.length < 2) {
 					LogUtil.error(TAG, "Java: failed to call detail()");
-					mHandler.sendEmptyMessage(MSG_FAIL_TO_DETAIL);
 					return false;
 				}
 				
 				int vid = params[1];
 				if (!mEPG.detail(String.valueOf(vid))) {
 					LogUtil.error(TAG, "Java: failed to call detail()");
-					mHandler.sendEmptyMessage(MSG_FAIL_TO_DETAIL);
 					return false;
 				}
 			
 				mEpisodeList = mEPG.getLink();
-                // play next ep
-                mEpisodeIndex++;
-				mHandler.sendEmptyMessage(MSG_EPISODE_DONE);
+				mHandler.sendEmptyMessage(MainHandler.MSG_EPISODE_DONE);
 			}
 			else if (action == TASK_ITEM_FT) {
 				LogUtil.info(TAG, "Java: EPGTask start to getCDNUrl");
@@ -223,7 +196,7 @@ public class PPTVPlayerActivity extends VideoPlayerActivity {
         		int vid = params[1];
         		int []ft_list = mEPG.getAvailableFT(String.valueOf(vid));
         		if (ft_list == null || ft_list.length == 0) {
-        			mHandler.sendEmptyMessage(MSG_FAIL_TO_GET_FT);
+        			mHandler.sendEmptyMessage(MainHandler.MSG_FAIL_TO_GET_FT);
             		return false;
         		}
         		
@@ -236,14 +209,14 @@ public class PPTVPlayerActivity extends VideoPlayerActivity {
         		}
         		
         		if (ft == -1) {
-        			mHandler.sendEmptyMessage(MSG_FAIL_TO_GET_FT);
+        			mHandler.sendEmptyMessage(MainHandler.MSG_FAIL_TO_GET_FT);
             		return false;
         		}
         		
         		Util.add_pptvvideo_history(PPTVPlayerActivity.this, episode_title, 
         				String.valueOf(vid), String.valueOf(mAlbumId), ft);
         		
-        		Message msg = mHandler.obtainMessage(MSG_PLAY_CDN_FT, ft, ft);
+        		Message msg = mHandler.obtainMessage(MainHandler.MSG_PLAY_CDN_FT, ft, ft);
     	        msg.sendToTarget();
         	}
 			else {

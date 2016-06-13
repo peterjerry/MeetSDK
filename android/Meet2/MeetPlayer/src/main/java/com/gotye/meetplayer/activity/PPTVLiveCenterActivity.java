@@ -1,14 +1,19 @@
 package com.gotye.meetplayer.activity;
 
+import java.io.UnsupportedEncodingException;
+import java.net.URLEncoder;
+import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
+import java.util.Locale;
 
 import com.gotye.common.pptv.CDNItem;
 import com.gotye.common.pptv.EPGUtil;
 import com.gotye.common.pptv.LiveStream;
 import com.gotye.common.pptv.PlayLinkUtil;
+import com.gotye.common.util.LogUtil;
 import com.gotye.common.util.PlayBackTime;
 import com.gotye.meetplayer.R;
 import com.gotye.meetplayer.adapter.MyPPTVLiveCenterAdapter;
@@ -46,11 +51,8 @@ public class PPTVLiveCenterActivity extends AppCompatActivity {
 	private final static String ACTION_LIVE_FT = "live_ft";
 	
 	private TextView tvDay;
-	private Button btnLive;
-	private Button btnPlayback;
-	private Button btnNextDay;
-	private Button btnBwType;
 	private ListView lv_tvlist;
+    private Button btnBwType;
 	
 	private EPGUtil mEPG;
 	private String mLiveId;
@@ -70,16 +72,13 @@ public class PPTVLiveCenterActivity extends AppCompatActivity {
 		setContentView(R.layout.activity_pptv_livecenter);
 		
 		this.tvDay = (TextView)this.findViewById(R.id.tv_day);
-		this.btnLive = (Button)this.findViewById(R.id.btn_live);
-		this.btnPlayback = (Button)this.findViewById(R.id.btn_playback);
-		this.btnNextDay = (Button)this.findViewById(R.id.btn_nextday);
-		this.btnBwType = (Button)this.findViewById(R.id.btn_bw_type);
 		this.lv_tvlist = (ListView)this.findViewById(R.id.lv_tvlist);
-		
-		this.btnLive.setOnClickListener(mOnClickListener);
-		this.btnPlayback.setOnClickListener(mOnClickListener);
-		this.btnNextDay.setOnClickListener(mOnClickListener);
-		this.btnBwType.setOnClickListener(mOnClickListener);
+        this.btnBwType = (Button)this.findViewById(R.id.btn_bw_type);
+
+        this.findViewById(R.id.btn_live).setOnClickListener(mOnClickListener);
+        this.findViewById(R.id.btn_playback).setOnClickListener(mOnClickListener);
+        this.findViewById(R.id.btn_nextday).setOnClickListener(mOnClickListener);
+        this.findViewById(R.id.btn_bw_type).setOnClickListener(mOnClickListener);
 		
 		this.lv_tvlist.setOnItemClickListener(new AdapterView.OnItemClickListener() {
 
@@ -88,7 +87,37 @@ public class PPTVLiveCenterActivity extends AppCompatActivity {
 					int position, long id) {
 				// TODO Auto-generated method stub
 				LiveStream liveStrm = mAdapter.getItem(position);
-				new EPGTask().execute(ACTION_LIVE_FT, liveStrm.title, liveStrm.channelID);
+                if (!mPlaybackTime.isLive()) {
+					// use playback time set time
+                    new EPGTask().execute(ACTION_LIVE_FT, liveStrm.title, liveStrm.channelID);
+                }
+                else {
+                    // use epg start and end time
+                    try {
+                        SimpleDateFormat sdf = new SimpleDateFormat(
+                                "yyyy-MM-dd hh:mm:ss", Locale.US);
+                        // 2016-06-12 06:45:00  2016-06-12 09:10:00
+                        long start_msec = sdf.parse(liveStrm.start_time).getTime();
+                        long end_msec = sdf.parse(liveStrm.end_time).getTime();
+                        long curr_msec = System.currentTimeMillis();
+                        if (curr_msec < start_msec) {
+                            LogUtil.error(TAG, "program is not started yet");
+                            Toast.makeText(PPTVLiveCenterActivity.this, "直播尚未开始",
+                                    Toast.LENGTH_SHORT).show();
+                        }
+                        else if (curr_msec < end_msec) {
+                            LogUtil.info(TAG, "program is living");
+                            mPlaybackTime.setLive();
+                            new EPGTask().execute(ACTION_LIVE_FT, liveStrm.title, liveStrm.channelID);
+                        }
+                        else {
+                            new EPGTask().execute(ACTION_LIVE_FT, liveStrm.title, liveStrm.channelID,
+                                    liveStrm.start_time, liveStrm.end_time);
+                        }
+                    } catch (ParseException e) {
+                        e.printStackTrace();
+                    }
+                }
 			}
 		});
 		
@@ -169,7 +198,7 @@ public class PPTVLiveCenterActivity extends AppCompatActivity {
 	};
 	
 	private String updateTime() {
-		SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
+		SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd", Locale.US);
 		Calendar c = Calendar.getInstance();
 		Date today = new Date();
 		c.setTime(today);
@@ -177,7 +206,7 @@ public class PPTVLiveCenterActivity extends AppCompatActivity {
 		Date day = c.getTime();
 		String strDay = sdf.format(day);
 		
-		SimpleDateFormat sdfWeekend = new SimpleDateFormat("E");
+		SimpleDateFormat sdfWeekend = new SimpleDateFormat("E", Locale.US);
 		String strWeekend = sdfWeekend.format(day);
 		this.tvDay.setText(strDay + " " + strWeekend);
 		return strDay;
@@ -189,6 +218,7 @@ public class PPTVLiveCenterActivity extends AppCompatActivity {
 		private String title;
 		private int vid;
 		private String action;
+        private String timeStr;
 		
 		@Override
 		protected void onPostExecute(Boolean result) {
@@ -221,11 +251,11 @@ public class PPTVLiveCenterActivity extends AppCompatActivity {
 							http_port = (short)MyHttpService.getPort();
 						
 						play_url = PlayLinkUtil.getPlayUrl(
-								vid, http_port, best_ft/*ft*/, 3/*bw_type*/, 
-								mPlaybackTime.getPPTVTimeStr());
+								vid, http_port, best_ft/*ft*/, 3/*bw_type*/,
+                                timeStr == null ? mPlaybackTime.getPPTVTimeStr() : timeStr);
 					}
 					else if (mBwType == 2) {
-						play_url = String.format(live_m3u8_url_fmt, 
+						play_url = String.format(Locale.US, live_m3u8_url_fmt,
 								LiveItem.getHost(), 
 								LiveItem.getInterval(), LiveItem.getDelay(), 
 								LiveItem.getRid(), LiveItem.getKey());
@@ -246,7 +276,8 @@ public class PPTVLiveCenterActivity extends AppCompatActivity {
 					intent.putExtra("best_ft", best_ft);
 					
 					Toast.makeText(PPTVLiveCenterActivity.this, 
-							String.format("start to play %s, playlink %d, ft %d, size %d x %d, bitrate %d",
+							String.format(Locale.US,
+                                    "start to play %s, playlink %d, ft %d, size %d x %d, bitrate %d",
 									title, vid, best_ft, 
 									LiveItem.getWidth(), LiveItem.getHeight(), LiveItem.getBitrate()),
 							Toast.LENGTH_SHORT).show();
@@ -273,6 +304,39 @@ public class PPTVLiveCenterActivity extends AppCompatActivity {
 				title = params[1];
 				
 				vid = Integer.valueOf(params[2]);
+
+                if (params.length > 3) {
+                    String start_time = params[3];
+                    String end_time = params[4];
+
+                    SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss", Locale.US);
+
+                    try {
+                        // 2016-06-12 06:45:00  2016-06-12 09:10:00
+                        long start_msec = sdf.parse(start_time).getTime();
+                        long end_msec = sdf.parse(end_time).getTime();
+
+                        String PlayerLinkSurfix = String.format(Locale.US,
+                                "&begin_time=%d&end_time=%d",
+                                start_msec / 1000, end_msec / 1000);
+                        try {
+                            timeStr = URLEncoder.encode(PlayerLinkSurfix, "utf-8");
+                        } catch (UnsupportedEncodingException e) {
+                            // TODO Auto-generated catch block
+                            e.printStackTrace();
+                            LogUtil.error(TAG, "Java: failed to generate PPTV PlayerLinkSurfix");
+                            return false;
+                        }
+
+                        LogUtil.info(TAG, String.format(Locale.US,
+                                "start_time: %s, end_time %s, start_msec %d, end_msec %d, timeStr %s",
+                                start_time, end_time, start_msec, end_msec, timeStr));
+                    } catch (ParseException e) {
+                        e.printStackTrace();
+                        return false;
+                    }
+                }
+
 				return ((itemList = mEPG.live_cdn(vid)) != null);
 			}
 			else {
