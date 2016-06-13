@@ -1,10 +1,11 @@
 #!/bin/bash
 
 if [ $# == 0 ] ; then 
-echo "USAGE: $0 <abi(armeabi-v7a x86 arm64-v8a)> [config(full lite micro tiny gotye)] [component(enc mux librtmp openssl)]" 
+echo "USAGE: $0 <abi(armeabi-v7a x86 arm64-v8a)> [config(full lite micro tiny gotye)] [component(enc mux librtmp openssl)] [path=/your/ffmpeg/src/path]" 
 echo " e.g.: $0 armeabi-v7a"
 echo " e.g.: $0 armeabi-v7a lite"
 echo " e.g.: $0 armeabi-v7a lite enc" 
+echo " e.g.: $0 armeabi-v7a tiny path=/home/michael/ffmpeg-2.8.3"
 exit 1; 
 fi
 
@@ -236,14 +237,14 @@ do
 		echo "gotye build"
 		EXTRA_PARAMETERS="$EXTRA_PARAMETERS \
 			--disable-decoders \
-			--enable-decoder=aac_latm \
 			--disable-demuxers \
 			--enable-demuxer=flv \
 			--disable-parsers \
+			--enable-parser=h264 \
 			--disable-protocols \
 			--enable-protocol=rtmp \
 			--disable-bsfs \
-			--enable-bsf=h264_mp4toannexb,aac_adtstoasc \
+			--enable-bsf=aac_adtstoasc \
 			--disable-swscale \
 			--disable-swresample \
 			--disable-avfilter \
