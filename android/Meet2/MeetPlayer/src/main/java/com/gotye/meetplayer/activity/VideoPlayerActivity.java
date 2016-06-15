@@ -217,8 +217,13 @@ public class VideoPlayerActivity extends AppCompatActivity
                 else
                     path = mUri.toString();
 
-                if (path.contains("&playlink="))
+                if (path.contains("&playlink=") ||
+                        path.contains("&type=phone.android.vip")/*for cdn url*/) {
                     popupSelectFT();
+                }
+                else {
+                    Toast.makeText(this, "当前视频无法选择码率", Toast.LENGTH_SHORT).show();
+                }
                 break;
             case R.id.select_subtitle:
                 popupSelectSubtitle();
@@ -303,6 +308,10 @@ public class VideoPlayerActivity extends AppCompatActivity
                 .show();
     }
 
+    protected void onSwitchBW() {
+
+    }
+
     private void popupSelectFT() {
         final String[] ft_desc = {"流畅", "高清", "超清", "蓝光"};
 
@@ -324,21 +333,7 @@ public class VideoPlayerActivity extends AppCompatActivity
                                                 "选择码率: " + ft_desc[whichButton], Toast.LENGTH_SHORT).show();
 
                                         mFt = whichButton;
-
-                                        String old_url = mUri.toString();
-                                        int pos = old_url.indexOf("%3Fft%3D");
-                                        if (pos != -1) {
-                                            String old_ft = old_url.substring(pos, pos + "%3Fft%3D".length() + 1);
-                                            String new_ft = "%3Fft%3D" + mFt;
-                                            mUri = Uri.parse(old_url.replace(old_ft, new_ft));
-
-                                            pre_seek_msec = mVideoView.getCurrentPosition() - 5000;
-                                            if (pre_seek_msec < 0)
-                                                pre_seek_msec = 0;
-
-                                            mHandler.sendEmptyMessage(MainHandler.MSG_RESTART_PLAYER);
-                                        }
-
+                                        onSwitchBW();
                                         dialog.dismiss();
                                     }
                                 }
@@ -1048,6 +1043,7 @@ public class VideoPlayerActivity extends AppCompatActivity
         public final static int MSG_EPISODE_DONE            = 601;
         public final static int MSG_PLAY_CDN_FT		        = 602;
         public final static int MSG_FAIL_TO_GET_FT	        = 622;
+        public final static int MSG_FAIL_TO_GET_CDN_URL     = 623;
 
         public MainHandler(VideoPlayerActivity activity) {
             mWeakActivity = new WeakReference<VideoPlayerActivity>(activity);
@@ -1113,6 +1109,11 @@ public class VideoPlayerActivity extends AppCompatActivity
                     break;
                 case MSG_FAIL_TO_GET_FT:
                     LogUtil.error(TAG, "failed to get ft");
+                    Toast.makeText(activity, "获取CDN FT失败", Toast.LENGTH_SHORT).show();
+                    break;
+                case MSG_FAIL_TO_GET_CDN_URL:
+                    LogUtil.error(TAG, "failed to get cdn url");
+                    Toast.makeText(activity, "获取CDN播放地址失败", Toast.LENGTH_SHORT).show();
                     break;
                 default:
                     LogUtil.warn(TAG, "Java: unknown msg.what " + msg.what);

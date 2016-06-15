@@ -319,10 +319,22 @@ public class PlaySegFileActivity extends AppCompatActivity
 				
 				mIsBuffering = false;
 				mBufferingProgressBar.setVisibility(View.GONE);
-				
-				Toast.makeText(PlaySegFileActivity.this, "Error " + error + " , extra " + extra,
-						Toast.LENGTH_SHORT).show();
-				finish();
+
+                if (mPlayerImpl == 1) {
+                    mPlayerImpl = 3;
+                    mView.setVisibility(View.INVISIBLE);
+                    mHolder.setType(SurfaceHolder.SURFACE_TYPE_NORMAL);
+                    mHolder.setFormat(PixelFormat.RGBX_8888/*RGB_565*/);
+                    mView.setVisibility(View.VISIBLE);
+
+                    Util.writeSettingsInt(PlaySegFileActivity.this, "PlayerImpl", mPlayerImpl);
+                    Toast.makeText(PlaySegFileActivity.this, "尝试使用软解模式", Toast.LENGTH_SHORT).show();
+                }
+                else {
+                    Toast.makeText(PlaySegFileActivity.this, "播放器错误: 错误码 " + error + " , 详细 " + extra,
+                            Toast.LENGTH_SHORT).show();
+                    finish();
+                }
 				
 				return true;
 			}

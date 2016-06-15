@@ -64,7 +64,7 @@
 					android:layout_width="100dp"
 					android:layout_height="wrap_content"
 					android:text="17493573"
-					android:numeric="integer"
+					android:inputType="number"
 					android:singleLine="true" />
 				<TextView
 					android:layout_width="wrap_content"

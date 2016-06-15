@@ -69,7 +69,7 @@ public class PlayLinkUtil {
     public static final int FT_BD = 3;
 
     public static final int FT_UNKNOWN = -1;
-    
+
     public static String getPlayUrl(int playlink, int http_port, int ft, int bwt,
                                     String link_surfix) {
     	String ppbox_url;
@@ -95,7 +95,7 @@ public class PlayLinkUtil {
 			}
 		}
 		else {
-			ppbox_url = String.format(HTTP_M3U8_RECORD_PPVOD2, http_port, str_playlink);
+            ppbox_url = String.format(HTTP_M3U8_RECORD_PPVOD2, http_port, str_playlink);
 		}
 
 		Log.i(TAG, "Java: getPlayUrl " + ppbox_url);
@@ -112,9 +112,11 @@ public class PlayLinkUtil {
     	
     	sbPlaylink.append("&platform=android3");
     	sbPlaylink.append("&type=phone.android.vip");
-        sbPlaylink.append("&sv=4.0.1");
+        sbPlaylink.append("&sv=6.0.2");
+        sbPlaylink.append("&video=true");
+        sbPlaylink.append("&p2p.advtime=0");
         sbPlaylink.append("&param=userType%3D1"); // fix cannot find blue-disk ft problem
-        
+        sbPlaylink.append("&bppcataid=1");
         //sbPlaylink.append("&h265=2");
     	
     	return sbPlaylink.toString();

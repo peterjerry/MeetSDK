@@ -834,7 +834,6 @@ public class ClipListActivity extends AppCompatActivity implements
                         mPlaybackTime.getPPTVTimeStr());
 
                 start_player("N/A", ppbox_url);
-                //start_player("N/A", "rtmp://101.71.82.49:1935/live/35df07300b7b445488007903fe0a40ca");
             }
         });
 
@@ -2674,9 +2673,9 @@ public class ClipListActivity extends AppCompatActivity implements
                 final EditText inputUrl = new EditText(this);
                 String last_http_url = Util.readSettings(this, "last_http_url");
                 if (last_http_url == null || last_http_url.isEmpty())
-                    last_http_url = "http://42.62.105.235/test/media/testcase";
+                    last_http_url = "http://42.62.105.235/test/rec/vod";
                 inputUrl.setText(last_http_url);
-                inputUrl.setHint("输入http地址");
+                inputUrl.setHint("输入服务器地址");
 
                 builder = new AlertDialog.Builder(this);
                 builder.setTitle("输入媒体库网址")
@@ -2810,7 +2809,6 @@ public class ClipListActivity extends AppCompatActivity implements
         } else if (MediaPlayer.MEDIA_INFO_TEST_PLAYER_TYPE == what) {
             String short_type;
             if (MediaPlayer.PLAYER_IMPL_TYPE_SYSTEM_PLAYER == extra) {
-                ;
                 short_type = "sys";
             } else if (MediaPlayer.PLAYER_IMPL_TYPE_XO_PLAYER == extra) {
                 short_type = "xo";

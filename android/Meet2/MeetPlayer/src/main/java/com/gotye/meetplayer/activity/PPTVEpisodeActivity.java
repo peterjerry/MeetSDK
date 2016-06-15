@@ -4,6 +4,7 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 import com.gotye.common.pptv.EPGUtil;
@@ -82,6 +83,7 @@ public class PPTVEpisodeActivity extends AppCompatActivity {
     private String epg_order = "order=t";
     private String search_key;
     private String epg_signature;
+    private String epg_cdn_url;
     private boolean epg_is_vip = false;
     private List<PlayLink2> mAlbumList;
     private List<PlayLink2> mEpisodeList;
@@ -444,18 +446,25 @@ public class PPTVEpisodeActivity extends AppCompatActivity {
 	private void play_video(int ft, int best_ft) {
 		String vid = mEpisodeList.get(0).getId();
 		
-		String info = String.format("ready to play video %s, playlink: %s, ft: %d", 
+		String info = String.format(Locale.US,
+                "ready to play video %s, playlink: %s, ft: %d",
 				episode_title, vid, ft);
 		LogUtil.info(TAG, info);
 		Toast.makeText(this, info, Toast.LENGTH_SHORT).show();
-		
-		short port = MediaSDK.getPort("http");
-		int playlink = Integer.valueOf(vid);
-		String url = PlayLinkUtil.getPlayUrl(playlink, port, ft, 3, null);
-        //if (epg_is_vip && epg_signature != null)
-        //    url += epg_signature;
-		
-		Uri uri = Uri.parse(url);
+
+        short port = MediaSDK.getPort("http");
+        int playlink = Integer.valueOf(vid);
+
+        Uri uri;
+        if (epg_is_vip) {
+            uri = Uri.parse(epg_cdn_url);
+            LogUtil.info(TAG, "use cdn url to play vip video: " + epg_cdn_url);
+        }
+        else {
+            String url = PlayLinkUtil.getPlayUrl(playlink, port, ft, 3, null);
+
+            uri = Uri.parse(url);
+        }
 		
 		/* method 1
 		 * Intent intent = new Intent(Intent.ACTION_VIEW);
@@ -484,6 +493,7 @@ public class PPTVEpisodeActivity extends AppCompatActivity {
 		intent.putExtra("ft", ft);
 		intent.putExtra("best_ft", best_ft);
 		intent.putExtra("index", episode_index);
+        intent.putExtra("is_vip", epg_is_vip);
         if (epg_signature != null)
             intent.putExtra("sig", epg_signature);
 		
@@ -617,25 +627,25 @@ public class PPTVEpisodeActivity extends AppCompatActivity {
                     // &k=07f8e9fa6a99dd9f1f9a8d11f9fc0825-6eae-1459144870
                     // &type=phone.android.vip&vvid=877a4382-f0e4-49ed-afea-8d59dbd11df1
                     // &sv=4.1.3&platform=android3&ft=2&accessType=wifi
-                    String url = mEPG.getCDNUrl(String.valueOf(vid), String.valueOf(ft),
+                    epg_cdn_url = mEPG.getCDNUrl(String.valueOf(vid), String.valueOf(ft),
                             false, false);
                     int pos1, pos2;
                     String rid = null;
 
-                    pos2 = url.indexOf(".mp4");
+                    pos2 = epg_cdn_url.indexOf(".mp4");
                     if (pos2 != -1) {
-                        pos1 = url.lastIndexOf("/", pos2);
+                        pos1 = epg_cdn_url.lastIndexOf("/", pos2);
 
                         if (pos1 != -1) {
-                            rid = url.substring(pos1 + 1, pos2);
+                            rid = epg_cdn_url.substring(pos1 + 1, pos2);
                             LogUtil.info(TAG, "rid=" + rid);
                         }
                     }
 
-                    pos1 = url.indexOf("?w=1");
-                    pos2 = url.indexOf("&type=");
+                    pos1 = epg_cdn_url.indexOf("&key=");
+                    pos2 = epg_cdn_url.indexOf("&sv=");
                     if (pos1 != -1 && pos2 != -1 && rid != null)
-                        epg_signature = url.substring(pos1, pos2) + "&rid=" + rid;
+                        epg_signature = epg_cdn_url.substring(pos1, pos2) + "&rid=" + rid;
                     else
                         epg_signature = null;
                 }
