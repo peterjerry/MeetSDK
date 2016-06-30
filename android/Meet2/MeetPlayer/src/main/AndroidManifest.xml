@@ -61,6 +61,9 @@
             android:name=".activity.PlayYoukuActivity"
             android:screenOrientation="landscape" />
         <activity
+            android:name=".activity.PlayIqiyiActivity"
+            android:screenOrientation="landscape" />
+        <activity
             android:name=".activity.InkeActivity"
             android:label="@string/title_activity_inke_live"
             android:screenOrientation="portrait" />

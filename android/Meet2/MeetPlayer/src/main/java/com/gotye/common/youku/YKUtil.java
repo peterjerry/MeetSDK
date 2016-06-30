@@ -2,17 +2,15 @@ package com.gotye.common.youku;
 
 import android.content.Context;
 import android.os.Environment;
-import android.util.Log;
 
+import com.gotye.common.ZGUrl;
 import com.gotye.common.util.Base64Util;
 import com.gotye.common.util.CryptAES;
 import com.gotye.common.util.LogUtil;
 import com.gotye.common.util.httpUtil;
 import com.gotye.meetplayer.util.Util;
 
-import java.io.BufferedOutputStream;
 import java.io.ByteArrayOutputStream;
-import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -23,13 +21,7 @@ import java.net.URL;
 import java.net.URLEncoder;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import java.text.DateFormat;
-import java.text.ParseException;
-import java.text.ParsePosition;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Calendar;
-import java.util.Date;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -487,20 +479,6 @@ public class YKUtil {
         }
 
         return result;
-    }
-
-    public static class ZGUrl {
-        public String vid;
-        public String file_type;
-        public String urls;
-        public String durations;
-
-        public ZGUrl(String vid, String type, String urls, String durations) {
-            this.vid        = vid;
-            this.file_type  = type;
-            this.urls       = urls;
-            this.durations  = durations;
-        }
     }
 
     public static ZGUrl getZGUrls(String vid) {
@@ -1192,7 +1170,7 @@ public class YKUtil {
             String vv = v_meta.getElementsByClass("v-meta-entry")
                     .first().child(1).child(1).text();
             String online_time = v_meta.getElementsByClass("v-meta-entry")
-                    .first().child(2).child(1).text();
+                    .first().child(1).child(2).text();
             epList.add(new Episode(title, vid, thumb_url,
                     online_time, vv, duration, null));
         }

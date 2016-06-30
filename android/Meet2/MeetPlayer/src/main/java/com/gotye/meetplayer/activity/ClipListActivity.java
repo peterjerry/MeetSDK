@@ -27,6 +27,8 @@ import android.os.Environment;
 import android.os.Handler;
 import android.os.Message;
 
+import com.gotye.common.ZGUrl;
+import com.gotye.common.iqiyi.IqiyiUtil;
 import com.gotye.common.youku.YKUtil;
 import com.gotye.crashhandler.UploadLogTask;
 import com.gotye.meetplayer.adapter.LocalFileAdapter;
@@ -2067,20 +2069,25 @@ public class ClipListActivity extends AppCompatActivity implements
 
     public class ParseVideoTask extends AsyncTask<String, Integer, Boolean> {
 
-        YKUtil.ZGUrl zgUrl;
-        String play_url;
+        private String video_url;
+        private ZGUrl zgUrl;
+        private String play_url;
+        private boolean is_youku = true;
 
         @Override
         protected void onPostExecute(Boolean ret) {
             if (ret) {
                 //start_player("N/A", play_url);
 
-                Intent intent = new Intent(ClipListActivity.this, PlayYoukuActivity.class);
+                Intent intent = new Intent(ClipListActivity.this,
+                        is_youku ? PlayYoukuActivity.class : PlayIqiyiActivity.class);
                 intent.putExtra("url_list", zgUrl.urls);
                 intent.putExtra("duration_list", zgUrl.durations);
-                intent.putExtra("title", "N/A");
+                intent.putExtra("title", zgUrl.title.isEmpty() ? "N/A" : zgUrl.title);
                 intent.putExtra("ft", 2);
                 intent.putExtra("player_impl", mPlayerImpl);
+                intent.putExtra("vid", zgUrl.vid);
+                intent.putExtra("video_url", video_url);
                 startActivity(intent);
             } else {
                 Toast.makeText(ClipListActivity.this, "解析视频地址失败", Toast.LENGTH_SHORT).show();
@@ -2089,13 +2096,26 @@ public class ClipListActivity extends AppCompatActivity implements
 
         @Override
         protected Boolean doInBackground(String... params) {
-            String video_url = params[0];
+            video_url = params[0];
 
             if (video_url.contains("youku")) {
+                is_youku = true;
+
                 String vid = YKUtil.getVid(video_url);
                 zgUrl = YKUtil.getPlayZGUrl(ClipListActivity.this, vid);
                 if (zgUrl == null) {
-                    LogUtil.error(TAG, "failed to get ZGUrl, vid " + vid);
+                    LogUtil.error(TAG, "failed to get youku ZGUrl, vid " + vid);
+                    return false;
+                }
+
+                return true;
+            }
+            else if (video_url.contains("iqiyi.com")) {
+                is_youku = false;
+
+                zgUrl = IqiyiUtil.getPlayZGUrl(video_url, 2);
+                if (zgUrl == null) {
+                    LogUtil.error(TAG, "failed to get iqiyi ZGUrl, video_url " + video_url);
                     return false;
                 }
 
@@ -2735,7 +2755,8 @@ public class ClipListActivity extends AppCompatActivity implements
                     Toast.makeText(ClipListActivity.this, "剪贴板中没有视频地址", Toast.LENGTH_SHORT).show();
                 } else {
                     boolean bParse = false;
-                    if (video_url.contains("youku") && video_url.contains("id_"))
+                    if ((video_url.contains("youku") && video_url.contains("id_")) ||
+                            video_url.contains("iqiyi.com"))
                         bParse = true;
 
                     if (bParse) {

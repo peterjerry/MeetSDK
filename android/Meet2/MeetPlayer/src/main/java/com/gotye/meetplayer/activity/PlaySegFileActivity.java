@@ -44,6 +44,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.StringTokenizer;
+import java.util.TimeZone;
 
 public class PlaySegFileActivity extends AppCompatActivity
 		implements SurfaceHolder.Callback {
@@ -454,7 +455,8 @@ public class PlaySegFileActivity extends AppCompatActivity
 
         sbInfo.append("\n文件时长列表2 [");
         int total_msec = 0;
-        SimpleDateFormat formatter = new SimpleDateFormat("mm:ss", Locale.US);
+        SimpleDateFormat formatter = new SimpleDateFormat("HH:mm:ss", Locale.US);
+        formatter.setTimeZone(TimeZone.getTimeZone("GMT+00:00")); // fix 08:00:01 322 bug
         for (int i=0;i<m_duration_list.size();i++) {
             int duration = m_duration_list.get(i);
             total_msec += duration;
@@ -704,6 +706,10 @@ public class PlaySegFileActivity extends AppCompatActivity
 		
 	}
 
+    protected void onShedule() {
+
+    }
+
     protected static class MainHandler extends Handler {
         private WeakReference<PlaySegFileActivity> mWeakActivity;
 
@@ -722,6 +728,8 @@ public class PlaySegFileActivity extends AppCompatActivity
 
         private static final int MSG_RESTART_PLAYER             = 301;
 
+        protected static final int MSG_SHEDULE                  = 400;
+
         public MainHandler(PlaySegFileActivity activity) {
             mWeakActivity = new WeakReference<PlaySegFileActivity>(activity);
         }
@@ -735,6 +743,9 @@ public class PlaySegFileActivity extends AppCompatActivity
             }
 
             switch(msg.what) {
+                case MSG_SHEDULE:
+                    activity.onShedule();
+                    break;
                 case MSG_HIDE_HOOD:
                     activity.mHoodLayout.setVisibility(View.GONE);
                     break;
@@ -866,7 +877,8 @@ public class PlaySegFileActivity extends AppCompatActivity
 		
 		st = new StringTokenizer(mDurationListStr, ",", false);
 		i=0;
-        SimpleDateFormat formatter = new SimpleDateFormat("mm:ss", Locale.US);
+        SimpleDateFormat formatter = new SimpleDateFormat("HH:mm:ss", Locale.US);
+        formatter.setTimeZone(TimeZone.getTimeZone("GMT+00:00")); // fix 08:00:01 322 bug
         int total_msec = 0;
 		while (st.hasMoreElements()) {
 			String seg_duration = st.nextToken();

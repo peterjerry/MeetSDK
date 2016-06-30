@@ -183,8 +183,9 @@ public class PPTVPlayhistoryDatabaseHelper {
          
          try {
              c = db.query(TABLE_NAME, 
-            		 new String[] { COLUMN_TITLE, COLUMN_PLAYLINK, COLUMN_ALBUM_ID, COLUMN_FT, COLUMN_LAST_PLAY_POSITION},
-                     null, null, null, null, null);
+            		 new String[] { COLUMN_TITLE, COLUMN_PLAYLINK, COLUMN_ALBUM_ID,
+                             COLUMN_FT, COLUMN_LAST_PLAY_POSITION},
+                     null, null, null, null, COLUMN_WATCH_TIME + " DESC");
              if (c.moveToFirst()) {
             	 List<ClipInfo> listClips = new ArrayList<ClipInfo>();
 

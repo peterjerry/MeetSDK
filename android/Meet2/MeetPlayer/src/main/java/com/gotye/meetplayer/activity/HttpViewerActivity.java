@@ -18,6 +18,7 @@ import android.widget.EditText;
 import android.widget.ProgressBar;
 import android.widget.Toast;
 
+import com.gotye.common.ZGUrl;
 import com.gotye.common.util.LogUtil;
 import com.gotye.common.youku.YKUtil;
 import com.gotye.meetplayer.R;
@@ -144,7 +145,7 @@ public class HttpViewerActivity extends AppCompatActivity {
 
     public class ParseVideoTask extends AsyncTask<String, Integer, Boolean> {
 
-        YKUtil.ZGUrl zgUrl;
+        ZGUrl zgUrl;
         String play_url;
 
         @Override

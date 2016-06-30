@@ -12,6 +12,7 @@ import android.view.MenuInflater;
 import android.view.View;
 import android.widget.Toast;
 
+import com.gotye.common.ZGUrl;
 import com.gotye.common.util.LogUtil;
 import com.gotye.common.youku.Episode;
 import com.gotye.common.youku.YKUtil;
@@ -254,7 +255,7 @@ public class PlayYoukuActivity extends PlaySegFileActivity {
         @Override
         protected Boolean doInBackground(Integer... params) {
             // TODO Auto-generated method stub
-            YKUtil.ZGUrl zg = YKUtil.getPlayZGUrl(PlayYoukuActivity.this, mVid, mFt);
+            ZGUrl zg = YKUtil.getPlayZGUrl(PlayYoukuActivity.this, mVid, mFt);
             if (zg == null) {
                 mHandler.sendEmptyMessage(MainHandler.MSG_INVALID_FT);
                 return false;
@@ -367,7 +368,7 @@ public class PlayYoukuActivity extends PlaySegFileActivity {
             Episode ep = mEpisodeList.get(mEpisodeIndex);
             mVid = ep.getVideoId();
 
-            YKUtil.ZGUrl zg = YKUtil.getPlayZGUrl(PlayYoukuActivity.this, mVid);
+            ZGUrl zg = YKUtil.getPlayZGUrl(PlayYoukuActivity.this, mVid);
             if (zg == null) {
                 mHandler.sendEmptyMessage(MainHandler.MSG_INVALID_EPISODE_INDEX);
                 return false;

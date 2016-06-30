@@ -152,6 +152,7 @@ FFExtractor::FFExtractor()
 	m_min_play_buf_count	= 0;
 	m_cached_duration_msec	= 0;
 	m_first_pkt				= true;
+	m_start_msec			= 0;
 
 	m_seek_flag				= 0;
 	m_seek_time_msec		= 0;
@@ -504,6 +505,14 @@ status_t FFExtractor::setDataSource(const char *path)
 	else
 		m_min_play_buf_count = 25 * 4; // 4 sec for vod "smooth" play 
 
+	if (TYPE_LOCAL_FILE == m_sorce_type && AV_NOPTS_VALUE != m_fmt_ctx->start_time) {
+		m_start_msec = m_fmt_ctx->start_time * 1000 / AV_TIME_BASE;
+		LOGI("set m_start_msec to %d msec", m_start_msec);
+	}
+	else {
+		m_start_msec = 0;
+	}
+
 	m_status = FFEXTRACTOR_PREPARED;
 	LOGI("setDataSource done");
 
@@ -647,27 +656,6 @@ status_t FFExtractor::getTrackFormat(int32_t index, MediaFormat *format)
 				}
 				data += pps_len;
 			}
-
-			// old method(NOT compatible with some mp4 file)
-			
-			/*
-			uint8_t unit_nb;
-			const uint8_t *extradata = c->extradata+4;  //jump first 4 bytes
-			// retrieve sps and pps unit(s)  
-			unit_nb = *extradata++ & 0x1f; // number of sps unit(s) 
-			// sps
-			format->csd_0_size	= unit_nb;
-			format->csd_0 = new uint8_t[unit_nb];
-			memset(format->csd_0, 0, unit_nb);
-			memcpy(format->csd_0, nalu_header, 4);
-			memcpy(format->csd_0 + 4, extradata + 3, unit_nb - 4);
-			// pps
-			format->csd_1_size	= 9;
-			format->csd_1 = new uint8_t[9];
-			memset(format->csd_1, 0, 9);
-			memcpy(format->csd_1, nalu_header, 4);
-			memcpy(format->csd_1 + 4, extradata + unit_nb + 3, 5);
-			*/
 		}
 		else if (strstr(m_fmt_ctx->iformat->name, "mpegts") != NULL ||
 			strstr(m_fmt_ctx->iformat->name, "hls,applehttp") != NULL) 
@@ -970,12 +958,12 @@ status_t FFExtractor::seekTo(int64_t timeUs, int mode)
 	AutoLock autoLock(&mLock);
 	
 	int incr;
-	if (timeUs > m_sample_clock_msec * 1000)
+	if (timeUs > (m_sample_clock_msec - m_start_msec) * 1000)
 		incr = 1;
 	else
 		incr = -1;
 
-    m_seek_time_msec	= timeUs / 1000;
+    m_seek_time_msec	= timeUs / 1000 + m_start_msec;
     m_seeking			= true;
     m_eof				= false;
 	m_seek_flag			= incr < 0 ? AVSEEK_FLAG_BACKWARD : 0;
@@ -1561,7 +1549,7 @@ status_t FFExtractor::getSampleTime(int64_t *sampleTimeUs)
 	if (!is_packet_valid())
 		return ERROR;
 
-	*sampleTimeUs = m_sample_clock_msec * 1000;
+	*sampleTimeUs = (m_sample_clock_msec - m_start_msec) * 1000;
 	return OK;
 }
 

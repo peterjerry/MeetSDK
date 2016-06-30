@@ -196,7 +196,7 @@ public class YKPlayhistoryDatabaseHelper {
             		 new String[] { COLUMN_TITLE, COLUMN_VIDEO_ID,
                              COLUMN_SHOW_ID, COLUMN_EPISODE_INDEX,
                              COLUMN_FT, COLUMN_LAST_PLAY_POSITION},
-                     null, null, null, null, null);
+                     null, null, null, null, COLUMN_WATCH_TIME + " DESC");
              if (c.moveToFirst()) {
             	 List<ClipInfo> listClips = new ArrayList<ClipInfo>();
 

@@ -3,6 +3,7 @@ package com.gotye.meetplayer.util;
 import java.io.BufferedOutputStream;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -13,9 +14,11 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.UnsupportedEncodingException;
+import java.net.HttpURLConnection;
 import java.net.InetAddress;
 import java.net.NetworkInterface;
 import java.net.SocketException;
+import java.net.URL;
 import java.net.UnknownHostException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -607,6 +610,118 @@ public class Util {
 			e.printStackTrace();
 
 		}
+	}
+
+	public static String getHttpPage(String url) {
+		InputStream is = null;
+		ByteArrayOutputStream os = null;
+
+		try {
+			URL realUrl = new URL(url);
+			// 打开和URL之间的连接
+			HttpURLConnection conn = (HttpURLConnection)realUrl.openConnection();
+			conn.setRequestMethod("GET");
+			conn.setReadTimeout(5000);// 设置超时的时间
+			conn.setConnectTimeout(5000);// 设置链接超时的时间
+
+			conn.connect();
+
+			if (conn.getResponseCode() != 200) {
+				LogUtil.error(TAG, "http response is not 200 " + conn.getResponseCode());
+				return null;
+			}
+
+			// 获取响应的输入流对象
+			is = conn.getInputStream();
+
+			// 创建字节输出流对象
+			os = new ByteArrayOutputStream();
+			// 定义读取的长度
+			int len = 0;
+			// 定义缓冲区
+			byte buffer[] = new byte[1024];
+			// 按照缓冲区的大小，循环读取
+			while ((len = is.read(buffer)) != -1) {
+				// 根据读取的长度写入到os对象中
+				os.write(buffer, 0, len);
+			}
+
+			// 返回字符串
+			return new String(os.toByteArray());
+		} catch (IOException e) {
+			e.printStackTrace();
+		} finally {
+			try {
+				// 释放资源
+				if (is != null) {
+					is.close();
+				}
+				if (os != null) {
+					os.close();
+				}
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+		}
+
+		return null;
+	}
+
+	public static String postHttpPage(String url, String params) {
+		InputStream is = null;
+		ByteArrayOutputStream os = null;
+
+		try {
+			URL realUrl = new URL(url);
+			// 打开和URL之间的连接
+			HttpURLConnection conn = (HttpURLConnection)realUrl.openConnection();
+			conn.setRequestMethod("POST");
+			byte[] bypes = params.getBytes();
+			conn.getOutputStream().write(bypes);// 输入参数
+			conn.setReadTimeout(5000);// 设置超时的时间
+			conn.setConnectTimeout(5000);// 设置链接超时的时间
+
+			conn.connect();
+
+			if (conn.getResponseCode() != 200) {
+				LogUtil.error(TAG, "http response is not 200 " + conn.getResponseCode());
+				return null;
+			}
+
+			// 获取响应的输入流对象
+			is = conn.getInputStream();
+
+			// 创建字节输出流对象
+			os = new ByteArrayOutputStream();
+			// 定义读取的长度
+			int len = 0;
+			// 定义缓冲区
+			byte buffer[] = new byte[1024];
+			// 按照缓冲区的大小，循环读取
+			while ((len = is.read(buffer)) != -1) {
+				// 根据读取的长度写入到os对象中
+				os.write(buffer, 0, len);
+			}
+
+			// 返回字符串
+			return new String(os.toByteArray());
+		} catch (IOException e) {
+			e.printStackTrace();
+		} finally {
+			try {
+				// 释放资源
+				if (is != null) {
+					is.close();
+				}
+				if (os != null) {
+					os.close();
+				}
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+		}
+
+		return null;
 	}
 
 	public static void upload_crash_dump(final Context context) {

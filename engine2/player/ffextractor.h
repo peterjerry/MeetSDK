@@ -164,6 +164,7 @@ enum DATASOURCE_TYPE
 	bool				m_first_pkt;
 	PacketQueue			m_video_q;
 	PacketQueue			m_audio_q;
+	int64_t				m_start_msec;
 
 	int					m_seek_flag;
 	int64_t				m_seek_time_msec; // for seek pos
