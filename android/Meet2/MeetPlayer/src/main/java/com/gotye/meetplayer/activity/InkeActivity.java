@@ -46,7 +46,7 @@ public class InkeActivity extends AppCompatActivity {
     private GridView mGvCreator;
     private MeetAdapter mAdapter;
 
-    private int type = LoadTask.LIST_SIMPLEALL;
+    private int list_type = LoadTask.LIST_SIMPLEALL;
 
     private ViewPager pager;
     private PagerTabStrip tabStrip;
@@ -144,11 +144,13 @@ public class InkeActivity extends AppCompatActivity {
             public void onPageSelected(int position) {
                 mAdapter = null;
                 if (position == 0) {
-                    new LoadTask().execute(LoadTask.LIST_SIMPLEALL);
+                    list_type = LoadTask.LIST_SIMPLEALL;
                 }
                 else {
-                    new LoadTask().execute(LoadTask.LIST_HOMEPAGE);
+                    list_type = LoadTask.LIST_HOMEPAGE;
                 }
+
+                new LoadTask().execute(list_type);
             }
 
             @Override
@@ -165,10 +167,15 @@ public class InkeActivity extends AppCompatActivity {
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
                 Map<String, Object> map = (Map<String, Object>)mLvCreator.getItemAtPosition(position);
                 String play_url = (String) map.get("play_url");
+                String rid = (String) map.get("rid");
+                int slot = (Integer) map.get("slot");
                 play_url += "?type=gotyelive";
                 //play_url = ndsTranslate(play_url);
                 Intent intent = new Intent(InkeActivity.this, InkePlayerActivity.class);
                 intent.putExtra("play_url", play_url);
+                intent.putExtra("rid", rid);
+                intent.putExtra("slot", slot);
+                intent.putExtra("simpleall", list_type == LoadTask.LIST_SIMPLEALL);
                 startActivity(intent);
             }
         });
@@ -178,10 +185,15 @@ public class InkeActivity extends AppCompatActivity {
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
                 Map<String, Object> map = (Map<String, Object>)mGvCreator.getItemAtPosition(position);
                 String play_url = (String) map.get("play_url");
+                String rid = (String) map.get("rid");
+                int slot = (Integer) map.get("slot");
                 play_url += "?type=gotyelive";
                 //play_url = ndsTranslate(play_url);
                 Intent intent = new Intent(InkeActivity.this, InkePlayerActivity.class);
                 intent.putExtra("play_url", play_url);
+                intent.putExtra("rid", rid);
+                intent.putExtra("slot", slot);
+                intent.putExtra("simpleall", list_type == LoadTask.LIST_SIMPLEALL);
                 startActivity(intent);
             }
         });
@@ -200,7 +212,7 @@ public class InkeActivity extends AppCompatActivity {
 
         Util.checkNetworkType(this);
 
-        new Thread(new Runnable() {
+        /*new Thread(new Runnable() {
             @Override
             public void run() {
                 String[] ns = new String[]{
@@ -224,7 +236,7 @@ public class InkeActivity extends AppCompatActivity {
                     }
                 }
             }
-        }).start();
+        }).start();*/
 
         new LoadTask().execute(LoadTask.LIST_SIMPLEALL);
     }
@@ -409,12 +421,14 @@ public class InkeActivity extends AppCompatActivity {
 
                 HashMap<String, Object> mapLive = new HashMap<>();
                 mapLive.put("uid", info.mUserId);
+                mapLive.put("rid", info.mRoomId);
                 mapLive.put("title", info.mTitle);
                 mapLive.put("img_url", info.mImage);
                 mapLive.put("play_url", info.mPlayUrl);
                 mapLive.put("location", info.mLocation);
                 mapLive.put("share_addr", info.mShareAddr);
                 mapLive.put("online_users", info.mOnlineUsers);
+                mapLive.put("slot", info.mSlot);
                 listData.add(mapLive);
             }
 

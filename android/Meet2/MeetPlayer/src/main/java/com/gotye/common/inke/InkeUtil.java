@@ -23,20 +23,25 @@ public class InkeUtil {
     private final static String TAG = "InkeUtil";
 
     private final static String api_surfix =
-            "?lc=3000000000003002" +
-                    "&cv=IK2.6.10_Android" +
-                    "&cc=TG36001" +
-                    "&ua=YuLongCoolpad8297-C00" +
-                    "&uid=67302632" +
-                    "&sid=E0rgPgFY8Vi0bQ69Rj8qXbS7uIQi3i3" +
-                    "&devi=99000558796818" +
+            //"?lc=3000000000003002" +
+            "?lc=3000000000005850" +
+                    "&cv=IK2.9.50_Android" +
+                    "&cc=GF10000" +
+                    "&ua=XiaomiHM1S" +
+                    "&uid=65286584" +
+                    "&sid=20hwyYZar84jIbUi0ayyGuYglOLcE8mFboN7NxA1ow7kQlkAdYi3" +
+                    "&devi=865624023658835" +
                     "&imsi=" +
                     "&icc=" +
                     "&conn=WIFI" +
-                    "&vv=1.0.2-201601131421.android" +
-                    "&aid=3dc3324f515d553" +
+                    "&vv=1.0.3-2016060211417.android" +
+                    "&aid=f1d83c9537cb2028" +
                     "&osversion=android_19" +
-                    "&proto=3";
+                    "&proto=4" +
+                    //"&smid=DuJQrxHQrspxX3vIrdzJ9NZjtJewzbxa6fkP3HRfX3ZOev527" +
+                    //"PohCrq/r6cSbwSM+oEHITIq21EI6F7hQQaMOArQ";
+                    "DuJQrxHQrspxX3vIrdzJ9NZjtJewzbxa6fkP3HRfX3ZOev527PohCrq" +
+                    "%2Fr6cSbwSM%2BoEHITIq21EI6F7hQQaMOArQ";
 
     private final static String simpleall_api_url =
             "http://service5.ingkee.com/api/live/simpleall" +
@@ -86,28 +91,37 @@ public class InkeUtil {
                     api_surfix +
                     "&id=%d&multiaddr=1"; // uid 67302632
 
+    private final static String chat_iplist_api =
+            "http://service.inke.com/api/chat/iplist" +
+                    api_surfix;
+
     public static class LiveInfo {
         public int mUserId;
+        public String mRoomId;
         public String mTitle;
         public String mImage;
         public String mPlayUrl;
         public String mLocation;
         public String mShareAddr;
         public int mOnlineUsers;
+        public int mSlot;
 
         private LiveInfo() {
 
         }
 
-        public LiveInfo(int uid, String title, String image, String playUrl, String location,
-                        String shareAddr, int onlineUsers) {
-            this.mUserId = uid;
-            this.mTitle = title;
-            this.mImage = image;
-            this.mPlayUrl = playUrl;
-            this.mLocation = location;
-            this.mShareAddr = shareAddr;
-            this.mOnlineUsers = onlineUsers;
+        public LiveInfo(int uid, String room_id, String title,
+                        String image, String playUrl, String location,
+                        String shareAddr, int onlineUsers, int slot) {
+            this.mUserId        = uid;
+            this.mRoomId        = room_id;
+            this.mTitle         = title;
+            this.mImage         = image;
+            this.mPlayUrl       = playUrl;
+            this.mLocation      = location;
+            this.mShareAddr     = shareAddr;
+            this.mOnlineUsers   = onlineUsers;
+            this.mSlot          = slot;
         }
     }
 
@@ -240,6 +254,7 @@ public class InkeUtil {
                     title = live.getString("name");
                 String share_addr = live.getString("share_addr");
                 String play_url = live.getString("stream_addr");
+                int slot = live.getInt("slot"); // for chatroom
                 int online_users = live.optInt("online_users");
 
                 String img_url;
@@ -253,8 +268,8 @@ public class InkeUtil {
                 show_url += encoded_img_url;
                 show_url += "&w=360&h=360&s=80&c=0&o=0";
 
-                list.add(new LiveInfo(uid, title, show_url, play_url,
-                        city, share_addr, online_users));
+                list.add(new LiveInfo(uid, id, title, show_url, play_url,
+                        city, share_addr, online_users, slot));
             }
 
             return list;
@@ -363,6 +378,90 @@ public class InkeUtil {
         }
 
         return -1;
+    }
+
+    public static List<String> chatList(int slot) {
+        LogUtil.info(TAG, "chatList()");
+
+        String result = Util.getHttpPage(chat_iplist_api);
+        if (result == null) {
+            LogUtil.error(TAG, "failed to get charList url");
+            return null;
+        }
+
+        try {
+            JSONTokener jsonParser = new JSONTokener(result);
+            JSONObject root = (JSONObject) jsonParser.nextValue();
+
+//            error_msg: "高峰期间4级以下用户不能直播，早8-晚6点直播无限制！看直播、送礼物都可升级解锁直播哦！",
+//            dm_error: 10001
+
+            int dm_error = root.getInt("dm_error");
+            String error_msg = root.optString("error_msg");
+            if (dm_error != 0) {
+                LogUtil.error(TAG, "failed to chatList(): " + error_msg);
+                return null;
+            }
+
+            JSONArray cfg = root.getJSONArray("cfg");
+            int size = cfg.length();
+            List<String> ipList = new ArrayList<>();
+            for (int i=0;i<size;i++) {
+                JSONObject c = cfg.getJSONObject(i);
+                LogUtil.info(TAG, "aaa: " + c.toString());
+
+                // addr=60.205.82.52:81|60.205.82.49:81
+                // slot=2
+
+                String host_addr = c.getString("addr");
+                int host_slot = c.getInt("slot");
+
+                if (host_slot != slot)
+                    continue;
+
+                String []ip_addrs = host_addr.split("\\|");
+                for (int j=0;j<ip_addrs.length;j++) {
+                    String url = ip_addrs[j];
+                    if (!url.startsWith("http://"))
+                        url = "http://" + ip_addrs[j];
+                    ipList.add(url);
+                }
+                //int index = host_addr.indexOf("|");
+                //ipList.add("http://" + host_addr.substring(0, index));
+                //ipList.add("http://" + host_addr.substring(index + 1, host_addr.length()));
+            }
+
+            return ipList;
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+
+        return null;
+    }
+
+    public static String chatServer(String host) {
+        LogUtil.info(TAG, "chatServer(): " + host);
+
+        String url = host + "/socket.io/1/" + api_surfix;
+        LogUtil.info(TAG, "chatServer url: " + url);
+        String result = Util.postHttpPage(url, null);
+        if (result == null) {
+            LogUtil.error(TAG, "failed to call chatServer()");
+            return null;
+        }
+
+        // tPMGQcMob7fpF1EV5toY:60:60:websocket
+        LogUtil.info(TAG, "chatServer() result: " + result);
+        int index = result.indexOf(":");
+        if (index < 0) {
+            LogUtil.error(TAG, "failed to find websocket token");
+            return null;
+        }
+
+        String token = result.substring(0, index);
+        LogUtil.info(TAG, "websocket token: " + token);
+        String websocket_url = host + "/socket.io/1/websocket/" + token + api_surfix;
+        return websocket_url;
     }
 
     public static List<UserInfo> search(int uid) {

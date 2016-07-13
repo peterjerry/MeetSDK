@@ -676,8 +676,10 @@ public class Util {
 			// 打开和URL之间的连接
 			HttpURLConnection conn = (HttpURLConnection)realUrl.openConnection();
 			conn.setRequestMethod("POST");
-			byte[] bypes = params.getBytes();
-			conn.getOutputStream().write(bypes);// 输入参数
+			if (params != null) {
+				byte[] bypes = params.getBytes();
+				conn.getOutputStream().write(bypes);// 输入参数
+			}
 			conn.setReadTimeout(5000);// 设置超时的时间
 			conn.setConnectTimeout(5000);// 设置链接超时的时间
 
