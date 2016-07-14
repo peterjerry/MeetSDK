@@ -3,10 +3,12 @@ package com.gotye.meetplayer.activity;
 import android.content.Intent;
 import android.graphics.PixelFormat;
 import android.media.AudioManager;
+import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
-import android.text.method.ScrollingMovementMethod;
-import android.util.Log;
+import android.text.Html;
+import android.view.GestureDetector;
+import android.view.MotionEvent;
 import android.view.SurfaceHolder;
 import android.view.View;
 import android.widget.Button;
@@ -16,6 +18,7 @@ import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.gotye.common.inke.InkeChatRoomClient;
 import com.gotye.common.inke.InkeUtil;
 import com.gotye.common.util.LogUtil;
 import com.gotye.meetplayer.R;
@@ -23,16 +26,10 @@ import com.gotye.meetplayer.ui.MyPreView2;
 import com.gotye.meetplayer.util.Util;
 import com.gotye.meetsdk.player.MediaPlayer;
 
-import de.tavendo.autobahn.WebSocket.WebSocketConnectionObserver;
-import de.tavendo.autobahn.WebSocketConnection;
-import de.tavendo.autobahn.WebSocketException;
-
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import java.net.URI;
-import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
@@ -60,13 +57,12 @@ public class InkePlayerActivity extends AppCompatActivity
     private MediaPlayer.OnCompletionListener mOnCompletionListener;
     private MediaPlayer.OnInfoListener mOnInfoListener;
 
-    private String wsServerUrl;
-    private WebSocketConnection ws;
-    private WebSocketObserver wsObserver;
-    private WebSocketChannelEvents events;
-    private WebSocketConnectionState state = WebSocketConnectionState.NEW;
-    private Thread mHeartBeatThr;
+    private InkeChatRoomClient mChatClient;
+    private InkeChatRoomClient.WebSocketChannelEvents events;
+    private int mRetry = 0;
 
+    private String mCreator;
+    private int mCreatorUid;
     private String mRoomId;// id=1468316035495368
     private int mSlot;
     private boolean mbSimpleAll;
@@ -76,6 +72,9 @@ public class InkePlayerActivity extends AppCompatActivity
     private EditText mEtMessage;
     private TextView mTvMessageHistory;
     private ScrollView mScrollView;
+    private boolean mbMessageShowing = true;
+
+    private boolean mbActivityRunning = false;
 
     /**
      * Possible WebSocket connection states.
@@ -95,6 +94,8 @@ public class InkePlayerActivity extends AppCompatActivity
         setVolumeControlStream(AudioManager.STREAM_MUSIC);
 
         Intent intent = getIntent();
+        mCreator = intent.getStringExtra("creator");
+        mCreatorUid = intent.getIntExtra("uid", -1);
         mPlayUrl = intent.getStringExtra("play_url");
         if (intent.hasExtra("rid")) {
             mRoomId     = intent.getStringExtra("rid");
@@ -114,13 +115,25 @@ public class InkePlayerActivity extends AppCompatActivity
         this.mTvMessageHistory = (TextView)this.findViewById(R.id.tv_message_history);
         this.mScrollView = (ScrollView)this.findViewById(R.id.sv_msg);
 
+        mView.setLongClickable(true); // MUST set to enable double-tap and single-tap-confirm
+        mView.setOnTouchListener(mOnTouchListener);
+
+        mTvInfo.setText(String.format(Locale.US, "%s(%d), 在线人数:", mCreator, mCreatorUid));
+
         mBtnSendMessage.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                if (mEtMessage.getText() != null) {
-                    String msg = mEtMessage.getText().toString();
-                    sendChatMessage(msg);
-                    mEtMessage.setText("");
+                String msg = mEtMessage.getText().toString();
+                if (!msg.isEmpty()) {
+                    if (mChatClient != null) {
+                        mChatClient.sendChatMessage(msg);
+                        mEtMessage.setText("");
+
+                        addMessgage("我说:", msg);
+                    }
+                    else {
+                        Toast.makeText(InkePlayerActivity.this, "聊天室未连接", Toast.LENGTH_SHORT).show();
+                    }
                 }
                 else {
                     Toast.makeText(InkePlayerActivity.this, "无法发送空消息", Toast.LENGTH_SHORT).show();
@@ -230,7 +243,7 @@ public class InkePlayerActivity extends AppCompatActivity
         if (mRoomId != null) {
             mMessageList = new ArrayList<>();
 
-            events = new WebSocketChannelEvents() {
+            events = new InkeChatRoomClient.WebSocketChannelEvents() {
                 @Override
                 public void onWebSocketMessage(String message) {
                     //LogUtil.info(TAG, "onWebSocketMessage(): " + message);
@@ -244,6 +257,16 @@ public class InkePlayerActivity extends AppCompatActivity
                     // "ms":[
                     //      {"tp":"like",
                     //      "cl":[252,154,81]}]}
+
+                    //"ms": [
+                    //{
+                    //    "c": "我们提倡绿色直播，封面和直播内容含吸烟、低俗、引诱、暴露等都将会被封停账号，网警24小时在线巡查哦！",
+                    //    "tp": "sys"
+                    //},
+                    //{
+                    //    "c": "亲爱的小主，由于今天微信提现故障，导致多次提现未扣除相应映票。系统将自动扣除相应映票，对此给您带来的困扰表示歉意。",
+                    //    "tp": "sys"
+                    //},
 
                     //3:::{
                     // "b":{"ev":"s.m"},
@@ -276,21 +299,38 @@ public class InkePlayerActivity extends AppCompatActivity
                             int userid = json.getInt("userid");
                             JSONArray ms = json.optJSONArray("ms");
                             if (ms != null) {
-                                JSONObject ms_item = ms.getJSONObject(0);
-                                String comment = ms_item.optString("c");
-                                if (!comment.isEmpty()) {
-                                    JSONObject from = ms_item.getJSONObject("from");
-                                    String nic = from.getString("nic");
-                                    int id = from.getInt("id");
-                                    int level = from.getInt("lvl");
+                                for (int j=0;j<ms.length();j++) {
+                                    JSONObject ms_item = ms.getJSONObject(j);
+                                    String type = ms_item.getString("tp");
+                                    if (type.equals("pub")) {
+                                        String comment = ms_item.optString("c");
+                                        JSONObject from = ms_item.getJSONObject("from");
+                                        String nic = from.getString("nic");
+                                        int id = from.getInt("id");
+                                        int level = from.getInt("lvl");
 
-                                    String item = String.format(Locale.US,
-                                            "%s[%d]说: %s", nic, level, comment);
+                                        String who = String.format(Locale.US,
+                                                "%s[%d]说: ", nic, level);
 
-                                    addMessgage(item);
+                                        addMessgage(who, comment);
 
-                                    LogUtil.info(TAG, String.format(Locale.US,
-                                            "user comment: %s(%d)[%d]: %s", nic, level, id, comment));
+                                        LogUtil.info(TAG, String.format(Locale.US,
+                                                "user comment: %s(%d)[%d]: %s",
+                                                nic, level, id, comment));
+                                    }
+                                    else if (type.equals("sys")) {
+                                        String comment = ms_item.optString("c");
+                                        addMessgage("系统消息:", comment);
+                                    }
+                                    else if (type.equals("like")) {
+                                        //"cl":[252,154,81]}]}
+                                        JSONArray color = ms_item.getJSONArray("cl");
+                                        int r = color.getInt(0);
+                                        int g = color.getInt(1);
+                                        int b = color.getInt(2);
+                                        LogUtil.info(TAG, String.format(Locale.US,
+                                                "点亮了：(%d %d %d)", r, g, b));
+                                    }
                                 }
                             }
                         } catch (JSONException e) {
@@ -302,6 +342,28 @@ public class InkePlayerActivity extends AppCompatActivity
 
                 @Override
                 public void onWebSocketClose() {
+                    if (!mbActivityRunning)
+                        return;
+
+                    mRetry++;
+                    if (mRetry < 5) {
+                        InkePlayerActivity.this.runOnUiThread(new Runnable() {
+                            @Override
+                            public void run() {
+                                try {
+                                    Thread.sleep(3000);
+                                } catch (InterruptedException e) {
+                                    e.printStackTrace();
+                                }
+
+                                LogUtil.info(TAG, "retrying to connect to chat room...");
+                                Toast.makeText(InkePlayerActivity.this,
+                                        "聊天室连接重试中...", Toast.LENGTH_SHORT).show();
+
+                                new ChatroomTask().execute(mSlot);
+                            }
+                        });
+                    }
 
                 }
 
@@ -309,67 +371,46 @@ public class InkePlayerActivity extends AppCompatActivity
                 public void onWebSocketError(String description) {
 
                 }
-            };
 
-            new Thread(new Runnable() {
                 @Override
-                public void run() {
-                    List<String> chatIpList = InkeUtil.chatList(mSlot);
-                    if (chatIpList == null) {
-                        InkePlayerActivity.this.runOnUiThread(new Runnable() {
-                            @Override
-                            public void run() {
-                                Toast.makeText(InkePlayerActivity.this,
-                                        "获取聊天室信息失败", Toast.LENGTH_SHORT).show();
-                            }
-                        });
+                public void onWebSocketJoinRoom(String roomId) {
+                    InkePlayerActivity.this.runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            mScrollView.setVisibility(View.VISIBLE);
+                            mBtnSendMessage.setEnabled(true);
 
-                        return;
-                    }
-
-                    for (int i=0;i<chatIpList.size();i++) {
-                        String url = chatIpList.get(i); // "http://60.205.82.28:81"
-                        LogUtil.info(TAG, String.format(Locale.US,
-                                "chat room #%d: %s", i, url));
-
-                        String chat_url = InkeUtil.chatServer(url);
-                        if (chat_url == null) {
-                            LogUtil.error(TAG, "failed to get chatroom server url");
-                            break;
+                            addMessgage("系统:", "聊天室已连接");
                         }
+                    });
+                }
 
-                        final String ws_url = chat_url.replace("http://", "ws://");
-                        InkePlayerActivity.this.runOnUiThread(new Runnable() {
-                            @Override
-                            public void run() {
-                                connect(ws_url);
-                            }
-                        });
-
-                        try {
-                            Thread.sleep(3000);
-                        } catch (InterruptedException e) {
-                            e.printStackTrace();
-                        }
-
-                        if (state == WebSocketConnectionState.CONNECTED ||
-                                state == WebSocketConnectionState.LOGIN) {
-                            LogUtil.info(TAG, "ws server connected, stop trying");
-                            break;
-                        }
-                    }
-
+                @Override
+                public void onWebSocketLeaveRoom() {
 
                 }
-            }).start();
+            };
+
+            new ChatroomTask().execute(mSlot);
         }
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+
+        mbActivityRunning = true;
     }
 
     @Override
     protected void onPause() {
         super.onPause();
 
-        disconnect();
+        mbActivityRunning = false;
+
+        if (mChatClient != null) {
+            mChatClient.disconnect();
+        }
 
         if (mPlayer != null) {
             try {
@@ -382,225 +423,101 @@ public class InkePlayerActivity extends AppCompatActivity
         }
     }
 
-    private void addMessgage(String msg) {
+    private class ChatroomTask extends AsyncTask<Integer, Integer, String> {
+
+        @Override
+        protected void onPostExecute(String result) {
+            if (result != null) {
+                if (mChatClient != null) {
+                    mChatClient.disconnect();
+                }
+
+                String ws_url = result.replace("http://", "ws://");
+                mChatClient = new InkeChatRoomClient(
+                        ws_url, mRoomId, mbSimpleAll ? "hot" : "new");
+                mChatClient.setEventLisener(events);
+                if (mChatClient.connect())
+                    return;
+            }
+
+            Toast.makeText(InkePlayerActivity.this, "连接聊天室失败", Toast.LENGTH_SHORT).show();
+        }
+
+        @Override
+        protected String doInBackground(Integer... params) {
+            List<String> chatIpList = InkeUtil.chatList(params[0]);
+            if (chatIpList == null || chatIpList.isEmpty())
+                return null;
+
+            String url = chatIpList.get(0);
+            return InkeUtil.chatServer(url);
+        }
+    }
+
+
+    private View.OnTouchListener mOnTouchListener = new View.OnTouchListener() {
+
+        @Override
+        public boolean onTouch(View v, MotionEvent event) {
+            return mGestureDetector.onTouchEvent(event);
+        }
+    };
+
+    private GestureDetector mGestureDetector =
+            new GestureDetector(getApplication(), new GestureDetector.SimpleOnGestureListener() {
+
+                @Override
+                public boolean onDoubleTap(MotionEvent event) {
+                    mbMessageShowing = !mbMessageShowing;
+
+                    if (mbMessageShowing)
+                        mTvMessageHistory.setVisibility(View.VISIBLE);
+                    else
+                        mTvMessageHistory.setVisibility(View.GONE);
+                    return true;
+                }
+            });
+
+    private void addMessgage(String who, String msg) {
         if (mMessageList.size() > 30)
             mMessageList.remove(0);
-        mMessageList.add(msg);
 
-        StringBuffer sb = new StringBuffer();
+        String str = String.format(Locale.US,
+                "<font color=\"red\">%s</font> <font color=\"white\">%s</font>", who, msg);
+        mMessageList.add(str);
+
+        final StringBuffer sb = new StringBuffer();
         for (int i=0;i<mMessageList.size();i++) {
             sb.append(mMessageList.get(i));
-            sb.append("\n");
-        }
-        mTvMessageHistory.setText(sb.toString());
-
-        mScrollView.smoothScrollTo(0, mTvMessageHistory.getBottom());
-    }
-
-    private void sendChatMessage(String msg) {
-        if (state != WebSocketConnectionState.LOGIN) {
-            LogUtil.error(TAG, "WebSocket sendMessage() in state " + state);
-            return;
+            sb.append("<br/>");
         }
 
-        JSONObject json = new JSONObject();
-        try {
-            //json:{
-            // "to":0,
-            // "b":{"ev":"c.jr"},
-            // "c":"hello",
-            // "tp":"pub"}
-            JSONObject b = new JSONObject();
-            b.put("ev", "c.ch");
+        /*SpannableStringBuilder style = new SpannableStringBuilder("备注:签收人(张三)");
+        style.setSpan(
+                new ForegroundColorSpan(Color.BLUE),
+                0, 3, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
+        style.setSpan(
+                new ForegroundColorSpan(Color.RED),
+                7, 9, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
+        mTvMessageHistory.setText(style);*/
 
-            json.put("to", 0);
-            json.put("b", b);
-            json.put("c", msg);
-            json.put("tp", "pub");
-            LogUtil.info(TAG, "sendMessage: " + json.toString());
-            ws.sendTextMessage("3:::" + json.toString());
+        //String str = String.format("状态 ：<font color=\"#666666\">%s", "已售");
 
-            addMessgage("我说: " + msg);
-        } catch (JSONException e) {
-            LogUtil.error(TAG, "WebSocket register JSON error: " + e.getMessage());
-        }
-    }
-
-    private void leaveRoom() {
-        if (state != WebSocketConnectionState.CONNECTED) {
-            LogUtil.error(TAG, "WebSocket login() in state " + state);
-            return;
-        }
-
-        JSONObject json = new JSONObject();
-        try {
-            JSONObject b = new JSONObject();
-            b.put("ev", "c.lr"); //leave
-            json.put("b", b);
-            LogUtil.info(TAG, "leaveRoom: " + json.toString());
-            ws.sendTextMessage("3:::" + json.toString());
-            state = WebSocketConnectionState.LOGOUT;
-        } catch (JSONException e) {
-            LogUtil.error(TAG, "WebSocket register JSON error: " + e.getMessage());
-        }
-    }
-
-    private void joinRoom() {
-        setupHeartBeat();
-
-        JSONObject json = new JSONObject();
-        try {
-            //json:{"b":{"ev":"c.jr"},
-            // "rid":"1468311806818655",
-            // "city":"",
-            // "from":"new"}
-            JSONObject b = new JSONObject();
-            b.put("ev", "c.jr"); // join
-            json.put("b", b);
-            json.put("rid", mRoomId);
-            json.put("city", "beijing");
-            json.put("from", mbSimpleAll ? "hot" : "new");
-            LogUtil.info(TAG, "joinRoom: " + json.toString());
-            ws.sendTextMessage("3:::" + json.toString());
-            state = WebSocketConnectionState.LOGIN;
-        } catch (JSONException e) {
-            LogUtil.error(TAG, "WebSocket joinRoom JSON error: " + e.getMessage());
-        }
-    }
-
-    void setupHeartBeat() {
-        mHeartBeatThr = new Thread(new Runnable() {
+        runOnUiThread(new Runnable() {
             @Override
             public void run() {
-                LogUtil.info(TAG, "heart beat thread started");
+                mTvMessageHistory.setText(Html.fromHtml(sb.toString()));
 
-                while(!mHeartBeatThr.isInterrupted() &&
-                        (state == WebSocketConnectionState.LOGIN ||
-                                state == WebSocketConnectionState.CONNECTED)) {
-                    ws.sendTextMessage("2:::");
+                mScrollView.smoothScrollTo(0, mTvMessageHistory.getBottom());
 
-                    try {
-                        Thread.sleep(1000);
-                    } catch (InterruptedException e) {
-                        e.printStackTrace();
-                        mHeartBeatThr.interrupt();
-                    }
-                }
-
-                LogUtil.info(TAG, "hear beat thread exited");
+                int users = 0;
+                if (mChatClient != null)
+                    users = mChatClient.getCurrentUsers();
+                mTvInfo.setText(
+                        String.format(Locale.US, "%s(%d), 在线人数: %d",
+                                mCreator, mCreatorUid, users));
             }
         });
-        mHeartBeatThr.start();
-    }
-
-    void resetHeartBeat() {
-        if (mHeartBeatThr != null) {
-            mHeartBeatThr.interrupt();
-            try {
-                LogUtil.info(TAG, "before join mHeartBeatThr");
-                mHeartBeatThr.join();
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
-            mHeartBeatThr = null;
-            LogUtil.info(TAG, "after join mHeartBeatThr");
-        }
-    }
-
-    /**
-     * Callback interface for messages delivered on WebSocket.
-     * All events are dispatched from a looper executor thread.
-     */
-    public interface WebSocketChannelEvents {
-        public void onWebSocketMessage(final String message);
-        public void onWebSocketClose();
-        public void onWebSocketError(final String description);
-    }
-
-    private class WebSocketObserver implements WebSocketConnectionObserver {
-        @Override
-        public void onOpen() {
-            LogUtil.info(TAG, "WebSocket connection opened to: " + wsServerUrl);
-            InkePlayerActivity.this.runOnUiThread(new Runnable() {
-                @Override
-                public void run() {
-                    state = WebSocketConnectionState.CONNECTED;
-                    // Check if we have pending register request.
-                    joinRoom();
-                }
-            });
-        }
-
-        @Override
-        public void onClose(WebSocketCloseNotification code, String reason) {
-            LogUtil.info(TAG, "WebSocket connection closed. Code: " + code
-                    + ". Reason: " + reason + ". State: " + state);
-            InkePlayerActivity.this.runOnUiThread(new Runnable() {
-                @Override
-                public void run() {
-                    if (state != WebSocketConnectionState.CLOSED) {
-                        state = WebSocketConnectionState.CLOSED;
-                        events.onWebSocketClose();
-                    }
-                }
-            });
-        }
-
-        @Override
-        public void onTextMessage(final String payload) {
-            //LogUtil.info(TAG, "onTextMessage: " + payload);
-            InkePlayerActivity.this.runOnUiThread(new Runnable() {
-                @Override
-                public void run() {
-                    if (state == WebSocketConnectionState.LOGIN) {
-                        events.onWebSocketMessage(payload);
-                    }
-                }
-            });
-        }
-
-        @Override
-        public void onRawTextMessage(byte[] payload) {
-        }
-
-        @Override
-        public void onBinaryMessage(byte[] payload) {
-        }
-    }
-
-    private void connect(final String wsUrl) {
-        if (state != WebSocketConnectionState.NEW) {
-            LogUtil.error(TAG, "WebSocket is already connected.");
-            return;
-        }
-
-        wsServerUrl = wsUrl;
-        LogUtil.info(TAG, "Connecting WebSocket to: " + wsUrl);
-        ws = new WebSocketConnection();
-        wsObserver = new WebSocketObserver();
-        try {
-            ws.connect(new URI(wsServerUrl), wsObserver);
-        } catch (URISyntaxException e) {
-            LogUtil.error(TAG, "URI error: " + e.getMessage());
-        } catch (WebSocketException e) {
-            LogUtil.error(TAG, "WebSocket connection error: " + e.getMessage());
-        }
-    }
-
-    public void disconnect() {
-        LogUtil.info(TAG, "Disonnect WebSocket. State: " + state);
-
-        resetHeartBeat();
-
-        leaveRoom();
-
-        // Close WebSocket in CONNECTED or ERROR states only.
-        if (state == WebSocketConnectionState.CONNECTED
-                || state == WebSocketConnectionState.ERROR) {
-            ws.disconnect();
-            state = WebSocketConnectionState.CLOSED;
-        }
-        LogUtil.info(TAG, "Disonnecting WebSocket done.");
     }
 
     private boolean SetupPlayer() {

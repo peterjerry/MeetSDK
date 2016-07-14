@@ -165,36 +165,14 @@ public class InkeActivity extends AppCompatActivity {
         mLvCreator.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-                Map<String, Object> map = (Map<String, Object>)mLvCreator.getItemAtPosition(position);
-                String play_url = (String) map.get("play_url");
-                String rid = (String) map.get("rid");
-                int slot = (Integer) map.get("slot");
-                play_url += "?type=gotyelive";
-                //play_url = ndsTranslate(play_url);
-                Intent intent = new Intent(InkeActivity.this, InkePlayerActivity.class);
-                intent.putExtra("play_url", play_url);
-                intent.putExtra("rid", rid);
-                intent.putExtra("slot", slot);
-                intent.putExtra("simpleall", list_type == LoadTask.LIST_SIMPLEALL);
-                startActivity(intent);
+                startPlay(position, true);
             }
         });
 
         mGvCreator.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-                Map<String, Object> map = (Map<String, Object>)mGvCreator.getItemAtPosition(position);
-                String play_url = (String) map.get("play_url");
-                String rid = (String) map.get("rid");
-                int slot = (Integer) map.get("slot");
-                play_url += "?type=gotyelive";
-                //play_url = ndsTranslate(play_url);
-                Intent intent = new Intent(InkeActivity.this, InkePlayerActivity.class);
-                intent.putExtra("play_url", play_url);
-                intent.putExtra("rid", rid);
-                intent.putExtra("slot", slot);
-                intent.putExtra("simpleall", list_type == LoadTask.LIST_SIMPLEALL);
-                startActivity(intent);
+                startPlay(position, false);
             }
         });
 
@@ -260,6 +238,29 @@ public class InkeActivity extends AppCompatActivity {
         }
 
         return true;
+    }
+
+    private void startPlay(int position, boolean bSimpleAll) {
+        Map<String, Object> map;
+        if (bSimpleAll)
+            map = (Map<String, Object>)mLvCreator.getItemAtPosition(position);
+        else
+            map = (Map<String, Object>)mGvCreator.getItemAtPosition(position);
+        String creator = (String)map.get("title");
+        int uid = (Integer)map.get("uid");
+        String play_url = (String) map.get("play_url");
+        String rid = (String) map.get("rid");
+        int slot = (Integer) map.get("slot");
+        play_url += "?type=gotyelive";
+        //play_url = ndsTranslate(play_url);
+        Intent intent = new Intent(InkeActivity.this, InkePlayerActivity.class);
+        intent.putExtra("play_url", play_url);
+        intent.putExtra("creator", creator);
+        intent.putExtra("uid", uid);
+        intent.putExtra("rid", rid);
+        intent.putExtra("slot", slot);
+        intent.putExtra("simpleall", bSimpleAll);
+        startActivity(intent);
     }
 
     private void popupSearch() {

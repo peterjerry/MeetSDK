@@ -38,10 +38,8 @@ public class InkeUtil {
                     "&aid=f1d83c9537cb2028" +
                     "&osversion=android_19" +
                     "&proto=4" +
-                    //"&smid=DuJQrxHQrspxX3vIrdzJ9NZjtJewzbxa6fkP3HRfX3ZOev527" +
-                    //"PohCrq/r6cSbwSM+oEHITIq21EI6F7hQQaMOArQ";
-                    "DuJQrxHQrspxX3vIrdzJ9NZjtJewzbxa6fkP3HRfX3ZOev527PohCrq" +
-                    "%2Fr6cSbwSM%2BoEHITIq21EI6F7hQQaMOArQ";
+                    "&smid=DuJQrxHQrspxX3vIrdzJ9NZjtJewzbxa6fkP3HRfX3ZOev527PohCrq" +
+                    "/r6cSbwSM+oEHITIq21EI6F7hQQaMOArQ"; //%2Fr6cSbwSM%2BoEHITIq21EI6F7hQQaMOArQ
 
     private final static String simpleall_api_url =
             "http://service5.ingkee.com/api/live/simpleall" +
