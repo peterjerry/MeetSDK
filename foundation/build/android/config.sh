@@ -1,7 +1,7 @@
 #!/bin/bash
 
 if [ $# == 0 ] ; then 
-echo "USAGE: $0 <abi(armeabi-v7a x86 arm64-v8a)> [config(full lite micro tiny tiny2 gotye music)] [component(enc mux librtmp openssl)] [path=/your/ffmpeg/src/path]" 
+echo "USAGE: $0 <abi(armeabi-v7a x86 arm64-v8a)> [config(full lite micro tiny tiny2 gotye publisher music)] [component(enc mux librtmp openssl)] [path=/your/ffmpeg/src/path]" 
 echo " e.g.: $0 armeabi-v7a"
 echo " e.g.: $0 armeabi-v7a lite"
 echo " e.g.: $0 armeabi-v7a lite enc" 
@@ -267,6 +267,22 @@ do
 			--disable-avfilter \
 			--disable-postproc \
 			--enable-small "
+	elif [ ${arg}x == 'publisher'x ]; then
+		echo "publisher build"
+		EXTRA_PARAMETERS="$EXTRA_PARAMETERS \
+			--disable-decoders \
+			--disable-demuxers \
+			--disable-parsers \
+			--disable-protocols \
+			--enable-protocol=rtmp \
+			--enable-muxer=flv \
+			--disable-bsfs \
+			--enable-bsf=aac_adtstoasc \
+			--disable-swscale \
+			--disable-swresample \
+			--disable-avfilter \
+			--disable-postproc \
+			--enable-small "		
 	elif [ ${arg}x == 'music'x ]; then
 		echo "music build"
 		EXTRA_PARAMETERS="$EXTRA_PARAMETERS \
@@ -289,7 +305,7 @@ done
 #remove ac3 eac3
 #EXTRA_PARAMETERS="$EXTRA_PARAMETERS --disable-decoder=ac3,eac3 --disable-parser=ac3 --disable-demuxer=ac3,eac3 "
 
-if [ ${2}x != 'tiny'x ] && [ ${2}x != 'tiny2'x ] && [ ${2}x != 'gotye'x ] && [ ${2}x != 'music'x ]; then
+if [ ${2}x == 'full'x ] || [ ${2}x == 'lite'x ] || [ ${2}x == 'micro'x ]; then
 EXTRA_PARAMETERS="$EXTRA_PARAMETERS \
 	--enable-filter=rotate,transpose,hflip,vflip,yadif,showspectrum,showwaves,aresample,scale"
 fi
