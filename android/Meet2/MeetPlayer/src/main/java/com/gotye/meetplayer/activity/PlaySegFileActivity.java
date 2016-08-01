@@ -2,8 +2,11 @@ package com.gotye.meetplayer.activity;
 
 import android.app.AlertDialog;
 import android.app.Dialog;
+import android.content.BroadcastReceiver;
+import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.graphics.PixelFormat;
 import android.media.AudioManager;
 import android.net.Uri;
@@ -41,6 +44,7 @@ import java.io.IOException;
 import java.lang.ref.WeakReference;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 import java.util.Locale;
 import java.util.StringTokenizer;
@@ -58,12 +62,17 @@ public class PlaySegFileActivity extends AppCompatActivity
     private boolean mPrepared = false;
 	private MicroMediaController mController;
 	private MyMediaPlayerControl mMediaPlayerControl;
-    private LinearLayout mHoodLayout;
+    private RelativeLayout mHoodLayout;
     private TextView mTvTitle;
+    private TextView mTvSysTime;
+    private TextView mTvBattery;
     private ImageButton mBtnBack;
 	protected ProgressBar mBufferingProgressBar;
     private TextView mTvInfo;
     private boolean mbTvInfoShowing = false;
+
+    private BatteryReceiver batteryReceiver;
+    private int mBatteryPct = 100;
 
     // stat
     private int decode_fps					= 0;
@@ -170,9 +179,11 @@ public class PlaySegFileActivity extends AppCompatActivity
         this.mController 			= (MicroMediaController) findViewById(R.id.video_controller);
         this.mBufferingProgressBar 	= (ProgressBar) findViewById(R.id.progressbar_buffering);
 
-        this.mHoodLayout = (LinearLayout)this.findViewById(R.id.hood_layout);
+        this.mHoodLayout = (RelativeLayout)this.findViewById(R.id.hood_layout);
         this.mTvTitle = (TextView)this.findViewById(R.id.player_title);
         this.mBtnBack = (ImageButton)this.findViewById(R.id.player_back_btn);
+        this.mTvSysTime = (TextView)this.findViewById(R.id.tv_sys_time);
+        this.mTvBattery = (TextView)this.findViewById(R.id.tv_battery);
 
         this.mTvInfo = (TextView)this.findViewById(R.id.tv_info);
 
@@ -349,6 +360,14 @@ public class PlaySegFileActivity extends AppCompatActivity
                 OnComplete();
 			}
 		};
+
+        //注册广播接受者java代码
+        IntentFilter intentFilter = new IntentFilter(Intent.ACTION_BATTERY_CHANGED);
+        //创建广播接受者对象
+        batteryReceiver = new BatteryReceiver();
+
+        //注册receiver
+        registerReceiver(batteryReceiver, intentFilter);
 	}
 
     @Override
@@ -597,6 +616,13 @@ public class PlaySegFileActivity extends AppCompatActivity
 
     private void showHood(int msec) {
         mHandler.removeMessages(MainHandler.MSG_HIDE_HOOD);
+
+        SimpleDateFormat format = new SimpleDateFormat("HH:mm", Locale.US);
+        String str_time = format.format((new Date()));
+        mTvSysTime.setText(str_time);
+        mTvBattery.setText(String.format(Locale.US,
+                "电池 %d", mBatteryPct));
+
         mHoodLayout.setVisibility(View.VISIBLE);
         if (msec > 0)
             mHandler.sendEmptyMessageDelayed(MainHandler.MSG_HIDE_HOOD, msec);
@@ -670,6 +696,8 @@ public class PlaySegFileActivity extends AppCompatActivity
 			mPlayer.release();
 			mPlayer = null;
 		}
+
+        unregisterReceiver(batteryReceiver);
 	}
 	
 	@Override
@@ -707,6 +735,27 @@ public class PlaySegFileActivity extends AppCompatActivity
 	}
 
     protected void onShedule() {
+
+    }
+
+    private class BatteryReceiver extends BroadcastReceiver {
+
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            // TODO Auto-generated method stub
+            //判断它是否是为电量变化的Broadcast Action
+            if (Intent.ACTION_BATTERY_CHANGED.equals(intent.getAction())){
+                //获取当前电量
+                int level = intent.getIntExtra("level", 0);
+                //电量的总刻度
+                int scale = intent.getIntExtra("scale", 100);
+
+                mBatteryPct = level * 100 / scale;
+                // fix tvbox problem
+                if (mBatteryPct == 0)
+                    mBatteryPct = 100;
+            }
+        }
 
     }
 

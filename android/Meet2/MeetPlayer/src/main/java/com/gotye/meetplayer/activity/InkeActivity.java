@@ -2,6 +2,7 @@ package com.gotye.meetplayer.activity;
 
 import android.app.AlertDialog;
 import android.app.Dialog;
+import android.app.TaskStackBuilder;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.os.AsyncTask;
@@ -43,6 +44,7 @@ public class InkeActivity extends AppCompatActivity {
     private final static String TAG = "InkeActivity";
 
     private ListView mLvCreator;
+    private ListView mLvFollowCreator;
     private GridView mGvCreator;
     private MeetAdapter mAdapter;
 
@@ -52,24 +54,11 @@ public class InkeActivity extends AppCompatActivity {
     private PagerTabStrip tabStrip;
     private ArrayList<View> viewContainter;
     private ArrayList<String> titleContainer;
-    private View viewSimpleAll, viewHomePage;
+    private View viewSimpleAll, viewFollow, viewHomePage;
 
     private List<Map<String, String>> nsList;
 
-    private String gettop_api_url = "http://service5.ingkee.com/api/live/gettop" +
-            "?lc=3000000000001604" +
-            "&cv=IK2.5.00_Android" +
-            "&cc=TG36078" +
-            "&uid=67302632" +
-            "&sid=E0rgPgFY8Vi0bQ69RjMuQaybuIQi3i3" +
-            "&devi=99000558796818" +
-            "&imsi=" +
-            "&icc=" +
-            "&conn=WIFI" +
-            "&vv=1.0.2-201511261613.android" +
-            "&aid=3dc3324f515d553" +
-            "&proto=3" +
-            "&count=10";
+    private int mUid;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -90,12 +79,15 @@ public class InkeActivity extends AppCompatActivity {
         tabStrip.setTextSpacing(200);
 
         viewSimpleAll = LayoutInflater.from(this).inflate(R.layout.activity_inke_simpleall, null);
+        viewFollow = LayoutInflater.from(this).inflate(R.layout.activity_inke_simpleall, null);
         viewHomePage = LayoutInflater.from(this).inflate(R.layout.activity_inke_homepage, null);
         //viewpager开始添加view
         viewContainter.add(viewSimpleAll);
+        viewContainter.add(viewFollow);
         viewContainter.add(viewHomePage);
         //页签项
         titleContainer.add("热门主播");
+        titleContainer.add("个人关注");
         titleContainer.add("新鲜出炉");
 
         pager.setAdapter(new PagerAdapter() {
@@ -142,9 +134,14 @@ public class InkeActivity extends AppCompatActivity {
 
             @Override
             public void onPageSelected(int position) {
+                // reset adapter
                 mAdapter = null;
+
                 if (position == 0) {
                     list_type = LoadTask.LIST_SIMPLEALL;
+                }
+                else if (position == 1) {
+                    list_type = LoadTask.LIST_GET_FOLLOW;
                 }
                 else {
                     list_type = LoadTask.LIST_HOMEPAGE;
@@ -160,19 +157,27 @@ public class InkeActivity extends AppCompatActivity {
         });
 
         mLvCreator = (ListView) viewSimpleAll.findViewById(R.id.lv_creator);
+        mLvFollowCreator = (ListView) viewFollow.findViewById(R.id.lv_creator);
         mGvCreator = (GridView) viewHomePage.findViewById(R.id.gv_creator);
 
         mLvCreator.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-                startPlay(position, true);
+                startPlay(position, list_type);
+            }
+        });
+
+        mLvFollowCreator.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            @Override
+            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+                startPlay(position, list_type);
             }
         });
 
         mGvCreator.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-                startPlay(position, false);
+                startPlay(position, list_type);
             }
         });
 
@@ -240,13 +245,19 @@ public class InkeActivity extends AppCompatActivity {
         return true;
     }
 
-    private void startPlay(int position, boolean bSimpleAll) {
+    private void startPlay(int position, int list_type) {
         Map<String, Object> map;
-        if (bSimpleAll)
-            map = (Map<String, Object>)mLvCreator.getItemAtPosition(position);
-        else
-            map = (Map<String, Object>)mGvCreator.getItemAtPosition(position);
-        String creator = (String)map.get("title");
+        if (list_type == LoadTask.LIST_SIMPLEALL) {
+            map = (Map<String, Object>) mLvCreator.getItemAtPosition(position);
+        }
+        else if (list_type == LoadTask.LIST_GET_FOLLOW) {
+            map = (Map<String, Object>)mLvFollowCreator.getItemAtPosition(position);
+        }
+        else {
+            map = (Map<String, Object>) mGvCreator.getItemAtPosition(position);
+        }
+
+        String creator_name = (String)map.get("title");
         int uid = (Integer)map.get("uid");
         String play_url = (String) map.get("play_url");
         String rid = (String) map.get("rid");
@@ -255,11 +266,11 @@ public class InkeActivity extends AppCompatActivity {
         //play_url = ndsTranslate(play_url);
         Intent intent = new Intent(InkeActivity.this, InkePlayerActivity.class);
         intent.putExtra("play_url", play_url);
-        intent.putExtra("creator", creator);
+        intent.putExtra("creator_name", creator_name);
         intent.putExtra("uid", uid);
         intent.putExtra("rid", rid);
         intent.putExtra("slot", slot);
-        intent.putExtra("simpleall", bSimpleAll);
+        intent.putExtra("simpleall", list_type != LoadTask.LIST_HOMEPAGE);
         startActivity(intent);
     }
 
@@ -310,6 +321,7 @@ public class InkeActivity extends AppCompatActivity {
 
         public final static int ACTION_SEARCH       = 1;
         public final static int ACTION_NOWPUBLISH   = 2;
+        public final static int ACTION_FOLLOW       = 3;
 
         @Override
         protected void onPostExecute(Boolean result) {
@@ -335,17 +347,46 @@ public class InkeActivity extends AppCompatActivity {
                             .create();
                     choose_episode_dlg.show();
                 }
-                else {
+                else if (action == ACTION_NOWPUBLISH) {
+                    LogUtil.info(TAG, "publish info: " + publishResult.toString());
+
                     String play_url = publishResult.mStreamUrl;
                     play_url += "?type=gotyelive";
                     Intent intent = new Intent(InkeActivity.this, InkePlayerActivity.class);
                     intent.putExtra("play_url", play_url);
+                    intent.putExtra("creator_name", publishResult.mName);
+                    intent.putExtra("uid", publishResult.mCreator);
+                    intent.putExtra("rid", publishResult.mId);
+                    intent.putExtra("slot", publishResult.mSlot);
+                    intent.putExtra("simpleall", true);
                     startActivity(intent);
                 }
+                else {
+                    Toast.makeText(InkeActivity.this,
+                            "关注成功",
+                            Toast.LENGTH_SHORT).show();
+                }
             } else {
-                Toast.makeText(InkeActivity.this,
-                        (ACTION_SEARCH == action ? "搜索" : "获取直播信息") + "失败",
-                        Toast.LENGTH_SHORT).show();
+                if (action == ACTION_NOWPUBLISH) {
+                    Dialog follow_dlg = new AlertDialog.Builder(InkeActivity.this)
+                            .setTitle("主播信息")
+                            .setMessage("直播未开始，是否关注主播？")
+                            .setPositiveButton("关注", new DialogInterface.OnClickListener() {
+                                @Override
+                                public void onClick(DialogInterface dialog, int whichButton) {
+                                    new InkeTask().execute(ACTION_FOLLOW, mUid);
+                                    dialog.dismiss();
+                                }
+                            })
+                            .setNegativeButton("取消", null)
+                            .create();
+                    follow_dlg.show();
+                }
+                else {
+                    Toast.makeText(InkeActivity.this,
+                            (action == ACTION_SEARCH ? "搜索" : "关注") + "失败",
+                            Toast.LENGTH_SHORT).show();
+                }
             }
         }
 
@@ -357,17 +398,23 @@ public class InkeActivity extends AppCompatActivity {
                 userList = InkeUtil.search(uid);
                 return (userList != null && userList.size() > 0);
             }
-            else {
+            else if (ACTION_NOWPUBLISH == action) {
+                mUid = uid; // save for follow
+
                 publishResult = InkeUtil.getNowPublish(uid);
                 return (publishResult != null);
+            }
+            else {
+                return InkeUtil.follow(uid);
             }
         }
     }
 
     private class LoadTask extends AsyncTask<Integer, Integer, List<Map<String, Object>>> {
 
-        private final static int LIST_SIMPLEALL = 1;
-        private final static int LIST_HOMEPAGE = 2;
+        private final static int LIST_SIMPLEALL     = 1;
+        private final static int LIST_GET_FOLLOW    = 2;
+        private final static int LIST_HOMEPAGE      = 3;
 
         private int action;
 
@@ -379,6 +426,18 @@ public class InkeActivity extends AppCompatActivity {
                         mAdapter = new InkeSimpleAllAdapter(InkeActivity.this, result,
                                 R.layout.inke_item);
                         mLvCreator.setAdapter(mAdapter);
+                    } else {
+                        List<Map<String, Object>> dataList = mAdapter.getData();
+                        dataList.clear();
+                        dataList.addAll(result);
+                        mAdapter.notifyDataSetChanged();
+                    }
+                }
+                else if (action == LIST_GET_FOLLOW) {
+                    if (mAdapter == null) {
+                        mAdapter = new InkeSimpleAllAdapter(InkeActivity.this, result,
+                                R.layout.inke_item);
+                        mLvFollowCreator.setAdapter(mAdapter);
                     } else {
                         List<Map<String, Object>> dataList = mAdapter.getData();
                         dataList.clear();
@@ -411,6 +470,8 @@ public class InkeActivity extends AppCompatActivity {
             action = params[0];
             if (action == LIST_SIMPLEALL)
                 list = InkeUtil.simpleall();
+            else if (action == LIST_GET_FOLLOW)
+                list = InkeUtil.getFollow();
             else
                 list = InkeUtil.homepage();
             if (list == null || list.isEmpty())

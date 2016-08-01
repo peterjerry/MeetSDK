@@ -20,6 +20,8 @@ import java.net.NetworkInterface;
 import java.net.SocketException;
 import java.net.URL;
 import java.net.UnknownHostException;
+import java.security.cert.CertificateException;
+import java.security.cert.X509Certificate;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
@@ -618,7 +620,6 @@ public class Util {
 
 		try {
 			URL realUrl = new URL(url);
-			// 打开和URL之间的连接
 			HttpURLConnection conn = (HttpURLConnection)realUrl.openConnection();
 			conn.setRequestMethod("GET");
 			conn.setReadTimeout(5000);// 设置超时的时间
@@ -673,8 +674,7 @@ public class Util {
 
 		try {
 			URL realUrl = new URL(url);
-			// 打开和URL之间的连接
-			HttpURLConnection conn = (HttpURLConnection)realUrl.openConnection();
+            HttpURLConnection conn = (HttpURLConnection) realUrl.openConnection();
 			conn.setRequestMethod("POST");
 			if (params != null) {
 				byte[] bypes = params.getBytes();

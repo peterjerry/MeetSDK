@@ -8,9 +8,13 @@ import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
 import android.text.Html;
 import android.view.GestureDetector;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
 import android.view.MotionEvent;
 import android.view.SurfaceHolder;
 import android.view.View;
+import android.view.WindowManager;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ProgressBar;
@@ -61,7 +65,7 @@ public class InkePlayerActivity extends AppCompatActivity
     private InkeChatRoomClient.WebSocketChannelEvents events;
     private int mRetry = 0;
 
-    private String mCreator;
+    private String mCreatorName;
     private int mCreatorUid;
     private String mRoomId;// id=1468316035495368
     private int mSlot;
@@ -88,13 +92,23 @@ public class InkePlayerActivity extends AppCompatActivity
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_inke_player);
 
+        try {
+            super.getWindow().addFlags(
+                    WindowManager.LayoutParams.class.
+                            getField("FLAG_NEEDS_MENU_KEY").getInt(null));
+        } catch (NoSuchFieldException e) {
+            // Ignore since this field won't exist in most versions of Android
+        } catch (IllegalAccessException e) {
+            e.printStackTrace();
+        }
+
         if (getSupportActionBar() != null)
             getSupportActionBar().hide();
 
         setVolumeControlStream(AudioManager.STREAM_MUSIC);
 
         Intent intent = getIntent();
-        mCreator = intent.getStringExtra("creator");
+        mCreatorName = intent.getStringExtra("creator_name");
         mCreatorUid = intent.getIntExtra("uid", -1);
         mPlayUrl = intent.getStringExtra("play_url");
         if (intent.hasExtra("rid")) {
@@ -118,7 +132,8 @@ public class InkePlayerActivity extends AppCompatActivity
         mView.setLongClickable(true); // MUST set to enable double-tap and single-tap-confirm
         mView.setOnTouchListener(mOnTouchListener);
 
-        mTvInfo.setText(String.format(Locale.US, "%s(%d), 在线人数:", mCreator, mCreatorUid));
+        mTvInfo.setText(String.format(Locale.US, "%s(%d), 在线人数:",
+                mCreatorName, mCreatorUid));
 
         mBtnSendMessage.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -423,6 +438,40 @@ public class InkePlayerActivity extends AppCompatActivity
         }
     }
 
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        MenuInflater menuInflater = new MenuInflater(getApplication());
+        menuInflater.inflate(R.menu.inke_player_menu, menu);
+        return super.onCreateOptionsMenu(menu);
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+
+        int id = item.getItemId();
+        switch (id) {
+            case R.id.follow:
+                new Thread(new Runnable() {
+                    @Override
+                    public void run() {
+                        final boolean success = InkeUtil.follow(mCreatorUid);
+                        InkePlayerActivity.this.runOnUiThread(new Runnable() {
+                            @Override
+                            public void run() {
+                                Toast.makeText(InkePlayerActivity.this,
+                                        success ? "关注成功" : "关注失败",
+                                        Toast.LENGTH_SHORT).show();
+                            }
+                        });
+                    }
+                }).start();
+            default:
+                break;
+        }
+
+        return true;
+    }
+
     private class ChatroomTask extends AsyncTask<Integer, Integer, String> {
 
         @Override
@@ -515,7 +564,7 @@ public class InkePlayerActivity extends AppCompatActivity
                     users = mChatClient.getCurrentUsers();
                 mTvInfo.setText(
                         String.format(Locale.US, "%s(%d), 在线人数: %d",
-                                mCreator, mCreatorUid, users));
+                                mCreatorName, mCreatorUid, users));
             }
         });
     }

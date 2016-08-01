@@ -7,9 +7,5 @@
         android:id="@+id/search_creator"
         app:showAsAction="always"
         android:title="查找播客"/>
-    <item
-        android:id="@+id/mark"
-        app:showAsAction="always"
-        android:title="关注"/>
 
 </menu>

@@ -4,6 +4,7 @@ import java.io.File;
 import java.lang.ref.WeakReference;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
@@ -12,8 +13,11 @@ import java.util.TimeZone;
 
 import android.app.AlertDialog;
 import android.app.Dialog;
+import android.content.BroadcastReceiver;
+import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.graphics.Color;
 import android.graphics.Typeface;
 import android.net.Uri;
@@ -34,6 +38,7 @@ import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ProgressBar;
+import android.widget.RelativeLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -92,9 +97,14 @@ public class VideoPlayerActivity extends AppCompatActivity
     private boolean mbShowDebugInfo = false;
     private NetworkSpeed mSpeed;
 
-    private LinearLayout mHoodLayout;
+    private BatteryReceiver batteryReceiver;
+    private int mBatteryPct = 100;
+
+    private RelativeLayout mHoodLayout;
     private TextView mTvTitle;
     private ImageButton mBtnBack;
+    private TextView mTvSysTime;
+    private TextView mTvBattery;
 
     private int decode_fps = 0;
     private int render_fps = 0;
@@ -174,9 +184,11 @@ public class VideoPlayerActivity extends AppCompatActivity
 
         this.mController.setMediaPlayer(mVideoView);
 
-        this.mHoodLayout = (LinearLayout)this.findViewById(R.id.hood_layout);
+        this.mHoodLayout = (RelativeLayout)this.findViewById(R.id.hood_layout);
         this.mTvTitle = (TextView)this.findViewById(R.id.player_title);
         this.mBtnBack = (ImageButton)this.findViewById(R.id.player_back_btn);
+        this.mTvSysTime = (TextView)this.findViewById(R.id.tv_sys_time);
+        this.mTvBattery = (TextView)this.findViewById(R.id.tv_battery);
 
         mBtnBack.setOnClickListener(new View.OnClickListener() {
 
@@ -191,6 +203,14 @@ public class VideoPlayerActivity extends AppCompatActivity
         this.mVideoView.setOnTouchListener(mOnTouchListener);
 
         Util.initMeetSDK(this);
+
+        // 注册广播接受者java代码
+        IntentFilter intentFilter = new IntentFilter(Intent.ACTION_BATTERY_CHANGED);
+        //创建广播接受者对象
+        batteryReceiver = new BatteryReceiver();
+
+        //注册receiver
+        registerReceiver(batteryReceiver, intentFilter);
     }
 
     @Override
@@ -270,6 +290,8 @@ public class VideoPlayerActivity extends AppCompatActivity
         LogUtil.info(TAG, "Java: onPause()");
 
         mVideoView.pause();
+
+        unregisterReceiver(batteryReceiver);
     }
 
     @Override
@@ -280,6 +302,28 @@ public class VideoPlayerActivity extends AppCompatActivity
 
         stop_subtitle();
         stopPlayer();
+    }
+
+    private class BatteryReceiver extends BroadcastReceiver {
+
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            // TODO Auto-generated method stub
+            //判断它是否是为电量变化的Broadcast Action
+            if (Intent.ACTION_BATTERY_CHANGED.equals(intent.getAction())){
+                //获取当前电量
+                int level = intent.getIntExtra("level", 0);
+                //电量的总刻度
+                int scale = intent.getIntExtra("scale", 100);
+
+                mBatteryPct = level * 100 / scale;
+
+                // fix tvbox problem
+                if (mBatteryPct == 0)
+                    mBatteryPct = 100;
+            }
+        }
+
     }
 
     private void popupMediaInfo() {
@@ -875,6 +919,13 @@ public class VideoPlayerActivity extends AppCompatActivity
 
     private void showHood(int msec) {
         mHandler.removeMessages(MainHandler.MSG_HIDE_HOOD);
+
+        SimpleDateFormat format = new SimpleDateFormat("HH:mm", Locale.US);
+        String str_time = format.format((new Date()));
+        mTvSysTime.setText(str_time);
+        mTvBattery.setText(String.format(Locale.US,
+                "电池 %d", mBatteryPct));
+
         mHoodLayout.setVisibility(View.VISIBLE);
         if (msec > 0)
             mHandler.sendEmptyMessageDelayed(MainHandler.MSG_HIDE_HOOD, msec);

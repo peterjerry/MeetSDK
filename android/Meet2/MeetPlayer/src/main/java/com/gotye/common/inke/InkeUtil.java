@@ -22,6 +22,9 @@ import java.util.Locale;
 public class InkeUtil {
     private final static String TAG = "InkeUtil";
 
+    private final static String inke_api_host =
+            "http://service.ingkee.com/api";
+
     private final static String api_surfix =
             //"?lc=3000000000003002" +
             "?lc=3000000000005850" +
@@ -41,56 +44,69 @@ public class InkeUtil {
                     "&smid=DuJQrxHQrspxX3vIrdzJ9NZjtJewzbxa6fkP3HRfX3ZOev527PohCrq" +
                     "/r6cSbwSM+oEHITIq21EI6F7hQQaMOArQ"; //%2Fr6cSbwSM%2BoEHITIq21EI6F7hQQaMOArQ
 
+    private final static String get_follow_api_url =
+            inke_api_host + "/live/homepage" +
+                    api_surfix + "&type=1&multiaddr=1";
+
     private final static String simpleall_api_url =
-            "http://service5.ingkee.com/api/live/simpleall" +
+            inke_api_host + "/live/simpleall" +
                     api_surfix + "&multiaddr=1";
 
     private final static String homepage_api_url =
-            "http://service5.ingkee.com/api/live/homepage_new" +
+            inke_api_host + "/live/homepage_new" +
                     api_surfix;
 
     private final static String prepare_publish_api =
-            "http://service5.ingkee.com/api/live/pre" +
+            inke_api_host + "/live/pre" +
                     api_surfix +
                     "&multiaddr=1";
 
     private final static String keepalive_publish_api =
-            "http://service5.ingkee.com/api/live/keepalive" +
+            inke_api_host + "/live/keepalive" +
                     api_surfix;
 
     private final static String users_publish_api =
-            "http://service5.ingkee.com/api/live/users" +
+            inke_api_host + "/live/users" +
                     api_surfix +
                     "&count=%d" +
                     "&id=%s" + // 1466038853474424
                     "&start=0";
 
     private final static String start_publish_api =
-            "http://service5.ingkee.com/api/live/start" +
+            inke_api_host + "/live/start" +
                     api_surfix;
 
     private final static String update_publish_api =
-            "http://service5.ingkee.com/api/live/update" +
+            inke_api_host + "/live/update" +
                     api_surfix;
 
     private final static String stop_publish_api =
-            "http://service5.ingkee.com/api/live/stop" +
+            inke_api_host + "/live/stop" +
                     api_surfix;
 
+    private final static String now_publish_api =
+            inke_api_host + "/live/now_publish" +
+                    api_surfix +
+                    "&id=%d&multiaddr=1"; // uid 67302632
+
     private final static String search_api =
-            "http://service5.ingkee.com/api/user/search" +
+            inke_api_host + "/user/search" +
                     api_surfix +
                     "&count=10" +
                     "&start=0" + // offset
                     "&keyword=%d"; // uid 67302632
 
-    private final static String now_publish_api =
-            "http://service5.ingkee.com/api/live/now_publish" +
+    private final static String follow_api =
+            inke_api_host + "/user/relation/follow" +
+                    api_surfix;
+
+    private final static String relation_api =
+            inke_api_host + "/user/relation/relation" +
                     api_surfix +
-                    "&id=%d&multiaddr=1"; // uid 67302632
+                    "&id=%d";
 
     private final static String chat_iplist_api =
-            "http://service.inke.com/api/chat/iplist" +
+            inke_api_host + "/chat/iplist" +
                     api_surfix;
 
     public static class LiveInfo {
@@ -142,41 +158,47 @@ public class InkeUtil {
     }
 
     public static class PublishResult {
-        public String mId;
-        public int mRoomId;
+        public String mId; // id: "1468545869377486",
+        public int mRoomId; // 432541305
         public String mPushUrl;
         public String mStreamUrl;
         public String mShareUrl;
+        public int mSlot;
 
         public String mCity;
         public int mCreator;
+        public String mName;
         public String mImage;
 
         public PublishResult(String id, int room_id,
-                             String push_url, String stream_url, String share_url) {
-            this(id, room_id, push_url, stream_url, share_url, null, 0, null);
+                             String push_url, String stream_url, String share_url, int slot) {
+            this(id, room_id,
+                    push_url, stream_url, share_url, slot,
+                    null, 0, null, null);
         }
 
         public PublishResult(String id, int room_id,
-                             String push_url, String stream_url, String share_url,
-                             String city, int creator, String image) {
-            this.mId = id;
-            this.mRoomId = room_id;
-            this.mPushUrl = push_url;
+                             String push_url, String stream_url, String share_url, int slot,
+                             String city, int creator, String name, String image) {
+            this.mId        = id;
+            this.mRoomId    = room_id;
+            this.mPushUrl   = push_url;
             this.mStreamUrl = stream_url;
-            this.mShareUrl = share_url;
+            this.mShareUrl  = share_url;
+            this.mSlot      = slot;
 
-            this.mCity = city;
-            this.mCreator = creator;
-            this.mImage = image;
+            this.mCity      = city;
+            this.mCreator   = creator;
+            this.mName      = name;
+            this.mImage     = image;
         }
 
         @Override
         public String toString() {
             StringBuffer sb = new StringBuffer();
             sb.append(String.format(Locale.US,
-                    "id: %s, roomId: %d, push_url: %s, stream_url: %s, share_url: %s",
-                    mId, mRoomId, mPushUrl, mStreamUrl, mShareUrl));
+                    "id: %s, roomId: %d, push_url: %s, stream_url: %s, share_url: %s, slot %d",
+                    mId, mRoomId, mPushUrl, mStreamUrl, mShareUrl, mSlot));
             if (mCity != null) {
                 sb.append(", city: ");
                 sb.append(mCity);
@@ -185,6 +207,10 @@ public class InkeUtil {
                 sb.append(", creator: ");
                 sb.append(mCreator);
             }
+            if (mName != null) {
+                sb.append(", name: ");
+                sb.append(mName);
+            }
             if (mImage != null) {
                 sb.append(", image: ");
                 sb.append(mImage);
@@ -192,6 +218,10 @@ public class InkeUtil {
 
             return sb.toString();
         }
+    }
+
+    public static List<LiveInfo> getFollow() {
+        return getLiveInfo(get_follow_api_url);
     }
 
     public static List<LiveInfo> simpleall() {
@@ -317,8 +347,10 @@ public class InkeUtil {
             int room_id = root.getInt("room_id");
             String publish_addr = root.getString("publish_addr");
             String share_addr = root.getString("share_addr");
+            int slot = root.getInt("slot");
 
-            return new PublishResult(id, room_id, publish_addr, stream_addr, share_addr);
+            return new PublishResult(id, room_id,
+                    publish_addr, stream_addr, share_addr, slot);
         } catch (JSONException e) {
             e.printStackTrace();
         }
@@ -379,7 +411,7 @@ public class InkeUtil {
     }
 
     public static List<String> chatList(int slot) {
-        LogUtil.info(TAG, "chatList()");
+        LogUtil.info(TAG, "chatList(): " + chat_iplist_api);
 
         String result = Util.getHttpPage(chat_iplist_api);
         if (result == null) {
@@ -462,10 +494,86 @@ public class InkeUtil {
         return websocket_url;
     }
 
+    public static boolean follow(int uid) {
+        LogUtil.info(TAG, "follow(): " + uid);
+
+        //{"id":7197535}
+        JSONObject json = new JSONObject();
+        try {
+            json.put("id", uid);
+        } catch (JSONException e) {
+            e.printStackTrace();
+            return false;
+        }
+
+        LogUtil.info(TAG, "post data: " + json.toString());
+        String result = Util.postHttpPage(follow_api, json.toString());
+        if (result == null) {
+            LogUtil.error(TAG, "failed to follow");
+            return false;
+        }
+
+        try {
+            JSONTokener jsonParser = new JSONTokener(result);
+            JSONObject root = (JSONObject) jsonParser.nextValue();
+
+//            error_msg: "请求参数错误",
+//            dm_error: 499
+            int dm_error = root.getInt("dm_error");
+            String error_msg = root.getString("error_msg");
+            if (dm_error != 0) {
+                LogUtil.error(TAG, "failed to follow, error_msg: " + error_msg);
+                return false;
+            }
+
+            return true;
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+
+        return false;
+    }
+
+    public static String relation(int uid) {
+        LogUtil.info(TAG, "relation() uid: " + uid);
+
+        String url = String.format(Locale.US, relation_api, uid);
+
+        String result = Util.getHttpPage(url);
+        if (result == null) {
+            LogUtil.error(TAG, "failed to get relation url");
+            return null;
+        }
+
+        try {
+            JSONTokener jsonParser = new JSONTokener(result);
+            JSONObject root = (JSONObject) jsonParser.nextValue();
+
+            //dm_error=0
+            //error_msg=操作成功
+            //relation=following
+
+            int dm_error = root.getInt("dm_error");
+            String error_msg = root.optString("error_msg");
+            if (dm_error != 0) {
+                LogUtil.error(TAG, "failed to relation(): " + error_msg);
+                return null;
+            }
+
+            String relation = root.getString("relation");
+            return relation;
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+
+        return null;
+    }
+
     public static List<UserInfo> search(int uid) {
         LogUtil.info(TAG, "search() uid: " + uid);
 
         String url = String.format(Locale.US, search_api, uid);
+        LogUtil.info(TAG, "search() url: " + url);
 
         String result = Util.getHttpPage(url);
         if (result == null) {
@@ -579,32 +687,43 @@ public class InkeUtil {
                 return null;
             }
 
-            /*
-            dm_error=0
-            error_msg=操作成功
-            live
-                city=上海市
-                creator=67302632
-                id=1466039078583477
-                image=MzMyMDYxNDY2MDM4NzA4.jpg
-                ...
-                publish_addr=rtmp://istream2.a8.com/live/1466039078583477
-                room_id=351205311
-                share_addr=http://live2.a8.com/s/?uid=67302632&liveid=1466039078583477&ctime=1466039078
-                ...
-                stream_addr=http://pull2.a8.com/live/1466039078583477.flv
-            */
+            //{"dm_error":0,
+            // "error_msg":"操作成功",
+            // "live":{
+            //      "city":"吉林市",
+            //      "creator":9885779,
+            //      "id":"1468547197099174",
+            //      "image":"",
+            //      "name":"我来告别的��",
+            //      "pub_stat":1,
+            //      "room_id":432541305,
+            //      "share_addr":"http://live6.a8.com/s/?uid=9885779&liveid=1468547197099174&ctime=1468547197",
+            //      "slot":6,
+            //      "status":1,
+            //      "stream_addr":"http://pull99.a8.com/live/1468547197099174.flv",
+            //      "version":0,
+            //      "link":0,
+            //      "optimal":0,
+            //      "multi":0,"rotate":0}}
 
-            JSONObject live = root.getJSONObject("live");
-            if (live == null)
+            JSONObject live = root.optJSONObject("live");
+            if (live == null) {
+                LogUtil.error(TAG, "failed to find live node");
                 return null;
+            }
 
-            String stream_addr = root.getString("stream_addr");
-            String id = root.getString("id");
-            int room_id = root.getInt("room_id");
-            String publish_addr = root.getString("publish_addr");
-            String share_addr = root.getString("share_addr");
-            return new PublishResult(id, room_id, publish_addr, stream_addr, share_addr);
+            String city = live.getString("city");
+            int creator = live.getInt("creator");
+            String name = live.getString("name");
+            String stream_addr = live.getString("stream_addr");
+            String id = live.getString("id");
+            int room_id = live.getInt("room_id");
+            String share_addr = live.getString("share_addr");
+            int slot = live.getInt("slot");
+
+            return new PublishResult(id, room_id,
+                    "", stream_addr, share_addr, slot,
+                    city, creator, name, "");
         } catch (JSONException e) {
             e.printStackTrace();
         }
@@ -712,14 +831,16 @@ public class InkeUtil {
             int creator = live_info.getInt("creator");
             String live_id = live_info.getString("id");
             String image = live_info.getString("image");
+            String name = live_info.getString("name");
             String publish_addr = live_info.getString("publish_addr");
             int room_id = live_info.getInt("room_id");
             String share_addr = live_info.getString("share_addr");
             String stream_addr = live_info.getString("stream_addr");
+            int slot = live_info.getInt("slot");
 
             return new PublishResult(
-                    live_id, room_id, publish_addr, stream_addr, share_addr,
-                    city, creator, image);
+                    live_id, room_id, publish_addr, stream_addr, share_addr, slot,
+                    city, creator, name, image);
         } catch (JSONException e) {
             e.printStackTrace();
         }
