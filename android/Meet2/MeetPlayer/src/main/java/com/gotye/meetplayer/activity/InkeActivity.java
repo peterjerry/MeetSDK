@@ -173,6 +173,34 @@ public class InkeActivity extends AppCompatActivity {
                 startPlay(position, list_type);
             }
         });
+        mLvFollowCreator.setOnItemLongClickListener(new AdapterView.OnItemLongClickListener() {
+            @Override
+            public boolean onItemLongClick(AdapterView<?> parent, View view, final int position, long id) {
+                Map<String, Object> map = (Map<String, Object>)mLvFollowCreator.getItemAtPosition(position);
+                String creator_name = (String)map.get("title");
+                final int uid = (Integer)map.get("uid");
+
+                AlertDialog.Builder builder = new AlertDialog.Builder(InkeActivity.this);
+                builder.setMessage("取消关注?");
+                builder.setTitle("主播 " + creator_name);
+                builder.setPositiveButton("确认", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        new InkeTask().execute(InkeTask.ACTION_UNFOLLOW, uid);
+                        dialog.dismiss();
+                    }
+                });
+                builder.setNegativeButton("取消", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        dialog.dismiss();
+                    }
+                });
+                builder.create().show();
+
+                return true;
+            }
+        });
 
         mGvCreator.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
@@ -322,6 +350,7 @@ public class InkeActivity extends AppCompatActivity {
         public final static int ACTION_SEARCH       = 1;
         public final static int ACTION_NOWPUBLISH   = 2;
         public final static int ACTION_FOLLOW       = 3;
+        public final static int ACTION_UNFOLLOW     = 4;
 
         @Override
         protected void onPostExecute(Boolean result) {
@@ -361,9 +390,9 @@ public class InkeActivity extends AppCompatActivity {
                     intent.putExtra("simpleall", true);
                     startActivity(intent);
                 }
-                else {
+                else if (action == ACTION_FOLLOW || action == ACTION_UNFOLLOW) {
                     Toast.makeText(InkeActivity.this,
-                            "关注成功",
+                            (action == ACTION_FOLLOW ? "关注": "取消关注") + "成功",
                             Toast.LENGTH_SHORT).show();
                 }
             } else {
@@ -382,9 +411,12 @@ public class InkeActivity extends AppCompatActivity {
                             .create();
                     follow_dlg.show();
                 }
-                else {
+                else if (action == ACTION_SEARCH) {
+                    Toast.makeText(InkeActivity.this, "搜索失败", Toast.LENGTH_SHORT).show();
+                }
+                else if (action == ACTION_FOLLOW || action == ACTION_UNFOLLOW) {
                     Toast.makeText(InkeActivity.this,
-                            (action == ACTION_SEARCH ? "搜索" : "关注") + "失败",
+                            (action == ACTION_FOLLOW ? "关注" : "取消关注") + "失败",
                             Toast.LENGTH_SHORT).show();
                 }
             }
@@ -404,9 +436,15 @@ public class InkeActivity extends AppCompatActivity {
                 publishResult = InkeUtil.getNowPublish(uid);
                 return (publishResult != null);
             }
-            else {
+            else if (ACTION_FOLLOW == action) {
                 return InkeUtil.follow(uid);
             }
+            else if (ACTION_UNFOLLOW == action) {
+                return InkeUtil.unfollow(uid);
+            }
+
+            LogUtil.error(TAG, "unknown action: " + action);
+            return false;
         }
     }
 

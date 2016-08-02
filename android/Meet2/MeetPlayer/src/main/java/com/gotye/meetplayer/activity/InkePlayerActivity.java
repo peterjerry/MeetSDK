@@ -71,6 +71,7 @@ public class InkePlayerActivity extends AppCompatActivity
     private int mSlot;
     private boolean mbSimpleAll;
     private List<String> mMessageList;
+    private String mRelation;
 
     private Button mBtnSendMessage;
     private EditText mEtMessage;
@@ -254,6 +255,13 @@ public class InkePlayerActivity extends AppCompatActivity
                 finish();
             }
         };
+
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                mRelation = InkeUtil.relation(mCreatorUid);
+            }
+        }).start();
 
         if (mRoomId != null) {
             mMessageList = new ArrayList<>();
@@ -446,6 +454,16 @@ public class InkePlayerActivity extends AppCompatActivity
     }
 
     @Override
+    public boolean onPrepareOptionsMenu(Menu menu) {
+        if (isFollowing())
+            menu.getItem(0).setTitle("取消关注");
+        else
+            menu.getItem(0).setTitle("关注");
+
+        return super.onPrepareOptionsMenu(menu);
+    }
+
+    @Override
     public boolean onOptionsItemSelected(MenuItem item) {
 
         int id = item.getItemId();
@@ -454,12 +472,18 @@ public class InkePlayerActivity extends AppCompatActivity
                 new Thread(new Runnable() {
                     @Override
                     public void run() {
-                        final boolean success = InkeUtil.follow(mCreatorUid);
+                        final String action = isFollowing() ? "取消关注" : "关注";
+                        final boolean success = isFollowing() ?
+                                InkeUtil.unfollow(mCreatorUid) : InkeUtil.follow(mCreatorUid);
+
+                        mRelation = InkeUtil.relation(mCreatorUid);
+
                         InkePlayerActivity.this.runOnUiThread(new Runnable() {
                             @Override
                             public void run() {
+
                                 Toast.makeText(InkePlayerActivity.this,
-                                        success ? "关注成功" : "关注失败",
+                                        action + " " + (success ? "成功" : "失败"),
                                         Toast.LENGTH_SHORT).show();
                             }
                         });
@@ -470,6 +494,10 @@ public class InkePlayerActivity extends AppCompatActivity
         }
 
         return true;
+    }
+
+    private boolean isFollowing() {
+        return (mRelation != null && mRelation.equals("following"));
     }
 
     private class ChatroomTask extends AsyncTask<Integer, Integer, String> {

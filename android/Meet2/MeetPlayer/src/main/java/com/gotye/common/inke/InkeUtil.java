@@ -100,6 +100,10 @@ public class InkeUtil {
             inke_api_host + "/user/relation/follow" +
                     api_surfix;
 
+    private final static String unfollow_api =
+            inke_api_host + "/user/relation/unfollow" +
+                    api_surfix;
+
     private final static String relation_api =
             inke_api_host + "/user/relation/relation" +
                     api_surfix +
@@ -495,7 +499,17 @@ public class InkeUtil {
     }
 
     public static boolean follow(int uid) {
-        LogUtil.info(TAG, "follow(): " + uid);
+        return follow_impl(uid, true);
+    }
+
+    public static boolean unfollow(int uid) {
+        return follow_impl(uid, false);
+    }
+
+    private static boolean follow_impl(int uid, boolean follow) {
+        String action = follow ? "follow" : "unfollow";
+
+        LogUtil.info(TAG, "follow_impl(): " + uid + " , action: " + action);
 
         //{"id":7197535}
         JSONObject json = new JSONObject();
@@ -507,9 +521,10 @@ public class InkeUtil {
         }
 
         LogUtil.info(TAG, "post data: " + json.toString());
-        String result = Util.postHttpPage(follow_api, json.toString());
+        String api_url = follow ? follow_api : unfollow_api;
+        String result = Util.postHttpPage(api_url, json.toString());
         if (result == null) {
-            LogUtil.error(TAG, "failed to follow");
+            LogUtil.error(TAG, "failed to " + action);
             return false;
         }
 
@@ -522,7 +537,7 @@ public class InkeUtil {
             int dm_error = root.getInt("dm_error");
             String error_msg = root.getString("error_msg");
             if (dm_error != 0) {
-                LogUtil.error(TAG, "failed to follow, error_msg: " + error_msg);
+                LogUtil.error(TAG, "failed to " + action + " , error_msg: " + error_msg);
                 return false;
             }
 
@@ -539,6 +554,7 @@ public class InkeUtil {
 
         String url = String.format(Locale.US, relation_api, uid);
 
+        LogUtil.info(TAG, "relation url: " + url);
         String result = Util.getHttpPage(url);
         if (result == null) {
             LogUtil.error(TAG, "failed to get relation url");
