@@ -1,7 +1,7 @@
 # !bin/sh
 
 COMMON_ABIS="armeabi x86 arm64-v8a"
-FOUNDATION_ABIS="neon x86 arm64-v8a"
+FOUNDATION_ABIS="armeabi-v7a x86 arm64-v8a"
 SUBTITLE_ABIS="armeabi x86 arm64-v8a"
 ROOT_PATH=`pwd`
 
@@ -56,22 +56,20 @@ for ABI in $COMMON_ABIS; do
 		mkdir -p ../../output/android/${ABI}/
 		mkdir -p ../../output/android/${ABI}/debug/
 	fi
-	cp -f libs/${ABI}/libplayer_neon.so ../../output/android/${ABI}/
-	cp -f obj/local/${ABI}/libplayer_neon.so ../../output/android/${ABI}/debug/
+	cp -f libs/${ABI}/libplayer.so ../../output/android/${ABI}/
+	cp -f obj/local/${ABI}/libplayer.so ../../output/android/${ABI}/debug/
 done
 }
 
 function build_meetsdk {
 echo begin to build meetsdk
-cd ${ROOT_PATH}/MeetSDK
-cd jni
+cd ${ROOT_PATH}/Meet2/MeetSDK
+cd src/main/jni
 chmod +x gen_version.sh
 ./gen_version.sh
-cd ..
+cd ${ROOT_PATH}/Meet2/MeetSDK
 
-android update project -p . -n MeetSDK
-ant clean
-ant debug
+gradle assembleRelease
 
 #cd ../MeetPlayer
 #android update project -p . -n MeetPlayer
