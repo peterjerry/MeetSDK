@@ -257,7 +257,7 @@ do
 			--disable-demuxers \
 			--enable-demuxer=flv \
 			--disable-parsers \
-			--enable-parser=h264 \
+			--enable-parser=h264,aac_latm \
 			--disable-protocols \
 			--enable-protocol=rtmp \
 			--disable-bsfs \
