@@ -107,9 +107,11 @@ public class LogUtils {
             bw.flush();
             bw.close();
             
-            braf.flush();
-            braf.close();
-            braf = null;
+            if (braf != null) {
+                braf.flush();
+                braf.close();
+                braf = null;
+            }
             logfile.delete();
             Log.i(TAG, "Java: end write log file");
         } catch (IOException e) {

@@ -86,7 +86,7 @@
             android:label="@string/title_activity_pptv_video" />
         <activity
             android:name=".activity.HttpViewerActivity"
-            android:screenOrientation="portrait"/>
+            android:screenOrientation="portrait" />
         <activity
             android:name=".activity.PPTVPlayerActivity"
             android:label="@string/app_name"
@@ -148,6 +148,8 @@
         <activity
             android:name="com.gotye.crashhandler.SendCrashActivity"
             android:label="@string/title_activity_send_crash" />
+        <activity
+            android:name=".activity.DMCActivity"/>
 
         <!-- Services -->
         <service android:name=".service.DLNAService">
@@ -171,7 +173,6 @@
                 <action android:name="com.gotye.action.MEDIA_SCANNER_SCAN_FILE" />
             </intent-filter>
         </receiver>
-
     </application>
 
 </manifest>

@@ -62,6 +62,7 @@ import android.view.WindowManager;
 import android.widget.AdapterView;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ListView;
@@ -153,7 +154,6 @@ public class ClipListActivity extends AppCompatActivity implements
     private EditText et_playlink;
     private AppCompatButton btn_ft;
     private AppCompatButton btn_bw_type;
-    private ImageView imageDMR;
     private ImageView imageNoVideo;
     private ImageView imageBackward;
     private ImageView imageForward;
@@ -217,6 +217,7 @@ public class ClipListActivity extends AppCompatActivity implements
     private String mDlnaDeviceUUID;
     private String mDlnaDeviceName;
     private boolean mDMRcontrolling = false;
+    private ImageView imageDlnaPush;
 
     // epg
     private EPGUtil mEPG;
@@ -371,7 +372,7 @@ public class ClipListActivity extends AppCompatActivity implements
         this.et_playlink = (EditText) this.findViewById(R.id.et_playlink);
         this.btn_ft = (AppCompatButton) this.findViewById(R.id.btn_ft);
         this.btn_bw_type = (AppCompatButton) this.findViewById(R.id.btn_bw_type);
-        this.imageDMR = (ImageView) this.findViewById(R.id.iv_dlna_dmc);
+        this.imageDlnaPush = (ImageView) this.findViewById(R.id.iv_dlna_push);
         this.imageNoVideo = (ImageView) this.findViewById(R.id.iv_novideo);
 
         this.mPreview = (MyPreView2) this.findViewById(R.id.preview);
@@ -396,6 +397,13 @@ public class ClipListActivity extends AppCompatActivity implements
 
         mLayout.setFocusable(true);
         mLayout.setOnFocusChangeListener(this);
+
+        imageDlnaPush.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                push_to_dmr();
+            }
+        });
 
         // set to false to solve cannot show menu problem
         tv_title.setMarquee(false);
@@ -1182,7 +1190,11 @@ public class ClipListActivity extends AppCompatActivity implements
         rx_speed = 0;
         tx_speed = 0;
 
-        imageDMR.setVisibility(View.GONE);
+        if (IDlnaCallback.mDMRmap.isEmpty())
+            imageDlnaPush.setVisibility(View.GONE);
+        else
+            imageDlnaPush.setVisibility(View.VISIBLE);
+
         imageForward.setVisibility(View.GONE);
         imageBackward.setVisibility(View.GONE);
 
@@ -1540,7 +1552,6 @@ public class ClipListActivity extends AppCompatActivity implements
                     break;
                 case MSG_PUSH_CDN_CLIP:
                     mDMRcontrolling = true;
-                    imageDMR.setVisibility(View.VISIBLE);
                     LogUtil.info(TAG, String.format("Java: dlna push url(%s) to uuid(%s) name(%s)", mDLNAPushUrl, mDlnaDeviceUUID, mDlnaDeviceName));
                     Toast.makeText(ClipListActivity.this,
                             String.format("push url to dmr %s", mDlnaDeviceName), Toast.LENGTH_SHORT).show();
@@ -2018,19 +2029,13 @@ public class ClipListActivity extends AppCompatActivity implements
     }
 
     private void push_cdn_clip() {
-        //mDLNA.EnableRendererControler(true);
-        mDLNA.SetURI(mDlnaDeviceUUID, mDLNAPushUrl);
+        Intent intent = new Intent(ClipListActivity.this, DMCActivity.class);
+        intent.putExtra("title", "hello");
+        intent.putExtra("push_url", mDLNAPushUrl);
+        intent.putExtra("dmr_uuid", mDlnaDeviceUUID);
+        startActivity(intent);
 
-        try {
-            Thread.sleep(200);
-        } catch (InterruptedException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
-        }
-
-        mDLNA.Play(mDlnaDeviceUUID);
-
-        mHandler.sendEmptyMessage(MSG_PUSH_CDN_CLIP);
+        //mHandler.sendEmptyMessage(MSG_PUSH_CDN_CLIP);
     }
 
     boolean decide_virtual() {
@@ -2433,7 +2438,7 @@ public class ClipListActivity extends AppCompatActivity implements
         if (mPlayUrl == null || mPlayUrl.equals("")) {
             mPlayUrl = getClipboardText();
             if (mPlayUrl == null) {
-                Toast.makeText(this, "no url is set", Toast.LENGTH_SHORT).show();
+                Toast.makeText(this, "播放地址未设置，无法推送", Toast.LENGTH_SHORT).show();
                 return;
             }
         }
@@ -2450,13 +2455,13 @@ public class ClipListActivity extends AppCompatActivity implements
         ArrayList<String> uuid_list = new ArrayList<String>();
         for (Object obj : IDlnaCallback.mDMRmap.keySet()) {
             Object name = IDlnaCallback.mDMRmap.get(obj);
-            LogUtil.debug(TAG, "Java: dlna [dlna dev] uuid: " + obj.toString() + " name: " + name.toString());
+            LogUtil.info(TAG, "Java: dlna [dlna dev] uuid: " + obj.toString() + " name: " + name.toString());
             uuid_list.add(obj.toString());
             dev_list.add(name.toString());
         }
 
-        final String[] str_uuid_list = (String[]) uuid_list.toArray(new String[uuid_list.size()]);
-        final String[] str_dev_list = (String[]) dev_list.toArray(new String[dev_list.size()]);
+        final String[] str_uuid_list = uuid_list.toArray(new String[uuid_list.size()]);
+        final String[] str_dev_list = dev_list.toArray(new String[dev_list.size()]);
 
         Dialog choose_device_dlg = new AlertDialog.Builder(ClipListActivity.this)
                 .setTitle("Select device to push")
@@ -3380,13 +3385,13 @@ public class ClipListActivity extends AppCompatActivity implements
 		startService(intent);
 		bindService(intent, dlna_conn, Service.BIND_AUTO_CREATE);*/
 
-        mDLNA = new DLNASdk();
+        mDLNA = DLNASdk.getInstance();
         if (!mDLNA.isLibLoadSuccess()) {
             LogUtil.error(TAG, "Java: dlna failed to load dlna lib");
             return false;
         }
 
-        mDLNAcallback = new IDlnaCallback(null);
+        mDLNAcallback = IDlnaCallback.getInstance();
         //mDLNA.setLogPath(Environment.getExternalStorageDirectory().getAbsolutePath() + "/xxxx_dlna.log");
         mDLNA.Init(mDLNAcallback);
         mDLNA.EnableRendererControler(true);

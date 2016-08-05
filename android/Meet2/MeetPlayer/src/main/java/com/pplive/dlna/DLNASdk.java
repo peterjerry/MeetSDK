@@ -4,20 +4,36 @@ import android.util.Log;
 
 public class DLNASdk
 {
-	private boolean mIsLoadSuccess = true;
-	public DLNASdk() 
-	{
+	private static DLNASdk mInstance = null;
+	private static boolean mLibLoaded = false;
+
+	public static int DEVICE_TYPE_DMS = 0;
+	public static int DEVICE_TYPE_DMR = 1;
+	public static int DEVICE_TYPE_UNKNOWN = -1;
+
+	static {
 		try {
 			System.loadLibrary("dlna");
+            mLibLoaded = true;
 		}
 		catch (Throwable e)
 		{
 			Log.e("DLNASdk_jni", e.toString());
-			mIsLoadSuccess = false;
 		}
 	}
+
+	private DLNASdk() {
+
+	}
+
+	public static DLNASdk getInstance() {
+		if (mInstance == null)
+			mInstance = new DLNASdk();
+
+		return mInstance;
+	}
 	
-	public boolean isLibLoadSuccess() {return mIsLoadSuccess;}
+	public boolean isLibLoadSuccess() {return mLibLoaded;}
     public native void Init(DLNASdkInterface callback);
 	public native void UnInit();
 	public native boolean IsInitOK();

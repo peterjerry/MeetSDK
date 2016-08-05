@@ -758,7 +758,7 @@ public class EPGUtil {
 	}
 	
 	private int[] parseCdnUrlxml_ft(String xml) {
-		LogUtil.info(TAG, "Java: epg parseCdnUrlxml " + xml.replace("\n", ""));
+		//LogUtil.info(TAG, "Java: epg parseCdnUrlxml " + xml.replace("\n", ""));
 		
 		SAXBuilder builder = new SAXBuilder();
 		Reader returnQuote = new StringReader(xml);  

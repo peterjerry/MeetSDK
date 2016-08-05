@@ -54,7 +54,7 @@
         android:title="选项"
         app:showAsAction="always"
         android:icon="@drawable/option" >
-    	<menu>      
+    	<menu>
             <item
 		        android:id="@+id/dlna_dmr"
 		        android:title="dlna推送视频"/>
