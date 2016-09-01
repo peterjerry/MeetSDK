@@ -45,9 +45,9 @@
 
 #define PROG_MAX_NUM	1024
 #define NORMAL_URL_OFFSET 0
-#define PPTV_RTSP_URL_OFFSET 9
-#define PPTV_HLS_URL_OFFSET (PPTV_RTSP_URL_OFFSET + 12)
-#define USER_LIST_OFFSET (PPTV_HLS_URL_OFFSET + 12)
+#define PPTV_RTSP_URL_OFFSET 5
+#define PPTV_HLS_URL_OFFSET (PPTV_RTSP_URL_OFFSET + 2)
+#define USER_LIST_OFFSET (PPTV_HLS_URL_OFFSET + 2)
 
 #define HOST "127.0.0.1"
 //#define HTTP_PORT 9106
@@ -65,36 +65,11 @@ const char* url_desc[PROG_MAX_NUM] = {
 	_T("圣斗士星矢Ω 480p"),
 	_T("NA_Secret 1080p"),
 
-	_T("浙江卫视 高清"),
-	_T("东方卫视 高清"),
-	_T("东方卫视 标清"),
-	_T("安徽卫视"),
-
 	_T("rtsp 安徽卫视"),
 	_T("rtsp 江苏卫视"),
-	_T("rtsp 第一财经"),
-	_T("rtsp 新娱乐"),
-	_T("rtsp 星尚"),
-	_T("rtsp 艺术人文"),
-	_T("rtsp 上视纪实"),
-	_T("rtsp 电视剧"),
-	_T("rtsp ICS"),
-	_T("rtsp 东方电影"),
-	_T("rtsp 新闻综合"),
-	_T("rtsp 东方购物"),
 
 	_T("hls 安徽卫视"),
-	_T("hls 江苏卫视"),
-	_T("hls 第一财经"),
-	_T("hls 新娱乐"),
-	_T("hls 星尚"),
-	_T("hls 艺术人文"),
-	_T("hls 上视纪实"),
-	_T("hls 电视剧"),
-	_T("hls ICS"),
-	_T("hls 东方电影"),
-	_T("hls 新闻综合"),
-	_T("hls 东方购物"),
+	_T("hls 江苏卫视")
 };
 
 const char* url_list[PROG_MAX_NUM] = {
@@ -105,26 +80,11 @@ const char* url_list[PROG_MAX_NUM] = {
 	//_T("E:\\BaiduYunDownload\\第三季第八集.mkv"),
 	_T("E:\\BaiduYunDownload\\红猪.Porco.Rosso.1992.D9.3Audio.MiniSD-TLF.mkv"),
 	_T("E:\\Archive\\media\\mv\\G.NA_Secret.mp4"),
-
-	_T("http://zb.v.qq.com:1863/?progid=1975434150"),
-	_T("http://zb.v.qq.com:1863/?progid=3900155972"),
-	_T("http://zb.v.qq.com:1863/?progid=3661744838"),
-	_T("http://zb.v.qq.com:1863/?progid=623043810"),
 };
 
 int pptv_channel_id[] = {
 	300162,// 安徽卫视
-	300163,// 江苏卫视
-	300154,// 第一财经"),
-	300151,// 新娱乐"),
-	300155,// 星尚"),
-	300454,// 艺术人文"),
-	300152,// 上视纪实"),
-	300153,// 电视剧"),
-	300214,// ICS"),
-	300149,// 东方电影"),
-	300156,// 新闻综合"),
-	300254,// 东方购物"), /*&m3u8seekback=true*/
+	300163,// 江苏卫视 /*&m3u8seekback=true*/
 };
 
 const char *PPTV_RTSP_PLAYLINK_FMT = "rtsp://%s:%d/play.es?type=pplive3&playlink=%d";

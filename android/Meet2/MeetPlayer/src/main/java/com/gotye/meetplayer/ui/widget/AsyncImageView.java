@@ -18,9 +18,9 @@ public class AsyncImageView extends ImageView {
 	static final String TAG = AsyncImageView.class.getSimpleName();
 
 	protected static final DisplayImageOptions DEFALUT_DISPLAY_OPTIONS = new DisplayImageOptions.Builder()
-			.showImageForEmptyUri(R.drawable.clip)
+			.showImageForEmptyUri(R.mipmap.clip)
 			.showImageOnFail(R.drawable.clip_error)
-			.showImageOnLoading(R.drawable.clip).cacheOnDisk(true)
+			.showImageOnLoading(R.mipmap.clip).cacheOnDisk(true)
 			.bitmapConfig(Bitmap.Config.RGB_565).build();
 	
 	private static final ImageLoadingListener mListener = new ImageLoadingListener() {

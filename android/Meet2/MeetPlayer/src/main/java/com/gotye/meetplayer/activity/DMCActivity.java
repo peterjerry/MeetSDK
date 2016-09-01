@@ -2,12 +2,14 @@ package com.gotye.meetplayer.activity;
 
 import android.app.ProgressDialog;
 import android.content.Intent;
+import android.graphics.Bitmap;
 import android.os.Handler;
 import android.os.Message;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.ImageButton;
+import android.widget.ImageView;
 import android.widget.SeekBar;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -15,6 +17,7 @@ import android.widget.Toast;
 import com.gotye.common.util.LogUtil;
 import com.gotye.meetplayer.R;
 import com.gotye.meetplayer.util.IDlnaCallback;
+import com.gotye.meetplayer.util.ImgUtil;
 import com.pplive.dlna.DLNASdk;
 import com.pplive.dlna.DLNASdkDMSItemInfo;
 
@@ -29,9 +32,11 @@ public class DMCActivity extends AppCompatActivity {
     private SeekBar mProgressBar;
     private ImageButton mBtnPause;
     private TextView mTvStartTime, mTvEndTime;
+    private ImageView mImage;
 
     private final static int PROGRESS_RANGE = 1000;
 
+    private DLNASdk mDLNAsdk;
     private DLNASdk.DLNASdkInterface mDLNAcallback;
 
     private String mDMRuuid;
@@ -58,19 +63,18 @@ public class DMCActivity extends AppCompatActivity {
         mBtnPause = (ImageButton)this.findViewById(R.id.play_control_play_pause);
         mTvStartTime = (TextView)this.findViewById(R.id.start_time);
         mTvEndTime = (TextView)this.findViewById(R.id.end_time);
+        mImage = (ImageView)this.findViewById(R.id.image);
 
         mBtnPause.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                DLNASdk sdk = DLNASdk.getInstance();
-
                 if (mIsPlaying) {
                     if (mbPaused) {
-                        sdk.Play(mDMRuuid);
+                        mDLNAsdk.Play(mDMRuuid);
                         mBtnPause.setImageResource(R.drawable.pause);
                     }
                     else {
-                        sdk.Pause(mDMRuuid);
+                        mDLNAsdk.Pause(mDMRuuid);
                         mBtnPause.setImageResource(R.drawable.play);
                     }
 
@@ -102,11 +106,12 @@ public class DMCActivity extends AppCompatActivity {
                     int sec = (int)(mDuration * progress / PROGRESS_RANGE);
                     LogUtil.info(TAG, "seek to: " + sec);
 
-                    DLNASdk sdk = DLNASdk.getInstance();
-                    sdk.Seek(mDMRuuid, sec);
+                    mDLNAsdk.Seek(mDMRuuid, sec);
                 }
             }
         });
+
+        mDLNAsdk = DLNASdk.getInstance();
 
         Intent intent = getIntent();
         String title = intent.getStringExtra("title");
@@ -125,6 +130,12 @@ public class DMCActivity extends AppCompatActivity {
         mProgressDlg.setMessage("设备连接中...");
         mProgressDlg.setCancelable(true);
         mProgressDlg.show();
+
+        if (mPushUrl.toLowerCase().endsWith(".jpg") ||
+                mPushUrl.toLowerCase().endsWith(".bmp"))
+        {
+            loadPicture();
+        }
     }
 
     @Override
@@ -132,11 +143,6 @@ public class DMCActivity extends AppCompatActivity {
         super.onPause();
 
         mbActivityRunning = false;
-
-        if (mIsPlaying) {
-            DLNASdk sdk = DLNASdk.getInstance();
-            sdk.Stop(mDMRuuid);
-        }
 
         mHandler.removeCallbacksAndMessages(null);
     }
@@ -146,6 +152,34 @@ public class DMCActivity extends AppCompatActivity {
         super.onResume();
 
         mbActivityRunning = true;
+
+        if (mIsPlaying) {
+            mHandler.sendEmptyMessage(MainHandler.MSG_UPDATE_PROGRESS);
+        }
+    }
+
+    @Override
+    public void onBackPressed() {
+        if (mIsPlaying) {
+            mDLNAsdk.Stop(mDMRuuid);
+        }
+
+        super.onBackPressed();
+    }
+
+    private void loadPicture() {
+        Bitmap bmp = ImgUtil.getLocalBitmap(mPushUrl);
+        if (bmp != null) {
+            int new_w = 512;
+            int new_h = (int) ( bmp.getHeight() * (512.0 / bmp.getWidth()) );
+            Bitmap scaled = Bitmap.createScaledBitmap(bmp, new_w, new_h, true);
+            mImage.setImageBitmap(scaled);
+            bmp.recycle();
+        }
+        else {
+            LogUtil.error(TAG, "failed to load picture: " + mPushUrl);
+            Toast.makeText(this, "加载图片失败", Toast.LENGTH_SHORT).show();
+        }
     }
 
     private static class MainHandler extends Handler {
@@ -168,10 +202,8 @@ public class DMCActivity extends AppCompatActivity {
             switch (msg.what) {
                 case MSG_UPDATE_PROGRESS:
                     if (activity.mIsPlaying) {
-                        DLNASdk sdk = DLNASdk.getInstance();
-
                         if (activity.mDuration == -1) {
-                            long duration = sdk.GetTotalTime(activity.mDMRuuid);
+                            long duration = activity.mDLNAsdk.GetTotalTime(activity.mDMRuuid);
                             LogUtil.info(TAG, "get duration: " + duration);
                             if (duration > 0) {
                                 activity.mDuration = duration;
@@ -184,7 +216,7 @@ public class DMCActivity extends AppCompatActivity {
                             }
                         }
 
-                        long pos = sdk.GetPosition(activity.mDMRuuid);
+                        long pos = activity.mDLNAsdk.GetPosition(activity.mDMRuuid);
                         LogUtil.info(TAG, "update: " + pos);
 
                         activity.mTvStartTime.setText(getTimeString(pos));
@@ -266,8 +298,7 @@ public class DMCActivity extends AppCompatActivity {
                         "OnSetURI: url %s, title %s, remoteip %s, type: %d",
                         url, urltitle, remoteip, mediatype));
 
-                DLNASdk sdk = DLNASdk.getInstance();
-                sdk.Play(mDMRuuid);
+                mDLNAsdk.Play(mDMRuuid);
                 return 0;
             }
 
@@ -364,8 +395,7 @@ public class DMCActivity extends AppCompatActivity {
         IDlnaCallback callback = IDlnaCallback.getInstance();
         callback.setCallback(mDLNAcallback);
 
-        DLNASdk sdk = DLNASdk.getInstance();
-        sdk.SetURI(mDMRuuid, mPushUrl);
+        mDLNAsdk.SetURI(mDMRuuid, mPushUrl);
 
         try {
             Thread.sleep(500);
@@ -374,7 +404,7 @@ public class DMCActivity extends AppCompatActivity {
             e.printStackTrace();
         }
 
-        sdk.Play(mDMRuuid);
+        mDLNAsdk.Play(mDMRuuid);
     }
 
     private static String getTimeString(long timeInSec) {

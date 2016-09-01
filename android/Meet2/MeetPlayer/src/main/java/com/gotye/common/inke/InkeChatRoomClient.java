@@ -136,10 +136,6 @@ public class InkeChatRoomClient {
             json.put("from", mFromCatalog); // hot(simpleall) new
             LogUtil.info(TAG, "joinRoom: " + json.toString());
             ws.sendTextMessage("3:::" + json.toString());
-            state = WebSocketConnectionState.LOGIN;
-
-            if (events != null)
-                events.onWebSocketJoinRoom(mRoomId);
         } catch (JSONException e) {
             LogUtil.error(TAG, "WebSocket joinRoom JSON error: " + e.getMessage());
         }
@@ -181,7 +177,8 @@ public class InkeChatRoomClient {
                         Thread.sleep(1000);
                     } catch (InterruptedException e) {
                         e.printStackTrace();
-                        mHeartBeatThr.interrupt();
+						LogUtil.info(TAG, "heart beat thread interrupted");
+                        break;
                     }
                 }
 
@@ -242,7 +239,42 @@ public class InkeChatRoomClient {
         public void onTextMessage(final String payload) {
             //LogUtil.info(TAG, "onTextMessage: " + payload);
 
-            if (state == WebSocketConnectionState.LOGIN) {
+            // 3:::{
+            // "dest":4,
+            // "gid":"2cbsNNs6eRhat-EsRpcw",
+            // "b":{
+            //      "c":"操作成功",
+            //      "ev":"c.lg",
+            //      "err":0
+            //      },
+            // "userid":65286584,
+            // "liveid":"0"
+            // }
+
+            if (state == WebSocketConnectionState.CONNECTED) {
+                if (payload.startsWith("3:::")) {
+                    try {
+                        JSONObject json = new JSONObject(payload.substring(4));
+
+                        int dest = json.getInt("dest");
+                        JSONObject b = json.getJSONObject("b");
+                        int err =  b.optInt("err");
+                        String c = b.optString("c");
+                        if (err == 0) {
+                            state = WebSocketConnectionState.LOGIN;
+
+                            if (events != null)
+                                events.onWebSocketJoinRoom(mRoomId);
+                        }
+
+                        String userid = json.getString("userid");
+                        String liveid = json.getString("liveid");
+                    } catch (JSONException e) {
+                        e.printStackTrace();
+                    }
+                }
+            }
+            else if (state == WebSocketConnectionState.LOGIN) {
                 events.onWebSocketMessage(payload);
             }
         }

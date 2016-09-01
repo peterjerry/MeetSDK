@@ -2,6 +2,8 @@ package com.pplive.dlna;
 
 import android.util.Log;
 
+import com.gotye.common.util.LogUtil;
+
 public class DLNASdk
 {
 	private static DLNASdk mInstance = null;
@@ -18,7 +20,7 @@ public class DLNASdk
 		}
 		catch (Throwable e)
 		{
-			Log.e("DLNASdk_jni", e.toString());
+			LogUtil.error("DLNASdk_jni", e.toString());
 		}
 	}
 

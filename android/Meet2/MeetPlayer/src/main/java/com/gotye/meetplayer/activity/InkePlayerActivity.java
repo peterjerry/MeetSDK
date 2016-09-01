@@ -272,7 +272,32 @@ public class InkePlayerActivity extends AppCompatActivity
                     //LogUtil.info(TAG, "onWebSocketMessage(): " + message);
 
                     //3:::{
-                    // "b":{"ev":"s.m"},
+                    // "dest":4,
+                    // "gid":"2cbsNNs6eRhat-EsRpcw",
+                    // "b":{
+                    //      "c":"账号信息过期，请至个人主页点［退出登录］后重新登录",
+                    //      "ev":"c.jr",
+                    //      "err":-3
+                    // },
+                    // "userid":65286584,
+                    // "liveid":"1471399692134248"
+                    // }
+
+                    //3:::{
+                    // "c":"账号信息过期，请至个人主页点［退出登录］后重新登录",
+                    // "b":{
+                    //      "ev":"s.d"
+                    // },
+                    // "liveid":"1471401593460980",
+                    // "dest":7,
+                    // "userid":65286584,
+                    // "gid":"I51uQhv4w1n0w0K0ePU1"
+                    // }
+
+                    //3:::{
+                    // "b":{
+                    //      "ev":"s.m"
+                    // },
                     // "dest":3,
                     // "userid":62083553,
                     // "p":"r",
@@ -292,7 +317,9 @@ public class InkePlayerActivity extends AppCompatActivity
                     //},
 
                     //3:::{
-                    // "b":{"ev":"s.m"},
+                    // "b":{
+                    //      "ev":"s.m"
+                    // },
                     // "dest":3,
                     // "userid":115234184,
                     // "p":"r",
@@ -320,6 +347,18 @@ public class InkePlayerActivity extends AppCompatActivity
                         try {
                             JSONObject json = new JSONObject(json_str);
                             int userid = json.getInt("userid");
+                            JSONObject brief = json.getJSONObject("b");
+                            String event = brief.getString("ev");
+                            int err = brief.optInt("err");
+                            if (err != 0) {
+                                String c = brief.optString("c");
+                                LogUtil.error(TAG, "chat room error: " + c);
+                                addMessgage("系统错误: ", c);
+
+                                mRetry = 10;// no more retry
+                                return;
+                            }
+
                             JSONArray ms = json.optJSONArray("ms");
                             if (ms != null) {
                                 for (int j=0;j<ms.length();j++) {
@@ -383,7 +422,8 @@ public class InkePlayerActivity extends AppCompatActivity
                                 Toast.makeText(InkePlayerActivity.this,
                                         "聊天室连接重试中...", Toast.LENGTH_SHORT).show();
 
-                                new ChatroomTask().execute(mSlot);
+                                //new ChatroomTask().execute(mSlot);
+                                new ChatroomTask().execute(String.valueOf(mCreatorUid), mRoomId);
                             }
                         });
                     }
@@ -414,7 +454,7 @@ public class InkePlayerActivity extends AppCompatActivity
                 }
             };
 
-            new ChatroomTask().execute(mSlot);
+            new ChatroomTask().execute(String.valueOf(mCreatorUid), mRoomId);
         }
     }
 
@@ -500,7 +540,7 @@ public class InkePlayerActivity extends AppCompatActivity
         return (mRelation != null && mRelation.equals("following"));
     }
 
-    private class ChatroomTask extends AsyncTask<Integer, Integer, String> {
+    private class ChatroomTask extends AsyncTask<String, Integer, String> {
 
         @Override
         protected void onPostExecute(String result) {
@@ -509,7 +549,8 @@ public class InkePlayerActivity extends AppCompatActivity
                     mChatClient.disconnect();
                 }
 
-                String ws_url = result.replace("http://", "ws://");
+                //String ws_url = result.replace("http://", "ws://");
+                String ws_url = result;
                 mChatClient = new InkeChatRoomClient(
                         ws_url, mRoomId, mbSimpleAll ? "hot" : "new");
                 mChatClient.setEventLisener(events);
@@ -521,13 +562,15 @@ public class InkePlayerActivity extends AppCompatActivity
         }
 
         @Override
-        protected String doInBackground(Integer... params) {
-            List<String> chatIpList = InkeUtil.chatList(params[0]);
+        protected String doInBackground(String... params) {
+            /*List<String> chatIpList = InkeUtil.chatList(params[0]);
             if (chatIpList == null || chatIpList.isEmpty())
                 return null;
 
             String url = chatIpList.get(0);
-            return InkeUtil.chatServer(url);
+            return InkeUtil.chatServer(url);*/
+
+            return InkeUtil.chatServer2(params[0], params[1]);
         }
     }
 

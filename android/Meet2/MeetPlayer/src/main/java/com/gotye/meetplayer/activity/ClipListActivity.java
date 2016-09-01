@@ -2447,7 +2447,7 @@ public class ClipListActivity extends AppCompatActivity implements
 
         if (dev_num == 0) {
             LogUtil.info(TAG, "Java: dlna no dlna device found");
-            Toast.makeText(this, "no dlna device found", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, "未发现DMR设备", Toast.LENGTH_SHORT).show();
             return;
         }
 

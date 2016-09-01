@@ -31,6 +31,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Properties;
+import java.util.Set;
 import java.util.StringTokenizer;
 
 import android.app.ProgressDialog;
@@ -53,6 +54,7 @@ import com.gotye.meetsdk.player.TrackInfo;
 import android.telephony.TelephonyManager;
 import android.util.Log;
 import android.widget.ProgressBar;
+import android.widget.SeekBar;
 import android.widget.Toast;
 
 import com.gotye.common.util.LogUtil;
@@ -668,7 +670,11 @@ public class Util {
 		return null;
 	}
 
-	public static String postHttpPage(String url, String params) {
+    public static String postHttpPage(String url, String params) {
+        return postHttpPage(url, params, null);
+    }
+
+	public static String postHttpPage(String url, String params, Map<String, String>headers) {
 		InputStream is = null;
 		ByteArrayOutputStream os = null;
 
@@ -676,6 +682,17 @@ public class Util {
 			URL realUrl = new URL(url);
             HttpURLConnection conn = (HttpURLConnection) realUrl.openConnection();
 			conn.setRequestMethod("POST");
+            if (headers != null) {
+                Set set = headers.keySet();
+
+                for (Iterator iter = set.iterator(); iter.hasNext();) {
+                    String key = (String)iter.next();
+                    String value = headers.get(key);
+                    LogUtil.info(TAG, "setRequestProperty " + key + " : " + value);
+                    conn.setRequestProperty(key, value);
+                }
+            }
+
 			if (params != null) {
 				byte[] bypes = params.getBytes();
 				conn.getOutputStream().write(bypes);// 输入参数

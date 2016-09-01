@@ -17,12 +17,9 @@ import java.util.Map;
 
 public class InkeHomePageAdapter extends MeetAdapter {
 
-	private Context mContext;
-
 	public InkeHomePageAdapter(Context context, List<Map<String, Object>> data,
                                int resourceId) {
         super(context, data, resourceId);
-		mContext = context;
 	}
 
 	private class ViewHolder {

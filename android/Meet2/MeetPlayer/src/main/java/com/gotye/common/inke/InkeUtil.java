@@ -15,6 +15,7 @@ import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 
 /**
  * Created by Michael.Ma on 2016/5/3.
@@ -26,23 +27,23 @@ public class InkeUtil {
             "http://service.ingkee.com/api";
 
     private final static String api_surfix =
-            //"?lc=3000000000003002" +
-            "?lc=3000000000005850" +
+            "?lc=3000000000005859" +
                     "&cv=IK2.9.50_Android" +
-                    "&cc=GF10000" +
-                    "&ua=XiaomiHM1S" +
+                    "&cc=TG36008" +
+                    "&ua=XiaomiMI3W" +
                     "&uid=65286584" +
-                    "&sid=20hwyYZar84jIbUi0ayyGuYglOLcE8mFboN7NxA1ow7kQlkAdYi3" +
-                    "&devi=865624023658835" +
+                    "&id=65286584" +
+                    "&sid=20AQA35wxSrd7yjC04Veoz6xkHZVq1oVSmBDi2F9ZrI50B7Mssi3" +
+                    "&devi=864690028530395" +
                     "&imsi=" +
                     "&icc=" +
                     "&conn=WIFI" +
                     "&vv=1.0.3-2016060211417.android" +
-                    "&aid=f1d83c9537cb2028" +
+                    "&aid=8d48c729f639b554" +
                     "&osversion=android_19" +
                     "&proto=4" +
-                    "&smid=DuJQrxHQrspxX3vIrdzJ9NZjtJewzbxa6fkP3HRfX3ZOev527PohCrq" +
-                    "/r6cSbwSM+oEHITIq21EI6F7hQQaMOArQ"; //%2Fr6cSbwSM%2BoEHITIq21EI6F7hQQaMOArQ
+                    "&smid=DuO7bpGwHmL8lq1hV5Jaq7oEtB1KooGaK3Xqf9" +
+                    "+gBThJPIf7lOm05DKxchLLUQ9VXZutYmrxfsie/SBtqFY/xusA";
 
     private final static String get_follow_api_url =
             inke_api_host + "/live/homepage" +
@@ -112,6 +113,14 @@ public class InkeUtil {
     private final static String chat_iplist_api =
             inke_api_host + "/chat/iplist" +
                     api_surfix;
+
+    private final static String account_token_api =
+            inke_api_host + "/user/account/token" +
+                    api_surfix;
+
+    private final static String live_share_pc_api =
+            "http://webapi.busi.inke.com/web/live_share_pc" +
+                    "?uid=%d&id=%s";
 
     public static class LiveInfo {
         public int mUserId;
@@ -442,7 +451,7 @@ public class InkeUtil {
             List<String> ipList = new ArrayList<>();
             for (int i=0;i<size;i++) {
                 JSONObject c = cfg.getJSONObject(i);
-                LogUtil.info(TAG, "aaa: " + c.toString());
+                LogUtil.info(TAG, "slot info: " + c.toString());
 
                 // addr=60.205.82.52:81|60.205.82.49:81
                 // slot=2
@@ -478,6 +487,7 @@ public class InkeUtil {
 
         String url = host + "/socket.io/1/" + api_surfix;
         LogUtil.info(TAG, "chatServer url: " + url);
+        //Map<String, String> headers = UserAccountTokenManager.ins().getRequestHeaders("/socket.io/1/");
         String result = Util.postHttpPage(url, null);
         if (result == null) {
             LogUtil.error(TAG, "failed to call chatServer()");
@@ -496,6 +506,232 @@ public class InkeUtil {
         LogUtil.info(TAG, "websocket token: " + token);
         String websocket_url = host + "/socket.io/1/websocket/" + token + api_surfix;
         return websocket_url;
+    }
+
+    public static String chatServer2(String uid, String id) {
+        LogUtil.info(TAG, String.format(Locale.US, "chatServer2(): %s %s", uid, id));
+
+        String url = String.format(live_share_pc_api, Integer.valueOf(uid), id);
+        LogUtil.info(TAG, "chatServer2 url: " + url);
+        String result = Util.getHttpPage(url);
+        if (result == null) {
+            LogUtil.error(TAG, "failed to call chatServer2()");
+            return null;
+        }
+
+//        {
+//            error_code: 0,
+//                    message: "ok",
+//                data: {
+//            media_info: {
+//                nick: "三八蔓",
+//                        portrait: "http://image.scale.a8.com/imageproxy2/dimgm/scaleImage?url=http%3A%2F%2Fimg.meelive.cn%2FMTQ3MjU3OTk4ODQ1MyM3MTIjanBn.jpg&w=100&h=100&s=80&c=0&o=0",
+//                        inke_id: 6543260,
+//                        level: 60,
+//                        gender: 0,
+//                        gender_img: "/Public/images/gender-0.png",
+//                        area: "宁波市",
+//                        description: "看心情播",
+//                        level_img: "http://img.meelive.cn/MjczMTExNDM1OTIyMTE2.jpg"
+//            },
+//            file: {
+//                status: 1,
+//                record_url: "rtmp://pull99.a8.com/live/1472709665633273",
+//                online_users: 18691,
+//                title: "你丑你先睡，我美我直播！正在直播，快来一起看~",
+//                pic: "http://image.scale.a8.com/imageproxy2/dimgm/scaleImage?url=http%3A%2F%2Fimg.meelive.cn%2FMTQ3MjU3OTk4ODQ1MyM3MTIjanBn.jpg&w=520&h=836&s=80&c=0&o=0",
+//                city: "宁波市"
+//            },
+//            records: [ ],
+//            status: 1,
+//            portrait: "http://image.scale.a8.com/imageproxy2/dimgm/scaleImage?url=http%3A%2F%2Fimg.meelive.cn%2FMTQ3MjU3OTk4ODQ1MyM3MTIjanBn.jpg&w=100&h=100&s=80&c=0&o=0",
+//            point: 24239807,
+//            sio_ip: "101.201.40.64:81",
+//            liveid: "1472709665633273",
+//            live_uid: "6543260",
+//            is_follow: 0,
+//            weibo_url: "https://api.weibo.com/oauth2/authorize?client_id=2444295379&redirect_uri=http%3A%2F%2Fopen.inke.tv%2Fweibo%2Flogin_pc&response_type=code",
+//            weixin_url: "https://open.weixin.qq.com/connect/qrconnect?appid=wx9b1840345c3386de&redirect_uri=http%3A%2F%2Fvideo.inke.com%2Fweixin%2Flogin_pc%2Fuid%3D6543260%26id%3D1472709665633273%2F&response_type=code&scope=snsapi_login&state=STATE#wechat_redirect",
+//            sec: "525b1da5d9fdb6247fb245eca27e2066",
+//            view_uid: "",
+//            nonce: "djzVCGC3Be",
+//            time: 1472710637,
+//            sio_md5: "",
+//            view_nick: "",
+//            token: "",
+//            token_time: "",
+//            origin: null,
+//            is_login: 0
+//        }
+//        }
+
+
+//        {
+//            record_url: "http://record2.a8.com/mp4/1472623404847989.mp4",
+//                    online_users: 58455,
+//                city: "长春市",
+//                title: "你丑你先睡，我美我直播！嘉。正在直播，快来一起看~",
+//                img: "http://img.meelive.cn/MzI5NjYxNDYwMDQ4OTM0.jpg",
+//                pic: "http://image.scale.a8.com/imageproxy2/dimgm/scaleImage?url=http%3A%2F%2Fimg.meelive.cn%2FMzI5NjYxNDYwMDQ4OTM0.jpg&w=346&h=260&s=80&c=0&o=0",
+//                liveid: "1472623404847989"
+//        },
+
+        try {
+            JSONTokener jsonParser = new JSONTokener(result);
+            JSONObject root = (JSONObject) jsonParser.nextValue();
+
+            int error_code = root.getInt("error_code");
+            if (error_code != 0) {
+                String message = root.getString("message");
+                LogUtil.error(TAG, "failed to chatServer2, error_msg: " + message);
+                return null;
+            }
+
+            JSONObject data = root.getJSONObject("data");
+            JSONObject media_info = data.getJSONObject("media_info");
+            String nick = media_info.getString("nick");
+            String portrait = media_info.getString("portrait");
+            int inke_id = media_info.getInt("inke_id");
+
+            JSONObject file = data.getJSONObject("file");
+            int status = file.getInt("status");
+            String record_url = file.getString("record_url");
+            int online_users = file.getInt("online_users");
+            String title = file.getString("title");
+            String pic = file.getString("title");
+            String city = file.getString("city");
+
+            JSONArray records = data.optJSONArray("records");
+            if (records != null && records.length() > 0) {
+                for (int i=0;i<records.length();i++) {
+                    JSONObject rec = records.getJSONObject(i);
+                    String rec_record_url = rec.getString("record_url");
+                    int rec_online_users = rec.getInt("online_users");
+                    String rec_liveid = rec.getString("liveid");
+                    LogUtil.info(TAG, String.format(Locale.US,
+                            "rec %s, users %d, liveid %s",
+                            rec_record_url, rec_online_users, rec_liveid));
+                }
+            }
+
+            String sio_ip = data.getString("sio_ip");
+            String liveid = data.getString("liveid");
+            String live_uid = data.getString("live_uid");
+            String sec = data.getString("sec");
+            String nonce = data.getString("nonce");
+            long time = data.getLong("time");
+
+            // http://101.201.40.173:81/socket.io/1/
+            // ?uid=
+            // &place=room
+            // &sid=1
+            // &roomid=1472709367929772
+            // &token=
+            // &time=1472711317
+            // &nonce=AtaAOYDzsK
+            // &sec=f4a28c987fd612e8b8aebe5c87351677
+            // &t=1472711317457
+
+            String get_token_url = "http://" + sio_ip + "/socket.io/1/" +
+                    "?uid=" +
+                    "&place=room" +
+                    "&sid=1" +
+                    "&roomid=" + liveid +
+                    "&token=" +
+                    "&time=" + time +
+                    "&nonce=" + nonce +
+                    "&sec=" + sec +
+                    "&t=" + time;
+            LogUtil.info(TAG, "get_token_url: " + get_token_url);
+
+            result = Util.getHttpPage(get_token_url);
+            if (result == null) {
+                LogUtil.error(TAG, "failed to get sio_token");
+                return null;
+            }
+
+            //WKq73Pi7_dSkY3_sItRY:60:60:websocket
+            LogUtil.info(TAG, "sio_token result: " + result);
+            int index = result.indexOf(":");
+            if (index < 0) {
+                LogUtil.error(TAG, "failed to find websocket token");
+                return null;
+            }
+
+            String token = result.substring(0, index);
+            LogUtil.info(TAG, "websocket token: " + token);
+
+            // ws://101.201.40.173:81/socket.io/1/websocket/WKq73Pi7_dSkY3_sItRY
+            // ?uid=
+            // &place=room
+            // &sid=1
+            // &roomid=1472709367929772
+            // &token=
+            // &time=1472711317
+            // &nonce=AtaAOYDzsK
+            // &sec=f4a28c987fd612e8b8aebe5c87351677
+
+            String sio_url = "ws://" + sio_ip + "/socket.io/1/websocket/" + token +
+                    "?uid=" +
+                    "&place=room" +
+                    "&sid=1" +
+                    "&roomid=" + liveid +
+                    "&token=" +
+                    "&time=" + time +
+                    "&nonce=" + nonce +
+                    "&sec=" + sec;
+            LogUtil.info(TAG, "sio_url: " + sio_url);
+            return sio_url;
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+
+        return null;
+    }
+
+    public static String getToken(String secret) {
+        String url = account_token_api;
+
+        // {"time":1472708405,"sec":"853dd7b4669aab59d638c2c9a056ddae"}
+        JSONObject json = new JSONObject();
+        try {
+            json.put("time", System.currentTimeMillis() / 1000);
+            json.put("sec", secret);
+        } catch (JSONException e) {
+            e.printStackTrace();
+            return null;
+        }
+
+        LogUtil.info(TAG, "post data: " + json.toString());
+        String result = Util.postHttpPage(url, json.toString());
+        if (result == null) {
+            LogUtil.error(TAG, "failed to call chatServer()");
+            return null;
+        }
+
+        try {
+            JSONTokener jsonParser = new JSONTokener(result);
+            JSONObject root = (JSONObject) jsonParser.nextValue();
+
+//            error_msg: "请求参数错误",
+//            dm_error: 499
+//            expire=1800
+            // md5=44c925659397a459cfd4ee9dc6f40f32
+            // timestamp=1472708402
+            // token=187f67af4e6e96fb1ae2dde6d7267bba1b3abd1b7bc3c3d09b86bbbe
+            int dm_error = root.getInt("dm_error");
+            String error_msg = root.getString("error_msg");
+            if (dm_error != 0) {
+                LogUtil.error(TAG, "failed to getToken , error_msg: " + error_msg);
+                return null;
+            }
+
+            return root.getString("token");
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+
+        return null;
     }
 
     public static boolean follow(int uid) {

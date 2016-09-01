@@ -46,7 +46,7 @@ public class MyAdapter extends SimpleAdapter {
 		//new ThumbNailTask().execute(value); // async task will cause thumbnail mismatch	
 		
 		if (mScrolling)
-			view.setImageResource(R.drawable.clip);
+			view.setImageResource(R.mipmap.clip);
 		else
 			((ImageView)view).setImageBitmap(MeetSDK.createVideoThumbnail(value, Thumbnails.MICRO_KIND));
 		
