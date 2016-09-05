@@ -1,5 +1,7 @@
 package com.gotye.meetplayer.activity;
 
+import android.content.ClipData;
+import android.content.ClipboardManager;
 import android.content.Intent;
 import android.graphics.PixelFormat;
 import android.media.AudioManager;
@@ -50,6 +52,7 @@ public class InkePlayerActivity extends AppCompatActivity
     private TextView mTvInfo;
 
     private String mPlayUrl;
+    private String mShareUrl;
     private int mPlayerImpl;
     private int mVideoWidth, mVideoHeight;
     private boolean mIsBuffering = false;
@@ -112,6 +115,7 @@ public class InkePlayerActivity extends AppCompatActivity
         mCreatorName = intent.getStringExtra("creator_name");
         mCreatorUid = intent.getIntExtra("uid", -1);
         mPlayUrl = intent.getStringExtra("play_url");
+        mShareUrl = intent.getStringExtra("share_url");
         if (intent.hasExtra("rid")) {
             mRoomId     = intent.getStringExtra("rid");
             mSlot       = intent.getIntExtra("slot", -1);
@@ -529,6 +533,34 @@ public class InkePlayerActivity extends AppCompatActivity
                         });
                     }
                 }).start();
+            case R.id.copy_play_addr:
+                if (mPlayUrl != null) {
+                    ClipboardManager myClipboard;
+                    myClipboard = (ClipboardManager) getSystemService(CLIPBOARD_SERVICE);
+                    ClipData myClip;
+                    myClip = ClipData.newPlainText("text", mPlayUrl);
+                    myClipboard.setPrimaryClip(myClip);
+
+                    Toast.makeText(this, "播放地址已复制至粘贴板", Toast.LENGTH_SHORT).show();
+                }
+                else {
+                    Toast.makeText(this, "播放地址为空", Toast.LENGTH_SHORT).show();
+                }
+                break;
+            case R.id.copy_share_addr:
+                if (mShareUrl != null) {
+                    ClipboardManager myClipboard;
+                    myClipboard = (ClipboardManager) getSystemService(CLIPBOARD_SERVICE);
+                    ClipData myClip;
+                    myClip = ClipData.newPlainText("text", mShareUrl);
+                    myClipboard.setPrimaryClip(myClip);
+
+                    Toast.makeText(this, "分享地址已复制至粘贴板", Toast.LENGTH_SHORT).show();
+                }
+                else {
+                    Toast.makeText(this, "分享地址为空", Toast.LENGTH_SHORT).show();
+                }
+                break;
             default:
                 break;
         }

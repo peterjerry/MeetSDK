@@ -21,8 +21,6 @@ import com.gotye.meetplayer.util.ImgUtil;
 import com.pplive.dlna.DLNASdk;
 import com.pplive.dlna.DLNASdkDMSItemInfo;
 
-import org.w3c.dom.Text;
-
 import java.lang.ref.WeakReference;
 import java.util.Locale;
 

@@ -7,5 +7,13 @@
         android:id="@+id/follow"
         app:showAsAction="always"
         android:title="关注"/>
+    <item
+        android:id="@+id/copy_play_addr"
+        app:showAsAction="always"
+        android:title="复制播放地址"/>
+    <item
+        android:id="@+id/copy_share_addr"
+        app:showAsAction="always"
+        android:title="复制分享地址"/>
 
 </menu>

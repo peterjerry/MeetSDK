@@ -35,7 +35,7 @@ public class InkeChatRoomClient {
     private WebSocketObserver wsObserver;
     private WebSocketChannelEvents events;
     private WebSocketConnectionState state = WebSocketConnectionState.NEW;
-    private Thread mHeartBeatThr;
+    private HeartBeatThread mHeartBeatThr;
 
     public InkeChatRoomClient(String wsUrl, String roomId, String from) {
         this.mServerUrl     = wsUrl;
@@ -160,35 +160,12 @@ public class InkeChatRoomClient {
         }
     }
 
-    void startHeartBeat() {
-        mHeartBeatThr = new Thread(new Runnable() {
-            @Override
-            public void run() {
-                LogUtil.info(TAG, "heart beat thread started");
-
-                while(!mHeartBeatThr.isInterrupted() &&
-                        (state == WebSocketConnectionState.LOGIN ||
-                                state == WebSocketConnectionState.CONNECTED)) {
-                    ws.sendTextMessage("2:::");
-
-                    mUsers = InkeUtil.getUsers(mRoomId);
-
-                    try {
-                        Thread.sleep(1000);
-                    } catch (InterruptedException e) {
-                        e.printStackTrace();
-						LogUtil.info(TAG, "heart beat thread interrupted");
-                        break;
-                    }
-                }
-
-                LogUtil.info(TAG, "hear beat thread exited");
-            }
-        });
+    private void startHeartBeat() {
+        mHeartBeatThr = new HeartBeatThread();
         mHeartBeatThr.start();
     }
 
-    void stopHeartBeat() {
+    private void stopHeartBeat() {
         if (mHeartBeatThr != null) {
             mHeartBeatThr.interrupt();
             try {
@@ -199,6 +176,31 @@ public class InkeChatRoomClient {
             }
             mHeartBeatThr = null;
             LogUtil.info(TAG, "after join mHeartBeatThr");
+        }
+    }
+
+    private class HeartBeatThread extends Thread {
+        @Override
+        public void run() {
+            LogUtil.info(TAG, "heart beat thread started");
+
+            while(!mHeartBeatThr.isInterrupted() &&
+                    (state == WebSocketConnectionState.LOGIN ||
+                            state == WebSocketConnectionState.CONNECTED)) {
+                ws.sendTextMessage("2:::");
+
+                mUsers = InkeUtil.getUsers(mRoomId);
+
+                try {
+                    Thread.sleep(1000);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                    LogUtil.info(TAG, "heart beat thread interrupted");
+                    break;
+                }
+            }
+
+            LogUtil.info(TAG, "hear beat thread exited");
         }
     }
 

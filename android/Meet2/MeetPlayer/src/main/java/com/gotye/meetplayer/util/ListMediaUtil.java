@@ -232,7 +232,6 @@ public class ListMediaUtil {
 			map.put("fullpath", clip_fullpath);
 			map.put("thumb", R.drawable.http);
 
-			LogUtil.info(TAG, "http media: " + filename + " added to list");
 			mClipList.add(map);
 		}
 		

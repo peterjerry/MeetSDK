@@ -58,6 +58,9 @@
             <item
 		        android:id="@+id/dlna_dmr"
 		        android:title="dlna推送视频"/>
+			<item
+				android:id="@+id/view_dms"
+				android:title="浏览DMS"/>
 		    <item
 		        android:id="@+id/load_subtitle"
 		        android:title="加载字幕文件"/>

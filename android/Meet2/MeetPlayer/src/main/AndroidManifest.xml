@@ -148,8 +148,7 @@
         <activity
             android:name="com.gotye.crashhandler.SendCrashActivity"
             android:label="@string/title_activity_send_crash" />
-        <activity
-            android:name=".activity.DMCActivity"/>
+        <activity android:name=".activity.DMCActivity" />
 
         <!-- Services -->
         <service android:name=".service.DLNAService">
@@ -173,6 +172,10 @@
                 <action android:name="com.gotye.action.MEDIA_SCANNER_SCAN_FILE" />
             </intent-filter>
         </receiver>
+
+        <activity
+            android:name=".activity.DMSExplorerActivity"
+            android:screenOrientation="portrait" />
     </application>
 
 </manifest>

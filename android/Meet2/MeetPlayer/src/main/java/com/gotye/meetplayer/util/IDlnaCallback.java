@@ -15,8 +15,8 @@ public class IDlnaCallback implements DLNASdk.DLNASdkInterface {
 
 	private static IDlnaCallback mInstance = null;
 
-	public static Map<String, String> mDMRmap = new HashMap<String,String>();
-	public static Map<String, String> mDMSmap = new HashMap<String,String>();
+	public static Map<String, String> mDMRmap = new HashMap<>();
+	public static Map<String, String> mDMSmap = new HashMap<>();
 	private DLNASdk.DLNASdkInterface mCallback;
 
 	public static IDlnaCallback getInstance() {
@@ -167,6 +167,13 @@ public class IDlnaCallback implements DLNASdk.DLNASdkInterface {
     }
 
     public void OnBrowse(boolean success,
-			String uuid, String objectid, long count, long total, DLNASdkDMSItemInfo[] filelists) {
+			String uuid, String objectid, long count, long total,
+						 DLNASdkDMSItemInfo[] filelists) {
+        //LogUtil.info(TAG, String.format(Locale.US,
+        //        "Java: OnBrowse %s, uuid: %s, objId %s, count %d, total %d",
+        //        success ? "success" : "fail", uuid, objectid, count, total));
+
+        if (mCallback != null)
+            mCallback.OnBrowse(success, uuid, objectid, count, total, filelists);
 	}
 }

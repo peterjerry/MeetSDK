@@ -2,7 +2,6 @@ package com.gotye.meetplayer.activity;
 
 import android.app.AlertDialog;
 import android.app.Dialog;
-import android.app.TaskStackBuilder;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.os.AsyncTask;
@@ -36,7 +35,6 @@ import com.gotye.meetplayer.util.Util;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 
 public class InkeActivity extends AppCompatActivity {
@@ -65,8 +63,8 @@ public class InkeActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_inke);
 
-        viewContainter = new ArrayList<View>();
-        titleContainer = new ArrayList<String>();
+        viewContainter = new ArrayList<>();
+        titleContainer = new ArrayList<>();
 
         pager = (ViewPager) this.findViewById(R.id.viewpager);
         tabStrip = (PagerTabStrip) this.findViewById(R.id.tabstrip);
@@ -288,12 +286,13 @@ public class InkeActivity extends AppCompatActivity {
         String creator_name = (String)map.get("title");
         int uid = (Integer)map.get("uid");
         String play_url = (String) map.get("play_url");
+        String share_addr = (String) map.get("share_addr");
         String rid = (String) map.get("rid");
         int slot = (Integer) map.get("slot");
         play_url += "?type=gotyelive";
-        //play_url = ndsTranslate(play_url);
         Intent intent = new Intent(InkeActivity.this, InkePlayerActivity.class);
         intent.putExtra("play_url", play_url);
+        intent.putExtra("share_url", share_addr);
         intent.putExtra("creator_name", creator_name);
         intent.putExtra("uid", uid);
         intent.putExtra("rid", rid);
@@ -383,6 +382,7 @@ public class InkeActivity extends AppCompatActivity {
                     play_url += "?type=gotyelive";
                     Intent intent = new Intent(InkeActivity.this, InkePlayerActivity.class);
                     intent.putExtra("play_url", play_url);
+                    intent.putExtra("share_url", publishResult.mShareUrl);
                     intent.putExtra("creator_name", publishResult.mName);
                     intent.putExtra("uid", publishResult.mCreator);
                     intent.putExtra("rid", publishResult.mId);

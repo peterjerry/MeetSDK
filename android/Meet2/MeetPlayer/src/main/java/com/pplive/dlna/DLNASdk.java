@@ -9,9 +9,10 @@ public class DLNASdk
 	private static DLNASdk mInstance = null;
 	private static boolean mLibLoaded = false;
 
-	public static int DEVICE_TYPE_DMS = 0;
-	public static int DEVICE_TYPE_DMR = 1;
-	public static int DEVICE_TYPE_UNKNOWN = -1;
+	public static int DEVICE_TYPE_DMC       = 0;
+	public static int DEVICE_TYPE_DMR       = 1;
+	public static int DEVICE_TYPE_DMS       = 2;
+	public static int DEVICE_TYPE_UNKNOWN   = -1;
 
 	static {
 		try {

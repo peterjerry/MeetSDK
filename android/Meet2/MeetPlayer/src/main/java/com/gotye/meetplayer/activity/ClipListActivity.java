@@ -2434,6 +2434,43 @@ public class ClipListActivity extends AppCompatActivity implements
         startActivity(intent);
     }
 
+    private void view_dms() {
+        int dev_num = IDlnaCallback.mDMSmap.size();
+
+        if (dev_num == 0) {
+            LogUtil.info(TAG, "Java: dlna no dlna device found");
+            Toast.makeText(this, "未发现DMS设备", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        ArrayList<String> dev_list = new ArrayList<String>();
+        ArrayList<String> uuid_list = new ArrayList<String>();
+        for (String key : IDlnaCallback.mDMSmap.keySet()) {
+            String name = IDlnaCallback.mDMSmap.get(key);
+            LogUtil.info(TAG, "Java: dlna [dlna dms] uuid: " + key + " name: " + name);
+            uuid_list.add(key);
+            dev_list.add(name);
+        }
+
+        final String[] str_uuid_list = uuid_list.toArray(new String[uuid_list.size()]);
+        final String[] str_dev_list = dev_list.toArray(new String[dev_list.size()]);
+
+        Dialog choose_device_dlg = new AlertDialog.Builder(ClipListActivity.this)
+                .setTitle("选择DMS设备浏览内容")
+                .setItems(str_dev_list,
+                        new DialogInterface.OnClickListener() {
+                            public void onClick(DialogInterface dialog, int whichButton) {
+                                Intent intent = new Intent(ClipListActivity.this, DMSExplorerActivity.class);
+                                intent.putExtra("dms_uuid", str_uuid_list[whichButton]);
+                                intent.putExtra("dms_name", str_dev_list[whichButton]);
+                                startActivity(intent);
+                            }
+                        })
+                .setNegativeButton("取消", null)
+                .create();
+        choose_device_dlg.show();
+    }
+
     private void push_to_dmr() {
         if (mPlayUrl == null || mPlayUrl.equals("")) {
             mPlayUrl = getClipboardText();
@@ -2453,18 +2490,18 @@ public class ClipListActivity extends AppCompatActivity implements
 
         ArrayList<String> dev_list = new ArrayList<String>();
         ArrayList<String> uuid_list = new ArrayList<String>();
-        for (Object obj : IDlnaCallback.mDMRmap.keySet()) {
-            Object name = IDlnaCallback.mDMRmap.get(obj);
-            LogUtil.info(TAG, "Java: dlna [dlna dev] uuid: " + obj.toString() + " name: " + name.toString());
-            uuid_list.add(obj.toString());
-            dev_list.add(name.toString());
+        for (String key : IDlnaCallback.mDMRmap.keySet()) {
+            String name = IDlnaCallback.mDMRmap.get(key);
+            LogUtil.info(TAG, "Java: dlna [dlna dmr] uuid: " + key + " name: " + name);
+            uuid_list.add(key);
+            dev_list.add(name);
         }
 
         final String[] str_uuid_list = uuid_list.toArray(new String[uuid_list.size()]);
         final String[] str_dev_list = dev_list.toArray(new String[dev_list.size()]);
 
         Dialog choose_device_dlg = new AlertDialog.Builder(ClipListActivity.this)
-                .setTitle("Select device to push")
+                .setTitle("选择dlna推送设备")
                 .setItems(str_dev_list,
                         new DialogInterface.OnClickListener() {
                             public void onClick(DialogInterface dialog, int whichButton) {
@@ -2488,11 +2525,7 @@ public class ClipListActivity extends AppCompatActivity implements
                                 push_cdn_clip();
                             }
                         })
-                .setNegativeButton("Cancel",
-                        new DialogInterface.OnClickListener() {
-                            public void onClick(DialogInterface dialog, int whichButton) {
-                            }
-                        })
+                .setNegativeButton("取消", null)
                 .create();
         choose_device_dlg.show();
     }
@@ -2693,6 +2726,9 @@ public class ClipListActivity extends AppCompatActivity implements
                 break;
             case R.id.dlna_dmr:
                 push_to_dmr();
+                break;
+            case R.id.view_dms:
+                view_dms();
                 break;
             case R.id.list_http:
                 final EditText inputUrl = new EditText(this);
@@ -3395,6 +3431,7 @@ public class ClipListActivity extends AppCompatActivity implements
         //mDLNA.setLogPath(Environment.getExternalStorageDirectory().getAbsolutePath() + "/xxxx_dlna.log");
         mDLNA.Init(mDLNAcallback);
         mDLNA.EnableRendererControler(true);
+        mDLNA.EnableServerControler(true);
 
         //start file server
         Random rand = new Random();
