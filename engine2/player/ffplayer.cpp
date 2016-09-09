@@ -1203,7 +1203,7 @@ void FFPlayer::onPrepareImpl()
 
     mDurationMs = mDataStream->getDurationMs();
     LOGI("mDurationMs: %lld", mDurationMs);
-    if(mDurationMs > 0) {
+    if (mDurationMs > 0) {
         //vod
         //update mediasource capability
         mPlayerFlags = CAN_SEEK_BACKWARD | CAN_SEEK_FORWARD | CAN_PAUSE;

@@ -9,6 +9,7 @@ import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLConnection;
+import java.util.Locale;
 
 import android.util.Log;
 
@@ -22,7 +23,7 @@ public class httpUtil {
     private final static String YOUKU_USER_AGENT =
             "Youku HD;3.9.4;iPhone OS;7.1.2;iPad4,1";
 	
-	public static boolean httpDownload(String httpUrl,String saveFile){  
+	public static boolean httpDownload(String httpUrl, String saveFile, int from){
 		// 下载网络文件
 		int bytesum = 0;
 		int byteread = 0;
@@ -41,7 +42,11 @@ public class httpUtil {
             conn.setReadTimeout(5000);// 设置超时的时间
             conn.setConnectTimeout(5000);// 设置链接超时的时间
             conn.setRequestProperty("User-Agent", DESKTOP_CHROME_USER_AGENT);
-			conn.setRequestProperty("RANGE", "bytes=1400-"); // Range: bytes=500-999
+			if (from > 0) {
+				String range_str = String.format(Locale.US, "bytes=%d-", from);
+				conn.setRequestProperty("RANGE", range_str); // Range: bytes=500-999
+				LogUtil.info(TAG, "Java: set range: " + range_str);
+			}
 			
 			InputStream inStream = conn.getInputStream();
 			FileOutputStream fs = new FileOutputStream(saveFile);
@@ -53,7 +58,7 @@ public class httpUtil {
 				fs.write(buffer, 0, byteread);
 			}
 
-			Log.i(TAG, "Java: total file size: " + bytesum);
+			LogUtil.info(TAG, "Java: total file size: " + bytesum);
 			return true;
 		} catch (FileNotFoundException e) {
 			e.printStackTrace();

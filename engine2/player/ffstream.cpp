@@ -508,8 +508,7 @@ AVFormatContext* FFStream::open(char* uri)
         return NULL;
     }
 
-	int64_t duration;
-	duration =  mMovieFile->duration;
+	int64_t duration =  mMovieFile->duration;
 	if (AV_NOPTS_VALUE == duration || duration < 0) {
 		mDurationMs = 0;
 		//avformat_close_input(&mMovieFile);

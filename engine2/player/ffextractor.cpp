@@ -581,12 +581,24 @@ status_t FFExtractor::getTrackFormat(int32_t index, MediaFormat *format)
 	AVCodecID codec_id		= c->codec_id;
 
 	if (AVMEDIA_TYPE_VIDEO == type) {
+		int64_t duration =  m_fmt_ctx->streams[index]->duration;
+		int64_t duration_usec;
+		if (AV_NOPTS_VALUE == duration || duration < 0) {
+			duration_usec = 0;
+		}
+		else {
+			AVRational timebase = m_fmt_ctx->streams[index]->time_base;
+			duration_usec = (int64_t)((double)duration * 1000000 * av_q2d(timebase));
+		}
+
+		LOGI("video stream #%d duration got: %lld(usec)", index, duration_usec);
+
 		format->media_type	= PPMEDIA_TYPE_VIDEO;
 		format->codec_id		= (int32_t)codec_id;
 		format->width		= c->width;
 		format->height		= c->height;
 		format->ar			= av_q2d(c->sample_aspect_ratio);
-		format->duration_us	= m_fmt_ctx->duration;
+		format->duration_us	= duration_usec;
 
 		// get pps and sps
 		if (strstr(m_fmt_ctx->iformat->name, "matroska,webm") != NULL ||
@@ -759,13 +771,25 @@ status_t FFExtractor::getTrackFormat(int32_t index, MediaFormat *format)
 		if (AV_CODEC_ID_AAC == codec_id)
 			LOGI("aac profile %d", c->profile);
 
+		int64_t duration =  m_fmt_ctx->streams[index]->duration;
+		int64_t duration_usec;
+		if (AV_NOPTS_VALUE == duration || duration < 0) {
+			duration_usec = 0;
+		}
+		else {
+			AVRational timebase = m_fmt_ctx->streams[index]->time_base;
+			duration_usec = (int64_t)((double)duration * 1000000 * av_q2d(timebase));
+		}
+
+		LOGI("audio stream #%d duration got: %lld(usec)", index, duration_usec);
+
 		format->media_type		= PPMEDIA_TYPE_AUDIO;
 		format->codec_id			= (int32_t)codec_id;
 		format->channels			= c->channels;
 		format->channel_layout	= c->channel_layout;
 		format->sample_rate		= c->sample_rate;
 		format->sample_fmt		= (int)c->sample_fmt;
-		format->duration_us		= m_fmt_ctx->duration;
+		format->duration_us		= duration_usec;
 
 		if (c->extradata && c->extradata_size > 0) {
 			LOGI("audio extradata %p, size %d", c->extradata, c->extradata_size);
