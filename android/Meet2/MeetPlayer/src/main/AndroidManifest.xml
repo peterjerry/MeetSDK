@@ -14,6 +14,12 @@
     <uses-permission android:name="android.permission.CHANGE_WIFI_STATE" />
     <uses-permission android:name="android.permission.CHANGE_CONFIGURATION" />
 
+    <!-- for QR code scan-->
+    <uses-feature android:name="android.hardware.camera" />
+    <uses-permission android:name="android.permission.CAMERA" />
+    <uses-permission android:name="android.permission.VIBRATE" />
+    <uses-permission android:name="android.permission.FLASHLIGHT" />
+
     <application
         android:name=".MeetApplication"
         android:allowBackup="true"
@@ -145,6 +151,9 @@
                     android:scheme="http" />
             </intent-filter>
         </activity>
+        <activity
+            android:name=".activity.QRScanActivity"
+            android:screenOrientation="portrait"/>
         <activity
             android:name="com.gotye.crashhandler.SendCrashActivity"
             android:label="@string/title_activity_send_crash" />

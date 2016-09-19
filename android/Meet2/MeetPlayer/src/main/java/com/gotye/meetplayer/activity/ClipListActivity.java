@@ -2755,6 +2755,10 @@ public class ClipListActivity extends AppCompatActivity implements
                 });
                 builder.show();
                 break;
+            case R.id.scan_qrcode:
+                intent = new Intent(this, QRScanActivity.class);
+                startActivity(intent);
+                break;
             case R.id.pptv_frontpage:
                 if (!Util.IsHaveInternet(this)) {
                     Toast.makeText(this, "network is not connected", Toast.LENGTH_SHORT).show();
@@ -3188,6 +3192,7 @@ public class ClipListActivity extends AppCompatActivity implements
 
                 if (result) {
                     installApk(path);
+                    finish();
                 }
             }
 
@@ -3211,7 +3216,10 @@ public class ClipListActivity extends AppCompatActivity implements
         }
 
         Intent intent = new Intent(Intent.ACTION_VIEW);
-        intent.setDataAndType(Uri.fromFile(new File(apk_fullpath)), "application/vnd.android.package-archive");
+        intent.addCategory("android.intent.category.DEFAULT");
+        intent.setDataAndType(
+                Uri.fromFile(new File(apk_fullpath)),
+                "application/vnd.android.package-archive");
         startActivity(intent);
     }
 

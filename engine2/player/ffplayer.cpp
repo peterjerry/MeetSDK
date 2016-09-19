@@ -3440,7 +3440,7 @@ bool generateThumbnail(AVFrame* videoFrame,
 
     struct SwsContext* convertCtx = sws_getContext(videoFrame->width,
 								 videoFrame->height,
-								 (PixelFormat)videoFrame->format,
+								 (AVPixelFormat)videoFrame->format,
 								 width,
 								 height,
 								 out_fmt,

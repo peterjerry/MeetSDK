@@ -505,7 +505,7 @@ status_t FFExtractor::setDataSource(const char *path)
 	else
 		m_min_play_buf_count = 25 * 4; // 4 sec for vod "smooth" play 
 
-	if (TYPE_LOCAL_FILE == m_sorce_type && AV_NOPTS_VALUE != m_fmt_ctx->start_time) {
+	if (TYPE_LIVE != m_sorce_type && AV_NOPTS_VALUE != m_fmt_ctx->start_time) {
 		m_start_msec = m_fmt_ctx->start_time * 1000 / AV_TIME_BASE;
 		LOGI("set m_start_msec to %d msec", m_start_msec);
 	}
@@ -583,8 +583,14 @@ status_t FFExtractor::getTrackFormat(int32_t index, MediaFormat *format)
 	if (AVMEDIA_TYPE_VIDEO == type) {
 		int64_t duration =  m_fmt_ctx->streams[index]->duration;
 		int64_t duration_usec;
-		if (AV_NOPTS_VALUE == duration || duration < 0) {
-			duration_usec = 0;
+		if (AV_NOPTS_VALUE == duration || duration <= 0) {
+			LOGW("video stream duration has no value, try use format duration");
+			duration = m_fmt_ctx->duration;
+
+			if (AV_NOPTS_VALUE == duration || duration <= 0)
+				duration_usec = 0;
+			else
+				duration_usec = duration;
 		}
 		else {
 			AVRational timebase = m_fmt_ctx->streams[index]->time_base;
@@ -774,7 +780,13 @@ status_t FFExtractor::getTrackFormat(int32_t index, MediaFormat *format)
 		int64_t duration =  m_fmt_ctx->streams[index]->duration;
 		int64_t duration_usec;
 		if (AV_NOPTS_VALUE == duration || duration < 0) {
-			duration_usec = 0;
+			LOGW("audio stream duration has no value, try use format duration");
+			duration = m_fmt_ctx->duration;
+
+			if (AV_NOPTS_VALUE == duration || duration <= 0)
+				duration_usec = 0;
+			else
+				duration_usec = duration;
 		}
 		else {
 			AVRational timebase = m_fmt_ctx->streams[index]->time_base;
@@ -1599,7 +1611,7 @@ status_t FFExtractor::getCachedDuration(int64_t *durationUs, bool *eos)
 	if (NULL == durationUs || NULL == eos)
 		return ERROR;
 
-	*durationUs = m_cached_duration_msec * 1000;
+	*durationUs = (m_cached_duration_msec - m_start_msec) * 1000;
 	*eos = (m_eof && m_video_q.count() == 0 && m_audio_q.count() == 0);
 	return OK;
 }
