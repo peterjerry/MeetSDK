@@ -212,6 +212,19 @@ public class YKUtil {
                     "&md=1" +
                     "&pz=20";
 
+    private final static String show_api =
+            "http://api.mobile.youku.com/shows/%s" +
+                    "/reverse/videos" +
+                    "?pid=6f81431b00e5b30a" +
+                    "&guid=0b902709fdaba50d69ce66911d4a56e8" +
+                    "&imei=864690028530395" +
+                    "&ver=5.9" +
+                    "&network=WIFI" +
+                    "&fields=vid|comm|titl" +
+                    "&pg=%d" + // base 1
+                    "&pz=%d" +
+                    "&area_code=1";
+
     public static final int API_METHOD_V3_PLAY     = 1;
     public static final int API_METHOD_GET_JSON    = 2;
 
@@ -1172,7 +1185,7 @@ public class YKUtil {
             String online_time = v_meta.getElementsByClass("v-meta-entry")
                     .first().child(1).child(2).text();
             epList.add(new Episode(title, vid, thumb_url,
-                    online_time, vv, duration, null));
+                    online_time, vv, duration, null, null));
         }
 
         return new MixResult(albumList, epList);
@@ -1310,13 +1323,78 @@ public class YKUtil {
                     String stripe_bottom = item.getString("stripe_bottom");
                     String total_vv_fmt = item.getString("total_vv_fmt");
                     epList.add(new Episode(title, videoid, img_url,
-                            pubdate, total_vv_fmt, duration_fmt, null));
+                            pubdate, total_vv_fmt, duration_fmt, null, null));
                 }
             }
 
             return new MixResult(albumList, epList);
         } catch (JSONException e1) {
             e1.printStackTrace();
+        }
+
+        return null;
+    }
+
+    public static List<Episode> show(String vid, int page, int pagesize) {
+        LogUtil.info(TAG, String.format(Locale.US, "relate() vid %s, page %d", vid, page));
+
+        String url = String.format(Locale.US, show_api, vid, page, pagesize);
+        LogUtil.info(TAG, "show() url: " + url);
+        String result = getHttpPage(url, YOUKU_USER_AGENT2, false);
+        if (result == null)
+            return null;
+
+        try {
+            JSONTokener jsonParser = new JSONTokener(result);
+            JSONObject root = (JSONObject) jsonParser.nextValue();
+            String status = root.getString("status");
+            if (!status.equals("success"))
+                return null;
+
+            JSONArray results = root.getJSONArray("results");
+            int size = results.length();
+            List<Episode> epList = new ArrayList<Episode>();
+
+            for (int i=0;i<size;i++) {
+                JSONObject item = results.getJSONObject(i);
+
+//                total_pv: 26865701,
+//                        show_videostage: 12,
+//                        title: "幻城 12",
+//                        show_videoseq: 12,
+//                        videoid: "XMTY3NjU3MzA4NA==",
+//                        streamtypes: [
+//                "hd2",
+//                        "flvhd",
+//                        "hd",
+//                        "3gphd"
+//                ],
+//                total_pv_fmt: "2686.6万",
+//                        pay_state: 0,
+//                        publicType: 0,
+//                        highlight: false,
+//                        is_trailer: false,
+//                        desc: "卡索与片风来到桃花谷内寻找千灵"
+
+                int show_videostage = item.getInt("show_videostage");
+                String title = item.getString("title");
+                String videoid = item.getString("videoid");
+                JSONArray streamtypes = item.getJSONArray("streamtypes");
+                List<String> StrmTypeList = new ArrayList<String>();
+                for (int j=0;j<streamtypes.length();j++) {
+                    StrmTypeList.add(streamtypes.getString(j));
+                }
+                String total_pv_fmt = item.getString("total_pv_fmt");
+                int seq = item.getInt("show_videoseq");
+                String desc = item.getString("desc");
+
+                epList.add(new Episode(title, videoid, null,
+                        null, total_pv_fmt, null, StrmTypeList, desc));
+            }
+
+            return epList;
+        } catch (JSONException e) {
+            e.printStackTrace();
         }
 
         return null;

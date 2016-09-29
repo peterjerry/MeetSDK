@@ -363,6 +363,7 @@ public class YoukuEpisodeActivity extends AppCompatActivity {
                     map.put("index", i + 1);
                     map.put("title", mEpList.get(i).getTitle());
                     map.put("vid", mEpList.get(i).getVideoId());
+                    map.put("desc", mEpList.get(i).getDescrition());
                     map.put("company", "youku");
                     if (mbRevertEp)
                         dataList.add(0, map);
@@ -405,11 +406,22 @@ public class YoukuEpisodeActivity extends AppCompatActivity {
             int page_index = 1;
             while (true) {
                 List<Episode> epList = YKUtil.getEpisodeList(
-                        mAlbum.getShowId(), page_index++, PAGE_SIZE);
+                        mAlbum.getShowId(), page_index, PAGE_SIZE);
                 if (epList != null && !epList.isEmpty()) {
+                    List<Episode> descList = YKUtil.show(
+                            mAlbum.getShowId(), page_index, PAGE_SIZE);
+                    if (descList != null && !descList.isEmpty()) {
+                        for (int i=0;i<descList.size();i++) {
+                            String desc = descList.get(i).getDescrition();
+                            epList.get(i).setDescrition(desc);
+                        }
+                    }
+
                     mEpList.addAll(epList);
                     progress++;
                     publishProgress(progress);
+
+                    page_index++;
                 }
                 else {
                     break;

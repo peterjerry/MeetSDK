@@ -36,6 +36,7 @@ import com.gotye.meetplayer.R;
 import com.gotye.meetplayer.media.FragmentMp4MediaPlayerV2;
 import com.gotye.meetplayer.ui.MyPreView2;
 import com.gotye.meetplayer.ui.widget.MicroMediaController;
+import com.gotye.meetplayer.util.IDlnaCallback;
 import com.gotye.meetplayer.util.Util;
 import com.gotye.meetsdk.player.MediaController.MediaPlayerControl;
 import com.gotye.meetsdk.player.MediaPlayer;
@@ -98,6 +99,10 @@ public class PlaySegFileActivity extends AppCompatActivity
 
     protected boolean mIsBuffering = false;
 	protected boolean mSwichingEpisode = false;
+
+    // dlna
+    protected String mDlnaDeviceUUID;
+    protected String mDlnaDeviceName;
 	
 	/* 记录上一次按返回键的时间 */
     private long backKeyTime = 0L;
@@ -403,6 +408,9 @@ public class PlaySegFileActivity extends AppCompatActivity
             case R.id.show_relate_video:
                 onShowRelateVideo();
                 break;
+            case R.id.dlna_push_to_dmr:
+                push_to_dmr();
+                break;
             case R.id.toggle_debug_info:
                 mbTvInfoShowing = !mbTvInfoShowing;
                 if (mbTvInfoShowing) {
@@ -458,6 +466,48 @@ public class PlaySegFileActivity extends AppCompatActivity
                 .setNegativeButton("取消", null)
                 .create();
         choose_player_impl_dlg.show();
+    }
+
+    private void push_to_dmr() {
+        int dev_num = IDlnaCallback.mDMRmap.size();
+
+        if (dev_num == 0) {
+            LogUtil.info(TAG, "Java: dlna no dlna device found");
+            Toast.makeText(this, "未发现DMR设备", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        ArrayList<String> dev_list = new ArrayList<String>();
+        ArrayList<String> uuid_list = new ArrayList<String>();
+        for (String key : IDlnaCallback.mDMRmap.keySet()) {
+            String name = IDlnaCallback.mDMRmap.get(key);
+            LogUtil.info(TAG, "Java: dlna [dlna dmr] uuid: " + key + " name: " + name);
+            uuid_list.add(key);
+            dev_list.add(name);
+        }
+
+        final String[] str_uuid_list = uuid_list.toArray(new String[uuid_list.size()]);
+        final String[] str_dev_list = dev_list.toArray(new String[dev_list.size()]);
+
+        Dialog choose_device_dlg = new AlertDialog.Builder(this)
+                .setTitle("选择dlna推送设备")
+                .setItems(str_dev_list,
+                        new DialogInterface.OnClickListener() {
+                            public void onClick(DialogInterface dialog, int whichButton) {
+
+                                mDlnaDeviceUUID = str_uuid_list[whichButton];
+                                mDlnaDeviceName = str_dev_list[whichButton];
+
+                                push_cdn_clip();
+                            }
+                        })
+                .setNegativeButton("取消", null)
+                .create();
+        choose_device_dlg.show();
+    }
+
+    protected void push_cdn_clip() {
+
     }
 
     private void popupMediaInfo() {

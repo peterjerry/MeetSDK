@@ -10,6 +10,7 @@ public class Episode {
 	private String mTotalVV;
 	private String mDuration;
 	private List<String> mStrmTypeList;
+	private String mDescrition;
 	
 	@SuppressWarnings("unused")
 	private Episode() {
@@ -17,12 +18,13 @@ public class Episode {
 	}
 	
 	public Episode(String title, String vid, List<String> strm_type_list) {
-		this(title, vid, null, null, null, null, strm_type_list);
+		this(title, vid, null, null, null, null, strm_type_list, null);
 	}
 
 	public Episode(String title, String vid, String thumb_url,
 				   String online_time, String total_vv,
-				   String duration, List<String> strm_type_list) {
+				   String duration, List<String> strm_type_list,
+				   String description) {
 		this.mTitle			= title;
 		this.mVideoId		= vid;
         this.mThumbUrl      = thumb_url;
@@ -30,6 +32,7 @@ public class Episode {
         this.mTotalVV       = total_vv;
 		this.mDuration		= duration;
 		this.mStrmTypeList	= strm_type_list;
+		this.mDescrition	= description;
 	}
 	
 	public String getVideoId() {
@@ -60,6 +63,13 @@ public class Episode {
 		return mStrmTypeList;
 	}
 
+    public String getDescrition() {
+        return mDescrition;
+    }
+
+    public void setDescrition(String desc) {
+        this.mDescrition = desc;
+    }
 	
 	public String toString() {
 		StringBuffer sb = new StringBuffer();
@@ -86,6 +96,10 @@ public class Episode {
         if (mStrmTypeList != null) {
             sb.append(", stream type: ");
             sb.append(mStrmTypeList.toString());
+        }
+        if (mDescrition != null) {
+            sb.append(", desc: ");
+            sb.append(mDescrition);
         }
 		
 		return sb.toString();

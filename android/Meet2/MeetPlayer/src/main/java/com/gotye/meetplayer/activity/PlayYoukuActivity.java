@@ -170,6 +170,23 @@ public class PlayYoukuActivity extends PlaySegFileActivity {
         new PlayLinkTask().execute();
     }
 
+    @Override
+    protected void push_cdn_clip() {
+        // http://www.sohu.com?showid=avcee&&vid=tghfd$&streamtype=youku
+        String push_url = String.format(Locale.US,
+                "http://www.youku.com?showid=%s&vid=%s&ft=%d&streamtype=youku",
+                mShowId, mVid, mFt);
+        LogUtil.info(TAG, "push_url: " + push_url);
+
+        Intent intent = new Intent(PlayYoukuActivity.this, DMCActivity.class);
+        intent.putExtra("title", mTitle);
+        intent.putExtra("push_url", push_url);
+        intent.putExtra("dmr_uuid", mDlnaDeviceUUID);
+        startActivity(intent);
+
+        finish();
+    }
+
     private class RelateVideoTask extends AsyncTask<Integer, Integer, Boolean> {
         private ProgressDialog mProgressDlg;
         private YKUtil.MixResult mResult;
