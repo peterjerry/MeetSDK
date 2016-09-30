@@ -1,7 +1,7 @@
 #!/bin/bash
 
 if [ $# == 0 ] ; then 
-echo "USAGE: $0 <abi(armeabi-v7a x86 arm64-v8a)> [config(full lite micro tiny gotye)] [component(enc mux librtmp openssl)] [path=/your/ffmpeg/src/path]" 
+echo "USAGE: $0 <abi(armeabi-v7a x86 arm64-v8a)> [config(full lite micro tiny tiny2 gotye publisher music)] [component(enc mux librtmp openssl)] [path=/your/ffmpeg/src/path]" 
 echo " e.g.: $0 armeabi-v7a"
 echo " e.g.: $0 armeabi-v7a lite"
 echo " e.g.: $0 armeabi-v7a lite enc" 
@@ -233,14 +233,32 @@ do
 			--disable-avfilter \
 			--disable-postproc \
 			--enable-small "
+	elif [ ${arg}x == 'tiny2'x ]; then
+		echo "tiny build"
+		EXTRA_PARAMETERS="$EXTRA_PARAMETERS \
+			--disable-decoders \
+			--enable-decoder=h264,aac,mp3,flac,vorbis,ape,pcm_s16be,pcm_s16be_planar,pcm_s16le,pcm_s16le_planar \
+			--disable-demuxers \
+			--enable-demuxer=h264,mp4,mov,mpegts,flv,hls,amr,mp3,ogg,flac,ape,wav \
+			--disable-parsers \
+			--enable-parser=h264,aac_latm,ape,flac \
+			--disable-protocols \
+			--enable-protocol=file,http,rtmp,hls \
+			--disable-bsfs \
+			--enable-bsf=h264_mp4toannexb,aac_adtstoasc \
+			--disable-swscale \
+			--disable-avfilter \
+			--disable-postproc \
+			--enable-small "		
 	elif [ ${arg}x == 'gotye'x ]; then
 		echo "gotye build"
 		EXTRA_PARAMETERS="$EXTRA_PARAMETERS \
 			--disable-decoders \
+			--enable-decoder=aac_latm \
 			--disable-demuxers \
 			--enable-demuxer=flv \
 			--disable-parsers \
-			--enable-parser=h264 \
+			--enable-parser=h264,aac,aac_latm \
 			--disable-protocols \
 			--enable-protocol=rtmp \
 			--disable-bsfs \
@@ -250,13 +268,45 @@ do
 			--disable-avfilter \
 			--disable-postproc \
 			--enable-small "
+	elif [ ${arg}x == 'publisher'x ]; then
+		echo "publisher build"
+		EXTRA_PARAMETERS="$EXTRA_PARAMETERS \
+			--disable-decoders \
+			--disable-demuxers \
+			--disable-parsers \
+			--disable-protocols \
+			--enable-protocol=rtmp \
+			--enable-muxer=flv \
+			--disable-bsfs \
+			--enable-bsf=aac_adtstoasc \
+			--disable-swscale \
+			--disable-swresample \
+			--disable-avfilter \
+			--disable-postproc \
+			--enable-small "		
+	elif [ ${arg}x == 'music'x ]; then
+		echo "music build"
+		EXTRA_PARAMETERS="$EXTRA_PARAMETERS \
+			--disable-decoders \
+			--enable-decoder=mp3,flac,vorbis,ape,pcm_s16be,pcm_s16be_planar,pcm_s16le,pcm_s16le_planar \
+			--disable-demuxers \
+			--enable-demuxer=amr,mp3,ogg,flac,ape,wav \
+			--disable-parsers \
+			--enable-parser=ape,flac \
+			--disable-protocols \
+			--enable-protocol=file,http \
+			--disable-bsfs \
+			--disable-swscale \
+			--disable-avfilter \
+			--disable-postproc \
+			--enable-small "		
 	fi
 done
 
 #remove ac3 eac3
 #EXTRA_PARAMETERS="$EXTRA_PARAMETERS --disable-decoder=ac3,eac3 --disable-parser=ac3 --disable-demuxer=ac3,eac3 "
 
-if [ ${2}x != 'tiny'x ] && [ ${2}x != 'gotye'x ]; then
+if [ ${2}x == 'full'x ] || [ ${2}x == 'lite'x ] || [ ${2}x == 'micro'x ]; then
 EXTRA_PARAMETERS="$EXTRA_PARAMETERS \
 	--enable-filter=rotate,transpose,hflip,vflip,yadif,showspectrum,showwaves,aresample,scale"
 fi

@@ -7,9 +7,9 @@ build guide:
 1) android
 i) build ffmpeg
 cd foundation/build/android
-./config.sh neon
-./build.sh neon
-./merge.sh neon
+./config.sh armeabi-v7a lite
+./build.sh armeabi-v7a lite
+./merge.sh armeabi-v7a lite
 
 copy to output/android
 
@@ -23,14 +23,11 @@ cd engine2/build/android
 ndk build
 
 iv) build meetsdk
-cd android/meetsdk
-ant release
+cd android/Meet2/MeetSDK
+gradle assembleRelease
 
-cd android/meetplayer
-ant debug install
-
-# "ant quick" to set no-dependency apk build
-# "ant normal" to set lib-denpendent apk build
+cd android/Meet2/MeetPlayer
+gradle assembleRelease
 
 2) ios
 i) build ffmpeg
