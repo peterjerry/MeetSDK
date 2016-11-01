@@ -21,6 +21,8 @@ public class PPTVPlayhistoryDatabaseHelper {
     private static final String COLUMN_PLAYLINK = "playlink";
     
     private static final String COLUMN_ALBUM_ID = "album_id";
+	
+	private static final String COLUMN_EPISODE_INDEX = "episode_index";
     
     private static final String COLUMN_FT = "ft";
     
@@ -35,10 +37,11 @@ public class PPTVPlayhistoryDatabaseHelper {
     private Context context;
     
     public class ClipInfo {
-    	public ClipInfo(String title, String playlink, String album_id, int ft, int pos) {
+    	public ClipInfo(String title, String playlink, String album_id, int episode_index, int ft, int pos) {
     		this.mTitle = title;
     		this.mPlaylink = playlink;
     		this.mAlbumId = album_id;
+			this.mEpisodeIndex = episode_index;
     		this.mFt = ft;
     		this.mLastPos = pos;
     	}
@@ -46,6 +49,7 @@ public class PPTVPlayhistoryDatabaseHelper {
     	public String mTitle;
     	public String mPlaylink;
     	public String mAlbumId;
+		public int mEpisodeIndex;
     	public int mFt;
     	public int mLastPos;
     }
@@ -87,7 +91,7 @@ public class PPTVPlayhistoryDatabaseHelper {
         createTable(db);
     }
     
-    public synchronized void saveHistory(String title, String playlink, String album_id, int ft) {
+    public synchronized void saveHistory(String title, String playlink, String album_id, int episode_index, int ft) {
         if (title == null || playlink == null) {
             return;
         }
@@ -108,6 +112,8 @@ public class PPTVPlayhistoryDatabaseHelper {
             values.put(COLUMN_WATCH_TIME, System.currentTimeMillis());
             if (album_id != null)
             	values.put(COLUMN_ALBUM_ID, album_id);
+			if (episode_index > 0)
+				values.put(COLUMN_EPISODE_INDEX, episode_index);
             if (ft >=0)
             	values.put(COLUMN_FT, ft);
 
@@ -183,7 +189,7 @@ public class PPTVPlayhistoryDatabaseHelper {
          
          try {
              c = db.query(TABLE_NAME, 
-            		 new String[] { COLUMN_TITLE, COLUMN_PLAYLINK, COLUMN_ALBUM_ID,
+            		 new String[] { COLUMN_TITLE, COLUMN_PLAYLINK, COLUMN_ALBUM_ID, COLUMN_EPISODE_INDEX, 
                              COLUMN_FT, COLUMN_LAST_PLAY_POSITION},
                      null, null, null, null, COLUMN_WATCH_TIME + " DESC");
              if (c.moveToFirst()) {
@@ -191,18 +197,20 @@ public class PPTVPlayhistoryDatabaseHelper {
 
 	             int title_index = c.getColumnIndex(COLUMN_TITLE);
 	             int playlink_index = c.getColumnIndex(COLUMN_PLAYLINK);
-	             int album_index = c.getColumnIndex(COLUMN_ALBUM_ID);
+	             int album_id_index = c.getColumnIndex(COLUMN_ALBUM_ID);
+				 int ep_idx_index = c.getColumnIndex(COLUMN_EPISODE_INDEX);
 	             int ft_index = c.getColumnIndex(COLUMN_FT);
 	             int last_pos_index = c.getColumnIndex(COLUMN_LAST_PLAY_POSITION);
 	             
 	             while (true) {
 	            	 String title = c.getString(title_index);
 	            	 String playlink = c.getString(playlink_index);
-	            	 String album_id = c.getString(album_index);
+	            	 String album_id = c.getString(album_id_index);
+					 int episode_index = c.getInt(ep_idx_index);
 	            	 int ft = c.getInt(ft_index);
 	            	 int pos = c.getInt(last_pos_index);
 	            	 
-	            	 ClipInfo info = new ClipInfo(title, playlink, album_id, ft, pos);
+	            	 ClipInfo info = new ClipInfo(title, playlink, album_id, episode_index, ft, pos);
 	            	 listClips.add(info);
 	            	 
 	            	 if (!c.moveToNext())
@@ -226,7 +234,7 @@ public class PPTVPlayhistoryDatabaseHelper {
 		Cursor c = null;
 		try {
 			c = db.query(TABLE_NAME, 
-					new String[] { COLUMN_TITLE, COLUMN_PLAYLINK, COLUMN_ALBUM_ID, 
+					new String[] { COLUMN_TITLE, COLUMN_PLAYLINK, COLUMN_ALBUM_ID, COLUMN_EPISODE_INDEX, 
 						COLUMN_FT, COLUMN_LAST_PLAY_POSITION, COLUMN_WATCH_TIME}, 
 					null, null, null, null,
 					COLUMN_WATCH_TIME + " DESC", "10");
@@ -235,6 +243,7 @@ public class PPTVPlayhistoryDatabaseHelper {
 				int title_index = c.getColumnIndex(COLUMN_TITLE);
 				int playlink_index = c.getColumnIndex(COLUMN_PLAYLINK);
 				int album_index = c.getColumnIndex(COLUMN_ALBUM_ID);
+				int ep_idx_index = c.getColumnIndex(COLUMN_EPISODE_INDEX);
 				int ft_index = c.getColumnIndex(COLUMN_FT);
 				int last_pos_index = c.getColumnIndex(COLUMN_LAST_PLAY_POSITION);
 				
@@ -242,10 +251,11 @@ public class PPTVPlayhistoryDatabaseHelper {
 					 String title = c.getString(title_index);
 	            	 String playlink = c.getString(playlink_index);
 	            	 String album_id = c.getString(album_index);
+					 int episode_index = c.getInt(ep_idx_index);
 	            	 int ft = c.getInt(ft_index);
 	            	 int pos = c.getInt(last_pos_index);
 	            	 
-	            	 ClipInfo info = new ClipInfo(title, playlink, album_id, ft, pos);
+	            	 ClipInfo info = new ClipInfo(title, playlink, album_id, episode_index, ft, pos);
 	            	 listClips.add(info);
 	            	 
 	            	 if (!c.moveToNext())
@@ -283,6 +293,8 @@ public class PPTVPlayhistoryDatabaseHelper {
      */
     public static void onUpgrade(SQLiteDatabase db, int oldV, int newV) {
     	Log.i(TAG, String.format("Java: onUpgrade() oldV %d, newV %d", oldV, newV));
+		if (newV == 102)
+			db.execSQL("alter table " + TABLE_NAME + " add " + COLUMN_EPISODE_INDEX + " INTEGER ");
     	//db.execSQL("alter table " + TABLE_NAME + " add " + COLUMN_WATCH_TIME + " INTEGER ");
     }
     
@@ -293,6 +305,7 @@ public class PPTVPlayhistoryDatabaseHelper {
             		+ COLUMN_TITLE + " TEXT,"
             		+ COLUMN_PLAYLINK + " TEXT,"
             		+ COLUMN_ALBUM_ID + " TEXT,"
+					+ COLUMN_EPISODE_INDEX + " INTEGER,"
             		+ COLUMN_FT + " INTEGER,"
             		+ COLUMN_LAST_PLAY_POSITION + " INTEGER,"
                     + COLUMN_WATCH_TIME + " INTEGER" + ");");

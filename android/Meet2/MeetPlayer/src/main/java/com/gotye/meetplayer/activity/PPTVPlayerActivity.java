@@ -109,7 +109,7 @@ public class PPTVPlayerActivity extends VideoPlayerActivity {
 		mVideoView.stopPlayback();
 		
 		if (mEpisodeList == null) {
-			if (mAlbumId == -1) {
+			if (mAlbumId == -1 || mEpisodeIndex == -1) {
 				Toast.makeText(this, "剧集列表为空", Toast.LENGTH_SHORT).show();
 				finish();
 			}
@@ -183,7 +183,7 @@ public class PPTVPlayerActivity extends VideoPlayerActivity {
         Toast.makeText(PPTVPlayerActivity.this, info, Toast.LENGTH_SHORT).show();
 
         Util.add_pptvvideo_history(PPTVPlayerActivity.this,
-                pl.getTitle(), playlink, String.valueOf(mAlbumId), mFt);
+                pl.getTitle(), playlink, String.valueOf(mAlbumId), mEpisodeIndex, mFt);
 
         mTitle = pl.getTitle();
 
@@ -250,7 +250,7 @@ public class PPTVPlayerActivity extends VideoPlayerActivity {
         		}
         		
         		Util.add_pptvvideo_history(PPTVPlayerActivity.this, episode_title, 
-        				String.valueOf(vid), String.valueOf(mAlbumId), ft);
+        				String.valueOf(vid), String.valueOf(mAlbumId), mEpisodeIndex, ft);
         		
         		Message msg = mHandler.obtainMessage(MainHandler.MSG_PLAY_CDN_FT, ft, ft);
     	        msg.sendToTarget();

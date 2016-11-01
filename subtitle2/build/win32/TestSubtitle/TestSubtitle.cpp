@@ -21,7 +21,7 @@
 
 #define EMBEDDING_SUBTITLE
 #define SUB_FILE_PATH "E:\\QQDownload\\Manhattan.S01E08.720p.HDTV.x264-KILLERS\\Manhattan.S01E08.720p.HDTV.x264-KILLERS.¼òÌå.srt"
-#define LOCAL_FILE "E:\\Archive\\media\\test\\subtitle\\Manhattan.S01E08.HDTVrip.1024X576_sub.mkv"
+#define LOCAL_FILE "D:\\Archive\\media\\test\\subtitle\\Manhattan.S01E08.HDTVrip.1024X576_sub.mkv"
 //#define LOCAL_FILE "E:\\archive\\BaiduYunDownload\\Ä§Å®Õ¬¼±±ã.mkv"
 
 static int open_codec_context(AVFormatContext* fmt_ctx, int *stream_idx, AVMediaType media_type);

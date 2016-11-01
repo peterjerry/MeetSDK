@@ -1,0 +1,4 @@
+output/
+*.zip
+*.tar.gz
+*.tar.bz2

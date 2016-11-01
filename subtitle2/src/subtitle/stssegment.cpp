@@ -7,10 +7,6 @@
 #include "stssegment.h"
 #include "simpletextsubtitle.h"
 
-extern "C" {
-#include "libass/ass.h"
-};
-
 int CSTSSegment::getSubtitleText(char* text, int maxLength)
 {
     int textLength = 0;

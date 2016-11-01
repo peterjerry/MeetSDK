@@ -2415,14 +2415,14 @@ status_t FFPlayer::prepareVideo_l()
 #ifdef SDL_EMBEDDED_WINDOW
 	if (render_w > MAX_DISPLAY_WIDTH) {
 		render_w		= MAX_DISPLAY_WIDTH;
-		render_h		= ((uint32_t)rint(render_h / aspect_ratio)) & ~1;
+		render_h		= ((uint32_t)rint(render_w / aspect_ratio)) & ~1;
 		LOGI("video resolution %d x %d, display resolution switch to %d x %d", 
 			mVideoWidth, mVideoHeight, render_w, render_h);
 	}
 
 	if (render_h > MAX_DISPLAY_HEIGHT) {
 		render_h		= MAX_DISPLAY_HEIGHT;
-		render_w		= ((uint32_t)rint(render_w / aspect_ratio)) & ~1;
+		render_w		= ((uint32_t)rint(render_h * aspect_ratio)) & ~1;
 		LOGI("video resolution %d x %d, display resolution switch to %d x %d",
 			mVideoWidth, mVideoHeight, render_w, render_h);
 	}

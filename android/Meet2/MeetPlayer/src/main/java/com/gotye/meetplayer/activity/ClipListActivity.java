@@ -309,7 +309,8 @@ public class ClipListActivity extends AppCompatActivity implements
 
     private final static String home_folder = "";//"/test2";
 
-    private final static String HTTP_UPDATE_APK_URL = "http://42.62.105.235/test/app/";
+    //private final static String HTTP_UPDATE_APK_URL = "http://42.62.105.235/test/app/";
+	private final static String HTTP_UPDATE_APK_URL = "http://www.iloveyaya.tk/app/";
 
     private final String[] from = {"filename", "mediainfo", "folder", "filesize", "resolution", "thumb"};
 

@@ -53,12 +53,12 @@
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>_TEST_SUBTITLE;_CRT_SECURE_NO_WARNINGS;WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <SDLCheck>true</SDLCheck>
-      <AdditionalIncludeDirectories>E:\work\SDK\ffmpeg\ffmpeg-20150131-git-f5722ba-win32\include;libass_smp\include;..\..\..\..\engine2\platform;..\..\..\..\engine2\player;..\..\..\src\subtitle;..\..\..\src\tinyxml2;E:\work\SDK\pthread\pthreads-w32-2-9-1-release\Pre-built.2\include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>D:\sdk\ffmpeg\ffmpeg-20150916-git-cbbd906-win32\include;libass_smp\include;..\..\..\..\engine2\platform;..\..\..\..\engine2\player;..\..\..\src\subtitle;..\..\..\src\tinyxml2;D:\sdk\pthread\pthreads-w32-2-9-1-release\Pre-built.2\include</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>E:\work\SDK\ffmpeg\ffmpeg-20150131-git-f5722ba-win32\lib;libass_smp\lib\x86;E:\work\SDK\pthread\pthreads-w32-2-9-1-release\Pre-built.2\lib\x86</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>D:\sdk\ffmpeg\ffmpeg-20150916-git-cbbd906-win32\lib;libass_smp\lib\x86;D:\sdk\pthread\pthreads-w32-2-9-1-release\Pre-built.2\lib\x86</AdditionalLibraryDirectories>
       <IgnoreSpecificDefaultLibraries>msvcrt.lib</IgnoreSpecificDefaultLibraries>
     </Link>
   </ItemDefinitionGroup>
@@ -69,14 +69,17 @@
       <Optimization>MaxSpeed</Optimization>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
-      <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_TEST_SUBTITLE;WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <SDLCheck>true</SDLCheck>
+      <AdditionalIncludeDirectories>D:\sdk\ffmpeg\ffmpeg-20150916-git-cbbd906-win32\include;libass_smp\include;..\..\..\..\engine2\platform;..\..\..\..\engine2\player;..\..\..\src\subtitle;..\..\..\src\tinyxml2;D:\sdk\pthread\pthreads-w32-2-9-1-release\Pre-built.2\include</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
+      <AdditionalLibraryDirectories>D:\sdk\ffmpeg\ffmpeg-20150916-git-cbbd906-win32\lib;libass_smp\lib\x86;D:\sdk\pthread\pthreads-w32-2-9-1-release\Pre-built.2\lib\x86</AdditionalLibraryDirectories>
+      <ImageHasSafeExceptionHandlers>false</ImageHasSafeExceptionHandlers>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
@@ -89,21 +92,27 @@
   <ItemGroup>
     <ClCompile Include="..\..\..\..\engine2\platform\log_win32.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="..\..\..\..\engine2\platform\utils.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="..\..\..\src\subtitle\simpletextsubtitle.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="..\..\..\src\subtitle\stssegment.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="..\..\..\src\subtitle\subtitle.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="..\..\..\src\tinyxml2\tinyxml2.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="stdafx.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>

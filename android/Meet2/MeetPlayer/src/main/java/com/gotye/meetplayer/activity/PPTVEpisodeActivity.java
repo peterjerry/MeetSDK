@@ -620,7 +620,7 @@ public class PPTVEpisodeActivity extends AppCompatActivity {
         		}
         		
         		Util.add_pptvvideo_history(PPTVEpisodeActivity.this, episode_title,
-						String.valueOf(vid), album_id, ft);
+						String.valueOf(vid), album_id, episode_index, ft);
                 if (epg_is_vip) {
                     // http://114.80.186.137:80/128bf5c96ab61002f4be2ad309820758.mp4
                     // ?w=1&key=54a3ba32b506b80c6c9f875e25f9ce99

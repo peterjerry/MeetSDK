@@ -6,6 +6,7 @@
 #include <vector>
 #include <list>
 #include "subtitle.h"
+#include "simpletextsubtitle.h"
 #include <stdarg.h>
 
 #define LOG_TAG "subtitle"
@@ -14,10 +15,6 @@
 #else
 #include "logutil.h"
 #endif
-
-extern "C" {
-#include "libass/ass.h"
-};
 
 #ifdef _MSC_VER
 #define strcasecmp _stricmp
@@ -40,8 +37,6 @@ const char* path_find_extension(const char* path)
 class CSubtitleManager;
 class CSimpleTextSubtitle;
 class CSTSSegment;
-
-#include "simpletextsubtitle.h"
 
 class CSubtitleManager :
     public ISubtitles
@@ -114,9 +109,9 @@ void CSubtitleManager::ass_log(int level, const char *fmt, va_list va, void *dat
 	if (level > 4)
 		return;
 
-	static char msg[1024] = {0};
+	char msg[1024] = {0};
     const char *header = "[ass] ";
-    vsnprintf(msg, 1024, fmt, va);
+    vsnprintf_s(msg, 1024, fmt, va);
 	LOGI("%s %s", header, msg);
 }
 
@@ -151,7 +146,7 @@ bool CSubtitleManager::getLanguageName(int language, char* name)
 
     const char* languageName = mSubtitles[language]->getLanguageName();
     if (languageName) {
-        strncpy(name, languageName, 511);
+        strncpy_s(name, 512, languageName, 511);
         name[511] = '\x0';
         return true;
     }

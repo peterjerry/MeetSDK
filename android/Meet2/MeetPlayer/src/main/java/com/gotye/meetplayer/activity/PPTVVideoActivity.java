@@ -385,6 +385,8 @@ public class PPTVVideoActivity extends AppCompatActivity {
 				intent.putExtra("playlink", Integer.valueOf(info.mPlaylink));
 				intent.putExtra("album_id", Integer.valueOf(info.mAlbumId));
 				intent.putExtra("ft", ft);
+				if (info.mEpisodeIndex >= 0)
+					intent.putExtra("index", info.mEpisodeIndex);
 				
 				if (info.mLastPos > 0) {
 					intent.putExtra("preseek_msec", info.mLastPos);
@@ -445,6 +447,7 @@ public class PPTVVideoActivity extends AppCompatActivity {
 				intent.putExtra("title", info.mTitle);
 				intent.putExtra("playlink", Integer.valueOf(info.mPlaylink));
 				intent.putExtra("album_id", Integer.valueOf(info.mAlbumId));
+				intent.putExtra("episode_idx", info.mEpisodeIndex);
 				intent.putExtra("ft", ft);
 				
 				if (info.mLastPos > 0) {

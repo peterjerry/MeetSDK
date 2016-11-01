@@ -33,7 +33,8 @@ public class DBOpenHelper extends SQLiteOpenHelper {
      * The Constant VERSION.
      */
     // 101 add yk ykHistory
-    public static final int DB_VERSION = 101;
+	// 102 pptv add column COLUMN_EPISODE_INDEX
+    public static final int DB_VERSION = 102;
 
     private static DBOpenHelper instance;
     private HashMap<String, HashSet<WeakReference<ContentObserver>>> observers = new HashMap<String, HashSet<WeakReference<ContentObserver>>>();

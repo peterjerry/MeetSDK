@@ -2,6 +2,10 @@
 *.cfg
 *.bak
 *.dat
+live_resource_info.dat
+ppbscf
+pptl
+pptl2
 
 /Debug
 /Release

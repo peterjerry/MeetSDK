@@ -29,9 +29,11 @@
 #else
 #pragma comment(lib, "sdl")
 #endif
+
 #pragma comment(lib, "libppbox")
+
 #ifdef USE_LIBASS_SMP
-#pragma comment(lib, "libass")
+#pragma comment(lib, "ass")
 #else
 #pragma comment(lib, "libass")
 #endif

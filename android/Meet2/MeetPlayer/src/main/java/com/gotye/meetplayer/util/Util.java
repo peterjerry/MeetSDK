@@ -233,11 +233,11 @@ public class Util {
 	}
 	
 	public static void add_pptvvideo_history(Context ctx, String title, 
-			String playlink, String album_id, int ft) {
+			String playlink, String album_id, int episode_index, int ft) {
 		if (mHistoryDB == null)
 			mHistoryDB = PPTVPlayhistoryDatabaseHelper.getInstance(ctx);
 		
-		mHistoryDB.saveHistory(title, playlink, album_id, ft);
+		mHistoryDB.saveHistory(title, playlink, album_id, episode_index, ft);
 	}
 	
 	public static void save_pptvvideo_pos(Context ctx, String playlink, int pos/*msec*/) {
