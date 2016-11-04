@@ -8,10 +8,10 @@
 #include "testSDLdlgDlg.h"
 #include "afxdialogex.h"
 
-#include "ffplayer.h"
+#include "libPlayer.h"
+#include "player.h"
 #define LOG_TAG "testSDLdlg"
 #include "log.h"
-#include "apFileLog.h"
 #include "surface.h"
 #include "sdl.h"
 #include "IPpbox.h"
@@ -22,6 +22,9 @@
 #include "subtitle.h"
 //#include <vld.h>
 
+#define MAX_DISPLAY_WIDTH	1280
+#define MAX_DISPLAY_HEIGHT	720
+
 #define SUB_FILE_PATH "E:\\QQDownload\\Manhattan.S01E08.720p.HDTV.x264-KILLERS\\1.ass"
 
 #ifdef USE_SDL2
@@ -31,6 +34,7 @@
 #endif
 
 #pragma comment(lib, "libppbox")
+#pragma comment(lib, "libPlayer")
 
 #ifdef USE_LIBASS_SMP
 #pragma comment(lib, "ass")
@@ -293,9 +297,6 @@ BOOL CtestSDLdlgDlg::OnInitDialog()
 	SetIcon(m_hIcon, FALSE);		// 设置小图标
 
 	// TODO: 在此添加额外的初始化代码
-#ifdef SAVE_LOG_FILE
-	apLog::init("c:\\log\\libplayer.log");
-#endif
 
 	if (!startP2P()) {
 		AfxMessageBox("failed to start p2p engine");
@@ -396,6 +397,8 @@ BOOL CtestSDLdlgDlg::OnInitDialog()
 	mEPGQueryType = EPG_QUERY_FRONTPAGE;
 	mEPGValue = -1;
 	start();
+
+	able_set_display_resolution(MAX_DISPLAY_WIDTH, MAX_DISPLAY_HEIGHT);
 
 	return TRUE;  // 除非将焦点设置到控件，否则返回 TRUE
 }
@@ -744,7 +747,7 @@ bool CtestSDLdlgDlg::start_player(const char *url)
 	status_t status;
 
 	if (mPlayer == NULL) {
-		mPlayer = new FFPlayer;
+		mPlayer = able_getPlayer();
 		mPlayer->setListener(this);
 	}
 	
@@ -782,8 +785,6 @@ bool CtestSDLdlgDlg::start_player(const char *url)
 	mPlayer->setDataSource(url);
 	status = mPlayer->prepareAsync();
 	if (status != OK) {
-		delete mPlayer;
-		mPlayer = NULL;
 		AfxMessageBox("failed to prepareAsync");
 	}
 
@@ -808,7 +809,8 @@ void CtestSDLdlgDlg::stop_player()
 		LOGI("before call player stop");
 		mPlayer->stop();
 		LOGI("after call player stop");
-		delete mPlayer;
+
+		able_releasePlayer(mPlayer);
 		mPlayer = NULL;
 
 #ifdef USE_SDL2
@@ -1214,7 +1216,7 @@ bool CtestSDLdlgDlg::OnPrepared()
 
 	// way2
 	//SDL_Window * pWindow = SDL_CreateWindowFrom( (void *)( GetDlgItem(IDC_STATIC1)->GetSafeHwnd() ) );
-	Surface_open2((void *)mSurface2);
+	able_surface_open((void *)mSurface2);
 #endif
 
 	MediaInfo info;
@@ -1379,7 +1381,7 @@ void CtestSDLdlgDlg::Cleanup()
 	if (mPlayer) {
 		LOGI("stop player");
 		mPlayer->stop();
-		delete mPlayer;
+		able_releasePlayer(mPlayer);
 		mPlayer = NULL;
 	}
 
@@ -1678,11 +1680,14 @@ void CtestSDLdlgDlg::OnBnClickedButtonGetMediainfo()
 		mComboURL.GetLBText(sel, mUrl);
 	}
 
-	FFPlayer player;
-	player.getMediaDetailInfo(mUrl.GetBuffer(), &info);
+	if (!mPlayer) {
+		mPlayer = able_getPlayer();
+	}
+
+	mPlayer->getMediaDetailInfo(mUrl.GetBuffer(), &info);
 
 	MediaInfo infoThumbnail;
-	player.getThumbnail(mUrl.GetBuffer(), &infoThumbnail, PIC_WIDTH, PIC_HEIGHT);
+	mPlayer->getThumbnail(mUrl.GetBuffer(), &infoThumbnail, PIC_WIDTH, PIC_HEIGHT);
 	LOGI("thumbnail %d x %d, %p", infoThumbnail.thumbnail_width, infoThumbnail.thumbnail_height, infoThumbnail.thumbnail);
 
 	int32_t *pic	= infoThumbnail.thumbnail;

@@ -18,6 +18,7 @@
 
 #ifdef _MSC_VER
 #define strcasecmp _stricmp
+#pragma comment(lib, "pthreadVC2")
 #endif
 
 const char* path_find_extension(const char* path)

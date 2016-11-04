@@ -21,6 +21,13 @@ const SDL_Color RGB_Yellow  = { 255, 255, 0 };
 #pragma comment(lib, "sdl2_ttf")
 #endif
 
+#define DEFAULT_MAX_DISPLAY_WIDTH	1280
+#define DEFAULT_MAX_DISPLAY_HEIGHT	720
+int g_max_display_w = DEFAULT_MAX_DISPLAY_WIDTH;
+int g_max_display_h = DEFAULT_MAX_DISPLAY_HEIGHT;
+int g_display_w = 640;
+int g_display_h = 480;
+
 #ifdef USE_SDL2
 SDL_Window*		g_window	= NULL;
 SDL_Renderer*	g_renderer	= NULL;

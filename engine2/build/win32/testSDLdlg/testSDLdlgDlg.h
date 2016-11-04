@@ -4,7 +4,6 @@
 
 #pragma once
 #include "afxwin.h"
-#include "player.h"
 #include "afxcmn.h"
 #include "apThread.h"
 #include "apEPG.h"
@@ -73,7 +72,7 @@ private:
 	apEPG mEPG;
 	int mEPGValue;
 
-	FFPlayer *mPlayer;
+	IPlayer *mPlayer;
 	int mhttpPort;
 	int mrtspPort;
 	bool mPaused;

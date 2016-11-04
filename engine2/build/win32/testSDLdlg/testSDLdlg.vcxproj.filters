@@ -19,14 +19,8 @@
     <Filter Include="源文件\util">
       <UniqueIdentifier>{fd160c97-da61-4f79-9a2c-d5ce7362dd24}</UniqueIdentifier>
     </Filter>
-    <Filter Include="源文件\player">
-      <UniqueIdentifier>{443b3a57-6a92-4033-ae5f-6517f4e006cc}</UniqueIdentifier>
-    </Filter>
     <Filter Include="源文件\subtitle">
       <UniqueIdentifier>{26050087-65e7-42e1-abca-4de6ce531647}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="源文件\pcmdump">
-      <UniqueIdentifier>{b79c0ff7-e94c-4540-a959-f6fa0fd44958}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -80,22 +74,7 @@
     <ClCompile Include="..\..\..\platform\utils.cpp">
       <Filter>源文件\platform</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\platform\surface_win32.cpp">
-      <Filter>源文件\platform</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\platform\packetqueue.cpp">
-      <Filter>源文件\platform</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\platform\loop.cpp">
-      <Filter>源文件\platform</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\..\platform\log_win32.cpp">
-      <Filter>源文件\platform</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\platform\list.cpp">
-      <Filter>源文件\platform</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\platform\fifobuffer.cpp">
       <Filter>源文件\platform</Filter>
     </ClCompile>
     <ClCompile Include="apFileLog.cpp">
@@ -122,21 +101,6 @@
     <ClCompile Include="urlcodec.cpp">
       <Filter>源文件\util</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\player\audioplayer.cpp">
-      <Filter>源文件\player</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\player\audiorender.cpp">
-      <Filter>源文件\player</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\player\ffplayer.cpp">
-      <Filter>源文件\player</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\player\ffstream.cpp">
-      <Filter>源文件\player</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\player\filesource.cpp">
-      <Filter>源文件\player</Filter>
-    </ClCompile>
     <ClCompile Include="..\testEPG\md5c.c">
       <Filter>源文件\util</Filter>
     </ClCompile>
@@ -155,9 +119,6 @@
     <ClCompile Include="..\testEPG\apPlayLink2.cpp">
       <Filter>源文件\util</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\player\ffextractor.cpp">
-      <Filter>源文件\player</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\..\..\subtitle2\src\subtitle\simpletextsubtitle.cpp">
       <Filter>源文件\subtitle</Filter>
     </ClCompile>
@@ -175,24 +136,6 @@
     </ClCompile>
     <ClCompile Include="..\testEPG\strptime.c">
       <Filter>源文件\util</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\player\apAudioEncoder.cpp">
-      <Filter>源文件\pcmdump</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\platform\apProxyUDP.cpp">
-      <Filter>源文件\pcmdump</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\platform\clsocket\ActiveSocket.cpp">
-      <Filter>源文件\pcmdump</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\platform\clsocket\PassiveSocket.cpp">
-      <Filter>源文件\pcmdump</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\platform\clsocket\SimpleSocket.cpp">
-      <Filter>源文件\pcmdump</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\player\winrender.cpp">
-      <Filter>源文件\player</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
