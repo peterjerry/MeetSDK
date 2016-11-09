@@ -118,7 +118,7 @@ fi
 
 if [ $ARCH == 'arm' ] 
 then
-	CROSS_PREFIX=$NDK/toolchains/arm-linux-androideabi-4.8/prebuilt/$HOST/bin/arm-linux-androideabi-
+	CROSS_PREFIX=$NDK/toolchains/arm-linux-androideabi-4.9/prebuilt/$HOST/bin/arm-linux-androideabi-
 	EXTRA_CFLAGS="$EXTRA_CFLAGS -fstack-protector -fstrict-aliasing"
 	OPTFLAGS="-O2"
 elif [ $ARCH == 'arm64' ] 
@@ -128,12 +128,12 @@ then
 	OPTFLAGS="-O2"
 elif [ $ARCH == 'x86' ] 
 then
-	CROSS_PREFIX=$NDK/toolchains/x86-4.8/prebuilt/$HOST/bin/i686-linux-android-
+	CROSS_PREFIX=$NDK/toolchains/x86-4.9/prebuilt/$HOST/bin/i686-linux-android-
 	EXTRA_CFLAGS="$EXTRA_CFLAGS -fstrict-aliasing"
 	OPTFLAGS="-O2 -fno-pic"
 elif [ $ARCH == 'mips' ] 
 then
-	CROSS_PREFIX=$NDK/toolchains/mipsel-linux-android-4.8/prebuilt/$HOST/bin/mipsel-linux-android-
+	CROSS_PREFIX=$NDK/toolchains/mipsel-linux-android-4.9/prebuilt/$HOST/bin/mipsel-linux-android-
 	EXTRA_CFLAGS="$EXTRA_CFLAGS -fno-strict-aliasing -fmessage-length=0 -fno-inline-functions-called-once -frerun-cse-after-loop -frename-registers"
 	OPTFLAGS="-O2"
 fi
