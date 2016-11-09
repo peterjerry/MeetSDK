@@ -6,7 +6,7 @@ import android.content.Context;
 import android.os.AsyncTask;
 import android.util.Log;
 
-import com.gotye.meetplayer.MeetApplication;
+import com.gotye.meetplayer.App;
 
 public class UploadLogTask extends AsyncTask<String, Integer, String> {
 	private final static String TAG = "UploadLogTask";
@@ -51,7 +51,7 @@ public class UploadLogTask extends AsyncTask<String, Integer, String> {
 		int retry = 3;
 		String log_filename = null;
 		while (retry > 0) {
-			log_filename = UploadUtil2.uploadFile(f, desc, MeetApplication.UPLOAD_CRASH_LOG_URL);
+			log_filename = UploadUtil2.uploadFile(f, desc, App.UPLOAD_CRASH_LOG_URL);
 			if (log_filename != null) {
 				f.delete();
 				break;

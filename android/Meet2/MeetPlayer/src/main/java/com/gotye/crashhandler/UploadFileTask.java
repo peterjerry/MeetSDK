@@ -3,7 +3,7 @@ package com.gotye.crashhandler;
 import android.content.Context;
 
 import com.gotye.common.util.LogUtil;
-import com.gotye.meetplayer.MeetApplication;
+import com.gotye.meetplayer.App;
 
 import java.io.File;
 
@@ -32,7 +32,7 @@ public class UploadFileTask extends UploadLogTask {
         int retry = 3;
         String save_filename = null;
         while (retry > 0) {
-            save_filename = UploadUtil.uploadFile(f, MeetApplication.UPLOAD_DUMP_URL);
+            save_filename = UploadUtil.uploadFile(f, App.UPLOAD_DUMP_URL);
             if (save_filename != null) {
                 f.delete();
                 LogUtil.info(TAG, "crash zip file " + f.getName() + " was deleted");

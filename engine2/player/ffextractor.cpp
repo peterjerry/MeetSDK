@@ -529,7 +529,7 @@ bool FFExtractor::open_subtitle_codec()
     if (avcodec_open2(m_subtitle_dec_ctx, SubCodec, NULL) < 0) {
     	LOGE("failed to open subtitle decoder: id %d, name %s", 
 			m_subtitle_dec_ctx->codec_id, avcodec_get_name(m_subtitle_dec_ctx->codec_id));
-		return NULL;
+		return false;
 	}
 
 	LOGI("subtitle codec id: %d(%s), codec_name: %s", 

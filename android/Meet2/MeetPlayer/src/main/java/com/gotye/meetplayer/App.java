@@ -23,13 +23,12 @@ import android.util.Log;
 
 import java.io.File;
 
-public class MeetApplication extends Application {
+public class App extends Application {
 	
-	private final static String TAG = "MeetApplication";
+	private final static String TAG = "App";
 
-	public static final String CRASH_HOST = "http://42.62.105.235";
+	public static final String CRASH_HOST = "http://205.209.187.189";
 	//public static final String CRASH_HOST = "http://iloveyaya.zz.vc"; //31.220.16.178
-    //public static final String CRASH_HOST = "http://192.168.1.114:8088";
     public static final String UPLOAD_CRASH_LOG_URL = CRASH_HOST + "/crash/crash.php";
 	public static final String UPLOAD_DUMP_URL = CRASH_HOST + "/dump/upload.php";
 	

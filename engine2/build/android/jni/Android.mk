@@ -147,7 +147,10 @@ ifdef BUILD_PCM_DUMP
 LOCAL_SRC_FILES 		+= $(addprefix $(PLATFORMPATH)/clsocket/, $(MY_SRC_SOCKET_FILES))
 endif
 LOCAL_STATIC_LIBRARIES 	:= ffmpeg cpufeatures
-#LOCAL_SHARED_LIBRARIES 	:= lenthevcdec
+
+# fix linker-is-treating-warnings-as-errors
+LOCAL_DISABLE_FATAL_LINKER_WARNINGS=true
+
 ifdef BUILD_ONE_LIB
 LOCAL_CFLAGS			+= -DBUILD_ONE_LIB
 else
@@ -174,5 +177,5 @@ else
 include $(BUILD_SHARED_LIBRARY)
 endif
 
-$(call import-module,cpufeatures)
+$(call import-module, android/cpufeatures)
 

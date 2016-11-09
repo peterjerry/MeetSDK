@@ -193,7 +193,7 @@ public class ClipListActivity extends AppCompatActivity implements
     // list
     private ListMediaUtil mListUtil;
     //private final static String HTTP_SERVER_URL = "http://192.168.1.114:8088/testcase/";
-    private final static String HTTP_SERVER_URL = "http://42.62.105.235/test/media/testcase/";
+    private final static String HTTP_SERVER_URL = "http://106.75.53.85/test/media/testcase/";
 
     private String mPlayUrl;
     private int mVideoWidth, mVideoHeight;
@@ -2029,6 +2029,10 @@ public class ClipListActivity extends AppCompatActivity implements
         return String.format("%s%d (%s)", isAudio ? "音轨" : "字幕", position + 1, value);
     }
 
+    private void push_install_apk() {
+        DLNASdk.getInstance().SetURI(mDlnaDeviceUUID, mDLNAPushUrl);
+    }
+
     private void push_cdn_clip() {
         Intent intent = new Intent(ClipListActivity.this, DMCActivity.class);
         intent.putExtra("title", "hello");
@@ -2523,7 +2527,10 @@ public class ClipListActivity extends AppCompatActivity implements
                                 else
                                     mDLNAPushUrl = mPlayUrl;
 
-                                push_cdn_clip();
+                                if (mDLNAPushUrl.endsWith(".apk"))
+                                    push_install_apk();
+                                else
+                                    push_cdn_clip();
                             }
                         })
                 .setNegativeButton("取消", null)

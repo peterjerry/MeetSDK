@@ -607,7 +607,7 @@ bool FFStream::open_subtitle_codec()
 	// Open codec
     if (avcodec_open2(SubCodecCtx, SubCodec, NULL) < 0) {
     	LOGE("failed to open subtitle decoder: id %d, name %s", SubCodecCtx->codec_id, avcodec_get_name(SubCodecCtx->codec_id));
-		return NULL;
+		return false;
 	}
 
 	LOGI("subtitle codec id: %d(%s), codec_name: %s", 

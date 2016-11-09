@@ -2,3 +2,4 @@ output/
 *.zip
 *.tar.gz
 *.tar.bz2
+thirdparty/**/*.a
