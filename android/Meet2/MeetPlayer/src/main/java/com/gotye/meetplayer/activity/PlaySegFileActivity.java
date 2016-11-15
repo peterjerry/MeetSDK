@@ -14,6 +14,7 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
 import android.support.v7.app.AppCompatActivity;
+import android.support.v7.widget.PopupMenu;
 import android.view.GestureDetector;
 import android.view.KeyEvent;
 import android.view.Menu;
@@ -68,6 +69,7 @@ public class PlaySegFileActivity extends AppCompatActivity
     private TextView mTvSysTime;
     private TextView mTvBattery;
     private ImageButton mBtnBack;
+    private ImageButton mBtnOption;
 	protected ProgressBar mBufferingProgressBar;
     private TextView mTvInfo;
     private boolean mbTvInfoShowing = false;
@@ -141,16 +143,6 @@ public class PlaySegFileActivity extends AppCompatActivity
 		super.getWindow().addFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN);
 		super.getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
 
-        try {
-            super.getWindow().addFlags(
-                    WindowManager.LayoutParams.class.
-                            getField("FLAG_NEEDS_MENU_KEY").getInt(null));
-        } catch (NoSuchFieldException e) {
-            // Ignore since this field won't exist in most versions of Android
-        } catch (IllegalAccessException e) {
-            e.printStackTrace();
-        }
-
 		setContentView(R.layout.activity_frag_mp4_player);
 
 		if (getSupportActionBar() != null)
@@ -187,6 +179,7 @@ public class PlaySegFileActivity extends AppCompatActivity
         this.mHoodLayout = (RelativeLayout)this.findViewById(R.id.hood_layout);
         this.mTvTitle = (TextView)this.findViewById(R.id.player_title);
         this.mBtnBack = (ImageButton)this.findViewById(R.id.player_back_btn);
+        this.mBtnOption = (ImageButton)this.findViewById(R.id.option_btn);
         this.mTvSysTime = (TextView)this.findViewById(R.id.tv_sys_time);
         this.mTvBattery = (TextView)this.findViewById(R.id.tv_battery);
 
@@ -198,6 +191,27 @@ public class PlaySegFileActivity extends AppCompatActivity
             public void onClick(View v) {
                 // TODO Auto-generated method stub
                 finish();
+            }
+        });
+
+        mBtnOption.setOnClickListener(new View.OnClickListener(){
+
+            @Override
+            public void onClick(View v) {
+                PopupMenu popup = new PopupMenu(PlaySegFileActivity.this, v);
+                MenuInflater inflater = popup.getMenuInflater();
+                inflater.inflate(R.menu.seg_player_menu, popup.getMenu());
+                popup.show();
+
+                popup.setOnMenuItemClickListener(new PopupMenu.OnMenuItemClickListener() {
+
+                    @Override
+                    public boolean onMenuItemClick(MenuItem item) {
+                        int id = item.getItemId();
+                        processMenuItem(id);
+                        return true;
+                    }
+                });
             }
         });
 
@@ -384,8 +398,12 @@ public class PlaySegFileActivity extends AppCompatActivity
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
-
         int id = item.getItemId();
+        processMenuItem(id);
+        return true;
+    }
+
+    private void processMenuItem(int id) {
         switch (id) {
             case R.id.select_player_impl:
                 popupPlayerImplDlg();
@@ -423,8 +441,6 @@ public class PlaySegFileActivity extends AppCompatActivity
             default:
                 break;
         }
-
-        return true;
     }
 
     private void popupPlayerImplDlg() {

@@ -26,6 +26,8 @@ import android.os.Environment;
 import android.os.Handler;
 import android.os.Message;
 import android.support.v7.app.AppCompatActivity;
+import android.support.v7.widget.PopupMenu;
+import android.view.ContextMenu;
 import android.view.GestureDetector;
 import android.view.KeyEvent;
 import android.view.Menu;
@@ -103,6 +105,7 @@ public class VideoPlayerActivity extends AppCompatActivity
     private RelativeLayout mHoodLayout;
     private TextView mTvTitle;
     private ImageButton mBtnBack;
+    private ImageButton mBtnOption;
     private TextView mTvSysTime;
     private TextView mTvBattery;
 
@@ -187,6 +190,7 @@ public class VideoPlayerActivity extends AppCompatActivity
         this.mHoodLayout = (RelativeLayout)this.findViewById(R.id.hood_layout);
         this.mTvTitle = (TextView)this.findViewById(R.id.player_title);
         this.mBtnBack = (ImageButton)this.findViewById(R.id.player_back_btn);
+        this.mBtnOption = (ImageButton)this.findViewById(R.id.option_btn);
         this.mTvSysTime = (TextView)this.findViewById(R.id.tv_sys_time);
         this.mTvBattery = (TextView)this.findViewById(R.id.tv_battery);
 
@@ -196,6 +200,28 @@ public class VideoPlayerActivity extends AppCompatActivity
             public void onClick(View v) {
                 // TODO Auto-generated method stub
                 finish();
+            }
+        });
+
+        mBtnOption.setOnClickListener(new View.OnClickListener(){
+
+            @Override
+            public void onClick(View v) {
+                PopupMenu popup = new PopupMenu(VideoPlayerActivity.this, v);
+                MenuInflater inflater = popup.getMenuInflater();
+                inflater.inflate(R.menu.videoplayer_menu, popup.getMenu());
+                popup.show();
+
+                popup.setOnMenuItemClickListener(new PopupMenu.OnMenuItemClickListener() {
+
+                    @Override
+                    public boolean onMenuItemClick(MenuItem item) {
+                        int id = item.getItemId();
+                        processMenuItem(id);
+
+                        return true;
+                    }
+                });
             }
         });
 
@@ -223,47 +249,7 @@ public class VideoPlayerActivity extends AppCompatActivity
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         int id = item.getItemId();
-        LogUtil.info(TAG, "Java: onOptionsItemSelected " + id);
-
-        switch (id) {
-            case R.id.select_player_impl:
-                popupSelectPlayerImpl();
-                break;
-            case R.id.select_ft:
-                String path;
-                String scheme = mUri.getScheme();
-                if ("file".equalsIgnoreCase(scheme))
-                    path = mUri.getPath();
-                else
-                    path = mUri.toString();
-
-                if (path.contains("&playlink=") ||
-                        path.contains("&type=phone.android.vip")/*for cdn url*/) {
-                    popupSelectFT();
-                }
-                else {
-                    Toast.makeText(this, "当前视频无法选择码率", Toast.LENGTH_SHORT).show();
-                }
-                break;
-            case R.id.select_subtitle:
-                popupSelectSubtitle();
-                break;
-            case R.id.show_mediainfo:
-                popupMediaInfo();
-                break;
-            case R.id.toggle_debug_info:
-                mbShowDebugInfo = !mbShowDebugInfo;
-
-                if (mbShowDebugInfo)
-                    mTextViewDebugInfo.setVisibility(View.VISIBLE);
-                else
-                    mTextViewDebugInfo.setVisibility(View.GONE);
-                break;
-            default:
-                LogUtil.warn(TAG, "unknown menu id " + id);
-                break;
-        }
-
+        processMenuItem(id);
         return true;
     }
 
@@ -302,6 +288,47 @@ public class VideoPlayerActivity extends AppCompatActivity
 
         stop_subtitle();
         stopPlayer();
+    }
+
+    private void processMenuItem(int id) {
+        switch (id) {
+            case R.id.select_player_impl:
+                popupSelectPlayerImpl();
+                break;
+            case R.id.select_ft:
+                String path;
+                String scheme = mUri.getScheme();
+                if ("file".equalsIgnoreCase(scheme))
+                    path = mUri.getPath();
+                else
+                    path = mUri.toString();
+
+                if (path.contains("&playlink=") ||
+                        path.contains("&type=phone.android.vip")/*for cdn url*/) {
+                    popupSelectFT();
+                }
+                else {
+                    Toast.makeText(VideoPlayerActivity.this, "当前视频无法选择码率", Toast.LENGTH_SHORT).show();
+                }
+                break;
+            case R.id.select_subtitle:
+                popupSelectSubtitle();
+                break;
+            case R.id.show_mediainfo:
+                popupMediaInfo();
+                break;
+            case R.id.toggle_debug_info:
+                mbShowDebugInfo = !mbShowDebugInfo;
+
+                if (mbShowDebugInfo)
+                    mTextViewDebugInfo.setVisibility(View.VISIBLE);
+                else
+                    mTextViewDebugInfo.setVisibility(View.GONE);
+                break;
+            default:
+                LogUtil.warn(TAG, "unknown menu id " + id);
+                break;
+        }
     }
 
     private class BatteryReceiver extends BroadcastReceiver {

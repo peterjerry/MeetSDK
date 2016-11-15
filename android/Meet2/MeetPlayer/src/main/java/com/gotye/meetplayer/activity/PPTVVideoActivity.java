@@ -145,7 +145,7 @@ public class PPTVVideoActivity extends AppCompatActivity {
                             intent.putExtra("live_type", live_type);
                     }
                     else {
-                        intent = new Intent(PPTVVideoActivity.this, PPTVEpisodeActivity.class);
+                        intent = new Intent(PPTVVideoActivity.this, PPTVAlbumActivity.class);
 
                         intent.putExtra("epg_param", param);
                         intent.putExtra("epg_type", mContentType);
@@ -291,7 +291,7 @@ public class PPTVVideoActivity extends AppCompatActivity {
                     Util.writeSettings(PPTVVideoActivity.this, "search_keys", new_search_keys);
                 }
 
-                Intent intent = new Intent(PPTVVideoActivity.this, PPTVEpisodeActivity.class);
+                Intent intent = new Intent(PPTVVideoActivity.this, PPTVAlbumActivity.class);
                 intent.putExtra("search_key", mEPGsearchKey);
                 startActivity(intent);
 
@@ -332,7 +332,7 @@ public class PPTVVideoActivity extends AppCompatActivity {
                         new DialogInterface.OnClickListener() {
                             public void onClick(DialogInterface dialog, int whichButton) {
                                 Intent intent = new Intent(
-                                        PPTVVideoActivity.this, PPTVEpisodeActivity.class);
+                                        PPTVVideoActivity.this, PPTVAlbumActivity.class);
                                 intent.putExtra("search_key", keywords[whichButton]);
                                 startActivity(intent);
 

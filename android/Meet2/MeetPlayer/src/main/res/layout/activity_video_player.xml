@@ -20,19 +20,28 @@
 
         <ImageButton
             android:id="@+id/player_back_btn"
-            android:layout_width="72dp"
-            android:layout_height="72dp"
-            android:layout_margin="10dp"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:layout_marginLeft="5dp"
             android:layout_alignParentLeft="true"
             android:layout_centerVertical="true"
             android:src="@drawable/player_back"
             android:background="@null" />
+		<ImageButton
+			android:id="@+id/option_btn"
+			android:layout_width="48dp"
+			android:layout_height="48dp"
+			android:layout_marginLeft="5dp"
+			android:layout_toRightOf="@id/player_back_btn"
+			android:layout_centerVertical="true"
+			android:src="@android:drawable/ic_menu_more"
+			android:background="@null" />
         <TextView
             android:id="@+id/player_title"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_centerInParent="true"
-            android:singleLine="true"
+            android:maxLines="1"
             android:textColor="#FF0000"
             android:textSize="24sp"
             android:textStyle="bold" />

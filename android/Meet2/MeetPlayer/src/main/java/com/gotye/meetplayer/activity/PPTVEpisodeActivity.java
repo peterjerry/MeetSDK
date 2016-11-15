@@ -1,35 +1,12 @@
 package com.gotye.meetplayer.activity;
 
-import java.io.File;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-
-import com.gotye.common.pptv.EPGUtil;
-import com.gotye.common.pptv.PlayLink2;
-import com.gotye.common.pptv.PlayLinkUtil;
-import com.gotye.common.util.LogUtil;
-import com.gotye.db.PPTVPlayhistoryDatabaseHelper;
-import com.gotye.meetplayer.R;
-import com.gotye.meetplayer.adapter.CommonAlbumAdapter;
-import com.gotye.meetplayer.ui.widget.DirChooserDialog;
-import com.gotye.meetplayer.ui.widget.DirChooserDialog.onOKListener;
-import com.gotye.meetplayer.util.Util;
-import com.pplive.sdk.MediaSDK;
-
-import android.app.AlertDialog;
-import android.app.Dialog;
-import android.content.DialogInterface;
+import android.app.ProgressDialog;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
-import android.os.Environment;
-import android.os.Handler;
-import android.os.Message;
 import android.support.v7.app.AppCompatActivity;
+import android.text.TextUtils;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
@@ -37,694 +14,344 @@ import android.view.View;
 import android.view.WindowManager;
 import android.widget.AbsListView;
 import android.widget.AdapterView;
-import android.widget.Button;
-import android.widget.CheckBox;
 import android.widget.GridView;
+import android.widget.ImageView;
+import android.widget.ListView;
+import android.widget.TextView;
 import android.widget.Toast;
 
+import com.gotye.common.pptv.EPGUtil;
+import com.gotye.common.pptv.PlayLink2;
+import com.gotye.common.pptv.PlayLinkUtil;
+import com.gotye.common.util.LogUtil;
+import com.gotye.db.PPTVPlayhistoryDatabaseHelper;
+import com.gotye.meetplayer.R;
+import com.gotye.meetplayer.adapter.MeetAdapter;
+import com.gotye.meetplayer.adapter.PPTVEpisodeAdapter;
+import com.gotye.meetplayer.util.Util;
+import com.nostra13.universalimageloader.core.DisplayImageOptions;
+import com.nostra13.universalimageloader.core.ImageLoader;
+import com.nostra13.universalimageloader.core.display.RoundedBitmapDisplayer;
+import com.pplive.sdk.MediaSDK;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 
 public class PPTVEpisodeActivity extends AppCompatActivity {
-	private final static String TAG = "PPTVEpisodeActivity";
-	
-	private Button btnReputation;
-	private Button btnPopularity;
-	private Button btnUpdate;
-	private CheckBox cbIsCatalog;
-	private Button btnFt;
-	private GridView gridView = null;
-    private CommonAlbumAdapter adapter = null;
-    
-    private final static int MSG_EPISODE_DONE		= 1;
-    private final static int MSG_MOREDATA_DONE	= 2;
-    private final static int MSG_PLAY_CDN_FT		= 3;
-    private final static int MSG_NO_MORE_EPISODE	= 11;
-    private final static int MSG_FAIL_TO_DETAIL	= 12;
-    private final static int MSG_FAIL_TO_GET_FT	= 13;
-    
-    private final static int TASK_DETAIL			= 1;
-    private final static int TASK_MORELIST		= 2;
-    private final static int TASK_MORESEARCH		= 3;
-    private final static int TASK_ITEM_FT			= 4;
-    
-    private final static int SET_DATA_LIST		= 1;
-    private final static int SET_DATA_SEARCH		= 2;
-    
-    private final static int page_size = 10;
-    private int album_page_index = 1;
-    
+
+    private final static String TAG ="PPTVEpisodeActivity";
+
     private EPGUtil mEPG;
-    private String epg_param;
-    private String epg_type;
-    private String episode_title;
-    private int episode_index;
-    private int selected_album_id = -1;
-    private String album_id;
-    // 最受好评, param: order=g|最高人气, param: order=t|最新更新, param: order=n
-    private String epg_order = "order=t";
-    private String search_key;
-    private String epg_signature;
-    private String epg_cdn_url;
-    private boolean epg_is_vip = false;
-    private List<PlayLink2> mAlbumList;
-    private List<PlayLink2> mEpisodeList;
-    private boolean is_catalog = false;
+    private String mAlbumId;
+    private String mTitle;
+    private String mImgUrl;
+    private int mEpisodeIndex; // base 0
+    private String mVid;
+    private String mEpisodeTitle;
 
-    private boolean noMoreData = false;
-    private boolean loadingMore = false;
-
-    private boolean mbPopSelEp = true;
-    private String mDownloadLocalFolder;
-    
     private PPTVPlayhistoryDatabaseHelper mHistoryDB;
 
-	@Override
-	protected void onCreate(Bundle savedInstanceState) {
-		super.onCreate(savedInstanceState);
+    private List<PlayLink2> mEpisodeList;
+    private boolean mbRevertEp = false;
+
+    private int mPlayerImpl;
+
+    private final static int PAGE_SIZE = 10;
+    private final static int REVERT_LIST_MIN_SIZE = 30;
+
+    private ImageView mImgView;
+    private TextView mTvStripe;
+    private TextView mTvTotalVV;
+    private TextView mTvDirector;
+    private TextView mTVActor;
+    private TextView mTvDesc;
+    private GridView gridView;
+    private ListView listView;
+
+    private MeetAdapter mGvAdapter;
+
+    private boolean mbGridMode = true;
+
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
 
         super.getWindow().addFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN);
 
-		Intent intent = getIntent();
-		if (intent.hasExtra("epg_param")) {
-			epg_param = intent.getStringExtra("epg_param");
-			epg_type = intent.getStringExtra("epg_type");
-            epg_is_vip = intent.getBooleanExtra("epg_is_vip", false);
-            LogUtil.info(TAG, "Java: vip is " + (epg_is_vip ? "ON" : "OFF"));
-		}
-		else if (intent.hasExtra("search_key")) {
-            search_key = intent.getStringExtra("search_key");
+        setContentView(R.layout.activity_pptv_episode);
+
+        Intent intent = getIntent();
+        mAlbumId = intent.getStringExtra("album_id");
+        mTitle = intent.getStringExtra("title");
+        mImgUrl = intent.getStringExtra("img_url");
+
+        mPlayerImpl = Util.readSettingsInt(this, "PlayerImpl");
+
+        this.mImgView = (ImageView)this.findViewById(R.id.img);
+        this.mTvStripe = (TextView)this.findViewById(R.id.tv_stripe);
+        this.mTvTotalVV = (TextView)this.findViewById(R.id.tv_total_vv);
+        this.mTvDirector = (TextView)this.findViewById(R.id.tv_director);
+        this.mTVActor = (TextView)this.findViewById(R.id.tv_actor);
+        this.mTvDesc = (TextView)this.findViewById(R.id.tv_desc);
+        this.gridView = (GridView) this.findViewById(R.id.grid_view);
+        this.listView = (ListView) this.findViewById(R.id.listview);
+
+        if (mImgUrl != null) {
+            DisplayImageOptions options = new DisplayImageOptions.Builder()
+                .showImageOnLoading(R.drawable.loading)         // 加载开始默认的图片
+                .showImageForEmptyUri(R.drawable.loading) //url爲空會显示该图片，自己放在drawable里面的
+                .showImageOnFail(R.drawable.loading_error)      //加载图片出现问题，会显示该图片
+                .displayer(new RoundedBitmapDisplayer(5))  //图片圆角显示，值为整数
+                .cacheInMemory(true)
+                .cacheOnDisk(true)
+                .build();
+            ImageLoader.getInstance().displayImage(mImgUrl, mImgView, options);
         }
-		else {
-			Toast.makeText(this, "intent param is wrong", Toast.LENGTH_SHORT).show();
-			finish();
-			return;
-		}
-		
-		setContentView(R.layout.activity_pptv_episode);
-		
-		this.btnReputation = (Button) findViewById(R.id.btn_reputation);
-		this.btnPopularity = (Button) findViewById(R.id.btn_popularity);
-		this.btnUpdate = (Button) findViewById(R.id.btn_update);
-		this.cbIsCatalog = (CheckBox) findViewById(R.id.cb_is_catalog);
-		this.btnFt = (Button) findViewById(R.id.btn_ft);
-		
-		this.btnReputation.setOnClickListener(mClickListener);
-		this.btnPopularity.setOnClickListener(mClickListener);
-		this.btnUpdate.setOnClickListener(mClickListener);
-		this.cbIsCatalog.setOnClickListener(mClickListener);
-		
-		this.btnFt.setOnClickListener(new Button.OnClickListener() {
 
-			@Override
-			public void onClick(View view) {
-				// TODO Auto-generated method stub
-				final String[] ft = {"流畅", "高清", "超清", "蓝光"};
-				
-				Dialog choose_ft_dlg = new AlertDialog.Builder(PPTVEpisodeActivity.this)
-				.setTitle("select download ft")
-				.setSingleChoiceItems(ft, Integer.parseInt(btnFt.getText().toString()), /*default selection item number*/
-					new DialogInterface.OnClickListener(){
-						public void onClick(DialogInterface dialog, int whichButton){
-							btnFt.setText(Integer.toString(whichButton));
-							dialog.dismiss();
-						}
-					})
-				.create();
-				choose_ft_dlg.show();	
-			}
-		});
-		
-		this.gridView = (GridView) findViewById(R.id.grid_view);
-		this.gridView.setOnItemClickListener(new AdapterView.OnItemClickListener(){
+        gridView.setOnItemClickListener(new AdapterView.OnItemClickListener(){
 
-			@Override
-			public void onItemClick(AdapterView<?> arg0, View v, int position,
-					long id) {
-				// TODO Auto-generated method stub
-				
-				Map<String, Object> item = adapter.getItem(position);
-				album_id = (String)item.get("vid");
-				
-				if (mbPopSelEp) {
-					new PPTVEpgTask().execute(TASK_DETAIL, Integer.valueOf(album_id));
-				}
-				else {
-					Intent intent = new Intent(PPTVEpisodeActivity.this, MeetViewActivity.class);
-					intent.putExtra("album_id", album_id);
-					startActivity(intent);
-				}	
-			}
-			
-		});
-		
-		this.gridView.setOnItemLongClickListener(new AdapterView.OnItemLongClickListener() {
-
-			@Override
-			public boolean onItemLongClick(AdapterView<?> arg0, View v,
-					int position, long id) {
-				// TODO Auto-generated method stub
-				
-				Map<String, Object> item = adapter.getItem(position);
-				popupMoreDialog(item);
-				return true;
-			}
-		});
-		
-		this.gridView.setOnScrollListener(new AbsListView.OnScrollListener() {
-			
-			@Override
-			public void onScrollStateChanged(AbsListView view, int scrollState) {
-				// TODO Auto-generated method stub
-				switch (scrollState) {
-					case AbsListView.OnScrollListener.SCROLL_STATE_FLING:
-					case AbsListView.OnScrollListener.SCROLL_STATE_TOUCH_SCROLL:
-						break;
-					case AbsListView.OnScrollListener.SCROLL_STATE_IDLE:
-						break;
-					default:
-						break;
-				}
-			}
-			
-			@Override
-			public void onScroll(AbsListView view, int firstVisibleItem,
-		            int visibleItemCount, int totalItemCount) {
-				// TODO Auto-generated method stub
-				//LogUtil.debug(TAG, String.format("Java: onScroll first %d, visible %d, total %d",
-				//		firstVisibleItem, visibleItemCount, totalItemCount));
-				
-				int lastInScreen = firstVisibleItem + visibleItemCount;
-		        if (totalItemCount > 0 && lastInScreen == totalItemCount && !noMoreData) {
-		        	if (!loadingMore) {
-		        		loadingMore = true;
-		        		if (search_key != null)
-		        			new PPTVEpgTask().execute(TASK_MORESEARCH);
-		        		else
-		        			new PPTVEpgTask().execute(TASK_MORELIST);
-		        	}
-		        }
-			}
-		});
-		
-		this.gridView.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
-
-			@Override
-			public void onItemSelected(AdapterView<?> arg0, View v,
-					int position, long id) {
-				// TODO Auto-generated method stub
-				Map<String, Object> item = adapter.getItem(position);
-				String title = (String)item.get("title");
-				setTitle(title);
-			}
-
-			@Override
-			public void onNothingSelected(AdapterView<?> arg0) {
-				// TODO Auto-generated method stub
-				setTitle(getResources().getString(R.string.title_activity_pptv_video));
-			}
-		});
-		
-	    mEPG = new EPGUtil();
-	    
-	    if (search_key != null)
-	    	new SetDataTask().execute(SET_DATA_SEARCH);
-	    else
-	    	new SetDataTask().execute(SET_DATA_LIST);
-	    
-	    if (Util.startP2PEngine(this) == false) {
-			Toast.makeText(this, "failed to start p2p engine", 
-					Toast.LENGTH_SHORT).show();
-		}
-	    
-	    String folder = Util.readSettings(this, "download_folder");
-	    if (folder.isEmpty())
-		    mDownloadLocalFolder = Environment.getExternalStorageDirectory().getAbsolutePath() + 
-					"/test2";
-	    else
-	    	mDownloadLocalFolder = folder;
-	    
-	    mHistoryDB = PPTVPlayhistoryDatabaseHelper.getInstance(this);
-	}
-	
-	@Override
-	protected void onPause() {
-		// TODO Auto-generated method stub
-		super.onPause();
-		
-		Util.writeSettings(this, "download_folder", mDownloadLocalFolder);
-	}
-	
-	@Override
-    public boolean onCreateOptionsMenu(Menu menu) {  
-        MenuInflater menuInflater = new MenuInflater(getApplication());  
-        menuInflater.inflate(R.menu.pptv_ep_menu, menu);  
-        return super.onCreateOptionsMenu(menu);  
-    }
-	
-	@Override
-	public boolean onOptionsItemSelected(MenuItem item) {
-		int id = item.getItemId();
-		LogUtil.info(TAG, "Java: onOptionsItemSelected " + id);
-		
-		switch (id) {
-		case R.id.pop_sel_ep:
-			mbPopSelEp = !mbPopSelEp;
-			item.setChecked(mbPopSelEp);
-			break;
-		case R.id.p2p_download:
-			break;
-		case R.id.set_download_folder:  
-	        DirChooserDialog dlg = new DirChooserDialog(PPTVEpisodeActivity.this, 
-	        		DirChooserDialog.TypeOpen, null, mDownloadLocalFolder);  
-	        dlg.setTitle("Choose dst file dir");
-	        dlg.setOnOKListener(new onOKListener(){
-
-				@Override
-				public void saveFolder(String folder) {
-					// TODO Auto-generated method stub
-					File f = new File(folder);
-					if (!f.exists() && !f.mkdir())
-						Toast.makeText(PPTVEpisodeActivity.this, "Failed to create new folder " + folder,
-								Toast.LENGTH_SHORT).show();
-					else {
-						mDownloadLocalFolder = folder;
-						Toast.makeText(PPTVEpisodeActivity.this, 
-							"Download folder save as: " + mDownloadLocalFolder, Toast.LENGTH_SHORT).show();
-					}
-				}
-	        	
-	        });
-	       
-	        dlg.show();
-			break;
-		default:
-			LogUtil.warn(TAG, "unknown menu id " + id);
-			break;
-		}
-		
-		return true;
-    }
-	
-	private void popupMoreDialog(final Map<String, Object> item) {
-    	final String[] action = {"detail", "download"};
-		Dialog choose_action_dlg = new AlertDialog.Builder(this)
-		.setTitle("select action")
-		.setItems(action, new DialogInterface.OnClickListener(){
-				public void onClick(DialogInterface dialog, int whichButton){
-					if (whichButton == 0) {
-						String title = (String)item.get("title");
-						String description = (String)item.get("desc");
-						String info = description;
-						if (info == null)
-							info = title;
-						new AlertDialog.Builder(PPTVEpisodeActivity.this)
-							.setTitle("Album description")
-							.setMessage(info)
-							.setPositiveButton("OK", null)
-							.show();
-					}
-					else if (whichButton == 1) {
-						String vid = (String) item.get("vid");
-						String title = (String)item.get("title");
-						String save_path = mDownloadLocalFolder + "/" + title + ".mp4";
-					}
-				}
-			})
-		.setNegativeButton("Cancel", null)
-		.create();
-		choose_action_dlg.show();
-    }
-	
-	private View.OnClickListener mClickListener = new View.OnClickListener() {
-
-		@Override
-		public void onClick(View v) {
-			// TODO Auto-generated method stub
-			
-			album_page_index = 1;
-			// 最受好评, param: order=g|最高人气, param: order=t|最新更新, param: order=n
-			
-			switch (v.getId()) {  
-            case R.id.btn_reputation:  
-                epg_order = "order=g";
-                new SetDataTask().execute(SET_DATA_LIST);
-                break;            
-            case R.id.btn_popularity:  
-            	epg_order = "order=t";
-            	new SetDataTask().execute(SET_DATA_LIST);
-                break;    
-            case R.id.btn_update:
-            	epg_order = "order=n";
-            	new SetDataTask().execute(SET_DATA_LIST);
-                break;
-            case R.id.cb_is_catalog:
-            	is_catalog = !is_catalog;
-            	new SetDataTask().execute(SET_DATA_LIST);
-            	break;
-            default:
-				LogUtil.warn(TAG, "Java unknown view id: " + v.getId());
-                break;  
-			}
-		}
-	};
-	
-	private Handler mhandler = new Handler(){  
-  
-        @Override  
-        public void handleMessage(Message msg) {  
-            switch (msg.what) {
-            case MSG_EPISODE_DONE:
-            	if (mEpisodeList.size() == 1) {
-            		String vid = mEpisodeList.get(0).getId();
-            		episode_title = mEpisodeList.get(0).getTitle();
-            		int playlink = Integer.valueOf(vid);
-        			if (playlink >= 300000 && playlink <= 400000) { // live
-            			play_video(1, 1);
-            		}
-            		else { // vod
-            			new PPTVEpgTask().execute(TASK_ITEM_FT, playlink);
-            		}
-
-					return;
-            	}
-            	
-            	popupSelectEpisodeDlg();
-            	break;
-            case MSG_MOREDATA_DONE:
-            	List<Map<String, Object>> listData = adapter.getData();
-            	
-    			int c = mAlbumList.size();
-    			for (int i=0;i<c;i++) {
-    				HashMap<String, Object> episode = new HashMap<String, Object>();
-    				PlayLink2 al = mAlbumList.get(i);
-    				
-    				episode.put("title", al.getTitle());
-    				episode.put("img_url", al.getImgUrl());
-    				episode.put("onlinetime", al.getOnlineTime());
-    				episode.put("tip", "评分 " + al.getMark());
-    				episode.put("vid", al.getId());
-    				episode.put("desc", al.getDescription());
-    				listData.add(episode);
-    			}
-            	
-            	adapter.notifyDataSetChanged();
-            	break;
-            case MSG_PLAY_CDN_FT:
-            	play_video(msg.arg1, msg.arg2);
-            	break;
-            case MSG_NO_MORE_EPISODE:
-            	Toast.makeText(PPTVEpisodeActivity.this, "No more episode", Toast.LENGTH_SHORT).show();
-            	break;
-            case MSG_FAIL_TO_GET_FT:
-            	Toast.makeText(PPTVEpisodeActivity.this, "Failed to get ft", Toast.LENGTH_SHORT).show();
-            	break;
-            default:
-            	break;
+            @Override
+            public void onItemClick(AdapterView<?> arg0, View v, int position,
+                                    long id) {
+                // TODO Auto-generated method stub
+                Map<String, Object> item = mGvAdapter.getItem(position);
+                int index = (Integer)item.get("index");
+                mEpisodeIndex = index - 1;
+                mVid = mEpisodeList.get(mEpisodeIndex).getId();
+                mEpisodeTitle = mEpisodeList.get(mEpisodeIndex).getTitle();
+                new EPGTask().execute(EPGTask.TASK_PLAYLINK, Integer.parseInt(mVid), mEpisodeIndex);
             }
-        }
-	};
-	
-	private void play_video(int ft, int best_ft) {
-		String vid = mEpisodeList.get(0).getId();
-		
-		String info = String.format(Locale.US,
-                "ready to play video %s, playlink: %s, ft: %d",
-				episode_title, vid, ft);
-		LogUtil.info(TAG, info);
-		Toast.makeText(this, info, Toast.LENGTH_SHORT).show();
 
-        short port = MediaSDK.getPort("http");
-        int playlink = Integer.valueOf(vid);
+        });
 
-        Uri uri;
-        if (epg_is_vip) {
-            uri = Uri.parse(epg_cdn_url);
-            LogUtil.info(TAG, "use cdn url to play vip video: " + epg_cdn_url);
+        gridView.setOnScrollListener(new AbsListView.OnScrollListener() {
+
+            @Override
+            public void onScrollStateChanged(AbsListView view, int scrollState) {
+                // TODO Auto-generated method stub
+            }
+
+            @Override
+            public void onScroll(AbsListView view, int firstVisibleItem,
+                                 int visibleItemCount, int totalItemCount) {
+                // TODO Auto-generated method stub
+            }
+        });
+
+        gridView.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+            @Override
+            public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+                Map<String, Object> item = mGvAdapter.getItem(position);
+                int index = (Integer)item.get("index");
+                mEpisodeIndex = index - 1;
+                mVid = mEpisodeList.get(mEpisodeIndex).getId();
+                mEpisodeTitle = mEpisodeList.get(mEpisodeIndex).getTitle();
+                new EPGTask().execute(EPGTask.TASK_DETAIL, Integer.parseInt(mVid), mEpisodeIndex);
+            }
+
+            @Override
+            public void onNothingSelected(AdapterView<?> parent) {
+
+            }
+        });
+
+        mHistoryDB = PPTVPlayhistoryDatabaseHelper.getInstance(this);
+
+        mEPG = new EPGUtil();
+
+        if (!TextUtils.isEmpty(mAlbumId)) {
+            new EPGTask().execute(EPGTask.TASK_LIST_EP, Integer.parseInt(mAlbumId));
         }
         else {
-            String url = PlayLinkUtil.getPlayUrl(playlink, port, ft, 3, null);
-
-            uri = Uri.parse(url);
+            Toast.makeText(this, "专辑ID为空", Toast.LENGTH_SHORT).show();
         }
-		
-		/* method 1
-		 * Intent intent = new Intent(Intent.ACTION_VIEW);
-		intent.setComponent(new ComponentName("com.pplive.tvduck", "com.pplive.tvduck.PlayerActivity"));
-		intent.setClassName("com.pplive.tvduck", "com.pplive.tvduck.PlayerActivity");
-        intent.putExtra(Intent.ACTION_VIEW, uri);
-        intent.setData(uri);*/
-        
-        /*Intent intent = new Intent(Intent.ACTION_VIEW);
-        intent.setDataAndType(uri, "video/*");
-        intent.putExtra(Intent.ACTION_VIEW, uri);
-        Intent wrapperIntent = Intent.createChooser(intent, "选择播放器");
-        startActivity(wrapperIntent);*/
-		
-        // method 3
-		int last_pos = mHistoryDB.getLastPlayedPosition(String.valueOf(playlink));
-		
-        Intent intent = new Intent(PPTVEpisodeActivity.this,
-        		PPTVPlayerActivity.class);
-		LogUtil.info(TAG, "to play uri: " + uri.toString());
+    }
 
-		intent.setData(uri);
-		intent.putExtra("title", episode_title);
-		intent.putExtra("playlink", playlink);
-		intent.putExtra("album_id", selected_album_id);
-		intent.putExtra("ft", ft);
-		intent.putExtra("best_ft", best_ft);
-		intent.putExtra("index", episode_index);
-        intent.putExtra("is_vip", epg_is_vip);
-        if (epg_signature != null)
-            intent.putExtra("sig", epg_signature);
-		
-		if (last_pos > 0) {
-			intent.putExtra("preseek_msec", last_pos);
-			LogUtil.info(TAG, "Java: set preseek_msec " + last_pos);
-		}
-        
-		startActivity(intent);
-	}
-	
-	private void popupSelectEpisodeDlg() {
-		int size = mEpisodeList.size();
-		if (size == 0) {
-			Toast.makeText(this, "episode list is empty!", Toast.LENGTH_SHORT).show();
-			return;
-		}
-		
-		List<String> title_list = new ArrayList<String>();
-		
-		for (int i=0;i<size;i++) {
-			title_list.add(mEpisodeList.get(i).getTitle());
-		}
-		
-		final String[] str_title_list = (String[])title_list.toArray(new String[size]);
-		
-		Dialog choose_episode_dlg = new AlertDialog.Builder(PPTVEpisodeActivity.this)
-		.setTitle("Select episode")
-		.setItems(str_title_list,
-                new DialogInterface.OnClickListener() {
-                    public void onClick(DialogInterface dialog, int whichButton) {
-                        String vid = mEpisodeList.get(whichButton).getId();
-                        episode_title = mEpisodeList.get(whichButton).getTitle();
-                        episode_index = whichButton;
-                        new PPTVEpgTask().execute(TASK_DETAIL, Integer.valueOf(vid));
-                        dialog.dismiss();
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        MenuInflater menuInflater = new MenuInflater(getApplication());
+        menuInflater.inflate(R.menu.episode_menu, menu);
+        return super.onCreateOptionsMenu(menu);
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        int id = item.getItemId();
+        switch (id) {
+            case R.id.display_mode:
+                mbGridMode = !mbGridMode;
+                if (mbGridMode) {
+                    gridView.setVisibility(View.VISIBLE);
+                    listView.setVisibility(View.GONE);
+                }
+                else {
+                    listView.setVisibility(View.VISIBLE);
+                    gridView.setVisibility(View.GONE);
+                }
+                break;
+            default:
+                break;
+        }
+
+        return true;
+    }
+
+    private class EPGTask extends AsyncTask<Integer, Integer, Boolean> {
+
+        private static final int TASK_LIST_EP   = 1;
+        private static final int TASK_PLAYLINK  = 2;
+        private static final int TASK_DETAIL    = 3;
+
+        private int action;
+        private String info;
+
+        @Override
+        protected void onPostExecute(Boolean result) {
+            // TODO Auto-generated method stub
+            if (!result) {
+                Toast.makeText(PPTVEpisodeActivity.this,
+                        "获取" + (action == TASK_LIST_EP ? "视频列表" : "播放地址") + "失败", Toast.LENGTH_SHORT).show();
+                return;
+            }
+
+            if (action == TASK_LIST_EP) {
+                if (mEpisodeList == null || mEpisodeList.isEmpty()) {
+                    Toast.makeText(PPTVEpisodeActivity.this, "视频列表为空", Toast.LENGTH_SHORT).show();
+                    return;
+                }
+
+                List<Map<String, Object>> dataList = new ArrayList<>();
+                int size = mEpisodeList.size();
+
+                if (size > REVERT_LIST_MIN_SIZE)
+                    mbRevertEp = true;
+                else
+                    mbRevertEp = false;
+
+                for (int i = 0; i < size; i++) {
+                    HashMap<String, Object> map = new HashMap<String, Object>();
+
+                    int ep_index;
+                    if (mbRevertEp)
+                        ep_index = size - i/*base 1*/;
+                    else
+                        ep_index = i + 1 /*base 1*/;
+                    String playlink = mEpisodeList.get(ep_index - 1).getId();
+
+                    map.put("index", ep_index);
+                    map.put("title", ep_index);
+                    map.put("playlink", playlink);
+                    map.put("company", "pptv");
+                    dataList.add(map);
+                }
+
+                mGvAdapter = new PPTVEpisodeAdapter(PPTVEpisodeActivity.this, dataList,
+                        R.layout.gridview_episode);
+                gridView.setAdapter(mGvAdapter);
+            }
+            else if (action == TASK_PLAYLINK) {
+                Toast.makeText(PPTVEpisodeActivity.this, info, Toast.LENGTH_SHORT).show();
+            }
+
+        }
+
+        @Override
+        protected Boolean doInBackground(Integer... params) {
+            // TODO Auto-generated method stub
+            action = params[0];
+
+            int vid = params[1];
+            if (!mEPG.detail(String.valueOf(vid))) {
+                LogUtil.error(TAG, "Java: failed to call detail()");
+                return false;
+            }
+
+            List<PlayLink2> ep_list = mEPG.getLink();
+
+            if (action == TASK_PLAYLINK || action == TASK_DETAIL) {
+                if (ep_list.isEmpty()) {
+                    LogUtil.error(TAG, "failed to get episode playlink");
+                    return false;
+                }
+
+                int episode_index = params[2];
+                PlayLink2 ep = ep_list.get(0);
+
+                String video_id = ep.getId();
+                String episode_title = ep.getTitle();
+
+                if (action == TASK_DETAIL) {
+                    final String desc = ep.getDescription();
+                    PPTVEpisodeActivity.this.runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            mTvDesc.setText("剧情介绍: " + desc);
+                        }
+                    });
+                }
+                else {
+                    int []ft_list = mEPG.getAvailableFT(video_id);
+                    if (ft_list == null || ft_list.length == 0) {
+                        return false;
                     }
-                })
-		.setNegativeButton("Cancel",
-                new DialogInterface.OnClickListener() {
-                    public void onClick(DialogInterface dialog, int whichButton) {
-                    }
-                })
-		.create();
-		choose_episode_dlg.show();
-	}
-	
-	private class PPTVEpgTask extends AsyncTask<Integer, Integer, Boolean> {
-		
-		@Override
-		protected void onPostExecute(Boolean result) {
-			// TODO Auto-generated method stub
-			
-			if (!result) {
-				LogUtil.error(TAG, "failed to get episode");
-				Toast.makeText(PPTVEpisodeActivity.this, "failed to get episode", Toast.LENGTH_SHORT).show();
-			}
-		}
-		
-		@Override
-		protected Boolean doInBackground(Integer... params) {
-			// TODO Auto-generated method stub
-			long action = params[0];
-			
-			if (action == TASK_DETAIL) {
-				int vid = params[1];
-				if (!mEPG.detail(String.valueOf(vid))) {
-					LogUtil.error(TAG, "Java: failed to call detail()");
-					mhandler.sendEmptyMessage(MSG_FAIL_TO_DETAIL);
-					return false;
-				}
-				
-				mEpisodeList = mEPG.getLink();
-				if (mEpisodeList.size() > 1)
-					selected_album_id = vid;
-				
-				mhandler.sendEmptyMessage(MSG_EPISODE_DONE);
-			}
-			else if (action == TASK_MORELIST) {
-				album_page_index++;
-				if (!mEPG.list(epg_param, epg_type, album_page_index, epg_order, page_size, is_catalog)) {
-					LogUtil.error(TAG, "Java: failed to call list() more");
-					noMoreData = true;
-					return false;
-				}
-				
-				mAlbumList = mEPG.getLink();
-				loadingMore = false;
-				mhandler.sendEmptyMessage(MSG_MOREDATA_DONE);
-			}
-			else if (action == TASK_MORESEARCH) {
-				album_page_index++;
-				if (!mEPG.search(search_key, 0, 0, album_page_index, page_size)) {
-					LogUtil.error(TAG, "Java: failed to call search() more");
-					noMoreData = true;
-					return false;
-				}
-				
-				mAlbumList = mEPG.getLink();
-				loadingMore = false;
-				mhandler.sendEmptyMessage(MSG_MOREDATA_DONE);
-			}
-			else if (action == TASK_ITEM_FT) {
-				LogUtil.info(TAG, "Java: EPGTask start to getCDNUrl");
-        		
-        		int vid = params[1];
-        		int []ft_list = mEPG.getAvailableFT(String.valueOf(vid));
-        		if (ft_list == null || ft_list.length == 0) {
-        			mhandler.sendEmptyMessage(MSG_FAIL_TO_GET_FT);
-            		return false;
-        		}
-        		
-        		int ft = -1;
-        		for (int i=ft_list.length - 1;i>=0;i--) {
-        			if (ft_list[i] >= 0 && ft_list[i] < 4) {
-        				ft = ft_list[i];
-        				break;
-        			}
-        		}
-        		
-        		if (ft == -1) {
-        			mhandler.sendEmptyMessage(MSG_FAIL_TO_GET_FT);
-            		return false;
-        		}
-        		
-        		Util.add_pptvvideo_history(PPTVEpisodeActivity.this, episode_title,
-						String.valueOf(vid), album_id, episode_index, ft);
-                if (epg_is_vip) {
-                    // http://114.80.186.137:80/128bf5c96ab61002f4be2ad309820758.mp4
-                    // ?w=1&key=54a3ba32b506b80c6c9f875e25f9ce99
-                    // &k=07f8e9fa6a99dd9f1f9a8d11f9fc0825-6eae-1459144870
-                    // &type=phone.android.vip&vvid=877a4382-f0e4-49ed-afea-8d59dbd11df1
-                    // &sv=4.1.3&platform=android3&ft=2&accessType=wifi
-                    epg_cdn_url = mEPG.getCDNUrl(String.valueOf(vid), String.valueOf(ft),
-                            false, false);
-                    int pos1, pos2;
-                    String rid = null;
 
-                    pos2 = epg_cdn_url.indexOf(".mp4");
-                    if (pos2 != -1) {
-                        pos1 = epg_cdn_url.lastIndexOf("/", pos2);
-
-                        if (pos1 != -1) {
-                            rid = epg_cdn_url.substring(pos1 + 1, pos2);
-                            LogUtil.info(TAG, "rid=" + rid);
+                    int ft = -1;
+                    for (int i=ft_list.length - 1;i>=0;i--) {
+                        if (ft_list[i] >= 0 && ft_list[i] < 4) {
+                            ft = ft_list[i];
+                            break;
                         }
                     }
 
-                    pos1 = epg_cdn_url.indexOf("&key=");
-                    pos2 = epg_cdn_url.indexOf("&sv=");
-                    if (pos1 != -1 && pos2 != -1 && rid != null)
-                        epg_signature = epg_cdn_url.substring(pos1, pos2) + "&rid=" + rid;
-                    else
-                        epg_signature = null;
+                    if (ft == -1) {
+                        return false;
+                    }
+
+                    Util.add_pptvvideo_history(PPTVEpisodeActivity.this, episode_title,
+                            String.valueOf(vid), mAlbumId, episode_index, ft);
+
+                    info = String.format(Locale.US,
+                            "ready to play video %s, playlink: %s, ft: %d",
+                            episode_title, video_id, ft);
+                    LogUtil.info(TAG, info);
+
+                    short port = MediaSDK.getPort("http");
+
+                    Uri uri;
+                    String url = PlayLinkUtil.getPlayUrl(vid, port, ft, 3, null);
+                    uri = Uri.parse(url);
+
+                    int last_pos = mHistoryDB.getLastPlayedPosition(String.valueOf(vid));
+
+                    Intent intent = new Intent(PPTVEpisodeActivity.this,
+                            PPTVPlayerActivity.class);
+                    LogUtil.info(TAG, "to play uri: " + uri.toString());
+
+                    intent.setData(uri);
+                    intent.putExtra("title", episode_title);
+                    intent.putExtra("playlink", vid);
+                    intent.putExtra("album_id", Integer.parseInt(mAlbumId));
+                    intent.putExtra("ft", ft);
+                    intent.putExtra("best_ft", ft);
+                    intent.putExtra("index", episode_index);
+
+                    if (last_pos > 0) {
+                        intent.putExtra("preseek_msec", last_pos);
+                        LogUtil.info(TAG, "Java: set preseek_msec " + last_pos);
+                    }
+
+                    startActivity(intent);
                 }
-                else {
-                    epg_signature = null;
-                }
+            }
+            else {
+                mEpisodeList = new ArrayList<>();
+                mEpisodeList.addAll(ep_list);
+            }
 
-				Message msg = mhandler.obtainMessage(MSG_PLAY_CDN_FT, ft, ft);
-    	        msg.sendToTarget();
-        	}
-			else {
-				LogUtil.error(TAG, "Java: invalid action type: " + action);
-				return false;
-			}
-
-			return true;// all done!
-		}
-		
-	}
-	
-	private class SetDataTask extends AsyncTask<Integer, Integer, List<Map<String, Object>>> {
-		
-		@Override
-		protected void onPostExecute(List<Map<String, Object>> result) {
-			// TODO Auto-generated method stub
-			
-			if (result == null) {
-				LogUtil.error(TAG, "Java: failed to get data");
-				return;
-			}
-			
-			if (adapter == null) {
-				adapter = new CommonAlbumAdapter(PPTVEpisodeActivity.this, result);
-				gridView.setAdapter(adapter);
-			}
-			else {
-				List<Map<String, Object>> listData = adapter.getData();
-				listData.clear();
-				listData.addAll(result);
-				adapter.notifyDataSetChanged();
-			}
-		}
-		
-		@Override
-		protected List<Map<String, Object>> doInBackground(Integer... params) {
-			// TODO Auto-generated method stub
-			int action = params[0];
-			
-			if (action == SET_DATA_SEARCH) {
-				if (!mEPG.search(search_key, 0, 0, album_page_index, page_size))
-					return null;
-				
-				mAlbumList = mEPG.getLink();
-			}
-			else {
-				if (!mEPG.list(epg_param, epg_type, album_page_index, epg_order, page_size, is_catalog))
-					return null;
-				
-				mAlbumList = mEPG.getLink();
-			}
-			
-			List<Map<String, Object>> items = new ArrayList<Map<String, Object>>();
-			int c = mAlbumList.size();
-			for (int i=0;i<c;i++) {
-				HashMap<String, Object> episode = new HashMap<String, Object>();
-				PlayLink2 al = mAlbumList.get(i);
-
-				episode.put("title", al.getTitle());
-				episode.put("img_url", al.getImgUrl());
-				episode.put("onlinetime", al.getOnlineTime());
-				episode.put("tip", "评分 " + al.getMark());
-				episode.put("vid", al.getId());
-				episode.put("desc", al.getDescription());
-				items.add(episode);
-			}
-			
-			return items;
-		}
-	}  
-	
+            return true;
+        }
+    }
 }
-

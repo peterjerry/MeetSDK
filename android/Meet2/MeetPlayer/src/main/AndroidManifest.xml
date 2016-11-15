@@ -81,6 +81,10 @@
             android:name=".activity.PPTVVideoActivity"
             android:label="@string/title_activity_pptv_video" />
         <activity
+            android:name=".activity.PPTVAlbumActivity"
+            android:label="@string/title_activity_pptv_video"
+            android:screenOrientation="portrait" />
+        <activity
             android:name=".activity.PPTVEpisodeActivity"
             android:label="@string/title_activity_pptv_video"
             android:screenOrientation="portrait" />
