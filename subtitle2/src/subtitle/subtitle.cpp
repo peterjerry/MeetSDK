@@ -8,6 +8,7 @@
 #include "subtitle.h"
 #include "simpletextsubtitle.h"
 #include <stdarg.h>
+#include <string.h> // for strncpy
 
 #define LOG_TAG "subtitle"
 #ifdef _TEST_SUBTITLE
@@ -112,7 +113,11 @@ void CSubtitleManager::ass_log(int level, const char *fmt, va_list va, void *dat
 
 	char msg[1024] = {0};
     const char *header = "[ass] ";
+#ifdef _MSC_VER
     vsnprintf_s(msg, 1024, fmt, va);
+#else
+	vsnprintf(msg, 1024, fmt, va);
+#endif
 	LOGI("%s %s", header, msg);
 }
 
@@ -147,7 +152,11 @@ bool CSubtitleManager::getLanguageName(int language, char* name)
 
     const char* languageName = mSubtitles[language]->getLanguageName();
     if (languageName) {
-        strncpy_s(name, 512, languageName, 511);
+#ifdef _MSC_VER
+		strncpy_s(name, 512, languageName, 511);
+#else
+		strncpy(name, languageName, 511);
+#endif
         name[511] = '\x0';
         return true;
     }
