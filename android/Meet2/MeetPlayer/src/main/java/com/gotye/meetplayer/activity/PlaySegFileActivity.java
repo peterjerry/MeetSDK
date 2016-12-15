@@ -2,8 +2,11 @@ package com.gotye.meetplayer.activity;
 
 import android.app.AlertDialog;
 import android.app.Dialog;
+import android.content.BroadcastReceiver;
+import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.graphics.PixelFormat;
 import android.media.AudioManager;
 import android.net.Uri;
@@ -11,6 +14,7 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
 import android.support.v7.app.AppCompatActivity;
+import android.support.v7.widget.PopupMenu;
 import android.view.GestureDetector;
 import android.view.KeyEvent;
 import android.view.Menu;
@@ -33,6 +37,7 @@ import com.gotye.meetplayer.R;
 import com.gotye.meetplayer.media.FragmentMp4MediaPlayerV2;
 import com.gotye.meetplayer.ui.MyPreView2;
 import com.gotye.meetplayer.ui.widget.MicroMediaController;
+import com.gotye.meetplayer.util.IDlnaCallback;
 import com.gotye.meetplayer.util.Util;
 import com.gotye.meetsdk.player.MediaController.MediaPlayerControl;
 import com.gotye.meetsdk.player.MediaPlayer;
@@ -41,9 +46,11 @@ import java.io.IOException;
 import java.lang.ref.WeakReference;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 import java.util.Locale;
 import java.util.StringTokenizer;
+import java.util.TimeZone;
 
 public class PlaySegFileActivity extends AppCompatActivity
 		implements SurfaceHolder.Callback {
@@ -57,12 +64,18 @@ public class PlaySegFileActivity extends AppCompatActivity
     private boolean mPrepared = false;
 	private MicroMediaController mController;
 	private MyMediaPlayerControl mMediaPlayerControl;
-    private LinearLayout mHoodLayout;
+    private RelativeLayout mHoodLayout;
     private TextView mTvTitle;
+    private TextView mTvSysTime;
+    private TextView mTvBattery;
     private ImageButton mBtnBack;
+    private ImageButton mBtnOption;
 	protected ProgressBar mBufferingProgressBar;
     private TextView mTvInfo;
     private boolean mbTvInfoShowing = false;
+
+    private BatteryReceiver batteryReceiver;
+    private int mBatteryPct = 100;
 
     // stat
     private int decode_fps					= 0;
@@ -88,6 +101,10 @@ public class PlaySegFileActivity extends AppCompatActivity
 
     protected boolean mIsBuffering = false;
 	protected boolean mSwichingEpisode = false;
+
+    // dlna
+    protected String mDlnaDeviceUUID;
+    protected String mDlnaDeviceName;
 	
 	/* 记录上一次按返回键的时间 */
     private long backKeyTime = 0L;
@@ -126,16 +143,6 @@ public class PlaySegFileActivity extends AppCompatActivity
 		super.getWindow().addFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN);
 		super.getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
 
-        try {
-            super.getWindow().addFlags(
-                    WindowManager.LayoutParams.class.
-                            getField("FLAG_NEEDS_MENU_KEY").getInt(null));
-        } catch (NoSuchFieldException e) {
-            // Ignore since this field won't exist in most versions of Android
-        } catch (IllegalAccessException e) {
-            e.printStackTrace();
-        }
-
 		setContentView(R.layout.activity_frag_mp4_player);
 
 		if (getSupportActionBar() != null)
@@ -169,9 +176,12 @@ public class PlaySegFileActivity extends AppCompatActivity
         this.mController 			= (MicroMediaController) findViewById(R.id.video_controller);
         this.mBufferingProgressBar 	= (ProgressBar) findViewById(R.id.progressbar_buffering);
 
-        this.mHoodLayout = (LinearLayout)this.findViewById(R.id.hood_layout);
+        this.mHoodLayout = (RelativeLayout)this.findViewById(R.id.hood_layout);
         this.mTvTitle = (TextView)this.findViewById(R.id.player_title);
         this.mBtnBack = (ImageButton)this.findViewById(R.id.player_back_btn);
+        this.mBtnOption = (ImageButton)this.findViewById(R.id.option_btn);
+        this.mTvSysTime = (TextView)this.findViewById(R.id.tv_sys_time);
+        this.mTvBattery = (TextView)this.findViewById(R.id.tv_battery);
 
         this.mTvInfo = (TextView)this.findViewById(R.id.tv_info);
 
@@ -181,6 +191,27 @@ public class PlaySegFileActivity extends AppCompatActivity
             public void onClick(View v) {
                 // TODO Auto-generated method stub
                 finish();
+            }
+        });
+
+        mBtnOption.setOnClickListener(new View.OnClickListener(){
+
+            @Override
+            public void onClick(View v) {
+                PopupMenu popup = new PopupMenu(PlaySegFileActivity.this, v);
+                MenuInflater inflater = popup.getMenuInflater();
+                inflater.inflate(R.menu.seg_player_menu, popup.getMenu());
+                popup.show();
+
+                popup.setOnMenuItemClickListener(new PopupMenu.OnMenuItemClickListener() {
+
+                    @Override
+                    public boolean onMenuItemClick(MenuItem item) {
+                        int id = item.getItemId();
+                        processMenuItem(id);
+                        return true;
+                    }
+                });
             }
         });
 
@@ -319,10 +350,22 @@ public class PlaySegFileActivity extends AppCompatActivity
 				
 				mIsBuffering = false;
 				mBufferingProgressBar.setVisibility(View.GONE);
-				
-				Toast.makeText(PlaySegFileActivity.this, "Error " + error + " , extra " + extra,
-						Toast.LENGTH_SHORT).show();
-				finish();
+
+                if (mPlayerImpl == 1) {
+                    mPlayerImpl = 3;
+                    mView.setVisibility(View.INVISIBLE);
+                    mHolder.setType(SurfaceHolder.SURFACE_TYPE_NORMAL);
+                    mHolder.setFormat(PixelFormat.RGBX_8888/*RGB_565*/);
+                    mView.setVisibility(View.VISIBLE);
+
+                    Util.writeSettingsInt(PlaySegFileActivity.this, "PlayerImpl", mPlayerImpl);
+                    Toast.makeText(PlaySegFileActivity.this, "尝试使用软解模式", Toast.LENGTH_SHORT).show();
+                }
+                else {
+                    Toast.makeText(PlaySegFileActivity.this, "播放器错误: 错误码 " + error + " , 详细 " + extra,
+                            Toast.LENGTH_SHORT).show();
+                    finish();
+                }
 				
 				return true;
 			}
@@ -336,6 +379,14 @@ public class PlaySegFileActivity extends AppCompatActivity
                 OnComplete();
 			}
 		};
+
+        //注册广播接受者java代码
+        IntentFilter intentFilter = new IntentFilter(Intent.ACTION_BATTERY_CHANGED);
+        //创建广播接受者对象
+        batteryReceiver = new BatteryReceiver();
+
+        //注册receiver
+        registerReceiver(batteryReceiver, intentFilter);
 	}
 
     @Override
@@ -347,8 +398,12 @@ public class PlaySegFileActivity extends AppCompatActivity
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
-
         int id = item.getItemId();
+        processMenuItem(id);
+        return true;
+    }
+
+    private void processMenuItem(int id) {
         switch (id) {
             case R.id.select_player_impl:
                 popupPlayerImplDlg();
@@ -371,6 +426,9 @@ public class PlaySegFileActivity extends AppCompatActivity
             case R.id.show_relate_video:
                 onShowRelateVideo();
                 break;
+            case R.id.dlna_push_to_dmr:
+                push_to_dmr();
+                break;
             case R.id.toggle_debug_info:
                 mbTvInfoShowing = !mbTvInfoShowing;
                 if (mbTvInfoShowing) {
@@ -383,8 +441,6 @@ public class PlaySegFileActivity extends AppCompatActivity
             default:
                 break;
         }
-
-        return true;
     }
 
     private void popupPlayerImplDlg() {
@@ -428,6 +484,48 @@ public class PlaySegFileActivity extends AppCompatActivity
         choose_player_impl_dlg.show();
     }
 
+    private void push_to_dmr() {
+        int dev_num = IDlnaCallback.mDMRmap.size();
+
+        if (dev_num == 0) {
+            LogUtil.info(TAG, "Java: dlna no dlna device found");
+            Toast.makeText(this, "未发现DMR设备", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        ArrayList<String> dev_list = new ArrayList<String>();
+        ArrayList<String> uuid_list = new ArrayList<String>();
+        for (String key : IDlnaCallback.mDMRmap.keySet()) {
+            String name = IDlnaCallback.mDMRmap.get(key);
+            LogUtil.info(TAG, "Java: dlna [dlna dmr] uuid: " + key + " name: " + name);
+            uuid_list.add(key);
+            dev_list.add(name);
+        }
+
+        final String[] str_uuid_list = uuid_list.toArray(new String[uuid_list.size()]);
+        final String[] str_dev_list = dev_list.toArray(new String[dev_list.size()]);
+
+        Dialog choose_device_dlg = new AlertDialog.Builder(this)
+                .setTitle("选择dlna推送设备")
+                .setItems(str_dev_list,
+                        new DialogInterface.OnClickListener() {
+                            public void onClick(DialogInterface dialog, int whichButton) {
+
+                                mDlnaDeviceUUID = str_uuid_list[whichButton];
+                                mDlnaDeviceName = str_dev_list[whichButton];
+
+                                push_cdn_clip();
+                            }
+                        })
+                .setNegativeButton("取消", null)
+                .create();
+        choose_device_dlg.show();
+    }
+
+    protected void push_cdn_clip() {
+
+    }
+
     private void popupMediaInfo() {
         if (mPlayer == null) {
             Toast.makeText(this, "无法获取媒体信息", Toast.LENGTH_SHORT).show();
@@ -442,7 +540,8 @@ public class PlaySegFileActivity extends AppCompatActivity
 
         sbInfo.append("\n文件时长列表2 [");
         int total_msec = 0;
-        SimpleDateFormat formatter = new SimpleDateFormat("mm:ss", Locale.US);
+        SimpleDateFormat formatter = new SimpleDateFormat("HH:mm:ss", Locale.US);
+        formatter.setTimeZone(TimeZone.getTimeZone("GMT+00:00")); // fix 08:00:01 322 bug
         for (int i=0;i<m_duration_list.size();i++) {
             int duration = m_duration_list.get(i);
             total_msec += duration;
@@ -583,6 +682,13 @@ public class PlaySegFileActivity extends AppCompatActivity
 
     private void showHood(int msec) {
         mHandler.removeMessages(MainHandler.MSG_HIDE_HOOD);
+
+        SimpleDateFormat format = new SimpleDateFormat("HH:mm", Locale.US);
+        String str_time = format.format((new Date()));
+        mTvSysTime.setText(str_time);
+        mTvBattery.setText(String.format(Locale.US,
+                "电池 %d", mBatteryPct));
+
         mHoodLayout.setVisibility(View.VISIBLE);
         if (msec > 0)
             mHandler.sendEmptyMessageDelayed(MainHandler.MSG_HIDE_HOOD, msec);
@@ -656,6 +762,8 @@ public class PlaySegFileActivity extends AppCompatActivity
 			mPlayer.release();
 			mPlayer = null;
 		}
+
+        unregisterReceiver(batteryReceiver);
 	}
 	
 	@Override
@@ -692,6 +800,31 @@ public class PlaySegFileActivity extends AppCompatActivity
 		
 	}
 
+    protected void onShedule() {
+
+    }
+
+    private class BatteryReceiver extends BroadcastReceiver {
+
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            // TODO Auto-generated method stub
+            //判断它是否是为电量变化的Broadcast Action
+            if (Intent.ACTION_BATTERY_CHANGED.equals(intent.getAction())){
+                //获取当前电量
+                int level = intent.getIntExtra("level", 0);
+                //电量的总刻度
+                int scale = intent.getIntExtra("scale", 100);
+
+                mBatteryPct = level * 100 / scale;
+                // fix tvbox problem
+                if (mBatteryPct == 0)
+                    mBatteryPct = 100;
+            }
+        }
+
+    }
+
     protected static class MainHandler extends Handler {
         private WeakReference<PlaySegFileActivity> mWeakActivity;
 
@@ -710,6 +843,8 @@ public class PlaySegFileActivity extends AppCompatActivity
 
         private static final int MSG_RESTART_PLAYER             = 301;
 
+        protected static final int MSG_SHEDULE                  = 400;
+
         public MainHandler(PlaySegFileActivity activity) {
             mWeakActivity = new WeakReference<PlaySegFileActivity>(activity);
         }
@@ -723,6 +858,9 @@ public class PlaySegFileActivity extends AppCompatActivity
             }
 
             switch(msg.what) {
+                case MSG_SHEDULE:
+                    activity.onShedule();
+                    break;
                 case MSG_HIDE_HOOD:
                     activity.mHoodLayout.setVisibility(View.GONE);
                     break;
@@ -854,7 +992,8 @@ public class PlaySegFileActivity extends AppCompatActivity
 		
 		st = new StringTokenizer(mDurationListStr, ",", false);
 		i=0;
-        SimpleDateFormat formatter = new SimpleDateFormat("mm:ss", Locale.US);
+        SimpleDateFormat formatter = new SimpleDateFormat("HH:mm:ss", Locale.US);
+        formatter.setTimeZone(TimeZone.getTimeZone("GMT+00:00")); // fix 08:00:01 322 bug
         int total_msec = 0;
 		while (st.hasMoreElements()) {
 			String seg_duration = st.nextToken();

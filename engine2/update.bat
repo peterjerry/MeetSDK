@@ -6,6 +6,8 @@ rem call ndk-build clean
 call ndk-build -j4
 copy libs\armeabi-v7a\libplayer.so ..\..\output\android\armeabi-v7a\
 copy obj\local\armeabi-v7a\libplayer.so ..\..\output\android\armeabi-v7a\debug\
+copy libs\x86\libplayer.so ..\..\output\android\x86\
+copy obj\local\x86\libplayer.so ..\..\output\android\x86\debug\
 
 rem copy obj\local\armeabi\libplayer.a ..\..\output\android\armeabi\
 rem copy obj\local\armeabi\libplayer.a ..\..\output\android\armeabi\debug\

@@ -8,10 +8,10 @@
 #include "testSDLdlgDlg.h"
 #include "afxdialogex.h"
 
-#include "ffplayer.h"
+#include "libPlayer.h"
+#include "player.h"
 #define LOG_TAG "testSDLdlg"
 #include "log.h"
-#include "apFileLog.h"
 #include "surface.h"
 #include "sdl.h"
 #include "IPpbox.h"
@@ -22,6 +22,9 @@
 #include "subtitle.h"
 //#include <vld.h>
 
+#define MAX_DISPLAY_WIDTH	1280
+#define MAX_DISPLAY_HEIGHT	720
+
 #define SUB_FILE_PATH "E:\\QQDownload\\Manhattan.S01E08.720p.HDTV.x264-KILLERS\\1.ass"
 
 #ifdef USE_SDL2
@@ -29,9 +32,12 @@
 #else
 #pragma comment(lib, "sdl")
 #endif
+
 #pragma comment(lib, "libppbox")
+#pragma comment(lib, "libPlayer")
+
 #ifdef USE_LIBASS_SMP
-#pragma comment(lib, "libass")
+#pragma comment(lib, "ass")
 #else
 #pragma comment(lib, "libass")
 #endif
@@ -45,9 +51,9 @@
 
 #define PROG_MAX_NUM	1024
 #define NORMAL_URL_OFFSET 0
-#define PPTV_RTSP_URL_OFFSET 9
-#define PPTV_HLS_URL_OFFSET (PPTV_RTSP_URL_OFFSET + 12)
-#define USER_LIST_OFFSET (PPTV_HLS_URL_OFFSET + 12)
+#define PPTV_RTSP_URL_OFFSET 5
+#define PPTV_HLS_URL_OFFSET (PPTV_RTSP_URL_OFFSET + 2)
+#define USER_LIST_OFFSET (PPTV_HLS_URL_OFFSET + 2)
 
 #define HOST "127.0.0.1"
 //#define HTTP_PORT 9106
@@ -65,36 +71,11 @@ const char* url_desc[PROG_MAX_NUM] = {
 	_T("圣斗士星矢Ω 480p"),
 	_T("NA_Secret 1080p"),
 
-	_T("浙江卫视 高清"),
-	_T("东方卫视 高清"),
-	_T("东方卫视 标清"),
-	_T("安徽卫视"),
-
 	_T("rtsp 安徽卫视"),
 	_T("rtsp 江苏卫视"),
-	_T("rtsp 第一财经"),
-	_T("rtsp 新娱乐"),
-	_T("rtsp 星尚"),
-	_T("rtsp 艺术人文"),
-	_T("rtsp 上视纪实"),
-	_T("rtsp 电视剧"),
-	_T("rtsp ICS"),
-	_T("rtsp 东方电影"),
-	_T("rtsp 新闻综合"),
-	_T("rtsp 东方购物"),
 
 	_T("hls 安徽卫视"),
-	_T("hls 江苏卫视"),
-	_T("hls 第一财经"),
-	_T("hls 新娱乐"),
-	_T("hls 星尚"),
-	_T("hls 艺术人文"),
-	_T("hls 上视纪实"),
-	_T("hls 电视剧"),
-	_T("hls ICS"),
-	_T("hls 东方电影"),
-	_T("hls 新闻综合"),
-	_T("hls 东方购物"),
+	_T("hls 江苏卫视")
 };
 
 const char* url_list[PROG_MAX_NUM] = {
@@ -105,26 +86,11 @@ const char* url_list[PROG_MAX_NUM] = {
 	//_T("E:\\BaiduYunDownload\\第三季第八集.mkv"),
 	_T("E:\\BaiduYunDownload\\红猪.Porco.Rosso.1992.D9.3Audio.MiniSD-TLF.mkv"),
 	_T("E:\\Archive\\media\\mv\\G.NA_Secret.mp4"),
-
-	_T("http://zb.v.qq.com:1863/?progid=1975434150"),
-	_T("http://zb.v.qq.com:1863/?progid=3900155972"),
-	_T("http://zb.v.qq.com:1863/?progid=3661744838"),
-	_T("http://zb.v.qq.com:1863/?progid=623043810"),
 };
 
 int pptv_channel_id[] = {
 	300162,// 安徽卫视
-	300163,// 江苏卫视
-	300154,// 第一财经"),
-	300151,// 新娱乐"),
-	300155,// 星尚"),
-	300454,// 艺术人文"),
-	300152,// 上视纪实"),
-	300153,// 电视剧"),
-	300214,// ICS"),
-	300149,// 东方电影"),
-	300156,// 新闻综合"),
-	300254,// 东方购物"), /*&m3u8seekback=true*/
+	300163,// 江苏卫视 /*&m3u8seekback=true*/
 };
 
 const char *PPTV_RTSP_PLAYLINK_FMT = "rtsp://%s:%d/play.es?type=pplive3&playlink=%d";
@@ -331,9 +297,6 @@ BOOL CtestSDLdlgDlg::OnInitDialog()
 	SetIcon(m_hIcon, FALSE);		// 设置小图标
 
 	// TODO: 在此添加额外的初始化代码
-#ifdef SAVE_LOG_FILE
-	apLog::init("c:\\log\\libplayer.log");
-#endif
 
 	if (!startP2P()) {
 		AfxMessageBox("failed to start p2p engine");
@@ -434,6 +397,8 @@ BOOL CtestSDLdlgDlg::OnInitDialog()
 	mEPGQueryType = EPG_QUERY_FRONTPAGE;
 	mEPGValue = -1;
 	start();
+
+	able_set_display_resolution(MAX_DISPLAY_WIDTH, MAX_DISPLAY_HEIGHT);
 
 	return TRUE;  // 除非将焦点设置到控件，否则返回 TRUE
 }
@@ -782,7 +747,7 @@ bool CtestSDLdlgDlg::start_player(const char *url)
 	status_t status;
 
 	if (mPlayer == NULL) {
-		mPlayer = new FFPlayer;
+		mPlayer = able_getPlayer();
 		mPlayer->setListener(this);
 	}
 	
@@ -820,8 +785,6 @@ bool CtestSDLdlgDlg::start_player(const char *url)
 	mPlayer->setDataSource(url);
 	status = mPlayer->prepareAsync();
 	if (status != OK) {
-		delete mPlayer;
-		mPlayer = NULL;
 		AfxMessageBox("failed to prepareAsync");
 	}
 
@@ -846,7 +809,8 @@ void CtestSDLdlgDlg::stop_player()
 		LOGI("before call player stop");
 		mPlayer->stop();
 		LOGI("after call player stop");
-		delete mPlayer;
+
+		able_releasePlayer(mPlayer);
 		mPlayer = NULL;
 
 #ifdef USE_SDL2
@@ -1252,7 +1216,7 @@ bool CtestSDLdlgDlg::OnPrepared()
 
 	// way2
 	//SDL_Window * pWindow = SDL_CreateWindowFrom( (void *)( GetDlgItem(IDC_STATIC1)->GetSafeHwnd() ) );
-	Surface_open2((void *)mSurface2);
+	able_surface_open((void *)mSurface2);
 #endif
 
 	MediaInfo info;
@@ -1417,7 +1381,7 @@ void CtestSDLdlgDlg::Cleanup()
 	if (mPlayer) {
 		LOGI("stop player");
 		mPlayer->stop();
-		delete mPlayer;
+		able_releasePlayer(mPlayer);
 		mPlayer = NULL;
 	}
 
@@ -1716,11 +1680,14 @@ void CtestSDLdlgDlg::OnBnClickedButtonGetMediainfo()
 		mComboURL.GetLBText(sel, mUrl);
 	}
 
-	FFPlayer player;
-	player.getMediaDetailInfo(mUrl.GetBuffer(), &info);
+	if (!mPlayer) {
+		mPlayer = able_getPlayer();
+	}
+
+	mPlayer->getMediaDetailInfo(mUrl.GetBuffer(), &info);
 
 	MediaInfo infoThumbnail;
-	player.getThumbnail(mUrl.GetBuffer(), &infoThumbnail, PIC_WIDTH, PIC_HEIGHT);
+	mPlayer->getThumbnail(mUrl.GetBuffer(), &infoThumbnail, PIC_WIDTH, PIC_HEIGHT);
 	LOGI("thumbnail %d x %d, %p", infoThumbnail.thumbnail_width, infoThumbnail.thumbnail_height, infoThumbnail.thumbnail);
 
 	int32_t *pic	= infoThumbnail.thumbnail;

@@ -118,3 +118,8 @@
 -dontwarn org.jdom2.**
 -dontwarn org.apache.ivy.**
 -dontwarn org.jsoup.**
+
+#qrcode
+-keep class net.sourceforge.zbar.** { *; }
+-keep interface net.sourceforge.zbar.** { *; }
+-dontwarn net.sourceforge.zbar.**

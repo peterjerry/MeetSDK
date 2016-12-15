@@ -18,6 +18,7 @@ import android.widget.EditText;
 import android.widget.ProgressBar;
 import android.widget.Toast;
 
+import com.gotye.common.ZGUrl;
 import com.gotye.common.util.LogUtil;
 import com.gotye.common.youku.YKUtil;
 import com.gotye.meetplayer.R;
@@ -93,11 +94,12 @@ public class HttpViewerActivity extends AppCompatActivity {
                         url.endsWith("ts") || url.endsWith("avi") ||
                         url.endsWith("ape") || url.endsWith("flac") ||
                         url.endsWith("mov") || url.endsWith("mkv") ||
-                        url.endsWith("wav") ||
+                        url.endsWith("rmvb") || url.endsWith("rm") ||
+                        url.endsWith("wav") || url.endsWith("m3u8") ||
                         url.startsWith("rtmp://") || url.startsWith("rtsp://")) {
                     Intent intent = new Intent(HttpViewerActivity.this, VideoPlayerActivity.class);
                     intent.setData(Uri.parse(url));
-                    intent.putExtra("player_impl", mPlayerImpl);
+                    intent.putExtra("impl", mPlayerImpl);
                     intent.putExtra("title", "N/A");
                     startActivity(intent);
                     return true;
@@ -144,7 +146,7 @@ public class HttpViewerActivity extends AppCompatActivity {
 
     public class ParseVideoTask extends AsyncTask<String, Integer, Boolean> {
 
-        YKUtil.ZGUrl zgUrl;
+        ZGUrl zgUrl;
         String play_url;
 
         @Override

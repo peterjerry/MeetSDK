@@ -95,13 +95,14 @@ public class PPTVLiveCenterActivity extends AppCompatActivity {
                     // use epg start and end time
                     try {
                         SimpleDateFormat sdf = new SimpleDateFormat(
-                                "yyyy-MM-dd hh:mm:ss", Locale.US);
+                                "yyyy-MM-dd HH:mm:ss", Locale.US);
                         // 2016-06-12 06:45:00  2016-06-12 09:10:00
                         long start_msec = sdf.parse(liveStrm.start_time).getTime();
                         long end_msec = sdf.parse(liveStrm.end_time).getTime();
                         long curr_msec = System.currentTimeMillis();
+
                         if (curr_msec < start_msec) {
-                            LogUtil.error(TAG, "program is not started yet");
+                            LogUtil.error(TAG, "live program is not started yet");
                             Toast.makeText(PPTVLiveCenterActivity.this, "直播尚未开始",
                                     Toast.LENGTH_SHORT).show();
                         }
@@ -309,7 +310,7 @@ public class PPTVLiveCenterActivity extends AppCompatActivity {
                     String start_time = params[3];
                     String end_time = params[4];
 
-                    SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss", Locale.US);
+                    SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.US);
 
                     try {
                         // 2016-06-12 06:45:00  2016-06-12 09:10:00

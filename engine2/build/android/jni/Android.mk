@@ -88,12 +88,12 @@ LOCAL_CFLAGS			+= -DBUILD_TS_CONVERT
 endif
 MY_SRC_PLATFORM_FILES	= log_android.c packetqueue.cpp list.cpp utils.cpp
 # fix me: arm64-v8a always need build loop.cpp(otherwise link error)
-build_loop_file =
+build_loop_file			=
 ifdef BUILD_FFPLAYER
-build_loop_file = yes
+build_loop_file		= yes
 else
 ifeq ($(TARGET_ARCH_ABI),arm64-v8a)
-	build_loop_file = yes
+build_loop_file = yes
 endif
 endif
 ifdef build_loop_file
@@ -147,7 +147,10 @@ ifdef BUILD_PCM_DUMP
 LOCAL_SRC_FILES 		+= $(addprefix $(PLATFORMPATH)/clsocket/, $(MY_SRC_SOCKET_FILES))
 endif
 LOCAL_STATIC_LIBRARIES 	:= ffmpeg cpufeatures
-#LOCAL_SHARED_LIBRARIES 	:= lenthevcdec
+
+# fix linker-is-treating-warnings-as-errors
+LOCAL_DISABLE_FATAL_LINKER_WARNINGS=true
+
 ifdef BUILD_ONE_LIB
 LOCAL_CFLAGS			+= -DBUILD_ONE_LIB
 else
@@ -174,5 +177,5 @@ else
 include $(BUILD_SHARED_LIBRARY)
 endif
 
-$(call import-module,cpufeatures)
+$(call import-module, android/cpufeatures)
 

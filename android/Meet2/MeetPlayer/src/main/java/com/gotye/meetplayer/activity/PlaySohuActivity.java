@@ -1,6 +1,7 @@
 package com.gotye.meetplayer.activity;
 
 import java.util.List;
+import java.util.Locale;
 
 import com.gotye.common.pptv.EPGUtil;
 import com.gotye.common.pptv.Episode;
@@ -23,6 +24,7 @@ public class PlaySohuActivity extends PlaySegFileActivity {
 
 	private int mInfoId, mIndex;
 	private long mAid;
+	private int mVid;
 	private int mSite = -1;
 
 	private EPGUtil mEPG;
@@ -47,7 +49,8 @@ public class PlaySohuActivity extends PlaySegFileActivity {
     		mIndex				= intent.getIntExtra("index", -1);
     		
     		// for sohu
-    		mAid				= intent.getLongExtra("aid", -1); 
+    		mAid				= intent.getLongExtra("aid", -1);
+            mVid                = intent.getIntExtra("vid", -1);
     		mSite				= intent.getIntExtra("site", -1);
 		}
 		else {
@@ -87,6 +90,23 @@ public class PlaySohuActivity extends PlaySegFileActivity {
             new NextEpisodeTask().execute(LIST_SOHU, incr);
         }
     }
+
+	@Override
+	protected void push_cdn_clip() {
+		// http://www.sohu.com?aid=100000000&site=123&streamtype=sohu
+		String push_url = String.format(Locale.US,
+				"http://www.sohu.com?aid=%d&vid=%d&site=%d&streamtype=sohu",
+				mAid, mVid, mSite);
+		LogUtil.info(TAG, "push_url: " + push_url);
+
+		Intent intent = new Intent(PlaySohuActivity.this, DMCActivity.class);
+		intent.putExtra("title", mTitle);
+		intent.putExtra("push_url", push_url);
+		intent.putExtra("dmr_uuid", mDlnaDeviceUUID);
+		startActivity(intent);
+
+		finish();
+	}
 	
 	private class NextEpisodeTask extends AsyncTask<Integer, Integer, Boolean> {
 

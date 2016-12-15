@@ -18,6 +18,7 @@ import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.gotye.common.ZGUrl;
 import com.gotye.common.util.LogUtil;
 import com.gotye.common.youku.Album;
 import com.gotye.common.youku.Episode;
@@ -55,7 +56,8 @@ public class YoukuEpisodeActivity extends AppCompatActivity {
 
     private int mPlayerImpl;
 
-    private final static int page_size = 10;
+    private final static int PAGE_SIZE = 10;
+    private final static int REVERT_LIST_MIN_SIZE = 30;
 
     private ImageView mImgView;
     private TextView mTvStripe;
@@ -170,7 +172,7 @@ public class YoukuEpisodeActivity extends AppCompatActivity {
         return true;
     }
 
-    private class PlayLinkTask extends AsyncTask<Integer, Integer, YKUtil.ZGUrl> {
+    private class PlayLinkTask extends AsyncTask<Integer, Integer, ZGUrl> {
         private String mTitle;
         private ProgressDialog mProgressDlg;
 
@@ -183,7 +185,7 @@ public class YoukuEpisodeActivity extends AppCompatActivity {
         }
 
         @Override
-        protected void onPostExecute(YKUtil.ZGUrl zgUrl) {
+        protected void onPostExecute(ZGUrl zgUrl) {
             // TODO Auto-generated method stub
             mProgressDlg.dismiss();
 
@@ -219,14 +221,14 @@ public class YoukuEpisodeActivity extends AppCompatActivity {
         }
 
         @Override
-        protected YKUtil.ZGUrl doInBackground(Integer... params) {
+        protected ZGUrl doInBackground(Integer... params) {
             // TODO Auto-generated method stub
             int page_index = ((mEpisodeIndex + 1/*convert to base 1*/) + 9) / 10;
             if (mEpisodeList == null || mEpisodeList.isEmpty() || mPageIndex != page_index) {
                 LogUtil.info(TAG, String.format(Locale.US, "update page index: %d -> %d",
                         mPageIndex, page_index));
                 mPageIndex = page_index;
-                mEpisodeList = YKUtil.getEpisodeList(mShowId, mPageIndex, page_size);
+                mEpisodeList = YKUtil.getEpisodeList(mShowId, mPageIndex, PAGE_SIZE);
                 if (mEpisodeList == null || mEpisodeList.isEmpty())
                     return null;
             }
@@ -248,6 +250,8 @@ public class YoukuEpisodeActivity extends AppCompatActivity {
 
     private class SetDataTask extends AsyncTask<String, Integer, Boolean> {
 
+        private final static int INIT_LIST_PROGRESS = 30;
+
         private Album mAlbum;
         private List<Episode> mEpList;
 
@@ -265,7 +269,7 @@ public class YoukuEpisodeActivity extends AppCompatActivity {
             int progress = values[0];
             LogUtil.info(TAG, "onProgressUpdate(): " + progress);
 
-            if (progress == 30) {
+            if (progress == INIT_LIST_PROGRESS) {
                 if (mAlbum.getImgUrl() != null) {
                     DisplayImageOptions options = new DisplayImageOptions.Builder()
                             .showImageOnLoading(R.drawable.loading)         // 加载开始默认的图片
@@ -301,7 +305,7 @@ public class YoukuEpisodeActivity extends AppCompatActivity {
                     }
                 }
 
-                if (size > 30)
+                if (size > REVERT_LIST_MIN_SIZE)
                     mbRevertEp = true;
                 else
                     mbRevertEp = false;
@@ -324,7 +328,7 @@ public class YoukuEpisodeActivity extends AppCompatActivity {
                         R.layout.gridview_episode);
                 gridView.setAdapter(mGvAdapter);
             }
-            else if (progress > 30) {
+            else if (progress > INIT_LIST_PROGRESS) {
                 // grid view
                 // update episode info
                 //String []from = new String[] {"title"};
@@ -359,8 +363,12 @@ public class YoukuEpisodeActivity extends AppCompatActivity {
                     map.put("index", i + 1);
                     map.put("title", mEpList.get(i).getTitle());
                     map.put("vid", mEpList.get(i).getVideoId());
+                    map.put("desc", mEpList.get(i).getDescrition());
                     map.put("company", "youku");
-                    dataList.add(map);
+                    if (mbRevertEp)
+                        dataList.add(0, map);
+                    else
+                        dataList.add(map);
                 }
 
                 if (mLvAdapter == null) {
@@ -370,7 +378,10 @@ public class YoukuEpisodeActivity extends AppCompatActivity {
                 }
                 else {
                     List<Map<String, Object>> data = mLvAdapter.getData();
-                    data.addAll(dataList);
+                    if (mbRevertEp)
+                        data.addAll(0, dataList);
+                    else
+                        data.addAll(dataList);
                     mLvAdapter.notifyDataSetChanged();
                 }
             }
@@ -388,18 +399,29 @@ public class YoukuEpisodeActivity extends AppCompatActivity {
                 return false;
             }
 
-            progress = 30;
+            progress = INIT_LIST_PROGRESS;
             publishProgress(progress);
 
             mEpList = new ArrayList<>();
             int page_index = 1;
             while (true) {
                 List<Episode> epList = YKUtil.getEpisodeList(
-                        mAlbum.getShowId(), page_index++, page_size);
+                        mAlbum.getShowId(), page_index, PAGE_SIZE);
                 if (epList != null && !epList.isEmpty()) {
+                    List<Episode> descList = YKUtil.show(
+                            mAlbum.getShowId(), page_index, PAGE_SIZE);
+                    if (descList != null && !descList.isEmpty()) {
+                        for (int i=0;i<descList.size();i++) {
+                            String desc = descList.get(i).getDescrition();
+                            epList.get(i).setDescrition(desc);
+                        }
+                    }
+
                     mEpList.addAll(epList);
                     progress++;
                     publishProgress(progress);
+
+                    page_index++;
                 }
                 else {
                     break;

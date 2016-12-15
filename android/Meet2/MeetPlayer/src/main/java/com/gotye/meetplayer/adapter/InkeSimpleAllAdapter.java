@@ -14,6 +14,8 @@ import android.view.ViewGroup;
 import android.widget.ImageView;
 import android.widget.TextView;
 
+import org.w3c.dom.Text;
+
 public class InkeSimpleAllAdapter extends MeetAdapter {
 
 	public InkeSimpleAllAdapter(Context context, List<Map<String, Object>> data,
@@ -24,6 +26,7 @@ public class InkeSimpleAllAdapter extends MeetAdapter {
 	private class ViewHolder {
 		public ImageView avatar			= null;
 		public TextView title			= null;
+		public TextView uid				= null;
 		public TextView location		= null;
 		public TextView online_users	= null;
 	}
@@ -41,6 +44,7 @@ public class InkeSimpleAllAdapter extends MeetAdapter {
 
 			holder.avatar = (ImageView) convertView.findViewById(R.id.avatar);
 			holder.title = (TextView) convertView.findViewById(R.id.title);
+			holder.uid = (TextView) convertView.findViewById(R.id.uid);
 			holder.location = (TextView) convertView.findViewById(R.id.location);
 			holder.online_users = (TextView) convertView.findViewById(R.id.online_users);
 
@@ -52,10 +56,12 @@ public class InkeSimpleAllAdapter extends MeetAdapter {
 		// 为holder中的title tip和img设置内容
 		Map<String, Object> item = data.get(position);
 		String title = (String) item.get("title");
+		String uid = "映客ID: " + (Integer) item.get("uid");
 		String location = (String) item.get("location");
 		String online_users = "观看人数: " + (Integer) item.get("online_users");
 		String img_url = (String) item.get("img_url");
 		holder.title.setText(title);
+		holder.uid.setText(uid);
 		holder.location.setText(location);
 		holder.online_users.setText(online_users);
 

@@ -2,7 +2,13 @@
 *.cfg
 *.bak
 *.dat
-
+*.aps
+live_resource_info.dat
+ppbscf
+pptl
+pptl2
+pph
+tvlist.txt
 /Debug
 /Release
 

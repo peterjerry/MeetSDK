@@ -1,6 +1,10 @@
 
 extern "C" {
+#ifdef _MSC_VER
+#include "ass/ass.h"
+#else
 #include "libass/ass.h"
+#endif
 };
 #include <vector>
 #include <pthread.h>

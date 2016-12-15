@@ -364,7 +364,7 @@ public class MeetViewActivity extends AppCompatActivity implements OnFocusChange
 		Toast.makeText(this, "[play] " + info, Toast.LENGTH_SHORT).show();
 		
 		mPlaylink = vid;
-		Util.add_pptvvideo_history(MeetViewActivity.this, title, vid, mAlbumId, 0);
+		Util.add_pptvvideo_history(MeetViewActivity.this, title, vid, mAlbumId, -1/*episode index*/, 0);
 		
 		short http_port = MediaSDK.getPort("http");
 		Log.i(TAG, "Http port is: " + http_port);

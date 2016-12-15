@@ -3,6 +3,7 @@ package com.gotye.meetplayer.activity;
 import java.util.List;
 import java.util.Locale;
 
+import android.app.ProgressDialog;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.AsyncTask;
@@ -25,6 +26,7 @@ public class PPTVPlayerActivity extends VideoPlayerActivity {
 	
 	private final static int TASK_DETAIL			= 1;
 	private final static int TASK_NEXT_EP			= 2;
+    private final static int TASK_ITEM_CDN_URL      = 3;
 	private final static int TASK_ITEM_FT			= 4;
 	
 	private EPGUtil mEPG;
@@ -33,6 +35,9 @@ public class PPTVPlayerActivity extends VideoPlayerActivity {
 	private int mEpisodeIndex;
 	private int mAlbumId;
 	private int mPlaylink;
+	private boolean mIsVip = false;
+
+    private ProgressDialog mProgressDlg;
 	
 	@Override
 	public void onCreate(Bundle savedInstanceState) {
@@ -42,11 +47,14 @@ public class PPTVPlayerActivity extends VideoPlayerActivity {
 		mPlaylink		= intent.getIntExtra("playlink", -1);
 		mAlbumId 		= intent.getIntExtra("album_id", -1);
 		mEpisodeIndex	= intent.getIntExtra("index", -1);
+		mIsVip			= intent.getBooleanExtra("is_vip", false);
 
 		LogUtil.info(TAG, String.format("playlink %d, album_id %d, ep_index %d",
 				mPlaylink, mAlbumId, mEpisodeIndex));
 		
 		mEPG = new EPGUtil();
+
+        mProgressDlg = new ProgressDialog(this);
 	}
 	
 	@Override
@@ -65,6 +73,31 @@ public class PPTVPlayerActivity extends VideoPlayerActivity {
 		super.onPause();
 	}
 
+    @Override
+    protected void onSwitchBW() {
+        pre_seek_msec = mVideoView.getCurrentPosition() - 5000;
+        if (pre_seek_msec < 0)
+            pre_seek_msec = 0;
+
+        if (mIsVip) {
+            mProgressDlg.setMessage("码流切换中...");
+            mProgressDlg.setCancelable(false);
+            mProgressDlg.show();
+
+            new EpisodeTask().execute(TASK_ITEM_CDN_URL, mPlaylink);
+        }
+        else {
+            String old_url = mUri.toString();
+            int pos = old_url.indexOf("%3Fft%3D");
+            if (pos != -1) {
+                String old_ft = old_url.substring(pos, pos + "%3Fft%3D".length() + 1);
+                String new_ft = "%3Fft%3D" + mFt;
+                mUri = Uri.parse(old_url.replace(old_ft, new_ft));
+                mHandler.sendEmptyMessage(MainHandler.MSG_RESTART_PLAYER);
+            }
+        }
+    }
+
 	@Override
 	protected void onCompleteImpl() {
         if (mPlaylink != -1 && (mPlaylink < 300000 || mPlaylink > 400000)) {
@@ -76,7 +109,7 @@ public class PPTVPlayerActivity extends VideoPlayerActivity {
 		mVideoView.stopPlayback();
 		
 		if (mEpisodeList == null) {
-			if (mAlbumId == -1) {
+			if (mAlbumId == -1 || mEpisodeIndex == -1) {
 				Toast.makeText(this, "剧集列表为空", Toast.LENGTH_SHORT).show();
 				finish();
 			}
@@ -150,7 +183,7 @@ public class PPTVPlayerActivity extends VideoPlayerActivity {
         Toast.makeText(PPTVPlayerActivity.this, info, Toast.LENGTH_SHORT).show();
 
         Util.add_pptvvideo_history(PPTVPlayerActivity.this,
-                pl.getTitle(), playlink, String.valueOf(mAlbumId), mFt);
+                pl.getTitle(), playlink, String.valueOf(mAlbumId), mEpisodeIndex, mFt);
 
         mTitle = pl.getTitle();
 
@@ -163,6 +196,9 @@ public class PPTVPlayerActivity extends VideoPlayerActivity {
 		protected void onPostExecute(Boolean result) {
 			// TODO Auto-generated method stub
             mSwichingEpisode = false;
+
+            if (mIsVip)
+                mProgressDlg.dismiss();
 
 			if (!result) {
 				LogUtil.error(TAG, "failed to get episode");
@@ -191,7 +227,7 @@ public class PPTVPlayerActivity extends VideoPlayerActivity {
 				mHandler.sendEmptyMessage(MainHandler.MSG_EPISODE_DONE);
 			}
 			else if (action == TASK_ITEM_FT) {
-				LogUtil.info(TAG, "Java: EPGTask start to getCDNUrl");
+				LogUtil.info(TAG, "Java: EPGTask start to get available FT");
         		
         		int vid = params[1];
         		int []ft_list = mEPG.getAvailableFT(String.valueOf(vid));
@@ -214,11 +250,25 @@ public class PPTVPlayerActivity extends VideoPlayerActivity {
         		}
         		
         		Util.add_pptvvideo_history(PPTVPlayerActivity.this, episode_title, 
-        				String.valueOf(vid), String.valueOf(mAlbumId), ft);
+        				String.valueOf(vid), String.valueOf(mAlbumId), mEpisodeIndex, ft);
         		
         		Message msg = mHandler.obtainMessage(MainHandler.MSG_PLAY_CDN_FT, ft, ft);
     	        msg.sendToTarget();
         	}
+            else if (action == TASK_ITEM_CDN_URL) {
+                LogUtil.info(TAG, "Java: EPGTask start to getCDNUrl");
+
+                int vid = params[1];
+                String url = mEPG.getCDNUrl(String.valueOf(vid), String.valueOf(mFt), false, false);
+
+                if (url == null) {
+                    mHandler.sendEmptyMessage(MainHandler.MSG_FAIL_TO_GET_FT);
+                    return false;
+                }
+
+                mUri = Uri.parse(url);
+                mHandler.sendMessage(mHandler.obtainMessage(MainHandler.MSG_RESTART_PLAYER));
+            }
 			else {
 				LogUtil.error(TAG, "Java: invalid action type: " + action);
 				return false;

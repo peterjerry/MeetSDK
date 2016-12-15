@@ -1203,7 +1203,7 @@ void FFPlayer::onPrepareImpl()
 
     mDurationMs = mDataStream->getDurationMs();
     LOGI("mDurationMs: %lld", mDurationMs);
-    if(mDurationMs > 0) {
+    if (mDurationMs > 0) {
         //vod
         //update mediasource capability
         mPlayerFlags = CAN_SEEK_BACKWARD | CAN_SEEK_FORWARD | CAN_PAUSE;
@@ -2413,24 +2413,25 @@ status_t FFPlayer::prepareVideo_l()
 	render_h = ((uint32_t)rint(render_w / aspect_ratio)) & ~1; // & ~1 up to 2^n
 
 #ifdef SDL_EMBEDDED_WINDOW
-	if (render_w > MAX_DISPLAY_WIDTH) {
-		render_w		= MAX_DISPLAY_WIDTH;
-		render_h		= ((uint32_t)rint(render_h / aspect_ratio)) & ~1;
+	if (render_w > g_max_display_w) {
+		render_w		= g_max_display_w;
+		render_h		= ((uint32_t)rint(render_w / aspect_ratio)) & ~1;
 		LOGI("video resolution %d x %d, display resolution switch to %d x %d", 
 			mVideoWidth, mVideoHeight, render_w, render_h);
 	}
 
-	if (render_h > MAX_DISPLAY_HEIGHT) {
-		render_h		= MAX_DISPLAY_HEIGHT;
-		render_w		= ((uint32_t)rint(render_w / aspect_ratio)) & ~1;
+	if (render_h > g_max_display_h) {
+		render_h		= g_max_display_h;
+		render_w		= ((uint32_t)rint(render_h * aspect_ratio)) & ~1;
 		LOGI("video resolution %d x %d, display resolution switch to %d x %d",
 			mVideoWidth, mVideoHeight, render_w, render_h);
 	}
 #elif !defined(USE_SDL2)
-	render_w = 1920; // fix me!
-	render_h = 1080;
+	render_w = g_max_display_w; // fix me! should be display resolution
+	render_h = g_max_display_h;
 #endif
 #else
+	// android and ios case
 	render_w = mVideoWidth;
 	render_h = mVideoHeight;
 #endif
@@ -3440,7 +3441,7 @@ bool generateThumbnail(AVFrame* videoFrame,
 
     struct SwsContext* convertCtx = sws_getContext(videoFrame->width,
 								 videoFrame->height,
-								 (PixelFormat)videoFrame->format,
+								 (AVPixelFormat)videoFrame->format,
 								 width,
 								 height,
 								 out_fmt,

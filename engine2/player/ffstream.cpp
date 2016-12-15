@@ -366,7 +366,7 @@ AVFormatContext* FFStream::open(char* uri)
 
 	if (strstr(uri, "appid%3DPPTVIBOBO") != NULL) {
 #if defined(_MSC_VER) && !defined(_DEBUG) || defined(_DEBUG_FF)
-		mMovieFile->max_analyze_duration2 = AV_TIME_BASE * 10; // 10 sec for wrong header ts(more than 10 sec)
+		mMovieFile->max_analyze_duration = AV_TIME_BASE * 10; // 10 sec for wrong header ts(more than 10 sec)
 #else
 		mMovieFile->max_analyze_duration = AV_TIME_BASE * 10; // 10 sec for wrong header ts(more than 10 sec)
 #endif
@@ -508,8 +508,7 @@ AVFormatContext* FFStream::open(char* uri)
         return NULL;
     }
 
-	int64_t duration;
-	duration =  mMovieFile->duration;
+	int64_t duration =  mMovieFile->duration;
 	if (AV_NOPTS_VALUE == duration || duration < 0) {
 		mDurationMs = 0;
 		//avformat_close_input(&mMovieFile);
@@ -608,7 +607,7 @@ bool FFStream::open_subtitle_codec()
 	// Open codec
     if (avcodec_open2(SubCodecCtx, SubCodec, NULL) < 0) {
     	LOGE("failed to open subtitle decoder: id %d, name %s", SubCodecCtx->codec_id, avcodec_get_name(SubCodecCtx->codec_id));
-		return NULL;
+		return false;
 	}
 
 	LOGI("subtitle codec id: %d(%s), codec_name: %s", 

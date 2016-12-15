@@ -28,3 +28,6 @@ proguard/
 *.iws
 .idea/
 
+engine2/*.zip
+engine2/*.tar.gz
+

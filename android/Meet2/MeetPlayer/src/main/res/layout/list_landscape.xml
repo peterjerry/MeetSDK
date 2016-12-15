@@ -64,7 +64,7 @@
 					android:layout_width="100dp"
 					android:layout_height="wrap_content"
 					android:text="17493573"
-					android:numeric="integer"
+					android:inputType="number"
 					android:singleLine="true" />
 				<TextView
 					android:layout_width="wrap_content"
@@ -169,13 +169,14 @@
 				android:textColor="#FF0000"
 				android:visibility="gone" />
 			<ImageView
-				android:id="@+id/iv_dlna_dmc"
-				android:layout_width="128dp"
-				android:layout_height="128dp" 
-				android:layout_centerInParent="true" 
-				android:src="@drawable/dlna"
-				android:scaleType="fitXY" 
-				android:alpha="0.5"
+				android:id="@+id/iv_dlna_push"
+				android:layout_width="48dp"
+				android:layout_height="48dp"
+				android:layout_alignParentTop="true"
+				android:layout_alignParentRight="true"
+				android:layout_marginTop="10dp"
+				android:layout_marginRight="10dp"
+				android:src="@drawable/player_dlna"
 				android:visibility="gone" />
 			<ImageView
 				android:id="@+id/iv_novideo"

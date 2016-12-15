@@ -7,6 +7,15 @@
 #define LOG_TAG "WinRender"
 #include "log.h"
 
+#ifdef _MSC_VER
+#ifdef USE_SDL2
+#pragma comment(lib, "sdl2")
+#else
+#pragma comment(lib, "sdlmain")
+#pragma comment(lib, "sdl")
+#endif
+#endif
+
 static int s_swsFlag = SWS_BICUBIC; // high quality
 
 static void saveFrameRGB(void* data, int stride, int height, char* path);

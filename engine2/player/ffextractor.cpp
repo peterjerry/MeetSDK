@@ -152,6 +152,7 @@ FFExtractor::FFExtractor()
 	m_min_play_buf_count	= 0;
 	m_cached_duration_msec	= 0;
 	m_first_pkt				= true;
+	m_start_msec			= 0;
 
 	m_seek_flag				= 0;
 	m_seek_time_msec		= 0;
@@ -504,6 +505,14 @@ status_t FFExtractor::setDataSource(const char *path)
 	else
 		m_min_play_buf_count = 25 * 4; // 4 sec for vod "smooth" play 
 
+	if (TYPE_LIVE != m_sorce_type && AV_NOPTS_VALUE != m_fmt_ctx->start_time) {
+		m_start_msec = m_fmt_ctx->start_time * 1000 / AV_TIME_BASE;
+		LOGI("set m_start_msec to %d msec", m_start_msec);
+	}
+	else {
+		m_start_msec = 0;
+	}
+
 	m_status = FFEXTRACTOR_PREPARED;
 	LOGI("setDataSource done");
 
@@ -520,7 +529,7 @@ bool FFExtractor::open_subtitle_codec()
     if (avcodec_open2(m_subtitle_dec_ctx, SubCodec, NULL) < 0) {
     	LOGE("failed to open subtitle decoder: id %d, name %s", 
 			m_subtitle_dec_ctx->codec_id, avcodec_get_name(m_subtitle_dec_ctx->codec_id));
-		return NULL;
+		return false;
 	}
 
 	LOGI("subtitle codec id: %d(%s), codec_name: %s", 
@@ -572,12 +581,30 @@ status_t FFExtractor::getTrackFormat(int32_t index, MediaFormat *format)
 	AVCodecID codec_id		= c->codec_id;
 
 	if (AVMEDIA_TYPE_VIDEO == type) {
+		int64_t duration =  m_fmt_ctx->streams[index]->duration;
+		int64_t duration_usec;
+		if (AV_NOPTS_VALUE == duration || duration <= 0) {
+			LOGW("video stream duration has no value, try use format duration");
+			duration = m_fmt_ctx->duration;
+
+			if (AV_NOPTS_VALUE == duration || duration <= 0)
+				duration_usec = 0;
+			else
+				duration_usec = duration;
+		}
+		else {
+			AVRational timebase = m_fmt_ctx->streams[index]->time_base;
+			duration_usec = (int64_t)((double)duration * 1000000 * av_q2d(timebase));
+		}
+
+		LOGI("video stream #%d duration got: %lld(usec)", index, duration_usec);
+
 		format->media_type	= PPMEDIA_TYPE_VIDEO;
 		format->codec_id		= (int32_t)codec_id;
 		format->width		= c->width;
 		format->height		= c->height;
 		format->ar			= av_q2d(c->sample_aspect_ratio);
-		format->duration_us	= m_fmt_ctx->duration;
+		format->duration_us	= duration_usec;
 
 		// get pps and sps
 		if (strstr(m_fmt_ctx->iformat->name, "matroska,webm") != NULL ||
@@ -647,27 +674,6 @@ status_t FFExtractor::getTrackFormat(int32_t index, MediaFormat *format)
 				}
 				data += pps_len;
 			}
-
-			// old method(NOT compatible with some mp4 file)
-			
-			/*
-			uint8_t unit_nb;
-			const uint8_t *extradata = c->extradata+4;  //jump first 4 bytes
-			// retrieve sps and pps unit(s)  
-			unit_nb = *extradata++ & 0x1f; // number of sps unit(s) 
-			// sps
-			format->csd_0_size	= unit_nb;
-			format->csd_0 = new uint8_t[unit_nb];
-			memset(format->csd_0, 0, unit_nb);
-			memcpy(format->csd_0, nalu_header, 4);
-			memcpy(format->csd_0 + 4, extradata + 3, unit_nb - 4);
-			// pps
-			format->csd_1_size	= 9;
-			format->csd_1 = new uint8_t[9];
-			memset(format->csd_1, 0, 9);
-			memcpy(format->csd_1, nalu_header, 4);
-			memcpy(format->csd_1 + 4, extradata + unit_nb + 3, 5);
-			*/
 		}
 		else if (strstr(m_fmt_ctx->iformat->name, "mpegts") != NULL ||
 			strstr(m_fmt_ctx->iformat->name, "hls,applehttp") != NULL) 
@@ -771,13 +777,31 @@ status_t FFExtractor::getTrackFormat(int32_t index, MediaFormat *format)
 		if (AV_CODEC_ID_AAC == codec_id)
 			LOGI("aac profile %d", c->profile);
 
+		int64_t duration =  m_fmt_ctx->streams[index]->duration;
+		int64_t duration_usec;
+		if (AV_NOPTS_VALUE == duration || duration < 0) {
+			LOGW("audio stream duration has no value, try use format duration");
+			duration = m_fmt_ctx->duration;
+
+			if (AV_NOPTS_VALUE == duration || duration <= 0)
+				duration_usec = 0;
+			else
+				duration_usec = duration;
+		}
+		else {
+			AVRational timebase = m_fmt_ctx->streams[index]->time_base;
+			duration_usec = (int64_t)((double)duration * 1000000 * av_q2d(timebase));
+		}
+
+		LOGI("audio stream #%d duration got: %lld(usec)", index, duration_usec);
+
 		format->media_type		= PPMEDIA_TYPE_AUDIO;
 		format->codec_id			= (int32_t)codec_id;
 		format->channels			= c->channels;
 		format->channel_layout	= c->channel_layout;
 		format->sample_rate		= c->sample_rate;
 		format->sample_fmt		= (int)c->sample_fmt;
-		format->duration_us		= m_fmt_ctx->duration;
+		format->duration_us		= duration_usec;
 
 		if (c->extradata && c->extradata_size > 0) {
 			LOGI("audio extradata %p, size %d", c->extradata, c->extradata_size);
@@ -970,12 +994,12 @@ status_t FFExtractor::seekTo(int64_t timeUs, int mode)
 	AutoLock autoLock(&mLock);
 	
 	int incr;
-	if (timeUs > m_sample_clock_msec * 1000)
+	if (timeUs > (m_sample_clock_msec - m_start_msec) * 1000)
 		incr = 1;
 	else
 		incr = -1;
 
-    m_seek_time_msec	= timeUs / 1000;
+    m_seek_time_msec	= timeUs / 1000 + m_start_msec;
     m_seeking			= true;
     m_eof				= false;
 	m_seek_flag			= incr < 0 ? AVSEEK_FLAG_BACKWARD : 0;
@@ -1561,7 +1585,7 @@ status_t FFExtractor::getSampleTime(int64_t *sampleTimeUs)
 	if (!is_packet_valid())
 		return ERROR;
 
-	*sampleTimeUs = m_sample_clock_msec * 1000;
+	*sampleTimeUs = (m_sample_clock_msec - m_start_msec) * 1000;
 	return OK;
 }
 
@@ -1587,7 +1611,7 @@ status_t FFExtractor::getCachedDuration(int64_t *durationUs, bool *eos)
 	if (NULL == durationUs || NULL == eos)
 		return ERROR;
 
-	*durationUs = m_cached_duration_msec * 1000;
+	*durationUs = (m_cached_duration_msec - m_start_msec) * 1000;
 	*eos = (m_eof && m_video_q.count() == 0 && m_audio_q.count() == 0);
 	return OK;
 }

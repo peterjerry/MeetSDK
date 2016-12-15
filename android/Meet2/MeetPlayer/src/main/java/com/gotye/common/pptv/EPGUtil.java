@@ -758,7 +758,7 @@ public class EPGUtil {
 	}
 	
 	private int[] parseCdnUrlxml_ft(String xml) {
-		LogUtil.info(TAG, "Java: epg parseCdnUrlxml " + xml.replace("\n", ""));
+		//LogUtil.info(TAG, "Java: epg parseCdnUrlxml " + xml.replace("\n", ""));
 		
 		SAXBuilder builder = new SAXBuilder();
 		Reader returnQuote = new StringReader(xml);  
@@ -913,7 +913,7 @@ public class EPGUtil {
 		sbBoxPlayUrl.append(boxplay_prefix);
 		sbBoxPlayUrl.append(user_type);
 		sbBoxPlayUrl.append(boxplay_part2);
-		LogUtil.info(TAG, "Java: epg url " + sbBoxPlayUrl.toString());
+		LogUtil.info(TAG, "Java: boxplay url " + sbBoxPlayUrl.toString());
 
 		HttpGet request = new HttpGet(sbBoxPlayUrl.toString());
 		

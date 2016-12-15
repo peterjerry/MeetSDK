@@ -5,7 +5,6 @@ import java.util.Map;
 
 import android.content.Context;
 import android.graphics.Bitmap;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -103,7 +102,7 @@ public class LocalFileAdapter extends BaseAdapter {
 			holder.thumb.setImageResource(thumb_id);
 		}
 		else {
-			holder.thumb.setImageResource(R.drawable.clip);
+			holder.thumb.setImageResource(R.mipmap.clip);
 			holder.thumb.setTag(fullpath);
 			new ThumbnailTask().execute(holder.thumb, fullpath);
 		}
@@ -124,8 +123,19 @@ public class LocalFileAdapter extends BaseAdapter {
 		
 		@Override
 		protected void onPostExecute(Bitmap bmp) {
-			if (bmp == null)
-				mThumb.setImageResource(R.drawable.clip);
+			if (bmp == null) {
+				if (mImgUrl.toLowerCase().endsWith("mp3") ||
+						mImgUrl.toLowerCase().endsWith("wav") ||
+						mImgUrl.toLowerCase().endsWith("flac") ||
+						mImgUrl.toLowerCase().endsWith("ape"))
+				{
+					mThumb.setImageResource(R.mipmap.music);
+				}
+				else {
+					mThumb.setImageResource(R.mipmap.clip);
+				}
+
+			}
 			else if (mThumb.getTag() != null && mThumb.getTag().equals(mImgUrl))
 				mThumb.setImageBitmap(bmp);
 		}

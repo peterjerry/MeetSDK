@@ -1,1 +1,5 @@
 output/
+build/win32/TestSubtitle/Debug/
+build/win32/TestSubtitle/Release/
+*.zip
+*.7z

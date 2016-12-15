@@ -1,5 +1,8 @@
 package com.gotye.meetplayer.activity;
 
+import android.app.AlertDialog;
+import android.app.Dialog;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.os.AsyncTask;
 import android.support.v4.view.PagerAdapter;
@@ -7,32 +10,31 @@ import android.support.v4.view.PagerTabStrip;
 import android.support.v4.view.ViewPager;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.text.InputType;
 import android.view.LayoutInflater;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.AbsListView;
 import android.widget.AdapterView;
+import android.widget.EditText;
 import android.widget.GridView;
 import android.widget.ListView;
 import android.widget.Toast;
 
+import com.gotye.common.inke.InkeUtil;
 import com.gotye.common.util.LogUtil;
-import com.gotye.common.util.httpUtil;
 import com.gotye.meetplayer.R;
 import com.gotye.meetplayer.adapter.MeetAdapter;
 import com.gotye.meetplayer.adapter.InkeHomePageAdapter;
 import com.gotye.meetplayer.adapter.InkeSimpleAllAdapter;
 import com.gotye.meetplayer.util.Util;
 
-import org.json.JSONArray;
-import org.json.JSONObject;
-import org.json.JSONTokener;
-
-import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 
 public class InkeActivity extends AppCompatActivity {
@@ -40,74 +42,29 @@ public class InkeActivity extends AppCompatActivity {
     private final static String TAG = "InkeActivity";
 
     private ListView mLvCreator;
+    private ListView mLvFollowCreator;
     private GridView mGvCreator;
     private MeetAdapter mAdapter;
 
-    private int type = LoadTask.LIST_SIMPLEALL;
+    private int list_type = LoadTask.LIST_SIMPLEALL;
 
     private ViewPager pager;
     private PagerTabStrip tabStrip;
     private ArrayList<View> viewContainter;
     private ArrayList<String> titleContainer;
-    private View viewSimpleAll, viewHomePage;
+    private View viewSimpleAll, viewFollow, viewHomePage;
 
     private List<Map<String, String>> nsList;
 
-    private String gettop_api_url = "http://service5.ingkee.com/api/live/gettop" +
-            "?lc=3000000000001604" +
-            "&cv=IK2.5.00_Android" +
-            "&cc=TG36078" +
-            "&uid=67302632" +
-            "&sid=E0rgPgFY8Vi0bQ69RjMuQaybuIQi3i3" +
-            "&devi=99000558796818" +
-            "&imsi=" +
-            "&icc=" +
-            "&conn=WIFI" +
-            "&vv=1.0.2-201511261613.android" +
-            "&aid=3dc3324f515d553" +
-            "&proto=3" +
-            "&count=10";
-
-    private String simpleall_api_url = "http://service5.ingkee.com/api/live/simpleall" +
-            "?lc=3000000000001802" +
-            "&cv=IK2.6.00_Android" +
-            "&cc=TG36001" +
-            "&ua=YuLongCoolpad8297-C00" +
-            "&uid=67302632" +
-            "&sid=E0rgPgFY8Vi0bQ69RjMuQaybuIQi3i3" +
-            "&devi=99000558796818" +
-            "&imsi=" +
-            "&icc=" +
-            "&conn=WIFI" +
-            "&vv=1.0.2-201601131421.android" +
-            "&aid=3dc3324f515d553" +
-            "&osversion=android_19" +
-            "&proto=3" +
-            "&multiaddr=1";
-
-    private String homepage_api_url = "http://service5.ingkee.com/api/live/homepage_new" +
-            "?lc=3000000000003002" +
-            "&cv=IK2.6.10_Android" +
-            "&cc=TG36001" +
-            "&ua=YuLongCoolpad8297-C00" +
-            "&uid=67302632" +
-            "&sid=E0rgPgFY8Vi0bQ69RjMuQaybuIQi3i3" +
-            "&devi=99000558796818" +
-            "&imsi=" +
-            "&icc=" +
-            "&conn=WIFI" +
-            "&vv=1.0.2-201601131421.android" +
-            "&aid=3dc3324f515d553" +
-            "&osversion=android_19" +
-            "&proto=3";
+    private int mUid;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_inke);
 
-        viewContainter = new ArrayList<View>();
-        titleContainer = new ArrayList<String>();
+        viewContainter = new ArrayList<>();
+        titleContainer = new ArrayList<>();
 
         pager = (ViewPager) this.findViewById(R.id.viewpager);
         tabStrip = (PagerTabStrip) this.findViewById(R.id.tabstrip);
@@ -120,12 +77,15 @@ public class InkeActivity extends AppCompatActivity {
         tabStrip.setTextSpacing(200);
 
         viewSimpleAll = LayoutInflater.from(this).inflate(R.layout.activity_inke_simpleall, null);
+        viewFollow = LayoutInflater.from(this).inflate(R.layout.activity_inke_simpleall, null);
         viewHomePage = LayoutInflater.from(this).inflate(R.layout.activity_inke_homepage, null);
         //viewpager开始添加view
         viewContainter.add(viewSimpleAll);
+        viewContainter.add(viewFollow);
         viewContainter.add(viewHomePage);
         //页签项
         titleContainer.add("热门主播");
+        titleContainer.add("个人关注");
         titleContainer.add("新鲜出炉");
 
         pager.setAdapter(new PagerAdapter() {
@@ -172,13 +132,20 @@ public class InkeActivity extends AppCompatActivity {
 
             @Override
             public void onPageSelected(int position) {
+                // reset adapter
                 mAdapter = null;
+
                 if (position == 0) {
-                    new LoadTask().execute(LoadTask.LIST_SIMPLEALL);
+                    list_type = LoadTask.LIST_SIMPLEALL;
+                }
+                else if (position == 1) {
+                    list_type = LoadTask.LIST_GET_FOLLOW;
                 }
                 else {
-                    new LoadTask().execute(LoadTask.LIST_HOMEPAGE);
+                    list_type = LoadTask.LIST_HOMEPAGE;
                 }
+
+                new LoadTask().execute(list_type);
             }
 
             @Override
@@ -188,31 +155,55 @@ public class InkeActivity extends AppCompatActivity {
         });
 
         mLvCreator = (ListView) viewSimpleAll.findViewById(R.id.lv_creator);
+        mLvFollowCreator = (ListView) viewFollow.findViewById(R.id.lv_creator);
         mGvCreator = (GridView) viewHomePage.findViewById(R.id.gv_creator);
 
         mLvCreator.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-                Map<String, Object> map = (Map<String, Object>)mLvCreator.getItemAtPosition(position);
-                String play_url = (String) map.get("play_url");
-                play_url += "?type=gotyelive";
-                //play_url = ndsTranslate(play_url);
-                Intent intent = new Intent(InkeActivity.this, InkePlayerActivity.class);
-                intent.putExtra("play_url", play_url);
-                startActivity(intent);
+                startPlay(position, list_type);
+            }
+        });
+
+        mLvFollowCreator.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            @Override
+            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+                startPlay(position, list_type);
+            }
+        });
+        mLvFollowCreator.setOnItemLongClickListener(new AdapterView.OnItemLongClickListener() {
+            @Override
+            public boolean onItemLongClick(AdapterView<?> parent, View view, final int position, long id) {
+                Map<String, Object> map = (Map<String, Object>)mLvFollowCreator.getItemAtPosition(position);
+                String creator_name = (String)map.get("title");
+                final int uid = (Integer)map.get("uid");
+
+                AlertDialog.Builder builder = new AlertDialog.Builder(InkeActivity.this);
+                builder.setMessage("取消关注?");
+                builder.setTitle("主播 " + creator_name);
+                builder.setPositiveButton("确认", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        new InkeTask().execute(InkeTask.ACTION_UNFOLLOW, uid);
+                        dialog.dismiss();
+                    }
+                });
+                builder.setNegativeButton("取消", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        dialog.dismiss();
+                    }
+                });
+                builder.create().show();
+
+                return true;
             }
         });
 
         mGvCreator.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-                Map<String, Object> map = (Map<String, Object>)mGvCreator.getItemAtPosition(position);
-                String play_url = (String) map.get("play_url");
-                play_url += "?type=gotyelive";
-                //play_url = ndsTranslate(play_url);
-                Intent intent = new Intent(InkeActivity.this, InkePlayerActivity.class);
-                intent.putExtra("play_url", play_url);
-                startActivity(intent);
+                startPlay(position, list_type);
             }
         });
 
@@ -230,7 +221,7 @@ public class InkeActivity extends AppCompatActivity {
 
         Util.checkNetworkType(this);
 
-        new Thread(new Runnable() {
+        /*new Thread(new Runnable() {
             @Override
             public void run() {
                 String[] ns = new String[]{
@@ -254,9 +245,84 @@ public class InkeActivity extends AppCompatActivity {
                     }
                 }
             }
-        }).start();
+        }).start();*/
 
         new LoadTask().execute(LoadTask.LIST_SIMPLEALL);
+    }
+
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        MenuInflater menuInflater = new MenuInflater(getApplication());
+        menuInflater.inflate(R.menu.inke_menu, menu);
+        return super.onCreateOptionsMenu(menu);
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+
+        int id = item.getItemId();
+        switch (id) {
+            case R.id.search_creator:
+                popupSearch();
+            default:
+                break;
+        }
+
+        return true;
+    }
+
+    private void startPlay(int position, int list_type) {
+        Map<String, Object> map;
+        if (list_type == LoadTask.LIST_SIMPLEALL) {
+            map = (Map<String, Object>) mLvCreator.getItemAtPosition(position);
+        }
+        else if (list_type == LoadTask.LIST_GET_FOLLOW) {
+            map = (Map<String, Object>)mLvFollowCreator.getItemAtPosition(position);
+        }
+        else {
+            map = (Map<String, Object>) mGvCreator.getItemAtPosition(position);
+        }
+
+        String creator_name = (String)map.get("title");
+        int uid = (Integer)map.get("uid");
+        String play_url = (String) map.get("play_url");
+        String share_addr = (String) map.get("share_addr");
+        String rid = (String) map.get("rid");
+        int slot = (Integer) map.get("slot");
+        play_url += "?type=gotyelive";
+        Intent intent = new Intent(InkeActivity.this, InkePlayerActivity.class);
+        intent.putExtra("play_url", play_url);
+        intent.putExtra("share_url", share_addr);
+        intent.putExtra("creator_name", creator_name);
+        intent.putExtra("uid", uid);
+        intent.putExtra("rid", rid);
+        intent.putExtra("slot", slot);
+        intent.putExtra("simpleall", list_type != LoadTask.LIST_HOMEPAGE);
+        startActivity(intent);
+    }
+
+    private void popupSearch() {
+        AlertDialog.Builder builder;
+
+        final EditText inputUid = new EditText(this);
+        inputUid.setText("67302632");
+        inputUid.setHint("输入映客ID号");
+        inputUid.setInputType(InputType.TYPE_CLASS_NUMBER);
+
+        builder = new AlertDialog.Builder(this);
+        builder.setTitle("映客播客搜索")
+                .setIcon(android.R.drawable.ic_dialog_info)
+                .setView(inputUid)
+                .setNegativeButton("取消", null)
+                .setPositiveButton("确认", new DialogInterface.OnClickListener() {
+
+                    public void onClick(DialogInterface dialog, int which) {
+                        String text = inputUid.getText().toString();
+                        new InkeTask().execute(InkeTask.ACTION_SEARCH, Integer.valueOf(text));
+                        dialog.dismiss();
+                    }
+                });
+        builder.show();
     }
 
     private String ndsTranslate(String url) {
@@ -275,10 +341,118 @@ public class InkeActivity extends AppCompatActivity {
         return retUrl;
     }
 
+    private class InkeTask extends AsyncTask<Integer, Integer, Boolean> {
+        private int action;
+        private List<InkeUtil.UserInfo> userList;
+        private InkeUtil.PublishResult publishResult;
+
+        public final static int ACTION_SEARCH       = 1;
+        public final static int ACTION_NOWPUBLISH   = 2;
+        public final static int ACTION_FOLLOW       = 3;
+        public final static int ACTION_UNFOLLOW     = 4;
+
+        @Override
+        protected void onPostExecute(Boolean result) {
+            if (result) {
+                if (ACTION_SEARCH == action) {
+                    String[] str_title_list = new String[userList.size()];
+                    for (int i=0;i<userList.size();i++) {
+                        InkeUtil.UserInfo info = userList.get(i);
+                        str_title_list[i] = info.mNickName + "(" + info.mUid + ")";
+                    }
+
+                    Dialog choose_episode_dlg = new AlertDialog.Builder(InkeActivity.this)
+                            .setTitle("主播信息")
+                            .setItems(str_title_list,
+                                    new DialogInterface.OnClickListener() {
+                                        public void onClick(DialogInterface dialog, int whichButton) {
+                                            InkeUtil.UserInfo info = userList.get(whichButton);
+                                            new InkeTask().execute(ACTION_NOWPUBLISH, info.mUid);
+                                            dialog.dismiss();
+                                        }
+                                    })
+                            .setNegativeButton("取消", null)
+                            .create();
+                    choose_episode_dlg.show();
+                }
+                else if (action == ACTION_NOWPUBLISH) {
+                    LogUtil.info(TAG, "publish info: " + publishResult.toString());
+
+                    String play_url = publishResult.mStreamUrl;
+                    play_url += "?type=gotyelive";
+                    Intent intent = new Intent(InkeActivity.this, InkePlayerActivity.class);
+                    intent.putExtra("play_url", play_url);
+                    intent.putExtra("share_url", publishResult.mShareUrl);
+                    intent.putExtra("creator_name", publishResult.mName);
+                    intent.putExtra("uid", publishResult.mCreator);
+                    intent.putExtra("rid", publishResult.mId);
+                    intent.putExtra("slot", publishResult.mSlot);
+                    intent.putExtra("simpleall", true);
+                    startActivity(intent);
+                }
+                else if (action == ACTION_FOLLOW || action == ACTION_UNFOLLOW) {
+                    Toast.makeText(InkeActivity.this,
+                            (action == ACTION_FOLLOW ? "关注": "取消关注") + "成功",
+                            Toast.LENGTH_SHORT).show();
+                }
+            } else {
+                if (action == ACTION_NOWPUBLISH) {
+                    Dialog follow_dlg = new AlertDialog.Builder(InkeActivity.this)
+                            .setTitle("主播信息")
+                            .setMessage("直播未开始，是否关注主播？")
+                            .setPositiveButton("关注", new DialogInterface.OnClickListener() {
+                                @Override
+                                public void onClick(DialogInterface dialog, int whichButton) {
+                                    new InkeTask().execute(ACTION_FOLLOW, mUid);
+                                    dialog.dismiss();
+                                }
+                            })
+                            .setNegativeButton("取消", null)
+                            .create();
+                    follow_dlg.show();
+                }
+                else if (action == ACTION_SEARCH) {
+                    Toast.makeText(InkeActivity.this, "搜索失败", Toast.LENGTH_SHORT).show();
+                }
+                else if (action == ACTION_FOLLOW || action == ACTION_UNFOLLOW) {
+                    Toast.makeText(InkeActivity.this,
+                            (action == ACTION_FOLLOW ? "关注" : "取消关注") + "失败",
+                            Toast.LENGTH_SHORT).show();
+                }
+            }
+        }
+
+        @Override
+        protected Boolean doInBackground(Integer... params) {
+            action = params[0];
+            int uid = params[1];
+            if (ACTION_SEARCH == action) {
+                userList = InkeUtil.search(uid);
+                return (userList != null && userList.size() > 0);
+            }
+            else if (ACTION_NOWPUBLISH == action) {
+                mUid = uid; // save for follow
+
+                publishResult = InkeUtil.getNowPublish(uid);
+                return (publishResult != null);
+            }
+            else if (ACTION_FOLLOW == action) {
+                return InkeUtil.follow(uid);
+            }
+            else if (ACTION_UNFOLLOW == action) {
+                return InkeUtil.unfollow(uid);
+            }
+
+            LogUtil.error(TAG, "unknown action: " + action);
+            return false;
+        }
+    }
+
     private class LoadTask extends AsyncTask<Integer, Integer, List<Map<String, Object>>> {
 
-        private final static int LIST_SIMPLEALL = 1;
-        private final static int LIST_HOMEPAGE = 2;
+        private final static int LIST_SIMPLEALL     = 1;
+        private final static int LIST_GET_FOLLOW    = 2;
+        private final static int LIST_HOMEPAGE      = 3;
 
         private int action;
 
@@ -290,6 +464,18 @@ public class InkeActivity extends AppCompatActivity {
                         mAdapter = new InkeSimpleAllAdapter(InkeActivity.this, result,
                                 R.layout.inke_item);
                         mLvCreator.setAdapter(mAdapter);
+                    } else {
+                        List<Map<String, Object>> dataList = mAdapter.getData();
+                        dataList.clear();
+                        dataList.addAll(result);
+                        mAdapter.notifyDataSetChanged();
+                    }
+                }
+                else if (action == LIST_GET_FOLLOW) {
+                    if (mAdapter == null) {
+                        mAdapter = new InkeSimpleAllAdapter(InkeActivity.this, result,
+                                R.layout.inke_item);
+                        mLvFollowCreator.setAdapter(mAdapter);
                     } else {
                         List<Map<String, Object>> dataList = mAdapter.getData();
                         dataList.clear();
@@ -317,90 +503,36 @@ public class InkeActivity extends AppCompatActivity {
 
         @Override
         protected List<Map<String, Object>> doInBackground(Integer... params) {
-            String result;
-            String url;
+            List<InkeUtil.LiveInfo> list;
 
             action = params[0];
             if (action == LIST_SIMPLEALL)
-                url = simpleall_api_url;
+                list = InkeUtil.simpleall();
+            else if (action == LIST_GET_FOLLOW)
+                list = InkeUtil.getFollow();
             else
-                url = homepage_api_url;
-
-            LogUtil.info(TAG, "inke api: " + url);
-            result = httpUtil.getHttpPage(url);
-            if (result == null)
+                list = InkeUtil.homepage();
+            if (list == null || list.isEmpty())
                 return null;
 
-            try {
-                JSONTokener jsonParser = new JSONTokener(result);
-                JSONObject root = (JSONObject) jsonParser.nextValue();
-                if (root.getInt("dm_error") != 0)
-                    return null;
+            List<Map<String, Object>> listData = new ArrayList<>();
+            for (int i=0;i<list.size();i++) {
+                InkeUtil.LiveInfo info = list.get(i);
 
-                JSONArray lives = root.getJSONArray("lives");
-                int size = lives.length();
-                List<Map<String, Object>> listData = new ArrayList<Map<String, Object>>();
-
-                for (int i = 0; i < size; i++) {
-                    JSONObject live = lives.getJSONObject(i);
-
-//                    {
-//                        creator: {
-//                            id: 16789339,
-//                            nick: "陈蕊儿lvy",
-//                            portrait: "NDU1MTQxNDU5OTk3NDA0.jpg"
-//                        },
-//                        id: "1461302915861745",
-//                        name: "",
-//                        city: "上海市",
-//                        share_addr: "http://live.a8.com/s/?uid=16789339&liveid=1461302915861745&ctime=1461302915",
-//                        stream_addr: "http://pull.a8.com/live/1461302915861745.flv",
-//                        version: 0,
-//                        slot: 2,
-//                        optimal: 0,
-//                        online_users: 7173,
-//                        group: 0
-//                    },
-
-                    String city = live.getString("city");
-                    String id = live.getString("id");
-                    JSONObject creator = live.getJSONObject("creator");
-                    String portrait = creator.getString("portrait");
-                    String nick = creator.getString("nick");
-                    String title = nick;
-                    if (!live.getString("name").isEmpty())
-                        title = live.getString("name");
-                    String share_addr = live.getString("share_addr");
-                    String play_url = live.getString("stream_addr");
-                    int online_users = live.optInt("online_users");
-
-                    String img_url;
-                    if (portrait.startsWith("http://"))
-                        img_url = portrait;
-                    else
-                        img_url = "http://img.meelive.cn/" + portrait;
-                    String encoded_img_url = URLEncoder.encode(img_url, "UTF-8");
-                    String show_url = "http://image.scale.a8.com/imageproxy2/dimgm/scaleImage";
-                    show_url += "?url=";
-                    show_url += encoded_img_url;
-                    show_url += "&w=360&h=360&s=80&c=0&o=0";
-
-                    HashMap<String, Object> mapLive = new HashMap<String, Object>();
-                    mapLive.put("title", title);
-                    mapLive.put("img_url", show_url);
-                    mapLive.put("play_url", play_url);
-                    mapLive.put("location", city);
-                    mapLive.put("share_addr", share_addr);
-                    mapLive.put("online_users", online_users);
-                    listData.add(mapLive);
-                }
-
-                return listData;
-            } catch (Exception e) {
-                e.printStackTrace();
+                HashMap<String, Object> mapLive = new HashMap<>();
+                mapLive.put("uid", info.mUserId);
+                mapLive.put("rid", info.mRoomId);
+                mapLive.put("title", info.mTitle);
+                mapLive.put("img_url", info.mImage);
+                mapLive.put("play_url", info.mPlayUrl);
+                mapLive.put("location", info.mLocation);
+                mapLive.put("share_addr", info.mShareAddr);
+                mapLive.put("online_users", info.mOnlineUsers);
+                mapLive.put("slot", info.mSlot);
+                listData.add(mapLive);
             }
 
-            return null;
+            return listData;
         }
     }
 

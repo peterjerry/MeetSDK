@@ -22,6 +22,7 @@ import android.widget.EditText;
 import android.widget.ListView;
 import android.widget.Toast;
 
+import com.gotye.common.ZGUrl;
 import com.gotye.common.util.LogUtil;
 import com.gotye.common.youku.Catalog;
 import com.gotye.common.youku.Channel;
@@ -377,9 +378,9 @@ public class YoukuVideoActivity extends AppCompatActivity {
         choose_recentplay_dlg.show();
     }
 
-    private class PlayLinkTask extends AsyncTask<String, Integer, YKUtil.ZGUrl> {
+    private class PlayLinkTask extends AsyncTask<String, Integer, ZGUrl> {
         @Override
-        protected void onPostExecute(YKUtil.ZGUrl zgUrl) {
+        protected void onPostExecute(ZGUrl zgUrl) {
             // TODO Auto-generated method stub
             if (zgUrl == null) {
                 Toast.makeText(YoukuVideoActivity.this, "获取视频播放地址失败",
@@ -406,7 +407,7 @@ public class YoukuVideoActivity extends AppCompatActivity {
         }
 
         @Override
-        protected YKUtil.ZGUrl doInBackground(String... params) {
+        protected ZGUrl doInBackground(String... params) {
             // TODO Auto-generated method stub
             String vid = params[0];
             return YKUtil.getPlayZGUrl(YoukuVideoActivity.this, vid);

@@ -19,6 +19,7 @@ import android.widget.GridView;
 import android.widget.LinearLayout;
 import android.widget.Toast;
 
+import com.gotye.common.ZGUrl;
 import com.gotye.common.util.LogUtil;
 import com.gotye.common.youku.Album;
 import com.gotye.common.youku.Episode;
@@ -73,7 +74,7 @@ public class YoukuAlbumActivity extends AppCompatActivity {
     private String mPlayUrl;
     private String mTitle;
     private int mEpisodeIndex = -1;
-    private YKUtil.ZGUrl mZGUrl;
+    private ZGUrl mZGUrl;
 
     private String title;
     private int channel_id = -1;

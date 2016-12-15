@@ -24,7 +24,17 @@ public class SohuUtil {
 	
 	private static final String CHANNEL_LIST_URL = "http://api.tv.sohu.com/v5/mobile/channel/list.json?" +
 			"plat=6&poid=1&api_key=9854b2afa779e1a6bff1962447a09dbd&sver=4.7.1&sysver=4.2.2&partner=340";
-	
+
+	private static final String CHANNEL_LIST_V6_URL =
+			"http://s1.api.tv.itc.cn/v6/mobile/channel/list.json" +
+					"?plat=6" +
+					"&poid=1" +
+					"&api_key=9854b2afa779e1a6bff1962447a09dbd" +
+					"&sver=5.9.3" +
+					"&sysver=4.4.4" +
+					"&channel_list_type=0" +
+					"&partner=52";
+
 	private static final String SUBCHANNEL_URL_FMT = "http://api.tv.sohu.com/v5/mobile/channelPageData/list.json" +
 			"?plat=6&poid=1&api_key=9854b2afa779e1a6bff1962447a09dbd&sver=4.7.1" +
 			"&page_size=%d&offset=%d&sysver=4.2.2&sub_channel_id=%d&partner=340&cursor=0";
@@ -291,30 +301,46 @@ public class SohuUtil {
 			int count = categorys.length();
 			for (int i=0;i<count;i++) {
 				JSONObject item = categorys.getJSONObject(i);
-				
-				/*
-				 "cate_name":"排序",
-	            "cate_alias":"o",
-	            "default_keys":"-1"
-				 */
+
+//                cates: [
+//                {
+//                    name: "新上架",
+//                            search_key: "1"
+//                },
+//                {
+//                    name: "最热门",
+//                            search_key: "-1"
+//                },
+//                {
+//                    name: "好评榜",
+//                            search_key: "2"
+//                }
+//                ],
+//                cate_name: "排序",
+//                cate_alias: "o",
+//                default_keys: "1"
+
 				String cate_name = item.getString("cate_name");
 				String alias = item.getString("cate_alias");
 				String default_keys = item.getString("default_keys");
 				
 				JSONArray cates = item.getJSONArray("cates");
 				int c2 = cates.length();
+                List<CategorySohu.CatItem> list = new ArrayList<>();
+                CategorySohu cat = new CategorySohu(cate_name, alias, default_keys);
 				for (int j=0;j<c2;j++) {
 					JSONObject cate = cates.getJSONObject(j);
 					/*
 					"name":"新上架",
                     "search_key":"1"
                     */
-					String title = cate.getString("name");
+					String name = cate.getString("name");
 					String search_key = cate.getString("search_key");
-					
-					CategorySohu ca = new CategorySohu(title, cate_name, alias, search_key, default_keys);
-					mCategoryList.add(ca);
+                    list.add(cat.new CatItem(name, search_key));
 				}
+
+                cat.setList(list);
+                mCategoryList.add(cat);
 			}
 			
 			return true;
@@ -325,7 +351,76 @@ public class SohuUtil {
 		
 		return false;
 	}
-	
+
+	public boolean channel_list_v2() {
+		Log.i(TAG, "Java: SohuUtil channel_list_v2() " + CHANNEL_LIST_V6_URL);
+
+		try {
+			String result = http_get(CHANNEL_LIST_V6_URL);
+			if (result == null)
+				return false;
+
+			JSONTokener jsonParser = new JSONTokener(result);
+			JSONObject root = (JSONObject) jsonParser.nextValue();
+			int status = root.getInt("status");
+			String statusText = root.getString("statusText");
+			if (status != 200) {
+				Log.i(TAG, String.format("Java: failed to get url %d %s", status, statusText));
+				return false;
+			}
+
+			JSONObject data = root.getJSONObject("data");
+			JSONArray cateCodes = data.getJSONArray("cateCodes");
+			int count = data.getInt("count");
+
+			mChannelList.clear();
+			for (int i=0;i<count;i++) {
+				JSONObject cate = cateCodes.getJSONObject(i);
+
+//                channeled: "1000021100",
+//                        icon: "http://tv.sohu.com/upload/clientapp/channelicon/gphone/channel_icon_show_release.png",
+//                        name: "综艺",
+//                        cate_api: "http://api.tv.sohu.com/v4/category/zongyi.json?",
+//                        is_show_tip: 0,
+//                        cid: 7,
+//                        cate_code: 106,
+//                        sub_channel_type: 0,
+//                        location: 0,
+//                        action_list: [
+//                {
+//                    action_url: "sva://action.cmd?action=1.24&ex1=http%3A%2F%2Fapi.tv.sohu.com%2Fv6%2Fmobile%2FclassificationScreening%2Flist.json%3Fsub_channel_id%3D1060000%26cid%3D7%26&ex2=http%3A%2F%2Fapi.tv.sohu.com%2Fv4%2Fcategory%2Fzongyi.json%3F",
+//                            tip: "片库"
+//                }
+//                ],
+//                icon_selected: "http://tv.sohu.com/upload/clientapp/channelicon/gphone/channel_icon_show_release_selected.png",
+//                        channel_id: 1060000
+
+				if (cate.has("cate_api")) {
+					String channelId = cate.getString("channeled");
+					String iconUrl = cate.getString("icon");
+					String title = cate.getString("name");
+					String cate_api = cate.getString("cate_api");
+					int cid = cate.getInt("cid");
+					int cate_code = cate.getInt("cate_code");
+
+					final String cate_surfix = "?&plat=6&poid=1" +
+							"&api_key=9854b2afa779e1a6bff1962447a09dbd&sver=4.7.1" +
+							"&sysver=4.2.2&sub_channel_id=1000000&partner=340";
+					ChannelSohu c = new ChannelSohu(title, channelId, iconUrl, cate_api + cate_surfix,
+							cid, cate_code);
+					mChannelList.add(c);
+				}
+
+			}
+
+			return true;
+		} catch (JSONException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+
+		return false;
+	}
 	
 	public boolean channel_list() {
 		Log.i(TAG, "Java: SohuUtil channel_list() " + CHANNEL_LIST_URL);

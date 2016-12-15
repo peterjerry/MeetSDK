@@ -12,6 +12,7 @@ import android.view.MenuInflater;
 import android.view.View;
 import android.widget.Toast;
 
+import com.gotye.common.ZGUrl;
 import com.gotye.common.util.LogUtil;
 import com.gotye.common.youku.Episode;
 import com.gotye.common.youku.YKUtil;
@@ -169,6 +170,23 @@ public class PlayYoukuActivity extends PlaySegFileActivity {
         new PlayLinkTask().execute();
     }
 
+    @Override
+    protected void push_cdn_clip() {
+        // http://www.sohu.com?showid=avcee&&vid=tghfd$&streamtype=youku
+        String push_url = String.format(Locale.US,
+                "http://www.youku.com?showid=%s&vid=%s&ft=%d&streamtype=youku",
+                mShowId, mVid, mFt);
+        LogUtil.info(TAG, "push_url: " + push_url);
+
+        Intent intent = new Intent(PlayYoukuActivity.this, DMCActivity.class);
+        intent.putExtra("title", mTitle);
+        intent.putExtra("push_url", push_url);
+        intent.putExtra("dmr_uuid", mDlnaDeviceUUID);
+        startActivity(intent);
+
+        finish();
+    }
+
     private class RelateVideoTask extends AsyncTask<Integer, Integer, Boolean> {
         private ProgressDialog mProgressDlg;
         private YKUtil.MixResult mResult;
@@ -254,7 +272,7 @@ public class PlayYoukuActivity extends PlaySegFileActivity {
         @Override
         protected Boolean doInBackground(Integer... params) {
             // TODO Auto-generated method stub
-            YKUtil.ZGUrl zg = YKUtil.getPlayZGUrl(PlayYoukuActivity.this, mVid, mFt);
+            ZGUrl zg = YKUtil.getPlayZGUrl(PlayYoukuActivity.this, mVid, mFt);
             if (zg == null) {
                 mHandler.sendEmptyMessage(MainHandler.MSG_INVALID_FT);
                 return false;
@@ -367,7 +385,7 @@ public class PlayYoukuActivity extends PlaySegFileActivity {
             Episode ep = mEpisodeList.get(mEpisodeIndex);
             mVid = ep.getVideoId();
 
-            YKUtil.ZGUrl zg = YKUtil.getPlayZGUrl(PlayYoukuActivity.this, mVid);
+            ZGUrl zg = YKUtil.getPlayZGUrl(PlayYoukuActivity.this, mVid);
             if (zg == null) {
                 mHandler.sendEmptyMessage(MainHandler.MSG_INVALID_EPISODE_INDEX);
                 return false;

@@ -4,6 +4,7 @@ import java.io.File;
 import java.lang.ref.WeakReference;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
@@ -12,8 +13,11 @@ import java.util.TimeZone;
 
 import android.app.AlertDialog;
 import android.app.Dialog;
+import android.content.BroadcastReceiver;
+import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.graphics.Color;
 import android.graphics.Typeface;
 import android.net.Uri;
@@ -22,6 +26,8 @@ import android.os.Environment;
 import android.os.Handler;
 import android.os.Message;
 import android.support.v7.app.AppCompatActivity;
+import android.support.v7.widget.PopupMenu;
+import android.view.ContextMenu;
 import android.view.GestureDetector;
 import android.view.KeyEvent;
 import android.view.Menu;
@@ -34,6 +40,7 @@ import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ProgressBar;
+import android.widget.RelativeLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -92,9 +99,15 @@ public class VideoPlayerActivity extends AppCompatActivity
     private boolean mbShowDebugInfo = false;
     private NetworkSpeed mSpeed;
 
-    private LinearLayout mHoodLayout;
+    private BatteryReceiver batteryReceiver;
+    private int mBatteryPct = 100;
+
+    private RelativeLayout mHoodLayout;
     private TextView mTvTitle;
     private ImageButton mBtnBack;
+    private ImageButton mBtnOption;
+    private TextView mTvSysTime;
+    private TextView mTvBattery;
 
     private int decode_fps = 0;
     private int render_fps = 0;
@@ -174,9 +187,12 @@ public class VideoPlayerActivity extends AppCompatActivity
 
         this.mController.setMediaPlayer(mVideoView);
 
-        this.mHoodLayout = (LinearLayout)this.findViewById(R.id.hood_layout);
+        this.mHoodLayout = (RelativeLayout)this.findViewById(R.id.hood_layout);
         this.mTvTitle = (TextView)this.findViewById(R.id.player_title);
         this.mBtnBack = (ImageButton)this.findViewById(R.id.player_back_btn);
+        this.mBtnOption = (ImageButton)this.findViewById(R.id.option_btn);
+        this.mTvSysTime = (TextView)this.findViewById(R.id.tv_sys_time);
+        this.mTvBattery = (TextView)this.findViewById(R.id.tv_battery);
 
         mBtnBack.setOnClickListener(new View.OnClickListener() {
 
@@ -187,10 +203,40 @@ public class VideoPlayerActivity extends AppCompatActivity
             }
         });
 
+        mBtnOption.setOnClickListener(new View.OnClickListener(){
+
+            @Override
+            public void onClick(View v) {
+                PopupMenu popup = new PopupMenu(VideoPlayerActivity.this, v);
+                MenuInflater inflater = popup.getMenuInflater();
+                inflater.inflate(R.menu.videoplayer_menu, popup.getMenu());
+                popup.show();
+
+                popup.setOnMenuItemClickListener(new PopupMenu.OnMenuItemClickListener() {
+
+                    @Override
+                    public boolean onMenuItemClick(MenuItem item) {
+                        int id = item.getItemId();
+                        processMenuItem(id);
+
+                        return true;
+                    }
+                });
+            }
+        });
+
         this.mVideoView.setLongClickable(true); // MUST set to enable double-tap and single-tap-confirm
         this.mVideoView.setOnTouchListener(mOnTouchListener);
 
         Util.initMeetSDK(this);
+
+        // 注册广播接受者java代码
+        IntentFilter intentFilter = new IntentFilter(Intent.ACTION_BATTERY_CHANGED);
+        //创建广播接受者对象
+        batteryReceiver = new BatteryReceiver();
+
+        //注册receiver
+        registerReceiver(batteryReceiver, intentFilter);
     }
 
     @Override
@@ -203,42 +249,7 @@ public class VideoPlayerActivity extends AppCompatActivity
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         int id = item.getItemId();
-        LogUtil.info(TAG, "Java: onOptionsItemSelected " + id);
-
-        switch (id) {
-            case R.id.select_player_impl:
-                popupSelectPlayerImpl();
-                break;
-            case R.id.select_ft:
-                String path;
-                String scheme = mUri.getScheme();
-                if ("file".equalsIgnoreCase(scheme))
-                    path = mUri.getPath();
-                else
-                    path = mUri.toString();
-
-                if (path.contains("&playlink="))
-                    popupSelectFT();
-                break;
-            case R.id.select_subtitle:
-                popupSelectSubtitle();
-                break;
-            case R.id.show_mediainfo:
-                popupMediaInfo();
-                break;
-            case R.id.toggle_debug_info:
-                mbShowDebugInfo = !mbShowDebugInfo;
-
-                if (mbShowDebugInfo)
-                    mTextViewDebugInfo.setVisibility(View.VISIBLE);
-                else
-                    mTextViewDebugInfo.setVisibility(View.GONE);
-                break;
-            default:
-                LogUtil.warn(TAG, "unknown menu id " + id);
-                break;
-        }
-
+        processMenuItem(id);
         return true;
     }
 
@@ -265,6 +276,8 @@ public class VideoPlayerActivity extends AppCompatActivity
         LogUtil.info(TAG, "Java: onPause()");
 
         mVideoView.pause();
+
+        unregisterReceiver(batteryReceiver);
     }
 
     @Override
@@ -275,6 +288,69 @@ public class VideoPlayerActivity extends AppCompatActivity
 
         stop_subtitle();
         stopPlayer();
+    }
+
+    private void processMenuItem(int id) {
+        switch (id) {
+            case R.id.select_player_impl:
+                popupSelectPlayerImpl();
+                break;
+            case R.id.select_ft:
+                String path;
+                String scheme = mUri.getScheme();
+                if ("file".equalsIgnoreCase(scheme))
+                    path = mUri.getPath();
+                else
+                    path = mUri.toString();
+
+                if (path.contains("&playlink=") ||
+                        path.contains("&type=phone.android.vip")/*for cdn url*/) {
+                    popupSelectFT();
+                }
+                else {
+                    Toast.makeText(VideoPlayerActivity.this, "当前视频无法选择码率", Toast.LENGTH_SHORT).show();
+                }
+                break;
+            case R.id.select_subtitle:
+                popupSelectSubtitle();
+                break;
+            case R.id.show_mediainfo:
+                popupMediaInfo();
+                break;
+            case R.id.toggle_debug_info:
+                mbShowDebugInfo = !mbShowDebugInfo;
+
+                if (mbShowDebugInfo)
+                    mTextViewDebugInfo.setVisibility(View.VISIBLE);
+                else
+                    mTextViewDebugInfo.setVisibility(View.GONE);
+                break;
+            default:
+                LogUtil.warn(TAG, "unknown menu id " + id);
+                break;
+        }
+    }
+
+    private class BatteryReceiver extends BroadcastReceiver {
+
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            // TODO Auto-generated method stub
+            //判断它是否是为电量变化的Broadcast Action
+            if (Intent.ACTION_BATTERY_CHANGED.equals(intent.getAction())){
+                //获取当前电量
+                int level = intent.getIntExtra("level", 0);
+                //电量的总刻度
+                int scale = intent.getIntExtra("scale", 100);
+
+                mBatteryPct = level * 100 / scale;
+
+                // fix tvbox problem
+                if (mBatteryPct == 0)
+                    mBatteryPct = 100;
+            }
+        }
+
     }
 
     private void popupMediaInfo() {
@@ -303,6 +379,10 @@ public class VideoPlayerActivity extends AppCompatActivity
                 .show();
     }
 
+    protected void onSwitchBW() {
+
+    }
+
     private void popupSelectFT() {
         final String[] ft_desc = {"流畅", "高清", "超清", "蓝光"};
 
@@ -324,21 +404,7 @@ public class VideoPlayerActivity extends AppCompatActivity
                                                 "选择码率: " + ft_desc[whichButton], Toast.LENGTH_SHORT).show();
 
                                         mFt = whichButton;
-
-                                        String old_url = mUri.toString();
-                                        int pos = old_url.indexOf("%3Fft%3D");
-                                        if (pos != -1) {
-                                            String old_ft = old_url.substring(pos, pos + "%3Fft%3D".length() + 1);
-                                            String new_ft = "%3Fft%3D" + mFt;
-                                            mUri = Uri.parse(old_url.replace(old_ft, new_ft));
-
-                                            pre_seek_msec = mVideoView.getCurrentPosition() - 5000;
-                                            if (pre_seek_msec < 0)
-                                                pre_seek_msec = 0;
-
-                                            mHandler.sendEmptyMessage(MainHandler.MSG_RESTART_PLAYER);
-                                        }
-
+                                        onSwitchBW();
                                         dialog.dismiss();
                                     }
                                 }
@@ -880,6 +946,13 @@ public class VideoPlayerActivity extends AppCompatActivity
 
     private void showHood(int msec) {
         mHandler.removeMessages(MainHandler.MSG_HIDE_HOOD);
+
+        SimpleDateFormat format = new SimpleDateFormat("HH:mm", Locale.US);
+        String str_time = format.format((new Date()));
+        mTvSysTime.setText(str_time);
+        mTvBattery.setText(String.format(Locale.US,
+                "电池 %d", mBatteryPct));
+
         mHoodLayout.setVisibility(View.VISIBLE);
         if (msec > 0)
             mHandler.sendEmptyMessageDelayed(MainHandler.MSG_HIDE_HOOD, msec);
@@ -1048,6 +1121,7 @@ public class VideoPlayerActivity extends AppCompatActivity
         public final static int MSG_EPISODE_DONE            = 601;
         public final static int MSG_PLAY_CDN_FT		        = 602;
         public final static int MSG_FAIL_TO_GET_FT	        = 622;
+        public final static int MSG_FAIL_TO_GET_CDN_URL     = 623;
 
         public MainHandler(VideoPlayerActivity activity) {
             mWeakActivity = new WeakReference<VideoPlayerActivity>(activity);
@@ -1113,6 +1187,11 @@ public class VideoPlayerActivity extends AppCompatActivity
                     break;
                 case MSG_FAIL_TO_GET_FT:
                     LogUtil.error(TAG, "failed to get ft");
+                    Toast.makeText(activity, "获取CDN FT失败", Toast.LENGTH_SHORT).show();
+                    break;
+                case MSG_FAIL_TO_GET_CDN_URL:
+                    LogUtil.error(TAG, "failed to get cdn url");
+                    Toast.makeText(activity, "获取CDN播放地址失败", Toast.LENGTH_SHORT).show();
                     break;
                 default:
                     LogUtil.warn(TAG, "Java: unknown msg.what " + msg.what);

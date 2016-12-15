@@ -6,7 +6,9 @@
 #include <vector>
 #include <list>
 #include "subtitle.h"
+#include "simpletextsubtitle.h"
 #include <stdarg.h>
+#include <string.h> // for strncpy
 
 #define LOG_TAG "subtitle"
 #ifdef _TEST_SUBTITLE
@@ -15,12 +17,9 @@
 #include "logutil.h"
 #endif
 
-extern "C" {
-#include "libass/ass.h"
-};
-
 #ifdef _MSC_VER
 #define strcasecmp _stricmp
+#pragma comment(lib, "pthreadVC2")
 #endif
 
 const char* path_find_extension(const char* path)
@@ -40,8 +39,6 @@ const char* path_find_extension(const char* path)
 class CSubtitleManager;
 class CSimpleTextSubtitle;
 class CSTSSegment;
-
-#include "simpletextsubtitle.h"
 
 class CSubtitleManager :
     public ISubtitles
@@ -114,9 +111,13 @@ void CSubtitleManager::ass_log(int level, const char *fmt, va_list va, void *dat
 	if (level > 4)
 		return;
 
-	static char msg[1024] = {0};
+	char msg[1024] = {0};
     const char *header = "[ass] ";
-    vsnprintf(msg, 1024, fmt, va);
+#ifdef _MSC_VER
+    vsnprintf_s(msg, 1024, fmt, va);
+#else
+	vsnprintf(msg, 1024, fmt, va);
+#endif
 	LOGI("%s %s", header, msg);
 }
 
@@ -151,7 +152,11 @@ bool CSubtitleManager::getLanguageName(int language, char* name)
 
     const char* languageName = mSubtitles[language]->getLanguageName();
     if (languageName) {
-        strncpy(name, languageName, 511);
+#ifdef _MSC_VER
+		strncpy_s(name, 512, languageName, 511);
+#else
+		strncpy(name, languageName, 511);
+#endif
         name[511] = '\x0';
         return true;
     }

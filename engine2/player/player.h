@@ -14,6 +14,11 @@ class ISubtitles;
 #endif
 #include <stdlib.h> // for free
 
+#ifdef _MSC_VER
+extern int g_max_display_w;
+extern int g_max_display_h;
+#endif
+
 #define MAX_CHANNEL_CNT				64
 #define DEFAULT_THUMBNAIL_WIDTH		96
 #define DEFAULT_THUMBNAIL_HEIGHT	96

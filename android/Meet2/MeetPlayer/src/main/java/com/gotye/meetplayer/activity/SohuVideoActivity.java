@@ -22,6 +22,7 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
 import android.support.v7.app.AppCompatActivity;
+import android.text.TextUtils;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuInflater;
@@ -74,6 +75,14 @@ public class SohuVideoActivity extends AppCompatActivity {
 
 			@Override
 			public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+				if (!TextUtils.isEmpty(mChannelId) && mChannelId.equals("1000021000")) {
+					// 电视剧
+					Intent intent = new Intent(SohuVideoActivity.this, SohuEpisodeActivity.class);
+					intent.putExtra("channelId", mChannelId);
+					startActivity(intent);
+					return;
+				}
+
 				if (mSubChannelSelected) {
 					Intent intent = new Intent(SohuVideoActivity.this, SohuEpisodeActivity.class);
 					intent.putExtra("sub_channel_id", mSubChannelList.get(position).mSubChannelId);

@@ -67,6 +67,7 @@ public class SohuEpisodeActivity extends AppCompatActivity {
     private PlaylinkSohu mPlaylink;
     private int sub_channel_id		= -1;
     private long selected_aid		= -1;
+	private int selected_vid		= -1;
     private int selected_site		= -1;
     private int selected_index		= -1;
     private String search_key;
@@ -224,6 +225,7 @@ public class SohuEpisodeActivity extends AppCompatActivity {
         		intent.putExtra("title", mPlaylink.getTitle());
         		intent.putExtra("index", (ep_page_index - 1) * page_size + selected_index);
         		intent.putExtra("aid", selected_aid);
+                intent.putExtra("vid", selected_vid);
         		intent.putExtra("site", selected_site);
         		intent.putExtra("ft", ft.value());
 				intent.putExtra("player_impl", 1/*HW_SYSTEM*/);
@@ -387,7 +389,8 @@ public class SohuEpisodeActivity extends AppCompatActivity {
 				
 				Util.add_sohuvideo_history(SohuEpisodeActivity.this, 
 						mPlaylink.getTitle(), (int)vid, -1, -1);
-				
+
+				selected_vid = (int)vid;
 				mhandler.sendEmptyMessage(MSG_PLAYLINK_DONE);	
 			}
 			else if (action == TASK_MORELIST) {
@@ -419,7 +422,8 @@ public class SohuEpisodeActivity extends AppCompatActivity {
 				
 				Util.add_sohuvideo_history(SohuEpisodeActivity.this, 
 						mPlaylink.getTitle(), (int)vid, aid, (int)site);
-				
+
+				selected_vid = (int)vid;
 				mhandler.sendEmptyMessage(MSG_PLAYLINK_DONE);	
 			}
 			else {

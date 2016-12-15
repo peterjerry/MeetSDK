@@ -12,34 +12,62 @@
         android:layout_height="wrap_content"
         android:layout_centerInParent="true" />
 
-    <LinearLayout
+    <RelativeLayout
         android:id="@+id/hood_layout"
-        android:layout_width="fill_parent"
+        android:layout_width="match_parent"
         android:layout_height="50dp"
         android:layout_alignParentTop="true"
-        android:orientation="horizontal"
         android:background="#B0000000"
         android:visibility="gone" >
 
-        <ImageButton
-            android:id="@+id/player_back_btn"
-            android:layout_width="72dp"
-            android:layout_height="72dp"
-            android:layout_margin="10dp"
-            android:layout_gravity="center_vertical"
-            android:src="@drawable/player_back"
-            android:background="@null" />
+		<ImageButton
+			android:id="@+id/player_back_btn"
+			android:layout_width="48dp"
+			android:layout_height="48dp"
+			android:layout_marginLeft="5dp"
+			android:layout_alignParentLeft="true"
+			android:layout_centerVertical="true"
+			android:src="@drawable/player_back"
+			android:background="@null" />
+		<ImageButton
+			android:id="@+id/option_btn"
+			android:layout_width="48dp"
+			android:layout_height="48dp"
+			android:layout_marginLeft="5dp"
+			android:layout_toRightOf="@id/player_back_btn"
+			android:layout_centerVertical="true"
+			android:src="@android:drawable/ic_menu_more"
+			android:background="@null" />
         <TextView
             android:id="@+id/player_title"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:gravity="center_horizontal"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_centerInParent="true"
             android:singleLine="true"
             android:textColor="#FF0000"
             android:textSize="24sp"
             android:textStyle="bold" />
+        <TextView
+            android:id="@+id/tv_sys_time"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignParentTop="true"
+            android:layout_alignParentRight="true"
+            android:layout_marginTop="10dp"
+			android:layout_marginRight="10dp"
+            android:text="13:05"
+            android:textColor="#FFFFFF"/>
+        <TextView
+            android:id="@+id/tv_battery"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignParentRight="true"
+            android:layout_marginRight="10dp"
+            android:layout_below="@id/tv_sys_time"
+            android:text="电池 40"
+            android:textColor="#FFFFFF"/>
 
-    </LinearLayout>
+    </RelativeLayout>
     
     <com.gotye.meetplayer.ui.widget.MicroMediaController
 		android:id="@+id/video_controller"

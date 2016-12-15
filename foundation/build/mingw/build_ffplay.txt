@@ -1,0 +1,31 @@
+1 install msys (msys+7za+wget+svn+git+mercurial+cvs-rev13.7z)
+
+2 install mingw (i686-4.8.2-release-posix-sjlj-rt_v3-rev1.7z)
+
+3 edit /etc/fstab
+=========================
+#Win32_Path		Mount_Point
+E:\software\msys\mingw32		/mingw
+=========================
+
+4 install pkg-config (pkg-config_0.23-3_win32.zip)
+
+5 run msys, create account folder
+
+6 edit /home/your-account/.profile
+=========================
+#!/bin/bash
+
+export PKG_CONFIG_PATH=/mingw/lib/pkgconfig:/usr/local/lib/pkgconfig
+=========================
+
+7 copy libSDL lib file:
+msys\mingw32\lib\libSDL.dll.a
+msys\mingw32\lib\libSDL.a
+msys\mingw32\lib\libSDLmain.a
+msys\mingw32\lib\pkgconfig\sdl.pc
+msys\mingw32\include\SDL
+
+8 re-run msys, build ffmpeg
+cd /your-foundation-path/build/mingw
+./build_ffmpeg_gcc.sh
