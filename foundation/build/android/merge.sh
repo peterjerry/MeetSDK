@@ -62,7 +62,7 @@ esac
 
 if [ $ARCH == 'arm' ]; then
 	PLATFORM=$NDK/platforms/android-9/arch-arm
-	PREBUILT=$NDK/toolchains/arm-linux-androideabi-4.8/prebuilt/$HOST
+	PREBUILT=$NDK/toolchains/arm-linux-androideabi-4.9/prebuilt/$HOST
 	CROSS_PREFIX=$PREBUILT/bin/arm-linux-androideabi-
 	EXTRA_CFLAGS="$EXTRA_CFLAGS -fstack-protector -fstrict-aliasing"
 	OPTFLAGS="-O2"
@@ -76,14 +76,14 @@ then
 elif [ $ARCH == 'x86' ]
 then
 	PLATFORM=$NDK/platforms/android-9/arch-x86
-	PREBUILT=$NDK/toolchains/x86-4.8/prebuilt/$HOST
+	PREBUILT=$NDK/toolchains/x86-4.9/prebuilt/$HOST
 	CROSS_PREFIX=$PREBUILT/bin/i686-linux-android-
 	EXTRA_CFLAGS="$EXTRA_CFLAGS -fstrict-aliasing"
 	OPTFLAGS="-O2 -fno-pic"
 elif [ $ARCH == 'mips' ]
 then
 	PLATFORM=$NDK/platforms/android-9/arch-mips
-	PREBUILT=$NDK/toolchains/mipsel-linux-android-4.8/prebuilt/$HOST
+	PREBUILT=$NDK/toolchains/mipsel-linux-android-4.9/prebuilt/$HOST
 	CROSS_PREFIX=$PREBUILT/bin/mipsel-linux-android-
 	EXTRA_CFLAGS="$EXTRA_CFLAGS -fno-strict-aliasing -fmessage-length=0 -fno-inline-functions-called-once -frerun-cse-after-loop -frename-registers"
 	OPTFLAGS="-O2"
