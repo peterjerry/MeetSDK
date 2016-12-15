@@ -185,4 +185,4 @@ LOCAL_STATIC_LIBRARIES 	:= subtitle ass iconv enca tinyxml2 fontconfig ft2 expat
 LOCAL_MODULE 			:= subtitle-jni
 include $(BUILD_SHARED_LIBRARY)
 
-$(call import-module,cpufeatures)
+$(call import-module, android/cpufeatures)
