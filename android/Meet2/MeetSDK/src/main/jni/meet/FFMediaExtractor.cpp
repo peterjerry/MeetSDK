@@ -382,7 +382,7 @@ jboolean android_media_MediaExtractor_getTrackFormatNative(JNIEnv *env, jobject 
 		env->CallVoidMethod(mediaformat, midSetString, env->NewStringUTF("mime"), env->NewStringUTF("data/unknown"));
 	}
 	else {
-		PPLOGW("unknown media type: %d" + native_format.media_type);
+		PPLOGW("unknown media type: %d", native_format.media_type);
 		env->CallVoidMethod(mediaformat, midSetString, env->NewStringUTF("mime"), env->NewStringUTF("unknown/unknown"));
 	}
 
@@ -715,11 +715,11 @@ jboolean android_media_MediaExtractor_init(JNIEnv *env, jobject thiz)
 		return false;
 	}
 
-	jclass clazz2 = env->FindClass("com/gotye/meetsdk/player/XOMediaPlayer");
+	jclass clazz2 = env->FindClass("com/gotye/meetsdk/player/FFMediaExtractor");
 	if (clazz2 == NULL) {
-		PPLOGE("Can't find com/gotye/meetsdk/player/XOMediaPlayer");
+		PPLOGE("Can't find com/gotye/meetsdk/player/FFMediaExtractor");
 		jniThrowException(env, "java/lang/RuntimeException", 
-			"Can't find com/gotye/meetsdk/player/XOMediaPlayer");
+			"Can't find com/gotye/meetsdk/player/FFMediaExtractor");
 		return false;
 	}
 	fields.post_event = env->GetStaticMethodID(clazz2, "postEventFromNative",

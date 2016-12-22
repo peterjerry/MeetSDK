@@ -90,6 +90,18 @@ public class FFMediaExtractor implements MediaExtractable {
 		native_setSubtitleParser(parser);
 	}
 
+    /**
+     * Called from native code when an interesting event happens. This method
+     * just uses the EventHandler system to post the event back to the main app
+     * thread. We use a weak reference to the original MediaPlayer object so
+     * that the native code is safe from the object disappearing from underneath
+     * it. (This is the cookie passed to native_setup().)
+     */
+    private static void postEventFromNative(Object mediaplayer_ref, int what,
+                                            int extra1, int extra2, Object obj) {
+        XOMediaPlayer.postEventFromNative(mediaplayer_ref, what, extra1, extra2, obj);
+    }
+
 	private native boolean getTrackFormatNative(int index, 
 			MediaFormat mediaformat);
 

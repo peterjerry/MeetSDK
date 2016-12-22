@@ -38,6 +38,7 @@ import android.widget.TextView;
 import android.widget.MediaController.MediaPlayerControl;
 import android.widget.Toast;
 
+@Deprecated
 public class FragmentMp4PlayerActivity extends AppCompatActivity implements Callback {
 
 	private final static String TAG = "FragMp4Activity";

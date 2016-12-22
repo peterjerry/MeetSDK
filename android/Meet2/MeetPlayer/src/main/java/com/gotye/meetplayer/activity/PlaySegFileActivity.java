@@ -718,13 +718,7 @@ public class PlaySegFileActivity extends AppCompatActivity
             case KeyEvent.KEYCODE_ENTER:
                 if (!mController.isShowing()) {
                     if (mPlayer != null) {
-                        if (keyCode == KeyEvent.KEYCODE_DPAD_LEFT ||
-                                keyCode == KeyEvent.KEYCODE_DPAD_RIGHT) {
-                            if (!mSwichingEpisode) {
-                                mSwichingEpisode = true;
-                                onSelectEpisode(keyCode == KeyEvent.KEYCODE_DPAD_LEFT ? -1 : 1);
-                            }
-                        } else if (keyCode == KeyEvent.KEYCODE_DPAD_UP ||
+                        if (keyCode == KeyEvent.KEYCODE_DPAD_UP ||
                                 keyCode == KeyEvent.KEYCODE_DPAD_DOWN) {
                             SwitchDisplayMode(keyCode == KeyEvent.KEYCODE_DPAD_UP ? 1 : -1);
                         } else {

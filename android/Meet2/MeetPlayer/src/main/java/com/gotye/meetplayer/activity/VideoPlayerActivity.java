@@ -27,7 +27,6 @@ import android.os.Handler;
 import android.os.Message;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.PopupMenu;
-import android.view.ContextMenu;
 import android.view.GestureDetector;
 import android.view.KeyEvent;
 import android.view.Menu;
@@ -324,6 +323,16 @@ public class VideoPlayerActivity extends AppCompatActivity
                     mTextViewDebugInfo.setVisibility(View.VISIBLE);
                 else
                     mTextViewDebugInfo.setVisibility(View.GONE);
+                break;
+            case R.id.previous_episode:
+            case R.id.next_episode:
+                if (!mSwichingEpisode) {
+                    mSwichingEpisode = true;
+                    onSelectEpisode(id == R.id.previous_episode ? -1 : 1);
+                }
+                else {
+                    LogUtil.warn(TAG, "already switching epsode...");
+                }
                 break;
             default:
                 LogUtil.warn(TAG, "unknown menu id " + id);
@@ -902,20 +911,10 @@ public class VideoPlayerActivity extends AppCompatActivity
                 return true;
             case KeyEvent.KEYCODE_DPAD_CENTER:
             case KeyEvent.KEYCODE_ENTER:
-                if (!mController.isShowing()) {
-                    toggleMediaControlsVisiblity();
-                }
-                return true;
             case KeyEvent.KEYCODE_DPAD_LEFT:
             case KeyEvent.KEYCODE_DPAD_RIGHT:
                 if (!mController.isShowing()) {
-                    if (!mSwichingEpisode) {
-                        mSwichingEpisode = true;
-                        onSelectEpisode(keyCode == KeyEvent.KEYCODE_DPAD_LEFT ? -1 : 1);
-                    }
-                    else {
-                        LogUtil.warn(TAG, "already switching epsode...");
-                    }
+                    toggleMediaControlsVisiblity();
                 }
                 return true;
             case KeyEvent.KEYCODE_BACK:

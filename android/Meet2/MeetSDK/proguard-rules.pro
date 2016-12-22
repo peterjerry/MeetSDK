@@ -78,7 +78,7 @@
 	private void postEventFromNative(java.lang.Object,int,int,int,java.lang.Object);
 }
 -keepclassmembers class com.gotye.meetsdk.player.XOMediaPlayer {
-	private void postEventFromNative(java.lang.Object,int,int,int,java.lang.Object);
+	public void postEventFromNative(java.lang.Object,int,int,int,java.lang.Object);
 }
 -keepclassmembers class com.gotye.meetsdk.player.OMXMediaPlayer {
 	private void postEventFromNative(java.lang.Object,int,int,int,java.lang.Object);
@@ -94,6 +94,7 @@
 	public native boolean advance();
 	public native boolean hasCachedReachedEndOfStream();
 	public native int readSampleData(java.nio.ByteBuffer,int);
+	private void postEventFromNative(java.lang.Object,int,int,int,java.lang.Object);
 }
 -keepclassmembers class com.gotye.meetsdk.subtitle.SimpleSubTitleParser {
 	long mNativeContext;
