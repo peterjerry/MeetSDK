@@ -3,7 +3,7 @@ package com.gotye.meetsdk.player;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 
-import android.media.MediaFormat;
+import android.media.*;
 
 import com.gotye.meetsdk.subtitle.SimpleSubTitleParser;
 
@@ -58,5 +58,4 @@ public interface MediaExtractable {
     int readPacket(int stream_index, ByteBuffer byteBuf, int offset);
 
 	int decodeAudio(ByteBuffer inBuf, int inSize, ByteBuffer outBuf);
-
 }

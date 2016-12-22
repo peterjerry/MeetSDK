@@ -124,14 +124,14 @@ public class FFMediaPlayer extends BaseMediaPlayer {
 	 * it. (This is the cookie passed to native_setup().)
 	 */
 	private static void postEventFromNative(Object mediaplayer_ref, int what,
-			int arg1, int arg2, Object obj) {
+			int extra1, int extra2, Object obj) {
 		FFMediaPlayer mp = (FFMediaPlayer) ((WeakReference<?>) mediaplayer_ref).get();
 		if (mp == null) {
 			return;
 		}
 
 		if (mp.mEventHandler != null) {			
-			Message msg = mp.mEventHandler.obtainMessage(what, arg1, arg2, obj);
+			Message msg = mp.mEventHandler.obtainMessage(what, extra1, extra2, obj);
 			msg.sendToTarget();
 		}
 	}

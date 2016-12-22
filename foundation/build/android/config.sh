@@ -214,7 +214,7 @@ do
 			--disable-parsers \
 			--enable-parser=h264,aac_latm \
 			--disable-protocols \
-			--enable-protocol=file,http,rtmp,hls "
+			--enable-protocol=file,http,udp,rtsp,rtmp,hls "
 	elif [ ${arg}x == 'tiny'x ]; then
 		echo "tiny build"
 		EXTRA_PARAMETERS="$EXTRA_PARAMETERS \
