@@ -10,7 +10,7 @@ android {
         }
     }
     compileSdkVersion 23
-    buildToolsVersion "23.0.2"
+    buildToolsVersion "25.0.2"
     useLibrary 'org.apache.http.legacy' // fix org.apache.http android sdk 6.0 problem
 
     defaultConfig {
