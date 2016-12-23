@@ -432,9 +432,10 @@ status_t FFExtractor::setDataSource(const char *path)
 				AVStream *subtitle_stream = m_fmt_ctx->streams[i];
 				AVCodecID codec_id = subtitle_stream->codec->codec_id;
 				// only support 5 type subtitle
+				// 2016.12.13 michael added AV_CODEC_ID_MOV_TEXT
 				if (codec_id == AV_CODEC_ID_ASS || codec_id == AV_CODEC_ID_SSA ||
 						codec_id == AV_CODEC_ID_TEXT || codec_id == AV_CODEC_ID_SRT ||
-						codec_id == AV_CODEC_ID_SUBRIP) {
+						codec_id == AV_CODEC_ID_SUBRIP || codec_id == AV_CODEC_ID_MOV_TEXT) {
 					if (m_subtitle_stream_idx == -1) {
     					m_subtitle_stream_idx = i;
 						LOGI("m_subtitle_stream_idx: %d", m_subtitle_stream_idx);
@@ -455,7 +456,8 @@ status_t FFExtractor::setDataSource(const char *path)
 					{
 						sub_codec_id = SUBTITLE_CODEC_ID_ASS;
 					}
-					else if(codec_id == AV_CODEC_ID_TEXT || codec_id == AV_CODEC_ID_SRT || codec_id == AV_CODEC_ID_SUBRIP)
+					else if(codec_id == AV_CODEC_ID_TEXT || codec_id == AV_CODEC_ID_SRT || 
+						codec_id == AV_CODEC_ID_SUBRIP || codec_id == AV_CODEC_ID_MOV_TEXT)
 					{
 						sub_codec_id = SUBTITLE_CODEC_ID_TEXT;
 					}
@@ -1104,7 +1106,7 @@ status_t FFExtractor::advance()
 		m_sample_pkt = NULL;
 	}
 
-	if (m_video_q.count() == 0 || m_audio_q.count() == 0) {
+	if (m_video_q.count() == 0 || (m_audio_stream/*fix no audio media*/ && m_audio_q.count() == 0)) {
 		if (m_eof) {
 			LOGI("advance meet eof");
 			m_sample_pkt = NULL;
@@ -1408,7 +1410,7 @@ status_t FFExtractor::readPacket(int stream_index, unsigned char *data, int32_t 
 	if (m_eof && m_video_q.count() == 0/* && m_audio_q.count == 0*/)
 		return READ_EOF;
 
-	if (m_video_q.count() == 0 || m_audio_q.count() == 0) {
+	if (m_video_q.count() == 0 || (m_audio_stream/*fix no audio media*/ && m_audio_q.count() == 0)) {
 		m_buffering = true;
 
 		if (m_sorce_type != TYPE_LOCAL_FILE) {
