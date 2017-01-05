@@ -17,6 +17,7 @@ public class IDlnaCallback implements DLNASdk.DLNASdkInterface {
 
 	public static Map<String, String> mDMRmap = new HashMap<>();
 	public static Map<String, String> mDMSmap = new HashMap<>();
+	public static Map<String, String> mIconmap = new HashMap<>();
 	private DLNASdk.DLNASdkInterface mCallback;
 
 	public static IDlnaCallback getInstance() {
@@ -41,6 +42,8 @@ public class IDlnaCallback implements DLNASdk.DLNASdkInterface {
 		else if(devicetype == DLNASdk.DEVICE_TYPE_DMS) {
             mDMSmap.put(uuid, friendname);
 		}
+
+		mIconmap.put(uuid, logourl);
 	}
 
 	synchronized public void OnDeviceRemoved(String uuid, int devicetype) {
@@ -51,6 +54,7 @@ public class IDlnaCallback implements DLNASdk.DLNASdkInterface {
         else if (devicetype == DLNASdk.DEVICE_TYPE_DMS) {
             mDMSmap.remove(uuid);
         }
+        mIconmap.remove(uuid);
 	}
 	
 	public void OnLogPrintf(String msg) {

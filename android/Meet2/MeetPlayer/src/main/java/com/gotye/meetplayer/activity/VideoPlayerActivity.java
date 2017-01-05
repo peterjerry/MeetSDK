@@ -14,6 +14,8 @@ import java.util.TimeZone;
 import android.app.AlertDialog;
 import android.app.Dialog;
 import android.content.BroadcastReceiver;
+import android.content.ClipData;
+import android.content.ClipboardManager;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
@@ -51,6 +53,7 @@ import com.gotye.meetplayer.util.FileFilterTest;
 import com.gotye.meetplayer.util.NetworkSpeed;
 import com.gotye.meetplayer.util.Util;
 
+import com.gotye.meetsdk.player.MediaInfo;
 import com.gotye.meetsdk.player.MediaPlayer;
 import com.gotye.meetsdk.player.MediaPlayer.DecodeMode;
 import com.gotye.meetsdk.player.MeetVideoView;
@@ -229,12 +232,8 @@ public class VideoPlayerActivity extends AppCompatActivity
 
         Util.initMeetSDK(this);
 
-        // 注册广播接受者java代码
         IntentFilter intentFilter = new IntentFilter(Intent.ACTION_BATTERY_CHANGED);
-        //创建广播接受者对象
         batteryReceiver = new BatteryReceiver();
-
-        //注册receiver
         registerReceiver(batteryReceiver, intentFilter);
     }
 
@@ -314,7 +313,23 @@ public class VideoPlayerActivity extends AppCompatActivity
                 popupSelectSubtitle();
                 break;
             case R.id.show_mediainfo:
-                popupMediaInfo();
+                if (mVideoView != null) {
+                    try {
+                        MediaInfo info = mVideoView.getMediaInfo();
+                        if (info == null) {
+                            Toast.makeText(this, "无法获取媒体信息", Toast.LENGTH_SHORT).show();
+                        }
+                        else {
+                            LogUtil.info(TAG, "Java: current media info: " + info.toString());
+
+                            popupMediaInfo(info);
+                        }
+                    }
+                    catch (IllegalStateException e) {
+                        e.printStackTrace();
+                        Toast.makeText(this, "获取媒体信息失败: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                    }
+                }
                 break;
             case R.id.toggle_debug_info:
                 mbShowDebugInfo = !mbShowDebugInfo;
@@ -362,7 +377,7 @@ public class VideoPlayerActivity extends AppCompatActivity
 
     }
 
-    private void popupMediaInfo() {
+    private void popupMediaInfo(MediaInfo info) {
         String decodedUrl;
         try {
             decodedUrl = URLDecoder.decode(mUri.toString(), "UTF-8");
@@ -372,19 +387,27 @@ public class VideoPlayerActivity extends AppCompatActivity
             return;
         }
 
-        StringBuffer sbInfo = new StringBuffer();
-        sbInfo.append("文件名 ");
-        sbInfo.append(decodedUrl);
-
-        sbInfo.append("\n分辨率 ");
-        sbInfo.append(mVideoWidth);
-        sbInfo.append(" x ");
-        sbInfo.append(mVideoHeight);
+        String strInfo = Util.getMediaInfoDescription(decodedUrl, info);
+        if (strInfo == null)
+            return;
 
         new AlertDialog.Builder(this)
                 .setTitle("媒体信息")
-                .setMessage(sbInfo.toString())
-                .setPositiveButton("确定", null)
+                .setMessage(strInfo)
+                .setNegativeButton("确定", null)
+                .setNeutralButton("复制播放地址", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        ClipboardManager myClipboard;
+                        myClipboard = (ClipboardManager) getSystemService(CLIPBOARD_SERVICE);
+                        ClipData myClip;
+                        myClip = ClipData.newPlainText("text", Util.getUriPath(mUri));
+                        myClipboard.setPrimaryClip(myClip);
+
+                        Toast.makeText(VideoPlayerActivity.this, "播放地址已复制至粘贴板", Toast.LENGTH_SHORT).show();
+
+                    }
+                })
                 .show();
     }
 
@@ -589,6 +612,7 @@ public class VideoPlayerActivity extends AppCompatActivity
 
             mSpeed = new NetworkSpeed();
             mHandler.sendEmptyMessage(MainHandler.MSG_UPDATE_NETWORK_SPEED);
+            LogUtil.info(TAG, "kick off MSG_UPDATE_NETWORK_SPEED");
         }
 
         mVideoView.start();
@@ -1143,8 +1167,9 @@ public class VideoPlayerActivity extends AppCompatActivity
                     if (speed != null) {
                         activity.rx_speed = speed[0];
                         activity.tx_speed = speed[1];
-                        this.sendEmptyMessageDelayed(MSG_UPDATE_NETWORK_SPEED, 1000);
                     }
+                    this.sendEmptyMessageDelayed(MSG_UPDATE_NETWORK_SPEED, 1000);
+                    // go through
                 case MSG_UPDATE_PLAY_INFO:
                 case MSG_UPDATE_RENDER_INFO:
                     if (activity.mbShowDebugInfo) {

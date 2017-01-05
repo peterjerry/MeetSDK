@@ -1,12 +1,16 @@
 package com.gotye.meetplayer.activity;
 
-import android.app.ProgressDialog;
+import android.app.AlertDialog;
+import android.app.Dialog;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
-import android.view.KeyEvent;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
 import android.view.View;
 import android.webkit.WebChromeClient;
 import android.webkit.WebView;
@@ -14,7 +18,6 @@ import android.webkit.WebViewClient;
 import android.widget.ArrayAdapter;
 import android.widget.AutoCompleteTextView;
 import android.widget.Button;
-import android.widget.EditText;
 import android.widget.ProgressBar;
 import android.widget.Toast;
 
@@ -23,8 +26,6 @@ import com.gotye.common.util.LogUtil;
 import com.gotye.common.youku.YKUtil;
 import com.gotye.meetplayer.R;
 import com.gotye.meetplayer.util.Util;
-
-import java.net.URL;
 
 public class HttpViewerActivity extends AppCompatActivity {
 	private final static String TAG = "HttpViewerActivity";
@@ -135,6 +136,27 @@ public class HttpViewerActivity extends AppCompatActivity {
 	}
 
     @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        MenuInflater menuInflater = new MenuInflater(getApplication());
+        menuInflater.inflate(R.menu.http_view_activity_menu, menu);
+        return super.onCreateOptionsMenu(menu);
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        int id = item.getItemId();
+        switch (id) {
+            case R.id.select_player_impl:
+                popSelectPlayer();
+                break;
+            default:
+                break;
+        }
+
+        return true;
+    }
+
+    @Override
     public void onBackPressed() {
         if (mBrowser.canGoBack()) {
             mBrowser.goBack();
@@ -142,6 +164,27 @@ public class HttpViewerActivity extends AppCompatActivity {
         }
 
         super.onBackPressed();
+    }
+
+    private void popSelectPlayer() {
+        final String[] PlayerImpl = {"Auto", "System", "XOPlayer", "FFPlayer"};
+
+        Dialog choose_player_impl_dlg = new AlertDialog.Builder(HttpViewerActivity.this)
+                .setTitle("选择播放器类型")
+                .setSingleChoiceItems(PlayerImpl, mPlayerImpl, /*default selection item number*/
+                        new DialogInterface.OnClickListener() {
+                            public void onClick(DialogInterface dialog, int whichButton) {
+                                LogUtil.info(TAG, "select player impl: " + whichButton);
+
+                                mPlayerImpl = whichButton;
+                                Util.writeSettingsInt(HttpViewerActivity.this, "PlayerImpl", mPlayerImpl);
+                                Toast.makeText(HttpViewerActivity.this,
+                                        "select type: " + PlayerImpl[whichButton], Toast.LENGTH_SHORT).show();
+                                dialog.dismiss();
+                            }
+                        })
+                .create();
+        choose_player_impl_dlg.show();
     }
 
     public class ParseVideoTask extends AsyncTask<String, Integer, Boolean> {

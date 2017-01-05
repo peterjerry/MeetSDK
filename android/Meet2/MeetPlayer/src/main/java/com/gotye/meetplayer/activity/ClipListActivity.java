@@ -31,6 +31,7 @@ import com.gotye.common.ZGUrl;
 import com.gotye.common.iqiyi.IqiyiUtil;
 import com.gotye.common.youku.YKUtil;
 import com.gotye.crashhandler.UploadLogTask;
+import com.gotye.meetplayer.adapter.DMRAdapter;
 import com.gotye.meetplayer.adapter.LocalFileAdapter;
 import com.gotye.meetplayer.ui.MyPreView2;
 import com.gotye.meetsdk.MeetSDK;
@@ -117,9 +118,11 @@ import java.net.URLDecoder;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Properties;
 import java.util.Random;
 
@@ -2495,19 +2498,33 @@ public class ClipListActivity extends AppCompatActivity implements
 
         ArrayList<String> dev_list = new ArrayList<String>();
         ArrayList<String> uuid_list = new ArrayList<String>();
+        ArrayList<String> icon_list = new ArrayList<String>();
         for (String key : IDlnaCallback.mDMRmap.keySet()) {
             String name = IDlnaCallback.mDMRmap.get(key);
             LogUtil.info(TAG, "Java: dlna [dlna dmr] uuid: " + key + " name: " + name);
             uuid_list.add(key);
             dev_list.add(name);
+
+            String icon = IDlnaCallback.mIconmap.get(key);
+            icon_list.add(icon);
         }
 
         final String[] str_uuid_list = uuid_list.toArray(new String[uuid_list.size()]);
         final String[] str_dev_list = dev_list.toArray(new String[dev_list.size()]);
 
+        List<Map<String, Object>> list = new ArrayList<>();
+        for (int i=0;i<str_uuid_list.length;i++) {
+            Map<String, Object> dev = new HashMap<>();
+            dev.put("uuid", uuid_list.get(i));
+            dev.put("title", dev_list.get(i));
+            dev.put("icon", icon_list.get(i));
+            list.add(dev);
+        }
+        DMRAdapter adapter = new DMRAdapter(ClipListActivity.this, list, R.layout.dmr_device);
+
         Dialog choose_device_dlg = new AlertDialog.Builder(ClipListActivity.this)
                 .setTitle("选择dlna推送设备")
-                .setItems(str_dev_list,
+                /*.setItems(str_dev_list,
                         new DialogInterface.OnClickListener() {
                             public void onClick(DialogInterface dialog, int whichButton) {
 
@@ -2532,7 +2549,32 @@ public class ClipListActivity extends AppCompatActivity implements
                                 else
                                     push_cdn_clip();
                             }
-                        })
+                        })*/
+                .setAdapter(adapter, new DialogInterface.OnClickListener() {
+                    public void onClick(DialogInterface dialog, int whichButton) {
+
+                        mDlnaDeviceUUID = str_uuid_list[whichButton];
+                        mDlnaDeviceName = str_dev_list[whichButton];
+
+                        if (mPlayUrl.startsWith("http://127.0.0.1")) {
+                            int link = Integer.valueOf(et_playlink.getText().toString());
+                            int ft = Integer.valueOf(btn_ft.getText().toString());
+                            new EPGTask().execute(EPG_ITEM_CDN, link, ft, 1);
+                            dialog.cancel();
+                            return;
+                        }
+
+                        if (mPlayUrl.startsWith("/") || mPlayUrl.startsWith("file://"))
+                            mDLNAPushUrl = mDLNA.GetServerFileUrl(mPlayUrl);
+                        else
+                            mDLNAPushUrl = mPlayUrl;
+
+                        if (mDLNAPushUrl.endsWith(".apk"))
+                            push_install_apk();
+                        else
+                            push_cdn_clip();
+                    }
+                })
                 .setNegativeButton("取消", null)
                 .create();
         choose_device_dlg.show();

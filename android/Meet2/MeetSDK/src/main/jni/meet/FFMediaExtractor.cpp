@@ -100,7 +100,6 @@ void android_media_MediaExtractor_setSubtitleParser(JNIEnv *env, jobject thiz, j
 	if (paser)
 		p = (ISubtitles*)env->GetLongField(paser, is);
 
-	PPLOGI("111111111111");
 	IExtractor* extractor = getMediaExtractor(env, thiz);
 	if (extractor == NULL ) {
 		PPLOGE("failed to get ffextractor");
@@ -108,9 +107,7 @@ void android_media_MediaExtractor_setSubtitleParser(JNIEnv *env, jobject thiz, j
 		return;
 	}
 
-	PPLOGI("222222222222");
 	extractor->setISubtitle(p);
-	PPLOGI("3333333333");
 }
 
 jboolean android_media_MediaExtractor_advance(JNIEnv *env, jobject thiz)
