@@ -1,0 +1,4 @@
+player_path=D:/software/ffmpeg/bin/ffplay.exe
+#cctv 1, weishi 2, shanghai 4, radio 5 
+cid=4
+player_opt=-vf setdar=dar=16/9 -fs

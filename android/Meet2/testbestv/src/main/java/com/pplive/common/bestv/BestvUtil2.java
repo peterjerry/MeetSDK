@@ -327,7 +327,7 @@ public class BestvUtil2 {
             int errorcode = root.getInt("errorcode");
             if (errorcode != 0) {
                 String message = root.optString("message");
-                LogUtil.info(TAG, String.format(Locale.US,
+                LogUtil.error(TAG, String.format(Locale.US,
                         "failed to init bestv api: %d(msg: %s)",
                         errorcode, message));
                 return null;
@@ -398,6 +398,7 @@ public class BestvUtil2 {
             conn.setRequestProperty("version", "2.1.4");
 
             conn.setRequestMethod("POST");
+            conn.setDoOutput(true);
             if (params != null) {
                 byte[] bypes = params.getBytes();
                 conn.getOutputStream().write(bypes);// 输入参数
