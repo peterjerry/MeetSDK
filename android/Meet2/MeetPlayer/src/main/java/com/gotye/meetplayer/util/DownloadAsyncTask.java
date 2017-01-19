@@ -6,6 +6,9 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.net.HttpURLConnection;
+import java.net.MalformedURLException;
+import java.net.URL;
 
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
@@ -16,96 +19,130 @@ import org.apache.http.client.methods.HttpGet;
 import org.apache.http.impl.client.DefaultHttpClient;
 
 import android.os.AsyncTask;
-import android.util.Log;
+
+import com.gotye.common.util.LogUtil;
 
 public class DownloadAsyncTask extends AsyncTask<String, Integer, Boolean> {
-	
-	private static final String TAG = "DownloadAsyncTask";
-	
-	protected static final String MSG_DOWNLOAD_SUCCESS = "Download Success!!!";
-	protected static final String MSG_DOWNLOAD_FAILED = "Download Failed!!!";
-	
-	@Override
-	protected Boolean doInBackground(String... params) {
-		Log.i(TAG, "doInBackground");
-	
-		String url = params[0];
-		String path = params[1];
-		
-		boolean ret = false;
-		OutputStream os = null;
-		InputStream is = null;
 
-		HttpClient client = new DefaultHttpClient();
-		HttpGet httpGet = null;
+    private static final String TAG = "DownloadAsyncTask";
 
-		File file = new File(path);
-		if (file.getParentFile().exists() || !file.getParentFile().exists()
-				&& file.getParentFile().mkdirs()) {
-			try {
-				// File Stream
-				os = new FileOutputStream(file);
+    protected static final String MSG_DOWNLOAD_SUCCESS = "download successfully";
+    protected static final String MSG_DOWNLOAD_FAILED = "failed to download!!!";
 
-				// Http
-				httpGet = new HttpGet(url);
-				HttpResponse rep = client.execute(httpGet);
+    private boolean mbDownloadFile = true;
+    protected boolean mInterrupted = false;
 
-				int status = rep.getStatusLine().getStatusCode();
+    public void interrupt() {
+        mInterrupted = true;
+    }
 
-				if (status >= HttpStatus.SC_OK
-						&& status <= HttpStatus.SC_MULTIPLE_CHOICES) {
-					
-					HttpEntity entity = rep.getEntity();
-					is = entity.getContent();
-					
-					long totalSize = entity.getContentLength();
-					long totalReadSize = 0;
+    @Override
+    protected Boolean doInBackground(String... params) {
+        LogUtil.info(TAG, "doInBackground");
 
-					byte[] buf = new byte[1024 * 1024]; // buffer size: 1MB;
-					int readSize = 0;
-					while ((readSize = is.read(buf)) > 0) {
-						os.write(buf, 0, readSize);
-						totalReadSize += readSize;
-						publishProgress((int)((totalReadSize * 100) / totalSize));
-					}
+        String url = params[0];
+        String path = params[1];
 
-					ret = true;
-				} else {
-					Log.e(TAG, rep.getStatusLine().toString());
-				}
-			} catch (FileNotFoundException e) {
-				Log.e(TAG, e.toString());
-			} catch (ClientProtocolException e) {
-				Log.e(TAG, e.toString());
-			} catch (IOException e) {
-				Log.e(TAG, e.toString());
-			} finally {
-				try {
-					if (os != null) {
-						os.close();
-						os = null;
-					}
+        boolean ret = false;
+        int bytesum = 0;
+        int byteread = 0;
 
-					if (is != null) {
-						is.close();
-						os = null;
-					}
-				} catch (IOException e) {
-					Log.w(TAG, e.toString());
-				}
+        File file = null;
+        FileOutputStream fs = null;
+        InputStream inStream = null;
 
-				// Clean
-				if (!ret && file != null) {
-					file.delete();
-				}
-				
-				client.getConnectionManager().shutdown();
-				
-				Log.i(TAG, ret ? MSG_DOWNLOAD_SUCCESS : MSG_DOWNLOAD_FAILED);
-			}
-		}
+        URL httpUrl = null;
+        try {
+            httpUrl = new URL(url);
+        } catch (MalformedURLException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+            return false;
+        }
 
-		return ret;
-	}
+        try {
+            HttpURLConnection conn = (HttpURLConnection) httpUrl.openConnection();
+            conn.setConnectTimeout(3000);
+            conn.setReadTimeout(3000);
+            conn.setInstanceFollowRedirects(true);
+
+            inStream = conn.getInputStream();
+            file = new File(path);
+            if (!file.getParentFile().exists() && !file.getParentFile().mkdirs()) {
+                LogUtil.error(TAG, "cannot create parent folder: " + file.getParentFile().getAbsolutePath());
+                return false;
+            }
+
+            fs = new FileOutputStream(file);
+
+            long totalSize = Long.parseLong(conn.getHeaderField("Content-Length"));
+
+            long total_start_time = System.currentTimeMillis();
+            long start_time = System.currentTimeMillis();
+
+            byte[] buffer = new byte[4096];
+            while ((byteread = inStream.read(buffer)) != -1) {
+                if (mInterrupted) {
+                    LogUtil.warn(TAG, "interrupted by user");
+                    break;
+                }
+
+                bytesum += byteread;
+                fs.write(buffer, 0, byteread);
+
+                // calc speed
+                long current_time = System.currentTimeMillis();
+                long elapsed_time = current_time - start_time;
+
+                if (elapsed_time > 1000) { // 1sec
+                    long total_elapsed_time = current_time - total_start_time;
+                    int speed = (int)(bytesum / total_elapsed_time); // kB/s
+                    int pct = (int)((bytesum * 100) / totalSize);
+                    publishProgress(pct, speed);
+
+                    start_time = current_time;
+                }
+            }
+
+            ret = !mInterrupted;
+
+            if (!mInterrupted)
+                LogUtil.info(TAG, "Java: total file size: " + bytesum);
+        } catch (IOException e) {
+            e.printStackTrace();
+        } finally {
+            try {
+                LogUtil.info(TAG, "before close inStream");
+                if (inStream != null) {
+                    inStream.close();
+                }
+
+                LogUtil.info(TAG, "before close fs");
+                if (fs != null) {
+                    try {
+                        fs.close();
+                    } catch (IOException e) {
+                        // TODO Auto-generated catch block
+                        e.printStackTrace();
+                    }
+                }
+
+                LogUtil.info(TAG, "after close fs");
+            } catch (IOException e) {
+                LogUtil.warn(TAG, "IOException: " + e.toString());
+            }
+
+            // Clean
+            if (!ret && file != null) {
+                LogUtil.info(TAG, "delete interrupted download file: " + file.getAbsolutePath());
+                file.delete();
+            }
+
+            //client.getConnectionManager().shutdown();
+        }
+
+        LogUtil.info(TAG, "task end");
+        return ret;
+    }
 
 }

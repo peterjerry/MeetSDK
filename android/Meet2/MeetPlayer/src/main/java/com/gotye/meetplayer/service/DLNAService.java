@@ -2,6 +2,7 @@ package com.gotye.meetplayer.service;
 
 import java.util.Map;
 
+import com.gotye.common.util.LogUtil;
 import com.pplive.dlna.DLNASdk;
 import com.gotye.meetplayer.util.IDlnaCallback;
 
@@ -36,13 +37,13 @@ public class DLNAService extends Service {
 	@Override
 	public IBinder onBind(Intent intent) {
 		// TODO Auto-generated method stub
-		Log.i(TAG, "Java: DLNAService onBind()");
+		LogUtil.info(TAG, "Java: DLNAService onBind()");
 		return binder;
 	}
 	
 	@Override  
-    public void onCreate() {  
-        Log.i(TAG, "Java: DLNAService onCreate");  
+    public void onCreate() {
+		LogUtil.info(TAG, "Java: DLNAService onCreate");
         super.onCreate();
         
         new Thread() {

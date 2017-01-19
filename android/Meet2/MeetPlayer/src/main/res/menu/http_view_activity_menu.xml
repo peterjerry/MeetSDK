@@ -6,5 +6,9 @@
         android:id="@+id/select_player_impl"
         android:orderInCategory="1"
         android:title="选择播放器类型"/>
+	<item
+		android:id="@+id/download_file"
+		android:orderInCategory="2"
+		android:title="下载"/>
 
 </menu>

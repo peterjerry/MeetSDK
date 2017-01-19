@@ -2,11 +2,13 @@ package com.gotye.meetplayer.activity;
 
 import android.app.AlertDialog;
 import android.app.Dialog;
+import android.app.ProgressDialog;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.os.Environment;
 import android.support.v7.app.AppCompatActivity;
 import android.view.Menu;
 import android.view.MenuInflater;
@@ -25,7 +27,11 @@ import com.gotye.common.ZGUrl;
 import com.gotye.common.util.LogUtil;
 import com.gotye.common.youku.YKUtil;
 import com.gotye.meetplayer.R;
+import com.gotye.meetplayer.util.DownloadAsyncTask;
 import com.gotye.meetplayer.util.Util;
+
+import java.io.UnsupportedEncodingException;
+import java.net.URLDecoder;
 
 public class HttpViewerActivity extends AppCompatActivity {
 	private final static String TAG = "HttpViewerActivity";
@@ -37,6 +43,9 @@ public class HttpViewerActivity extends AppCompatActivity {
     private int mPlayerImpl = 1;
     private String initUrl;
     private String lastUrl;
+
+    private boolean mbDownload = false;
+    private String mDownloadLocalFolder;
 
     private final String[] urls = new String[] {
             "youku.com",
@@ -98,11 +107,16 @@ public class HttpViewerActivity extends AppCompatActivity {
                         url.endsWith("rmvb") || url.endsWith("rm") ||
                         url.endsWith("wav") || url.endsWith("m3u8") ||
                         url.startsWith("rtmp://") || url.startsWith("rtsp://")) {
-                    Intent intent = new Intent(HttpViewerActivity.this, VideoPlayerActivity.class);
-                    intent.setData(Uri.parse(url));
-                    intent.putExtra("impl", mPlayerImpl);
-                    intent.putExtra("title", "N/A");
-                    startActivity(intent);
+                    if (mbDownload) {
+                        downloadFile(url);
+                    }
+                    else {
+                        Intent intent = new Intent(HttpViewerActivity.this, VideoPlayerActivity.class);
+                        intent.setData(Uri.parse(url));
+                        intent.putExtra("impl", mPlayerImpl);
+                        intent.putExtra("title", "N/A");
+                        startActivity(intent);
+                    }
                     return true;
                 }
                 else if (url.contains("v.youku.com")) {
@@ -133,6 +147,13 @@ public class HttpViewerActivity extends AppCompatActivity {
         });
 
         Util.checkNetworkType(this);
+
+        String folder = Util.readSettings(this, "download_folder");
+        if (folder.isEmpty())
+            mDownloadLocalFolder = Environment.getExternalStorageDirectory().getAbsolutePath() +
+                    "/test2";
+        else
+            mDownloadLocalFolder = folder;
 	}
 
     @Override
@@ -149,6 +170,10 @@ public class HttpViewerActivity extends AppCompatActivity {
             case R.id.select_player_impl:
                 popSelectPlayer();
                 break;
+            case R.id.download_file:
+                mbDownload = !mbDownload;
+                Toast.makeText(this, "下载文件 " + (mbDownload ? "开" : "关"), Toast.LENGTH_SHORT).show();
+                break;
             default:
                 break;
         }
@@ -164,6 +189,63 @@ public class HttpViewerActivity extends AppCompatActivity {
         }
 
         super.onBackPressed();
+    }
+
+    private void downloadFile(String url) {
+        int pos = url.lastIndexOf("/");
+        String filename = url.substring(pos + 1);
+        String decoded_filename;
+        try {
+            decoded_filename = URLDecoder.decode(filename, "gb18030");
+        } catch (UnsupportedEncodingException e) {
+            e.printStackTrace();
+            return;
+        }
+
+        final String savePath = mDownloadLocalFolder + "/" + decoded_filename;
+        LogUtil.info(TAG, "to download file: " + savePath);
+
+        DownloadAsyncTask downloadTask = new DownloadAsyncTask() {
+
+            private ProgressDialog progressDialog;
+
+            @Override
+            protected void onPreExecute() {
+                progressDialog = new ProgressDialog(HttpViewerActivity.this);
+                progressDialog.setTitle("文件下载...");
+                progressDialog.setMessage("文件\n下载进度: ");
+                progressDialog.setProgressStyle(ProgressDialog.STYLE_HORIZONTAL);
+                progressDialog.setMax(100);
+                progressDialog.setIndeterminate(false);
+                progressDialog.setOnCancelListener(new DialogInterface.OnCancelListener() {
+                    @Override
+                    public void onCancel(DialogInterface dialog) {
+                        interrupt();
+                    }
+                });
+                progressDialog.setCancelable(true);
+                progressDialog.show();
+            }
+
+            @Override
+            protected void onPostExecute(Boolean result) {
+                progressDialog.dismiss();
+
+                Toast.makeText(HttpViewerActivity.this,
+                        "文件下载" + (result ? "成功" : "失败"), Toast.LENGTH_SHORT).show();
+            }
+
+            @Override
+            protected void onProgressUpdate(Integer... values) {
+                int progress = values[0];
+                int kB_sec = values[1];
+                progressDialog.setMessage(String.format("文件 %s\n下载进度: %d%%\n下载速度: %d kB/s",
+                        savePath, progress, kB_sec));
+                progressDialog.setProgress(progress);
+            }
+        };
+
+        downloadTask.execute(url, savePath);
     }
 
     private void popSelectPlayer() {

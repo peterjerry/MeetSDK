@@ -1120,9 +1120,9 @@ public class ClipListActivity extends AppCompatActivity implements
         } else if (1 == mPlayerImpl) {
             mDecMode = DecodeMode.HW_SYSTEM;
         } else if (2 == mPlayerImpl) {
-            boolean canPlay = false;
+            boolean canPlay = true;
 
-            if (path.startsWith("/") || path.startsWith("file://")) {
+            /*if (path.startsWith("/") || path.startsWith("file://")) {
                 MediaInfo info = MeetSDK.getMediaDetailInfo(path);
                 if (info != null) {
                     if (info.getVideoCodecName() != null &&
@@ -1140,7 +1140,7 @@ public class ClipListActivity extends AppCompatActivity implements
             } else {
                 // http://, rtmp://, etc...
                 canPlay = true;
-            }
+            }*/
 
             String fileName = "N/A";
             int index;
@@ -2415,7 +2415,7 @@ public class ClipListActivity extends AppCompatActivity implements
         @Override
         protected void onPreExecute() {
             progDlg = new ProgressDialog(ClipListActivity.this);
-            progDlg.setMessage("Loading clips");
+            progDlg.setMessage("加载视频文件列表...");
             progDlg.setCancelable(true);
             progDlg.show();
         }

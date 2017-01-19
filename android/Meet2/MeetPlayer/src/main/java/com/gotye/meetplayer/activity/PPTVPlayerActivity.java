@@ -73,31 +73,6 @@ public class PPTVPlayerActivity extends VideoPlayerActivity {
 		super.onPause();
 	}
 
-    @Override
-    protected void onSwitchBW() {
-        pre_seek_msec = mVideoView.getCurrentPosition() - 5000;
-        if (pre_seek_msec < 0)
-            pre_seek_msec = 0;
-
-        if (mIsVip) {
-            mProgressDlg.setMessage("码流切换中...");
-            mProgressDlg.setCancelable(false);
-            mProgressDlg.show();
-
-            new EpisodeTask().execute(TASK_ITEM_CDN_URL, mPlaylink);
-        }
-        else {
-            String old_url = mUri.toString();
-            int pos = old_url.indexOf("%3Fft%3D");
-            if (pos != -1) {
-                String old_ft = old_url.substring(pos, pos + "%3Fft%3D".length() + 1);
-                String new_ft = "%3Fft%3D" + mFt;
-                mUri = Uri.parse(old_url.replace(old_ft, new_ft));
-                mHandler.sendEmptyMessage(MainHandler.MSG_RESTART_PLAYER);
-            }
-        }
-    }
-
 	@Override
 	protected void onCompleteImpl() {
         if (mPlaylink != -1 && (mPlaylink < 300000 || mPlaylink > 400000)) {

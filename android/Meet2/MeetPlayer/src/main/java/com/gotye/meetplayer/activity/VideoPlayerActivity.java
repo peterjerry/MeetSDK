@@ -412,7 +412,18 @@ public class VideoPlayerActivity extends AppCompatActivity
     }
 
     protected void onSwitchBW() {
+        pre_seek_msec = mVideoView.getCurrentPosition() - 5000;
+        if (pre_seek_msec < 0)
+            pre_seek_msec = 0;
 
+        String old_url = mUri.toString();
+        int pos = old_url.indexOf("%3Fft%3D");
+        if (pos != -1) {
+            String old_ft = old_url.substring(pos, pos + "%3Fft%3D".length() + 1);
+            String new_ft = "%3Fft%3D" + mFt;
+            mUri = Uri.parse(old_url.replace(old_ft, new_ft));
+            mHandler.sendEmptyMessage(MainHandler.MSG_RESTART_PLAYER);
+        }
     }
 
     private void popupSelectFT() {
