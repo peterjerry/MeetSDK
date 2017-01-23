@@ -44,8 +44,8 @@ public class DownloadAsyncTask extends AsyncTask<String, Integer, Boolean> {
         String path = params[1];
 
         boolean ret = false;
-        int bytesum = 0;
-        int byteread = 0;
+        long bytesum = 0;
+        int byteread;
 
         File file = null;
         FileOutputStream fs = null;
@@ -76,6 +76,7 @@ public class DownloadAsyncTask extends AsyncTask<String, Integer, Boolean> {
             fs = new FileOutputStream(file);
 
             long totalSize = Long.parseLong(conn.getHeaderField("Content-Length"));
+            LogUtil.info(TAG, "Content-Length: " + totalSize);
 
             long total_start_time = System.currentTimeMillis();
             long start_time = System.currentTimeMillis();

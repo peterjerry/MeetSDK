@@ -203,7 +203,7 @@ public class HttpViewerActivity extends AppCompatActivity {
         }
 
         final String savePath = mDownloadLocalFolder + "/" + decoded_filename;
-        LogUtil.info(TAG, "to download file: " + savePath);
+        LogUtil.info(TAG, "to download url: " + url + ", save as: " + savePath);
 
         DownloadAsyncTask downloadTask = new DownloadAsyncTask() {
 

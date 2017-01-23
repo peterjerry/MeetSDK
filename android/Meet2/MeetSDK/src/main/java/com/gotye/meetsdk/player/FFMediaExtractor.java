@@ -142,4 +142,7 @@ public class FFMediaExtractor implements MediaExtractable {
 
 	@Override
 	public native int decodeAudio(ByteBuffer inBuf, int inSize, ByteBuffer outBuf);
+
+	@Override
+	public native int getBitrate();
 }

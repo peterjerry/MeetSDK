@@ -170,6 +170,23 @@ jlong android_media_MediaExtractor_getSampleTime(JNIEnv *env, jobject thiz)
 	return usec;
 }
 
+jint android_media_MediaExtractor_getBitrate(JNIEnv *env, jobject thiz)
+{
+	PPLOGI("getBitrate()");
+
+	IExtractor* extractor = getMediaExtractor(env, thiz);
+	if (extractor == NULL ) {
+		jniThrowException(env, "java/lang/IllegalStateException", NULL);
+		return UNKNOWN_ERROR;
+	}
+
+	int32_t kbps = 0;
+	if (OK == extractor->getBitrate(&kbps))
+		return kbps;
+
+	return 0;
+}
+
 jint android_media_MediaExtractor_getSampleTrackIndex(JNIEnv *env, jobject thiz)
 {
 	IExtractor* extractor = getMediaExtractor(env, thiz);
@@ -350,7 +367,7 @@ jboolean android_media_MediaExtractor_getTrackFormatNative(JNIEnv *env, jobject 
 		uint8_t *csd_0 = (uint8_t *)malloc(native_format.csd_0_size);
 		memcpy(csd_0, native_format.csd_0, native_format.csd_0_size);
 		jobject bb_csd0 = env->NewDirectByteBuffer(csd_0, native_format.csd_0_size);
-		env->CallVoidMethod(mediaformat, midSetByteBuffer, env->NewStringUTF("csd-0"), bb_csd0); // sps
+		env->CallVoidMethod(mediaformat, midSetByteBuffer, env->NewStringUTF("csd-0"), bb_csd0); // latm
 	}
 	else if (PPMEDIA_TYPE_SUBTITLE == native_format.media_type) {
 		const char *mime_str = "subtitle/other";
@@ -782,6 +799,7 @@ static JNINativeMethod gExtractorMethods[] = {
 	{"getTrackCount",       "()I",		(void *)android_media_MediaExtractor_getTrackCount},
 	{"getTrackFormatNative",       "(ILandroid/media/MediaFormat;)Z",
 		(void *)android_media_MediaExtractor_getTrackFormatNative},
+	{"getBitrate",       "()I",		(void *)android_media_MediaExtractor_getBitrate},
 	{"hasCachedReachedEndOfStream",       "()Z",		(void *)android_media_MediaExtractor_hasCachedReachedEndOfStream},
 	{"readSampleData",       "(Ljava/nio/ByteBuffer;I)I",		(void *)android_media_MediaExtractor_readSampleData},
 	{"setVideoAhead",	"(I)V",		(void *)android_media_MediaExtractor_setVideoAhead},

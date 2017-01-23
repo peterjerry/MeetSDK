@@ -1235,8 +1235,10 @@ status_t FFExtractor::getBitrate(int32_t *kbps)
 			duration_msec = 100;
 		*kbps = (int)((double)(size * 8) / (double)m_video_clock_msec);
 	}
+	else {
+		*kbps = 0;
+	}
 
-	*kbps = 0;
 	return OK;
 }
 

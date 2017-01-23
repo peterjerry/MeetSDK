@@ -58,4 +58,7 @@ public interface MediaExtractable {
     int readPacket(int stream_index, ByteBuffer byteBuf, int offset);
 
 	int decodeAudio(ByteBuffer inBuf, int inSize, ByteBuffer outBuf);
+
+    // kbps
+	int getBitrate();
 }

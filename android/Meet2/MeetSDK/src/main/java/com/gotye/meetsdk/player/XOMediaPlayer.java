@@ -478,17 +478,27 @@ public class XOMediaPlayer extends BaseMediaPlayer {
 				mime = mime.toLowerCase();
 			}
 
-			if (!mHaveAudio && mime.startsWith("audio/")) {
-				setAudioFormat(format);
-				mAudioTrackIndex = index;
-				LogUtils.info("Java: mAudioTrackIndex: " + mAudioTrackIndex);
-				mHaveAudio = true;
-                mAudioAAC = mime.equals("audio/mp4a-latm");
-			} else if (!mHaveVideo && mime.startsWith("video/")) {
-				setVideoFormat(format);
-				mVideoTrackIndex = index;
-				LogUtils.info("Java: mVideoTrackIndex: " + mVideoTrackIndex);
-				mHaveVideo = true;
+			if (mime.startsWith("audio/")) {
+                if (!mHaveAudio) {
+                    setAudioFormat(format);
+                    mAudioTrackIndex = index;
+                    LogUtils.info("Java: mAudioTrackIndex: " + mAudioTrackIndex);
+                    mHaveAudio = true;
+                    mAudioAAC = mime.equals("audio/mp4a-latm");
+                }
+                else {
+                    LogUtils.info("Java: audio stream already select");
+                }
+			} else if (mime.startsWith("video/")) {
+                if (!mHaveVideo) {
+                    setVideoFormat(format);
+                    mVideoTrackIndex = index;
+                    LogUtils.info("Java: mVideoTrackIndex: " + mVideoTrackIndex);
+                    mHaveVideo = true;
+                }
+                else {
+                    LogUtils.info("Java: video stream already select");
+                }
 			} else if (mime.startsWith("subtitle/")) {
                 mSubtitleMime = mime;
                 mSubtitleTrackIndex = index;
@@ -501,14 +511,10 @@ public class XOMediaPlayer extends BaseMediaPlayer {
 
 			if (mHaveAudio && mHaveVideo && mHaveSubtitle) {
                 // enough stream info
+                LogUtils.info("Java: a/v/s stream all selected");
 				break;
 			}
 		}
-
-		/*if (!mHaveAudio || !mHaveVideo) {
-			LogUtils.error("Java: ONLY support play media which has both video and audio stream");
-			return false;
-		}*/
 
 		if (!mHaveAudio && !mHaveVideo) {
 			LogUtils.error("Java: neither video nor audio stream NOT existed");
@@ -1364,6 +1370,16 @@ public class XOMediaPlayer extends BaseMediaPlayer {
 						msg.arg2 = (int) mRenderedFrameCnt;
 						msg.sendToTarget();
 					}
+
+                    if (mDecodedFrameCnt % 10 == 0) {
+                        int kbps = mExtractor.getBitrate();
+
+                        msg = mEventHandler
+                                .obtainMessage(MediaPlayer.MEDIA_INFO);
+                        msg.arg1 = MediaPlayer.MEDIA_INFO_TEST_MEDIA_BITRATE;
+                        msg.arg2 = kbps;
+                        msg.sendToTarget();
+                    }
 
 					long schedule_msec = mFrameTimerMsec
 							- System.currentTimeMillis();
