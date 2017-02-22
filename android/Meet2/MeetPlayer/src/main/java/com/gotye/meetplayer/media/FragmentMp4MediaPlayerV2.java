@@ -38,6 +38,9 @@ public class FragmentMp4MediaPlayerV2 {
 	private boolean mSeeking;
 	private int mStreamType;
 
+	private boolean mCurrPlayerCompleted = false;
+    private boolean mNextPlayerReady = false;
+
 	private int mTotalPlayer = 0;
 
 	private static final int SYSTEM_PLAYER  = 1;
@@ -417,10 +420,19 @@ public class FragmentMp4MediaPlayerV2 {
 				mNextPlayer.setOnSeekCompleteListener(mSeekCompleteListener);
 				
 				try {
+                    mNextPlayerReady = false;
+
                     String url = m_playlink_list.get(m_playlink_now_index + 1);
                     LogUtil.info(TAG, "next_player set_play_url: " + url);
 					mNextPlayer.setDataSource(url);
 					mNextPlayer.prepare(); // must wait for prepare done to call setNextMediaPlayer
+
+                    mNextPlayerReady = true;
+					if (mCurrPlayerCompleted) {
+                        LogUtil.warn(TAG, "next player prepare READY, start next player");
+                        switchNextPlayer(mCurrentPlayer);
+                        mCurrPlayerCompleted = false;
+					}
 				} catch (Exception e) {
 					// TODO Auto-generated catch block
 					e.printStackTrace();
@@ -485,31 +497,44 @@ public class FragmentMp4MediaPlayerV2 {
 				return;
 			}
 
-			// SYSTEM player nextplay auto play ok code
-            // must release first???
-			// ffplay cannot set null Display now!
-			if (mPlayerImpl == SYSTEM_PLAYER)
-                mp.setDisplay(null);
-			mp.release();
-            mTotalPlayer--;
-            LogUtil.info(TAG, "Media Player total_count--: " + mTotalPlayer);
+            if (mNextPlayerReady) {
+                LogUtil.info(TAG, "next player prepare ready, do switch");
+                switchNextPlayer(mp);
+                mCurrPlayerCompleted = false;
+            }
+            else {
+                // wait for next player prepare ready
+                LogUtil.warn(TAG, "next player prepare NOT ready, waiting");
+                mCurrPlayerCompleted = true;
+            }
+        }
 
-            mCurrentPlayer = mNextPlayer;
-            mNextPlayer = null;
-			// system player set display HERE!
-			// XOPlayer cannot share one native window simultaneously
-			if (mPlayerImpl == SYSTEM_PLAYER || mPlayerImpl == XO_PLAYER)
-				mCurrentPlayer.setDisplay(mHolder);
-            if (mPlayerImpl == XO_PLAYER || mPlayerImpl == FF_PLAYER)
-                mCurrentPlayer.start(); // ffplay MUST start manually
+    };
 
-            LogUtil.info(TAG, "Java: switch to next segment #" + m_playlink_now_index);
+    private void switchNextPlayer(MediaPlayer mp) {
+        // SYSTEM player nextplay auto play ok code
+        // must release first???
+        // ffplay cannot set null Display now!
+        if (mPlayerImpl == SYSTEM_PLAYER)
+            mp.setDisplay(null);
+        mp.release();
+        mTotalPlayer--;
+        LogUtil.info(TAG, "Media Player total_count--: " + mTotalPlayer);
 
-            process_next_player(false);
-		}
-		
-	};
-	
+        mCurrentPlayer = mNextPlayer;
+        mNextPlayer = null;
+        // system player set display HERE!
+        // XOPlayer cannot share one native window simultaneously
+        if (mPlayerImpl == SYSTEM_PLAYER || mPlayerImpl == XO_PLAYER)
+            mCurrentPlayer.setDisplay(mHolder);
+        if (mPlayerImpl == XO_PLAYER || mPlayerImpl == FF_PLAYER)
+            mCurrentPlayer.start(); // ffplay MUST start manually
+
+        LogUtil.info(TAG, "Java: switch to next segment #" + m_playlink_now_index);
+
+        process_next_player(false);
+    }
+
 	private MediaPlayer.OnPreparedListener mPreparedListener = new MediaPlayer.OnPreparedListener() {
 
 		@Override

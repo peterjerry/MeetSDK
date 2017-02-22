@@ -281,14 +281,24 @@ public class PPTVEpisodeActivity extends AppCompatActivity {
                 PlayLink2 ep = ep_list.get(0);
 
                 String video_id = ep.getId();
-                String episode_title = ep.getTitle();
+                final String episode_title = ep.getTitle();
 
                 if (action == TASK_DETAIL) {
-                    final String desc = ep.getDescription();
+                    final String content;
+                    String desc = ep.getDescription();
+                    String intro = mEPG.getEpIntro(mAlbumId, episode_index);
+                    if (!TextUtils.isEmpty(intro)) {
+                        content = intro;
+                    }
+                    else {
+                        content = desc;
+                    }
+
                     PPTVEpisodeActivity.this.runOnUiThread(new Runnable() {
                         @Override
                         public void run() {
-                            mTvDesc.setText("剧情介绍: " + desc);
+                            setTitle(episode_title);
+                            mTvDesc.setText("剧情介绍: " + content);
                         }
                     });
                 }

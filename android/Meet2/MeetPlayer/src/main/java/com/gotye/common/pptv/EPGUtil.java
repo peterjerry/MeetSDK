@@ -114,6 +114,9 @@ public class EPGUtil {
 			"&start=%s" + // 2015-09-08
 			"&appid=com.pplive.androidphone" +
 			"&appver=5.2.1&appplt=aph&recommend=0";
+
+	private final static String epintro_url_fmt = "http://epg.api.pptv.com/epintro.api" +
+            "?pid=%s&episode=%d"; // http://epg.api.pptv.com/epintro.api?pid=9042133&episode=18
 	
 	private List<Content> mContentList;
 	private List<Module> mModuleList;
@@ -1173,7 +1176,52 @@ public class EPGUtil {
 		
 		return false;
 	}
-	
+
+    public String getEpIntro(String pid, int ep_index) {
+        String url = String.format(epintro_url_fmt, pid, ep_index + 1);
+
+        LogUtil.info(TAG, "Java: epg getEpIntro() " + url);
+
+        HttpGet request = new HttpGet(url);
+        HttpResponse response;
+
+        try {
+            response = new DefaultHttpClient().execute(request);
+            if (response.getStatusLine().getStatusCode() != 200){
+                LogUtil.error(TAG, "failed to connect to epg server");
+                return null;
+            }
+
+//            <root>
+//              <pid>9042133</pid>
+//              <title>三生三世杨幂CUT</title>
+//              <detail>
+//                  <content episode="18">夜华视察长海水兵,发现叠风自昆仑虚下山后,报仇。</content>
+//              </detail>
+//            </root>
+
+            String result = EntityUtils.toString(response.getEntity());
+            SAXBuilder builder = new SAXBuilder();
+            Reader returnQuote = new StringReader(result);
+            Document doc = builder.build(returnQuote);
+            Element root = doc.getRootElement();
+            String str_pid = root.getChild("pid").getText();
+            String str_title = root.getChild("title").getText();
+            String str_ep = root.getChild("detail").getChild("content").getAttributeValue("episode");
+            String str_content = root.getChild("detail").getChildText("content");
+
+            LogUtil.info(TAG, String.format("Java: pid %s, title %s, ep %s, content %s",
+                    str_pid, str_title, str_ep, str_content));
+
+            return str_content;
+        } catch (Exception e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        }
+
+        return null;
+    }
+
 	private String getChildText(Element e, String cname) {
 		String text = "";
 		if (e.getChild(cname) != null)
